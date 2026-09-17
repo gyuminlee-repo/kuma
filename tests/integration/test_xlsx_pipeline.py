@@ -3,7 +3,8 @@
 Spec: notes/architecture/2026-05-06-v0.3-phase-ab-interfaces.md §6
 
 Scenarios A–H using real xlsx files from KUMA_TEST_DATA_DIR.
-All tests are skipped when KUMA_TEST_DATA_DIR is not set or does not exist.
+External-data scenarios are skipped when KUMA_TEST_DATA_DIR is unavailable.
+Synthetic label-swap integration cases always run using temporary workbooks.
 
 Usage:
     KUMA_TEST_DATA_DIR=<path_to_NGS_260212_dir> \\
@@ -17,13 +18,12 @@ empirical measurement — do not hard-code; these are verified assertions):
   D. IspS_round1_Ep → 96 total (95 non-WT + 'WT') [spec said 95, actual 96]
   E. 260327_Ep_R1   → AGILENT_STANDARD format (not rep_batch); confirmed 71
   F. variant pattern → all non-WT short variants match \\d+[A-Z]
-  G. label-swap     → soft assertion pending sample-name format alignment
+  G. external-data smoke only; synthetic workbooks prove swap detection
   H. xlsx export    → ≤34 rows, correct headers
 """
 
 from __future__ import annotations
 
-import logging
 import os
 import re
 import tempfile
@@ -38,8 +38,8 @@ import pytest
 _DATA_DIR_ENV = "KUMA_TEST_DATA_DIR"
 _DATA_DIR = os.environ.get(_DATA_DIR_ENV)
 
-# All tests in this module require the env var.
-pytestmark = pytest.mark.skipif(
+# Only the external-data scenarios require the env var.
+requires_real_data = pytest.mark.skipif(
     not _DATA_DIR or not Path(_DATA_DIR).exists(),
     reason=f"{_DATA_DIR_ENV} not set or directory does not exist",
 )
@@ -55,6 +55,7 @@ def _data(filename: str) -> Path:
 # Scenario A: plate layout parsing
 # ---------------------------------------------------------------------------
 
+@requires_real_data
 def test_scenario_a_plate_layout():
     """Scenario A: mutants-well position.xlsx → ≥35 entries, exactly 1 WT row."""
     from kuma_core.mame.activity.plate_layout_xlsx import parse_plate_layout_xlsx
@@ -73,6 +74,7 @@ def test_scenario_a_plate_layout():
 # Scenario B: relative_only parsing
 # ---------------------------------------------------------------------------
 
+@requires_real_data
 def test_scenario_b_relative_only():
     """Scenario B: GC data.xlsx → ≥30 records, all is_relative=True."""
     from kuma_core.mame.activity.evolvepro_xlsx import parse_relative_only
@@ -90,6 +92,7 @@ def test_scenario_b_relative_only():
 # Scenario C: agilent_standard parsing
 # ---------------------------------------------------------------------------
 
+@requires_real_data
 def test_scenario_c_agilent_standard():
     """Scenario C: 251001_report.xlsx → ≥95 records, calibration rows skipped."""
     from kuma_core.mame.activity.evolvepro_xlsx import parse_agilent_standard
@@ -113,6 +116,7 @@ def test_scenario_c_agilent_standard():
 # Scenario D: EVOLVEpro read
 # ---------------------------------------------------------------------------
 
+@requires_real_data
 def test_scenario_d_evolvepro_read():
     """Scenario D: IspS_round1_Ep.xlsx → 95 non-WT + possibly 'WT', all values numeric."""
     from kuma_core.mame.activity.evolvepro_xlsx import read_evolvepro_xlsx
@@ -131,6 +135,7 @@ def test_scenario_d_evolvepro_read():
 # Scenario E: agilent format detection + standard parsing
 # ---------------------------------------------------------------------------
 
+@requires_real_data
 def test_scenario_e_agilent_rep_batch_format():
     """Scenario E: 260327_Ep_R1_positive.xlsx is AGILENT_REP_BATCH format.
 
@@ -140,9 +145,9 @@ def test_scenario_e_agilent_rep_batch_format():
     replicate is lost.
     """
     from kuma_core.mame.activity.evolvepro_xlsx import (
+        XlsxFormat,
         detect_format,
         parse_agilent_block_rep_batch,
-        XlsxFormat,
     )
 
     fmt = detect_format(_data("260327_Ep_R1_positive.xlsx"))
@@ -169,6 +174,7 @@ def test_scenario_e_agilent_rep_batch_format():
 # Scenario F: variant short notation pattern validation
 # ---------------------------------------------------------------------------
 
+@requires_real_data
 def test_scenario_f_variant_short_pattern():
     """Scenario F: all 95 non-WT EVOLVEpro variants match short notation \\d+[A-Z]."""
     from kuma_core.mame.activity.evolvepro_xlsx import read_evolvepro_xlsx
@@ -189,17 +195,14 @@ def test_scenario_f_variant_short_pattern():
 # Scenario G: label-swap detection
 # ---------------------------------------------------------------------------
 
-def test_scenario_g_label_swap_detection():
-    """Scenario G: layout + GC data + round1_Ep → label-swap check runs without error.
-
-    Hard assertion (≥1 error warning) requires sample-name format alignment
-    between GC data and layout. Logged for investigation when no errors found.
-    """
-    from kuma_core.mame.activity.plate_layout_xlsx import parse_plate_layout_xlsx
+@requires_real_data
+def test_scenario_g_external_data_smoke():
+    """Exercise external parsers without claiming unverified sample alignment."""
     from kuma_core.mame.activity.evolvepro_xlsx import (
         parse_relative_only,
         read_evolvepro_xlsx,
     )
+    from kuma_core.mame.activity.plate_layout_xlsx import parse_plate_layout_xlsx
     from kuma_core.mame.activity.sanity_check import detect_label_swap
 
     layout_entries = parse_plate_layout_xlsx(_data("mutants-well position.xlsx"))
@@ -221,25 +224,64 @@ def test_scenario_g_label_swap_detection():
     # detect_label_swap should complete without error.
     assert isinstance(warnings, list)
 
-    error_warnings = [w for w in warnings if w.severity == "error"]
-    if len(error_warnings) == 0:
-        logging.warning(
-            "test_scenario_g: no error-level SwapWarning detected. "
-            "activity_map size=%d (out of %d layout entries). "
-            "Sample-name format alignment between GC data and layout "
-            "may be needed for full swap detection. "
-            "Open Question: spec §9 item 2.",
-            len(activity_map),
-            len(layout),
-        )
-    # Soft assertion — logs finding for investigation without failing CI.
-    # Change to `assert len(error_warnings) >= 1` after format alignment confirmed.
+@pytest.mark.parametrize("swapped", [False, True], ids=["clean", "two-way-swap"])
+def test_label_swap_from_temporary_workbooks(tmp_path: Path, swapped: bool) -> None:
+    import openpyxl
+
+    from kuma_core.mame.activity.evolvepro_xlsx import (
+        parse_relative_only,
+        read_evolvepro_xlsx,
+        write_evolvepro_xlsx,
+        write_relative_activity_xlsx,
+    )
+    from kuma_core.mame.activity.plate_layout_xlsx import parse_plate_layout_xlsx
+    from kuma_core.mame.activity.sanity_check import detect_label_swap
+
+    # Given aligned sample names and distinct prior values, a closed swap is
+    # an error under the detector's contract; unchanged assignments are clean.
+    layout_path = tmp_path / "layout.xlsx"
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    assert sheet is not None
+    sheet.append(["Mutant", "Well Pos."])
+    sheet.append(["F10A", "A1"])
+    sheet.append(["F20G", "B1"])
+    workbook.save(layout_path)
+    workbook.close()
+    gc_path = tmp_path / "gc.xlsx"
+    ep_path = tmp_path / "previous.xlsx"
+    values = (0.75, 0.25) if swapped else (0.25, 0.75)
+    write_relative_activity_xlsx([("F10A", values[0]), ("F20G", values[1])], gc_path)
+    write_evolvepro_xlsx([("10A", 0.25), ("20G", 0.75)], ep_path)
+    entries = parse_plate_layout_xlsx(layout_path)
+    records = parse_relative_only(gc_path)
+    previous = read_evolvepro_xlsx(ep_path)
+    by_name = {record.sample_name: record.area for record in records}
+    layout = [(entry.mutant, entry.well_id) for entry in entries]
+    activity = {entry.well_id: by_name[entry.mutant] for entry in entries}
+    assert layout == [("F10A", "A01"), ("F20G", "B01")]
+    assert activity == {"A01": values[0], "B01": values[1]}
+    assert previous == {"10A": 0.25, "20G": 0.75}
+
+    warnings = detect_label_swap(layout, activity, previous)
+
+    if swapped:
+        assert len(warnings) == 1
+        warning = warnings[0]
+        assert warning.code == "label_swap_cycle"
+        assert warning.severity == "error"
+        assert set(zip(warning.variants, warning.wells, warning.values, strict=True)) == {
+            ("10A", "A01", 0.75), ("20G", "B01", 0.25),
+        }
+    else:
+        assert warnings == []
 
 
 # ---------------------------------------------------------------------------
 # Scenario H: EVOLVEpro xlsx export
 # ---------------------------------------------------------------------------
 
+@requires_real_data
 def test_scenario_h_write_evolvepro_xlsx():
     """Scenario H: merge result → write_evolvepro_xlsx → ≤34 rows, correct headers."""
     from kuma_core.mame.activity.evolvepro_xlsx import (
@@ -270,4 +312,3 @@ def test_scenario_h_write_evolvepro_xlsx():
         assert header == ["Variant", "activity"], (
             f"Expected ['Variant', 'activity'], got {header}"
         )
-

@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import type { EchoCell } from "@/lib/echoJanusAdapter";
+import { PlatePreviewSelector, usePreviewPlate } from "./PlatePreviewSelector";
 import {
   PlateCellPopover,
   PlateColumnHeaderRow,
@@ -12,7 +13,6 @@ import {
   PLATE_FILL_RESERVED,
   PLATE_FILL_REVERSE,
   PLATE_PREVIEW_FRAME,
-  PLATE_PREVIEW_LABEL,
 } from "@/lib/platePreviewStyles";
 import { isColumnInHalf, isForwardRow, otherHalves } from "@/lib/echoQuadrant";
 import type { EchoQuadrant } from "@/types/models";
@@ -37,7 +37,8 @@ interface Props {
 
 export function EchoPlateView({ cells, title, quadrant = null, className }: Props) {
   const { t } = useTranslation();
-  const byWell = new Map(cells.map((c) => [c.well, c]));
+  const { plates, selected, setSelection } = usePreviewPlate(cells.map((c) => c.sourcePlate ?? ""));
+  const byWell = new Map(cells.filter((c) => (c.sourcePlate ?? "") === selected).map((c) => [c.well, c]));
   // Name of the half a run on `quadrant` does not touch, for the reserved
   // wells' native tooltip (the only text an empty well carries).
   const otherPair = quadrant === null ? "" : otherHalves(quadrant).join(", ");
@@ -52,11 +53,11 @@ export function EchoPlateView({ cells, title, quadrant = null, className }: Prop
     // by the 22px this frame's padding and border add, always in the
     // shrinking direction, so the 0%-truncation target still holds).
     <div className={cn("plate-preview-grid", PLATE_PREVIEW_FRAME, className)}>
+      <PlatePreviewSelector title={title ?? t("exportPreview.echoSourcePlateLabel")} plates={plates} selected={selected} onChange={setSelection} />
       {/* min-w sits on the grid box, not on the scroller above it, so a
           viewport narrower than the plate scrolls this frame instead of the
           page (same shape as WellPlate.tsx:73). */}
       <div className="min-w-[700px]">
-        {title ? <div className={PLATE_PREVIEW_LABEL}>{title}</div> : null}
         {/* inline-grid + minmax(min,cap) instead of repeat(24,1fr): 1fr let a
           wide container stretch cells past what the 15px font ceiling could
           fill (77px cells at 1900px, 11% text coverage). minmax caps track
@@ -65,6 +66,7 @@ export function EchoPlateView({ cells, title, quadrant = null, className }: Prop
           keeps the grid from being stretched to the wrapper's full width once
           the tracks stop growing (WellSelectionPanel.tsx:459 precedent). */}
       <div
+        key={selected}
         role="grid"
         aria-label={t("exportPreview.echoGridAriaLabel")}
         className="inline-grid gap-px"
@@ -153,7 +155,7 @@ export function EchoPlateView({ cells, title, quadrant = null, className }: Prop
                           },
                           {
                             label: t("exportPreview.echoPopoverSourceWellLabel"),
-                            value: <span className="font-mono">{cell.well}</span>,
+                            value: <span className="font-mono">{[cell.sourcePlate, cell.well].filter(Boolean).join(" ")}</span>,
                           },
                           {
                             label: t("exportPreview.echoPopoverDestinationLabel"),

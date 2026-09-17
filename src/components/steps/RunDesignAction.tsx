@@ -26,10 +26,6 @@ export function RunDesignActionView({
     isDesigning,
     missingFields,
     hasBlockingIssue,
-    sizeWarning,
-    setSizeWarning,
-    preflightResult,
-    setPreflightResult,
   } = controller;
 
   const handleCancel = () => {
@@ -79,6 +75,15 @@ export function RunDesignActionView({
         </div>
       </div>
 
+      <RunDesignDialogs controller={controller} />
+    </>
+  );
+}
+
+export function RunDesignDialogs({ controller }: { controller: UseRunDesignReturn }) {
+  const { sizeWarning, setSizeWarning, preflightResult, setPreflightResult } = controller;
+  return (
+    <>
       {/* §19 Size warning dialog */}
       <InputSizeWarningDialog
         open={sizeWarning !== null}

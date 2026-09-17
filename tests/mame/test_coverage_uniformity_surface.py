@@ -155,7 +155,7 @@ def test_well_consensus_fields_are_reachable_by_name_and_by_position() -> None:
         "1_1", [], [], _REF, len(_REF), min_depth=1
     )
 
-    assert len(result) == 38
+    assert len(result) == 39
     coverage_start = result._fields.index("depth_cv")
     assert result[coverage_start : coverage_start + 5] == (
         result.depth_cv,
@@ -164,7 +164,7 @@ def test_well_consensus_fields_are_reachable_by_name_and_by_position() -> None:
         result.breadth_at_mix_min_depth,
         result.consensus_identity,
     )
-    assert result[-8:] == (
+    assert result[30:38] == (
         result.del_majority_positions,
         result.n_del_majority_positions,
         result.n_no_call_zero_depth,
@@ -175,6 +175,7 @@ def test_well_consensus_fields_are_reachable_by_name_and_by_position() -> None:
         result.n_ins_majority_anchors,
     )
     assert result[0] == result.consensus_seq
+    assert result[38] is result.n_no_call_deletion_majority
 
 
 # ---------------------------------------------------------------------------

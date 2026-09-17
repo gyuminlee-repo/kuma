@@ -288,6 +288,11 @@ def handle_activity_export_evolvepro_xlsx(params: dict) -> dict:
 
     with _rounds_lock:
         rd = _get_round(round_id)
+        if rd.get("export_blocked", False):
+            raise ExportBlockedError(
+                "Export blocked: resolve label-swap errors and successfully "
+                "re-run merge_for_evolvepro before exporting."
+            )
         merged_dicts: list[dict] = rd.get("merged_table") or []
 
     out_path = _validate_output_path(
@@ -509,9 +514,9 @@ def handle_merge_for_evolvepro(params: dict) -> dict:
 
         merged_dicts = [r.model_dump() for r in rows]
         rd["merged_table"] = merged_dicts
-        rd["status"] = "activity_linked"
-
-    export_blocked = any(w.severity == "error" for w in swap_warnings)
+        export_blocked = any(w.severity == "error" for w in swap_warnings)
+        rd["export_blocked"] = export_blocked
+        rd["status"] = "error" if export_blocked else "activity_linked"
 
     result: dict[str, Any] = {
         "merged": merged_dicts,

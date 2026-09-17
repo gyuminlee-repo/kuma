@@ -139,9 +139,6 @@ def _detect_tabular(path: Path, evidence: dict[str, Any]) -> MeasurementSourceDe
     import pandas as pd
 
     try:
-        # sep=None lets the python engine sniff the delimiter, so a .tsv is read
-        # as a .tsv.  _read_long uses the default comma, which is a mismatch this
-        # module cannot fix from here; it is named in the limitations.
         frame = pd.read_csv(path, sep=None, engine="python", nrows=0)
     except Exception as exc:  # pragma: no cover - pandas raises many types
         evidence["read_error"] = str(exc)

@@ -252,6 +252,10 @@ def main(emit_ready: bool = True) -> None:
             _error(None, -32700, f"Parse error: {exc}")
             continue
 
+        if not isinstance(request, dict) or not isinstance(request.get("method"), str):
+            _error(None, -32600, "Invalid Request: expected an object with a string method")
+            continue
+
         # §22 graceful shutdown: send ack then exit the main loop cleanly.
         if request.get("method") == "shutdown":
             dispatch(request)

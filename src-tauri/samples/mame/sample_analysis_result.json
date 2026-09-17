@@ -51,7 +51,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB01",
@@ -101,7 +106,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB01",
@@ -152,7 +162,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB01",
@@ -203,7 +218,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB01",
@@ -253,7 +273,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB01",
@@ -304,7 +329,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB01",
@@ -355,7 +385,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB01",
@@ -406,7 +441,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB01",
@@ -457,7 +497,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB01",
@@ -508,7 +553,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB01",
@@ -559,7 +609,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB01",
@@ -609,7 +664,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB01",
@@ -660,7 +720,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB01",
@@ -710,7 +775,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB01",
@@ -761,7 +831,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB01",
@@ -799,7 +874,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB01",
@@ -853,7 +933,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB02",
@@ -905,7 +990,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB02",
@@ -955,7 +1045,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB02",
@@ -1006,7 +1101,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB02",
@@ -1056,7 +1156,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB02",
@@ -1106,7 +1211,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB02",
@@ -1157,7 +1267,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB02",
@@ -1208,7 +1323,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB02",
@@ -1259,7 +1379,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB02",
@@ -1310,7 +1435,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB02",
@@ -1361,7 +1491,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB02",
@@ -1412,7 +1547,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB02",
@@ -1462,7 +1602,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB02",
@@ -1513,7 +1658,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB02",
@@ -1563,7 +1713,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB02",
@@ -1614,7 +1769,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB02",
@@ -1652,7 +1812,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB02",
@@ -1703,7 +1868,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB03",
@@ -1755,7 +1925,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB03",
@@ -1805,7 +1980,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB03",
@@ -1856,7 +2036,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB03",
@@ -1907,7 +2092,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB03",
@@ -1957,7 +2147,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB03",
@@ -2008,7 +2203,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB03",
@@ -2059,7 +2259,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB03",
@@ -2110,7 +2315,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB03",
@@ -2161,7 +2371,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB03",
@@ -2227,7 +2442,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB03",
@@ -2278,7 +2498,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB03",
@@ -2328,7 +2553,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB03",
@@ -2379,7 +2609,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB03",
@@ -2434,7 +2669,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB03",
@@ -2485,7 +2725,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB03",
@@ -2523,7 +2768,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     },
     {
       "native_barcode": "NB03",
@@ -2574,7 +2824,12 @@
       "del_majority_positions": [],
       "n_del_majority_positions": 0,
       "ins_majority_bases": [],
-      "n_ins_majority_anchors": 0
+      "n_ins_majority_anchors": 0,
+      "n_no_call_zero_depth": 0,
+      "n_no_call_deletion": 0,
+      "n_no_call_ambiguous": 0,
+      "n_no_call_no_majority": 0,
+      "n_no_call_deletion_majority": null
     }
   ],
   "replicates": [
@@ -2639,7 +2894,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB02": {
           "native_barcode": "NB02",
@@ -2691,7 +2951,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB03": {
           "native_barcode": "NB03",
@@ -2743,7 +3008,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         }
       },
       "is_fallback": false,
@@ -2808,7 +3078,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB02": {
           "native_barcode": "NB02",
@@ -2858,7 +3133,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB03": {
           "native_barcode": "NB03",
@@ -2908,7 +3188,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         }
       },
       "is_fallback": false,
@@ -2974,7 +3259,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB02": {
           "native_barcode": "NB02",
@@ -3025,7 +3315,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB03": {
           "native_barcode": "NB03",
@@ -3076,7 +3371,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         }
       },
       "is_fallback": false,
@@ -3142,7 +3442,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB02": {
           "native_barcode": "NB02",
@@ -3192,7 +3497,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB03": {
           "native_barcode": "NB03",
@@ -3243,7 +3553,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         }
       },
       "is_fallback": false,
@@ -3308,7 +3623,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB02": {
           "native_barcode": "NB02",
@@ -3358,7 +3678,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB03": {
           "native_barcode": "NB03",
@@ -3408,7 +3733,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         }
       },
       "is_fallback": false,
@@ -3474,7 +3804,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB02": {
           "native_barcode": "NB02",
@@ -3525,7 +3860,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB03": {
           "native_barcode": "NB03",
@@ -3576,7 +3916,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         }
       },
       "is_fallback": false,
@@ -3642,7 +3987,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB02": {
           "native_barcode": "NB02",
@@ -3693,7 +4043,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB03": {
           "native_barcode": "NB03",
@@ -3744,7 +4099,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         }
       },
       "is_fallback": false,
@@ -3810,7 +4170,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB02": {
           "native_barcode": "NB02",
@@ -3861,7 +4226,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB03": {
           "native_barcode": "NB03",
@@ -3912,7 +4282,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         }
       },
       "is_fallback": false,
@@ -3978,7 +4353,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB02": {
           "native_barcode": "NB02",
@@ -4029,7 +4409,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB03": {
           "native_barcode": "NB03",
@@ -4080,7 +4465,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         }
       },
       "is_fallback": false,
@@ -4146,7 +4536,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB02": {
           "native_barcode": "NB02",
@@ -4197,7 +4592,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB03": {
           "native_barcode": "NB03",
@@ -4263,7 +4663,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         }
       },
       "is_fallback": false,
@@ -4329,7 +4734,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB02": {
           "native_barcode": "NB02",
@@ -4380,7 +4790,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB03": {
           "native_barcode": "NB03",
@@ -4431,7 +4846,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         }
       },
       "is_fallback": false,
@@ -4496,7 +4916,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB02": {
           "native_barcode": "NB02",
@@ -4546,7 +4971,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB03": {
           "native_barcode": "NB03",
@@ -4596,7 +5026,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         }
       },
       "is_fallback": false,
@@ -4662,7 +5097,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB02": {
           "native_barcode": "NB02",
@@ -4713,7 +5153,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB03": {
           "native_barcode": "NB03",
@@ -4764,7 +5209,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         }
       },
       "is_fallback": false,
@@ -4829,7 +5279,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB02": {
           "native_barcode": "NB02",
@@ -4879,7 +5334,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB03": {
           "native_barcode": "NB03",
@@ -4934,7 +5394,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         }
       },
       "is_fallback": false,
@@ -5000,7 +5465,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB02": {
           "native_barcode": "NB02",
@@ -5051,7 +5521,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB03": {
           "native_barcode": "NB03",
@@ -5102,7 +5577,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         }
       },
       "is_fallback": false,
@@ -5155,7 +5635,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB02": {
           "native_barcode": "NB02",
@@ -5193,7 +5678,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB03": {
           "native_barcode": "NB03",
@@ -5231,7 +5721,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         }
       },
       "is_fallback": false,
@@ -5300,7 +5795,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB02": {
           "native_barcode": "NB02",
@@ -5351,7 +5851,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         },
         "NB03": {
           "native_barcode": "NB03",
@@ -5402,7 +5907,12 @@
           "del_majority_positions": [],
           "n_del_majority_positions": 0,
           "ins_majority_bases": [],
-          "n_ins_majority_anchors": 0
+          "n_ins_majority_anchors": 0,
+          "n_no_call_zero_depth": 0,
+          "n_no_call_deletion": 0,
+          "n_no_call_ambiguous": 0,
+          "n_no_call_no_majority": 0,
+          "n_no_call_deletion_majority": null
         }
       },
       "is_fallback": false,

@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { mkdirSync, mkdtempSync, readdirSync, writeFileSync, unlinkSync } from "node:fs";
+import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from "vitest";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync, unlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -48,9 +48,19 @@ import { readManifest, createEmptyManifest, writeManifest } from "@/lib/workspac
 
 describe("workspace api", () => {
   let dir: string;
+  const created: string[] = [];
+
+  afterAll(() => {
+    try {
+      expect(created.filter((path) => existsSync(path))).toEqual([]);
+    } finally {
+      for (const path of created) rmSync(path, { recursive: true, force: true });
+    }
+  });
 
   beforeEach(async () => {
     dir = mkdtempSync(join(tmpdir(), "ws-api-"));
+    created.push(dir);
     _resetWorkspaceForTest();
     _resetListenersForTest();
     await openWorkspace(dir);
@@ -59,6 +69,7 @@ describe("workspace api", () => {
   afterEach(() => {
     _resetWorkspaceForTest();
     _resetListenersForTest();
+    rmSync(dir, { recursive: true, force: true });
   });
 
   it("creates manifest on openWorkspace", async () => {

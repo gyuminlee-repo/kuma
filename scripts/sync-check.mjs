@@ -233,7 +233,11 @@ function runFilesExist(check) {
   const base = path.resolve(ROOT, check.base || ".");
   let missing = 0;
   for (const rel of list) {
-    if (typeof rel !== "string") continue;
+    if (typeof rel !== "string" || rel.trim().length === 0) {
+      recordFail(check.id, `invalid source path: ${JSON.stringify(rel)} (expected a non-blank string)`);
+      missing++;
+      continue;
+    }
     if (rel.includes("*")) {
       recordFail(check.id, `glob disallowed: ${rel}`);
       missing++;

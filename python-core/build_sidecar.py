@@ -8,7 +8,7 @@ Usage:
     python build_sidecar.py --target kuro         # only kuro
     python build_sidecar.py --target mame         # only mame
     python build_sidecar.py --target all          # kuro, mame (explicit)
-    python build_sidecar.py --onedir              # multi-file mode (applies to all targets)
+    python build_sidecar.py --onedir              # standalone diagnostic bundle, not Tauri
 """
 
 import argparse
@@ -216,7 +216,7 @@ def build_sidecar(target: str, onefile: bool = True) -> Path:
     if onefile:
         return SCRIPT_DIR / "dist" / f"{sidecar_name}{ext}"
     else:
-        return SCRIPT_DIR / "dist" / sidecar_name / f"{sidecar_name}{ext}"
+        return SCRIPT_DIR / "dist" / sidecar_name
 
 
 def copy_to_tauri(target: str, built_path: Path) -> Path:
@@ -227,26 +227,13 @@ def copy_to_tauri(target: str, built_path: Path) -> Path:
     ext = ".exe" if platform.system() == "Windows" else ""
     dest_name = f"{sidecar_name}-{triple}{ext}"
 
-    TAURI_BINARIES.mkdir(parents=True, exist_ok=True)
-
     if built_path.is_dir():
-        dest_dir = TAURI_BINARIES / f"{sidecar_name}-{triple}"
-        if dest_dir.exists():
-            shutil.rmtree(dest_dir)
-        shutil.copytree(built_path.parent / sidecar_name, dest_dir)
-        src_exe = dest_dir / f"{sidecar_name}{ext}"
-        dest_exe = TAURI_BINARIES / dest_name
-        if dest_exe.exists():
-            dest_exe.unlink()
-        shutil.copy2(src_exe, dest_exe)
-        print(f"[{target}] Copied directory: {dest_dir}")
-        print(f"[{target}] Copied executable: {dest_exe}")
-        return dest_exe
-    else:
-        dest = TAURI_BINARIES / dest_name
-        shutil.copy2(built_path, dest)
-        print(f"[{target}] Copied: {dest}")
-        return dest
+        raise ValueError("Tauri externalBin requires --onefile; keep the onedir bundle intact for standalone use")
+    TAURI_BINARIES.mkdir(parents=True, exist_ok=True)
+    dest = TAURI_BINARIES / dest_name
+    shutil.copy2(built_path, dest)
+    print(f"[{target}] Copied: {dest}")
+    return dest
 
 
 def main() -> None:
@@ -260,7 +247,7 @@ def main() -> None:
     parser.add_argument(
         "--onedir",
         action="store_true",
-        help="Build in directory mode instead of onefile",
+        help="Build a standalone diagnostic directory (not copied to Tauri; releases require onefile)",
     )
     args = parser.parse_args()
 
@@ -278,11 +265,17 @@ def main() -> None:
         if not built.exists():
             print(f"ERROR: Build output not found at {built}", file=sys.stderr)
             sys.exit(1)
+        if not onefile:
+            print(f"[{target}] Standalone bundle ready: {built} (keep the entire directory)")
+            continue
         dest = copy_to_tauri(target, built)
         print(f"[{target}] Sidecar binary ready: {dest}")
         print()
 
-    print("Run 'npm run tauri build' to create the installer.")
+    if onefile:
+        print("Run 'npm run tauri build' to create the installer.")
+    else:
+        print("For a Tauri installer, rebuild without --onedir.")
 
 
 if __name__ == "__main__":

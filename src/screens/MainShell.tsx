@@ -8,7 +8,7 @@ import { pingSidecar as pingMameSidecar } from "@/lib/ipc-mame";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { GlobalAppBar, type AppTab } from "@/components/layout/GlobalAppBar";
 import { useKumaProject } from "@/state/projectContext";
-import { flushAutosave, onAutosaveEvent, type AutosaveTarget, type AutosaveEvent } from "@/lib/autosave";
+import { flushAutosave, retryAutosave, onAutosaveEvent, type AutosaveTarget, type AutosaveEvent } from "@/lib/autosave";
 import { useKuroAutosave } from "@/hooks/useKuroAutosave";
 import { useAutosaveHydration, type HydrationStatusMessage } from "@/hooks/useAutosaveHydration";
 import { Spinner } from "@/components/ui/Spinner";
@@ -210,7 +210,6 @@ export function MainShell() {
   useEffect(() => {
     const unsub = onAutosaveEvent((ev: AutosaveEvent) => {
       if (ev.type === "saving") {
-        errorStreakRef.current = 0;
         setAutosaveState("saving");
         setAutosaveLabel(t("mainShell.autosaveSaving"));
       } else if (ev.type === "saved") {
@@ -315,8 +314,10 @@ export function MainShell() {
     };
 
     let unlisten: (() => void) | undefined;
+    let disposed = false;
     void getCurrentWindow()
       .onCloseRequested(async (ev) => {
+        if (disposed) return;
         if (allowNativeCloseRef.current) {
           return;
         }
@@ -354,10 +355,12 @@ export function MainShell() {
         await performWindowClose(target);
       })
       .then((fn) => {
-        unlisten = fn;
+        if (disposed) fn();
+        else unlisten = fn;
       });
 
     return () => {
+      disposed = true;
       unlisten?.();
     };
   }, [performWindowClose, project?.path, project?.scratch]);
@@ -518,10 +521,16 @@ export function MainShell() {
                   <button
                     type="button"
                     className="text-error underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors duration-fast"
-                    onClick={() => {
-                      errorStreakRef.current = 0;
-                      setAutosaveState("idle");
-                      setAutosaveLabel(t("mainShell.autosaveOn"));
+                    onClick={async () => {
+                      try {
+                        await retryAutosave({
+                          projectPath: project?.path ?? null,
+                          scratch: project?.scratch ?? true,
+                          scratchFallback: true,
+                        });
+                      } catch (error) {
+                        console.warn("[autosave] Retry failed", error);
+                      }
                     }}
                     aria-label={t("mainShell.autosaveRetryAriaLabel")}
                   >

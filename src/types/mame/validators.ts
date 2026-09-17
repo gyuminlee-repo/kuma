@@ -27,6 +27,7 @@
 
 import { isRecord } from "../validators";
 import { MEASUREMENT_SOURCES } from "./detect_measurement_source";
+import { hasValidRunQuality } from "./runQualityValidator";
 
 /** A guard over one method result. Returns false when the payload is refused. */
 export type MameResultValidator = (value: unknown) => boolean;
@@ -361,6 +362,11 @@ const isDetectMeasurementSourceResult: MameResultValidator = (value) =>
   isString(value.reason);
 
 const VALIDATORS: Record<string, MameResultValidator> = {
+  // Partial contract: run_quality is recursively checked; other analyze fields
+  // remain outside this guard's scope.
+  analyze: hasValidRunQuality,
+  load_analyze_result: (value) => isRecord(value) && value.restored === true &&
+    isFiniteNumber(value.verdict_count) && isFiniteNumber(value.replicate_count),
   "mame.activity.build_evolvepro_input": isBuildEvolveproInputResult,
   "mame.activity.detect_measurement_source": isDetectMeasurementSourceResult,
   "strategy.classify_round": isClassifyRoundResult,
@@ -378,7 +384,8 @@ const VALIDATORS: Record<string, MameResultValidator> = {
  *
  * Three groups, and none of them is "safe by inspection":
  *
- *  - The large analyze contract (`analyze`, `load_analyze_result`,
+ *  - The remaining large analyze contract (`analyze` is checked only for
+ *    run_quality; load_analyze_result checks its acknowledgement),
  *    `get_plate_data`, `mame.run_combinatorial_demux`,
  *    `get_run_health`, `validate_inputs`, `check_plate_order`). These carry the
  *    most scientific numbers in the app and the widest result types (hundreds
@@ -399,9 +406,7 @@ const VALIDATORS: Record<string, MameResultValidator> = {
  */
 export const MAME_UNVALIDATED_METHODS: readonly string[] = [
   "ping",
-  "analyze",
   "validate_inputs",
-  "load_analyze_result",
   "export_excel",
   "get_plate_data",
   "export_janus_mapping",

@@ -50,6 +50,7 @@ N_INS_MAJORITY_ANCHORS = "n_ins_majority_anchors"
 # to the ``consensus_n_fraction`` numerator. Always written; 0 is a real answer.
 NO_CALL_ZERO_DEPTH = "no_call_zero_depth"
 NO_CALL_DELETION = "no_call_deletion"
+NO_CALL_DELETION_MAJORITY = "no_call_deletion_majority"
 NO_CALL_AMBIGUOUS = "no_call_ambiguous"
 NO_CALL_NO_MAJORITY = "no_call_no_majority"
 # Net indel of the consensus itself; the FRAMESHIFT gate reads this one.
@@ -336,6 +337,7 @@ class ConsensusMetadata:
     n_ins_majority_anchors: int = 0
     n_no_call_zero_depth: int = 0
     n_no_call_deletion: int = 0
+    n_no_call_deletion_majority: int | None = None
     n_no_call_ambiguous: int = 0
     n_no_call_no_majority: int = 0
     consensus_net_indel: int = 0
@@ -409,6 +411,8 @@ class ConsensusMetadata:
             )
         yield NO_CALL_ZERO_DEPTH, str(self.n_no_call_zero_depth)
         yield NO_CALL_DELETION, str(self.n_no_call_deletion)
+        if self.n_no_call_deletion_majority is not None:
+            yield NO_CALL_DELETION_MAJORITY, str(self.n_no_call_deletion_majority)
         yield NO_CALL_AMBIGUOUS, str(self.n_no_call_ambiguous)
         yield NO_CALL_NO_MAJORITY, str(self.n_no_call_no_majority)
         yield CONSENSUS_NET_INDEL, str(self.consensus_net_indel)
@@ -503,6 +507,7 @@ __all__ = [
     "parse_insertion_bases",
     "NO_CALL_ZERO_DEPTH",
     "NO_CALL_DELETION",
+    "NO_CALL_DELETION_MAJORITY",
     "NO_CALL_AMBIGUOUS",
     "NO_CALL_NO_MAJORITY",
     "format_position_runs",

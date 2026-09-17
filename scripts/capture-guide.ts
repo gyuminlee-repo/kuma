@@ -14,8 +14,8 @@
  *   listener regardless of the current screen).
  * - The KURO workspace is a step wizard, so each screen declares `nav`
  *   (a navigationSlice sub-step) alongside its store state.
- * - Every wait is bounded. A failing screen is recorded and the run continues;
- *   the failure list is printed at the end and sets a non-zero exit code.
+ * - Every wait is bounded. A failing screen aborts the run and closes the
+ *   browser before an expired capture can interfere with another screen.
  * - Progress is appended to a log file because PowerShell buffers stdout until
  *   the process exits.
  */
@@ -34,7 +34,7 @@ const PORT = Number(process.env.CAPTURE_PORT ?? 1421);
 const BASE_URL = `http://localhost:${PORT}`;
 const LOG_PATH = process.env.CAPTURE_LOG || resolve(ROOT, ".capture", "capture.log");
 
-// Per-screen budget. A screen that blows it is recorded as failed and skipped.
+// Per-screen budget. Exceeding it aborts the run and closes the browser.
 const SCREEN_TIMEOUT_MS = Number(process.env.CAPTURE_SCREEN_TIMEOUT ?? 60_000);
 const STORE_TIMEOUT_MS = 20_000;
 const WORKSPACE_TIMEOUT_MS = 20_000;
@@ -149,6 +149,7 @@ async function enterWorkspace(page: Page): Promise<void> {
 
   await page.waitForFunction(
     () => typeof (window as unknown as Record<string, unknown>).__store !== "undefined",
+    undefined,
     { timeout: STORE_TIMEOUT_MS },
   );
 
@@ -162,7 +163,7 @@ async function enterWorkspace(page: Page): Promise<void> {
 
   // Workspace marker: the shell renders the app bar + menu bar + workflow rail,
   // far more buttons than onboarding (2) or home. Language independent.
-  await page.waitForFunction(() => document.querySelectorAll("button").length > 10, {
+  await page.waitForFunction(() => document.querySelectorAll("button").length > 10, undefined, {
     timeout: WORKSPACE_TIMEOUT_MS,
   });
   await page.waitForTimeout(400);
@@ -321,7 +322,6 @@ async function main() {
   if (env.LD_LIBRARY_PATH) process.env.LD_LIBRARY_PATH = env.LD_LIBRARY_PATH;
 
   const vite = await startViteServer();
-  const failures: { name: string; reason: string }[] = [];
   let browser: Browser | undefined;
 
   try {
@@ -336,6 +336,8 @@ async function main() {
       viewport: { width: 1400, height: 900 },
       deviceScaleFactor: 2,
     });
+    // Startup release checks must not open an update dialog over a capture.
+    await context.route(/^https:\/\/(?:api\.)?github\.com\//, (route) => route.abort());
 
     // English UI (guide docs are English) and no first-run toasts.
     await context.addInitScript(() => {
@@ -377,8 +379,8 @@ async function main() {
         log(`  -> saved: docs/screenshots/${screen.name}.png`);
       } catch (err) {
         const reason = err instanceof Error ? err.message : String(err);
-        failures.push({ name: screen.name, reason });
         log(`  !! FAILED ${screen.name}: ${reason}`);
+        throw err;
       }
     }
 
@@ -389,13 +391,7 @@ async function main() {
     log("Vite server stopped.");
   }
 
-  const ok = screenStates.length - failures.length;
-  log(`Done. ${ok}/${screenStates.length} screenshots saved to docs/screenshots/`);
-  if (failures.length) {
-    log(`Failed screens (${failures.length}):`);
-    for (const f of failures) log(`  - ${f.name}: ${f.reason}`);
-    process.exitCode = 1;
-  }
+  log(`Done. ${screenStates.length}/${screenStates.length} screenshots saved to docs/screenshots/`);
 }
 
 main().catch((err) => {

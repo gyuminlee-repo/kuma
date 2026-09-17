@@ -4,10 +4,9 @@
 This is the spine of the MAME demux performance work. Every later perf change
 (cutadapt -j 0, minimap2 stdout pipe, prebuilt .mmi, per-read ProcessPool,
 chunk streaming) must reproduce the per-well read SET, the well consensus
-string, and the three top-line stats captured here. Divergence at a base-count
-tie position is the only output-identity vulnerability (see spec section 2 and
-consensus.py:161), so the harness classifies a consensus diff as tie-only or
-genuine.
+string, and the three top-line stats captured here. Consensus strings alone
+cannot establish a base-count tie. Concrete base substitutions are reported
+as unclassified-base-change; every difference still fails the identity gate.
 
 Snapshot schema (tests/fixtures/mame/baseline_snapshot.json), fixed::
 
@@ -170,16 +169,15 @@ def _run_demux_native(out: Path) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Diff + tie classification
+# Diff diagnostics
 # ---------------------------------------------------------------------------
 
 
 def _diff(baseline: dict, candidate: dict) -> list[str]:
     """Return a list of human-readable diffs between two snapshots.
 
-    A consensus-only difference at a position that is a base-count tie in the
-    candidate well is classified as "tie-only" and reported with that label
-    (still a diff, but distinguishable from a genuine divergence).
+    Every consensus difference is retained, including base substitutions whose
+    cause cannot be established without aligned-read pileup evidence.
     """
     diffs: list[str] = []
 
@@ -220,9 +218,7 @@ def _classify_consensus_diff(
 ) -> str:
     """Classify a consensus string difference.
 
-    Returns "tie-only" when every differing position is plausibly a base-count
-    tie (both bases are concrete ACGT and the strings have equal length, so the
-    divergence is a tie-break flip), otherwise "genuine".
+    Concrete substitutions are unclassified: sequences carry no pileup counts.
     """
     if base_seq is None or cand_seq is None:
         return "genuine"
@@ -232,11 +228,33 @@ def _classify_consensus_diff(
         i for i in range(len(base_seq)) if base_seq[i] != cand_seq[i]
     ]
     if not diff_positions:
-        return "tie-only"
+        return "identical"
     for i in diff_positions:
         if base_seq[i] not in "ACGT" or cand_seq[i] not in "ACGT":
             return "genuine"
-    return "tie-only"
+    return "unclassified-base-change"
+
+
+@pytest.mark.parametrize(("before", "after", "category"), [
+    ("AAAA", "CCCC", "unclassified-base-change"),
+    ("AAAA", "AAAC", "unclassified-base-change"),
+    ("AAAA", "AAAA", "identical"),
+    ("AAAA", "AAA", "genuine"),
+    ("AAAA", "AAAN", "genuine"),
+    (None, "AAAA", "genuine"),
+])
+def test_consensus_diagnostic_never_infers_a_tie(
+    before: str | None, after: str | None, category: str,
+) -> None:
+    assert _classify_consensus_diff(before, after) == category
+
+
+def test_consensus_diagnostic_keeps_base_changes_in_identity_gate() -> None:
+    baseline = {"wells": {"1_1": {"read_ids": ["read"], "consensus": "AAAA"}}, "stats": {}}
+    candidate = {"wells": {"1_1": {"read_ids": ["read"], "consensus": "CCCC"}}, "stats": {}}
+    diffs = _diff(baseline, candidate)
+    assert len(diffs) == 1
+    assert "unclassified-base-change" in diffs[0]
 
 
 def _pileup_at(well_reads: list[tuple[str, str, str]], pos: int) -> dict[str, int]:
@@ -768,8 +786,7 @@ def test_chunked_alignment_uses_global_qname_offset(
 
 @requires_minimap2
 def test_tie_classification(tmp_path: Path) -> None:
-    """The tie well induces a real base-count tie, and _diff classifies a
-    consensus flip at that position as tie-only (not genuine)."""
+    """Pileup proves the fixture tie; the string-only diagnostic cannot."""
     snapshot = _run_demux_combinatorial(tmp_path / "comb")
     result = run_combinatorial_demux(
         raw_fastq_paths=[FIXTURE_DIR / "synth_R1.fastq.gz"],
@@ -793,7 +810,7 @@ def test_tie_classification(tmp_path: Path) -> None:
         f"expected a base-count tie at pos {fx.TIE_POS}, got {pileup}"
     )
 
-    # 2. A consensus that flips only the tie base must classify as tie-only.
+    # 2. The diagnostic sees only strings, not the pileup evidence above.
     base_consensus = snapshot["wells"][tie_well]["consensus"]
     assert base_consensus is not None
     flipped = (
@@ -801,7 +818,7 @@ def test_tie_classification(tmp_path: Path) -> None:
         + ("C" if base_consensus[fx.TIE_POS] == "A" else "A")
         + base_consensus[fx.TIE_POS + 1:]
     )
-    assert _classify_consensus_diff(base_consensus, flipped) == "tie-only"
+    assert _classify_consensus_diff(base_consensus, flipped) == "unclassified-base-change"
 
     # 3. A multi-position / non-ACGT change must classify as genuine.
     genuine = "N" + base_consensus[1:]

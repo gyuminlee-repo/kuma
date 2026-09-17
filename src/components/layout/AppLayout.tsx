@@ -8,6 +8,7 @@ import { useAppStore } from "../../store/appStore";
 import { useSidecar } from "../../hooks/useSidecar";
 import { useKumaProject } from "../../state/projectContext";
 import { useRunDesign } from "../../hooks/useRunDesign";
+import { RunDesignDialogs } from "../steps/RunDesignAction";
 import { tryHandleManifestDrop, tryHandleTwoManifestsDrop, verifyInputs, type InputVerifyResult } from "@/lib/reRun";
 import { type RunManifest } from "@/lib/runManifest";
 import { ReRunManifestDialog } from "../dialogs/ReRunManifestDialog";
@@ -100,8 +101,8 @@ export function AppLayout() {
   const suggestedRound = roundHistoryCount > 0 ? roundHistoryCount + 1 : null;
 
   // Shared Run Design logic (validation / preflight / flush / design)
-  // Dialog state (sizeWarning, preflightResult) is owned by RunDesignAction, not here.
-  const { run: tryRunDesign } = useRunDesign();
+  const keyboardDesign = useRunDesign();
+  const { run: tryRunDesign } = keyboardDesign;
 
   // Navigation state for AppShell slot wiring
   const currentMajor = useAppStore((s) => s.currentMajor);
@@ -329,6 +330,7 @@ export function AppLayout() {
     >
       <WhatsNewDialog />
       <NetworkConsentDialog />
+      <RunDesignDialogs controller={keyboardDesign} />
       <RoundPromptDialog
         open={roundPromptOpen}
         suggestedRound={suggestedRound}

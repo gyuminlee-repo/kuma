@@ -2599,14 +2599,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Le menu Aide ouvre un panneau d'aide à côté de l'écran, au sujet correspondant à l'étape en cours, en coréen ou en anglais.",
-      "Treize sujets couvrent KURO et MAME, écrits autour de ce qui est fait sur chaque écran et de ce que signifient les avertissements qui s'y affichent.",
-      "Un renvoi à l'intérieur de l'aide s'ouvre dans le même panneau, qui reste ouvert lors du passage entre KURO et MAME.",
-      "Le menu d'aide de l'écran des entrées d'analyse de MAME ouvre le sujet Analyse et revue au lieu de Configuration des codes-barres.",
-      "Appuyer sur Suivant à l'étape 1 de MAME sans paquet de barcodes nomme l'entrée manquante au lieu d'afficher une clé interne."
+      "Une délétion que seule la moitié des lectures soutient n'exempte plus un puits du contrôle no call, donc un site à 40 ou 50 pour cent se lit comme un no call.",
+      "L'étape des données d'activité refuse d'attacher un verdict NGS à une variante autre que celle que sa ligne nomme.",
+      "Les fichiers Echo et JANUS issus d'une plage de lignes réduite ou de plusieurs plaques conservent les positions de stock données par le bon de commande.",
+      "Rouvrir un espace de travail conserve la sélection et écarte les sorties dont les entrées ont disparu, et un benchmark jamais lancé ne signale plus de dommage.",
+      "Sous Linux l'enregistrement automatique temporaire fonctionne dans le dossier caché de données de l'application et Fichier > Quitter ferme la fenêtre."
     ],
-    "highlightsStamp": "0.16.63+27af3ec6",
+    "highlightsStamp": "0.16.64+b5666e23",
     "releases": {
+      "0.16.64": [
+        "Une délétion que seule la moitié des lectures soutient n'exempte plus un puits du contrôle no call, donc un site à 40 ou 50 pour cent se lit comme un no call.",
+        "L'étape des données d'activité refuse d'attacher un verdict NGS à une variante autre que celle que sa ligne nomme.",
+        "Les fichiers Echo et JANUS issus d'une plage de lignes réduite ou de plusieurs plaques conservent les positions de stock données par le bon de commande.",
+        "Rouvrir un espace de travail conserve la sélection et écarte les sorties dont les entrées ont disparu, et un benchmark jamais lancé ne signale plus de dommage.",
+        "Sous Linux l'enregistrement automatique temporaire fonctionne dans le dossier caché de données de l'application et Fichier > Quitter ferme la fenêtre."
+      ],
       "0.16.63": [
         "Le menu Aide ouvre un panneau d'aide à côté de l'écran, au sujet correspondant à l'étape en cours, en coréen ou en anglais.",
         "Treize sujets couvrent KURO et MAME, écrits autour de ce qui est fait sur chaque écran et de ce que signifient les avertissements qui s'y affichent.",
@@ -2627,12 +2634,31 @@
         "Une plaque antérieure à cette version n'a pas de moitié libre : le run d'alors couvrait les deux, donc les deux sont marquées comme utilisées et c'est à vous de les libérer.",
         "Le placement forward est fixé sur 95 transferts lus dans une vraie worklist Echo, il ne peut plus dériver sans être vu."
       ],
+      "0.16.60": [
+        "Une délétion décidée ne compte plus dans les gates NO_CALL et MIXED, de sorte que trois puits signalent la substitution d'acide aminé qu'ils portent.",
+        "La traduction reconstruit la molécule de longueur réelle à partir des délétions et insertions appelées plutôt qu'une séquence de longueur de référence.",
+        "La récurrence de plaque gagne des canaux de délétion et d'insertion à côté du tableau des substitutions, avec troncature, omission et égalités comptées séparément.",
+        "Chaque position récurrente porte le nombre de mutations attendues distinctes de ses puits, ce qui sépare un artefact du caller d'un échantillon partagé.",
+        "Une analyse enregistrée conserve désormais ses preuves d'indels de consensus, auparavant perdues à la réouverture."
+      ],
       "0.16.59": [
         "Un classeur MAME enregistre désormais la référence, la fenêtre codante, le mode et les seuils sous lesquels la série a été exécutée.",
         "La référence est identifiée par une empreinte de la séquence analysée, si bien que la même molécule enregistrée sous un autre nom correspond toujours.",
         "Le vocabulaire des classes de verdict figure dans chaque classeur, si bien qu'un lecteur en aval ne recopie plus les noms de classes à la main.",
         "La version de kuma et les métadonnées de la série de séquençage, vides dans tout classeur écrit par la voie bibliothèque, sont désormais remplies.",
         "Aucun verdict ne change : les entrées décrivent des réglages déjà en vigueur et la logique de décision reste inchangée."
+      ],
+      "0.16.58": [
+        "Le choix du codon mutant évalue désormais chaque codon synonyme utilisé par l'organisme sélectionné. Auparavant la recherche n'en voyait que deux.",
+        "Les codons rares restent hors de cet ensemble, si bien qu'un design ne tombe plus sur un codon que l'organisme choisi n'emploie presque jamais.",
+        "Design classe les candidats sur tout le balayage de tolérance Tm, si bien qu'une fenêtre plus large contenant une meilleure amorce n'est plus ignorée.",
+        "La valeur Tol augmente sur ces designs. Un Tol plus élevé signale ici une amorce mieux notée, et non un critère assoupli.",
+        "Trois tables de codons ont été corrigées et la liste des organismes affiche désormais toutes les tables fournies, donc les designs antérieurs peuvent différer."
+      ],
+      "0.16.57": [
+        "L'avertissement off-target n'attribue plus le seuil de 45 °C à Kwok 1990 et Huang 1992, valeur mesurée sur un seul fixture avec Q5.",
+        "L'avertissement indique désormais qu'une liste vide n'est pas une preuve d'absence de priming off-target, car seule une correspondance terminale 3' exacte y figure.",
+        "Le nom de l'enzyme de relecture provient désormais du profil sélectionné, au lieu de deux noms d'enzyme codés en dur dans la chaîne."
       ],
       "0.16.56": [
         "Le consensus du raw run applique désormais le filtre de qualité minimale de base, sans effet auparavant car la ligne de qualité FASTQ était ignorée.",
@@ -2737,6 +2763,20 @@
         "Les chemins de fichiers de step 4 se remplissent au chargement des données d'exemple, y compris en session scratch.",
         "Le champ du run folder explique que les raw runs sont omis pour la taille, au lieu de sembler inachevé."
       ],
+      "0.16.41": [
+        "Les données d'exemple forment désormais une seule campagne. La plaque MAME porte les variants proposés par la prédiction KURO fournie.",
+        "La plaque découle de cette prédiction en exécutant la conception d'amorces, si bien qu'un candidat sans amorces n'y figure jamais.",
+        "Les codons des mutations attendues viennent de la conception KURO, donc la feuille indique le codon que portent les amorces.",
+        "L'activité mesurée ne suit pas le classement prédit, et trois des dix variants se situent sous le type sauvage.",
+        "Un nouveau test lit les fichiers livrés et échoue dès que KURO et MAME décrivent de nouveau des expériences différentes."
+      ],
+      "0.16.40": [
+        "Les données d'exemple terminent désormais une compilation d'étape 4. Le classeur Analyze fourni apporte la preuve de verdict requise.",
+        "Aucun run nanopore brut n'est fourni. L'écran affiche un run produit par un vrai pipeline, et ce même run alimente l'étape 4.",
+        "La plaque d'exemple place chaque variant dans un seul puits, ce que les lecteurs de layout et de verdict acceptent au lieu de le refuser.",
+        "Les positions des variants d'exemple sont numérotées d'après la référence EGFP fournie, et non d'après une autre protéine.",
+        "Quatre nouveaux fichiers couvrent les entrées en échelle brute, à étiquette de variant et à confirmation numérique, jusqu'ici sans exemple."
+      ],
       "0.16.39": [
         "Cinq commandes MAME de run brut qui n'étaient jamais envoyées ont disparu. Un filtre de score Q ou une longueur cible semblait réglé sans rien faire.",
         "L'exigence de GC clamp lie désormais chaque candidat, et non la seule correspondance préférée, donc aucune amorce ne viole la contrainte demandée.",
@@ -2764,6 +2804,47 @@
         "Les quatre interrupteurs de consentement par service ne sont plus seulement enregistrés : ils refusent réellement le service qu ils nomment.",
         "Annuler une conception conserve les amorces déjà produites, ce que la valeur par défaut de cette option a toujours annoncé.",
         "Les réglages que rien ne lit sont désactivés et signalés plutôt que de sembler actifs."
+      ],
+      "0.16.35": [
+        "MAME dispose enfin de captures d'ecran, prises sur un vrai run nanopore de 288 puits plutot que sur des donnees factices.",
+        "La capture parcourt l'assistant en cliquant elle-meme, chaque image montre donc un ecran que l'application a reellement atteint.",
+        "Les reponses enregistrees du sidecar sont indexees par sidecar autant que par methode. Un ecran MAME ne peut plus recevoir une reponse KURO."
+      ],
+      "0.16.34": [
+        "Les mutations dont l amorce est déjà à la longueur minimale sont désormais récupérées au lieu d être signalées sans paire valide.",
+        "L amorce récupérée s hybride dans la même plage que le reste de la plaque, car raccourcir est maintenant une option.",
+        "La série qui a révélé ce problème passe de 93 sur 95 à 95 sur 95, sans modifier les amorces déjà réussies."
+      ],
+      "0.16.33": [
+        "Un rapport à identifiants numériques est décodé selon les puits indiqués par la liste de variants, et non selon des puits recalculés depuis la position du résidu.",
+        "Prendre l'ordre de plaque dans la liste des variants conçus fonctionne enfin. C'était refusé pour une écriture de puits différant d'un zéro.",
+        "Une liste qui indique ses puits peut ranger ses lignes dans n'importe quel ordre, et la disposition qu'elle déclare est celle qui sert."
+      ],
+      "0.16.32": [
+        "Une liste de variants peut indiquer le puits de chaque ligne. Quand elle le fait, c'est la disposition, et aucun ordre de lignes n'est déduit.",
+        "Un bouton de modèle écrit le classeur avec les 96 puits déjà remplis, il ne reste que la colonne des variants à compléter.",
+        "Le puits témoin devient un choix et vaut par défaut le dernier puits de la plaque, là où la paillasse le pipette réellement.",
+        "Ce choix atteint maintenant la série. La worklist, l'aperçu et la notation désignent les mêmes puits.",
+        "Les vues de plaque adaptent leur typographie aux cellules, si bien que les libellés ne sont plus tronqués à aucune largeur."
+      ],
+      "0.16.31": [
+        "L'étape 4 lit les rapports Agilent aux noms d'échantillon numériques, aussi bien le criblage de la plaque entière que la confirmation répliquée.",
+        "Une confirmation répliquée est fusionnée dans le criblage auquel elle appartient, remplace ces valeurs et signale celles qui divergent.",
+        "Les positions numériques sont résolues via la liste des variants conçus, donc aucun fichier de plaque n'est recopié à la main.",
+        "Une confirmation portant sur un autre ensemble de variants est refusée en nommant les deux décomptes, plutôt qu'étiquetée à tort.",
+        "Le nombre de réplicats est celui que porte le fichier, d'une seule mesure à autant que la série en a faites."
+      ],
+      "0.16.30": [
+        "L'étape 4 n'exige plus de fichier de plate layout. Laissé vide, les positions de puits sont associées via la feuille verdict d'Analyze.",
+        "Un fichier de layout reste prioritaire lorsqu'il est fourni, et le contrôle face aux identités du verdict est inchangé.",
+        "Un puits mesuré sans résultat NGS est compté et nommé au lieu de faire échouer toute la construction."
+      ],
+      "0.16.29": [
+        "Une valeur que le pipeline n'a pas pu calculer se désigne désormais elle-même, au lieu d'apparaître 60 secondes plus tard comme un délai de connexion dépassé.",
+        "La confiance d'une décision n'est rapportée que lorsqu'elle a été mesurée, et l'estimation et sa marge d'erreur lisent les mêmes signaux.",
+        "La suite de tests s'exécute sous Windows, où un seul outil manquant ignorait auparavant les 1301 tests et annonçait une réussite.",
+        "Deux défauts que seul Windows atteint sont corrigés : la publication de chaque lot d'export échouait et chaque fichier de somme de contrôle était illisible.",
+        "Une traduction qui supprime ou renomme un espace réservé est détectée avant la publication, au lieu d'atteindre l'écran avec un blanc."
       ],
       "0.16.28": [
         "Cinq sections run health que l'application mesurait à chaque exécution sans jamais les afficher figurent désormais sur l'écran de revue, repliées au départ.",
@@ -2984,87 +3065,17 @@
         "L'aide du Variant list mapping indique désormais le sens de remplissage des wells : A1, B1, C1 jusqu'à H1, puis A2.",
         "Le hook post-commit de version n'échoue plus sur un chemin supprimé.",
         "Une note de version longue défile maintenant dans la boîte de dialogue au lieu de dépasser en bas."
-      ],
-      "0.16.29": [
-        "Une valeur que le pipeline n'a pas pu calculer se désigne désormais elle-même, au lieu d'apparaître 60 secondes plus tard comme un délai de connexion dépassé.",
-        "La confiance d'une décision n'est rapportée que lorsqu'elle a été mesurée, et l'estimation et sa marge d'erreur lisent les mêmes signaux.",
-        "La suite de tests s'exécute sous Windows, où un seul outil manquant ignorait auparavant les 1301 tests et annonçait une réussite.",
-        "Deux défauts que seul Windows atteint sont corrigés : la publication de chaque lot d'export échouait et chaque fichier de somme de contrôle était illisible.",
-        "Une traduction qui supprime ou renomme un espace réservé est détectée avant la publication, au lieu d'atteindre l'écran avec un blanc."
-      ],
-      "0.16.30": [
-        "L'étape 4 n'exige plus de fichier de plate layout. Laissé vide, les positions de puits sont associées via la feuille verdict d'Analyze.",
-        "Un fichier de layout reste prioritaire lorsqu'il est fourni, et le contrôle face aux identités du verdict est inchangé.",
-        "Un puits mesuré sans résultat NGS est compté et nommé au lieu de faire échouer toute la construction."
-      ],
-      "0.16.31": [
-        "L'étape 4 lit les rapports Agilent aux noms d'échantillon numériques, aussi bien le criblage de la plaque entière que la confirmation répliquée.",
-        "Une confirmation répliquée est fusionnée dans le criblage auquel elle appartient, remplace ces valeurs et signale celles qui divergent.",
-        "Les positions numériques sont résolues via la liste des variants conçus, donc aucun fichier de plaque n'est recopié à la main.",
-        "Une confirmation portant sur un autre ensemble de variants est refusée en nommant les deux décomptes, plutôt qu'étiquetée à tort.",
-        "Le nombre de réplicats est celui que porte le fichier, d'une seule mesure à autant que la série en a faites."
-      ],
-      "0.16.32": [
-        "Une liste de variants peut indiquer le puits de chaque ligne. Quand elle le fait, c'est la disposition, et aucun ordre de lignes n'est déduit.",
-        "Un bouton de modèle écrit le classeur avec les 96 puits déjà remplis, il ne reste que la colonne des variants à compléter.",
-        "Le puits témoin devient un choix et vaut par défaut le dernier puits de la plaque, là où la paillasse le pipette réellement.",
-        "Ce choix atteint maintenant la série. La worklist, l'aperçu et la notation désignent les mêmes puits.",
-        "Les vues de plaque adaptent leur typographie aux cellules, si bien que les libellés ne sont plus tronqués à aucune largeur."
-      ],
-      "0.16.33": [
-        "Un rapport à identifiants numériques est décodé selon les puits indiqués par la liste de variants, et non selon des puits recalculés depuis la position du résidu.",
-        "Prendre l'ordre de plaque dans la liste des variants conçus fonctionne enfin. C'était refusé pour une écriture de puits différant d'un zéro.",
-        "Une liste qui indique ses puits peut ranger ses lignes dans n'importe quel ordre, et la disposition qu'elle déclare est celle qui sert."
-      ],
-      "0.16.34": [
-        "Les mutations dont l amorce est déjà à la longueur minimale sont désormais récupérées au lieu d être signalées sans paire valide.",
-        "L amorce récupérée s hybride dans la même plage que le reste de la plaque, car raccourcir est maintenant une option.",
-        "La série qui a révélé ce problème passe de 93 sur 95 à 95 sur 95, sans modifier les amorces déjà réussies."
-      ],
-      "0.16.35": [
-        "MAME dispose enfin de captures d'ecran, prises sur un vrai run nanopore de 288 puits plutot que sur des donnees factices.",
-        "La capture parcourt l'assistant en cliquant elle-meme, chaque image montre donc un ecran que l'application a reellement atteint.",
-        "Les reponses enregistrees du sidecar sont indexees par sidecar autant que par methode. Un ecran MAME ne peut plus recevoir une reponse KURO."
-      ],
-      "0.16.40": [
-        "Les données d'exemple terminent désormais une compilation d'étape 4. Le classeur Analyze fourni apporte la preuve de verdict requise.",
-        "Aucun run nanopore brut n'est fourni. L'écran affiche un run produit par un vrai pipeline, et ce même run alimente l'étape 4.",
-        "La plaque d'exemple place chaque variant dans un seul puits, ce que les lecteurs de layout et de verdict acceptent au lieu de le refuser.",
-        "Les positions des variants d'exemple sont numérotées d'après la référence EGFP fournie, et non d'après une autre protéine.",
-        "Quatre nouveaux fichiers couvrent les entrées en échelle brute, à étiquette de variant et à confirmation numérique, jusqu'ici sans exemple."
-      ],
-      "0.16.41": [
-        "Les données d'exemple forment désormais une seule campagne. La plaque MAME porte les variants proposés par la prédiction KURO fournie.",
-        "La plaque découle de cette prédiction en exécutant la conception d'amorces, si bien qu'un candidat sans amorces n'y figure jamais.",
-        "Les codons des mutations attendues viennent de la conception KURO, donc la feuille indique le codon que portent les amorces.",
-        "L'activité mesurée ne suit pas le classement prédit, et trois des dix variants se situent sous le type sauvage.",
-        "Un nouveau test lit les fichiers livrés et échoue dès que KURO et MAME décrivent de nouveau des expériences différentes."
-      ],
-      "0.16.57": [
-        "L'avertissement off-target n'attribue plus le seuil de 45 °C à Kwok 1990 et Huang 1992, valeur mesurée sur un seul fixture avec Q5.",
-        "L'avertissement indique désormais qu'une liste vide n'est pas une preuve d'absence de priming off-target, car seule une correspondance terminale 3' exacte y figure.",
-        "Le nom de l'enzyme de relecture provient désormais du profil sélectionné, au lieu de deux noms d'enzyme codés en dur dans la chaîne."
-      ],
-      "0.16.58": [
-        "Le choix du codon mutant évalue désormais chaque codon synonyme utilisé par l'organisme sélectionné. Auparavant la recherche n'en voyait que deux.",
-        "Les codons rares restent hors de cet ensemble, si bien qu'un design ne tombe plus sur un codon que l'organisme choisi n'emploie presque jamais.",
-        "Design classe les candidats sur tout le balayage de tolérance Tm, si bien qu'une fenêtre plus large contenant une meilleure amorce n'est plus ignorée.",
-        "La valeur Tol augmente sur ces designs. Un Tol plus élevé signale ici une amorce mieux notée, et non un critère assoupli.",
-        "Trois tables de codons ont été corrigées et la liste des organismes affiche désormais toutes les tables fournies, donc les designs antérieurs peuvent différer."
-      ],
-      "0.16.60": [
-        "Une délétion décidée ne compte plus dans les gates NO_CALL et MIXED, de sorte que trois puits signalent la substitution d'acide aminé qu'ils portent.",
-        "La traduction reconstruit la molécule de longueur réelle à partir des délétions et insertions appelées plutôt qu'une séquence de longueur de référence.",
-        "La récurrence de plaque gagne des canaux de délétion et d'insertion à côté du tableau des substitutions, avec troncature, omission et égalités comptées séparément.",
-        "Chaque position récurrente porte le nombre de mutations attendues distinctes de ses puits, ce qui sépare un artefact du caller d'un échantillon partagé.",
-        "Une analyse enregistrée conserve désormais ses preuves d'indels de consensus, auparavant perdues à la réouverture."
       ]
     },
     "releaseStamps": {
+      "0.16.64": "b5666e23",
       "0.16.63": "27af3ec6",
       "0.16.62": "e46c1db9",
       "0.16.61": "f9b38f15",
+      "0.16.60": "a87cf2d1",
       "0.16.59": "69e92cd5",
+      "0.16.58": "1ce19d3d",
+      "0.16.57": "b25a7d73",
       "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",
       "0.16.54": "137dd51e",
@@ -3130,10 +3141,7 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21",
-      "0.16.57": "b25a7d73",
-      "0.16.58": "1ce19d3d",
-      "0.16.60": "a87cf2d1"
+      "0.15.16": "fe8e6f21"
     }
   },
   "primerDisplay": {

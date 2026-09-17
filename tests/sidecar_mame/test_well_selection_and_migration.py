@@ -417,11 +417,11 @@ def test_a_declaration_that_names_only_the_control_leaves_no_designed_mutants(
     """WT is not a designed mutant, so it cannot prop the denominator up."""
     expected = _variant_list(tmp_path / "variants.xlsx", ["G2A", "F3W"])
     params = _params(tmp_path, expected)
-    # C1 holds WT for a two-variant list (A1 G2A, B1 F3W, C1 WT).
-    params["selected_wells"] = ["C1"]
+    params["selected_wells"] = ["H12"]
 
     result = handle_analyze(params)
 
+    assert result["layout_provenance"]["unused_wells"] == []
     assert result["designed_mutant_ids"] == []
     assert handle_get_run_health({})["total_mutants"] == 0
 

@@ -102,7 +102,7 @@ def extrapolate_ceiling(plate_loop_seconds: float, *, n_assays=217, n_signals=2,
 
 def gate_g1(pilot: list[dict], proxy_spearman: float, ceiling: dict) -> dict:
     """Evaluate Gate G1 (a)-(e); ALL must pass to unlock the 217 sweep."""
-    coverage_emitted = all(
+    coverage_emitted = bool(pilot) and all(p["per_arm"] for p in pilot) and all(
         "kcenter_radius" in a["coverage"] for p in pilot for a in p["per_arm"].values()
     )
     checks = {

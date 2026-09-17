@@ -7,16 +7,19 @@ reproduces the exact sequence the frontend's loadSampleData() action performs:
   1. load_fasta on samples/sample_plasmid.gb
   2. load_evolvepro_csv on samples/sample_evolvepro.csv  (text/evolvepro mode)
 
-This validates the full IPC pipeline minus only the Rust shell, which is a
-thin transport layer. If this passes, clicking "Load Sample Data" in the
-Tauri UI cannot fail at the sidecar boundary.
+This validates source Python sidecar behavior over subprocess JSON-RPC.
+It does not exercise the Rust/Tauri transport, packaged native sidecar,
+frontend state, or UI, so passing does not guarantee the native action works.
 """
 
 from __future__ import annotations
 
 import json
+import queue
 import subprocess
 import sys
+import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -24,6 +27,31 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SAMPLE_DIR = REPO_ROOT / "src-tauri" / "samples"
 SIDECAR_ENTRY = REPO_ROOT / "python-core" / "sidecar_main_kuro.py"
+
+
+def test_client_timeout_when_sidecar_is_silent(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    silent = tmp_path / "silent.py"
+    silent.write_text("import time\ntime.sleep(60)\n")
+    monkeypatch.setattr(sys.modules[__name__], "SIDECAR_ENTRY", silent)
+    client = SidecarClient()
+    failures: list[TimeoutError] = []
+
+    def request() -> None:
+        try:
+            client.call("health_info", {}, _timeout=0.05)
+        except TimeoutError as error:
+            failures.append(error)
+
+    worker = threading.Thread(target=request, daemon=True)
+    try:
+        worker.start()
+        worker.join(timeout=2)
+        assert not worker.is_alive(), "RPC timeout was ignored"
+        assert len(failures) == 1
+    finally:
+        client.proc.kill()
+        client.proc.wait(timeout=5)
+        worker.join(timeout=5)
 
 
 class SidecarClient:
@@ -38,6 +66,15 @@ class SidecarClient:
             bufsize=1,
         )
         self._req_id = 0
+        self._lines: queue.Queue[str] = queue.Queue()
+        self._reader = threading.Thread(target=self._read_stdout, daemon=True)
+        self._reader.start()
+
+    def _read_stdout(self) -> None:
+        assert self.proc.stdout is not None
+        for line in self.proc.stdout:
+            self._lines.put(line)
+        self._lines.put("")
 
     def call(self, method: str, params: dict, _timeout: float = 30.0) -> dict:
         self._req_id += 1
@@ -46,12 +83,14 @@ class SidecarClient:
         self.proc.stdin.write(json.dumps(req) + "\n")
         self.proc.stdin.flush()
         # drain progress / ready notifications until we see our response
-        deadline = self.proc.stdout
+        deadline = time.monotonic() + _timeout
         while True:
-            line = deadline.readline()
+            try:
+                line = self._lines.get(timeout=max(0.0, deadline - time.monotonic()))
+            except queue.Empty:
+                raise TimeoutError(f"sidecar RPC {method} exceeded {_timeout}s") from None
             if not line:
-                stderr = (self.proc.stderr.read() if self.proc.stderr else "") or ""
-                raise RuntimeError(f"sidecar closed stdout. stderr: {stderr[:500]}")
+                raise RuntimeError("sidecar closed stdout")
             try:
                 msg = json.loads(line)
             except json.JSONDecodeError:
@@ -67,8 +106,11 @@ class SidecarClient:
             if self.proc.stdin:
                 self.proc.stdin.close()
             self.proc.wait(timeout=5)
-        except Exception:
+        except subprocess.TimeoutExpired:
             self.proc.kill()
+            self.proc.wait(timeout=5)
+        finally:
+            self._reader.join(timeout=5)
 
 
 @pytest.fixture(scope="module")
@@ -80,7 +122,8 @@ def client():
 
 def test_sidecar_ping(client: SidecarClient) -> None:
     result = client.call("ping", {})
-    assert result == "pong" or result is True or result is None or isinstance(result, dict)
+    assert result == {"ok": True}
+    assert result["ok"] is True
 
 
 def test_load_sample_data_text_mode_full_chain(client: SidecarClient) -> None:
@@ -107,5 +150,3 @@ def test_load_sample_data_text_mode_full_chain(client: SidecarClient) -> None:
     assert csv_result["total_count"] >= 24
     assert csv_result["selected_count"] > 0
     assert len(csv_result["variants"]) > 0
-
-

@@ -43,8 +43,15 @@ export interface MameContextV2 extends MameContextBase {
 export type MameContext = MameContextV1 | MameContextV2 | MameContextBase
 
 export function isMameContext(x: unknown): x is MameContext {
-  if (typeof x !== "object" || x === null || !("schema" in x)) return false
-  return typeof (x as MameContextBase).schema === "number"
+  if (typeof x !== "object" || x === null || Array.isArray(x) ||
+      !("schema" in x) || typeof x.schema !== "number" || !Number.isFinite(x.schema) ||
+      !("published_at" in x) || typeof x.published_at !== "string") return false
+  if ("custom_barcodes_path" in x && x.custom_barcodes_path !== undefined &&
+      typeof x.custom_barcodes_path !== "string") return false
+  if ("reference_path" in x && x.reference_path !== undefined &&
+      typeof x.reference_path !== "string") return false
+  return x.schema !== 1 || !("sample_map_template_path" in x) ||
+    x.sample_map_template_path === undefined || typeof x.sample_map_template_path === "string"
 }
 
 /**
@@ -56,9 +63,8 @@ export function isMameContext(x: unknown): x is MameContext {
  * sample map" would conflate the two, and only one of them means there is
  * nothing on disk to reconcile.
  *
- * `isMameContext` checking only `typeof schema === "number"` is why this is a
- * separate function: bumping the number does not on its own change any branch,
- * so the branch has to name the version it cares about.
+ * The context guard accepts future schemas with valid common fields; this
+ * migration therefore names the version that actually carried the pointer.
  *
  * This pointer is the ONLY discovery path, and that is a decision rather than
  * an oversight. A folder assembled by hand carries no `mame_context.json`, so a

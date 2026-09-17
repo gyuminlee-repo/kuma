@@ -477,10 +477,10 @@ def _write_xlsx(mutants: list[dict], force: bool) -> None:
 # ---------------------------------------------------------------------------
 
 def _well_labels() -> list[str]:
-    """Return 96 well labels in row-major order: 1_1 .. 8_12."""
+    """Return well labels in the workbook's column-major plate order."""
     labels: list[str] = []
-    for row in range(1, _ROWS + 1):
-        for col in range(1, _COLS + 1):
+    for col in range(1, _COLS + 1):
+        for row in range(1, _ROWS + 1):
             labels.append(f"{row}_{col}")
     return labels
 
@@ -533,6 +533,9 @@ def generate(force: bool = False, n_mutants: int = DEFAULT_N_MUTANTS) -> None:
     for nb_idx, nb in enumerate(_NBS):
         nb_dir = CONSENSUS_ROOT / nb
         nb_dir.mkdir(parents=True, exist_ok=True)
+        if force:
+            for label in well_labels[n_mutants + 1:]:
+                (nb_dir / f"{label}.fasta").unlink(missing_ok=True)
         for well_idx, label in enumerate(well_labels[: n_mutants + 1]):
             is_control = well_idx == n_mutants
             case = _WT_LABEL if is_control else case_matrix[well_idx][nb_idx]

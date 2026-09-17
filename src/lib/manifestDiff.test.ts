@@ -44,6 +44,18 @@ function findEntry(entries: DiffEntry[], path: string): DiffEntry | undefined {
 // ── 테스트 ─────────────────────────────────────────────────────────────────────
 
 describe("diffManifests", () => {
+  it.each([42, {}, "changed", false])("FL03 reports array replacements by %j in both directions", (other) => {
+    for (const array of [[], [1, 2]]) {
+      for (const [left, right] of [[array, other], [other, array]]) {
+        const result = diffManifests(
+          baseManifest({ params: { value: left } }),
+          baseManifest({ params: { value: right } }),
+        );
+        expect(result.params).toEqual([{ path: "params.value", left, right, status: "changed" }]);
+      }
+    }
+  });
+
   // ── 동일 manifest ────────────────────────────────────────────────────────
 
   it("동일 manifest → 모든 항목 'same'", () => {

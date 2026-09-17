@@ -348,7 +348,9 @@ def _pair_rev_per_plate(
     """Pair reverse primers with each fwd plate by mutation membership.
 
     For each fwd plate chunk, collect the deduplicated reverse primers
-    that belong to that chunk's mutations, reassigning well names.
+    that belong to that chunk's mutations. Pack them column-first into the
+    forward chunk's physical well footprint so order, Echo and JANUS exports share
+    the same slots, including reduced-row plates.
     """
     # Build mutation → rev sequence lookup
     mut_to_rev_seq: dict[str, str] = {}
@@ -361,6 +363,10 @@ def _pair_rev_per_plate(
 
     paired: list[list[PlateMapping]] = []
     for fwd_chunk in fwd_plates:
+        wells = sorted(
+            (m.well for m in fwd_chunk),
+            key=lambda well: (int(well[1:]), well[0]),
+        )
         seen_seq: set[str] = set()
         rev_chunk: list[PlateMapping] = []
         well_idx = 0
@@ -371,7 +377,7 @@ def _pair_rev_per_plate(
                 rev_m = rev_by_seq.get(rev_seq)
                 if rev_m:
                     rev_chunk.append(PlateMapping(
-                        well=_well_name(well_idx),
+                        well=wells[well_idx],
                         primer_name=rev_m.primer_name,
                         sequence=rev_m.sequence,
                         primer_type="reverse",
@@ -880,7 +886,8 @@ def build_echo_rows(
 
     Row order is forward primers first (in ``fwd_mappings`` order), then reverse
     primers expanded so every forward mutation gets its own transfer row,
-    aspirating from the shared source well when the reverse primer is shared.
+    aspirating from the shared source well on that destination's paired plate.
+    Reverse wells follow the per-plate packing of ``export_plate_excel``.
     A volume above the Echo per-transfer ceiling is split into several rows.
 
     Keys are the sidecar preview field names, plus ``mutation`` (the mutation
@@ -920,6 +927,17 @@ def build_echo_rows(
         fwd_mappings, rev_mappings, rev_groups,
     )
 
+    paired_reverse = _pair_rev_per_plate(
+        _chunk_by_plate(fwd_mappings), rev_mappings,
+        rev_groups or {seq: [m.mutation for m in rev_mappings if m.sequence == seq]
+                       for seq in rev_by_seq},
+    )
+    rev_by_plate = {
+        (plate_idx, m.sequence): m
+        for plate_idx, chunk in enumerate(paired_reverse)
+        for m in chunk
+    }
+
     rows: list[dict] = []
 
     # Forward: one row per mutation (split if over the per-transfer ceiling)
@@ -945,11 +963,11 @@ def build_echo_rows(
         rev_seq = mut_to_rev_seq.get(fwd_m.mutation)
         if rev_seq is None:
             continue
-        rev_m = rev_by_seq.get(rev_seq)
+        fwd_plate_idx, _ = _parse_well_plate(fwd_m.well)
+        rev_m = rev_by_plate.get((fwd_plate_idx, rev_seq))
         if rev_m is None:
             continue
 
-        fwd_plate_idx, _ = _parse_well_plate(fwd_m.well)
         _, rev_base_well = _parse_well_plate(rev_m.well)
         src_well = _to_384_well_rev(
             rev_base_well, mapping_range=mapping_range, quadrant=quadrant,
@@ -1075,6 +1093,16 @@ def build_janus_rows(
     fwd_by_mut, rev_by_seq, mut_to_rev_seq = _build_rev_lookups(
         fwd_mappings, rev_mappings, rev_groups,
     )
+    paired_reverse = _pair_rev_per_plate(
+        _chunk_by_plate(fwd_mappings), rev_mappings,
+        rev_groups or {seq: [m.mutation for m in rev_mappings if m.sequence == seq]
+                       for seq in rev_by_seq},
+    )
+    rev_by_plate = {
+        (plate_idx, m.sequence): m
+        for plate_idx, chunk in enumerate(paired_reverse)
+        for m in chunk
+    }
 
     rows: list[dict] = []
     seq_no = 1
@@ -1098,17 +1126,19 @@ def build_janus_rows(
         rev_seq = mut_to_rev_seq.get(fwd_m.mutation)
         if rev_seq is None:
             continue
-        rev_m = rev_by_seq.get(rev_seq)
+        plate_idx, _ = _parse_well_plate(fwd_m.well)
+        rev_m = rev_by_plate.get((plate_idx, rev_seq))
         if rev_m is None:
             continue
 
         dest_well = fwd_by_mut.get(fwd_m.mutation, fwd_m.well)
+        source_well = rev_m.well if plate_idx == 0 else f"P{plate_idx + 1}-{rev_m.well}"
         rows.append({
             "name": f"{fwd_m.mutation}-R",
             "type": deck.sample_type,
             "no": seq_no,
             "asp_rack": deck.rev_rack,
-            "asp_posi": rev_m.well,
+            "asp_posi": source_well,
             "dsp_rack": deck.dest_rack,
             "dsp_posi": dest_well,
             "volume": transfer_vol,
@@ -1345,8 +1375,8 @@ def export_echo_mapping_xlsx(
     """Export Echo 525 mapping as XLSX matching the lab reference format.
 
     Sheets:
-      - layout: 384-well source plate (Fwd odd rows + Rev even rows)
-                + 96-well destination plate.
+      - layout, layout 2, ...: one paired 384-well source and 96-well
+                destination per plate, with plate-local reverse usage.
       - Echo mapping file: one row per transfer event, from
         :func:`build_echo_rows` (the same rows the CSV export and the sidecar
         preview show), so a single ``export_all`` cannot leave a csv and an xlsx
@@ -1356,8 +1386,7 @@ def export_echo_mapping_xlsx(
     transfer list beside it, so it draws the half the worklist aspirates from.
     It used to draw columns 1-12 whatever was selected, which an ``A13`` run
     showed as a grid exactly twelve columns away from its own worklist.
-    ``mapping_range`` still reaches the worklist sheet only; the layout sheet
-    keeps the default row bands for it.
+    ``mapping_range`` also reaches both sheets so their row bands agree.
     """
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font, PatternFill
@@ -1380,68 +1409,72 @@ def export_echo_mapping_xlsx(
 
     wb = Workbook()
 
-    # ---- Sheet 1: layout ----
-    ws = wb.active
-    # A freshly created Workbook always carries one active worksheet;
-    # None here would mean openpyxl handed back an empty book.
-    assert ws is not None
-    ws.title = "layout"
+    fwd_plates = _chunk_by_plate(fwd_mappings)
+    rev_plates = _pair_rev_per_plate(
+        fwd_plates, rev_mappings,
+        rev_groups or {seq: [m.mutation for m in rev_mappings if m.sequence == seq]
+                       for seq in rev_by_seq},
+    )
+    for plate_idx, (fwd_chunk, rev_chunk) in enumerate(zip(fwd_plates, rev_plates), 1):
+        ws = wb.active if plate_idx == 1 else wb.create_sheet()
+        assert ws is not None
+        ws.title = "layout" if plate_idx == 1 else f"layout {plate_idx}"
 
-    # Title
-    ws.cell(row=1, column=2, value="Primer dispensing (Echo 525)")
+        # Title
+        ws.cell(row=1, column=2, value="Primer dispensing (Echo 525)")
 
-    # Source section header
-    ws.cell(row=2, column=1, value="Source").font = bold
-    ws.cell(row=3, column=1, value="labware")
-    ws.cell(row=3, column=3, value="source plate")
+        # Source section header
+        ws.cell(row=2, column=1, value=f"Source [{plate_idx}]" if len(fwd_plates) > 1 else "Source").font = bold
+        ws.cell(row=3, column=1, value="labware")
+        ws.cell(row=3, column=3, value="source plate")
 
-    # "Eco 384PP" + column numbers 1-24
-    ws.cell(row=4, column=1, value="Eco 384PP").font = bold
-    for c in range(1, 25):
-        cell = ws.cell(row=4, column=c + 2, value=c)
-        cell.font = bold
-        cell.alignment = center
-
-    # Build 384-well lookup: well_384 → primer_name
-    # 워크리스트와 같은 quadrant 로 그린다. 그리지 않으면 A13 실행에서 그림은
-    # 1-12 열을, 워크리스트는 13-24 열을 가리켜 정확히 12열 어긋난다. A1 이
-    # 마침 quadrant 없는 기본 배치와 같아 이 어긋남이 오래 보이지 않았다.
-    well_384: dict[str, str] = {}
-    for m in fwd_mappings:
-        _, base = _parse_well_plate(m.well)
-        well_384[_to_384_well_fwd(base, quadrant=quadrant)] = m.primer_name
-    for m in rev_mappings:
-        _, base = _parse_well_plate(m.well)
-        well_384[_to_384_well_rev(base, quadrant=quadrant)] = m.primer_name
-
-    # 384-well grid: rows A-P (16 rows)
-    for ri, row_letter in enumerate(_ROWS_384):
-        r = 5 + ri
-        ws.cell(row=r, column=2, value=row_letter).font = bold
+        # "Eco 384PP" + column numbers 1-24
+        ws.cell(row=4, column=1, value="Eco 384PP").font = bold
         for c in range(1, 25):
-            name = well_384.get(f"{row_letter}{c}")
-            if name:
-                ws.cell(row=r, column=c + 2, value=name).alignment = center
+            cell = ws.cell(row=4, column=c + 2, value=c)
+            cell.font = bold
+            cell.alignment = center
 
-    # Destination section (96-well PCR plate)
-    dest_start = 5 + len(_ROWS_384) + 1  # after 384-well grid + blank row
-    ws.cell(row=dest_start, column=1, value="Destination").font = bold
-    next_row = _write_96well_grid(
-        ws, dest_start + 1, fwd_mappings, "PCR mixture",
-        labware="96 PCR plate", value_attr="mutation",
-    )
+        # Build 384-well lookup: well_384 → primer_name
+        # 워크리스트와 같은 quadrant 로 그린다. 그리지 않으면 A13 실행에서 그림은
+        # 1-12 열을, 워크리스트는 13-24 열을 가리켜 정확히 12열 어긋난다. A1 이
+        # 마침 quadrant 없는 기본 배치와 같아 이 어긋남이 오래 보이지 않았다.
+        well_384: dict[str, str] = {}
+        for m in fwd_chunk:
+            _, base = _parse_well_plate(m.well)
+            well_384[_to_384_well_fwd(base, mapping_range=mapping_range, quadrant=quadrant)] = m.primer_name
+        for m in rev_chunk:
+            _, base = _parse_well_plate(m.well)
+            well_384[_to_384_well_rev(base, mapping_range=mapping_range, quadrant=quadrant)] = m.primer_name
 
-    # Reverse source well usage (shared count + total transfer volume)
-    _write_rev_usage_table(
-        ws, next_row + 1, fwd_mappings, rev_mappings,
-        rev_by_seq, mut_to_rev_seq, transfer_vol, "nL",
-    )
+        # 384-well grid: rows A-P (16 rows)
+        for ri, row_letter in enumerate(_ROWS_384):
+            r = 5 + ri
+            ws.cell(row=r, column=2, value=row_letter).font = bold
+            for c in range(1, 25):
+                name = well_384.get(f"{row_letter}{c}")
+                if name:
+                    ws.cell(row=r, column=c + 2, value=name).alignment = center
 
-    # Auto-width
-    ws.column_dimensions["A"].width = 14
-    ws.column_dimensions["B"].width = 4
-    for c in range(3, 27):
-        ws.column_dimensions[chr(64 + c)].width = 12
+        # Destination section (96-well PCR plate)
+        dest_start = 5 + len(_ROWS_384) + 1  # after 384-well grid + blank row
+        ws.cell(row=dest_start, column=1, value=f"Destination [{plate_idx}]" if len(fwd_plates) > 1 else "Destination").font = bold
+        next_row = _write_96well_grid(
+            ws, dest_start + 1, fwd_chunk, "PCR mixture",
+            labware="96 PCR plate", value_attr="mutation",
+        )
+
+        # Reverse source well usage (shared count + total transfer volume)
+        _write_rev_usage_table(
+            ws, next_row + 1, fwd_chunk, rev_chunk,
+            {m.sequence: m for m in rev_chunk}, mut_to_rev_seq, transfer_vol, "nL",
+        )
+
+        # Auto-width
+        ws.column_dimensions["A"].width = 14
+        ws.column_dimensions["B"].width = 4
+        for c in range(3, 27):
+            ws.column_dimensions[chr(64 + c)].width = 12
 
     # ---- Sheet 2: Echo mapping file ----
     ws2 = wb.create_sheet("Echo mapping file")
@@ -1475,6 +1508,7 @@ def export_janus_mapping_xlsx(
     Sheets:
       - layout: Fwd 96-well plate + Rev 96-well plate
                 + 96-well PCR mixture (destination) on a single sheet.
+                Additional plates have separate layout N sheets.
       - primer_mapping file: one row per transfer event, from
         :func:`build_janus_rows` (same rows the CSV export and the sidecar
         preview use).
@@ -1491,41 +1525,34 @@ def export_janus_mapping_xlsx(
 
     wb = Workbook()
 
-    # ---- Sheet 1: layout ----
-    ws = wb.active
-    # A freshly created Workbook always carries one active worksheet;
-    # None here would mean openpyxl handed back an empty book.
-    assert ws is not None
-    ws.title = "layout"
-
-    # Title
-    ws.cell(row=1, column=2, value="Primer dispensing (JANUS)")
-
-    # Fwd plate
-    r = _write_96well_grid(ws, 2, fwd_mappings, "fw plate")
-
-    # Blank row + Rev plate
-    r += 1
-    r = _write_96well_grid(ws, r, rev_mappings, "rv plate")
-
-    # Blank rows + Destination plate
-    r += 2
-    next_row = _write_96well_grid(
-        ws, r, fwd_mappings, "PCR mixture plate",
-        labware="96 PCR plate", value_attr="mutation",
+    fwd_plates = _chunk_by_plate(fwd_mappings)
+    rev_plates = _pair_rev_per_plate(
+        fwd_plates, rev_mappings,
+        rev_groups or {seq: [m.mutation for m in rev_mappings if m.sequence == seq]
+                       for seq in rev_by_seq},
     )
+    for plate_idx, (fwd_chunk, rev_chunk) in enumerate(zip(fwd_plates, rev_plates), 1):
+        ws = wb.active if plate_idx == 1 else wb.create_sheet()
+        assert ws is not None
+        ws.title = "layout" if plate_idx == 1 else f"layout {plate_idx}"
+        tag = f" (P{plate_idx})" if len(fwd_plates) > 1 else ""
+        ws.cell(row=1, column=2, value=f"Primer dispensing (JANUS){tag}")
 
-    # Reverse source well usage (shared count + total transfer volume)
-    _write_rev_usage_table(
-        ws, next_row + 1, fwd_mappings, rev_mappings,
-        rev_by_seq, mut_to_rev_seq, transfer_vol, "µL",
-    )
+        r = _write_96well_grid(ws, 2, fwd_chunk, deck.fwd_rack + tag)
+        r = _write_96well_grid(ws, r + 1, rev_chunk, deck.rev_rack + tag)
+        next_row = _write_96well_grid(
+            ws, r + 2, fwd_chunk, deck.dest_rack + tag,
+            labware="96 PCR plate", value_attr="mutation",
+        )
+        _write_rev_usage_table(
+            ws, next_row + 1, fwd_chunk, rev_chunk,
+            {m.sequence: m for m in rev_chunk}, mut_to_rev_seq, transfer_vol, "µL",
+        )
 
-    # Auto-width
-    ws.column_dimensions["A"].width = 14
-    ws.column_dimensions["B"].width = 4
-    for c in range(3, 15):
-        ws.column_dimensions[chr(64 + c)].width = 12
+        ws.column_dimensions["A"].width = 14
+        ws.column_dimensions["B"].width = 4
+        for c in range(3, 15):
+            ws.column_dimensions[chr(64 + c)].width = 12
 
     # ---- Sheet 2: primer_mapping file ----
     ws2 = wb.create_sheet("primer_mapping file")

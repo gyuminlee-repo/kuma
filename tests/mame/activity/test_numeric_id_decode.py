@@ -75,7 +75,7 @@ def _report(
 ) -> Path:
     """FID1B blocks: replicate 1 unsuffixed, later replicates '-2', '-3'."""
     wb, ws = _new_sheet()
-    n_reps = max(len(v) for v in base_areas.values())
+    n_reps = max(len(wt_areas), max((len(v) for v in base_areas.values()), default=0))
     for rep in range(n_reps):
         for base_id in sorted(base_areas):
             areas = base_areas[base_id]
@@ -98,7 +98,7 @@ def _primary(tmp_path: Path) -> Path:
     return _report(
         tmp_path,
         {i: [rel * _WT] for i, rel in _PRIMARY_REL.items()},
-        [_WT, _WT, _WT],
+        [_WT / 2, _WT, _WT * 1.5],
         name="primary.xlsx",
     )
 

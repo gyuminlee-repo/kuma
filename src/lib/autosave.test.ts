@@ -30,6 +30,7 @@ vi.mock("@tauri-apps/plugin-fs", () => ({
 import {
   scheduleAutosave,
   flushAutosave,
+  retryAutosave,
   atomicWriteJson,
   autosavePath,
   readAutosave,
@@ -43,6 +44,7 @@ import {
   GENERATION_INTERVAL_MS,
   GENERATION_KEEP,
   DEBOUNCE_MS,
+  MAX_SKEW_MS,
   type AutosaveTarget,
   type AutosaveSnapshot,
   type AutosaveEvent,
@@ -104,7 +106,68 @@ afterEach(() => {
 
 // ─── 테스트 케이스 ────────────────────────────────────────────────────────
 
+describe("FC01 retryAutosave integration", () => {
+  beforeEach(() => {
+    mockExists.mockImplementation(async (path) => path.endsWith(".autosave"));
+  });
+
+  it("retries a failed captured snapshot without another edit", async () => {
+    mockWriteTextFile.mockRejectedValueOnce(new Error("EACCES"));
+    const target = makeTarget();
+    scheduleAutosave(target, "kuro", () => makeSnapshot("failed"));
+    await expect(flushAutosave(target, "kuro")).rejects.toThrow("EACCES");
+    await retryAutosave(target, "kuro");
+    expect(snapshotWriteCount()).toBe(2);
+    expect(snapshotRenameCount()).toBe(1);
+  });
+
+  it("does not replay a failure into another project", async () => {
+    mockWriteTextFile.mockRejectedValueOnce(new Error("EACCES"));
+    const target = makeTarget();
+    scheduleAutosave(target, "kuro", () => makeSnapshot("failed"));
+    await expect(flushAutosave(target, "kuro")).rejects.toThrow("EACCES");
+    await retryAutosave(makeTarget({ projectPath: PROJECT_PATH + "-other" }), "kuro");
+    expect(snapshotWriteCount()).toBe(1);
+  });
+
+  it("prefers a newer pending edit to the failed snapshot", async () => {
+    mockWriteTextFile.mockRejectedValueOnce(new Error("EACCES"));
+    const target = makeTarget();
+    scheduleAutosave(target, "kuro", () => makeSnapshot("failed"));
+    await expect(flushAutosave(target, "kuro")).rejects.toThrow("EACCES");
+    scheduleAutosave(target, "kuro", () => makeSnapshot("newer"));
+    await retryAutosave(target, "kuro");
+    expect(snapshotWriteCount()).toBe(2);
+    expect(mockWriteTextFile.mock.calls.filter(([path]) => path.endsWith(".tmp"))[1]?.[1])
+      .toContain('"newer"');
+  });
+
+  it.each(["blocked", "hydrating"])("does not replay while %s", async (gate) => {
+    mockWriteTextFile.mockRejectedValueOnce(new Error("EACCES"));
+    const target = makeTarget();
+    scheduleAutosave(target, "kuro", () => makeSnapshot("failed"));
+    await expect(flushAutosave(target, "kuro")).rejects.toThrow("EACCES");
+    if (gate === "blocked") blockAutosaveWrites("kuro", new Error("blocked"));
+    else beginHydration();
+    await expect(retryAutosave(target, "kuro")).rejects.toThrow();
+    expect(snapshotWriteCount()).toBe(1);
+  });
+});
+
 describe("scheduleAutosave", () => {
+  it.each([0, 1_800_000_000_000])("FL02 saves continuous first edits within 30 seconds at %s", async (epoch) => {
+    vi.setSystemTime(epoch);
+    const target = makeTarget();
+    for (let elapsed = 0; elapsed < MAX_SKEW_MS; elapsed += 1000) {
+      scheduleAutosave(target, "kuro", () => makeSnapshot(String(elapsed)));
+      await vi.advanceTimersByTimeAsync(1000);
+    }
+    expect(snapshotRenameCount()).toBe(1);
+    expect(mockWriteTextFile.mock.calls.find(([path]) => path.endsWith(".tmp"))?.[1])
+      .toContain('"label": "29000"');
+    await flushAutosave(target, "kuro");
+  });
+
   it("TC1: 1.5초 디바운스 후 atomic write를 정확히 1회 호출한다", async () => {
     const target = makeTarget();
     scheduleAutosave(target, "kuro", () => makeSnapshot("single"));
@@ -316,6 +379,23 @@ describe("atomicWriteJson", () => {
 });
 
 describe("readAutosave", () => {
+  it.each([
+    null, [], 42, {},
+    { schema: "1", saved_at: "now", kuma_version: "1" },
+    { schema: 1.5, saved_at: "now", kuma_version: "1" },
+    { schema: -1, saved_at: "now", kuma_version: "1" },
+    { schema: 1, kuma_version: "1" },
+    { schema: 1, saved_at: 42, kuma_version: "1" },
+    { schema: 1, saved_at: "now" },
+    { schema: 1, saved_at: "now", kuma_version: 42 },
+  ].map((stored) => [stored]))("FL01 quarantines malformed envelope %j", async (stored) => {
+    mockReadTextFile.mockResolvedValue(JSON.stringify(stored));
+    expect((await readAutosave(PROJECT_PATH, "kuro", 1)).status).toBe("corrupted");
+    expect(mockRename).toHaveBeenCalledWith(
+      autosavePath(PROJECT_PATH, "kuro"), expect.stringContaining(".bad-"),
+    );
+  });
+
   it("TC7: 손상 JSON 파일을 .bad-<ts>로 rename하고 corrupted를 반환한다", async () => {
     vi.useRealTimers();
 

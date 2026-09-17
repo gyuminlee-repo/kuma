@@ -1,6 +1,8 @@
 # UniProt과 AlphaFold
 
-![UniProt 후보 목록](../screenshots/07-uniprot-candidates.png)
+![UniProt 자동 매칭 상태가 표시된 Submit Design 풀 필터 화면](../screenshots/07-uniprot-candidates.png)
+
+스크린샷은 UniProt 자동 매칭 상태 메시지가 표시된 Submit Design 풀 필터 화면이며, 후보 목록은 열려 있지 않음.
 
 CDS 선택 후 Kuro가 UniProt을 검색하여 설계를 보강:
 

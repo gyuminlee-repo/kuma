@@ -113,7 +113,7 @@ class TestGenbankCdsExtraction:
         assert gene.translation == "MKPGF"
 
     def test_multi_record_genbank(self, tmp_path):
-        """Multi-record GenBank: all CDS across records must be collected."""
+        """Only CDS belonging to the returned first template are selectable."""
         from Bio.Seq import Seq
         from Bio.SeqFeature import SeqFeature, FeatureLocation
         from Bio.SeqRecord import SeqRecord
@@ -135,9 +135,9 @@ class TestGenbankCdsExtraction:
         self._write_genbank(gb_path, recs)
 
         _header, _sequence, genes = load_sequence(gb_path)
-        assert len(genes) == 2
+        assert len(genes) == 1
         names = {g.gene for g in genes}
-        assert names == {"geneA", "geneB"}
+        assert names == {"geneA"}
 
     def test_missing_translation_sense_strand(self, tmp_path):
         """CDS without /translation: translate from sense strand, stop at first stop codon."""

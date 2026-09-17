@@ -5,13 +5,12 @@
  * stdin/stdout JSON-RPC, exercising validate_inputs -> analyze ->
  * get_plate_data -> export_excel in sequence with the committed fixture set.
  *
- * Runs under `pnpm test:integration` with the dedicated vitest config so it
- * does not interfere with the frontend vitest pool.
+ * Run with Vitest, selecting this file explicitly.
  */
 
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdtempSync, rmSync } from "node:fs";
+import { cpSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -19,6 +18,43 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 const REPO_ROOT = resolve(__dirname, "..", "..", "..");
 const SIDECAR_ENTRY = resolve(REPO_ROOT, "python-core", "sidecar_main_mame.py");
 const FIXTURES = resolve(REPO_ROOT, "tests", "mame", "fixtures");
+const FIXTURE_CDS_END = 177;
+
+function expectValidInputs(result: unknown): void {
+  expect(result).toMatchObject({ valid: true, errors: [] });
+}
+
+function expectFixtureWells(wells: readonly Record<string, unknown>[]): void {
+  expect(wells).toHaveLength(4);
+  expect(wells.map(({ well, barcode }) => ({ well, barcode }))).toEqual(
+    expect.arrayContaining([
+      { well: "A1", barcode: "1_1" },
+      { well: "A2", barcode: "1_2" },
+      { well: "A3", barcode: "1_3" },
+      { well: "A4", barcode: "1_4" },
+    ]),
+  );
+  for (const well of wells) {
+    expect(well.native_barcode).toBe("NB01");
+    expect(well.verdict).toEqual(expect.any(String));
+    expect(well.verdict).not.toBe("");
+  }
+}
+
+describe("sidecar integration assertion guards", () => {
+  it.each([
+    { valid: false, errors: [] },
+    { valid: true, errors: ["invalid input"] },
+    { valid: true },
+    { errors: [] },
+  ])("rejects an inconsistent or incomplete validation result: %j", (result) => {
+    expect(() => expectValidInputs(result)).toThrow();
+  });
+
+  it("rejects an empty plate for the populated fixture", () => {
+    expect(() => expectFixtureWells([])).toThrow();
+  });
+});
 
 interface JsonRpcResponse {
   jsonrpc: "2.0";
@@ -145,6 +181,11 @@ describe("sidecar integration", () => {
 
   beforeAll(async () => {
     workDir = mkdtempSync(join(tmpdir(), "ngs-integration-"));
+    cpSync(
+      resolve(FIXTURES, "mock_consensus_output", "NB01"),
+      join(workDir, "input", "NB01"),
+      { recursive: true },
+    );
     const proc = spawn(pickPython(), [SIDECAR_ENTRY], {
       cwd: REPO_ROOT,
       env: {
@@ -169,34 +210,27 @@ describe("sidecar integration", () => {
   });
 
   it("validates fixture inputs", async () => {
-    const result = (await client.request<{
-      valid?: boolean;
-      errors?: string[];
-    }>("validate_inputs", {
-      input_dir: resolve(FIXTURES, "mock_consensus_output", "NB01"),
+    const result = await client.request("validate_inputs", {
+      input_dir: join(workDir, "input"),
       reference: resolve(FIXTURES, "reference.fasta"),
       expected: resolve(FIXTURES, "KURO_test.xlsx"),
-      cds_end: 750,
-    })) as { valid?: boolean; errors?: string[] };
+      cds_end: FIXTURE_CDS_END,
+    });
 
-    // Accept either shape — spec allows {valid:true} or {errors:[]}
-    const ok =
-      result.valid === true ||
-      (Array.isArray(result.errors) && result.errors.length === 0);
-    expect(ok, `validate_inputs result=${JSON.stringify(result)}`).toBe(true);
+    expectValidInputs(result);
   });
 
   it("runs analyze on fixture, producing verdicts + output xlsx", async () => {
     const outputPath = join(workDir, "analyze_output.xlsx");
     const result = (await client.request<Record<string, unknown>>("analyze", {
-      input_dir: resolve(FIXTURES, "mock_consensus_output", "NB01"),
+      input_dir: join(workDir, "input"),
       reference: resolve(FIXTURES, "reference.fasta"),
       expected: resolve(FIXTURES, "KURO_test.xlsx"),
       output: outputPath,
       mode: "amplicon",
       ingest_mode: "barcode",
       cds_start: 0,
-      cds_end: 750,
+      cds_end: FIXTURE_CDS_END,
       min_file_size_kb: 50.0,
       many_cutoff: 5,
     })) as Record<string, unknown>;
@@ -206,6 +240,8 @@ describe("sidecar integration", () => {
     expect(result).toHaveProperty("output_path");
     expect(result).toHaveProperty("summary");
     expect(Array.isArray(result.verdicts)).toBe(true);
+    expect(result.verdicts).toHaveLength(4);
+    expect(result.output_path).toBe(outputPath);
     expect(existsSync(outputPath)).toBe(true);
   }, 120_000);
 
@@ -215,15 +251,7 @@ describe("sidecar integration", () => {
     }>("get_plate_data", {})) as { wells: Array<Record<string, unknown>> };
 
     expect(Array.isArray(result.wells)).toBe(true);
-    // When the fixture produces verdicts, validate shape on the first well.
-    // An empty array is still a well-shaped response for fixtures without
-    // barcode matches, so do not assert non-empty.
-    if (result.wells.length > 0) {
-      const first = result.wells[0];
-      expect(first).toHaveProperty("well");
-      expect(first).toHaveProperty("barcode");
-      expect(first).toHaveProperty("verdict");
-    }
+    expectFixtureWells(result.wells);
   });
 
   it("re-exports excel to a fresh path", async () => {

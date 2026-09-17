@@ -2653,14 +2653,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The Help menu opens a help panel beside the screen, at the topic for the step being worked on, in Korean or English.",
-      "Thirteen topics cover KURO and MAME, written around what is done on each screen and what the warnings there mean.",
-      "A cross-reference inside the help opens in the same panel, which stays open while switching between KURO and MAME.",
-      "The help menu on the MAME analyze inputs screen opens the analyze topic instead of the barcode setup one.",
-      "Pressing Next on MAME step 1 without a barcode package names the missing input instead of showing an internal key."
+      "A deletion only half the reads support no longer exempts a well from the no-call gate, so a site at 40 or 50 percent reads as a no call.",
+      "The activity data step refuses to attach an NGS verdict to a variant other than the one its row names.",
+      "Echo and JANUS files from a reduced row range or several plates keep the stock positions the order workbook gives them.",
+      "Reopening a workspace keeps its selection and drops output whose inputs are gone, and a benchmark that never ran stops reporting damage.",
+      "On Linux the scratch autosave works under the hidden app data folder and File > Quit closes the window."
     ],
-    "highlightsStamp": "0.16.63+27af3ec6",
+    "highlightsStamp": "0.16.64+b5666e23",
     "releases": {
+      "0.16.64": [
+        "A deletion only half the reads support no longer exempts a well from the no-call gate, so a site at 40 or 50 percent reads as a no call.",
+        "The activity data step refuses to attach an NGS verdict to a variant other than the one its row names.",
+        "Echo and JANUS files from a reduced row range or several plates keep the stock positions the order workbook gives them.",
+        "Reopening a workspace keeps its selection and drops output whose inputs are gone, and a benchmark that never ran stops reporting damage.",
+        "On Linux the scratch autosave works under the hidden app data folder and File > Quit closes the window."
+      ],
       "0.16.63": [
         "The Help menu opens a help panel beside the screen, at the topic for the step being worked on, in Korean or English.",
         "Thirteen topics cover KURO and MAME, written around what is done on each screen and what the warnings there mean.",
@@ -3115,6 +3122,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.64": "b5666e23",
       "0.16.63": "27af3ec6",
       "0.16.62": "e46c1db9",
       "0.16.61": "f9b38f15",

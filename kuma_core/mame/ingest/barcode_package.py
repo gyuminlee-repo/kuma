@@ -452,6 +452,12 @@ def design_flanking_primers(
             f"<= binding_max_len ({binding_max_len})."
         )
 
+    if binding_min_len > flank_max - flank_min:
+        raise ValueError(
+            f"binding_min_len ({binding_min_len}) exceeds the flank search "
+            f"window width ({flank_max - flank_min})."
+        )
+
     if topology == "circular" and (
         (flank_max - flank_min) > seq_len or binding_max_len > seq_len
     ):
@@ -484,8 +490,8 @@ def design_flanking_primers(
         )
 
     # Reverse primer search window: binding ends at `end`, starts at `end - length`.
-    # end must satisfy gene_end + flank_min <= end <= gene_end + flank_max.
-    rev_region_start = gene_end + flank_min  # inclusive lower bound for `end`
+    # The whole binding site must fit inside the downstream search window.
+    rev_region_start = gene_end + flank_min
     rev_region_end = gene_end + flank_max    # inclusive upper bound for `end`
 
     if topology == "linear" and rev_region_end > seq_len:
@@ -509,6 +515,8 @@ def design_flanking_primers(
 
     for pos in range(fwd_region_start, fwd_region_end):
         for length in range(binding_min_len, binding_max_len + 1):
+            if pos + length > fwd_region_end:
+                break
             if topology == "circular":
                 candidate = _circular_slice(cds_sequence, pos, length, seq_len)
             else:
@@ -558,6 +566,8 @@ def design_flanking_primers(
     for end in range(rev_region_start, rev_region_end + 1):
         for length in range(binding_min_len, binding_max_len + 1):
             start = end - length
+            if start < rev_region_start:
+                break
             if topology == "circular":
                 candidate_raw = _circular_slice(cds_sequence, start, length, seq_len)
             else:

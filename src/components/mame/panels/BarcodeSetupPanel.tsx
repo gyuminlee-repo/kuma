@@ -7,7 +7,7 @@
  * 상태: 컴포넌트 local useState (마지막 값은 localStorage `kuma:mame:barcodeSetup`에 영속화)
  */
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { open } from "@tauri-apps/plugin-dialog";
 import { readTextFile } from "@tauri-apps/plugin-fs";
@@ -223,6 +223,7 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
         for (const c of candidates) {
           if (c.aa_length > best.aa_length) best = c;
         }
+        setSelectedCdsIndex(candidates.indexOf(best));
         const update: Partial<SetupFormState> = {
           geneStart: String(best.start),
           geneEnd: String(best.end),
@@ -310,10 +311,10 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
   }, [samplePrefill]);
 
   // ─── Clear-all: reinitialise local form state when resetMameAll bumps epoch ─
-  // resetEpoch starts at 0 and increments only on resetMameAll. Skip the
-  // initial mount (epoch=0) so we do not clobber the localStorage-loaded form.
+  const seenResetEpoch = useRef(resetEpoch);
   useEffect(() => {
-    if (resetEpoch === 0) return;
+    if (seenResetEpoch.current === resetEpoch) return;
+    seenResetEpoch.current = resetEpoch;
     setFormRaw(DEFAULT_STATE);
     setResult(null);
   }, [resetEpoch]);

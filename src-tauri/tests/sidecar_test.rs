@@ -32,11 +32,8 @@ async fn line_protocol_marks_ready_from_notification() {
         .unwrap();
 }
 
-#[tokio::test]
-#[ignore = "requires a native tauri runtime and packaged fixture sidecar binary"]
-async fn launches_real_sidecar_fixture() {
-    assert!(true);
-}
+// Native lifecycle coverage lives in the harness=false native_sidecar target:
+// macOS requires Wry's event loop to run on the executable's main thread.
 
 // rpc_with_timeout 동작 검증:
 // SidecarManager 인스턴스화는 AppHandle 필요 → tauri 런타임 없이 불가.

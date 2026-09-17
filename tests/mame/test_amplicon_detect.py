@@ -184,12 +184,11 @@ def test_detect_confidence_levels(tmp_path: Path) -> None:
 
 def test_detect_medium_confidence(tmp_path: Path) -> None:
     """Peak ratio 0.15–0.29 → "medium" confidence."""
-    tmp = Path(str(tmp_path) + "_med")
+    tmp = tmp_path / "medium"
     tmp.mkdir()
     # 20% in one bin, rest spread across many bins
     lengths = [1000] * 200 + list(range(400, 1000)) + list(range(1001, 1400))
     _write_fastq(tmp / "reads.fastq", lengths)
     result = detect_amplicon_length(tmp)
-    if result is not None:
-        # Accept medium or high depending on exact binning
-        assert result.confidence in ("medium", "high", "low")
+    assert result is not None
+    assert result.confidence == "medium"

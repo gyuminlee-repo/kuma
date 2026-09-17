@@ -18,6 +18,8 @@ Load the sequence file the design is built on, then set the gene to design prime
 
 Once a file is loaded, the sequence header, the length in bp, and the number of genes found appear under the file name.
 
+Only the first GenBank record and its CDS features are loaded. To use a gene from another record, export that record with its flanking template as a separate GenBank file. A later record's annotations cannot substitute for missing CDS annotations in the first record.
+
 ## Messages you may see
 
 | Message | What it means and what to do |

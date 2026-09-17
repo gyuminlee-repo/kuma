@@ -376,7 +376,8 @@ const BENCHMARK_REQUIRED_METRICS = [
 export function readKuroBenchmarkResults(
   value: unknown,
 ): GroupRead<AppState["benchmarkResults"]> {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+  if (value === null) return { ok: true, value: null };
+  if (typeof value !== "object" || Array.isArray(value)) {
     return { ok: false, missing: ["benchmarkResults"] };
   }
   const invalid: string[] = [];

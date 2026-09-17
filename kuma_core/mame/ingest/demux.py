@@ -816,6 +816,7 @@ def demux_native_barcode(
     if not fastq_dir.is_dir():
         raise FileNotFoundError(f"fastq_dir is not a directory: {fastq_dir}")
     _validate_custom_barcodes(custom_barcodes)
+    custom_barcodes = {name: sequence.upper() for name, sequence in custom_barcodes.items()}
     error_tolerance = _validate_error_tolerance(error_tolerance)
 
     if linked_trim and not rev_primer_universal:

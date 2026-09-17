@@ -38,7 +38,7 @@ Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenB
 **Highlights**
 
 - **EVOLVEpro-driven selection** — Top-N plus position / domain / Pareto / entropy / structural diversity and a σ-Adaptive candidate pool
-- **Calibrated chemistry** — eight polymerase profiles (+ custom), SantaLucia 1998 Tm, GC / length / tolerance controls
+- **Calibrated chemistry** — seven polymerase profiles (+ custom), SantaLucia 1998 Tm, GC / length / tolerance controls
 - **Built-in QC** — primer3 hairpin/homodimer, off-target scan, oligo synthesis-quality score, AlphaFold 3D distance
 - **Candidate 3D structure analysis** — Output-step 3Dmol viewer placing candidates on the AlphaFold/PDB structure, with active/binding-site highlights, spatial dispersion vs a random null, clickable color legend, surface, and PNG export (interpretation/QC aid, not a selection filter)
 - **Mode-aware failure rescue** — multi-stage Position Rescue with one-click per-mutation retry

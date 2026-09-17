@@ -131,6 +131,7 @@ class ConsensusResult:
     # numerator; the four sum to it exactly. See ConsensusCall for the priority.
     n_no_call_zero_depth: int = 0
     n_no_call_deletion: int = 0
+    n_no_call_deletion_majority: int | None = None
     n_no_call_ambiguous: int = 0
     n_no_call_no_majority: int = 0
     consensus_net_indel_bp: int = 0
@@ -384,6 +385,7 @@ def compute_well_consensuses(
             n_ins_majority_anchors=consensus_call.n_ins_majority_anchors,
             n_no_call_zero_depth=consensus_call.n_no_call_zero_depth,
             n_no_call_deletion=consensus_call.n_no_call_deletion,
+            n_no_call_deletion_majority=consensus_call.n_no_call_deletion_majority,
             n_no_call_ambiguous=consensus_call.n_no_call_ambiguous,
             n_no_call_no_majority=consensus_call.n_no_call_no_majority,
             consensus_net_indel_bp=consensus_call.consensus_net_indel_bp,

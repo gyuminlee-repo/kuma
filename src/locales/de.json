@@ -2599,14 +2599,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Das Hilfemenü öffnet ein Hilfe-Panel neben dem Bildschirm, beim Thema des gerade bearbeiteten Schritts, auf Koreanisch oder Englisch.",
-      "Dreizehn Themen decken KURO und MAME ab, geschrieben entlang dessen, was auf jedem Bildschirm getan wird und was die dortigen Warnungen bedeuten.",
-      "Ein Querverweis in der Hilfe öffnet sich im selben Panel, das beim Wechsel zwischen KURO und MAME geöffnet bleibt.",
-      "Das Hilfemenü im MAME-Bildschirm für Analyse-Eingaben öffnet das Thema Analyse und Prüfung statt Barcode-Einrichtung.",
-      "Wer auf MAME-Schritt 1 ohne Barcode-Paket auf Weiter drückt, sieht den Namen der fehlenden Eingabe statt eines internen Schlüssels."
+      "Eine Deletion, die nur die Hälfte der Reads stützt, befreit ein Well nicht mehr vom No-Call-Gate, daher liest sich eine Stelle mit 40 oder 50 Prozent als No Call.",
+      "Der Schritt für Aktivitätsdaten hängt ein NGS-Urteil nicht mehr an eine andere Variante als die, welche die Zeile nennt.",
+      "Echo- und JANUS-Dateien aus einem verkleinerten Zeilenbereich oder über mehrere Platten behalten die Stock-Positionen aus dem Bestellbogen.",
+      "Beim erneuten Öffnen bleibt die Auswahl erhalten und Ausgaben ohne ihre Eingaben entfallen; ein nie gelaufener Benchmark meldet keinen Schaden mehr.",
+      "Unter Linux funktioniert das Scratch-Autospeichern im versteckten App-Datenordner und Datei > Beenden schließt das Fenster."
     ],
-    "highlightsStamp": "0.16.63+27af3ec6",
+    "highlightsStamp": "0.16.64+b5666e23",
     "releases": {
+      "0.16.64": [
+        "Eine Deletion, die nur die Hälfte der Reads stützt, befreit ein Well nicht mehr vom No-Call-Gate, daher liest sich eine Stelle mit 40 oder 50 Prozent als No Call.",
+        "Der Schritt für Aktivitätsdaten hängt ein NGS-Urteil nicht mehr an eine andere Variante als die, welche die Zeile nennt.",
+        "Echo- und JANUS-Dateien aus einem verkleinerten Zeilenbereich oder über mehrere Platten behalten die Stock-Positionen aus dem Bestellbogen.",
+        "Beim erneuten Öffnen bleibt die Auswahl erhalten und Ausgaben ohne ihre Eingaben entfallen; ein nie gelaufener Benchmark meldet keinen Schaden mehr.",
+        "Unter Linux funktioniert das Scratch-Autospeichern im versteckten App-Datenordner und Datei > Beenden schließt das Fenster."
+      ],
       "0.16.63": [
         "Das Hilfemenü öffnet ein Hilfe-Panel neben dem Bildschirm, beim Thema des gerade bearbeiteten Schritts, auf Koreanisch oder Englisch.",
         "Dreizehn Themen decken KURO und MAME ab, geschrieben entlang dessen, was auf jedem Bildschirm getan wird und was die dortigen Warnungen bedeuten.",
@@ -2627,12 +2634,31 @@
         "Eine Platte von vor diesem Release hat keine freie Hälfte: der damalige Durchlauf lag über beiden, also gelten beide als verbraucht, bis Sie das aufheben.",
         "Die Forward Platzierung ist gegen 95 Transfers aus einer echten Echo Worklist festgelegt und kann nicht unbemerkt zurückdriften."
       ],
+      "0.16.60": [
+        "Eine entschiedene Deletion zählt nicht mehr für die NO_CALL- und MIXED-Gates, sodass drei Wells die tatsächliche Aminosäuresubstitution melden.",
+        "Die Translation rekonstruiert das längentreue Molekül aus den aufgerufenen Deletionen und Insertionen statt aus einer Sequenz in Referenzlänge.",
+        "Plate Recurrence erhält Deletions- und Insertionskanäle neben der Substitutionstabelle; Kürzung, Auslassung und Gleichstand werden getrennt gezählt.",
+        "Jede wiederkehrende Position führt mit, wie viele unterschiedliche erwartete Mutationen ihre Wells hatten, was ein Caller-Artefakt von einer geteilten Probe trennt.",
+        "Ein gespeichertes Ergebnis behält nun seine Consensus-Indel-Belege, die beim erneuten Öffnen zuvor verloren gingen."
+      ],
       "0.16.59": [
         "Eine MAME-Arbeitsmappe hält jetzt die Referenz, das kodierende Fenster, den Modus und die Schwellenwerte des Laufs fest.",
         "Die Referenz wird über einen Digest der geparsten Sequenz identifiziert, sodass dasselbe Molekül unter anderem Namen weiterhin passt.",
         "Das Vokabular der Bewertungsklassen steht in jeder Arbeitsmappe, sodass nachgelagerte Leser die Klassennamen nicht mehr abschreiben.",
         "Die kuma-Version und die Metadaten des Sequenzierlaufs, auf dem Bibliothekspfad stets leer, werden jetzt geschrieben.",
         "Keine geänderten Bewertungen: Die Einträge beschreiben bereits geltende Einstellungen, und die Bewertungslogik bleibt unberührt."
+      ],
+      "0.16.58": [
+        "Die Auswahl des Mutant-Codons bewertet jetzt jedes synonyme Codon, das der gewählte Organismus verwendet. Zuvor sah die Suche nur zwei.",
+        "Seltene Codons bleiben aus diesem Kandidatensatz heraus, sodass ein Entwurf nicht mehr auf einem Codon landet, das der Organismus kaum nutzt.",
+        "Design bewertet Kandidaten über den gesamten Tm-Toleranzdurchlauf, sodass ein weiterer Bereich mit einem besseren Primer nicht mehr übersprungen wird.",
+        "Der Tol-Wert steigt bei diesen Entwürfen. Ein höherer Tol steht hier für einen besser bewerteten Primer, nicht für einen lockereren Maßstab.",
+        "Drei Codon-Tabellen wurden korrigiert, und die Organismusliste zeigt nun jede mitgelieferte Tabelle, daher können frühere Entwürfe abweichen."
+      ],
+      "0.16.57": [
+        "Der Off-Target-Hinweis nennt für den 45-°C-Schwellenwert nicht mehr Kwok 1990 und Huang 1992 als Quelle. Dieser Wert wurde an einer einzigen Fixture mit Q5 gemessen.",
+        "Der Hinweis besagt nun, dass eine leere Liste kein Beweis für fehlendes Off-Target-Priming ist, da nur eine exakte 3'-Terminalübereinstimmung aufgeführt wird.",
+        "Ein Proofreading-Enzym wird nun aus dem gewählten Profil benannt, statt zwei fest codierte Enzymnamen im String zu verwenden."
       ],
       "0.16.56": [
         "Der raw-run-Consensus wendet nun den Filter für minimale Basenqualität an, der ohne die verworfene FASTQ-Qualitätszeile wirkungslos war.",
@@ -2737,6 +2763,20 @@
         "Dateipfade in step 4 werden beim Laden der Beispieldaten gefüllt, auch in scratch-Sitzungen, wo sie still übersprungen wurden.",
         "Das Feld für den run folder erklärt, dass raw runs aus Größengründen fehlen, statt unfertig zu wirken."
       ],
+      "0.16.41": [
+        "Die Beispieldaten sind jetzt eine Kampagne. Die MAME-Platte trägt Varianten, die die mitgelieferte KURO-Vorhersage vorschlägt.",
+        "Die Platte wird aus dieser Vorhersage durch echten Primerentwurf abgeleitet, sodass ein Kandidat ohne Primer nie darauf erscheint.",
+        "Die Codons der erwarteten Mutationen stammen aus dem KURO-Entwurf, also nennt das Blatt das Codon, das die Primer tragen.",
+        "Die gemessene Aktivität folgt der Vorhersagerangfolge nicht, und drei der zehn Varianten liegen unter dem Wildtyp.",
+        "Ein neuer Test liest die ausgelieferten Dateien und schlägt fehl, sobald KURO und MAME wieder verschiedene Experimente beschreiben."
+      ],
+      "0.16.40": [
+        "Beispieldaten schließen einen Step-4-Build jetzt ab. Die mitgelieferte Analyze-Arbeitsmappe liefert den erforderlichen Verdict-Nachweis.",
+        "Kein Nanopore-Rohlauf wird mitgeliefert. Der Bildschirm zeigt einen Lauf einer echten Pipeline, und derselbe Lauf speist Step 4.",
+        "Die Beispielplatte belegt pro Variante genau ein Well, sodass Layout- und Verdict-Reader sie annehmen statt eine Wiederholung abzulehnen.",
+        "Die Positionen der Beispielvarianten sind gegen die mitgelieferte EGFP-Referenz nummeriert statt gegen ein anderes Protein.",
+        "Vier neue Beispieldateien decken Rohskala, variantenbeschriftete und numerische Bestätigungseingaben ab, für die es bisher kein Beispiel gab."
+      ],
       "0.16.39": [
         "Fünf MAME-Raw-Run-Bedienelemente, die nie gesendet wurden, sind entfernt. Ein Q-Score-Filter oder eine Ziellänge wirkte gesetzt und tat nichts.",
         "Die GC-Clamp-Vorgabe bindet jetzt jeden Kandidaten statt nur den bevorzugten Treffer, sodass kein Primer die geforderte Clamp verletzt.",
@@ -2764,6 +2804,47 @@
         "Die vier dienstbezogenen Einwilligungsschalter werden nicht mehr nur gespeichert, sondern sperren den genannten Dienst tatsaechlich.",
         "Ein Abbruch behaelt die bereits erzeugten Primer, was die Voreinstellung der Abbruchoption schon immer zugesagt hat.",
         "Einstellungen, die nirgends gelesen werden, sind deaktiviert und gekennzeichnet statt scheinbar aktiv."
+      ],
+      "0.16.35": [
+        "MAME hat jetzt Screenshots, aufgenommen aus einem echten Nanopore-Lauf mit 288 Vertiefungen statt aus Testdaten.",
+        "Die Aufnahme klickt sich selbst durch den Assistenten, jedes Bild zeigt also einen Zustand, den die Anwendung wirklich erreicht hat.",
+        "Aufgezeichnete Sidecar-Antworten werden nach Sidecar und Methode abgelegt. Ein MAME-Bildschirm bekommt keine KURO-Antwort mehr."
+      ],
+      "0.16.34": [
+        "Mutationen, deren Primer bereits die Mindestlänge erreicht hat, werden jetzt gerettet statt als ohne gültiges Paar gemeldet.",
+        "Der gerettete Primer lagert sich im selben Bereich an wie der Rest der Platte, weil Kürzen nun eine Möglichkeit ist.",
+        "Die Runde, in der das auffiel, geht von 93 von 95 auf 95 von 95, ohne die bereits erfolgreichen Primer zu verändern."
+      ],
+      "0.16.33": [
+        "Ein Bericht mit numerischen IDs wird gegen die Wells gelesen, die eine Variantenliste angibt, statt gegen aus der Residuenposition berechnete.",
+        "Die Plattenreihenfolge aus der entworfenen Variantenliste funktioniert nun überhaupt. Sie scheiterte an einer Well-Schreibweise, die sich um eine Null unterschied.",
+        "Eine Liste mit angegebenen Wells darf ihre Zeilen in beliebiger Reihenfolge führen; die erklärte Platzierung ist die, die gelesen wird."
+      ],
+      "0.16.32": [
+        "Eine Variantenliste kann das Well jeder Zeile angeben. Wo sie es tut, ist das die Platzierung, und keine Zeilenreihenfolge wird abgeleitet.",
+        "Eine Vorlagenschaltfläche schreibt die Arbeitsmappe mit allen 96 Wells, sodass nur die Variantenspalte auszufüllen bleibt.",
+        "Das Kontroll-Well ist eine Wahl und steht nun standardmäßig auf dem letzten Well der Platte, wo die Bank es tatsächlich pipettiert.",
+        "Diese Wahl erreicht jetzt den Lauf. Worklist, Vorschau und Bewertung nennen dieselben Wells statt auseinanderzulaufen.",
+        "Die Plattenansichten skalieren ihre Schrift mit den Zellen, sodass Beschriftungen bei keiner Fensterbreite mehr abschneiden."
+      ],
+      "0.16.31": [
+        "Schritt 4 liest die Agilent-Reports mit numerischen Probennamen, sowohl das Screening der ganzen Platte als auch die replizierte Bestätigung.",
+        "Eine replizierte Bestätigung wird in das zugehörige Screening eingefügt, ersetzt dessen Werte und markiert die abweichenden.",
+        "Numerische Positionen werden gegen die entworfene Variantenliste aufgelöst, sodass keine Plattendatei mehr abgeschrieben wird.",
+        "Eine Bestätigung mit einer anderen Variantenmenge wird unter Nennung beider Anzahlen abgelehnt statt falsch beschriftet.",
+        "Die Replikatzahl ist die, die eine Datei trägt, von einer Messung bis zu so vielen, wie der Lauf gemacht hat."
+      ],
+      "0.16.30": [
+        "Schritt 4 verlangt keine Plate-Layout-Datei mehr. Bleibt sie leer, werden Well-Positionen über das Analyze-Verdict-Blatt zugeordnet.",
+        "Eine angegebene Layout-Datei hat weiterhin Vorrang, und der Abgleich mit den Verdict-Identitäten bleibt unverändert.",
+        "Ein gemessenes Well ohne NGS-Ergebnis wird gezählt und benannt, statt den gesamten Build scheitern zu lassen."
+      ],
+      "0.16.29": [
+        "Ein Wert, den die Pipeline nicht berechnen konnte, benennt sich jetzt selbst, statt 60 Sekunden später als Verbindungszeitüberschreitung aufzutauchen.",
+        "Eine Entscheidungskonfidenz wird nur gemeldet, wenn sie gemessen wurde, und Schätzwert und Fehlerbalken lesen jetzt dieselben Signale.",
+        "Die Testsuite läuft unter Windows, wo ein einziges fehlendes Werkzeug bisher alle 1301 Tests übersprang und Erfolg meldete.",
+        "Zwei nur unter Windows erreichbare Fehler sind behoben: Jede Veröffentlichung eines Exportpakets schlug fehl, und jede Prüfsummendatei war unlesbar.",
+        "Eine Übersetzung, die einen Platzhalter weglässt oder umbenennt, wird vor der Auslieferung erkannt und erreicht den Bildschirm nicht mehr mit einer Lücke."
       ],
       "0.16.28": [
         "Fünf run-health-Abschnitte, die die App bei jedem Lauf gemessen und nie gezeichnet hat, stehen jetzt im Review-Bildschirm, zunächst geschlossen.",
@@ -2984,87 +3065,17 @@
         "Die Hilfe unter Variant list mapping nennt jetzt die Füllrichtung der Wells: A1, B1, C1 bis H1, dann A2.",
         "Der post-commit-Hook für die Versionsnummer bricht nicht mehr an einem entfernten Pfad ab.",
         "Eine lange Notiz lässt sich jetzt im Dialog scrollen, statt unten über den Rand hinauszulaufen."
-      ],
-      "0.16.29": [
-        "Ein Wert, den die Pipeline nicht berechnen konnte, benennt sich jetzt selbst, statt 60 Sekunden später als Verbindungszeitüberschreitung aufzutauchen.",
-        "Eine Entscheidungskonfidenz wird nur gemeldet, wenn sie gemessen wurde, und Schätzwert und Fehlerbalken lesen jetzt dieselben Signale.",
-        "Die Testsuite läuft unter Windows, wo ein einziges fehlendes Werkzeug bisher alle 1301 Tests übersprang und Erfolg meldete.",
-        "Zwei nur unter Windows erreichbare Fehler sind behoben: Jede Veröffentlichung eines Exportpakets schlug fehl, und jede Prüfsummendatei war unlesbar.",
-        "Eine Übersetzung, die einen Platzhalter weglässt oder umbenennt, wird vor der Auslieferung erkannt und erreicht den Bildschirm nicht mehr mit einer Lücke."
-      ],
-      "0.16.30": [
-        "Schritt 4 verlangt keine Plate-Layout-Datei mehr. Bleibt sie leer, werden Well-Positionen über das Analyze-Verdict-Blatt zugeordnet.",
-        "Eine angegebene Layout-Datei hat weiterhin Vorrang, und der Abgleich mit den Verdict-Identitäten bleibt unverändert.",
-        "Ein gemessenes Well ohne NGS-Ergebnis wird gezählt und benannt, statt den gesamten Build scheitern zu lassen."
-      ],
-      "0.16.31": [
-        "Schritt 4 liest die Agilent-Reports mit numerischen Probennamen, sowohl das Screening der ganzen Platte als auch die replizierte Bestätigung.",
-        "Eine replizierte Bestätigung wird in das zugehörige Screening eingefügt, ersetzt dessen Werte und markiert die abweichenden.",
-        "Numerische Positionen werden gegen die entworfene Variantenliste aufgelöst, sodass keine Plattendatei mehr abgeschrieben wird.",
-        "Eine Bestätigung mit einer anderen Variantenmenge wird unter Nennung beider Anzahlen abgelehnt statt falsch beschriftet.",
-        "Die Replikatzahl ist die, die eine Datei trägt, von einer Messung bis zu so vielen, wie der Lauf gemacht hat."
-      ],
-      "0.16.32": [
-        "Eine Variantenliste kann das Well jeder Zeile angeben. Wo sie es tut, ist das die Platzierung, und keine Zeilenreihenfolge wird abgeleitet.",
-        "Eine Vorlagenschaltfläche schreibt die Arbeitsmappe mit allen 96 Wells, sodass nur die Variantenspalte auszufüllen bleibt.",
-        "Das Kontroll-Well ist eine Wahl und steht nun standardmäßig auf dem letzten Well der Platte, wo die Bank es tatsächlich pipettiert.",
-        "Diese Wahl erreicht jetzt den Lauf. Worklist, Vorschau und Bewertung nennen dieselben Wells statt auseinanderzulaufen.",
-        "Die Plattenansichten skalieren ihre Schrift mit den Zellen, sodass Beschriftungen bei keiner Fensterbreite mehr abschneiden."
-      ],
-      "0.16.33": [
-        "Ein Bericht mit numerischen IDs wird gegen die Wells gelesen, die eine Variantenliste angibt, statt gegen aus der Residuenposition berechnete.",
-        "Die Plattenreihenfolge aus der entworfenen Variantenliste funktioniert nun überhaupt. Sie scheiterte an einer Well-Schreibweise, die sich um eine Null unterschied.",
-        "Eine Liste mit angegebenen Wells darf ihre Zeilen in beliebiger Reihenfolge führen; die erklärte Platzierung ist die, die gelesen wird."
-      ],
-      "0.16.34": [
-        "Mutationen, deren Primer bereits die Mindestlänge erreicht hat, werden jetzt gerettet statt als ohne gültiges Paar gemeldet.",
-        "Der gerettete Primer lagert sich im selben Bereich an wie der Rest der Platte, weil Kürzen nun eine Möglichkeit ist.",
-        "Die Runde, in der das auffiel, geht von 93 von 95 auf 95 von 95, ohne die bereits erfolgreichen Primer zu verändern."
-      ],
-      "0.16.35": [
-        "MAME hat jetzt Screenshots, aufgenommen aus einem echten Nanopore-Lauf mit 288 Vertiefungen statt aus Testdaten.",
-        "Die Aufnahme klickt sich selbst durch den Assistenten, jedes Bild zeigt also einen Zustand, den die Anwendung wirklich erreicht hat.",
-        "Aufgezeichnete Sidecar-Antworten werden nach Sidecar und Methode abgelegt. Ein MAME-Bildschirm bekommt keine KURO-Antwort mehr."
-      ],
-      "0.16.40": [
-        "Beispieldaten schließen einen Step-4-Build jetzt ab. Die mitgelieferte Analyze-Arbeitsmappe liefert den erforderlichen Verdict-Nachweis.",
-        "Kein Nanopore-Rohlauf wird mitgeliefert. Der Bildschirm zeigt einen Lauf einer echten Pipeline, und derselbe Lauf speist Step 4.",
-        "Die Beispielplatte belegt pro Variante genau ein Well, sodass Layout- und Verdict-Reader sie annehmen statt eine Wiederholung abzulehnen.",
-        "Die Positionen der Beispielvarianten sind gegen die mitgelieferte EGFP-Referenz nummeriert statt gegen ein anderes Protein.",
-        "Vier neue Beispieldateien decken Rohskala, variantenbeschriftete und numerische Bestätigungseingaben ab, für die es bisher kein Beispiel gab."
-      ],
-      "0.16.41": [
-        "Die Beispieldaten sind jetzt eine Kampagne. Die MAME-Platte trägt Varianten, die die mitgelieferte KURO-Vorhersage vorschlägt.",
-        "Die Platte wird aus dieser Vorhersage durch echten Primerentwurf abgeleitet, sodass ein Kandidat ohne Primer nie darauf erscheint.",
-        "Die Codons der erwarteten Mutationen stammen aus dem KURO-Entwurf, also nennt das Blatt das Codon, das die Primer tragen.",
-        "Die gemessene Aktivität folgt der Vorhersagerangfolge nicht, und drei der zehn Varianten liegen unter dem Wildtyp.",
-        "Ein neuer Test liest die ausgelieferten Dateien und schlägt fehl, sobald KURO und MAME wieder verschiedene Experimente beschreiben."
-      ],
-      "0.16.57": [
-        "Der Off-Target-Hinweis nennt für den 45-°C-Schwellenwert nicht mehr Kwok 1990 und Huang 1992 als Quelle. Dieser Wert wurde an einer einzigen Fixture mit Q5 gemessen.",
-        "Der Hinweis besagt nun, dass eine leere Liste kein Beweis für fehlendes Off-Target-Priming ist, da nur eine exakte 3'-Terminalübereinstimmung aufgeführt wird.",
-        "Ein Proofreading-Enzym wird nun aus dem gewählten Profil benannt, statt zwei fest codierte Enzymnamen im String zu verwenden."
-      ],
-      "0.16.58": [
-        "Die Auswahl des Mutant-Codons bewertet jetzt jedes synonyme Codon, das der gewählte Organismus verwendet. Zuvor sah die Suche nur zwei.",
-        "Seltene Codons bleiben aus diesem Kandidatensatz heraus, sodass ein Entwurf nicht mehr auf einem Codon landet, das der Organismus kaum nutzt.",
-        "Design bewertet Kandidaten über den gesamten Tm-Toleranzdurchlauf, sodass ein weiterer Bereich mit einem besseren Primer nicht mehr übersprungen wird.",
-        "Der Tol-Wert steigt bei diesen Entwürfen. Ein höherer Tol steht hier für einen besser bewerteten Primer, nicht für einen lockereren Maßstab.",
-        "Drei Codon-Tabellen wurden korrigiert, und die Organismusliste zeigt nun jede mitgelieferte Tabelle, daher können frühere Entwürfe abweichen."
-      ],
-      "0.16.60": [
-        "Eine entschiedene Deletion zählt nicht mehr für die NO_CALL- und MIXED-Gates, sodass drei Wells die tatsächliche Aminosäuresubstitution melden.",
-        "Die Translation rekonstruiert das längentreue Molekül aus den aufgerufenen Deletionen und Insertionen statt aus einer Sequenz in Referenzlänge.",
-        "Plate Recurrence erhält Deletions- und Insertionskanäle neben der Substitutionstabelle; Kürzung, Auslassung und Gleichstand werden getrennt gezählt.",
-        "Jede wiederkehrende Position führt mit, wie viele unterschiedliche erwartete Mutationen ihre Wells hatten, was ein Caller-Artefakt von einer geteilten Probe trennt.",
-        "Ein gespeichertes Ergebnis behält nun seine Consensus-Indel-Belege, die beim erneuten Öffnen zuvor verloren gingen."
       ]
     },
     "releaseStamps": {
+      "0.16.64": "b5666e23",
       "0.16.63": "27af3ec6",
       "0.16.62": "e46c1db9",
       "0.16.61": "f9b38f15",
+      "0.16.60": "a87cf2d1",
       "0.16.59": "69e92cd5",
+      "0.16.58": "1ce19d3d",
+      "0.16.57": "b25a7d73",
       "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",
       "0.16.54": "137dd51e",
@@ -3130,10 +3141,7 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21",
-      "0.16.57": "b25a7d73",
-      "0.16.58": "1ce19d3d",
-      "0.16.60": "a87cf2d1"
+      "0.15.16": "fe8e6f21"
     }
   },
   "primerDisplay": {

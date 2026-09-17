@@ -101,11 +101,8 @@ export const DEFAULT_EVOLVEPRO_EXTRA_EXPOSED = 10;
 //     serialize it, so no frontend object ever has that value to update.
 //   - `tm_rev` is called `tm_no_rev` on the wire, renamed by _serialize_result.
 //
-// Not handled here, deliberately: recommended_ta and the other ta_* fields.
-// compute_annealing() takes BOTH primers, so a neighbour's Ta depends on its
-// own forward primer, and neither the value from the swapped mutation nor any
-// arithmetic available in the store can produce it. Those four fields stay
-// stale on neighbour rows until the backend returns the neighbours it rewrote.
+// Pair Ta cannot follow one primer: clear it until the backend recomputes
+// the neighbour with its own forward primer.
 const REVERSE_WARNING_PREFIXES = ["Rev", "Reverse"];
 
 function isReverseWarning(text: string): boolean {
@@ -128,6 +125,10 @@ export function applyReversePropagation(
   return {
     ...neighbour,
     reverse_seq: source.reverse_seq,
+    recommended_ta: undefined,
+    ta_mode: undefined,
+    ta_detail: undefined,
+    ta_touchdown: undefined,
     rev_len: source.rev_len,
     tm_no_rev: source.tm_no_rev,
     gc_rev: source.gc_rev,
@@ -190,7 +191,7 @@ export function prepareDesignInput(params: {
   // selection set ordered by y_pred (ranked_candidates order). This preserves
   // the existing limitedText/rescuePool structure while switching the source.
   let allLines: string[];
-  if (isEvolveMode && evolveproSelectedVariants && evolveproSelectedVariants.length > 0) {
+  if (isEvolveMode && evolveproSelectedVariants !== undefined) {
     const selectedSet = new Set(evolveproSelectedVariants);
     if (evolveproRankedCandidates && evolveproRankedCandidates.length > 0) {
       // Order by ranked_candidates (already y_pred desc from backend).
@@ -367,13 +368,7 @@ export function applyCustomPrimerToResults(params: {
       };
     }
     if (r.aa_position === targetPos) {
-      return {
-        ...r,
-        reverse_seq: result.reverse_seq,
-        rev_len: result.rev_len,
-        tm_no_rev: result.tm_no_rev,
-        gc_rev: result.gc_rev,
-      };
+      return applyReversePropagation(r, result);
     }
     return r;
   });
@@ -485,13 +480,7 @@ export function addDesignResultState(params: {
   const nextDesignResultsUncapped = [
     ...designResults.map((r) => {
       if (r.aa_position !== fixedResult.aa_position) return r;
-      return {
-        ...r,
-        reverse_seq: fixedResult.reverse_seq,
-        rev_len: fixedResult.rev_len,
-        tm_no_rev: fixedResult.tm_no_rev,
-        gc_rev: fixedResult.gc_rev,
-      };
+      return applyReversePropagation(r, fixedResult);
     }),
     fixedResult,
   ];

@@ -117,6 +117,7 @@ class TestShutdownProcessExit:
             # stdin is intentionally NOT closed — exit must come from shutdown handler
 
             # Read ack from stdout
+            proc.wait(timeout=30)
             deadline = time.monotonic() + 30.0
             ack_received = False
             while time.monotonic() < deadline:

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from kuma_core.mame.distribution import (
     _FLOOR_KB,
     DistributionStats,
@@ -30,8 +32,8 @@ def test_tight_distribution_uses_p05() -> None:
     stats = compute_distribution_stats(data)
     assert stats.n_files == 20
     # Tight IQR/median < 0.5 → p05 (or floor override if p05 < 50)
-    assert stats.suggested_method in ("p05", "fixed_50")
-    assert stats.suggested_cutoff_kb >= _FLOOR_KB
+    assert stats.suggested_method == "p05"
+    assert stats.suggested_cutoff_kb == pytest.approx(290.95)
 
 
 def test_bimodal_distribution_detected() -> None:
@@ -46,7 +48,7 @@ def test_bimodal_distribution_detected() -> None:
     assert stats.bimodal is True
     assert stats.suggested_method == "kneedle"
     # Knee should be somewhere between the two clusters (well above floor)
-    assert stats.suggested_cutoff_kb >= _FLOOR_KB
+    assert max(low_cluster) <= stats.suggested_cutoff_kb <= min(high_cluster)
 
 
 def test_floor_applied_when_cutoff_too_low() -> None:

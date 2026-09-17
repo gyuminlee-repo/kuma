@@ -4,7 +4,7 @@
 
 ## 파일 형식
 
-`*.kuro.json` — `version` 필드 (v1 또는 v2)가 포함된 plain JSON.
+`*.kuro.json` — `schema_version: "0.3"`이 포함된 plain JSON. 별도 `kuma_version` 필드는 저장한 앱 버전을 기록함.
 
 ## 저장
 
@@ -22,7 +22,7 @@ File 메뉴 → *Load Workspace*. Kuro가 복원:
 
 ## 호환성
 
-v1 워크스페이스는 v2+ 클라이언트에서 로드 가능; v2는 하위 호환 유지.
+현재 로더는 `schema_version`이 없거나 `0.3`보다 오래된 워크스페이스(v1/v2 포함)를 거부함. 자동 레거시 마이그레이션이나 일괄 변환 도구는 제공하지 않음. 원본 파일을 보존하고 현재 앱에서 서열과 변이 입력으로 워크스페이스를 다시 생성해야 함. [포맷 참조](../reference/workspace-format.md).
 
 ## 포함 안 되는 항목
 

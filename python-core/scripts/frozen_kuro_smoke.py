@@ -34,12 +34,9 @@ import sys
 import tempfile
 from pathlib import Path
 
-# Sibling import. Normally sys.path[0] is already this directory, but an
-# explicit insert keeps the import working under -P / PYTHONSAFEPATH and from
-# any working directory.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from smoke_sidecar_io import SidecarIO, rpc_request as _rpc  # noqa: E402
+from scripts.smoke_sidecar_io import SidecarIO, rpc_request as _rpc  # noqa: E402
 
 # Repo root = <repo>/python-core/scripts/frozen_kuro_smoke.py -> parents[2]
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -130,6 +127,8 @@ def run_smoke(binary: Path, fixture: Path) -> None:
 
         rc = sio.close(timeout=_SHUTDOWN_TIMEOUT)
         print(f"      sidecar exit code: {rc}")
+        if rc != 0:
+            failures.append(f"shutdown: sidecar exited with code {rc}")
         sio = None
 
     except _SidecarDead:

@@ -6,7 +6,7 @@ The Parameter panel controls polymerase profile, codon strategy, and primer Tm/G
 
 ## Polymerase
 
-Seven bundled profiles (Q5, KOD, Phusion, Herculase II, PfuUltra II, KAPA HiFi, Takara PrimeSTAR GXL). Selecting a profile auto-loads its Tm targets, salt/Mg²⁺ correction, and GC range.
+Seven bundled profiles (Taq, Phusion, Q5, KOD, DreamTaq, TAKARA_GXL, Q5 SDM). Selecting a profile loads its recommended annealing-temperature rule, GC range, and overlap mode; the design-time Tm targets remain independently adjustable.
 
 Custom profiles — see [Custom Polymerase Editor](custom-polymerase-editor.md).
 

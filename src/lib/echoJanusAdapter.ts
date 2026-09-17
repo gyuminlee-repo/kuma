@@ -15,6 +15,7 @@
 import { isForwardRow } from "@/lib/echoQuadrant";
 
 export interface EchoCell {
+  sourcePlate?: string;
   well: string;
   rowLetter: string;
   colNumber: number;
@@ -42,6 +43,7 @@ export interface JanusCell {
 }
 
 export interface DestCell {
+  destPlate?: string;
   well: string;
   rowLetter: string;
   colNumber: number;
@@ -164,6 +166,7 @@ export function adaptEchoRows(rows: EchoDryRunRow[]): EchoCell[] {
       rowLetter,
       colNumber,
       isFwd: isForwardRow(idx),
+      sourcePlate: r.source_plate,
       sourceWellName: r.source_well_name,
       destPlate: r.dest_plate,
       destWell: r.dest_well,
@@ -228,7 +231,7 @@ function ensureDest(
 }
 
 /**
- * Build a `DestCell[]` from Echo dry-run rows. Groups by `mutation`.
+ * Build a `DestCell[]` from Echo dry-run rows, grouped by physical plate/well.
  *
  * Direction of an Echo row is its 384 source row parity ({@link
  * isForwardRow}): rows A, C, E, ... carry forward primers in either half.
@@ -237,7 +240,13 @@ export function adaptDestCellsEcho(rows: EchoDryRunRow[]): DestCell[] {
   const map = new Map<string, DestCell>();
   for (const r of rows) {
     if (!r.mutation) continue;
-    const cell = ensureDest(map, r.mutation, r.dest_well);
+    const { rowLetter: destRow, colNumber: destCol } = parseWell(r.dest_well);
+    const well = destRow && destCol > 0 ? `${destRow}${destCol}` : r.dest_well;
+    const key = JSON.stringify([r.dest_plate, well]);
+    // Echo identity is physical plate + well; mutation names may repeat.
+    const cell = ensureDest(map, key, well);
+    cell.mutation = r.mutation;
+    cell.destPlate = r.dest_plate;
     const { rowLetter } = parseWell(r.source_well);
     const isFwd = rowLetter ? isForwardRow(rowIndex(rowLetter)) : false;
     if (isFwd) {

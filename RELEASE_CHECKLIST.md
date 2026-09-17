@@ -4,31 +4,25 @@ Issues that MUST be resolved before any public/production release.
 
 ## CRITICAL — Security
 
-### Updater pubkey is empty (`src-tauri/tauri.conf.json`)
+### Verify updater signing configuration (`src-tauri/tauri.conf.json`)
 
-**Status**: Infrastructure ready — key generation pending.
+**Status**: A public key and updater endpoint are configured. Signing-key ownership and a successful signed update must still be verified for a release.
 
 The Tauri updater plugin is registered and the endpoint is configured
-(`https://github.com/gyuminlee-repo/KURO/releases/latest/download/latest.json`).
-The `plugins.updater.pubkey` field is set to `""`, which means **update signature
-verification is currently disabled**. Manual "Check for updates" in the About dialog
-is functional; automatic on-startup checking is intentionally omitted until a valid
-key is set.
-
-An attacker who compromises the GitHub release endpoint (or performs a MITM) can
-push arbitrary binaries to every user until the key is set.
+(`https://github.com/gyuminlee-repo/kuma/releases/latest/download/latest.json`).
+The `plugins.updater.pubkey` field contains a minisign public key. Its presence
+alone does not prove that release artifacts were signed with the matching key
+or that an installed client can update successfully.
 
 **Before release:**
 
-1. Generate a Tauri updater keypair:
-   ```
-   cargo tauri signer generate -w ~/.tauri/kuro.key
-   ```
-2. Set `pubkey` in `src-tauri/tauri.conf.json` → `plugins.updater.pubkey` to the
-   **public** key string output by the command above.
-3. Sign every release artifact with the corresponding private key (the CI release
-   workflow should pass `--signing-key` / `TAURI_SIGNING_PRIVATE_KEY` env var).
-4. Never commit the private key to the repository.
+1. Confirm the configured public key matches the private key held in CI. Do not
+   replace the key without a rotation plan for already-installed clients.
+2. Sign release artifacts with that private key. The build workflow passes
+   `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` to Tauri.
+3. Verify `latest.json`, its artifact URLs and signatures, then exercise an update
+   from an installed previous release before announcing availability.
+4. Never commit or print the private key.
 
 Reference: <https://v2.tauri.app/plugin/updater/#signing-updates>
 
@@ -38,7 +32,7 @@ Reference: <https://v2.tauri.app/plugin/updater/#signing-updates>
 
 ### An announced release is not a released one until the tag is pushed
 
-`.github/workflows/build.yml` runs on `push: tags: ["v*"]` and on nothing else.
+`.github/workflows/build.yml` runs on `push: tags: ["v*"]` and manual dispatch.
 Landing a three-component label (`vA.BB.CC:`) on main and writing the CHANGELOG
 section announce a release. Neither builds an artifact. On 2026-09-14 the newest
 version tag was v0.16.54 while main had announced v0.16.55 through v0.16.58,
@@ -93,10 +87,11 @@ not match the on-disk binary, the sidecar refuses to spawn and the entire app
 appears non-functional. Every RPC (`load_fasta`, `parse_mutations_text`, etc.)
 fails silently from the user perspective.
 
-**Cause of the regression**: `pnpm run sidecar:build` rebuilds the binary but
-does NOT automatically refresh the manifest. If the engineer forgets the
-follow-up `pnpm run sidecar:hash`, the next `tauri build` ships a release that
-cannot start its own sidecar.
+**Historical cause**: rebuilding a binary without refreshing the manifest can
+ship a release that cannot start its own sidecar. The current
+`pnpm run sidecar:build` chains `scripts/sidecar-hash.mjs` automatically.
+Direct `python-core/build_sidecar.py` invocation and `sidecar:build:onedir`
+do not include that hash refresh.
 
 **Always use one of these end-to-end commands instead of the raw sidecar build:**
 
@@ -111,21 +106,29 @@ pnpm run sidecar:build
 
 **Pre-release verification**:
 ```bash
-node scripts/sync-check.mjs   # includes tauri-resources + hash freshness
+pnpm run sync:check          # all cross-layer checks; not a binary-hash comparison
+pnpm run i18n:check
+# Compare each built sidecar with its full-filename entry in sidecar-hashes.json:
+sha256sum 'src-tauri/binaries/<sidecar-filename>'  # Linux; replace the placeholder
+# macOS: shasum -a 256 <path>; PowerShell: Get-FileHash <path> -Algorithm SHA256
 ```
 
-If `sync-check` reports drift between the binaries and the manifest, run
-`pnpm run sidecar:hash` and commit the updated `src-tauri/sidecar-hashes.json`.
+Compare the digest with `src-tauri/sidecar-hashes.json`; `sync:check` does not
+perform this comparison. For an intentionally rebuilt binary, refresh with
+`pnpm run sidecar:hash` and review the manifest diff. On macOS, signing changes
+the binary bytes: use `pnpm run sidecar:hash:postbuild` after bundling, and verify
+the final bundled binaries against the bundled manifest.
 
 ---
 
 ## MEDIUM, Compliance
 
-### BLAST email hardcoded (`python-core/sidecar_main.py`)
+### Configure a contactable BLAST email (`python-core/sidecar_kuro/core.py`)
 
-The EBI NCBI BLAST API email is hardcoded as `kuro-app@example.com`. EBI Terms of
-Use require a real, contactable email address. The value needs to be read from user
-configuration (e.g., `~/.kuro/config.toml` or an in-app settings panel).
+The EBI NCBI BLAST API email defaults to the placeholder `kuro-app@example.com`.
+Set `KURO_CONTACT_EMAIL` or `contact_email` in `~/.kuma/kuro/config.json` to a
+real, contactable address before submitting jobs. The environment variable takes
+precedence over the config value; the placeholder is used only when both are absent.
 
 ---
 

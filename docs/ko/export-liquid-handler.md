@@ -1,6 +1,8 @@
 # 액체 핸들러 매핑 내보내기
 
-![매핑 내보내기 다이얼로그](../screenshots/17-mapping-export-dialog.png)
+![Step 6: Export 페이지의 Mapping File Preview](../screenshots/17-mapping-export-dialog.png)
+
+스크린샷은 Export 페이지의 Mapping File Preview이며, 다이얼로그가 아님.
 
 Echo 525 (acoustic) 또는 JANUS (tip-based) 액체 핸들러용 매핑 파일.
 

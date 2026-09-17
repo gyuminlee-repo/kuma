@@ -86,7 +86,7 @@ export function sampleWells(): WellEntry[] {
       const v = verdicts[(rowIdx + col) % verdicts.length];
       out.push({
         well: `${rows[rowIdx]}${col}`,
-        barcode: `${col}_${rowIdx + 1}`,
+        barcode: `${rowIdx + 1}_${col}`,
         native_barcode: `barcode${(rowIdx * 12 + col) % 24}`,
         verdict: v,
         mutant_id: v === "PASS" ? ["V5F", "K53N", "Q80R"][col % 3] : "—",

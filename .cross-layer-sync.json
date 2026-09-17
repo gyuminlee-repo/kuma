@@ -45,6 +45,12 @@
       ]
     },
     {
+      "id": "tauri-resource-paths",
+      "type": "command",
+      "run": "node scripts/sync-check-resources.mjs",
+      "label": "bundle.resources source paths are non-empty strings"
+    },
+    {
       "id": "tauri-resources",
       "type": "files_exist",
       "manifest": "src-tauri/tauri.conf.json",

@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.16.64 (What the reads support, and what the order sheet says)
+
+A deletion that only half the reads agreed on was being treated as a decision the caller had already made. The no-call gate exempts a position whose call is a deletion, and that exemption was applied to every deletion-bearing position no matter how much of the read stack stood behind it. A well whose designed site carried 40 or 50 percent deletion support therefore walked past the gate and could reach PASS on evidence that was never there. Only a deletion carried by more than half of the covering reads is exempt now, and a well at 40 or 50 percent reads as NO_CALL again. The same evidence is written into the saved analysis and read back from it.
+
+The activity data step could attach an NGS verdict to a variant other than the one the row named. Variant identity is normalized and compared before anything is written, and a row whose identity does not match its evidence is refused instead of exported under the wrong name.
+
+Ordering primers off a reduced row range, or across more than one plate, produced files that disagreed with the order workbook. A reverse primer could fall outside the range it was meant to occupy, the stock positions on the order sheet and on the JANUS worklist named different wells, and the export preview merged the same coordinate from two different plates into a single square. Source and destination plate identity is carried through the whole export now, so the preview, the worklist and the order sheet name the same wells.
+
+Several ordinary files were read badly. A non-finite number in a numeric column stopped the load rather than being set aside, and the delimiter that detection chose was not always the one the reader then used, so a semicolon or pipe separated file could land in the wrong columns. A primer binding interval could be placed with part of it outside the flank it was measured against, on circular templates as well as linear ones, and that whole interval is checked now. A GenBank file holding more than one record attached the CDS annotations of a later record to the first sequence; the first record alone is read now and the supported scope says so.
+
+Demultiplexing reused an earlier run after the inputs behind it had changed, because reuse did not look at the content of the inputs. Reopening a saved workspace could lose a selection, show output belonging to inputs that are no longer loaded, or fail outright on a stored quality block whose nested part held nothing. A workspace that never ran a benchmark reported that empty state as damage and warned about it. Each of those is checked at the boundary now, and work started for inputs that have since changed is cancelled rather than allowed to land on the screen.
+
+On Linux the scratch autosave was refused under the hidden application data directory and raised an error banner during an otherwise normal session, and File > Quit did nothing at all because the window had no permission to close. Both are granted. Exporting an archive twice into the same folder no longer packs the earlier archive into the new one, and at a 375 pixel window width the confirmation choices no longer sit on top of each other.
+
+### Highlights
+
+- A deletion only half the reads support no longer exempts a well from the no-call gate, so a site at 40 or 50 percent reads as a no call.
+- The activity data step refuses to attach an NGS verdict to a variant other than the one its row names.
+- Echo and JANUS files from a reduced row range or several plates keep the stock positions the order workbook gives them.
+- Reopening a workspace keeps its selection and drops output whose inputs are gone, and a benchmark that never ran stops reporting damage.
+- On Linux the scratch autosave works under the hidden app data folder and File > Quit closes the window.
+
 ## v0.16.63 (Help that answers the question in front of you)
 
 The Help menu of both apps gains a User guide item. It opens a panel down the right side of the window at the topic for the step being worked on, and the panel stays where it is while the screen behind it is used. Thirteen topics cover the six KURO steps and the four MAME steps, plus an overview for each app and a description of what the MAME pipeline does between a run folder and a verdict. Every topic ships in Korean and English, and a language with no translation falls back to English and says so rather than showing nothing.

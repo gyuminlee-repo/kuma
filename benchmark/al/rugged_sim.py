@@ -210,6 +210,12 @@ def regime_decision_table(
             continue
         a = sorted(arms_here[arm_a], key=lambda x: x["seed"])
         b = sorted(arms_here[arm_b], key=lambda x: x["seed"])
+        a_seeds = [x["seed"] for x in a]
+        b_seeds = [x["seed"] for x in b]
+        if len(set(a_seeds)) != len(a_seeds) or len(set(b_seeds)) != len(b_seeds):
+            raise ValueError(f"K={K}: duplicate seeds in {arm_a} or {arm_b}")
+        if a_seeds != b_seeds:
+            raise ValueError(f"K={K}: seed sets must match for {arm_a} vs {arm_b}")
         a_nb = [x["norm_best"] for x in a]
         b_nb = [x["norm_best"] for x in b]
         cmp = stats.paired_comparison(a_nb, b_nb, seed=seed)

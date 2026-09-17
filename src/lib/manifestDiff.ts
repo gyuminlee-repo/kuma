@@ -86,6 +86,10 @@ function walkDiff(
 
   // 배열
   if (Array.isArray(l) || Array.isArray(r)) {
+    if (!Array.isArray(l) || !Array.isArray(r)) {
+      out.push({ path: prefix, left: l, right: r, status: "changed" });
+      return;
+    }
     const la = Array.isArray(l) ? l : [];
     const ra = Array.isArray(r) ? r : [];
     const len = Math.max(la.length, ra.length);

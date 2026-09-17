@@ -150,7 +150,7 @@ def test_disjoint_3d_clusters_spreads_across_both():
         ("A1C", 6.0), ("A2C", 5.0), ("A3C", 4.0),  # cluster A — higher fitness
         ("A100C", 3.0), ("A101C", 2.0), ("A102C", 1.0),  # cluster B
     ]
-    selected, _ = structural_diversity_select(rows, 4, ca_coords=ca)
+    selected, _ = structural_diversity_select(rows, 2, ca_coords=ca)
     selected_vars = [v for v, _ in selected]
 
     cluster_a = {"A1C", "A2C", "A3C"}
@@ -168,7 +168,7 @@ def test_disjoint_positional_clusters_spreads():
         ("A1C", 6.0), ("A2C", 5.0), ("A3C", 4.0),  # low positions
         ("A98C", 3.0), ("A99C", 2.0), ("A100C", 1.0),  # high positions
     ]
-    selected, _ = structural_diversity_select(rows, 4)
+    selected, _ = structural_diversity_select(rows, 2)
     selected_vars = [v for v, _ in selected]
     low_pos = {"A1C", "A2C", "A3C"}
     high_pos = {"A98C", "A99C", "A100C"}

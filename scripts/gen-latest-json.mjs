@@ -63,7 +63,9 @@ const platformRules = [
 
 const platforms = {};
 for (const { key, sigSuffix } of platformRules) {
-  const sigPath = files.find((f) => f.endsWith(sigSuffix));
+  const matches = files.filter((f) => f.endsWith(sigSuffix));
+  if (matches.length > 1) fail(`ambiguous signed updater artifacts for '${key}': ${matches.join(", ")}`);
+  const sigPath = matches[0];
   if (!sigPath) {
     fail(
       `no signed updater artifact found for '${key}' ` +
@@ -73,6 +75,11 @@ for (const { key, sigSuffix } of platformRules) {
   }
   const signature = readFileSync(sigPath, "utf8").trim();
   if (!signature) fail(`signature file is empty: ${sigPath}`);
+
+  const installerPath = sigPath.slice(0, -".sig".length);
+  if (!files.includes(installerPath) || !statSync(installerPath).isFile()) {
+    fail(`missing installer for '${key}': ${installerPath}`);
+  }
 
   // The uploaded asset name is the .sig file's basename minus ".sig".
   const assetName = sigPath.slice(0, -".sig".length).split(/[\\/]/).pop();

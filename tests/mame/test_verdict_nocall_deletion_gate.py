@@ -48,6 +48,7 @@ def _record(
         consensus_n_fraction_evaluable=evaluable,
         n_no_call_zero_depth=zero_depth,
         n_no_call_deletion=deletion,
+        n_no_call_deletion_majority=deletion,
         n_no_call_ambiguous=ambiguous,
         n_no_call_no_majority=no_majority,
         consensus_net_indel_bp=0,

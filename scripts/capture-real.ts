@@ -40,6 +40,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
 const PORT = 1421;
 const BASE_URL = `http://localhost:${PORT}`;
+// A cold Vite transform can take minutes; wait for readiness, not a fixed delay.
+const FIRST_LOAD_TIMEOUT_MS = 300_000;
 const VIEWPORT = { width: 1440, height: 1120 };
 
 function outputDir(): string {
@@ -114,21 +116,27 @@ async function startVite(): Promise<ChildProcess> {
 
 /** Walk the project picker into the workspace using the real Home screen. */
 async function enterWorkspace(page: Page): Promise<void> {
-  await page.goto(BASE_URL, { waitUntil: "domcontentloaded" });
-  await page.waitForFunction(() => typeof window.__store !== "undefined", { timeout: 20_000 });
+  await page.goto(BASE_URL, { waitUntil: "domcontentloaded", timeout: FIRST_LOAD_TIMEOUT_MS });
+  await page.waitForFunction(() => typeof window.__store !== "undefined", undefined, {
+    timeout: FIRST_LOAD_TIMEOUT_MS,
+  });
 
   const card = page
     .locator("button, [role='button'], li, article")
     .filter({ hasText: "ispS_evolvepro_round1" })
     .first();
-  await card.waitFor({ state: "visible", timeout: 20_000 });
-  await card.click();
+  await card.waitFor({ state: "visible", timeout: FIRST_LOAD_TIMEOUT_MS });
+  await card.click({ timeout: FIRST_LOAD_TIMEOUT_MS });
 
   // The workspace mounts the wizard rail; wait for it rather than a fixed sleep.
   await page.waitForFunction(
     () => Boolean(window.__store && "currentSubStep" in window.__store.getState()),
-    { timeout: 20_000 },
+    undefined,
+    { timeout: FIRST_LOAD_TIMEOUT_MS },
   );
+  await page.locator('[role="tabpanel"] [data-testid="wizard-body"]').waitFor({
+    state: "visible", timeout: FIRST_LOAD_TIMEOUT_MS,
+  });
 }
 
 /**
@@ -203,6 +211,7 @@ async function main(): Promise<void> {
 
   try {
     const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2 });
+    await context.route(/^https:\/\/(?:api\.)?github\.com\//, (route) => route.abort());
     const page = await context.newPage();
     const gaps: string[] = [];
     page.on("console", (msg) => {

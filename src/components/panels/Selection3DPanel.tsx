@@ -716,7 +716,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
 
   const [open, setOpen] = useState(defaultOpen);
   const [phase, setPhase] = useState<ViewerPhase>("idle");
-  const [dispersion, setDispersion] = useState<ComputeDispersionResult | null>(null);
+  const [mapping, setMapping] = useState<{ key: string; result: ComputeDispersionResult } | null>(null);
   const [activeSiteResult, setActiveSiteResult] = useState<FetchActiveSiteResult | null>(null);
   const [activeSitePositions, setActiveSitePositions] = useState<number[]>([]);
   const [showVariants, setShowVariants] = useState(true);
@@ -735,8 +735,6 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
   const bFactorMapRef = useRef<Map<number, number>>(new Map());
   const surfaceHandlerRef = useRef<number | null>(null);
 
-  // Track accession loaded so we don't double-fetch on re-open
-  const loadedAccessionRef = useRef<string>("");
   // ─── viewer lifecycle helpers ────────────────────────────────────────────
   // Clear all 3Dmol scene content and null the ref. Safe to call on a null ref.
   function cleanupViewer() {
@@ -768,7 +766,6 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
   useEffect(() => {
     if (open) return;
     cleanupViewer();
-    loadedAccessionRef.current = "";
     setPhase("idle");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -818,6 +815,8 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
     evolveproSelectedVariants.length === 0 && evolveproRankedCandidates.length > 0;
 
   const rows = deriveSelectedPositions(baseVariants, evolveproRankedCandidates, yPredMap);
+  const mappingKey = JSON.stringify([accession, refSeq, selectedRefPositions(rows)]);
+  const dispersion = mapping?.key === mappingKey ? mapping.result : null;
   const joinResult =
     dispersion !== null
       ? joinMappedYpred(rows, dispersion.dropped, dispersion.mapped)
@@ -842,22 +841,13 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
     if (!open) return;
     if (structureSource === "none") return;
 
-    if (structureSource === "alphafold") {
-      if (!accession) return;
-      if (loadedAccessionRef.current === accession && phase !== "idle") return;
-    } else {
-      // esmfold — skip if same sequence already loaded
-      const esmKey = `esmfold:${refSeq}`;
-      if (loadedAccessionRef.current === esmKey && phase !== "idle") return;
-    }
-
     let cancelled = false;
     const thisAccession = accession;
     const thisRefSeq = refSeq;
 
     async function load() {
       setPhase("loading");
-      setDispersion(null);
+      setMapping(null);
       setDroppedWarning(null);
       setActiveSiteResult(null);
       setActiveSitePositions([]);
@@ -897,7 +887,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
 
         // Dispersion
         if (dispersionRes !== null) {
-          setDispersion(dispersionRes);
+          setMapping({ key: mappingKey, result: dispersionRes });
           const joined = joinMappedYpred(currentRows, dispersionRes.dropped, dispersionRes.mapped);
           const warnings: string[] = [];
           if (dispersionRes.dropped.length > 0) {
@@ -921,8 +911,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
         }
 
         bFactorMapRef.current = parseBFactors(pdbResult.pdb_text);
-        loadedAccessionRef.current = thisAccession;
-        await initViewer(pdbResult.pdb_text, "pdb", cancelled);
+        await initViewer(pdbResult.pdb_text, "pdb", () => cancelled);
       } else {
         // ── ESMFold-by-sequence fallback ─────────────────────────────────
         const esmResult: PredictStructureEsmfoldResult | null =
@@ -951,7 +940,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
           if (cancelled) return;
 
           if (dispersionRes !== null) {
-            setDispersion(dispersionRes);
+            setMapping({ key: mappingKey, result: dispersionRes });
             const joined = joinMappedYpred(
               currentRows,
               dispersionRes.dropped,
@@ -974,8 +963,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
         }
 
         bFactorMapRef.current = parseBFactors(esmPdbText);
-        loadedAccessionRef.current = `esmfold:${thisRefSeq}`;
-        await initViewer(esmPdbText, "pdb", cancelled);
+        await initViewer(esmPdbText, "pdb", () => cancelled);
       }
     }
 
@@ -984,19 +972,20 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, accession, structureSource, refSeq]);
+  }, [open, accession, structureSource, refSeq, mappingKey]);
 
 
-  async function initViewer(text: string, format: string, cancelled: boolean) {
+  async function initViewer(text: string, format: string, isCancelled: () => boolean) {
     const el = containerRef.current;
-    if (!el || cancelled) {
+    if (isCancelled()) return;
+    if (!el) {
       setPhase("error");
       return;
     }
     // Dispose any existing viewer before creating a fresh one (reopen / upload / accession switch).
     cleanupViewer();
     const $3Dmol = await import("3dmol");
-    if (cancelled) return;
+    if (isCancelled()) return;
     const bgColor = darkBg ? "#1a1a1a" : "#ffffff";
     const viewer = $3Dmol.createViewer(el, { backgroundColor: bgColor });
     viewer.addModel(text, format);
@@ -1208,9 +1197,8 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
     setUploadSource(true);
     setPhase("loading");
     bFactorMapRef.current = parseBFactors(text);
-    loadedAccessionRef.current = ""; // force re-apply styles
     surfaceHandlerRef.current = null;
-    await initViewer(text, format, false);
+    await initViewer(text, format, () => false);
   }
 
   // ─── render ──────────────────────────────────────────────────────────────

@@ -63,6 +63,21 @@ def write_output_checksum(output_path: Path, *, algorithm: str = "sha256") -> Pa
     hex_digest = compute_input_sha256(output_path)
 
     checksum_path = output_path.parent / (output_path.name + ".sha256")
+    filename = output_path.name
+    # Escape set is the intersection of what deployed checkers accept, not the
+    # newest one's output format. GNU coreutils escapes "\\" and "\n" at least
+    # since 8.32 (src/md5sum.c print_filename); src/digest.c added '\r' to that
+    # set in 9.0, so a \r-escaped line is a format 8.32 has never heard of.
+    # Measured on this branch: 8.32 --check answers "no properly formatted
+    # SHA256 checksum lines found" (rc=1) for the \r-escaped line, while 9.4
+    # --check accepts the literal CR (rc=0). ubuntu-22.04 ships 8.32 and this project builds on it,
+    # so the literal CR is the only form both eras verify.
+    # Known limit: a name whose final byte is CR has no form both accept, since
+    # 9.0 strips a trailing CR from each line to support CRLF checksum files.
+    escaped = any(character in filename for character in "\\\n")
+    if escaped:
+        filename = filename.replace("\\", "\\\\").replace("\n", "\\n")
+    prefix = "\\" if escaped else ""
     # Two spaces: text-mode marker per GNU coreutils shasum convention.
     # newline="" suppresses translation: this file is consumed by external
     # checkers that treat everything after the two spaces as the filename, so a
@@ -74,7 +89,7 @@ def write_output_checksum(output_path: Path, *, algorithm: str = "sha256") -> Pa
     # written beside this one already publishes that way.
     atomic_write_text(
         checksum_path,
-        f"{hex_digest}  {output_path.name}\n",
+        f"{prefix}{hex_digest}  {filename}\n",
         encoding="utf-8",
         newline="",
     )

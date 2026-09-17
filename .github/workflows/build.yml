@@ -31,7 +31,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install Python dependencies
-        run: pip install -e ".[test]"
+        run: pip install -e ".[test,typecheck]"
 
       - name: Provide minimap2
         run: |
@@ -51,8 +51,14 @@ jobs:
       - name: Python tests
         run: python -m pytest tests/ -v
 
+      - name: Python typecheck
+        run: basedpyright
+
       - name: TypeScript typecheck
         run: npx tsc --noEmit
+
+      - name: Frontend unit tests
+        run: npx vitest run
 
       - name: Stub generated bundle resource (NOTICE.md) for cross-layer sync
         run: |
@@ -269,8 +275,8 @@ jobs:
         shell: bash
 
       # --- Rust ---
-      # No components. This job compiles the app; clippy and rustfmt run in
-      # ci.yml, and nothing here invokes either. Asking for them made the
+      # No components. This job compiles the app; ci.yml runs cargo check,
+      # and neither workflow invokes clippy or rustfmt. Asking for them made the
       # release depend on a component install that has nothing to do with the
       # build, and on 2026-09-02 that dependency broke it: a macOS runner image
       # shipping its own cargo-clippy turned the install into "detected
@@ -305,6 +311,14 @@ jobs:
       - name: Build NOTICE.md and copy to Tauri resources
         run: node scripts/build-notice.mjs
         shell: bash
+
+      - name: macOS native host lifecycle smoke
+        if: matrix.platform == 'macos-latest'
+        timeout-minutes: 20
+        working-directory: src-tauri
+        env:
+          RUST_BACKTRACE: "1"
+        run: cargo test --locked --no-default-features --test native_sidecar
 
       # --- Build Tauri ---
       # macOS builds the .app only; the post-bundle step re-signs the sidecars

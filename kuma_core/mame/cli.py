@@ -188,6 +188,10 @@ def _dump_verdicts(
                 "selection_reason": rr.selection_reason,
                 "failed": rr.failed,
                 "plate_keys": list(rr.plate_verdicts.keys()),
+                "plate_barcodes": {
+                    plate: vr.translated.barcode.custom_barcode
+                    for plate, vr in rr.plate_verdicts.items()
+                },
             }
             for rr in replicates
         ],
@@ -238,9 +242,24 @@ def _load_verdicts(path: Path) -> tuple[list[VerdictRecord], list[ReplicateResul
 
     replicates: list[ReplicateResult] = []
     for item in data.get("replicates", []):
+        plate_verdicts: dict[str, VerdictRecord] = {}
+        for plate in item.get("plate_keys", []):
+            if "plate_barcodes" in item:
+                plate_verdicts[plate] = by_key[(plate, item["plate_barcodes"][plate])]
+                continue
+            candidates = [
+                vr for (native, _), vr in by_key.items()
+                if native == plate and item["mutant_id"] in vr.expected_mutations
+            ]
+            if len(candidates) != 1:
+                raise ValueError(
+                    f"Cannot uniquely restore {item['mutant_id']} on {plate}; "
+                    "regenerate verdict JSON with explicit plate_barcodes."
+                )
+            plate_verdicts[plate] = candidates[0]
         rr = ReplicateResult(
             mutant_id=item["mutant_id"],
-            plate_verdicts={},
+            plate_verdicts=plate_verdicts,
             selected_plate=item.get("selected_plate"),
             selection_reason=item.get("selection_reason", ""),
             failed=bool(item.get("failed", False)),

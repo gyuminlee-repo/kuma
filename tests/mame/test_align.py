@@ -125,16 +125,14 @@ class TestAlignReads:
         assert aln.strand == -1
 
     def test_mapq_filter_excludes_low_quality(self, ref_fasta: Path) -> None:
-        """A very short read against a long reference gets low MAPQ and is filtered."""
-        # Use a short read (15 bp) — too short to get MAPQ ≥ 25 against a 238-bp ref.
-        short_read = _REF_SEQ[:15]
-        reads = [("short", short_read)]
-        # With min_mapq=25, this should be excluded.
-        alns = align_reads(reads, ref_fasta, min_mapq=25, require_full_span=False)
-        # Short reads get MAPQ 0 or very low; check that high threshold excludes them.
-        # (If mappy happens to give ≥25, test is inconclusive but not broken.)
-        # We accept 0 or 1 results; the important thing is no crash.
-        assert isinstance(alns, list)
+        reads = [("read", _REF_SEQ)]
+        unfiltered = align_reads(reads, ref_fasta, min_mapq=0, require_full_span=False)
+        assert len(unfiltered) == 1
+        threshold = unfiltered[0].mapq
+        retained = align_reads(reads, ref_fasta, min_mapq=threshold, require_full_span=False)
+        excluded = align_reads(reads, ref_fasta, min_mapq=threshold + 1, require_full_span=False)
+        assert [aln.read_id for aln in retained] == ["read"]
+        assert excluded == []
 
     def test_require_full_span_filter(self, ref_fasta: Path) -> None:
         """A partial read must be excluded when require_full_span=True."""

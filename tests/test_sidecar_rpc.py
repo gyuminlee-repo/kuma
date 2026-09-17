@@ -551,19 +551,24 @@ class TestSearchUniprot:
         resp = _rpc("search_uniprot", {})
         assert "error" in resp
 
-    def test_returns_candidates_structure(self):
+    def test_returns_candidates_structure(self, monkeypatch):
         """Verify the response structure (may have 0 candidates if offline)."""
+        monkeypatch.setattr(
+            "urllib.request.urlopen",
+            lambda *args, **kwargs: io.BytesIO(b'{"primaryAccession":"P12345","sequence":{"value":"MKK","length":3},"results":[]}'),
+        )
         resp = _rpc("search_uniprot", {
             "gene_name": "dmpR",
             "organism": "",
             "translation": "",
-            "known_accession": "",
+            "known_accession": "P12345",
         })
-        result = resp.get("result")
-        if result:
-            assert "candidates" in result
-            assert "auto_selected" in result
-            assert isinstance(result["candidates"], list)
+        assert "error" not in resp
+        result = resp["result"]
+        assert len(result["candidates"]) == 1
+        assert result["candidates"][0]["accession"] == "P12345"
+        assert result["candidates"][0]["length"] == 3
+        assert "auto_selected" in result
 
 
 # ── 12. _sequence_identity ──────────────────────────────────────────────

@@ -244,8 +244,7 @@ describe("prepareDesignInput selection set wiring", () => {
         { variant: "F89W", y_pred: 0.9, aa_position: 89 },
       ],
     });
-    // Falls back to mutationText when selection is empty
-    expect(result.limitedText).toBe("F89W\nL70V\nM1A");
+    expect(result.limitedText).toBe("");
   });
 
   it("evolvepro rescue pool excludes intended mutations from selection set", () => {

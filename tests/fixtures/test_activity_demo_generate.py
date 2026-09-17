@@ -34,12 +34,11 @@ def _import_generate() -> ModuleType:
 @pytest.fixture(scope="module")
 def generated_files(tmp_path_factory):  # type: ignore[no-untyped-def]
     """Call generate() and return paths to the generated files."""
-    tmp_path_factory.mktemp("activity_demo")
+    output = tmp_path_factory.mktemp("activity_demo")
     mod = _import_generate()
 
-    # We call generate() directly — it always writes to FIXTURE_DIR.
-    mod.generate()
-    return {"csv": CSV_PATH, "meta": META_PATH}
+    mod.generate(out_dir=output)
+    return {"csv": output / CSV_PATH.name, "meta": output / META_PATH.name}
 
 
 def test_both_files_exist(generated_files):  # type: ignore[no-untyped-def]
@@ -80,13 +79,13 @@ def test_plate_meta_structure(generated_files):  # type: ignore[no-untyped-def]
     assert set(plate["wt_wells"]) == {"A01", "A12", "H01", "H12"}
 
 
-def test_reproducibility() -> None:
+def test_reproducibility(tmp_path: Path) -> None:
     """Two consecutive generate() calls must produce identical CSV bytes."""
     mod = _import_generate()
-    mod.generate()
-    first = CSV_PATH.read_bytes()
-    mod.generate()
-    second = CSV_PATH.read_bytes()
+    mod.generate(out_dir=tmp_path)
+    first = (tmp_path / CSV_PATH.name).read_bytes()
+    mod.generate(out_dir=tmp_path)
+    second = (tmp_path / CSV_PATH.name).read_bytes()
     assert first == second, "generate() is not reproducible — random state may be leaking"
 
 

@@ -6,7 +6,7 @@
 
 ## Polymerase
 
-기본 7개 프로파일 (Q5, KOD, Phusion, Herculase II, PfuUltra II, KAPA HiFi, Takara PrimeSTAR GXL). 선택 시 해당 프로파일의 Tm target, salt/Mg²⁺ 보정, GC 범위가 자동 로드됨.
+기본 7개 프로파일 (Taq, Phusion, Q5, KOD, DreamTaq, TAKARA_GXL, Q5 SDM). 선택 시 권장 annealing temperature 규칙, GC 범위, overlap 모드가 로드됨. 설계용 Tm target은 별도로 조정 가능.
 
 커스텀 프로파일 — [커스텀 폴리머레이즈 에디터](custom-polymerase-editor.md).
 

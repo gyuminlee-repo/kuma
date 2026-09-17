@@ -21,7 +21,7 @@
  * it: deselecting one well slid every later variant one well up.
  *
  * Touching nothing sends nothing. The store keeps `selectedWells` at null until
- * the selection differs from the leading N+1 wells, so an operator who never
+ * the selection differs from the draft wells, so an operator who never
  * opens this panel gets exactly the run they got before it existed.
  */
 
@@ -50,7 +50,6 @@ import {
   PLATE_ROWS,
   PLATE_ROW_LABELS,
   allWellsInPlateOrder,
-  leadingWells,
   sameWells,
   seqAt,
   sortWellsInPlateOrder,
@@ -149,8 +148,8 @@ export function WellSelectionPanel() {
 
   const occupants = draft ?? []
   const defaultSelection = useMemo(
-    () => leadingWells(occupants.length),
-    [occupants.length],
+    () => sortWellsInPlateOrder((draft ?? []).map((row) => row.well)),
+    [draft],
   )
   const selection = useMemo(
     () => (selectedWells ? sortWellsInPlateOrder(selectedWells) : defaultSelection),

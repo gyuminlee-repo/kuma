@@ -373,14 +373,14 @@ def signal_quality_degradation(g002_dir: str | Path | None = None) -> dict:
         v["signal_strength_proxy_topn_minus_random"] for _, v in g002_sorted
     ]
     is_monotone_g002 = all(
-        g002_div_benefits_ranked[i] >= g002_div_benefits_ranked[i + 1]
+        g002_div_benefits_ranked[i] <= g002_div_benefits_ranked[i + 1]
         for i in range(len(g002_div_benefits_ranked) - 1)
     )
 
     # Including IspS as 4th point (weakest signal, most negative benefit).
     all_signal = g002_signal_ranked + [isps_signal]
     all_benefit = g002_div_benefits_ranked + [isps_div_benefit]
-    # Spearman of signal_strength vs diversity_benefit (should be positive if
+    # Spearman of signal_strength vs diversity_benefit (should be negative if
     # "weak signal → more benefit from diversity").
     from scipy.stats import spearmanr
     rho_trend, p_trend = spearmanr(all_signal, all_benefit)

@@ -60,6 +60,8 @@ from __future__ import annotations
 
 import contextlib
 import gzip
+import hashlib
+import json
 import logging
 import queue
 import threading
@@ -2851,6 +2853,7 @@ def _run_combinatorial_demux_body(
                                 ),
                                 n_no_call_zero_depth=r.n_no_call_zero_depth,
                                 n_no_call_deletion=r.n_no_call_deletion,
+                                n_no_call_deletion_majority=r.n_no_call_deletion_majority,
                                 n_no_call_ambiguous=r.n_no_call_ambiguous,
                                 n_no_call_no_majority=r.n_no_call_no_majority,
                                 consensus_net_indel=r.consensus_net_indel,
@@ -3022,6 +3025,7 @@ class WellConsensus(NamedTuple):
     # dropped. See ConsensusCall in ingest/consensus.py.
     ins_majority_bases: tuple[tuple[int, str], ...] = ()
     n_ins_majority_anchors: int = 0
+    n_no_call_deletion_majority: int | None = None
 
 
 def _empty_well_consensus(ref_len: int, input_reads: int) -> WellConsensus:
@@ -3126,6 +3130,7 @@ def _compute_well_consensus(
         n_ins_majority_anchors=consensus_call.n_ins_majority_anchors,
         n_no_call_zero_depth=consensus_call.n_no_call_zero_depth,
         n_no_call_deletion=consensus_call.n_no_call_deletion,
+        n_no_call_deletion_majority=consensus_call.n_no_call_deletion_majority,
         n_no_call_ambiguous=consensus_call.n_no_call_ambiguous,
         n_no_call_no_majority=consensus_call.n_no_call_no_majority,
         consensus_net_indel=consensus_call.consensus_net_indel_bp,
@@ -3318,6 +3323,11 @@ def _marker_has_usable_alignment(marker: dict) -> bool:
     return total_reads == 0 or passed_coverage > 0
 
 
+def _file_sha256(path: Path) -> str:
+    with path.open("rb") as source:
+        return hashlib.file_digest(source, "sha256").hexdigest()
+
+
 def run_combinatorial_demux_per_nb(
     nb_to_fastq: dict[str, list[Path]],
     reference_fasta: Path,
@@ -3454,7 +3464,24 @@ def run_combinatorial_demux_per_nb(
         "trim_flank_bp": int(trim_flank_bp),
         "edit_dist_ratio": float(edit_dist_ratio),
         "chimera_split": bool(chimera_split),
+        "barcode_workbook_sha256": _file_sha256(barcodes_xlsx),
     }
+    unit_params: dict[str, dict[str, int | float | bool | str]] = {}
+    file_digests: dict[Path, str] = {}
+    with TIMER.phase("demux_input_identity"):
+        for nb_name, paths in nb_to_fastq.items():
+            manifest: list[tuple[str, str]] = []
+            for path in paths:
+                resolved = path.resolve()
+                if resolved not in file_digests:
+                    file_digests[resolved] = _file_sha256(resolved)
+                manifest.append((str(resolved), file_digests[resolved]))
+            unit_params[nb_name] = {
+                **_marker_params,
+                "fastq_manifest_sha256": hashlib.sha256(
+                    json.dumps(manifest, ensure_ascii=True).encode("ascii")
+                ).hexdigest(),
+            }
 
     # ── Resume: which per-NB units are already complete? ─────────────────
     # A unit (one output_dir/sort_barcode{NN}/ dir) is "done" ONLY when it
@@ -3476,20 +3503,37 @@ def run_combinatorial_demux_per_nb(
             if marker is None:
                 continue
             inputs_ok, inputs_reason = marker_inputs_match(
-                marker, _marker_reference, _marker_params
+                marker, _marker_reference, unit_params[pl["nb_name"]]
             )
             if not inputs_ok:
                 log.info(
                     "Reprocessing %s: %s", pl["sort_barcode_name"], inputs_reason
                 )
                 continue
-            if _marker_has_usable_alignment(marker):
+            if marker.get("consensus") is True and _marker_has_usable_alignment(marker):
                 summ = _summary_from_marker(pl["sort_barcode_name"], nb_out, marker)
                 summ["nb_name"] = pl["nb_name"]  # real input nb_name for ordering
                 completed_summaries[pl["nb_name"]] = summ
 
     # Only dispatch payloads for units that are NOT already complete.
     pending = [pl for pl in payloads if pl["nb_name"] not in completed_summaries]
+
+    # Keep stale wells outside the active tree and preserve their original bytes.
+    stale_root: Path | None = None
+    stale_units = [output_dir / pl["sort_barcode_name"] for pl in pending]
+    stale_units.extend(
+        unit for unit in output_dir.glob("sort_barcode*")
+        if unit.name not in _sort_names and read_stage_marker(unit) is not None
+    )
+    for nb_out in stale_units:
+        if nb_out.exists():
+            if stale_root is None:
+                stale_root = Path(tempfile.mkdtemp(
+                    prefix=f".{output_dir.name}-demux-stale-", dir=output_dir.parent,
+                ))
+            archived = stale_root / nb_out.name
+            nb_out.rename(archived)
+            log.info("Archived previous demux output %s to %s", nb_out, archived)
 
     def _commit_marker(summ: dict) -> None:
         """Write the unit's completion marker LAST (atomic commit point).
@@ -3521,7 +3565,7 @@ def run_combinatorial_demux_per_nb(
                 if k in summ["stats"]
             },
             reference=_marker_reference,
-            params=_marker_params,
+            params=unit_params[summ["nb_name"]],
         )
 
     summaries: list[dict] = list(completed_summaries.values())

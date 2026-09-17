@@ -15,11 +15,16 @@ These operate at the marker/guard/file level (no minimap2 / cutadapt needed):
 
 from __future__ import annotations
 
+import gzip
+import hashlib
+import json
 import os
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 import pytest
+import openpyxl
 
 from kuma_core.mame.ingest.fasta_parser import load_barcode_directory
 from kuma_core.mame.ingest.stage_marker import (
@@ -102,17 +107,14 @@ def test_interrupted_tmp_write_leaves_original_intact(tmp_path: Path) -> None:
     target = tmp_path / "out.txt"
     target.write_text("ORIGINAL", encoding="utf-8")
 
-    # Simulate a crashed write: temp file written but os.replace not reached.
-    tmp_file = tmp_path / "out.txt.tmp"
-    tmp_file.write_text("PARTIAL-TRUNCATED", encoding="utf-8")
-
-    # Original is untouched by the partial temp.
+    with patch("kuma_core.shared.atomic_write.os.replace", side_effect=OSError("interrupted")):
+        with pytest.raises(OSError, match="interrupted"):
+            atomic_write_text(target, "PARTIAL-TRUNCATED")
     assert target.read_text(encoding="utf-8") == "ORIGINAL"
-
-    # os.replace semantics: the swap is all-or-nothing.
-    os.replace(tmp_file, target)
+    assert set(tmp_path.iterdir()) == {target}
+    atomic_write_text(target, "PARTIAL-TRUNCATED")
     assert target.read_text(encoding="utf-8") == "PARTIAL-TRUNCATED"
-    assert not tmp_file.exists()
+    assert set(tmp_path.iterdir()) == {target}
 
 
 # ---------------------------------------------------------------------------
@@ -551,6 +553,27 @@ def _fake_nb_stats(total: int, assigned: int, wells: int) -> dict[str, int]:
     }
 
 
+@pytest.fixture
+def combinatorial_files(tmp_path: Path) -> None:
+    workbook = openpyxl.Workbook()
+    workbook.save(tmp_path / "bc.xlsx")
+    workbook.close()
+    for name in ("NB01/a.fastq.gz", "NB02/b.fastq.gz"):
+        path = tmp_path / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(gzip.compress(b"@read\nACGT\n+\nIIII\n", mtime=0))
+
+
+def _nb_marker_params(root: Path) -> dict[str, int | float | bool | str]:
+    fastq = root / "NB01" / "a.fastq.gz"
+    manifest = [(str(fastq.resolve()), hashlib.sha256(fastq.read_bytes()).hexdigest())]
+    return {
+        **_DEFAULT_MARKER_PARAMS,
+        "barcode_workbook_sha256": hashlib.sha256((root / "bc.xlsx").read_bytes()).hexdigest(),
+        "fastq_manifest_sha256": hashlib.sha256(json.dumps(manifest, ensure_ascii=True).encode("ascii")).hexdigest(),
+    }
+
+
 def _stage_complete_nb(out_dir: Path, sort_name: str, per_well: dict[str, int],
                        stats: dict[str, int],
                        reference_fasta: Path | None = None) -> Path:
@@ -573,11 +596,12 @@ def _stage_complete_nb(out_dir: Path, sort_name: str, per_well: dict[str, int],
             if reference_fasta is not None
             else None
         ),
-        params=dict(_DEFAULT_MARKER_PARAMS),
+        params=_nb_marker_params(out_dir.parent),
     )
     return nb_out
 
 
+@pytest.mark.usefixtures("combinatorial_files")
 def test_combinatorial_per_nb_skips_completed_and_reprocesses_incomplete(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -649,6 +673,7 @@ def test_combinatorial_per_nb_skips_completed_and_reprocesses_incomplete(
     assert counts["NB02"] == {"2_1": 5}
 
 
+@pytest.mark.usefixtures("combinatorial_files")
 def test_combinatorial_per_nb_missing_marker_is_reprocessed(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -704,6 +729,7 @@ def test_combinatorial_per_nb_missing_marker_is_reprocessed(
     assert res["merged_stats"]["assigned_reads"] == 3
 
 
+@pytest.mark.usefixtures("combinatorial_files")
 def test_combinatorial_per_nb_zero_map_marker_is_reprocessed(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -722,12 +748,13 @@ def test_combinatorial_per_nb_zero_map_marker_is_reprocessed(
         consensus=True,
         stats=_fake_nb_stats(total=100, assigned=0, wells=0),
         reference=reference_fingerprint(reference),
-        params=dict(_DEFAULT_MARKER_PARAMS),
+        params=_nb_marker_params(tmp_path),
     )
     worker_calls: list[str] = []
 
     def _fake_worker(payload: dict) -> dict:
         worker_calls.append(payload["nb_name"])
+        nb_out.mkdir(parents=True, exist_ok=True)
         _write_consensus(nb_out, "1_1")
         return {
             "nb_name": payload["nb_name"],
@@ -740,9 +767,9 @@ def test_combinatorial_per_nb_zero_map_marker_is_reprocessed(
     monkeypatch.setattr(cd, "_demux_one_nb", _fake_worker)
 
     result = cd.run_combinatorial_demux_per_nb(
-        {"NB01": [tmp_path / "NB01" / "reads.fastq.gz"]},
+        {"NB01": [tmp_path / "NB01" / "a.fastq.gz"]},
         reference_fasta=reference,
-        barcodes_xlsx=tmp_path / "barcodes.xlsx",
+        barcodes_xlsx=tmp_path / "bc.xlsx",
         output_dir=out_dir,
     )
 
@@ -750,6 +777,7 @@ def test_combinatorial_per_nb_zero_map_marker_is_reprocessed(
     assert result["merged_stats"]["assigned_reads"] == 80
 
 
+@pytest.mark.usefixtures("combinatorial_files")
 def test_combinatorial_per_nb_mismatched_marker_is_reprocessed(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -773,6 +801,8 @@ def test_combinatorial_per_nb_mismatched_marker_is_reprocessed(
     write_stage_marker(
         nb_out, per_well_counts={"1_1": 3, "1_2": 2}, consensus=True,
         stats=_fake_nb_stats(total=6, assigned=5, wells=2),
+        reference=reference_fingerprint(reference),
+        params=_nb_marker_params(tmp_path),
     )
     assert is_unit_complete(nb_out) is False
 
@@ -805,6 +835,7 @@ def test_combinatorial_per_nb_mismatched_marker_is_reprocessed(
     assert is_unit_complete(nb_out) is True
 
 
+@pytest.mark.usefixtures("combinatorial_files")
 def test_combinatorial_per_nb_fully_resumed_equals_fresh(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -924,6 +955,7 @@ def test_marker_inputs_match_rules(tmp_path: Path) -> None:
     assert marker_inputs_match({"consensus": False}, fingerprint, params) == (True, "")
 
 
+@pytest.mark.usefixtures("combinatorial_files")
 def test_combinatorial_per_nb_reprocesses_when_the_reference_changed(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

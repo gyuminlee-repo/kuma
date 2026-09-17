@@ -385,6 +385,11 @@ def _serialize_verdict(vr: Any) -> dict:
     # 1-based, exactly as produced; no coordinate is translated on the way out.
     out["del_majority_positions"] = list(b.del_majority_positions)
     out["n_del_majority_positions"] = b.n_del_majority_positions
+    out["n_no_call_zero_depth"] = b.n_no_call_zero_depth
+    out["n_no_call_deletion"] = b.n_no_call_deletion
+    out["n_no_call_ambiguous"] = b.n_no_call_ambiguous
+    out["n_no_call_no_majority"] = b.n_no_call_no_majority
+    out["n_no_call_deletion_majority"] = b.n_no_call_deletion_majority
     out["ins_majority_bases"] = [
         {"anchor": anchor, "bases": bases}
         for anchor, bases in b.ins_majority_bases
@@ -552,6 +557,14 @@ def _deserialize_verdict(d: dict) -> Any:
             int(p) for p in d.get("del_majority_positions", ())
         ),
         n_del_majority_positions=int(d.get("n_del_majority_positions", 0)),
+        n_no_call_zero_depth=int(d.get("n_no_call_zero_depth", 0)),
+        n_no_call_deletion=int(d.get("n_no_call_deletion", 0)),
+        n_no_call_ambiguous=int(d.get("n_no_call_ambiguous", 0)),
+        n_no_call_no_majority=int(d.get("n_no_call_no_majority", 0)),
+        n_no_call_deletion_majority=(
+            int(d["n_no_call_deletion_majority"])
+            if d.get("n_no_call_deletion_majority") is not None else None
+        ),
         ins_majority_bases=tuple(
             (int(item["anchor"]), str(item["bases"]))
             for item in d.get("ins_majority_bases", ())

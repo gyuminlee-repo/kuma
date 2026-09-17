@@ -1,32 +1,26 @@
-import { expect, test } from "@playwright/test";
+import { expect, openWorkspace, test } from "./browser-fixture";
 
-test.describe("single-view rendering (MOCK_MODE)", () => {
-  test("mounts all panels at once with no uncaught errors", async ({ page }) => {
-    const consoleErrors: string[] = [];
-    page.on("console", (msg) => {
-      if (msg.type() === "error") consoleErrors.push(msg.text());
-    });
-    page.on("pageerror", (err) => {
-      consoleErrors.push(err.message);
-    });
-
-    await page.goto("/");
-
-    await expect(page.getByTestId("sidebar")).toBeVisible();
-    await expect(page.getByRole("main")).toBeVisible();
-    await expect(page.getByRole("button", { name: /^Run/ })).toBeVisible();
-    await expect(page.getByRole("button", { name: /^Validate/ })).toBeVisible();
-    await expect(page.getByText("Verdict Table")).toBeVisible();
-    await expect(page.getByText("Plate map")).toBeVisible();
-
-    await page.waitForTimeout(300);
-
-    const fatal = consoleErrors.filter(
-      (m) =>
-        m.includes("Uncaught") ||
-        m.includes("TypeError") ||
-        m.includes("ReferenceError"),
-    );
-    expect(fatal, `fatal console errors: ${JSON.stringify(fatal)}`).toHaveLength(0);
-  });
+test("MAME navigates from setup to QC inputs and empty review", async ({ page }, testInfo) => {
+  await openWorkspace(page);
+  await page.getByRole("tab", { name: "Mame", exact: true }).click();
+  const rail = page.getByRole("navigation", { name: "MAME Workflow" });
+  await expect(rail).toBeVisible();
+  await expect(rail.getByRole("button", { name: "Inputs", exact: true })).toHaveAttribute("aria-current", "step");
+  await rail.getByRole("button", { name: "Barcode Package", exact: true }).click();
+  await expect(rail.getByRole("button", { name: "Barcode Package", exact: true })).toHaveAttribute("aria-current", "step");
+  await page.screenshot({ path: testInfo.outputPath("mame-setup.png"), fullPage: true });
+  await rail.getByRole("button", { name: "Inputs", exact: true }).click();
+  await expect(rail.getByRole("button", { name: "Inputs", exact: true })).toHaveAttribute("aria-current", "step");
+  await expect(page.getByRole("button", { name: /^Validate/ })).toBeVisible();
+  await expect(page.getByRole("main").getByRole("button", { name: "Run", exact: true })).toBeDisabled();
+  await page.screenshot({ path: testInfo.outputPath("mame-qc-inputs.png"), fullPage: true });
+  await rail.getByRole("button", { name: "Review (Verdict + Plate)", exact: true }).click();
+  await expect(rail.getByRole("button", { name: "Review (Verdict + Plate)", exact: true })).toHaveAttribute("aria-current", "step");
+  await expect(page.getByRole("main")).toBeVisible();
+  await expect(page.getByText("Verdict table", { exact: true })).toBeVisible();
+  await expect(page.getByText("Plate map", { exact: true })).toBeVisible();
+  await expect(page.getByText("Run analysis to populate the verdict table.", { exact: true })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("mame-qc-review.png"), fullPage: true });
+  await rail.getByRole("button", { name: "Inputs", exact: true }).click();
+  await expect(page.getByRole("button", { name: /^Validate/ })).toBeVisible();
 });

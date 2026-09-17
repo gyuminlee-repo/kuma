@@ -224,7 +224,7 @@ def ingest_long_csv(
         # its row; now both skip and both are recorded.
         try:
             replicate_idx = int(cast(int | str, row["replicate_idx"]))
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, OverflowError):
             _drop(
                 row_index,
                 "replicate_idx_unparseable",
