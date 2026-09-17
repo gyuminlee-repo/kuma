@@ -923,7 +923,9 @@
       "files": [
         "kuma_core/kuro/codon_table.py",
         "python-core/sidecar_kuro/handlers/sequence.py",
+        "python-core/sidecar_kuro/handlers/misc.py",
         "src/types/models.ts",
+        "src/types/validators.ts",
         "src/store/slices/sequenceSlice.ts",
         "src/components/panels/InputPanel/SequenceInput.tsx"
       ],
@@ -931,7 +933,7 @@
         "resolve_organism_key",
         "organism_key"
       ],
-      "note": "Input organism annotation resolves to a backend-owned supported codon-table key; unsupported annotations preserve the user's explicit selection.",
+      "note": "Input organism annotation resolves to a backend-owned supported codon-table key; unsupported annotations preserve the user's explicit selection. handle_list_organisms owns the key set the dropdown renders and validators.ts guards the payload, so both move with resolve_organism_key. The group only flags co-change; it does not compare the option list itself, which is how the hsapiens drift went unnoticed.",
       "severity": "blocking"
     },
     {
@@ -1425,6 +1427,23 @@
       ],
       "note": "In-app help is the user-facing digest of the published step guide next to it: same screen, same steps, same warnings, with the version history, module paths and design rationale left out. The two are not identical by design, so this group is a warning rather than a gate. When a step changes behaviour, both sides have to say the new behaviour or the app and the site disagree about what the app does.",
       "severity": "warning"
+    },
+    {
+      "id": "kuro-custom-codon-tables",
+      "files": [
+        "kuma_core/kuro/codon_table.py",
+        "kuma_core/kuro/codon_import.py",
+        "python-core/sidecar_kuro/core.py",
+        "python-core/sidecar_kuro/handlers/misc.py"
+      ],
+      "symbols": [
+        "get_registry",
+        "user_codon_dir",
+        "validate_codon_table_data",
+        "handle_list_organisms"
+      ],
+      "note": "User-installed codon tables: the search path and scan live in codon_table.py, the rules in codon_import.py, the single registry in core.get_registry() and the list_organisms envelope in misc.py. Backend symbols only; the TypeScript consumers of the envelope (models.ts, validators.ts, ipc.ts, SequenceInput.tsx) join this group when the frontend side lands.",
+      "severity": "blocking"
     }
   ]
 }
