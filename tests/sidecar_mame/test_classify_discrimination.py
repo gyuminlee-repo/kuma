@@ -98,6 +98,7 @@ def _write_round_xlsx(path: Path, records: list[tuple[str, float]]) -> None:
     """
     wb = openpyxl.Workbook()
     ws = wb.active
+    assert ws is not None  # a fresh Workbook always has an active sheet
     ws.append(["Variant", "activity"])
     for variant, activity in records:
         ws.append([variant, activity])
