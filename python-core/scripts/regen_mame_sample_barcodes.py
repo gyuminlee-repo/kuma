@@ -97,11 +97,19 @@ def _design_rows() -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
             fasta_path=_FASTA,
             gene_start=_GENE_START,
             gene_end=_GENE_END,
-            # Pinned to the values the committed sample workbook was generated
-            # with. The library defaults moved to 0/60; regenerating with those
-            # would silently change the sample primer sequences.
-            flank_min=100,
-            flank_max=400,
+            # The committed sample workbook was generated under the former
+            # flank_min/flank_max axis at 100/400, where flank_min was a GAP
+            # between primer and gene. The overhang axis has no gap parameter
+            # (gap is a fixed >= 0 invariant), so that geometry is NOT
+            # expressible here. Measured on egfp_with_flanks.fa: overhang
+            # 100/400 reproduces the old forward primer exactly and changes the
+            # reverse one (old ggggtatccccaacctcg, new ctcgtaccgggggtgcac),
+            # because the new loop tries longer binding sites at each end before
+            # moving outward. 100/400 is kept as the closest transfer. The
+            # sample was NOT regenerated for this change; running this script
+            # will rewrite the reverse primer in the committed workbook.
+            overhang_min=100,
+            overhang_max=400,
             barcode_seeds_path=_SEEDS,
             output_dir=tmp_path / "out",
             project_root=tmp_path,

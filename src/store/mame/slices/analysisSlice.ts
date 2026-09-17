@@ -372,9 +372,9 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
     // via autoDetectCdsCandidates, so we only need to seed these two paths.
     //
     // IMPORTANT: Step 1.2 (barcode-package design) needs a CDS that has
-    // flanking sequence on BOTH sides of the gene (>= flank_min plus one
-    // binding site, so >= 35 nt at the defaults) so primer binding sites can
-    // be placed outside the gene. That is
+    // flanking sequence on BOTH sides of the gene (>= one binding site, and
+    // the search reaches out to overhang_max, so >= 20 nt at the defaults) so
+    // primer binding sites can be placed outside the gene. That is
     // the same file the analyze reference above now takes, and deliberately
     // so: one construct describes the whole demo, so what step 1.2 designs
     // primers in is what step 2 extracts the amplicon from. The fallback

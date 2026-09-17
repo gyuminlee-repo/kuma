@@ -24,10 +24,10 @@ export interface GenerateMamePackageParams {
   gene_name: string
   /** Polymerase preset for Tm calculation. Default: "Q5". */
   polymerase?: string
-  /** Minimum flank length (nt). Default: 0. */
-  flank_min?: number
-  /** Maximum flank length (nt). Default: 60. */
-  flank_max?: number
+  /** Minimum amplicon overhang past the CDS boundary (nt). Default: 20. */
+  overhang_min?: number
+  /** Maximum amplicon overhang past the CDS boundary (nt). Default: 60. */
+  overhang_max?: number
   /** Minimum binding region length (nt). Default: 18. */
   binding_min_len?: number
   /** Maximum binding region length (nt). Default: 35. */

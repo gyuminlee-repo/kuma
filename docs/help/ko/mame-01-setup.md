@@ -22,7 +22,9 @@ CDS 서열과 바코드 시드 파일로 MAME 바코드 패키지를 만드는 �
 | 중합효소 | Q5 / Taq / Phusion / KOD | 기본값 Q5 |
 | 출력 위치 | 폴더 | 선택 |
 
-CDS 서열은 유전자 양쪽에 flanking 서열이 포함된 plasmid 또는 construct map 이어야 한다. MAME 프라이머는 유전자 바깥쪽에서 결합하므로 각 방향에 flank_max 가 아니라 flank_min 과 binding site 하나만큼의 template 이 필요하다(기본값에서는 한쪽당 35 bp). linear template 에서는 탐색창이 서열 끝으로 클램프되고 circular template 은 원점을 넘어 이어지므로 이 요구는 linear template 에만 적용된다. CDS 만 있는 FASTA 는 작동하지 않는다.
+CDS 서열은 유전자 양쪽에 flanking 서열이 포함된 plasmid 또는 construct map 이어야 한다. MAME 프라이머는 유전자 바깥쪽에서만 결합하고 안쪽으로는 들어가지 않으므로 각 방향에 overhang_max 전부가 아니라 사용 가능한 최소 overhang 만큼의 template 이 필요하다. 그 값은 overhang_min 과 binding_min_len 중 큰 쪽이다(기본값에서는 한쪽당 20 bp). linear template 에서는 탐색 범위가 서열 끝으로 클램프되고 circular template 은 원점을 넘어 이어지므로 이 요구는 linear template 에만 적용된다. CDS 만 있는 FASTA 는 작동하지 않는다.
+
+두 탐색 파라미터는 모두 **overhang** 을 잰다. amplicon 의 바깥쪽 끝이 CDS 경계에서 얼마나 멀리 나가는지다. trim_flank_bp 와 말단 변이 경고가 쓰는 거리와 같은 축이다. 프라이머와 유전자 사이 간격은 설정 대상이 아니고 항상 0 이상이다. 프라이머가 덮은 자리 염기는 template 이 아니라 프라이머에서 읽히기 때문이다. overhang 은 그 간격에 결합 길이를 더한 값이므로 binding_min_len 보다 작은 overhang_min 은 어떤 프라이머도 들어갈 수 없는 구간을 가리키며 경고로 보고된다. 기본값 20 과 60 은 ispS 설계에서 실측된 overhang 을 탐색 범위 안에 담는다.
 
 GenBank 입력은 첫 레코드의 서열과 CDS 주석만 불러온다. 뒤쪽 레코드를 쓰려면 flanking template을 포함한 해당 레코드를 별도 GenBank 파일로 내보낸다. 다른 레코드의 주석을 첫 템플릿과 함께 사용하지 않는다.
 
@@ -35,7 +37,7 @@ GenBank 입력은 첫 레코드의 서열과 CDS 주석만 불러온다. 뒤쪽 
 | 이 파일에서 유전자 주석을 읽지 못했습니다 | GenBank 또는 SnapGene 파일이 손상되었는지 확인하고 다른 파일로 다시 고른다 |
 | CDS를 감지하지 못했습니다. 좌표를 수동으로 입력하세요. | gene_start 와 gene_end 를 직접 넣는다 |
 | gene_end는 gene_start보다 커야 합니다. | 두 좌표를 바꿔 넣지 않았는지 확인한다 |
-| 선형 template에서는 프라이머 설계가 실패할 수 있습니다 | 유전자 바깥 template 이 flank_min 과 binding site 하나를 합친 길이보다 짧다는 뜻이다. flank_min 이나 binding 길이를 줄이거나 flanking 서열이 더 긴 파일을 쓴다. 생성 버튼을 막지는 않는다 |
+| 선형 template에서는 프라이머 설계가 실패할 수 있습니다 | 유전자 바깥 template 이 사용 가능한 최소 overhang 보다 짧다는 뜻이다. binding 길이나 overhang_min 을 줄이거나 flanking 서열이 더 긴 파일을 쓴다. 생성 버튼을 막지는 않는다 |
 | 패키지를 생성하려면 프로젝트를 열어야 합니다 | 파일 메뉴에서 프로젝트 열기를 고른다. 프로젝트가 없으면 생성 버튼이 눌리지 않는다 |
 | 필수 입력이 누락되어 진행할 수 없습니다 | 목록에 나온 항목을 채운다. 생성 버튼은 입력이 비어 있어도 눌리고 이 안내로 알려준다 |
 | 생성 실패 | 안내에 적힌 사유를 읽는다. 파라미터를 바꾸지 않고 다시 눌러도 같은 결과가 나온다 |

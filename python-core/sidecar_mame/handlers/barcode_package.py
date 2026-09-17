@@ -21,8 +21,9 @@ Required
 
 Optional
   polymerase           (str,   default "Q5")
-  flank_min            (int,   default 0)
-  flank_max            (int,   default 60)
+  overhang_min         (int,   default 20) -- minimum bp the amplicon reaches
+                         past the CDS boundary; below binding_min_len is inert
+  overhang_max         (int,   default 60) -- maximum bp past the CDS boundary
   binding_min_len      (int,   default 18)
   binding_max_len      (int,   default 35)
   tm_min               (float, default 55.0)
@@ -179,8 +180,8 @@ def handle_generate_mame_package(params: dict) -> dict:
     polymerase: str = str(params.get("polymerase", "Q5"))
 
     try:
-        flank_min = int(params.get("flank_min", 0))
-        flank_max = int(params.get("flank_max", 60))
+        overhang_min = int(params.get("overhang_min", 20))
+        overhang_max = int(params.get("overhang_max", 60))
         binding_min_len = int(params.get("binding_min_len", 18))
         binding_max_len = int(params.get("binding_max_len", 35))
         tm_min = float(params.get("tm_min", 55.0))
@@ -243,8 +244,8 @@ def handle_generate_mame_package(params: dict) -> dict:
         project_root=project_root,
         gene_name=gene_name,
         polymerase=polymerase,
-        flank_min=flank_min,
-        flank_max=flank_max,
+        overhang_min=overhang_min,
+        overhang_max=overhang_max,
         binding_min_len=binding_min_len,
         binding_max_len=binding_max_len,
         tm_min=tm_min,

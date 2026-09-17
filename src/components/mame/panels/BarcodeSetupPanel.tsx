@@ -54,8 +54,8 @@ interface SetupFormState {
   geneEnd: string;
   geneName: string;
   polymerase: "Q5" | "Taq" | "Phusion" | "KOD";
-  flankMin: string;
-  flankMax: string;
+  overhangMin: string;
+  overhangMax: string;
   bindingMinLen: string;
   bindingMaxLen: string;
   tmMin: string;
@@ -72,8 +72,8 @@ const DEFAULT_STATE: SetupFormState = {
   geneEnd: "",
   geneName: "",
   polymerase: "Q5",
-  flankMin: "0",
-  flankMax: "60",
+  overhangMin: "20",
+  overhangMax: "60",
   bindingMinLen: "18",
   bindingMaxLen: "35",
   tmMin: "55.0",
@@ -106,8 +106,20 @@ function loadFromStorage(): SetupFormState {
       geneEnd: typeof p.geneEnd === "string" ? p.geneEnd : DEFAULT_STATE.geneEnd,
       geneName: typeof p.geneName === "string" ? p.geneName : DEFAULT_STATE.geneName,
       polymerase: poly,
-      flankMin: typeof p.flankMin === "string" ? p.flankMin : DEFAULT_STATE.flankMin,
-      flankMax: typeof p.flankMax === "string" ? p.flankMax : DEFAULT_STATE.flankMax,
+      // Legacy keys: the parameters used to be flankMin/flankMax, where
+      // flankMin was the GAP between primer and gene and flankMax was the
+      // overhang past the gene boundary. overhangMax measures the same
+      // quantity flankMax did, so a stored flankMax carries over. flankMin has
+      // no counterpart on the overhang axis (the gap is now a fixed >= 0
+      // invariant), so a stored flankMin is dropped for the new default.
+      overhangMin:
+        typeof p.overhangMin === "string" ? p.overhangMin : DEFAULT_STATE.overhangMin,
+      overhangMax:
+        typeof p.overhangMax === "string"
+          ? p.overhangMax
+          : typeof p.flankMax === "string"
+            ? p.flankMax
+            : DEFAULT_STATE.overhangMax,
       bindingMinLen:
         typeof p.bindingMinLen === "string" ? p.bindingMinLen : DEFAULT_STATE.bindingMinLen,
       bindingMaxLen:
@@ -401,19 +413,22 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
     Boolean(form.fastaPath) && !ANNOTATED_EXTENSIONS.has(getExtension(form.fastaPath));
 
   // ─── 플랭크 preflight 경고 ────────────────────────────────────────────────
-  // 경고일 뿐 차단하지 않는다. 백엔드는 linear 창을 서열 경계로 클램프하므로
-  // flank_max 가 아니라 flank_min + 결합 길이가 실제 물리적 최소 요구다.
-  const flankMinNum = parseInt(form.flankMin, 10);
-  const bindingMaxLenNum = parseInt(form.bindingMaxLen, 10);
-  const flankNeeded = flankMinNum + bindingMaxLenNum;
+  // 경고일 뿐 차단하지 않는다. 백엔드는 linear 탐색창을 서열 경계로 클램프하므로
+  // 실제 물리적 최소 요구는 overhang_max 가 아니라 도달 가능한 최소 overhang 이다.
+  // overhang = gap + binding_len 이고 gap >= 0 이라 binding_min_len 보다 작은
+  // overhang 에는 결합 부위가 들어가지 못한다. 그래서 needed 는 그냥
+  // overhang_min 이 아니라 max(overhang_min, binding_min_len) 이다.
+  const overhangMinNum = parseInt(form.overhangMin, 10);
+  const bindingMinLenNum = parseInt(form.bindingMinLen, 10);
+  const flankNeeded = Math.max(overhangMinNum, bindingMinLenNum);
   const flankWarnings: string[] = [];
   if (
     isPlainFasta &&
     form.topology === "linear" &&
     isRangeValid &&
     seqLength !== null &&
-    Number.isFinite(flankMinNum) &&
-    Number.isFinite(bindingMaxLenNum)
+    Number.isFinite(overhangMinNum) &&
+    Number.isFinite(bindingMinLenNum)
   ) {
     const upstreamAvailable = geneStartNum;
     const downstreamAvailable = seqLength - geneEndNum;
@@ -491,8 +506,8 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
       project_root: project.path,
       gene_name: form.geneName.trim(),
       polymerase: form.polymerase,
-      flank_min: optInt(form.flankMin),
-      flank_max: optInt(form.flankMax),
+      overhang_min: optInt(form.overhangMin),
+      overhang_max: optInt(form.overhangMax),
       binding_min_len: optInt(form.bindingMinLen),
       binding_max_len: optInt(form.bindingMaxLen),
       tm_min: optFloat(form.tmMin),
@@ -833,21 +848,21 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
           </h3>
           <div className="grid grid-cols-2 gap-3">
             <NumberField
-              id="flank-min"
-              label="flank_min (nt)"
-              tooltip={t("mame.parameters.tooltips.flankMin")}
-              value={form.flankMin}
-              onChange={(v) => setForm({ flankMin: v })}
+              id="overhang-min"
+              label="overhang_min (nt)"
+              tooltip={t("mame.parameters.tooltips.overhangMin")}
+              value={form.overhangMin}
+              onChange={(v) => setForm({ overhangMin: v })}
               min={0}
               step={1}
-              placeholder="0"
+              placeholder="20"
             />
             <NumberField
-              id="flank-max"
-              label="flank_max (nt)"
-              tooltip={t("mame.parameters.tooltips.flankMax")}
-              value={form.flankMax}
-              onChange={(v) => setForm({ flankMax: v })}
+              id="overhang-max"
+              label="overhang_max (nt)"
+              tooltip={t("mame.parameters.tooltips.overhangMax")}
+              value={form.overhangMax}
+              onChange={(v) => setForm({ overhangMax: v })}
               min={1}
               step={1}
               placeholder="60"

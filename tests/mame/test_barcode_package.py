@@ -86,8 +86,8 @@ def _make_fasta(path: Path, records: list[tuple[str, str]]) -> None:
 # Layout:
 #   - Total length: 1200 bp
 #   - Gene region: [500, 800]
-#   - Upstream flank available: 500 bp  (far beyond the default flank_max = 60)
-#   - Downstream flank available: 400 bp (far beyond the default flank_max = 60)
+#   - Upstream flank available: 500 bp  (far beyond the default overhang_max = 60)
+#   - Downstream flank available: 400 bp (far beyond the default overhang_max = 60)
 #
 # Sequence is a fixed mixed-composition string to give realistic Tm values.
 # ---------------------------------------------------------------------------
@@ -149,8 +149,8 @@ class TestDesignFlankingPrimers:
     """
     CDS layout:
       total = 1200 bp, gene = [500, 800]
-      upstream available: 500 bp (>> default flank_max=60)
-      downstream available: 400 bp (>> default flank_max=60)
+      upstream available: 500 bp (>> default overhang_max=60)
+      downstream available: 400 bp (>> default overhang_max=60)
     """
 
     _PROFILE = get_profile("Q5")
@@ -242,8 +242,8 @@ class TestDesignFlankingPrimers:
             gene_start=20,
             gene_end=40,
             profile=self._PROFILE,
-            flank_min=2,
-            flank_max=4,
+            overhang_min=2,
+            overhang_max=4,
             binding_min_len=1,
             binding_max_len=1,
             tm_min=100.0,
@@ -262,8 +262,8 @@ class TestDesignFlankingPrimers:
                 gene_start=20,
                 gene_end=40,
                 profile=self._PROFILE,
-                flank_min=2,
-                flank_max=4,
+                overhang_min=2,
+                overhang_max=4,
                 binding_min_len=1,
                 binding_max_len=1,
                 tm_min=100.0,
@@ -376,7 +376,7 @@ class TestCircularTopology:
     _PROFILE = get_profile("Q5")
 
     def test_forward_window_wraps_origin(self) -> None:
-        """Reproduction case: gene_start=267 with flank_max=400 on a 6494 bp
+        """Reproduction case: gene_start=267 with overhang_max=400 on a 6494 bp
         circular plasmid puts the forward window at [-133, 167), which must
         wrap instead of raising."""
         fwd, rev, warns = design_flanking_primers(
@@ -384,8 +384,8 @@ class TestCircularTopology:
             gene_start=267,
             gene_end=1950,
             profile=self._PROFILE,
-            flank_min=100,
-            flank_max=400,
+            overhang_min=100,
+            overhang_max=400,
             topology="circular",
         )
         assert fwd and fwd == fwd.lower()
@@ -394,15 +394,15 @@ class TestCircularTopology:
         assert 18 <= len(rev) <= 35
 
     def test_reverse_window_wraps_origin(self) -> None:
-        """gene_end=1100 with flank_max=400 on a 1200 bp circular sequence puts
+        """gene_end=1100 with overhang_max=400 on a 1200 bp circular sequence puts
         the reverse window end at 1500 (> seq_len=1200), which must wrap."""
         fwd, rev, warns = design_flanking_primers(
             _CDS_1200,
             gene_start=800,
             gene_end=1100,
             profile=self._PROFILE,
-            flank_min=100,
-            flank_max=400,
+            overhang_min=100,
+            overhang_max=400,
             topology="circular",
         )
         assert fwd and fwd == fwd.lower()
@@ -451,7 +451,7 @@ class TestCircularTopology:
         assert fwd and rev
 
     def test_degenerate_window_wider_than_sequence_raises(self) -> None:
-        """flank_max - flank_min > seq_len must raise a clear error naming
+        """overhang_max > seq_len must raise a clear error naming
         seq_len rather than emit a primer that reads bases twice."""
         with pytest.raises(ValueError, match=r"seq_len=100"):
             design_flanking_primers(
@@ -459,8 +459,8 @@ class TestCircularTopology:
                 gene_start=10,
                 gene_end=20,
                 profile=self._PROFILE,
-                flank_min=0,
-                flank_max=150,
+                overhang_min=0,
+                overhang_max=150,
                 topology="circular",
             )
 
