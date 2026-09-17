@@ -145,7 +145,7 @@ class TestXlsxParsing:
         """
         xlsx = tmp_path / "with_zero.xlsx"
         _make_xlsx(str(xlsx), [("100A", 0.0), ("101B", 1.5), ("102C", 0.5)])
-        records = _load_xlsx(str(xlsx))
+        records, _ = _load_xlsx(str(xlsx))
         assert len(records) == 3
         metrics = _round_metrics(records)
         assert metrics["zero_activity_count"] == 1
@@ -186,7 +186,7 @@ class TestLog2Fc:
         rows = [(f"{100+i}A", a) for i, a in enumerate(activities)]
         xlsx = tmp_path / "r1.xlsx"
         _make_xlsx(str(xlsx), rows)
-        records = _load_xlsx(str(xlsx))
+        records, _ = _load_xlsx(str(xlsx))
         metrics = _round_metrics(records)
         expected_log2 = [math.log2(a) for a in activities]
         assert metrics["log2_activities"] == pytest.approx(expected_log2)
@@ -197,7 +197,7 @@ class TestLog2Fc:
         rows = [(f"{100+i}A", a) for i, a in enumerate(activities)]
         xlsx = tmp_path / "r1.xlsx"
         _make_xlsx(str(xlsx), rows)
-        records = _load_xlsx(str(xlsx))
+        records, _ = _load_xlsx(str(xlsx))
         metrics = _round_metrics(records)
         assert metrics["beneficial_count"] == 2
 
@@ -206,7 +206,7 @@ class TestLog2Fc:
         rows = [(f"{100+i}A", a) for i, a in enumerate(activities)]
         xlsx = tmp_path / "r1.xlsx"
         _make_xlsx(str(xlsx), rows)
-        records = _load_xlsx(str(xlsx))
+        records, _ = _load_xlsx(str(xlsx))
         metrics = _round_metrics(records)
         assert metrics["hit_rate"] == pytest.approx(0.5)
 
@@ -234,7 +234,7 @@ class TestDeltaScale:
         rows = [(f"{100+i}A", a) for i, a in enumerate(activities)]
         xlsx = tmp_path / "r1.xlsx"
         _make_xlsx(str(xlsx), rows)
-        metrics = _round_metrics(_load_xlsx(str(xlsx)))
+        metrics = _round_metrics(_load_xlsx(str(xlsx))[0])
         assert metrics["round_best"] == pytest.approx(3.0)
         assert metrics["round_best_log2"] == pytest.approx(math.log2(3.0))
 
@@ -246,7 +246,7 @@ class TestDeltaScale:
         rows = [(f"{100+i}A", a) for i, a in enumerate(activities)]
         xlsx = tmp_path / "r1.xlsx"
         _make_xlsx(str(xlsx), rows)
-        metrics = _round_metrics(_load_xlsx(str(xlsx)))
+        metrics = _round_metrics(_load_xlsx(str(xlsx))[0])
         assert metrics["round_best_log2"] == pytest.approx(max(metrics["log2_activities"]))
 
     def test_the_handler_feeds_the_ema_log2_bests(self, tmp_path, monkeypatch):
@@ -859,7 +859,7 @@ class TestDeadVariantsAreScored:
         """n stays 10, not 8: a dead variant was designed and was measured."""
         path = tmp_path / "one.xlsx"
         _make_xlsx(str(path), self._rows(2, 3, 5))
-        metrics = _round_metrics(_load_xlsx(str(path)))
+        metrics = _round_metrics(_load_xlsx(str(path))[0])
         assert metrics["hit_rate"] == pytest.approx(3 / 10)
         assert metrics["zero_activity_count"] == 2
         # The log2 list is the short one, and this is the documented mismatch:
@@ -908,3 +908,141 @@ class TestDeadVariantsAreScored:
         _make_xlsx(str(path), [("100A", 0.0), ("101B", -0.2), ("102C", 1.5)])
         with pytest.raises(ValueError, match="< 0"):
             handle_classify_round({"round_files": [{"n": 1, "path": str(path)}]})
+
+
+# ---------------------------------------------------------------------------
+# TestWildTypeRowIsNotAVariant -- the control row inside the workbook
+# ---------------------------------------------------------------------------
+
+# Both campaign files carry exactly one row labelled WT: R2 as its last row,
+# R3 at row 35.  Position in the file means nothing, so both placements are
+# pinned here.  Before this the row stopped the whole call with "no leading
+# integer".
+
+class TestWildTypeRowIsNotAVariant:
+    """A WT row is the normaliser, so it leaves every variant statistic."""
+
+    @staticmethod
+    def _variants(n_hit, n_rest, start=100):
+        rows = []
+        pos = start
+        for _ in range(n_hit):
+            rows.append((f"{pos}A", 1.6))
+            pos += 1
+        for _ in range(n_rest):
+            rows.append((f"{pos}A", 0.5))
+            pos += 1
+        return rows
+
+    def test_a_trailing_wt_row_is_counted_and_dropped(self, tmp_path):
+        path = tmp_path / "trailing.xlsx"
+        _make_xlsx(str(path), self._variants(2, 8) + [("WT", 1.0)])
+        records, wt_rows = _load_xlsx(str(path))
+        assert wt_rows == 1
+        assert len(records) == 10
+
+    def test_a_wt_row_in_the_middle_is_counted_and_dropped(self, tmp_path):
+        """R3 carries its WT at row 35, so this is not an end-of-file rule."""
+        rows = self._variants(2, 8)
+        rows.insert(4, ("WT", 1.0))
+        path = tmp_path / "middle.xlsx"
+        _make_xlsx(str(path), rows)
+        records, wt_rows = _load_xlsx(str(path))
+        assert wt_rows == 1
+        assert len(records) == 10
+        assert all(r["position"] is not None for r in records)
+
+    def test_the_hit_rate_denominator_excludes_the_wt_row(self, tmp_path):
+        """2/10, not 2/11: the wild type was never a chance to succeed.
+
+        The opposite of the zero-activity rule, which keeps its rows in n.
+        """
+        path = tmp_path / "denom.xlsx"
+        _make_xlsx(str(path), self._variants(2, 8) + [("WT", 1.0)])
+        records, _ = _load_xlsx(str(path))
+        metrics = _round_metrics(records)
+        assert metrics["hit_rate"] == pytest.approx(2 / 10)
+        assert metrics["beneficial_count"] == 2
+
+    def test_a_wt_reading_above_every_variant_is_not_the_round_best(self, tmp_path):
+        path = tmp_path / "best.xlsx"
+        _make_xlsx(str(path), self._variants(1, 9) + [("WT", 99.0)])
+        records, _ = _load_xlsx(str(path))
+        metrics = _round_metrics(records)
+        assert metrics["round_best"] == 1.6
+        assert len(metrics["log2_activities"]) == 10
+
+    def test_a_wt_only_round_is_rejected(self, tmp_path):
+        path = tmp_path / "wt_only.xlsx"
+        _make_xlsx(str(path), [("WT", 1.0), ("WT_2", 1.1)])
+        with pytest.raises(ValueError, match="wild-type row"):
+            handle_classify_round({"round_files": [{"n": 1, "path": str(path)}]})
+
+    def test_a_junk_variant_still_raises(self, tmp_path):
+        """The wild type is the one exception, not an opening for typos."""
+        path = tmp_path / "junk.xlsx"
+        _make_xlsx(str(path), self._variants(2, 8) + [("WTX", 1.0)])
+        with pytest.raises(ValueError, match="no leading integer"):
+            handle_classify_round({"round_files": [{"n": 1, "path": str(path)}]})
+
+    def test_the_labelled_replicate_forms_are_recognised(self, tmp_path):
+        """WT_1 and WT1 are what WT_PATTERN itself covers."""
+        path = tmp_path / "labelled.xlsx"
+        _make_xlsx(
+            str(path),
+            self._variants(2, 8) + [("WT_1", 1.0), ("WT2", 1.0), ("wt", 1.0)],
+        )
+        records, wt_rows = _load_xlsx(str(path))
+        assert wt_rows == 3
+        assert len(records) == 10
+
+    def _rounds(self, tmp_path, hits, wt_rows_per_round):
+        files = []
+        for idx, (n_hit, n_wt) in enumerate(zip(hits, wt_rows_per_round), start=1):
+            rows = self._variants(n_hit, 10 - n_hit, start=100 * idx)
+            for _ in range(n_wt):
+                rows.insert(1, ("WT", 1.0))
+            path = tmp_path / f"r{idx}.xlsx"
+            _make_xlsx(str(path), rows)
+            files.append({"n": idx, "path": str(path)})
+        return files
+
+    def test_the_decision_shape_reports_the_wt_row_count(self, tmp_path):
+        result = handle_classify_round(
+            {"round_files": self._rounds(tmp_path, (1, 2, 3), (1, 1, 1))}
+        )
+        assert result["advisory"] == "decision"
+        assert result["wt_row_count"] == 1
+
+    def test_the_not_assessable_shape_reports_the_wt_row_count(self, tmp_path):
+        result = handle_classify_round(
+            {"round_files": self._rounds(tmp_path, (3, 2, 1), (1, 1, 1))}
+        )
+        assert result["advisory"] == "not_assessable", (
+            f"expected the missing-input state, got {result!r}"
+        )
+        assert result["wt_row_count"] == 1
+
+    def test_the_wt_row_count_is_the_round_being_judged(self, tmp_path):
+        """Same rule as zero_activity_count: not a sum over rounds."""
+        result = handle_classify_round(
+            {"round_files": self._rounds(tmp_path, (1, 2, 3), (3, 0, 2))}
+        )
+        assert result["wt_row_count"] == 2
+
+    def test_the_wt_rows_do_not_reach_sigma_assay(self, tmp_path):
+        """Sigma comes from the round_files wt_values, never from the workbook.
+
+        Each file here carries three WT rows, which is exactly
+        wt_replicate_min, and no entry forwards any wt_values.  Were the
+        workbook rows read as replicates the bootstrap gate would open and the
+        answer would be a decision; it stays shut and reports zero replicates
+        on record, which is the whole point of keeping the two apart.
+        """
+        result = handle_classify_round(
+            {"round_files": self._rounds(tmp_path, (3, 2, 1), (3, 3, 3))}
+        )
+        assert result["advisory"] == "not_assessable"
+        assert result["reason"] == "wt_replicates_missing"
+        assert result["wt_replicate_count"] == 0
+        assert result["wt_row_count"] == 3

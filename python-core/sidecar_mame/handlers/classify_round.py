@@ -46,21 +46,54 @@ The classifier was never asked::
         "wt_replicate_min": int,     # replicates the noise estimate needs
     }
 
-Both shapes carry ``zero_activity_count``: variants of the round being judged
-whose measured activity was exactly 0.  See "Variants that measured zero".
+Both shapes carry two counts about the round being judged:
+``zero_activity_count`` (variants whose measured activity was exactly 0) and
+``wt_row_count`` (wild-type rows in its workbook).  See the two sections below.
 
 Raises (via dispatcher error codes):
     ValueError  -> -32602: missing/empty round_files, bad column headers,
-                           non-parseable Variant, activity < 0, a round in
-                           which every activity is 0, wt_values that is not a
-                           list of finite numbers.
+                           a Variant that is neither a wild-type label nor
+                           positional, activity < 0, a round in which every
+                           activity is 0, a round holding wild-type rows and no
+                           variant, wt_values that is not a list of finite
+                           numbers.
     RuntimeError -> -32002: xlsx file not found.
+
+The wild-type row
+-----------------
+Both campaign files carry one row labelled ``WT``, R2 as its last row and R3 at
+row 35, so the position in the file means nothing and each row is tested on its
+own.  It is the control rather than a designed variant, so it is counted and
+then excluded from every variant statistic: the hit rate and its denominator,
+beneficial_count, round_best, the log2 list, n_designed, and the top-K
+positions.
+
+Excluding it from the denominator is the opposite of what the zero-activity
+rows get, and deliberately so.  A dead variant was designed for the round and
+measured in it, so removing it from the denominator would overstate the hit
+rate; the wild type was never designed, so leaving it in the denominator
+understates the hit rate by diluting it with a row that was never a chance to
+succeed.
+
+Its activity does not reach ``sigma_assay`` either.  Two reasons, and the
+second holds even where the first does not: both files carry exactly one such
+row, which is below ``wt_replicate_min``, and the value is the normaliser
+itself.  The activity column is a ratio to the wild-type mean, so the wild-type
+row reads 1.0 by construction and a file carrying several of them could report
+a spread of exactly zero.  A sigma of zero puts the T2 threshold at zero, which
+does not disable the signal but makes it fire on any difference at all, so the
+estimate would look available while meaning nothing.  Sigma comes only from the
+``wt_values`` a ``round_files`` entry carries, which are the raw step 4.1
+measurements taken before normalisation.
+
+A Variant that is neither a wild-type label nor positional still raises.  The
+wild type is the single exception, not an opening for unparseable rows.
 
 Variants that measured zero
 ---------------------------
 An activity of exactly 0 is a measurement, not a failure: an SDM variant that
 kills the enzyme reads as no activity, and in the campaign file that prompted
-this the remaining 92 of 94 variants span 0.056 to 1.39, so 0 is the most
+this the remaining 91 of its 93 variants span 0.056 to 1.39, so 0 is the most
 certain "not beneficial" value in the distribution.  Those rows are kept in the
 round -- they are counted in ``n`` and therefore in the hit-rate denominator,
 because a dead variant was still designed and still measured -- and are left out
@@ -81,8 +114,9 @@ experiment succeeding at showing the mutation is lethal.
 
 Data availability
 -----------------
-sigma_assay = None  (the xlsx holds one activity per designed variant and no WT
-column).  T2 and T_model are NA as a consequence.  T3 operates on hit_rates
+sigma_assay = None  (the xlsx holds one activity per designed variant, and the
+wild-type row some files carry is the normaliser rather than a replicate, as
+"The wild-type row" above sets out).  T2 and T_model are NA as a consequence.  T3 operates on hit_rates
 derived from the imported rounds.  The point decision runs on T1/T3 only.
 
 The WT replicates arrive beside the file rather than inside it.  Step 4.1 keeps
@@ -161,10 +195,27 @@ import math
 import re
 from typing import Any, Optional
 
+from kuma_core.mame.activity.constants import WT_PATTERN
+
 _VARIANT_RE = re.compile(r"^(\d+)")
 
+
+def _is_wt_label(variant: str) -> bool:
+    """Is this Variant cell the wild-type control rather than a mutant?
+
+    ``WT_PATTERN`` is the repository's single source of truth for the labelled
+    forms (``WT_1``, ``WT1``) and is imported rather than restated.  It requires
+    a replicate number, so it does not match a bare ``WT`` on its own, and both
+    campaign files carry exactly that bare form.  The second arm is the same one
+    the rest of the codebase already pairs with the pattern for this reason:
+    ``evolvepro_xlsx.py:654`` and ``detect_measurement_source._is_wt``, whose
+    docstring records that a file with one bare ``WT`` block is a file the
+    parser accepts.  No new regex is introduced here.
+    """
+    return bool(WT_PATTERN.match(variant)) or variant.upper() == "WT"
+
 # Inputs the caller did not supply.  The per-round xlsx holds one measured
-# activity per designed variant and no wild-type replicate column, so this list
+# activity per designed variant and no wild-type replicates, so this list
 # is what the call is missing whenever the replicates do not arrive beside the
 # file.  It describes the inputs of one call, not a judgement the classifier
 # made; a call that carries enough replicates reports nothing missing.
@@ -187,11 +238,13 @@ _BOOTSTRAP_GATED_LABELS = ["switch_combinatorial", "stop"]
 # xlsx parsing
 # ---------------------------------------------------------------------------
 
-def _load_xlsx(path: str) -> list[dict]:
+def _load_xlsx(path: str) -> tuple[list[dict], int]:
     """Read Variant+activity from an xlsx file.
 
-    Returns a list of dicts with keys ``position`` (int) and
-    ``activity`` (float).
+    Returns ``(records, wt_row_count)``, where records is a list of dicts with
+    keys ``position`` (int) and ``activity`` (float) holding the mutants alone.
+    A wild-type row is not a variant, so it is counted and dropped rather than
+    returned; see "The wild-type row" in the module docstring.
 
     Raises
     ------
@@ -199,7 +252,9 @@ def _load_xlsx(path: str) -> list[dict]:
         File not found.
     ValueError
         Columns ``Variant`` or ``activity`` absent.
-        Variant cell has no leading integer (position).
+        Variant cell is neither a wild-type label nor a leading integer
+            (position); a typo is still a broken file.
+        Every row is a wild-type row, leaving no variant to classify.
         activity value cannot be cast to float.
         activity value is not finite.
         activity value < 0 (no assay reports negative turnover).
@@ -247,6 +302,7 @@ def _load_xlsx(path: str) -> list[dict]:
     act_idx = headers.index("activity")
 
     records: list[dict] = []
+    wt_row_count = 0
     for row_num, row in enumerate(rows, start=2):
         variant_raw = row[var_idx]
         activity_raw = row[act_idx]
@@ -260,7 +316,19 @@ def _load_xlsx(path: str) -> list[dict]:
             raise ValueError(
                 f"Row {row_num}: Variant is None in {path}"
             )
-        m = _VARIANT_RE.match(str(variant_raw).strip())
+        variant_text = str(variant_raw).strip()
+
+        # The wild-type control.  Counted and dropped before anything reads it:
+        # it is not a designed variant, so it belongs to none of the statistics
+        # below, and its activity is never parsed because nothing consumes it.
+        # It is not anywhere in the file by convention either -- R2 carries it
+        # last and R3 carries it at row 35 -- so the test is per row rather than
+        # a check of the final row.
+        if _is_wt_label(variant_text):
+            wt_row_count += 1
+            continue
+
+        m = _VARIANT_RE.match(variant_text)
         if m is None:
             wb.close()
             raise ValueError(
@@ -303,10 +371,15 @@ def _load_xlsx(path: str) -> list[dict]:
 
     wb.close()
 
+    if not records and wt_row_count:
+        raise ValueError(
+            f"xlsx holds {wt_row_count} wild-type row(s) and no variant: {path}; "
+            f"a round with nothing designed in it has nothing to classify"
+        )
     if not records:
         raise ValueError(f"xlsx contains no data rows: {path}")
 
-    return records
+    return records, wt_row_count
 
 
 # ---------------------------------------------------------------------------
@@ -543,14 +616,20 @@ def handle_classify_round(params: dict) -> dict:
     # Load and compute per-round metrics
     per_round_records: list[list[dict]] = []
     per_round_metrics: list[dict] = []
+    per_round_wt_rows: list[int] = []
     for rf in sorted_files:
         path = rf.get("path")
         if not path:
             raise ValueError(f"round_file entry missing 'path': {rf!r}")
-        records = _load_xlsx(str(path))
+        # records holds the mutants alone, so every statistic below -- hit rate
+        # and its denominator, round best, the log2 list, n_designed, the top-K
+        # positions -- is over designed variants and the wild-type row reaches
+        # none of them.
+        records, wt_rows = _load_xlsx(str(path))
         metrics = _round_metrics(records)
         per_round_records.append(records)
         per_round_metrics.append(metrics)
+        per_round_wt_rows.append(wt_rows)
 
     n_rounds = len(sorted_files)
 
@@ -768,6 +847,9 @@ def handle_classify_round(params: dict) -> dict:
     # from them -- keep the full denominator.
     zero_activity_count = per_round_metrics[-1]["zero_activity_count"]
 
+    # Same rule and the same reason as the line above: the round being judged.
+    wt_row_count = per_round_wt_rows[-1]
+
     decision = classify(round_state, registered)
 
     if decision.label == "deferred" and decision.reason == "bootstrap_inputs_missing":
@@ -789,6 +871,7 @@ def handle_classify_round(params: dict) -> dict:
             "wt_replicate_count": len(wt_values),
             "wt_replicate_min": wt_min,
             "zero_activity_count": zero_activity_count,
+            "wt_row_count": wt_row_count,
         }
 
     return {
@@ -807,6 +890,13 @@ def handle_classify_round(params: dict) -> dict:
         # value.  Reported so the screen can state the exclusion with the
         # backend's own number instead of a figure typed into the UI.
         "zero_activity_count": zero_activity_count,
+        # Wild-type rows this round's file carried.  Named for the row rather
+        # than for a replicate, to keep it clearly apart from
+        # wt_replicate_count above: that one counts the raw WT measurements
+        # step 4.1 forwarded beside the file, which do reach the noise
+        # estimate, while this one counts control rows inside the workbook,
+        # which reach nothing.
+        "wt_row_count": wt_row_count,
     }
 
 
