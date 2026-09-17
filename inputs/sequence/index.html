@@ -1716,6 +1716,7 @@
 <h2 id="genbank-gb-gbk-gbff">GenBank (<code>.gb</code> / <code>.gbk</code> / <code>.gbff</code>)<a class="headerlink" href="#genbank-gb-gbk-gbff" title="Permanent link">&para;</a></h2>
 <ul>
 <li>multi-CDS 지원. UI 의 gene dropdown 에서 target 선택.</li>
+<li>KURO와 MAME의 주석 서열 로더는 첫 GenBank 레코드의 서열과 CDS만 사용한다. 다른 레코드의 CDS는 좌표가 다른 템플릿에 속하므로 포함하지 않는다. 뒤쪽 레코드를 쓰려면 flanking template을 포함한 해당 레코드를 별도 GenBank 파일로 내보낸다. 첫 레코드에 CDS가 없을 때 뒤쪽 주석을 대신 사용하지 않는다.</li>
 <li><code>cds_start</code> 는 <code>seqInfo.genes[].cds_start</code> 에서 자동 추출.</li>
 <li>features 의 <code>/gene=</code> / <code>/locus_tag=</code> 가 dropdown label.</li>
 </ul>
