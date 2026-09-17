@@ -1,11 +1,16 @@
 """Multi-organism codon usage tables.
 
 The tables themselves live in ``resources/codon_tables/*.json`` and that
-directory is the source of truth: ``CodonTableRegistry`` globs it at run time,
-so the shipped set is whatever it holds rather than whatever this docstring
-says. Today that is E. coli K-12, B. subtilis 168, S. cerevisiae, H. sapiens
-and M. extorquens AM1. Provenance differs per table and each one names its own
-in a ``source`` field (Kazusa Codon Usage Database or NCBI RefSeq).
+directory is the source of truth for codon *frequencies*: ``list_organisms``
+globs it, so the shipped set is whatever it holds rather than whatever this
+docstring says. A lookup does not glob; ``CodonTableRegistry._load`` opens
+``<key>.json`` directly, so a table is reachable by its exact file stem or by an
+entry in the hardcoded ``_ORGANISM_ALIASES``. The codon-to-amino-acid mapping is
+not read from these files at all: ``CODON_TO_AA`` is NCBI genetic code 11 taken
+from ``Bio.Data.CodonTable``. Today the shipped set is E. coli K-12,
+B. subtilis 168, S. cerevisiae, H. sapiens and M. extorquens AM1. Provenance
+differs per table and each one names its own in a ``source`` field (Kazusa
+Codon Usage Database or NCBI RefSeq).
 
 Frequencies are fraction of synonymous codons for each amino acid.
 """
@@ -13,9 +18,21 @@ Frequencies are fraction of synonymous codons for each amino acid.
 from __future__ import annotations
 
 import json
-from pathlib import Path
+import re
 
-_RESOURCES_DIR = Path(__file__).parent / "resources" / "codon_tables"
+from Bio.Data import CodonTable as _BioCodonTable
+
+from kuma_core.shared.resource_path import resource_path as _resource_path
+
+_RESOURCES_DIR = _resource_path(
+    "kuma_core.kuro", "resources/codon_tables", module_file=__file__
+)
+
+# V7 of the codon-table import spec: a table key is a lowercase identifier of 2
+# to 32 characters starting with a letter. Applied at lookup time as well as at
+# import time so that an organism string that matches no alias can never reach
+# path construction in ``_load``.
+_KEY_RE = re.compile(r"^[a-z][a-z0-9_]{1,31}$")
 
 # Organism aliases: user-facing key -> JSON filename (without .json)
 _ORGANISM_ALIASES: dict[str, str] = {
@@ -62,9 +79,22 @@ class CodonTableRegistry:
         self._metadata: dict[str, dict] = {}
 
     def _resolve_key(self, organism: str) -> str:
-        """Resolve an organism name to its canonical JSON key."""
+        """Resolve an organism name to its canonical JSON key.
+
+        Raises:
+            ValueError: If *organism* matches no alias and is not itself a
+                usable table key (V7). Rejecting here keeps anything that is
+                not a plain lowercase identifier out of the filename ``_load``
+                builds.
+        """
         key = organism.strip().lower()
         resolved = _ORGANISM_ALIASES.get(key, key)
+        if not _KEY_RE.match(resolved):
+            raise ValueError(
+                f"Unknown organism: '{organism}'. Use lowercase letters, "
+                f"digits and underscore, 2 to 32 characters, starting with a "
+                f"letter."
+            )
         return resolved
 
     def _load(self, key: str) -> dict[str, list[tuple[str, float]]]:
@@ -142,12 +172,24 @@ _registry = CodonTableRegistry()
 # Module-level constant for E. coli K-12 codon usage (exported and used in tests)
 ECOLI_CODON_USAGE: dict[str, list[tuple[str, float]]] = _registry.get_codon_table("ecoli")
 
-# Standard genetic code: codon -> amino acid
-# Built from E. coli table (genetic code is universal; frequencies vary by organism)
-CODON_TO_AA: dict[str, str] = {}
-for _aa, _codons in ECOLI_CODON_USAGE.items():
-    for _codon, _ in _codons:
-        CODON_TO_AA[_codon] = _aa
+# Standard genetic code: codon -> amino acid.
+#
+# NCBI genetic code 11 (bacterial/plant plastid), read from Biopython rather
+# than derived from ecoli.json. The derived form made a data edit to one
+# frequency table silently redefine the genetic code for the whole app, which
+# is not a property any frequency table should carry.
+#
+# ``forward_table`` holds 61 sense codons and no stop entries; the three stop
+# codons live in a separate ``stop_codons`` list. They are merged back in as
+# "*" because mutation.py and sdm_engine.py both look stop codons up here and
+# a None would turn into a wild-type mismatch or an "X" translation.
+#
+# Code 11 and code 1 assign codons identically and differ only in start codons,
+# so this constant is equally correct for either.
+_STANDARD_CODE = _BioCodonTable.unambiguous_dna_by_id[11]
+CODON_TO_AA: dict[str, str] = dict(_STANDARD_CODE.forward_table)
+for _stop in _STANDARD_CODE.stop_codons:
+    CODON_TO_AA[_stop] = "*"
 
 
 # Minimum synonymous usage fraction a codon must carry to enter the design pool
