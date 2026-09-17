@@ -71,6 +71,7 @@ G3 run-meta embedding
 from __future__ import annotations
 
 import csv
+import math
 import datetime
 from collections.abc import Iterable
 from dataclasses import dataclass, replace
@@ -536,9 +537,11 @@ class JanusSettings:
                 f"Invalid output_schema {self.output_schema!r}. "
                 f"Expected one of {list(_SCHEMAS)}."
             )
-        if self.output_schema == SCHEMA_DEVICE and not self.volume > 0:
+        if self.output_schema == SCHEMA_DEVICE and (
+            not math.isfinite(self.volume) or self.volume <= 0
+        ):
             raise ValueError(
-                f"Invalid volume {self.volume!r}. Expected a positive number of µL."
+                f"Invalid volume {self.volume!r}. Expected a finite positive number of µL."
             )
         if self.output_schema == SCHEMA_DEVICE:
             for label, plate_name in self.source_racks:

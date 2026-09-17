@@ -79,6 +79,7 @@ import hashlib
 import json
 import os
 import re
+import stat
 from pathlib import Path, PurePath
 from typing import Any
 
@@ -347,6 +348,50 @@ def _list_well_fasta(unit_dir: Path, entries: DirEntryMap | None = None) -> set[
     }
 
 
+def _marker_shape_error(marker: dict[str, Any], unit_dir: Path) -> str:
+    """Validate persisted metadata before resume/consume interprets its values.
+
+    Keep malformed objects distinguishable from absent legacy markers: resume
+    recomputes them, while a consumer with a present marker fails closed.
+    Versions 1 and 2 have the same inventory fields; v1 lacks input identity.
+    """
+    version = marker.get("schema_version")
+    if type(version) is not int or version not in (1, MARKER_SCHEMA_VERSION):
+        return "unsupported completion marker schema"
+    if marker.get("stage") != STAGE_NAME:
+        return "completion marker has an unexpected stage"
+    if marker.get("unit") != Path(unit_dir).name:
+        return "completion marker belongs to a different unit"
+    if type(marker.get("consensus")) is not bool:
+        return "completion marker consensus flag must be boolean"
+    wells = marker.get("wells")
+    if not isinstance(wells, list) or any(
+        not isinstance(well, str) or not well.strip()
+        or "/" in well or "\\" in well for well in wells
+    ):
+        return "completion marker wells must be a list of well names"
+    if len(set(wells)) != len(wells):
+        return "completion marker contains duplicate wells"
+    counts = marker.get("per_well_counts")
+    if not isinstance(counts, dict) or set(counts) != set(wells):
+        return "completion marker read counts do not match its wells"
+    if any(type(count) is not int or count < 0 for count in counts.values()):
+        return "completion marker read counts must be non-negative integers"
+    for key in ("n_input_reads", "n_unassigned"):
+        value = marker.get(key)
+        if value is not None and (type(value) is not int or value < 0):
+            return f"completion marker {key} must be a non-negative integer"
+    stats = marker.get("stats")
+    if stats is not None and (
+        not isinstance(stats, dict) or any(
+            not isinstance(key, str) or type(value) is not int or value < 0
+            for key, value in stats.items()
+        )
+    ):
+        return "completion marker stats must contain non-negative integer counts"
+    return ""
+
+
 def validate_marker(
     marker: dict[str, Any], unit_dir: Path, entries: DirEntryMap | None = None
 ) -> tuple[bool, str]:
@@ -363,6 +408,9 @@ def validate_marker(
         ``(ok, reason)`` where *reason* is empty on success and a human-readable
         explanation on failure.
     """
+    shape_error = _marker_shape_error(marker, unit_dir)
+    if shape_error:
+        return (False, shape_error)
     if entries is None:
         entries = scan_unit_dir(unit_dir)
     recorded = {str(w) for w in marker.get("wells", [])}
@@ -393,7 +441,10 @@ def validate_marker(
         if entry is None:
             return (False, f"recorded well '{well}' FASTA missing on disk")
         try:
-            size = entry.stat().st_size
+            info = entry.stat()
+            if not stat.S_ISREG(info.st_mode):
+                return (False, f"recorded well '{well}' FASTA is not a regular file")
+            size = info.st_size
         except OSError:
             return (False, f"recorded well '{well}' FASTA missing on disk")
         if size == 0:

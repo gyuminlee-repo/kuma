@@ -96,9 +96,9 @@ export function suggestRetryParams(
   const revMaxObs = revLens.length > 0 ? Math.max(...revLens) : defaults.revLenMax;
 
   return {
-    tmFwd: roundTo(median(tmFwds), 1),
-    tmRev: roundTo(median(tmRevs), 1),
-    tmOverlap: roundTo(median(tmOvs), 1),
+    tmFwd: roundTo(tmFwds.length > 0 ? median(tmFwds) : defaults.tmFwd, 1),
+    tmRev: roundTo(tmRevs.length > 0 ? median(tmRevs) : defaults.tmRev, 1),
+    tmOverlap: roundTo(tmOvs.length > 0 ? median(tmOvs) : defaults.tmOverlap, 1),
     gcMin: clamp(Math.floor(gcMinObs - 5), 10, 90),
     gcMax: clamp(Math.ceil(gcMaxObs + 5), 10, 95),
     fwdLenMin: clamp(fwdMinObs - 2, MIN_PRIMER_LEN, 60),
