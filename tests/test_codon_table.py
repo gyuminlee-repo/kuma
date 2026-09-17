@@ -292,8 +292,12 @@ class TestCodonTableRegistry:
         t1 = registry.get_codon_table("ecoli")
         t2 = registry.get_codon_table("E. coli")
         t3 = registry.get_codon_table("Escherichia coli")
-        assert t1 is t2  # same cached object
-        assert t1 is t3
+        # Equal, deliberately not identical: get_codon_table hands out a fresh
+        # dict of fresh lists so an in-place edit at one call site cannot
+        # rewrite the table for the whole process.
+        assert t1 == t2
+        assert t1 == t3
+        assert t1 is not t2
 
     def test_unknown_organism_raises(self):
         registry = CodonTableRegistry()
@@ -422,7 +426,7 @@ class TestMextorquensTable:
         registry = CodonTableRegistry()
         methylorubrum = registry.get_codon_table("Methylorubrum extorquens")
         methylobacterium = registry.get_codon_table("Methylobacterium extorquens AM1")
-        assert methylorubrum is methylobacterium
+        assert methylorubrum == methylobacterium
 
     def test_table_is_not_the_ecoli_fallback(self):
         # AM1 is GC-rich and E. coli is not, so Lys and Glu separate them:

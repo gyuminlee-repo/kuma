@@ -683,30 +683,46 @@ class TestOrganismAwareUniprotRanking:
 # ── 13. list_organisms ──────────────────────────────────────────────────
 
 class TestListOrganisms:
-    def test_returns_list(self):
+    def test_returns_envelope(self):
+        # The response is an object, not a bare array: the folder path and the
+        # files that failed to load are properties of the list, not of an entry.
         resp = _rpc("list_organisms")
         assert "result" in resp
-        organisms = resp["result"]
-        assert isinstance(organisms, list)
-        assert len(organisms) == 5
+        payload = resp["result"]
+        assert isinstance(payload, dict)
+        assert set(payload) == {"organisms", "failed", "user_dir"}
+        assert isinstance(payload["organisms"], list)
+        assert isinstance(payload["failed"], list)
+        assert isinstance(payload["user_dir"], str)
+        assert len(payload["organisms"]) == 5
 
     def test_each_organism_has_required_keys(self):
         resp = _rpc("list_organisms")
-        for org in resp["result"]:
-            assert "key" in org
-            assert "name" in org
-            assert "taxid" in org
+        for org in resp["result"]["organisms"]:
+            for field in (
+                "key", "name", "taxid", "source", "aliases", "cds_count",
+                "table_sha256", "warnings",
+            ):
+                assert field in org, field
+            assert org["source"] in ("builtin", "user")
 
     def test_ecoli_present(self):
         resp = _rpc("list_organisms")
-        keys = [o["key"] for o in resp["result"]]
+        keys = [o["key"] for o in resp["result"]["organisms"]]
         assert "ecoli" in keys
 
     def test_all_shipped_organisms_present(self):
         resp = _rpc("list_organisms")
-        keys = {o["key"] for o in resp["result"]}
+        keys = {o["key"] for o in resp["result"]["organisms"]}
         expected = {"ecoli", "bsubtilis", "scerevisiae", "hsapiens", "mextorquens"}
         assert keys == expected
+
+    def test_shipped_tables_carry_no_warnings(self):
+        # Known-answer control (a): every bundled table clears the validator.
+        resp = _rpc("list_organisms")
+        for org in resp["result"]["organisms"]:
+            assert org["warnings"] == [], (org["key"], org["warnings"])
+        assert resp["result"]["failed"] == []
 
 
 # ── 14. export_order ───────────────────────────────────────────────────
