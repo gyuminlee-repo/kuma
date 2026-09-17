@@ -12,6 +12,8 @@
 
 ## 동작
 
+GenBank는 첫 레코드의 서열과 CDS만 불러온다. 뒤쪽 레코드의 유전자를 설계하려면 해당 레코드를 flanking template과 함께 별도 GenBank 파일로 내보낸다. 서로 다른 레코드의 서열과 CDS 좌표를 섞지 않는다.
+
 1. 드래그앤드롭 또는 Browse 로 서열 로드.
 2. UniProt BLAST 자동 트리거 (network 동의 필요).
 3. AlphaFold Cα 좌표 EBI API 에서 fetch (`consent_alphafold` 동의).

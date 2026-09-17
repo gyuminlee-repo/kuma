@@ -9,7 +9,10 @@ automated license collectors. Their attributions are listed here.
 minimap2 is bundled as a standalone executable for sequence alignment.
 On Windows, minimap2 v2.30 is compiled from source with the MinGW-w64
 toolchain and **statically linked** (no MinGW runtime DLL dependencies).
-On Linux and macOS, the upstream binary is vendored.
+On Linux, the upstream binary is vendored.
+On macOS (arm64), minimap2 v2.30 is compiled from source with NEON enabled
+and dynamically linked to system libraries. The build checks linked dependencies
+with `otool -L` and rejects non-system library paths.
 
 - Project: https://github.com/lh3/minimap2
 - License: MIT

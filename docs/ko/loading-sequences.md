@@ -10,6 +10,10 @@
 | `.dna` | SnapGene | CDS feature 있으면 우선, 없으면 ORF 탐지 fallback |
 | `.fa` / `.fasta` | FASTA | 헤더에서 유전자명/organism 추출, longest ORF 탐지 |
 
+## GenBank 레코드
+
+KURO와 MAME의 주석 서열 로더는 GenBank의 첫 레코드와 그 레코드의 CDS만 사용한다. 뒤쪽 레코드의 CDS는 다른 템플릿의 좌표이므로 선택 목록에 넣지 않는다. 원하는 레코드를 양쪽 flanking template과 함께 별도 GenBank 파일로 내보낸 뒤 불러온다. 첫 레코드에 CDS 주석이 없으면 뒤쪽 레코드의 주석으로 대신할 수 없다.
+
 ## CDS 자동 선택
 
 로드 시 모든 ATG를 스캔하고 downstream ORF 길이를 계산하여 가장 긴 것을 자동 선택. 수동 전환은 Input 패널의 gene 드롭다운 — [유전자 선택](gene-selection.md).

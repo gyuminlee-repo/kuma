@@ -4,7 +4,7 @@ Persist an entire session — sequence, mutations, parameters, design results, a
 
 ## File format
 
-`*.kuro.json` — plain JSON with a `version` field (v1 or v2).
+`*.kuro.json` — plain JSON with `schema_version: "0.3"`. The separate `kuma_version` field records the app version that saved the workspace.
 
 ## Save
 
@@ -22,7 +22,7 @@ File menu → *Load Workspace*. Kuro restores:
 
 ## Compatibility
 
-v1 workspaces load on v2+ clients; v2 is backwards-compatible.
+The current loader rejects workspaces with a missing `schema_version` or a schema older than `0.3`, including v1/v2 files. No automatic legacy migration or batch migration tool is provided. Preserve the original file and recreate the workspace from its sequence and mutation inputs in the current app. See the [format reference](../reference/workspace-format.md).
 
 ## Not included
 

@@ -24,6 +24,8 @@ This screen builds a MAME barcode package from a CDS sequence and a barcode seed
 
 The CDS sequence must be a plasmid or construct map that carries flanking template on both sides of the gene. MAME primers bind outside the gene, so at least flank_max (default 400 bp) of template is needed on each side. A CDS-only FASTA will not work.
 
+For GenBank input, only the first record and its CDS annotations are loaded. Export a desired later record with its flanking template as a separate GenBank file; annotations from different records cannot be combined with the first template.
+
 The **Template topology** choice appears only for a plain FASTA (`.fa`, `.fasta`), because a FASTA records no topology. A GenBank or SnapGene file carries its own topology, so the choice stays hidden for those.
 
 ## Warnings and errors

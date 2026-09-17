@@ -15,6 +15,7 @@ KURO Step 1 · MAME Step 1.1 에서 사용하는 서열 파일 사양.
 ## GenBank (`.gb` / `.gbk` / `.gbff`)
 
 - multi-CDS 지원. UI 의 gene dropdown 에서 target 선택.
+- KURO와 MAME의 주석 서열 로더는 첫 GenBank 레코드의 서열과 CDS만 사용한다. 다른 레코드의 CDS는 좌표가 다른 템플릿에 속하므로 포함하지 않는다. 뒤쪽 레코드를 쓰려면 flanking template을 포함한 해당 레코드를 별도 GenBank 파일로 내보낸다. 첫 레코드에 CDS가 없을 때 뒤쪽 주석을 대신 사용하지 않는다.
 - `cds_start` 는 `seqInfo.genes[].cds_start` 에서 자동 추출.
 - features 의 `/gene=` / `/locus_tag=` 가 dropdown label.
 

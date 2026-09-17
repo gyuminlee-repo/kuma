@@ -1,6 +1,8 @@
 # UniProt and AlphaFold
 
-![UniProt candidates](../screenshots/07-uniprot-candidates.png)
+![Submit Design pool filters with UniProt auto-match status](../screenshots/07-uniprot-candidates.png)
+
+The screenshot shows the Submit Design pool-filter screen with a UniProt auto-match status message; the candidate list is not open.
 
 Once a CDS is selected Kuro searches UniProt to enrich the design:
 

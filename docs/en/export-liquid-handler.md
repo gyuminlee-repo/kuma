@@ -1,6 +1,8 @@
 # Export — Liquid Handler Mapping
 
-![Mapping Export dialog](../screenshots/17-mapping-export-dialog.png)
+![Step 6: Export page with Mapping File Preview](../screenshots/17-mapping-export-dialog.png)
+
+The screenshot shows Mapping File Preview on the Export page, not a dialog.
 
 Mapping files for Echo 525 (acoustic) or JANUS (tip-based) liquid handlers.
 

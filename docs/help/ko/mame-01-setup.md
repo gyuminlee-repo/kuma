@@ -24,6 +24,8 @@ CDS 서열과 바코드 시드 파일로 MAME 바코드 패키지를 만드는 �
 
 CDS 서열은 유전자 양쪽에 flanking 서열이 포함된 plasmid 또는 construct map 이어야 한다. MAME 프라이머는 유전자 바깥쪽에서 결합하므로 각 방향에 최소 flank_max(기본값 400 bp)만큼의 template 이 필요하다. CDS 만 있는 FASTA 는 작동하지 않는다.
 
+GenBank 입력은 첫 레코드의 서열과 CDS 주석만 불러온다. 뒤쪽 레코드를 쓰려면 flanking template을 포함한 해당 레코드를 별도 GenBank 파일로 내보낸다. 다른 레코드의 주석을 첫 템플릿과 함께 사용하지 않는다.
+
 **템플릿 위상** 선택은 확장자가 `.fa` `.fasta` 인 일반 FASTA 를 골랐을 때만 나온다. FASTA 에는 위상 정보가 없기 때문이다. GenBank 와 SnapGene 파일은 파일 자체가 위상을 갖고 있어 이 선택이 나오지 않는다.
 
 ## 경고와 오류
