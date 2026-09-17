@@ -42,6 +42,11 @@ tempfile = "3"
 # judges capabilities/default.json by the rule that actually runs.
 glob = "0.3"
 
+[[test]]
+name = "native_sidecar"
+path = "tests/native_sidecar/main.rs"
+harness = false
+
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]

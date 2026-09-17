@@ -114,3 +114,27 @@ fn ordinary_paths_stay_in_scope() {
         assert!(allowed_on_unix(target), "{target} should remain allowed");
     }
 }
+
+#[test]
+fn app_data_under_hidden_linux_parent_is_in_scope() {
+    let home = "/tmp/kuma-native-test/home";
+    let app_data = format!("{home}/.local/share/com.gyuminlee.kuma");
+    for target in [app_data.clone(), format!("{app_data}/scratch/project.json")] {
+        assert!(
+            allow_patterns().iter().any(|pattern| matches(
+                &pattern
+                    .replace("$APPDATA", &app_data)
+                    .replace("$HOME", home),
+                &target
+            )),
+            "{target}: app data requires explicit root and subtree scope"
+        );
+        assert!(
+            !allow_patterns()
+                .iter()
+                .filter(|p| !p.starts_with("$APPDATA"))
+                .any(|pattern| matches(&pattern.replace("$HOME", home), &target)),
+            "ordinary wildcards must not cross the hidden parent"
+        );
+    }
+}

@@ -5,7 +5,7 @@ use std::{
     path::PathBuf,
     sync::{
         atomic::{AtomicBool, AtomicI64, Ordering},
-        Arc,
+        Arc, Weak,
     },
     time::{Duration, Instant},
 };
@@ -25,6 +25,23 @@ const READY_TIMEOUT: Duration = Duration::from_secs(30);
 const RPC_TIMEOUT: Duration = Duration::from_secs(60);
 
 type PendingSender = oneshot::Sender<Result<Value, String>>;
+type PendingMap = std::sync::Mutex<HashMap<i64, PendingSender>>;
+
+struct PendingRegistration {
+    id: i64,
+    pending: Weak<PendingMap>,
+}
+
+impl Drop for PendingRegistration {
+    fn drop(&mut self) {
+        if let Some(pending) = self.pending.upgrade() {
+            pending
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .remove(&self.id);
+        }
+    }
+}
 
 /// Rotate `sidecar.log` once it grows past this size. One rolled backup
 /// (`sidecar.log.1`) is kept, so total on-disk usage stays under 2x this value.
@@ -159,7 +176,7 @@ struct SidecarProgressPayload {
 }
 
 pub struct LineProtocol {
-    pending: Arc<Mutex<HashMap<i64, PendingSender>>>,
+    pending: Arc<PendingMap>,
     stdout_buffer: Arc<Mutex<String>>,
     ready: Arc<AtomicBool>,
     ready_notify: Arc<Notify>,
@@ -168,28 +185,46 @@ pub struct LineProtocol {
 impl LineProtocol {
     pub fn new() -> Self {
         Self {
-            pending: Arc::new(Mutex::new(HashMap::new())),
+            pending: Arc::new(PendingMap::new(HashMap::new())),
             stdout_buffer: Arc::new(Mutex::new(String::new())),
             ready: Arc::new(AtomicBool::new(false)),
             ready_notify: Arc::new(Notify::new()),
         }
     }
 
-    pub async fn insert_pending(&self, id: i64) -> oneshot::Receiver<Result<Value, String>> {
+    fn pending(&self) -> std::sync::MutexGuard<'_, HashMap<i64, PendingSender>> {
+        self.pending
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    pub async fn insert_pending(
+        &self,
+        id: i64,
+    ) -> impl std::future::Future<Output = Result<Result<Value, String>, oneshot::error::RecvError>>
+    {
         let (tx, rx) = oneshot::channel();
-        self.pending.lock().await.insert(id, tx);
-        rx
+        self.pending().insert(id, tx);
+        // Own cleanup before the future is polled, including cancellation while writing stdin.
+        let registration = PendingRegistration {
+            id,
+            pending: Arc::downgrade(&self.pending),
+        };
+        async move {
+            let _registration = registration;
+            rx.await
+        }
     }
 
     pub async fn fail_pending(&self, id: i64, reason: String) {
-        if let Some(tx) = self.pending.lock().await.remove(&id) {
+        if let Some(tx) = self.pending().remove(&id) {
             let _ = tx.send(Err(reason));
         }
     }
 
     pub async fn reject_all(&self, reason: &str) {
         let pending = {
-            let mut lock = self.pending.lock().await;
+            let mut lock = self.pending();
             std::mem::take(&mut *lock)
         };
         for (_, tx) in pending {
@@ -307,7 +342,7 @@ impl LineProtocol {
                 return;
             };
 
-            if let Some(tx) = self.pending.lock().await.remove(&id) {
+            if let Some(tx) = self.pending().remove(&id) {
                 let _ = tx.send(result);
             }
             return;
@@ -775,6 +810,104 @@ fn format_jsonrpc_error(error: &Value) -> String {
 #[cfg(test)]
 mod tests {
     use super::{recover_request_id, truncate_for_log, UNPARSEABLE_LINE_LOG_MAX};
+
+    #[tokio::test]
+    async fn cancelled_response_releases_pending_registration() {
+        let protocol = super::LineProtocol::new();
+        let response = protocol.insert_pending(1).await;
+        let active = protocol.insert_pending(2).await;
+
+        drop(response);
+
+        assert_eq!(protocol.pending().len(), 1);
+        protocol
+            .drain_stdout_chunk(
+                "{\"id\":1,\"result\":\"late\"}\n{\"id\":2,\"result\":\"ok\"}\n",
+                |_| {},
+            )
+            .await;
+        assert_eq!(active.await.unwrap().unwrap(), serde_json::json!("ok"));
+        assert!(protocol.pending().is_empty());
+    }
+
+    #[tokio::test]
+    async fn repeated_outer_timeouts_leave_no_pending_requests() {
+        let protocol = super::LineProtocol::new();
+        for id in 0..32 {
+            let response = protocol.insert_pending(id).await;
+            assert!(tokio::time::timeout(std::time::Duration::ZERO, response)
+                .await
+                .is_err());
+        }
+        assert!(protocol.pending().is_empty());
+    }
+
+    #[tokio::test]
+    async fn dropping_protocol_closes_outstanding_response() {
+        let response = {
+            let protocol = super::LineProtocol::new();
+            protocol.insert_pending(1).await
+        };
+        let result = tokio::time::timeout(std::time::Duration::from_millis(20), response).await;
+        assert!(matches!(result, Ok(Err(_))));
+    }
+
+    #[tokio::test]
+    async fn dropping_protocol_closes_polled_response() {
+        use std::future::Future;
+
+        let protocol = super::LineProtocol::new();
+        let mut response = Box::pin(protocol.insert_pending(1).await);
+        std::future::poll_fn(|cx| {
+            assert!(response.as_mut().poll(cx).is_pending());
+            std::task::Poll::Ready(())
+        })
+        .await;
+
+        drop(protocol);
+
+        let result = tokio::time::timeout(std::time::Duration::from_millis(20), response).await;
+        assert!(matches!(result, Ok(Err(_))));
+    }
+
+    #[tokio::test]
+    async fn cancellation_while_waiting_for_stdin_releases_registration() {
+        use std::future::Future;
+
+        let protocol = super::LineProtocol::new();
+        let stdin = tokio::sync::Mutex::new(());
+        let _held_stdin = stdin.lock().await;
+        let response = protocol.insert_pending(1).await;
+        let mut request = Box::pin(async {
+            let _stdin = stdin.lock().await;
+            response.await
+        });
+        std::future::poll_fn(|cx| {
+            assert!(request.as_mut().poll(cx).is_pending());
+            std::task::Poll::Ready(())
+        })
+        .await;
+        assert_eq!(protocol.pending().len(), 1);
+
+        drop(request);
+
+        assert!(protocol.pending().is_empty());
+    }
+
+    #[tokio::test]
+    async fn reject_all_resolves_live_responses_after_cancellation() {
+        let protocol = super::LineProtocol::new();
+        let cancelled = protocol.insert_pending(1).await;
+        let active = protocol.insert_pending(2).await;
+        drop(cancelled);
+
+        protocol.reject_all("Sidecar process exited").await;
+
+        assert!(protocol.pending().is_empty());
+        assert_eq!(active.await.unwrap(), Err("Sidecar process exited".into()));
+        protocol.reject_all("Sidecar process exited").await;
+        assert!(protocol.pending().is_empty());
+    }
 
     #[test]
     fn recovers_id_from_nan_poisoned_result() {

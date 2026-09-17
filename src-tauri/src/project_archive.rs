@@ -78,7 +78,12 @@ pub fn export_project(project_path: &Path, output_path: &Path) -> Result<Archive
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
 
-    let files = collect_files(project_path)?;
+    let mut files = collect_files(project_path)?;
+    if output_path.exists() {
+        let output = fs::canonicalize(output_path).map_err(|e| e.to_string())?;
+        let root = fs::canonicalize(project_path).map_err(|e| e.to_string())?;
+        files.retain(|rel| root.join(rel) != output);
+    }
     let file = File::create(output_path).map_err(|e| e.to_string())?;
     let mut zip = ZipWriter::new(file);
     // Deflate: these are JSON, xlsx and fasta files, so it pays for itself.
