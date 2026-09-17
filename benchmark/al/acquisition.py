@@ -224,17 +224,15 @@ def select_indices(
         pos = [tuple(positions[i]) for i in top_pool]
         ent = _position_entropy(pos, n_alleles)
         anc_pos = [tuple(x) for x in (anchor_positions or [])]
+        all_pos = pos + anc_pos
 
         def ham(i_local: int, j_local: int) -> float:
-            a = pos[i_local]
-            if j_local < len(anc_pos):
-                b = anc_pos[j_local]
-            else:
-                b = pos[j_local - len(anc_pos)]
+            a = all_pos[i_local]
+            b = all_pos[j_local]
             return float(sum(1 for x, y in zip(a, b, strict=True) if x != y))
 
         tiebreak = np.array([m[i] for i in top_pool], dtype=float)
-        local_anchor = list(range(len(anc_pos)))
+        local_anchor = list(range(len(pos), len(all_pos)))
         chosen_local = _greedy_maximin(
             list(range(len(top_pool))),
             ham,
