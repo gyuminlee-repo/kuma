@@ -2599,14 +2599,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "El menú Ayuda abre un panel de ayuda junto a la pantalla, en el tema del paso en el que se está trabajando, en coreano o inglés.",
-      "Trece temas cubren KURO y MAME, escritos en torno a lo que se hace en cada pantalla y a lo que significan sus avisos.",
-      "Una referencia cruzada dentro de la ayuda se abre en el mismo panel, que permanece abierto al alternar entre KURO y MAME.",
-      "El menú de ayuda de la pantalla de entradas de análisis de MAME abre el tema Análisis y revisión en lugar de Configuración de códigos de barras.",
-      "Pulsar Siguiente en el paso 1 de MAME sin un paquete de barcodes indica la entrada que falta en lugar de mostrar una clave interna."
+      "Una deleción que solo respalda la mitad de las lecturas ya no exime a un pocillo del control de no call, así que un sitio con 40 o 50 por ciento se lee como no call.",
+      "El paso de datos de actividad se niega a asignar un veredicto NGS a una variante distinta de la que nombra su fila.",
+      "Los archivos de Echo y JANUS de un rango de filas reducido o de varias placas conservan las posiciones de stock que indica la hoja de pedido.",
+      "Al reabrir un espacio de trabajo se mantiene la selección y se descarta la salida cuyas entradas ya no están; un benchmark nunca ejecutado deja de avisar de daños.",
+      "En Linux el autoguardado temporal funciona bajo la carpeta oculta de datos de la aplicación y Archivo > Salir cierra la ventana."
     ],
-    "highlightsStamp": "0.16.63+27af3ec6",
+    "highlightsStamp": "0.16.64+b5666e23",
     "releases": {
+      "0.16.64": [
+        "Una deleción que solo respalda la mitad de las lecturas ya no exime a un pocillo del control de no call, así que un sitio con 40 o 50 por ciento se lee como no call.",
+        "El paso de datos de actividad se niega a asignar un veredicto NGS a una variante distinta de la que nombra su fila.",
+        "Los archivos de Echo y JANUS de un rango de filas reducido o de varias placas conservan las posiciones de stock que indica la hoja de pedido.",
+        "Al reabrir un espacio de trabajo se mantiene la selección y se descarta la salida cuyas entradas ya no están; un benchmark nunca ejecutado deja de avisar de daños.",
+        "En Linux el autoguardado temporal funciona bajo la carpeta oculta de datos de la aplicación y Archivo > Salir cierra la ventana."
+      ],
       "0.16.63": [
         "El menú Ayuda abre un panel de ayuda junto a la pantalla, en el tema del paso en el que se está trabajando, en coreano o inglés.",
         "Trece temas cubren KURO y MAME, escritos en torno a lo que se hace en cada pantalla y a lo que significan sus avisos.",
@@ -2627,12 +2634,31 @@
         "Una placa anterior a esta versión no tiene una mitad libre: aquel run cubría las dos, así que ambas se marcan como usadas y usted las libera.",
         "La colocación forward queda fijada frente a 95 transferencias leídas de una worklist real de Echo, así no puede desviarse sin que se note."
       ],
+      "0.16.60": [
+        "Una deleción decidida ya no cuenta para las gates NO_CALL y MIXED, por lo que tres pocillos informan la sustitución de aminoácido que portan.",
+        "La traducción reconstruye la molécula de longitud real a partir de las deleciones e inserciones llamadas en lugar de una secuencia de longitud de referencia.",
+        "La recurrencia de placa gana canales de deleción e inserción junto a la tabla de sustituciones, con truncamiento, omisión y empates contados por separado.",
+        "Cada posición recurrente lleva cuántas mutaciones esperadas distintas tenían sus pocillos, lo que separa un artefacto del caller de una muestra compartida.",
+        "Un análisis guardado ahora conserva sus evidencias de indels de consenso, antes perdidas al reabrirlo."
+      ],
       "0.16.59": [
         "Un libro de MAME ahora registra la referencia, la ventana codificante, el modo y los umbrales con los que se ejecutó la corrida.",
         "La referencia se identifica por un resumen de la secuencia analizada, así la misma molécula guardada con otro nombre sigue coincidiendo.",
         "El vocabulario de clases de veredicto se registra en cada libro, así quien lo lea después ya no copia a mano los nombres de las clases.",
         "La versión de kuma y los metadatos de la corrida de secuenciación, vacíos en cada libro escrito por la ruta de biblioteca, ya se completan.",
         "Sin cambios de veredicto: las entradas describen ajustes que ya estaban vigentes y la lógica de decisión queda intacta."
+      ],
+      "0.16.58": [
+        "La elección del codón mutante ahora pondera todos los codones sinónimos que usa el organismo seleccionado. Antes la búsqueda solo veía dos.",
+        "Los codones raros quedan fuera de ese conjunto, así un diseño ya no acaba en un codón que el organismo elegido apenas utiliza.",
+        "Design ordena los candidatos en todo el barrido de tolerancia de Tm, así una ventana más amplia con un cebador mejor ya no se omite.",
+        "El valor de Tol sube en esos diseños. Un Tol más alto indica aquí un cebador mejor puntuado, no un criterio más laxo.",
+        "Se corrigieron tres tablas de codones y la lista de organismos ya muestra todas las tablas incluidas, así los diseños anteriores pueden diferir."
+      ],
+      "0.16.57": [
+        "La advertencia de off-target ya no atribuye el umbral de 45 °C a Kwok 1990 y Huang 1992, valor que se midió en un único fixture con Q5.",
+        "La advertencia ahora indica que una lista vacía no es prueba de ausencia de priming off-target, ya que solo se incluye una coincidencia terminal 3' exacta.",
+        "El nombre de la enzima de corrección de pruebas ahora proviene del perfil seleccionado, en lugar de dos nombres de enzima fijos en la cadena."
       ],
       "0.16.56": [
         "El consenso de raw run ya aplica el filtro de calidad mínima de base, que no tenía efecto porque se descartaba la línea de calidad del FASTQ.",
@@ -2737,6 +2763,20 @@
         "Las rutas de archivo del step 4 se rellenan al cargar los datos de muestra, incluidas las sesiones scratch donde se omitían en silencio.",
         "El campo del run folder explica que los raw runs se omiten por tamaño, en vez de parecer incompleto."
       ],
+      "0.16.41": [
+        "Los datos de ejemplo son ahora una sola campaña. La placa de MAME lleva variantes que propone la predicción KURO incluida.",
+        "La placa se deriva de esa predicción ejecutando el diseño de cebadores, así un candidato sin cebadores nunca aparece en ella.",
+        "Los codones de las mutaciones esperadas vienen del diseño de KURO, por lo que la hoja indica el codón que llevan los cebadores.",
+        "La actividad medida no sigue el orden predicho, y tres de las diez variantes quedan por debajo del tipo silvestre.",
+        "Una prueba nueva lee los archivos incluidos y falla en cuanto KURO y MAME vuelven a describir experimentos distintos."
+      ],
+      "0.16.40": [
+        "Los datos de ejemplo ya completan una compilación del paso 4. El libro de Analyze incluido aporta la evidencia de verdict requerida.",
+        "No se incluye ninguna ejecución nanopore en bruto. La pantalla muestra una ejecución real y esa misma ejecución alimenta el paso 4.",
+        "La placa de ejemplo asigna un pocillo por variante, de modo que los lectores de layout y verdict la aceptan en lugar de rechazarla.",
+        "Las posiciones de las variantes de ejemplo se numeran según la referencia EGFP incluida y no según otra proteína distinta.",
+        "Cuatro archivos nuevos cubren entradas de escala bruta, con etiqueta de variante y de confirmación numérica que antes no tenían ejemplo."
+      ],
       "0.16.39": [
         "Se eliminaron cinco controles de run bruto de MAME que nunca se enviaban. Un filtro de Q-score o una longitud objetivo parecía fijado y no hacía nada.",
         "La exigencia de GC clamp ahora vincula a todos los candidatos, no solo a la coincidencia preferida, así que ningún cebador viola la restricción pedida.",
@@ -2764,6 +2804,47 @@
         "Los cuatro interruptores de consentimiento por servicio ya no solo se guardan: rechazan de verdad el servicio que nombran.",
         "Cancelar un diseño conserva los cebadores ya generados, que es lo que el valor por defecto de esa opción siempre prometió.",
         "Los ajustes que nada lee aparecen desactivados y señalados en lugar de parecer operativos."
+      ],
+      "0.16.35": [
+        "MAME ya tiene capturas de pantalla, tomadas de una ejecucion nanopore real de 288 pocillos en lugar de datos de prueba.",
+        "La captura recorre el asistente pulsando ella misma, asi que cada imagen muestra una pantalla a la que la aplicacion llego de verdad.",
+        "Las respuestas grabadas del sidecar se indexan por sidecar ademas de por metodo. Una pantalla de MAME ya no puede recibir una respuesta de KURO."
+      ],
+      "0.16.34": [
+        "Las mutaciones cuyo cebador ya está en la longitud mínima ahora se recuperan en lugar de informarse sin par válido.",
+        "El cebador recuperado se une en el mismo rango que el resto de la placa, porque ahora acortar es una opción.",
+        "La ronda que reveló esto pasa de 93 de 95 a 95 de 95, sin cambiar los cebadores que ya funcionaban."
+      ],
+      "0.16.33": [
+        "Un informe con IDs numéricos se descodifica contra los pocillos que indica la lista de variantes, no contra pocillos recalculados por posición de residuo.",
+        "Tomar el orden de placa de la lista de variantes diseñadas ya funciona. Antes se rechazaba por una grafía de pocillo que difería en un cero.",
+        "Una lista que indica sus pocillos puede ordenar sus filas como quiera, y la colocación que declara es la que se usa."
+      ],
+      "0.16.32": [
+        "Una lista de variantes puede indicar el pocillo de cada fila. Donde lo hace, esa es la colocación y no se infiere el orden de filas.",
+        "Un botón de plantilla escribe el libro con los 96 pocillos ya puestos, de modo que solo queda completar la columna de variantes.",
+        "El pocillo de control es una opción y ahora toma por defecto el último de la placa, que es donde el laboratorio lo pipetea.",
+        "Esa opción ya llega a la ejecución. La worklist, la vista previa y la evaluación nombran los mismos pocillos.",
+        "Las vistas de placa escalan su tipografía con las celdas, así que las etiquetas ya no se recortan a ningún ancho de ventana."
+      ],
+      "0.16.31": [
+        "El paso 4 lee los informes Agilent con nombres de muestra numéricos, tanto el cribado de la placa completa como la confirmación replicada.",
+        "Una confirmación replicada se integra en el cribado al que pertenece, sustituye esos valores y señala los que discrepan.",
+        "Las posiciones numéricas se resuelven con la lista de variantes diseñadas, así que no hay que transcribir a mano ningún archivo de placa.",
+        "Una confirmación que cubre otro conjunto de variantes se rechaza indicando ambos recuentos, en vez de etiquetarse con las equivocadas.",
+        "El número de réplicas es el que trae el archivo, desde una sola medida hasta tantas como hiciera el ensayo."
+      ],
+      "0.16.30": [
+        "El paso 4 ya no exige un archivo de plate layout. Si se deja vacío, las posiciones de pocillo se asignan con la hoja verdict de Analyze.",
+        "Un archivo de layout sigue teniendo prioridad cuando se indica, y la comprobación contra las identidades del verdict no cambia.",
+        "Un pocillo medido sin resultado de NGS se cuenta y se nombra en lugar de hacer fallar toda la compilación."
+      ],
+      "0.16.29": [
+        "Un valor que la canalización no pudo calcular ahora se identifica en lugar de aparecer 60 segundos después como un tiempo de espera agotado.",
+        "La confianza de una decisión solo se informa cuando se midió, y la estimación y su margen de error leen las mismas señales.",
+        "El conjunto de pruebas se ejecuta en Windows, donde antes una sola herramienta ausente omitía las 1301 pruebas e informaba éxito.",
+        "Se corrigen dos defectos que solo Windows alcanza: la publicación de cada paquete de exportación fallaba y cada archivo de suma de verificación era ilegible.",
+        "Una traducción que omite o renombra un marcador de posición se detecta antes de la publicación, en vez de llegar a la pantalla con un hueco."
       ],
       "0.16.28": [
         "Cinco secciones de run health que la aplicación medía en cada ejecución y nunca dibujaba ya aparecen en la pantalla de revisión, en una sección que empieza cerrada.",
@@ -2984,87 +3065,17 @@
         "La ayuda del mapeo de la lista de variantes ahora indica cómo se llenan los wells: A1, B1, C1 hasta H1, y luego A2.",
         "El hook post-commit de versión ya no falla por una ruta que se eliminó.",
         "Una nota de versión larga ahora se desplaza dentro del diálogo en lugar de salirse por abajo."
-      ],
-      "0.16.29": [
-        "Un valor que la canalización no pudo calcular ahora se identifica en lugar de aparecer 60 segundos después como un tiempo de espera agotado.",
-        "La confianza de una decisión solo se informa cuando se midió, y la estimación y su margen de error leen las mismas señales.",
-        "El conjunto de pruebas se ejecuta en Windows, donde antes una sola herramienta ausente omitía las 1301 pruebas e informaba éxito.",
-        "Se corrigen dos defectos que solo Windows alcanza: la publicación de cada paquete de exportación fallaba y cada archivo de suma de verificación era ilegible.",
-        "Una traducción que omite o renombra un marcador de posición se detecta antes de la publicación, en vez de llegar a la pantalla con un hueco."
-      ],
-      "0.16.30": [
-        "El paso 4 ya no exige un archivo de plate layout. Si se deja vacío, las posiciones de pocillo se asignan con la hoja verdict de Analyze.",
-        "Un archivo de layout sigue teniendo prioridad cuando se indica, y la comprobación contra las identidades del verdict no cambia.",
-        "Un pocillo medido sin resultado de NGS se cuenta y se nombra en lugar de hacer fallar toda la compilación."
-      ],
-      "0.16.31": [
-        "El paso 4 lee los informes Agilent con nombres de muestra numéricos, tanto el cribado de la placa completa como la confirmación replicada.",
-        "Una confirmación replicada se integra en el cribado al que pertenece, sustituye esos valores y señala los que discrepan.",
-        "Las posiciones numéricas se resuelven con la lista de variantes diseñadas, así que no hay que transcribir a mano ningún archivo de placa.",
-        "Una confirmación que cubre otro conjunto de variantes se rechaza indicando ambos recuentos, en vez de etiquetarse con las equivocadas.",
-        "El número de réplicas es el que trae el archivo, desde una sola medida hasta tantas como hiciera el ensayo."
-      ],
-      "0.16.32": [
-        "Una lista de variantes puede indicar el pocillo de cada fila. Donde lo hace, esa es la colocación y no se infiere el orden de filas.",
-        "Un botón de plantilla escribe el libro con los 96 pocillos ya puestos, de modo que solo queda completar la columna de variantes.",
-        "El pocillo de control es una opción y ahora toma por defecto el último de la placa, que es donde el laboratorio lo pipetea.",
-        "Esa opción ya llega a la ejecución. La worklist, la vista previa y la evaluación nombran los mismos pocillos.",
-        "Las vistas de placa escalan su tipografía con las celdas, así que las etiquetas ya no se recortan a ningún ancho de ventana."
-      ],
-      "0.16.33": [
-        "Un informe con IDs numéricos se descodifica contra los pocillos que indica la lista de variantes, no contra pocillos recalculados por posición de residuo.",
-        "Tomar el orden de placa de la lista de variantes diseñadas ya funciona. Antes se rechazaba por una grafía de pocillo que difería en un cero.",
-        "Una lista que indica sus pocillos puede ordenar sus filas como quiera, y la colocación que declara es la que se usa."
-      ],
-      "0.16.34": [
-        "Las mutaciones cuyo cebador ya está en la longitud mínima ahora se recuperan en lugar de informarse sin par válido.",
-        "El cebador recuperado se une en el mismo rango que el resto de la placa, porque ahora acortar es una opción.",
-        "La ronda que reveló esto pasa de 93 de 95 a 95 de 95, sin cambiar los cebadores que ya funcionaban."
-      ],
-      "0.16.35": [
-        "MAME ya tiene capturas de pantalla, tomadas de una ejecucion nanopore real de 288 pocillos en lugar de datos de prueba.",
-        "La captura recorre el asistente pulsando ella misma, asi que cada imagen muestra una pantalla a la que la aplicacion llego de verdad.",
-        "Las respuestas grabadas del sidecar se indexan por sidecar ademas de por metodo. Una pantalla de MAME ya no puede recibir una respuesta de KURO."
-      ],
-      "0.16.40": [
-        "Los datos de ejemplo ya completan una compilación del paso 4. El libro de Analyze incluido aporta la evidencia de verdict requerida.",
-        "No se incluye ninguna ejecución nanopore en bruto. La pantalla muestra una ejecución real y esa misma ejecución alimenta el paso 4.",
-        "La placa de ejemplo asigna un pocillo por variante, de modo que los lectores de layout y verdict la aceptan en lugar de rechazarla.",
-        "Las posiciones de las variantes de ejemplo se numeran según la referencia EGFP incluida y no según otra proteína distinta.",
-        "Cuatro archivos nuevos cubren entradas de escala bruta, con etiqueta de variante y de confirmación numérica que antes no tenían ejemplo."
-      ],
-      "0.16.41": [
-        "Los datos de ejemplo son ahora una sola campaña. La placa de MAME lleva variantes que propone la predicción KURO incluida.",
-        "La placa se deriva de esa predicción ejecutando el diseño de cebadores, así un candidato sin cebadores nunca aparece en ella.",
-        "Los codones de las mutaciones esperadas vienen del diseño de KURO, por lo que la hoja indica el codón que llevan los cebadores.",
-        "La actividad medida no sigue el orden predicho, y tres de las diez variantes quedan por debajo del tipo silvestre.",
-        "Una prueba nueva lee los archivos incluidos y falla en cuanto KURO y MAME vuelven a describir experimentos distintos."
-      ],
-      "0.16.57": [
-        "La advertencia de off-target ya no atribuye el umbral de 45 °C a Kwok 1990 y Huang 1992, valor que se midió en un único fixture con Q5.",
-        "La advertencia ahora indica que una lista vacía no es prueba de ausencia de priming off-target, ya que solo se incluye una coincidencia terminal 3' exacta.",
-        "El nombre de la enzima de corrección de pruebas ahora proviene del perfil seleccionado, en lugar de dos nombres de enzima fijos en la cadena."
-      ],
-      "0.16.58": [
-        "La elección del codón mutante ahora pondera todos los codones sinónimos que usa el organismo seleccionado. Antes la búsqueda solo veía dos.",
-        "Los codones raros quedan fuera de ese conjunto, así un diseño ya no acaba en un codón que el organismo elegido apenas utiliza.",
-        "Design ordena los candidatos en todo el barrido de tolerancia de Tm, así una ventana más amplia con un cebador mejor ya no se omite.",
-        "El valor de Tol sube en esos diseños. Un Tol más alto indica aquí un cebador mejor puntuado, no un criterio más laxo.",
-        "Se corrigieron tres tablas de codones y la lista de organismos ya muestra todas las tablas incluidas, así los diseños anteriores pueden diferir."
-      ],
-      "0.16.60": [
-        "Una deleción decidida ya no cuenta para las gates NO_CALL y MIXED, por lo que tres pocillos informan la sustitución de aminoácido que portan.",
-        "La traducción reconstruye la molécula de longitud real a partir de las deleciones e inserciones llamadas en lugar de una secuencia de longitud de referencia.",
-        "La recurrencia de placa gana canales de deleción e inserción junto a la tabla de sustituciones, con truncamiento, omisión y empates contados por separado.",
-        "Cada posición recurrente lleva cuántas mutaciones esperadas distintas tenían sus pocillos, lo que separa un artefacto del caller de una muestra compartida.",
-        "Un análisis guardado ahora conserva sus evidencias de indels de consenso, antes perdidas al reabrirlo."
       ]
     },
     "releaseStamps": {
+      "0.16.64": "b5666e23",
       "0.16.63": "27af3ec6",
       "0.16.62": "e46c1db9",
       "0.16.61": "f9b38f15",
+      "0.16.60": "a87cf2d1",
       "0.16.59": "69e92cd5",
+      "0.16.58": "1ce19d3d",
+      "0.16.57": "b25a7d73",
       "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",
       "0.16.54": "137dd51e",
@@ -3130,10 +3141,7 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21",
-      "0.16.57": "b25a7d73",
-      "0.16.58": "1ce19d3d",
-      "0.16.60": "a87cf2d1"
+      "0.15.16": "fe8e6f21"
     }
   },
   "primerDisplay": {
