@@ -339,7 +339,9 @@ class CompareParams:
     # from an arbitrary constant and was read as one. A vendor default on
     # matching data beats that, and it is PROVISIONAL: the honest basis is a
     # subsample calibration on real runs, the way the indel gate was fixed from
-    # bench_v2, and until that exists this value carries the label above.
+    # bench_v2, and until that exists this value carries the label above. Note
+    # that bench_v2 itself is not in this repository, so it is a precedent for
+    # the method and not a dataset the next calibration can start from.
     #
     # The same document separately recommends aiming for >150X (about 1500 reads
     # per amplicon) in prose, which is a recommendation rather than a default and
@@ -351,10 +353,14 @@ class CompareParams:
     indel_window_codon: int = 5
     frameshift_window_bp: int = 10
     # Indel event gate threshold.  When max_indel_event_fraction
-    # (from ConsensusCall) exceeds this value the verdict is flagged as
-    # AMBIGUOUS with an indel note rather than proceeding to PASS.
+    # (from ConsensusCall) reaches or exceeds this value the verdict is flagged
+    # as AMBIGUOUS with an indel note rather than proceeding to PASS. The gate
+    # only awards AMBIGUOUS once every designed mutation is confirmed; see
+    # compare/verdict.py for the contract behind that.
     # Calibrated from bench_v2 depth_50: WT/SNV wells <= 0.21,
-    # true deletion wells >= 0.83 (see ConsensusCall docstring).
+    # true deletion wells >= 0.83 (see ConsensusCall docstring). The bench_v2
+    # reads and run conditions are not kept in this repository, so the two
+    # bands are recorded observations and cannot be regenerated here.
     # None disables the gate for backward compatibility.
     max_indel_event_fraction: float | None = 0.50
 

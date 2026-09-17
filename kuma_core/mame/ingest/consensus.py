@@ -326,7 +326,9 @@ class ConsensusCall:
     #   True deletion wells (G4 2bp del, G5 1bp HomoDel): >= 0.83
     #   Synthetic proof cases (100% INS/DEL reads): 1.00
     # A threshold of 0.50 provides a wide margin between noise (<=0.21)
-    # and true indel signal (>=0.83).
+    # and true indel signal (>=0.83). The bench_v2 inputs behind these numbers
+    # live outside this repository and are not recoverable from it; treat the
+    # bands as recorded observations, not as a reproducible fixture.
     n_indel_event_positions: int = 0
     max_indel_event_fraction: float = 0.0
     # Longest contiguous run of ref positions whose deletion fraction exceeds
@@ -608,6 +610,9 @@ def call_consensus_with_metrics(
         # reaches 0.054, so the 0.20 gate sits about four times above the worst
         # position observed and roughly sixty times above a typical one.
         # Reporting it makes that margin auditable per run instead of assumed.
+        # The 0.20 gate has one direct measurement, an in-silico mixing sweep
+        # kept outside this repository; the pointer and its limits are written
+        # next to ``_MIXED_CONFIDENT_DEPTH_FACTOR`` in ``compare/verdict.py``.
         #
         # That worst position is NOT established as a sequencing artifact. It is
         # position 1248, and it is strand-BALANCED: weak-strand share 0.391 and
