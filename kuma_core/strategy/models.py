@@ -13,7 +13,7 @@ import math
 from datetime import datetime
 from typing import Any, Literal, Optional, TypeVar
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 
 _FloatT = TypeVar("_FloatT", bound=Optional[float])
@@ -134,6 +134,13 @@ class RoundMetrics(BaseModel):
         sigma_assay: Estimated assay noise (None if WT replicates < 4).
         r: Number of replicates per well used in T2 calculation.
         hit_rates: Per-round hit rate list (n_positive / n_designed).
+        round_variant_counts: Variants each hit rate was taken over, same
+            length and order as hit_rates. T3 judges the hit-rate slope against
+            its own binomial standard error, p(1-p)/n, so the denominators are
+            part of the signal rather than a display detail. None means they
+            were not recorded and T3 is NA for the round; it is not licence to
+            assume a size. Optional here because the TypeScript mirror
+            (src/types/round-metrics.ts) does not carry the field yet.
         top_k_positions_n: Residue positions in top-K variants of round n.
         top_k_positions_n1: Residue positions in top-K variants of round n-1.
         top_k_positions: Flat list of residue positions in current top-K.
@@ -161,6 +168,7 @@ class RoundMetrics(BaseModel):
     sigma_assay: Optional[float] = None
     r: int
     hit_rates: list[float]
+    round_variant_counts: Optional[list[int]] = None
     top_k_positions_n: set[int]
     top_k_positions_n1: set[int]
     top_k_positions: list[int]
@@ -209,6 +217,36 @@ class RoundMetrics(BaseModel):
                     f"hit_rates[{index}] is a ratio and must lie in [0, 1], got {rate!r}"
                 )
         return v
+
+    @field_validator("round_variant_counts")
+    @classmethod
+    def _check_round_variant_counts(cls, v: Optional[list[int]]) -> Optional[list[int]]:
+        """A round size is a positive count; zero would divide the T3 variance."""
+        if v is None:
+            return v
+        for index, count in enumerate(v):
+            if count <= 0:
+                raise ValueError(
+                    f"round_variant_counts[{index}] is a round size and must be "
+                    f"positive, got {count!r}"
+                )
+        return v
+
+    @model_validator(mode="after")
+    def _check_counts_match_hit_rates(self) -> "RoundMetrics":
+        """The counts are the denominators of hit_rates and must line up with them.
+
+        A shorter or longer list is not a partially supplied denominator; it is
+        a list whose i-th entry belongs to a different round than the i-th hit
+        rate, which would put the wrong variance on every term of the T3
+        standard error while still computing one.
+        """
+        if self.round_variant_counts is not None and len(self.round_variant_counts) != len(self.hit_rates):
+            raise ValueError(
+                f"round_variant_counts must hold one count per hit rate: got "
+                f"{len(self.round_variant_counts)} counts for {len(self.hit_rates)} rounds"
+            )
+        return self
 
     @field_validator("r")
     @classmethod

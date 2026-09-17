@@ -1291,7 +1291,7 @@
         "src/lib/round/roundArtifacts.ts",
         "src/lib/mame/mameStepCompletion.ts"
       ],
-      "note": "strategy.classify_round 계약: 핸들러 응답 두 형태(decision / not_assessable)와 그 키·reason 코드 <-> TS 타입 <-> RPC 클라이언트 <-> 카드 렌더 <-> round_files 조립 <-> step 완료 판정. round_files 항목은 {n, path, wt_values?} 이고 wt_values 는 가장 큰 n 항목만 읽힌다(부트스트랩은 현재 라운드를 리샘플한다). not_assessable 의 reason 은 wt_replicates_missing(0개)과 wt_replicates_insufficient(부족)로 갈리고 wt_replicate_count/wt_replicate_min 을 함께 싣는다. 문서만 남고 코드가 갈라지는 사고가 실제로 있었다: 4.2 가 WT 반복값을 받을 수 있게 된 뒤에도 ipc.ts 의 @param 과 mameStepCompletion.ts 의 주석이 'xlsx 포맷이 그 입력을 담을 수 없다'로 남아 있었다.",
+      "note": "strategy.classify_round 계약: 핸들러 응답 두 형태(decision / not_assessable)와 그 키·reason 코드 <-> TS 타입 <-> RPC 클라이언트 <-> 카드 렌더 <-> round_files 조립 <-> step 완료 판정. round_files 항목은 {n, path, wt_values?} 이고 wt_values 는 모든 항목이 읽힌다. 각 라운드의 반복값은 그 라운드 자신의 T2 가 비교되는 잡음을 추정하고, 가장 큰 n 항목은 거기에 더해 부트스트랩이 리샘플한다. 예전에는 가장 큰 n 만 읽어 그 앞 라운드는 sigma_assay 가 전부 None 이었고, 그래서 T2 가 2라운드 hysteresis 규칙에 구조적으로 도달하지 못했다. not_assessable 의 reason 은 wt_replicates_missing(0개)과 wt_replicates_insufficient(부족)로 갈리고 wt_replicate_count/wt_replicate_min 을 함께 싣는다. 문서만 남고 코드가 갈라지는 사고가 실제로 있었다: 4.2 가 WT 반복값을 받을 수 있게 된 뒤에도 ipc.ts 의 @param 과 mameStepCompletion.ts 의 주석이 'xlsx 포맷이 그 입력을 담을 수 없다'로 남아 있었다.",
       "severity": "warning"
     },
     {

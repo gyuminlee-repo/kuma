@@ -96,6 +96,15 @@ def _round_state(**overrides) -> RoundState:
         sigma_assay=None,
         r=3,
         hit_rates=[0.6, 0.52, 0.50],
+        # The denominators of those hit rates.  T3 needs them: since the slope
+        # is judged against its own binomial standard error, a fall from 0.60 to
+        # 0.50 is saturation on a 200-well campaign (z = 2.0) and nothing at all
+        # on a 20-well one (z = 0.6).  200 is chosen so this fixture's stop
+        # branch rests on a decline the data can actually carry.  The count is
+        # deliberately larger than current_round_activities, which holds the 20
+        # log2 values the bootstrap resamples; the two describe different things
+        # and the fixture has never tied them.
+        round_variant_counts=[200, 200, 200],
         top_k_positions_n=set(),
         top_k_positions_n1=set(),
         top_k_positions=[],
@@ -220,30 +229,60 @@ class TestNonFiniteActivities:
 # ---------------------------------------------------------------------------
 
 class TestT3Window:
+    """t3_window_rounds survives the rewrite as a floor rather than a window.
+
+    The slope is now fitted over the whole history, so the key no longer
+    selects which rounds are read.  It still says how many rounds must be
+    present before T3 answers at all, and the refusal below still holds for the
+    reason it was written: a slope needs two points, so 1 could only ever report
+    "insufficient data" and 0 says nothing.
+    """
+
     HIT_RATES = [0.9, 0.1, 0.2, 0.3]
+    COUNTS = [88, 88, 88, 88]
 
     @pytest.mark.parametrize("window", [0, 1, -1])
     def test_window_below_two_is_refused(self, window):
-        """window=0 meant the whole history (hit_rates[-0:] is hit_rates[0:])
-        and window=1 reported "fewer than 2 data points" with four present.
-        Window 0 and window 2 returned opposite verdicts on the same input.
-        """
         with pytest.raises(ValueError, match="window"):
-            compute_T3_magnitude(self.HIT_RATES, window)
+            compute_T3_magnitude(self.HIT_RATES, self.COUNTS, window)
         with pytest.raises(ValueError, match="window"):
-            compute_T3(self.HIT_RATES, window)
+            compute_T3(self.HIT_RATES, self.COUNTS, window)
 
     def test_window_below_two_is_refused_through_classify(self):
         with pytest.raises(ValueError, match="t3_window_rounds"):
             classify(_round_state(), _registered(t3_window_rounds=0))
 
-    def test_window_two_still_reads_the_two_most_recent_rounds(self):
-        assert compute_T3_magnitude(self.HIT_RATES, 2) == pytest.approx(0.1)
-        assert compute_T3(self.HIT_RATES, 2) is False
+    def test_window_below_two_is_refused_even_without_round_sizes(self):
+        """A broken configuration is broken whether or not this round has counts.
+
+        Without counts T3 is NA, and letting the NA path swallow the refusal
+        would make it depend on unrelated input: the same registered dict would
+        raise on one round and pass on the next.
+        """
+        with pytest.raises(ValueError, match="t3_window_rounds"):
+            classify(
+                _round_state(round_variant_counts=None),
+                _registered(t3_window_rounds=0),
+            )
+
+    def test_the_slope_is_fitted_over_the_whole_history(self):
+        """Not the two most recent rounds, which used to return +0.1 here.
+
+        [0.9, 0.1, 0.2, 0.3] falls steeply and then recovers a little.  The
+        whole-history slope is -0.17 and z is 9.3, so the campaign reads as
+        saturating; the two-round window read only the recovery.  The change is
+        deliberate and the sweep behind it is in compute_T3_magnitude.
+        """
+        result = compute_T3_magnitude(self.HIT_RATES, self.COUNTS, 2)
+        assert result is not None
+        slope, z = result
+        assert slope == pytest.approx(-0.17)
+        assert z is not None and z > 1.28
+        assert compute_T3(self.HIT_RATES, self.COUNTS, 2) is True
 
     def test_short_history_still_reports_insufficient_rather_than_raising(self):
-        assert compute_T3_magnitude([0.3], 2) is None
-        assert compute_T3([0.3], 2) is None
+        assert compute_T3_magnitude([0.3], [88], 2) is None
+        assert compute_T3([0.3], [88], 2) is None
 
 
 # ---------------------------------------------------------------------------

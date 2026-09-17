@@ -568,15 +568,22 @@ class TestDecliningSaturation:
     """
 
     def _make_declining_3round(self, tmp_path):
-        # Round 1: hit_rate=6/10=0.6, best=2.0
+        # A hundred wells a round rather than ten.  T3 judges the hit-rate slope
+        # against its own binomial standard error, and the same 0.6 -> 0.4 fall
+        # is z = 2.9 on a hundred wells and z = 0.9 on ten.  The interim signals
+        # of round 2 are what light sat_prev for the hysteresis rule, so at ten
+        # wells this fixture stopped short at hysteresis_pending and never
+        # reached the bootstrap gate these tests are about.  The hit rates are
+        # unchanged; only the plate they were measured on is realistic.
+        # Round 1: hit_rate=60/100=0.6, best=2.0
         r1 = tmp_path / "r1.xlsx"
-        _make_xlsx(str(r1), [(f"{100+i}A", 2.0 if i < 6 else 0.5) for i in range(10)])
-        # Round 2: hit_rate=4/10=0.4, best=1.8
+        _make_xlsx(str(r1), [(f"{1000+i}A", 2.0 if i < 60 else 0.5) for i in range(100)])
+        # Round 2: hit_rate=40/100=0.4, best=1.8
         r2 = tmp_path / "r2.xlsx"
-        _make_xlsx(str(r2), [(f"{200+i}A", 1.8 if i < 4 else 0.5) for i in range(10)])
-        # Round 3: hit_rate=2/10=0.2, best=1.5
+        _make_xlsx(str(r2), [(f"{2000+i}A", 1.8 if i < 40 else 0.5) for i in range(100)])
+        # Round 3: hit_rate=20/100=0.2, best=1.5
         r3 = tmp_path / "r3.xlsx"
-        _make_xlsx(str(r3), [(f"{300+i}A", 1.5 if i < 2 else 0.5) for i in range(10)])
+        _make_xlsx(str(r3), [(f"{3000+i}A", 1.5 if i < 20 else 0.5) for i in range(100)])
         return [
             {"n": 1, "path": str(r1)},
             {"n": 2, "path": str(r2)},
@@ -767,8 +774,16 @@ class TestWtReplicatesForwarded:
         )
         assert result["advisory"] == "not_assessable"
 
-    def test_replicates_on_earlier_rounds_are_not_read(self, tmp_path):
-        """The bootstrap resamples the current round, so only its entry counts."""
+    def test_an_earlier_rounds_replicates_do_not_stand_in_for_this_one(self, tmp_path):
+        """Each round's replicates answer that round, and none substitutes.
+
+        Round 1 forwards a full block and the round being judged forwards
+        nothing.  Round 1's block reaches its own interim T2, which is the
+        point of reading every entry, but the bootstrap resamples the round
+        under judgement and has nothing to resample, so the answer is still
+        not assessable and still reports zero replicates on record -- that
+        count is about the judged round, not the campaign.
+        """
         files = self._files(tmp_path)
         files[0]["wt_values"] = list(_WT_FOUR)
         result = handle_classify_round({"round_files": files})
@@ -801,6 +816,76 @@ class TestWtReplicatesForwarded:
         assert _wt_values({"wt_values": None}) == []
         assert _wt_values({"wt_values": [1, "1.5"]}) == [1.0, 1.5]
 
+
+
+# ---------------------------------------------------------------------------
+# TestT2ReachesTheHysteresisRule -- interim rounds get their own sigma
+# ---------------------------------------------------------------------------
+
+class TestT2ReachesTheHysteresisRule:
+    """A plateau with no hit-rate trend at all must still reach a verdict.
+
+    ``_decide_core`` asks for saturation in this round and in the one before
+    it.  The handler used to hand every interim round ``sigma_assay=None``, so
+    an interim round could only ever saturate through T3, and a campaign whose
+    hit rate held steady was unreachable however flat its best activity was.
+    The campaign below is exactly that: the hit rate is 20 of 100 in every
+    round, so T3 is False by construction, and the best activity does not move,
+    so T2 is True.  With replicates on every round the verdict arrives; with
+    replicates on the last round alone it does not.
+    """
+
+    #: Flat: 20 hits of 100, and the same best activity, in every round.
+    def _flat_campaign(self, tmp_path, wt_on):
+        """wt_on: round numbers that forward a wild-type block."""
+        files = []
+        for idx in range(1, 4):
+            rows = [
+                (f"{1000 * idx + i}A", 1.6 if i < 20 else 0.5)
+                for i in range(100)
+            ]
+            path = tmp_path / f"flat{idx}.xlsx"
+            _make_xlsx(str(path), rows)
+            entry = {"n": idx, "path": str(path)}
+            if idx in wt_on:
+                entry["wt_values"] = list(_WT_FOUR)
+            files.append(entry)
+        return files
+
+    def test_a_flat_campaign_carries_no_hit_rate_trend(self, tmp_path):
+        """The premise, asserted rather than assumed: T3 cannot be doing this."""
+        files = self._flat_campaign(tmp_path, wt_on=())
+        result = handle_classify_round({"round_files": files})
+        # No replicates anywhere, so T2 is NA too and nothing saturates.
+        assert result["advisory"] == "decision"
+        assert result["label"] == "continue_walking"
+        assert result["reason"] == "no_saturation_signal"
+
+    def test_replicates_on_every_round_reach_a_verdict(self, tmp_path):
+        files = self._flat_campaign(tmp_path, wt_on=(1, 2, 3))
+        result = handle_classify_round({"round_files": files})
+        assert result["advisory"] == "decision", result
+        assert result["label"] == "switch_combinatorial", result
+        assert result["reason"] == "saturated_with_throughput"
+        # Every round supplied enough replicates, so nothing is missing.
+        assert result["missing_inputs"] == []
+
+    def test_replicates_on_the_last_round_alone_stop_at_the_hysteresis_rule(
+        self, tmp_path
+    ):
+        """The defect, pinned from the other side.
+
+        The round being judged saturates through T2, but the round before it
+        has no sigma and no hit-rate trend, so ``sat_prev`` is dark and the
+        two-round rule withholds the verdict.  ``missing_inputs`` names the
+        shortfall instead of being constant.
+        """
+        files = self._flat_campaign(tmp_path, wt_on=(3,))
+        result = handle_classify_round({"round_files": files})
+        assert result["advisory"] == "decision"
+        assert result["label"] == "continue_walking"
+        assert result["reason"] == "hysteresis_pending"
+        assert result["missing_inputs"] == ["wt_replicates"]
 
 
 # ---------------------------------------------------------------------------
@@ -840,11 +925,18 @@ class TestDeadVariantsAreScored:
         return paths
 
     def _declining_3round(self, tmp_path):
-        """Hit rate 3/10 -> 2/10 -> 1/10: T3 fires and the bootstrap gate shuts."""
+        """Hit rate 30/100 -> 20/100 -> 10/100: T3 fires and the gate shuts.
+
+        The two dead variants stay two, which is what the count assertions are
+        about; the plate around them is a hundred wells so that the fall clears
+        the significance margin T3 now applies.  At ten wells the same
+        proportions are z = 0.5 between rounds 1 and 2, which leaves sat_prev
+        dark and the call short of the bootstrap gate.
+        """
         paths = []
-        for idx, n_hit in enumerate((3, 2, 1), start=1):
+        for idx, n_hit in enumerate((30, 20, 10), start=1):
             path = tmp_path / f"fall{idx}.xlsx"
-            _make_xlsx(str(path), self._rows(2, n_hit, 8 - n_hit))
+            _make_xlsx(str(path), self._rows(2, n_hit, 98 - n_hit))
             paths.append({"n": idx, "path": str(path)})
         return paths
 
@@ -996,10 +1088,17 @@ class TestWildTypeRowIsNotAVariant:
         assert wt_rows == 3
         assert len(records) == 10
 
-    def _rounds(self, tmp_path, hits, wt_rows_per_round):
+    def _rounds(self, tmp_path, hits, wt_rows_per_round, plate=10):
+        """``plate`` is the variants per round; ``hits`` how many of them beat 1.0.
+
+        A declining campaign needs a plate large enough for the fall to clear
+        the T3 significance margin, so the tests below that expect the
+        bootstrap gate pass plate=100.  The rising ones do not care and keep
+        the original ten.
+        """
         files = []
         for idx, (n_hit, n_wt) in enumerate(zip(hits, wt_rows_per_round), start=1):
-            rows = self._variants(n_hit, 10 - n_hit, start=100 * idx)
+            rows = self._variants(n_hit, plate - n_hit, start=1000 * idx)
             for _ in range(n_wt):
                 rows.insert(1, ("WT", 1.0))
             path = tmp_path / f"r{idx}.xlsx"
@@ -1016,7 +1115,7 @@ class TestWildTypeRowIsNotAVariant:
 
     def test_the_not_assessable_shape_reports_the_wt_row_count(self, tmp_path):
         result = handle_classify_round(
-            {"round_files": self._rounds(tmp_path, (3, 2, 1), (1, 1, 1))}
+            {"round_files": self._rounds(tmp_path, (30, 20, 10), (1, 1, 1), plate=100)}
         )
         assert result["advisory"] == "not_assessable", (
             f"expected the missing-input state, got {result!r}"
@@ -1040,7 +1139,7 @@ class TestWildTypeRowIsNotAVariant:
         on record, which is the whole point of keeping the two apart.
         """
         result = handle_classify_round(
-            {"round_files": self._rounds(tmp_path, (3, 2, 1), (3, 3, 3))}
+            {"round_files": self._rounds(tmp_path, (30, 20, 10), (3, 3, 3), plate=100)}
         )
         assert result["advisory"] == "not_assessable"
         assert result["reason"] == "wt_replicates_missing"

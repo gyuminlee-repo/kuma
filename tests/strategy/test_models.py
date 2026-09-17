@@ -7,6 +7,7 @@ Plan: notes/plans/2026-05-04-mame-activity-implementation-plan.md Phase 6
 from datetime import datetime, timezone
 from typing import Any
 import pytest
+from pydantic import ValidationError
 
 from kuma_core.strategy.models import StrategyDecisionLog, RoundMetrics
 
@@ -240,6 +241,32 @@ def test_RoundMetrics_T_model_accepts_bool():
     assert m_true.T_model is True
     m_false = _make_metrics(T_model=False)
     assert m_false.T_model is False
+
+
+def test_RoundMetrics_round_variant_counts_default_none():
+    """Absent counts mean T3 is NA for the round, not that a size is assumed."""
+    assert _make_metrics().round_variant_counts is None
+
+
+def test_RoundMetrics_round_variant_counts_must_match_hit_rates():
+    """The counts are the denominators of hit_rates and are indexed with them.
+
+    A list of the wrong length is not a partial supply: its i-th entry would
+    weight the i-th hit rate of a different round in the T3 standard error,
+    which still produces a number.
+    """
+    with pytest.raises(ValidationError):
+        _make_metrics(hit_rates=[0.5, 0.4, 0.3], round_variant_counts=[88, 88])
+
+
+def test_RoundMetrics_round_variant_counts_must_be_positive():
+    with pytest.raises(ValidationError):
+        _make_metrics(hit_rates=[0.5, 0.4], round_variant_counts=[88, 0])
+
+
+def test_RoundMetrics_round_variant_counts_accepted():
+    m = _make_metrics(hit_rates=[0.5, 0.4], round_variant_counts=[93, 94])
+    assert m.round_variant_counts == [93, 94]
 
 
 def test_RoundMetrics_signal_magnitudes_default_empty():
