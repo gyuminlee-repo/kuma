@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.16.65 (A well on the line goes to review)
+
+The indel event gate decides whether a well whose designed mutations are all confirmed still goes to human review because too many of its reads carry an insertion or deletion. That gate compared the observed indel event fraction against its threshold with a strict greater-than, so a well sitting exactly on the 0.50 threshold slipped past it and reached PASS. The fraction is a ratio of read counts, so that boundary is reached in practice: one well in a 288-well review sat at 0.500 and passed. The comparison is inclusive now, and a well on the threshold reads AMBIGUOUS with the indel note, the same as a well above it.
+
+No threshold value moved. The calibration that fixed the gate placed noise at or below 0.21 and true deletions at or above 0.83, so every well inside those bands keeps the verdict it had. Analysing an existing project again moves only a well that sits exactly on the line, from PASS to AMBIGUOUS.
+
+### Highlights
+
+- A well whose indel event fraction lands exactly on the 0.50 threshold now reads AMBIGUOUS and goes to review instead of PASS.
+- Wells inside the calibrated bands, noise at or below 0.21 and true deletions at or above 0.83, keep the verdict they had.
+
 ## v0.16.64 (What the reads support, and what the order sheet says)
 
 A deletion that only half the reads agreed on was being treated as a decision the caller had already made. The no-call gate exempts a position whose call is a deletion, and that exemption was applied to every deletion-bearing position no matter how much of the read stack stood behind it. A well whose designed site carried 40 or 50 percent deletion support therefore walked past the gate and could reach PASS on evidence that was never there. Only a deletion carried by more than half of the covering reads is exempt now, and a well at 40 or 50 percent reads as NO_CALL again. The same evidence is written into the saved analysis and read back from it.

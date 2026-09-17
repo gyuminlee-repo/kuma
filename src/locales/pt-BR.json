@@ -2599,14 +2599,15 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Uma deleção que apenas metade das leituras sustenta não isenta mais um poço do controle de no call, então um sítio com 40 ou 50 por cento é lido como no call.",
-      "A etapa de dados de atividade recusa atribuir um veredito de NGS a uma variante diferente da que a linha nomeia.",
-      "Arquivos do Echo e do JANUS vindos de uma faixa de linhas reduzida ou de várias placas mantêm as posições de stock dadas pela folha de pedido.",
-      "Reabrir um espaço de trabalho mantém a seleção e descarta a saída cujas entradas sumiram, e um benchmark que nunca rodou deixa de relatar dano.",
-      "No Linux o autossalvamento temporário funciona na pasta oculta de dados do aplicativo e Arquivo > Sair fecha a janela."
+      "Um poço cuja fração de eventos indel cai exatamente no limiar 0,50 agora é marcado como AMBIGUOUS e vai para revisão em vez de PASS.",
+      "Poços dentro das faixas calibradas, ruído até 0,21 e deleções reais a partir de 0,83, mantêm o veredito que tinham."
     ],
-    "highlightsStamp": "0.16.64+b5666e23",
+    "highlightsStamp": "0.16.65+45d46897",
     "releases": {
+      "0.16.65": [
+        "Um poço cuja fração de eventos indel cai exatamente no limiar 0,50 agora é marcado como AMBIGUOUS e vai para revisão em vez de PASS.",
+        "Poços dentro das faixas calibradas, ruído até 0,21 e deleções reais a partir de 0,83, mantêm o veredito que tinham."
+      ],
       "0.16.64": [
         "Uma deleção que apenas metade das leituras sustenta não isenta mais um poço do controle de no call, então um sítio com 40 ou 50 por cento é lido como no call.",
         "A etapa de dados de atividade recusa atribuir um veredito de NGS a uma variante diferente da que a linha nomeia.",
@@ -3068,6 +3069,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.65": "45d46897",
       "0.16.64": "b5666e23",
       "0.16.63": "27af3ec6",
       "0.16.62": "e46c1db9",

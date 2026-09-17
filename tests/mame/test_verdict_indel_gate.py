@@ -90,15 +90,20 @@ def test_indel_gate_disabled_when_param_none() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Case 4a: boundary, fraction exactly 0.50 (== threshold) -> NOT > threshold -> gate off
+# Case 4a: boundary, fraction exactly 0.50 (== threshold) -> gate fires.
+# The fraction is a ratio of read counts, so a well can sit exactly on the
+# threshold (NB07 F3 in a 288-well review did). The calibration bands are
+# noise <= 0.21 and true deletion >= 0.83, so the only well this boundary
+# decides is one nobody calibrated for, and it belongs in human review.
 # ---------------------------------------------------------------------------
 def test_indel_gate_boundary_equal_threshold() -> None:
     tr = _tr_indel(max_indel_event_fraction=0.50)
     result = classify_verdict(tr, [], _params(max_indel_event_fraction=0.50))
-    assert not (
-        result.verdict is VerdictClass.AMBIGUOUS
-        and "indel event" in result.verdict_notes
-    ), "Gate uses strict >, so fraction == threshold must not fire"
+    assert result.verdict is VerdictClass.AMBIGUOUS, (
+        "Gate uses >=, so fraction == threshold must fire"
+    )
+    assert "indel event" in result.verdict_notes
+    assert ">= threshold=0.500" in result.verdict_notes
 
 
 # ---------------------------------------------------------------------------

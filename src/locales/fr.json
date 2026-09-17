@@ -2599,14 +2599,15 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Une délétion que seule la moitié des lectures soutient n'exempte plus un puits du contrôle no call, donc un site à 40 ou 50 pour cent se lit comme un no call.",
-      "L'étape des données d'activité refuse d'attacher un verdict NGS à une variante autre que celle que sa ligne nomme.",
-      "Les fichiers Echo et JANUS issus d'une plage de lignes réduite ou de plusieurs plaques conservent les positions de stock données par le bon de commande.",
-      "Rouvrir un espace de travail conserve la sélection et écarte les sorties dont les entrées ont disparu, et un benchmark jamais lancé ne signale plus de dommage.",
-      "Sous Linux l'enregistrement automatique temporaire fonctionne dans le dossier caché de données de l'application et Fichier > Quitter ferme la fenêtre."
+      "Un puits dont la fraction d’événements indel tombe exactement sur le seuil 0,50 est désormais marqué AMBIGUOUS et envoyé en revue au lieu de PASS.",
+      "Les puits situés dans les bandes calibrées, bruit jusqu’à 0,21 et vraies délétions à partir de 0,83, conservent leur verdict."
     ],
-    "highlightsStamp": "0.16.64+b5666e23",
+    "highlightsStamp": "0.16.65+45d46897",
     "releases": {
+      "0.16.65": [
+        "Un puits dont la fraction d’événements indel tombe exactement sur le seuil 0,50 est désormais marqué AMBIGUOUS et envoyé en revue au lieu de PASS.",
+        "Les puits situés dans les bandes calibrées, bruit jusqu’à 0,21 et vraies délétions à partir de 0,83, conservent leur verdict."
+      ],
       "0.16.64": [
         "Une délétion que seule la moitié des lectures soutient n'exempte plus un puits du contrôle no call, donc un site à 40 ou 50 pour cent se lit comme un no call.",
         "L'étape des données d'activité refuse d'attacher un verdict NGS à une variante autre que celle que sa ligne nomme.",
@@ -3068,6 +3069,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.65": "45d46897",
       "0.16.64": "b5666e23",
       "0.16.63": "27af3ec6",
       "0.16.62": "e46c1db9",

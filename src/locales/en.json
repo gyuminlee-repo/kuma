@@ -2653,14 +2653,15 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "A deletion only half the reads support no longer exempts a well from the no-call gate, so a site at 40 or 50 percent reads as a no call.",
-      "The activity data step refuses to attach an NGS verdict to a variant other than the one its row names.",
-      "Echo and JANUS files from a reduced row range or several plates keep the stock positions the order workbook gives them.",
-      "Reopening a workspace keeps its selection and drops output whose inputs are gone, and a benchmark that never ran stops reporting damage.",
-      "On Linux the scratch autosave works under the hidden app data folder and File > Quit closes the window."
+      "A well whose indel event fraction lands exactly on the 0.50 threshold now reads AMBIGUOUS and goes to review instead of PASS.",
+      "Wells inside the calibrated bands, noise at or below 0.21 and true deletions at or above 0.83, keep the verdict they had."
     ],
-    "highlightsStamp": "0.16.64+b5666e23",
+    "highlightsStamp": "0.16.65+45d46897",
     "releases": {
+      "0.16.65": [
+        "A well whose indel event fraction lands exactly on the 0.50 threshold now reads AMBIGUOUS and goes to review instead of PASS.",
+        "Wells inside the calibrated bands, noise at or below 0.21 and true deletions at or above 0.83, keep the verdict they had."
+      ],
       "0.16.64": [
         "A deletion only half the reads support no longer exempts a well from the no-call gate, so a site at 40 or 50 percent reads as a no call.",
         "The activity data step refuses to attach an NGS verdict to a variant other than the one its row names.",
@@ -3122,6 +3123,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.65": "45d46897",
       "0.16.64": "b5666e23",
       "0.16.63": "27af3ec6",
       "0.16.62": "e46c1db9",
