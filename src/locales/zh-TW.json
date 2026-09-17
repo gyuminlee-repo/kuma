@@ -3719,7 +3719,9 @@
     "missingInputs": {
       "wt_replicates": "野生型重複測量值"
     },
-    "missingInputsNote": "在缺少{{missing}}的情況下作出判定，因此飽和判斷僅依據 hit rate 趨勢。",
+    "missingInputsNote": "至少有一輪缺少{{missing}}，該輪無法進行 plateau 判定，其飽和判斷只能依據 hit rate 趨勢。該趨勢取全部輪次的 least-squares 斜率，只有當其負值超過自身抽樣誤差時才算下降。",
+    "zeroActivityNote": "本輪有 {{n}} 個變體的 activity 恰好為 0。它們同樣經過設計並被測定，因此仍計入 hit rate 的分母，僅從 log2 統計中剔除。",
+    "wtRowNote": "本輪活頁簿中有 {{n}} 列 wild-type（WT）對照。對照不是設計的變體，因此也從 hit rate 的計算中剔除。",
     "notAssessableBadge": "無法判定",
     "notAssessableSummary": "訊號指向一次轉變，但確認它需要{{missing}}，而這些檔案並不包含。基於此輸入無法回答{{blocked}}，只能判斷是否繼續 walking。",
     "notAssessableInsufficientSummary": "訊號指向一次轉變，但確認它至少需要 {{required}} 個{{missing}}，而本輪僅記錄了 {{count}} 個。少於該數量就得不到雜訊估計，飽和判斷只能依據 hit rate 趨勢，因此無法回答{{blocked}}。",
@@ -3730,7 +3732,7 @@
     "restoredUnverifiedNote": "{{files}} 並非本應用程式寫入，因此無法確認其後是否有變動。",
     "rebuiltNote": "{{when}} 的先前結論是在步驟 4.1 重新產生之前，由這些相同檔案（{{files}}）算出的。它描述的是上一次產生的結果，因此僅作為歷史保留；若需目前結果，請重新執行分類。",
     "supersededNote": "{{when}} 的先前結論是由另一組檔案（{{files}}）算出的。它並未說明目前所選檔案，因此不予顯示。",
-    "headingHelp": "匯整多輪 EVOLVEpro 結果以尋找跨輪次的飽和訊號，並給出繼續 walking、轉入 combinatorial、停止或暫緩的參考判定。唯讀：這裡不確認也不儲存任何內容，輪次不足 3 輪時尚不給出判定。",
+    "headingHelp": "匯整多輪 EVOLVEpro 結果以尋找跨輪次的飽和訊號，並給出繼續 walking、轉入 combinatorial、停止或暫緩的參考判定。hit rate 趨勢取全部輪次的 least-squares 斜率，只有負值超過自身抽樣誤差時才算下降。各輪記錄的 wild-type 重複值用於該輪的 plateau 判定，因此可用連續兩輪確認飽和。唯讀：這裡不確認也不儲存任何內容，輪次不足 3 輪時尚不給出判定。",
     "nextRoundCapacity": "下一輪板容量",
     "nextRoundCapacityHelper": "下一輪組合實驗可用的孔數。它決定通量建議。"
   },

@@ -3719,7 +3719,9 @@
     "missingInputs": {
       "wt_replicates": "mediciones de réplicas del tipo silvestre"
     },
-    "missingInputsNote": "Evaluado sin {{missing}}, de modo que la saturación se basa únicamente en la tendencia de la hit rate.",
+    "missingInputsNote": "Faltan {{missing}} en al menos una ronda, por lo que allí no pudo hacerse la comprobación de meseta y la saturación de esas rondas se basa únicamente en la tendencia de la hit rate. Esa tendencia es una pendiente por mínimos cuadrados sobre todas las rondas y solo cuenta como descenso si resulta más negativa que su propio error de muestreo.",
+    "zeroActivityNote": "{{n}} variante(s) de esta ronda midieron una actividad de exactamente 0. Se diseñaron y se midieron igualmente, así que siguen en el denominador de la hit rate y solo quedan fuera de la estadística log2.",
+    "wtRowNote": "{{n}} fila(s) de control de tipo silvestre (WT) en el libro de esta ronda. Un control no es una variante diseñada, por lo que también se retira del cálculo de la hit rate.",
     "notAssessableBadge": "No evaluable",
     "notAssessableSummary": "Las señales apuntan a una transición, pero confirmarla requiere {{missing}}, que estos archivos no contienen. Con esta entrada no se puede responder {{blocked}}; solo cabe comprobar si conviene continuar con el mutante único.",
     "notAssessableInsufficientSummary": "Las señales apuntan a una transición, pero confirmarla requiere al menos {{required}} {{missing}} y en esta ronda constan {{count}}. Por debajo de esa cifra no hay estimación de ruido con la que contrastar, así que la saturación se basa solo en la tendencia de la hit rate y con ella no se puede responder {{blocked}}.",
@@ -3730,7 +3732,7 @@
     "restoredUnverifiedNote": "Esta aplicacion no escribio {{files}}, por lo que no puede confirmar que sigan sin cambios desde entonces.",
     "rebuiltNote": "Una respuesta anterior del {{when}} se calculo a partir de estos mismos archivos ({{files}}) antes de que el paso 4.1 los regenerara. Describe la version previa y se conserva como historial. Ejecute la clasificacion de nuevo para la version actual.",
     "supersededNote": "Una respuesta anterior del {{when}} se calculo a partir de otra lista ({{files}}). No dice nada sobre los archivos seleccionados ahora, por eso no se muestra.",
-    "headingHelp": "Combina los resultados de EVOLVEpro de varias rondas para buscar una señal de saturación y sugerir continuar con el mutante único, cambiar a combinatorial, detener o aplazar. Solo lectura: aquí no se confirma ni se guarda nada, y con menos de 3 rondas aún no hay veredicto.",
+    "headingHelp": "Combina los resultados de EVOLVEpro de varias rondas para buscar una señal de saturación y sugerir continuar con el mutante único, cambiar a combinatorial, detener o aplazar. La tendencia de la hit rate es una pendiente por mínimos cuadrados sobre todas las rondas y solo cuenta como descenso si resulta más negativa que su propio error de muestreo. Las réplicas de tipo silvestre registradas en cada ronda alimentan la comprobación de meseta de esa misma ronda, de modo que una meseta puede confirmarse en dos rondas consecutivas. Solo lectura: aquí no se confirma ni se guarda nada, y con menos de 3 rondas aún no hay veredicto.",
     "nextRoundCapacity": "Capacidad de placa de la siguiente ronda",
     "nextRoundCapacityHelper": "Número de pozos disponibles para la siguiente ronda combinatoria. Determina la recomendación de rendimiento."
   },

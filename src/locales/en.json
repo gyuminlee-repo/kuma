@@ -3739,7 +3739,9 @@
     "missingInputs": {
       "wt_replicates": "wild-type replicate measurements"
     },
-    "missingInputsNote": "Judged without {{missing}}, so saturation rests on the hit-rate trend alone.",
+    "missingInputsNote": "Judged with {{missing}} absent on at least one round, so the plateau check could not run there and saturation on those rounds rests on the hit-rate trend alone. That trend is a least-squares slope over every round and counts as a decline only when it falls further than its own sampling error.",
+    "zeroActivityNote": "{{n}} variant(s) in this round measured exactly 0 activity. A dead variant was still designed and measured, so it stays in the hit-rate denominator and is left out of the log2 statistics alone.",
+    "wtRowNote": "{{n}} wild-type (WT) control row(s) in this round's workbook. A control is not a designed variant, so it is taken out of the hit-rate calculation as well.",
     "notAssessableBadge": "Cannot be assessed",
     "notAssessableSummary": "The signals point at a transition, but confirming one needs {{missing}}, which these files do not carry. {{blocked}} cannot be answered from this input; only the keep-walking check can.",
     "notAssessableInsufficientSummary": "The signals point at a transition, but confirming one needs at least {{required}} {{missing}} and this round has {{count}} on record. Below that there is no noise estimate to test against, so saturation rests on the hit-rate trend alone and {{blocked}} cannot be answered from it.",
@@ -3750,7 +3752,7 @@
     "restoredUnverifiedNote": "This app did not write {{files}}, so it cannot confirm they are unchanged since then.",
     "rebuiltNote": "An earlier answer from {{when}} was computed from these same files ({{files}}) before step 4.1 rebuilt them, so it describes the previous build and is kept as history. Run the classification again for the current one.",
     "supersededNote": "An earlier answer from {{when}} was computed from a different list ({{files}}). It says nothing about the files selected now, so it is not shown.",
-    "headingHelp": "Pools EVOLVEpro results across rounds to look for a saturation signal and suggest continue walking, switch to combinatorial, stop, or defer. Read-only: nothing here is confirmed or saved, and fewer than 3 rounds means no verdict yet.",
+    "headingHelp": "Pools EVOLVEpro results across rounds to look for a saturation signal and suggest continue walking, switch to combinatorial, stop, or defer. The hit-rate trend is a least-squares slope over every round and counts as a decline only when it falls further than its own sampling error. The wild-type replicates recorded on each round feed that round's plateau check, so a plateau can be confirmed over two consecutive rounds. Read-only: nothing here is confirmed or saved, and fewer than 3 rounds means no verdict yet.",
     "nextRoundCapacity": "Next-round plate capacity",
     "nextRoundCapacityHelper": "Number of wells available for the next combinatorial round. It determines the throughput recommendation."
   },

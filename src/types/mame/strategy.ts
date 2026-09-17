@@ -71,11 +71,14 @@ export interface ClassifyRoundParams {
 /**
  * An input the handler could not hand to the classifier.
  *
- * `wt_replicates`: the wild-type replicates the current round recorded. The
- * per-round xlsx has no column for them, so they travel beside it on the round
- * entry; when none arrive, or fewer than the noise estimate needs, sigma_assay
- * cannot be estimated and the bootstrap test behind the gated labels cannot
- * run.
+ * `wt_replicates`: the wild-type replicates a round recorded. The per-round
+ * xlsx has no column for them, so they travel beside it on the round entry;
+ * when none arrive, or fewer than the noise estimate needs, sigma_assay cannot
+ * be estimated for that round, its plateau check stays NA, and on the round
+ * being judged the bootstrap test behind the gated labels cannot run either.
+ *
+ * On a `decision` the code is named when ANY round fell short, not only the
+ * judged one, so a campaign whose last round has replicates can still carry it.
  */
 export type MissingClassifierInput = "wt_replicates";
 
@@ -94,15 +97,52 @@ export type NotAssessableReason =
  * Returned when classify() ran and produced a Decision.
  * advisory === "decision"
  *
- * `missing_inputs` is reported even here: an answered decision was still
- * reached with T2 and T_model unavailable, and the caller should say so.
+ * `missing_inputs` is reported even here, and it is now a computed list rather
+ * than a constant one: it is empty when every round handed over enough
+ * wild-type replicates, and names `wt_replicates` when a round did not, so the
+ * caveat appears on exactly the verdicts reached with T2 and T_model
+ * unavailable. An empty list is therefore the ordinary case and must not draw a
+ * "judged without" banner.
  */
 export interface ClassifyDecisionResult {
   advisory: "decision";
   label: DecisionLabel;
   reason: string;
   confidence: number | null;
+  /**
+   * Computed rather than constant. Empty when every round handed over enough
+   * wild-type replicates to estimate a sigma from, because T2 was then live on
+   * every round and nothing about the wild type was missing from the call.
+   */
   missing_inputs: MissingClassifierInput[];
+
+  /**
+   * Variants of the judged round whose measured activity was exactly 0.
+   *
+   * Not a rejected row: a dead variant was designed for the round and measured
+   * in it, so it stays in `n` and in the hit-rate denominator, and is left out
+   * of the log2 list alone, where log2(0) does not exist.
+   *
+   * Optional for the same reason as `wt_replicate_count` below: an answer
+   * stored on a round before this field existed is replayed verbatim from the
+   * snapshot (`Round.advisory.result`) and carries no count.
+   */
+  zero_activity_count?: number;
+
+  /**
+   * Wild-type control rows inside the judged round's workbook.
+   *
+   * Not `wt_replicate_count`, and the two must never be read as one number.
+   * This one counts control rows in the workbook: the activity column is a
+   * ratio to the wild-type mean, so such a row reads 1.0 by construction, it is
+   * not a designed variant, and it reaches no statistic at all -- it is removed
+   * from the hit-rate denominator as well. `wt_replicate_count` counts the raw
+   * step 4.1 measurements that travel beside the file, which do feed the noise
+   * estimate.
+   *
+   * Optional for the replay reason given above.
+   */
+  wt_row_count?: number;
 }
 
 /**
@@ -132,6 +172,34 @@ export interface ClassifyNotAssessableResult {
   wt_replicate_count?: number;
   /** Replicates the noise estimate needs before the bootstrap can run. */
   wt_replicate_min?: number;
+
+  /**
+   * Variants of the judged round whose measured activity was exactly 0.
+   *
+   * Not a rejected row: a dead variant was designed for the round and measured
+   * in it, so it stays in `n` and in the hit-rate denominator, and is left out
+   * of the log2 list alone, where log2(0) does not exist.
+   *
+   * Optional for the same reason as `wt_replicate_count` below: an answer
+   * stored on a round before this field existed is replayed verbatim from the
+   * snapshot (`Round.advisory.result`) and carries no count.
+   */
+  zero_activity_count?: number;
+
+  /**
+   * Wild-type control rows inside the judged round's workbook.
+   *
+   * Not `wt_replicate_count`, and the two must never be read as one number.
+   * This one counts control rows in the workbook: the activity column is a
+   * ratio to the wild-type mean, so such a row reads 1.0 by construction, it is
+   * not a designed variant, and it reaches no statistic at all -- it is removed
+   * from the hit-rate denominator as well. `wt_replicate_count` counts the raw
+   * step 4.1 measurements that travel beside the file, which do feed the noise
+   * estimate.
+   *
+   * Optional for the replay reason given above.
+   */
+  wt_row_count?: number;
 }
 
 /**

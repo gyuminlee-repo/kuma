@@ -3719,7 +3719,9 @@
     "missingInputs": {
       "wt_replicates": "mesures de réplicats du type sauvage"
     },
-    "missingInputsNote": "Jugé sans {{missing}} : la saturation repose donc uniquement sur la tendance du hit rate.",
+    "missingInputsNote": "{{missing}} manquent sur au moins un cycle : le contrôle de plateau n'a pas pu y être fait et la saturation de ces cycles repose uniquement sur la tendance du hit rate. Cette tendance est une pente des moindres carrés sur tous les cycles et ne compte comme un déclin que si elle est plus négative que sa propre erreur d'échantillonnage.",
+    "zeroActivityNote": "{{n}} variant(s) de ce cycle ont mesuré une activité exactement nulle. Ils ont bien été conçus et mesurés, ils restent donc au dénominateur du hit rate et ne sont écartés que des statistiques log2.",
+    "wtRowNote": "{{n}} ligne(s) de contrôle sauvage (WT) dans le classeur de ce cycle. Un contrôle n'est pas un variant conçu, il est donc aussi retiré du calcul du hit rate.",
     "notAssessableBadge": "Non évaluable",
     "notAssessableSummary": "Les signaux indiquent une transition, mais la confirmer exige {{missing}}, absentes de ces fichiers. {{blocked}} ne peut pas être tranché à partir de cette entrée ; seule la question de la poursuite du mutant unique peut l'être.",
     "notAssessableInsufficientSummary": "Les signaux indiquent une transition, mais la confirmer exige au moins {{required}} {{missing}} et cette manche en compte {{count}}. En dessous, aucune estimation du bruit ne sert de référence : la saturation ne repose plus que sur la tendance du hit rate, et {{blocked}} ne peut pas en être déduit.",
@@ -3730,7 +3732,7 @@
     "restoredUnverifiedNote": "Cette application n'a pas ecrit {{files}} et ne peut donc pas confirmer que ces fichiers sont restes inchanges depuis.",
     "rebuiltNote": "Une reponse anterieure du {{when}} a ete calculee a partir de ces memes fichiers ({{files}}) avant que l'etape 4.1 ne les regenere. Elle decrit la version precedente et reste conservee comme historique. Relancez la classification pour la version actuelle.",
     "supersededNote": "Une reponse anterieure du {{when}} a ete calculee a partir d'une autre liste ({{files}}). Elle ne dit rien des fichiers actuellement selectionnes et n'est donc pas affichee.",
-    "headingHelp": "Regroupe les résultats EVOLVEpro de plusieurs cycles pour repérer un signal de saturation et suggérer de poursuivre le mutant unique, passer au combinatorial, arrêter ou différer. Lecture seule : rien n'est confirmé ni enregistré ici, et avec moins de 3 cycles il n'y a pas encore de verdict.",
+    "headingHelp": "Regroupe les résultats EVOLVEpro de plusieurs cycles pour repérer un signal de saturation et suggérer de poursuivre le mutant unique, passer au combinatorial, arrêter ou différer. La tendance du hit rate est une pente des moindres carrés sur tous les cycles et ne compte comme un déclin que si elle est plus négative que sa propre erreur d'échantillonnage. Les réplicats sauvages enregistrés à chaque cycle alimentent le contrôle de plateau de ce cycle, ce qui permet de confirmer un plateau sur deux cycles consécutifs. Lecture seule : rien n'est confirmé ni enregistré ici, et avec moins de 3 cycles il n'y a pas encore de verdict.",
     "nextRoundCapacity": "Capacité de plaque du prochain cycle",
     "nextRoundCapacityHelper": "Nombre de puits disponibles pour le prochain cycle combinatoire. Il détermine la recommandation de débit."
   },

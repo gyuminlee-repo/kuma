@@ -40,6 +40,19 @@ export interface RoundMetrics {
   r: number
   /** Per-round hit rates (n_positive / n_designed) */
   hit_rates: number[]
+  /**
+   * Variants each hit rate was taken over, same length and order as hit_rates.
+   * It is the denominator of the binomial variance behind the T3 standard
+   * error, which is what the hit-rate slope has to clear to count as a decline.
+   *
+   * `| null` because the Python field is `Optional[list[int]] = None` and a
+   * None serialises as null rather than disappearing. Marked optional as well
+   * because no runtime path hands a Python-built RoundMetrics to this type
+   * (RoundSummaryPanel and its test are the only consumers, and the test
+   * fixtures predate the field), so requiring it would break them without
+   * catching any real drift.
+   */
+  round_variant_counts?: number[] | null
   /** Residue positions in top-K variants of current round (list, not Set) */
   top_k_positions_n: number[]
   /** Residue positions in top-K variants of previous round (list, not Set) */

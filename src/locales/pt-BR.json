@@ -3719,7 +3719,9 @@
     "missingInputs": {
       "wt_replicates": "medições de réplicas do tipo selvagem"
     },
-    "missingInputsNote": "Avaliado sem {{missing}}, de modo que a saturação se apoia apenas na tendência da hit rate.",
+    "missingInputsNote": "Faltam {{missing}} em ao menos uma rodada, então ali a verificação de platô não pôde ser feita e a saturação dessas rodadas se apoia apenas na tendência da hit rate. Essa tendência é uma inclinação por mínimos quadrados sobre todas as rodadas e só conta como queda quando é mais negativa que o próprio erro amostral.",
+    "zeroActivityNote": "{{n}} variante(s) desta rodada mediram atividade exatamente igual a 0. Elas foram projetadas e medidas do mesmo jeito, então permanecem no denominador da hit rate e ficam de fora apenas da estatística log2.",
+    "wtRowNote": "{{n}} linha(s) de controle selvagem (WT) na planilha desta rodada. Um controle não é uma variante projetada, por isso também sai do cálculo da hit rate.",
     "notAssessableBadge": "Não avaliável",
     "notAssessableSummary": "Os sinais apontam para uma transição, mas confirmá-la exige {{missing}}, que estes arquivos não trazem. Com esta entrada não é possível responder {{blocked}}; só cabe verificar se vale continuar com o mutante único.",
     "notAssessableInsufficientSummary": "Os sinais apontam para uma transição, mas confirmá-la exige ao menos {{required}} {{missing}} e esta rodada tem {{count}} registradas. Abaixo disso não há estimativa de ruído para servir de referência, então a saturação se apoia apenas na tendência da hit rate e {{blocked}} não pode ser respondido a partir dela.",
@@ -3730,7 +3732,7 @@
     "restoredUnverifiedNote": "Este aplicativo nao gravou {{files}}, portanto nao pode confirmar que continuam inalterados desde entao.",
     "rebuiltNote": "Uma resposta anterior de {{when}} foi calculada a partir destes mesmos arquivos ({{files}}) antes de a etapa 4.1 os regerar. Ela descreve a versao anterior e fica como historico. Execute a classificacao novamente para a versao atual.",
     "supersededNote": "Uma resposta anterior de {{when}} foi calculada a partir de outra lista ({{files}}). Ela nao diz nada sobre os arquivos selecionados agora, por isso nao e exibida.",
-    "headingHelp": "Combina os resultados do EVOLVEpro de várias rodadas para procurar um sinal de saturação e sugerir continuar com o mutante único, mudar para combinatorial, parar ou adiar. Somente leitura: nada aqui é confirmado ou salvo, e com menos de 3 rodadas ainda não há veredito.",
+    "headingHelp": "Combina os resultados do EVOLVEpro de várias rodadas para procurar um sinal de saturação e sugerir continuar com o mutante único, mudar para combinatorial, parar ou adiar. A tendência da hit rate é uma inclinação por mínimos quadrados sobre todas as rodadas e só conta como queda quando é mais negativa que o próprio erro amostral. As réplicas selvagens registradas em cada rodada alimentam a verificação de platô daquela rodada, de modo que um platô pode ser confirmado em duas rodadas consecutivas. Somente leitura: nada aqui é confirmado ou salvo, e com menos de 3 rodadas ainda não há veredito.",
     "nextRoundCapacity": "Capacidade da placa da próxima rodada",
     "nextRoundCapacityHelper": "Número de poços disponíveis na próxima rodada combinatória. Determina a recomendação de capacidade."
   },
