@@ -57,6 +57,19 @@ def require_positive_replicates(r: int) -> None:
 
 
 # ---------------------------------------------------------------------------
+# T3 significance margin
+# ---------------------------------------------------------------------------
+
+# Standard errors the hit-rate slope must clear before T3 calls a decline.
+# Registered as ``t3_slope_z``.  Chosen from the sweep in the
+# compute_T3_magnitude docstring and in
+# docs/2026-08-19-mame-assay-noise-model.md: it is the only value that both
+# fires on 80 % or more of decaying campaigns and stays under 10 % on
+# improving ones.
+T3_SLOPE_Z_DEFAULT = 1.28
+
+
+# ---------------------------------------------------------------------------
 # K_throughput helper
 # ---------------------------------------------------------------------------
 
@@ -194,62 +207,154 @@ def compute_T2(
 # Signal T3 -- Hit rate trend
 # ---------------------------------------------------------------------------
 
-def compute_T3(hit_rates: list[float], window: int = 2) -> Optional[bool]:
-    """Return True when the hit rate trend (most recent window) is flat or declining.
+def compute_T3(
+    hit_rates: list[float],
+    n_variants: list[int],
+    min_rounds: int = 2,
+    slope_z: float = T3_SLOPE_Z_DEFAULT,
+) -> Optional[bool]:
+    """Return True when the hit rate is declining by more than sampling noise.
 
-    Spec (§12-A.1 L617): computes slope over the most recent *window* rounds.
-    Returns None if fewer than 2 total data points are provided
-    (NA = "insufficient data", distinct from False = "signal absent").
+    The trend is a least-squares line through **every** round, and it counts as
+    a decline only when the slope is steeper than ``slope_z`` times its own
+    standard error.  See compute_T3_magnitude for both quantities and for why
+    the window and the margin are what they are.
 
     Args:
-        hit_rates: Sequence of per-round hit rates (n_positive / n_designed).
-        window: Number of most recent rounds to use for slope calculation (default 2).
+        hit_rates: Per-round hit rates (n_positive / n_variants), oldest first.
+        n_variants: Variants the matching hit rate was taken over, same length.
+        min_rounds: Rounds required before the signal is live (>= 2).
+        slope_z: Standard errors the slope must clear.  Registered as
+            ``t3_slope_z``.
 
     Returns:
-        True if slope <= 0 (convergence / saturation signal),
-        False if slope > 0,
-        None if fewer than 2 data points.
+        True if slope < -slope_z * SE (hit rate is running out),
+        False if it is not,
+        None if fewer than max(2, min_rounds) rounds are present, or if the
+        binomial standard error is zero so no slope is distinguishable from
+        noise.
 
     Raises:
-        ValueError: If window < 2 (see compute_T3_magnitude).
+        ValueError: min_rounds < 2, n_variants of a different length, or a
+            non-positive variant count.
     """
-    slope = compute_T3_magnitude(hit_rates, window)
-    if slope is None:
+    result = compute_T3_magnitude(hit_rates, n_variants, min_rounds)
+    if result is None:
         return None
-    return slope <= 0
+    slope, z = result
+    if z is None:
+        # SE == 0: every round is at 0 or 1, so the binomial model reports no
+        # uncertainty and no slope is significant against it.  NA rather than
+        # True, because "undecidable" is not "saturated".
+        return None
+    # z is -slope/SE, so z > slope_z already implies a negative slope.
+    return z > slope_z
 
 
-def compute_T3_magnitude(hit_rates: list[float], window: int = 2) -> Optional[float]:
-    """Return the slope of the most recent window of hit rates (for audit logging).
+def compute_T3_magnitude(
+    hit_rates: list[float],
+    n_variants: list[int],
+    min_rounds: int = 2,
+) -> Optional[tuple[float, Optional[float]]]:
+    """Return the full-history hit-rate slope and how many standard errors it is.
+
+    The slope is ordinary least squares of hit rate on round index over the
+    whole campaign, and the standard error comes from the binomial variance of
+    each round::
+
+        SE(slope)^2 = sum_i ((x_i - xbar) / Sxx)^2 * p_i (1 - p_i) / n_i
+
+    ``z = -slope / SE`` is reported positive when the hit rate is falling, so a
+    caller compares it against a positive margin.
+
+    Why the whole history rather than the two most recent rounds, and why the
+    margin is 1.28: a slope with no margin is a coin flip, because a hit rate
+    that is genuinely flat still falls half the time on sampling variation
+    alone.  Measured on synthetic campaigns whose answer is known by
+    construction -- 400 campaigns per condition, 94 variants per round,
+    sigma = 0.1575 log2 -- the rate at which T3 fired was::
+
+        window = 2 (no window separates the conditions at any margin)
+          k      improving   decaying
+          1.00      14 %       21 %
+          1.28       8 %       14 %
+          1.96       2 %        2 %
+
+        whole history
+          k      improving   decaying   stagnant   realistic
+          1.00      14 %       89 %       18 %       41 %
+          1.28       7 %       81 %       10 %       28 %
+          1.65       3 %       72 %        4 %       16 %
+
+    The target was 80 % or better on a decaying campaign and 10 % or less on an
+    improving one.  The whole history at k = 1.28 is the only pair that meets
+    both.  The same table is in docs/2026-08-19-mame-assay-noise-model.md.
+
+    A round sitting at p = 0 or p = 1 contributes zero variance, so the
+    standard error is understated when some but not all rounds are at a bound.
+    That is inherent to the binomial model specified above and is not corrected
+    here.
 
     Args:
-        hit_rates: Sequence of per-round hit rates.
-        window: Number of most recent rounds (default 2). Must be >= 2.
+        hit_rates: Per-round hit rates, oldest first.
+        n_variants: Variants each rate was taken over, same length and order.
+        min_rounds: Rounds required before a slope is reported (>= 2).
 
     Returns:
-        Float slope value, or None if fewer than 2 data points.
+        ``(slope, z)``, or ``(slope, None)`` when the standard error is zero,
+        or None when fewer than max(2, min_rounds) rounds are present.
 
     Raises:
-        ValueError: If window < 2. A slope needs two points, so window=1 can
-            only ever report "insufficient data" however much history is
-            present, and window=0 silently means the whole history because
-            ``hit_rates[-0:]`` is ``hit_rates[0:]``. Window 0 and window 2 then
-            return opposite verdicts on the same input. Neither is a meaningful
-            configuration, so both are refused rather than interpreted.
+        ValueError: If min_rounds < 2.  A slope needs two points, so
+            min_rounds = 1 could only ever report "insufficient data" however
+            much history is present, and min_rounds = 0 says nothing at all.
+            Neither is a meaningful configuration, so both are refused rather
+            than interpreted.
+        ValueError: If n_variants is not the same length as hit_rates, or holds
+            a count that is not positive.  A hit rate without its denominator
+            has no standard error, and substituting one would invent the
+            precision this signal is built to test.
     """
-    if window < 2:
+    if min_rounds < 2:
         raise ValueError(
-            f"window (t3_window_rounds) must be >= 2, got {window!r}: "
-            "a slope needs two points, and window=0 silently means the whole history"
+            f"min_rounds (t3_window_rounds) must be >= 2, got {min_rounds!r}: "
+            "a slope needs two points"
         )
-    if len(hit_rates) < 2:
+    if len(n_variants) != len(hit_rates):
+        raise ValueError(
+            f"n_variants must hold one count per hit rate: got "
+            f"{len(n_variants)} counts for {len(hit_rates)} rounds"
+        )
+    for index, count in enumerate(n_variants):
+        if count <= 0:
+            raise ValueError(
+                f"n_variants[{index}] is a round size and must be positive, got {count!r}"
+            )
+    if len(hit_rates) < max(2, min_rounds):
         return None
-    recent = hit_rates[-window:]
-    if len(recent) < 2:
-        return None
-    x = list(range(len(recent)))
-    slope, _ = statistics.linear_regression(x, recent)
-    return slope
+
+    rates = require_finite("hit_rates", hit_rates)
+    for index, rate in enumerate(rates):
+        if not 0.0 <= rate <= 1.0:
+            raise ValueError(
+                f"hit_rates[{index}] is a ratio and must lie in [0, 1], got {rate!r}"
+            )
+    k = len(rates)
+    xs = list(range(k))
+    x_bar = sum(xs) / k
+    y_bar = sum(rates) / k
+    s_xx = sum((x - x_bar) ** 2 for x in xs)
+    s_xy = sum((x - x_bar) * (y - y_bar) for x, y in zip(xs, rates))
+    slope = s_xy / s_xx
+
+    variance = sum(
+        (((x - x_bar) / s_xx) ** 2) * (p * (1.0 - p) / n)
+        for x, p, n in zip(xs, rates, n_variants)
+    )
+    se = math.sqrt(variance)
+    if se <= 0.0:
+        return (slope, None)
+    return (slope, -slope / se)
 
 
 # ---------------------------------------------------------------------------

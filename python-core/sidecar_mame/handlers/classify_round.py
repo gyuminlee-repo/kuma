@@ -20,8 +20,10 @@ Params::
     round_files must be ordered by round number (ascending).
     c_next: capacity of the next combinatorial plate (used to derive K_throughput).
     wt_values: optional wild-type replicates step 4.1 recorded for that round,
-        on the scale of the activity column in the same file.  Only the entry
-        with the highest n is read: the bootstrap tests the current round.
+        on the scale of the activity column in the same file.  Every entry is
+        read: the round being judged supplies the point sigma and the bootstrap,
+        and each earlier entry supplies the sigma of that round's interim
+        signals, which is what lets T2 reach the two-round hysteresis rule.
 
 Returns one of two shapes, discriminated by ``advisory``.
 
@@ -46,26 +48,91 @@ The classifier was never asked::
         "wt_replicate_min": int,     # replicates the noise estimate needs
     }
 
+Both shapes carry two counts about the round being judged:
+``zero_activity_count`` (variants whose measured activity was exactly 0) and
+``wt_row_count`` (wild-type rows in its workbook).  See the two sections below.
+
 Raises (via dispatcher error codes):
     ValueError  -> -32602: missing/empty round_files, bad column headers,
-                           non-parseable Variant, activity <= 0, wt_values
-                           that is not a list of finite numbers.
+                           a Variant that is neither a wild-type label nor
+                           positional, activity < 0, a round in which every
+                           activity is 0, a round holding wild-type rows and no
+                           variant, wt_values that is not a list of finite
+                           numbers.
     RuntimeError -> -32002: xlsx file not found.
+
+The wild-type row
+-----------------
+Both campaign files carry one row labelled ``WT``, R2 as its last row and R3 at
+row 35, so the position in the file means nothing and each row is tested on its
+own.  It is the control rather than a designed variant, so it is counted and
+then excluded from every variant statistic: the hit rate and its denominator,
+beneficial_count, round_best, the log2 list, n_designed, and the top-K
+positions.
+
+Excluding it from the denominator is the opposite of what the zero-activity
+rows get, and deliberately so.  A dead variant was designed for the round and
+measured in it, so removing it from the denominator would overstate the hit
+rate; the wild type was never designed, so leaving it in the denominator
+understates the hit rate by diluting it with a row that was never a chance to
+succeed.
+
+Its activity does not reach ``sigma_assay`` either.  Two reasons, and the
+second holds even where the first does not: both files carry exactly one such
+row, which is below ``wt_replicate_min``, and the value is the normaliser
+itself.  The activity column is a ratio to the wild-type mean, so the wild-type
+row reads 1.0 by construction and a file carrying several of them could report
+a spread of exactly zero.  A sigma of zero puts the T2 threshold at zero, which
+does not disable the signal but makes it fire on any difference at all, so the
+estimate would look available while meaning nothing.  Sigma comes only from the
+``wt_values`` a ``round_files`` entry carries, which are the raw step 4.1
+measurements taken before normalisation.
+
+A Variant that is neither a wild-type label nor positional still raises.  The
+wild type is the single exception, not an opening for unparseable rows.
+
+Variants that measured zero
+---------------------------
+An activity of exactly 0 is a measurement, not a failure: an SDM variant that
+kills the enzyme reads as no activity, and in the campaign file that prompted
+this the remaining 91 of its 93 variants span 0.056 to 1.39, so 0 is the most
+certain "not beneficial" value in the distribution.  Those rows are kept in the
+round -- they are counted in ``n`` and therefore in the hit-rate denominator,
+because a dead variant was still designed and still measured -- and are left out
+of the log2 list alone, where log2(0) does not exist.  Nothing is lost by the
+omission: a zero cannot be the round best, cannot be beneficial, cannot be a
+hit.  Clamping to a floor instead would enter a log2 value nobody measured.
+
+A negative activity still raises.  No assay reports negative turnover, so a
+negative cell is a broken file rather than a dead variant, and the anti-fallback
+rule stands for it.  A round in which *every* activity is 0 also raises: it has
+no round best on the log2 scale and no signal to classify.
+
+This is the opposite of the wild-type policy at ``_wt_values`` / ``wt_log2``
+below, which discards a zero-valued WT well.  The two are deliberately
+different and must not be merged: a WT well is a control that should read about
+1.0, so a 0 there is a failed injection, whereas a mutant well reading 0 is the
+experiment succeeding at showing the mutation is lethal.
 
 Data availability
 -----------------
-sigma_assay = None  (the xlsx holds one activity per designed variant and no WT
-column).  T2 and T_model are NA as a consequence.  T3 operates on hit_rates
-derived from the imported rounds.  The point decision runs on T1/T3 only.
+The xlsx holds one activity per designed variant and no replicates, and the
+wild-type row some files carry is the normaliser rather than a replicate, as
+"The wild-type row" above sets out.  sigma_assay therefore comes only from the
+``wt_values`` a ``round_files`` entry carries.  A round that carries enough of
+them answers T2; a round that does not leaves T2 and T_model NA and is decided
+on T3 alone.  This holds per round: the interim signals of round i read round
+i's own replicates, so a campaign that recorded them throughout can light
+``sat_prev`` with T2 and reach the hysteresis rule without T3 ever firing.
 
 The WT replicates arrive beside the file rather than inside it.  Step 4.1 keeps
 them on the round it built (``Round.evolvepro_input.wt_values``) because the
 workbook itself cannot carry them, and the caller forwards them on the matching
-``round_files`` entry.  They enter the bootstrap, which resamples them into a
-sigma per draw; the point sigma_assay stays None, so which branch the decision
-tree proposes is unchanged and only the confidence test behind switch/stop can
-now run.  ``missing_inputs`` therefore still names wt_replicates on an answered
-decision: the verdict itself was reached with T2 and T_model NA either way.
+``round_files`` entry.  They answer T2 on the round they belong to and, for the round being judged,
+also feed the bootstrap.  ``missing_inputs`` is therefore computed rather than
+constant: it is empty when every round handed over enough replicates to
+estimate a sigma from, and names ``wt_replicates`` when any round did not, so
+the caveat appears exactly on the verdicts that carry it.
 
 Two limits of that confidence, both since addressed, kept here because the
 confidence values recorded on rounds judged before those fixes carry them:
@@ -121,8 +188,11 @@ EMA_2 definition: exponential moving average with span=2 (alpha = 2/3).
 
 top-K size: K_throughput (T4 is informational and does not drive decisions).
 
-anti-fallback: missing columns, unparseable Variant rows, or activity <= 0
-raise explicit errors rather than silently skipping or defaulting.
+anti-fallback: missing columns, unparseable Variant rows, or a negative or
+non-finite activity raise explicit errors rather than silently skipping or
+defaulting.  An activity of exactly 0 is the one value excluded from the log2
+list instead, for the reason above, and the count of those exclusions is
+reported rather than swallowed.
 """
 
 from __future__ import annotations
@@ -131,13 +201,32 @@ import math
 import re
 from typing import Any, Optional
 
+from kuma_core.mame.activity.constants import WT_PATTERN
+from kuma_core.strategy.signals import T3_SLOPE_Z_DEFAULT
+
 _VARIANT_RE = re.compile(r"^(\d+)")
 
+
+def _is_wt_label(variant: str) -> bool:
+    """Is this Variant cell the wild-type control rather than a mutant?
+
+    ``WT_PATTERN`` is the repository's single source of truth for the labelled
+    forms (``WT_1``, ``WT1``) and is imported rather than restated.  It requires
+    a replicate number, so it does not match a bare ``WT`` on its own, and both
+    campaign files carry exactly that bare form.  The second arm is the same one
+    the rest of the codebase already pairs with the pattern for this reason:
+    ``evolvepro_xlsx.py:654`` and ``detect_measurement_source._is_wt``, whose
+    docstring records that a file with one bare ``WT`` block is a file the
+    parser accepts.  No new regex is introduced here.
+    """
+    return bool(WT_PATTERN.match(variant)) or variant.upper() == "WT"
+
 # Inputs the caller did not supply.  The per-round xlsx holds one measured
-# activity per designed variant and no wild-type replicate column, so this list
-# is what the call is missing whenever the replicates do not arrive beside the
-# file.  It describes the inputs of one call, not a judgement the classifier
-# made; a call that carries enough replicates reports nothing missing.
+# activity per designed variant and no wild-type replicates, so this is what the
+# call is missing whenever the replicates do not arrive beside a file.  It
+# describes the inputs of one call, not a judgement the classifier made, and it
+# is reported per call rather than asserted: a campaign whose every round
+# carried enough replicates is missing nothing and says so.
 _MISSING_INPUTS = ["wt_replicates"]
 
 # No wild-type replicate reached this call at all.
@@ -157,11 +246,13 @@ _BOOTSTRAP_GATED_LABELS = ["switch_combinatorial", "stop"]
 # xlsx parsing
 # ---------------------------------------------------------------------------
 
-def _load_xlsx(path: str) -> list[dict]:
+def _load_xlsx(path: str) -> tuple[list[dict], int]:
     """Read Variant+activity from an xlsx file.
 
-    Returns a list of dicts with keys ``position`` (int) and
-    ``activity`` (float).
+    Returns ``(records, wt_row_count)``, where records is a list of dicts with
+    keys ``position`` (int) and ``activity`` (float) holding the mutants alone.
+    A wild-type row is not a variant, so it is counted and dropped rather than
+    returned; see "The wild-type row" in the module docstring.
 
     Raises
     ------
@@ -169,9 +260,16 @@ def _load_xlsx(path: str) -> list[dict]:
         File not found.
     ValueError
         Columns ``Variant`` or ``activity`` absent.
-        Variant cell has no leading integer (position).
+        Variant cell is neither a wild-type label nor a leading integer
+            (position); a typo is still a broken file.
+        Every row is a wild-type row, leaving no variant to classify.
         activity value cannot be cast to float.
-        activity value <= 0 (log2 undefined).
+        activity value is not finite.
+        activity value < 0 (no assay reports negative turnover).
+
+    An activity of exactly 0 is kept as a row.  It is a dead variant rather
+    than a broken cell, so it belongs to the round and to the hit-rate
+    denominator; ``_round_metrics`` is where it drops out of the log2 list.
     """
     try:
         import openpyxl
@@ -212,6 +310,7 @@ def _load_xlsx(path: str) -> list[dict]:
     act_idx = headers.index("activity")
 
     records: list[dict] = []
+    wt_row_count = 0
     for row_num, row in enumerate(rows, start=2):
         variant_raw = row[var_idx]
         activity_raw = row[act_idx]
@@ -225,7 +324,19 @@ def _load_xlsx(path: str) -> list[dict]:
             raise ValueError(
                 f"Row {row_num}: Variant is None in {path}"
             )
-        m = _VARIANT_RE.match(str(variant_raw).strip())
+        variant_text = str(variant_raw).strip()
+
+        # The wild-type control.  Counted and dropped before anything reads it:
+        # it is not a designed variant, so it belongs to none of the statistics
+        # below, and its activity is never parsed because nothing consumes it.
+        # It is not anywhere in the file by convention either -- R2 carries it
+        # last and R3 carries it at row 35 -- so the test is per row rather than
+        # a check of the final row.
+        if _is_wt_label(variant_text):
+            wt_row_count += 1
+            continue
+
+        m = _VARIANT_RE.match(variant_text)
         if m is None:
             wb.close()
             raise ValueError(
@@ -257,21 +368,26 @@ def _load_xlsx(path: str) -> list[dict]:
                 f"Row {row_num}: activity={activity!r} must be finite "
                 f"for Variant={variant_raw!r} in {path}"
             )
-        if activity <= 0.0:
+        if activity < 0.0:
             wb.close()
             raise ValueError(
-                f"Row {row_num}: activity={activity!r} <= 0 for Variant={variant_raw!r} "
-                f"in {path}; log2 is undefined"
+                f"Row {row_num}: activity={activity!r} < 0 for Variant={variant_raw!r} "
+                f"in {path}; no assay reports negative turnover"
             )
 
         records.append({"position": position, "activity": activity})
 
     wb.close()
 
+    if not records and wt_row_count:
+        raise ValueError(
+            f"xlsx holds {wt_row_count} wild-type row(s) and no variant: {path}; "
+            f"a round with nothing designed in it has nothing to classify"
+        )
     if not records:
         raise ValueError(f"xlsx contains no data rows: {path}")
 
-    return records
+    return records, wt_row_count
 
 
 # ---------------------------------------------------------------------------
@@ -333,16 +449,43 @@ def _round_metrics(records: list[dict]) -> dict:
     dict with:
         beneficial_count: int       number of variants with activity > 1.0
         hit_rate: float             beneficial_count / n_variants
+        n_variants: int             the denominator of that hit rate
+        zero_activity_count: int    variants that measured exactly 0
         round_best: float           max(activity), reported as measured
         round_best_log2: float      log2 of that same maximum
-        log2_activities: list[float]   log2 of each activity (current_round_activities)
+        log2_activities: list[float]   log2 of each variant that measured above
+                                    zero (current_round_activities)
         positions: list[int]        position integers for all variants
+
+    Raises
+    ------
+    ValueError
+        Every variant in the round measured 0, which leaves no round best on
+        the log2 scale and nothing for the classifier to read.
     """
     n = len(records)
     beneficial_count = sum(1 for r in records if r["activity"] > 1.0)
+    # The denominator stays the full row count.  A variant that measured 0 was
+    # designed for this round and was measured in it, so dropping it here would
+    # raise the hit rate of every round that contains a dead variant, which is
+    # a bias in the direction of "keep walking".
     hit_rate = beneficial_count / n
+    zero_activity_count = sum(1 for r in records if r["activity"] == 0.0)
     round_best = max(r["activity"] for r in records)
-    log2_activities = [math.log2(r["activity"]) for r in records]
+    # A zero has no logarithm and nothing to contribute: it cannot be the round
+    # best, cannot clear tau_pos, cannot be a hit.  It is skipped rather than
+    # clamped to a floor, because a floor would put a log2 value into the list
+    # that no instrument produced.  This is deliberately the opposite of the
+    # wild-type handling in handle_classify_round below, where a zero-valued WT
+    # well is discarded as a failed injection: a WT well is a control expected
+    # to read about 1.0, while a mutant well reading 0 is the measurement
+    # succeeding at showing the mutation is lethal.  Do not merge the two.
+    log2_activities = [math.log2(r["activity"]) for r in records if r["activity"] > 0.0]
+    if not log2_activities:
+        raise ValueError(
+            f"every activity in the round is 0 ({n} rows); "
+            f"the round has no best on the log2 scale"
+        )
     # log2 is monotone, so this is log2(round_best). Taking it off the list the
     # classifier is handed keeps the two from drifting if either definition
     # moves later.
@@ -350,7 +493,13 @@ def _round_metrics(records: list[dict]) -> dict:
     positions = [r["position"] for r in records]
     return {
         "beneficial_count": beneficial_count,
+        # The denominator of hit_rate, reported rather than left implicit: T3
+        # weighs its slope against a binomial standard error and a ratio alone
+        # does not say how many trials produced it. It is the full row count,
+        # the same one hit_rate divides by, so the two cannot drift.
+        "n_variants": n,
         "hit_rate": hit_rate,
+        "zero_activity_count": zero_activity_count,
         "round_best": round_best,
         "round_best_log2": round_best_log2,
         "log2_activities": log2_activities,
@@ -405,8 +554,23 @@ _DEFAULT_REGISTERED: dict = {
     "bootstrap_n": 1000,
     "bootstrap_seed": 42,
     "confidence_threshold": 0.7,
-    "t2_null_method": "legacy",
+    # order_statistic, because the quantity T2 judges is the best of a plate
+    # rather than one nominated variant, and the best of many is high even when
+    # none of them is. Both the interim note further down ("the question here is
+    # whether the best of a plate did") and
+    # docs/2026-08-19-mame-assay-noise-model.md:21 are written on that premise;
+    # "legacy" here was the scaffold default from a213dc41 that never caught up
+    # with them. On the campaign files the two agree: the increment is 0.356
+    # against thresholds of 0.436 (legacy) and 0.476 (order statistic).
+    "t2_null_method": "order_statistic",
+    # Rounds required before T3 is live. The slope itself is fitted over the
+    # whole history, so this is a floor rather than a window; see
+    # compute_T3_magnitude.
     "t3_window_rounds": 2,
+    # Standard errors the hit-rate slope must clear before T3 calls a decline.
+    # The sweep behind 1.28 is in compute_T3_magnitude and in
+    # docs/2026-08-19-mame-assay-noise-model.md.
+    "t3_slope_z": T3_SLOPE_Z_DEFAULT,
     "jaccard_threshold": 0.5,
     "active_concentration_threshold": 0.4,
     "M_min_unused_beneficials": 5,
@@ -429,7 +593,7 @@ def handle_classify_round(params: dict) -> dict:
     params : dict
         round_files : list[{"n": int, "path": str, "wt_values": list[float]}]
             Rounds ordered ascending by n.  All paths must be absolute.
-            wt_values is optional and only read on the highest-numbered entry.
+            wt_values is optional and read on every entry.
         c_next : int, optional
             Capacity of the next combinatorial plate.  Default: 96.
 
@@ -481,21 +645,29 @@ def handle_classify_round(params: dict) -> dict:
     # Load and compute per-round metrics
     per_round_records: list[list[dict]] = []
     per_round_metrics: list[dict] = []
+    per_round_wt_rows: list[int] = []
     for rf in sorted_files:
         path = rf.get("path")
         if not path:
             raise ValueError(f"round_file entry missing 'path': {rf!r}")
-        records = _load_xlsx(str(path))
+        # records holds the mutants alone, so every statistic below -- hit rate
+        # and its denominator, round best, the log2 list, n_designed, the top-K
+        # positions -- is over designed variants and the wild-type row reaches
+        # none of them.
+        records, wt_rows = _load_xlsx(str(path))
         metrics = _round_metrics(records)
         per_round_records.append(records)
         per_round_metrics.append(metrics)
+        per_round_wt_rows.append(wt_rows)
 
     n_rounds = len(sorted_files)
 
-    # WT replicates of the round being judged.  Only the highest-numbered entry
-    # is read: the bootstrap resamples the noise of the current measurement, and
-    # the earlier rounds are in the list to supply the hit-rate trend.
-    wt_values = _wt_values(sorted_files[-1])
+    # WT replicates of every round, not only the last.  The caller sends them on
+    # each entry (src/lib/round/roundArtifacts.ts), and each round's own
+    # replicates are what answers T2 for that round.  Reading only the last one
+    # left every interim round with sigma=None, so ``sat_prev`` in
+    # classify._decide_core could be lit by T3 alone and T2 was structurally
+    # excluded from the two-round hysteresis rule however certain it was.
     wt_min = _DEFAULT_REGISTERED["wt_replicate_min"]
 
     # On the log2 scale, because that is the scale everything it meets is on.
@@ -509,8 +681,18 @@ def handle_classify_round(params: dict) -> dict:
     # exactly zero, which is a failed injection rather than a measurement of
     # no activity, and one of those would otherwise become negative infinity
     # and take the whole estimate with it.
-    wt_log2 = [math.log2(v) for v in wt_values if v > 0.0]
-    usable_wt = len(wt_log2) == len(wt_values) and len(wt_log2) >= wt_min
+    per_round_wt: list[list[float]] = [_wt_values(rf) for rf in sorted_files]
+    per_round_wt_log2: list[list[float]] = [
+        [math.log2(v) for v in values if v > 0.0] for values in per_round_wt
+    ]
+    per_round_wt_usable: list[bool] = [
+        len(log2) == len(values) and len(log2) >= wt_min
+        for values, log2 in zip(per_round_wt, per_round_wt_log2)
+    ]
+
+    wt_values = per_round_wt[-1]
+    wt_log2 = per_round_wt_log2[-1]
+    usable_wt = per_round_wt_usable[-1]
 
     # Below the minimum nothing is handed over.  compute_sigma_assay returns
     # None under that count, so every draw would resample into T2=NA and
@@ -552,9 +734,11 @@ def handle_classify_round(params: dict) -> dict:
 
     # previous_signals: chain Signals for all rounds except the last.
     # Builds an incremental RoundState per prior round and calls compute_signals().
-    # sigma_assay=None throughout: compute_signals reads sigma_assay and never
-    # wt_values, and no sigma is estimated anywhere in this handler, so T2 and
-    # T_model are NA here and T3 is the only active saturation signal.
+    # Each interim round is given the sigma estimated from its own wild-type
+    # replicates, so T2 is live wherever the campaign recorded enough of them.
+    # That is what lets a plateau light ``sat_prev`` without T3, which the
+    # two-round hysteresis rule in classify._decide_core requires before it will
+    # propose a transition.
     registered = _DEFAULT_REGISTERED.copy()
     previous_signals: Optional[Signals] = None
 
@@ -578,6 +762,16 @@ def handle_classify_round(params: dict) -> dict:
                 if i >= 1 else set()
             )
 
+            # The same log2 rule and the same zero-well handling as the final
+            # round above; the two must not drift, because a sigma taken on one
+            # scale here and another there would make T2 of round n-1 and T2 of
+            # round n incomparable while both looked live.
+            interim_sigma = (
+                compute_sigma_assay(per_round_wt_log2[i], min_replicates=wt_min)
+                if per_round_wt_usable[i]
+                else None
+            )
+
             interim_state = RoundState(
                 n=i + 1,
                 previous_signals=previous_signals,
@@ -590,14 +784,31 @@ def handle_classify_round(params: dict) -> dict:
                 # plate did, and the best of many is high even when none of them
                 # is: the order statistic is what accounts for that.
                 n_designed=len(per_round_records[i]),
-                # sigma_assay=None: sigma/T2 deferred until WT replicate import wired.
-                # With sigma=None, T2=NA and T_model=NA.  T3 is the active signal.
-                sigma_assay=None,
-                # r=1: the file states one activity per variant and nothing
-                # about how many measurements produced it.  T2 is NA here for
-                # want of a sigma, so r does not act on these interim signals.
+                # The spread of this round's own wild-type block on the log2
+                # scale, or None when it recorded too few wells to estimate one
+                # from.  With a sigma, T2 answers here and can light sat_prev;
+                # without one, T2 and T_model are NA and this round contributes
+                # T3 alone.
+                #
+                # Round 1 is a special case worth stating rather than fixing:
+                # _compute_delta_best_ema returns 0.0 on a single round, so T2
+                # reads True there for want of a prior round rather than for
+                # want of improvement.  It cannot reach a decision -- N_min=3
+                # means the earliest sat_prev a verdict reads is round 2, whose
+                # EMA is a real inter-round delta -- so it is left as is.
+                sigma_assay=interim_sigma,
+                # r=1 for the same reason as the final round below: a mutant
+                # well on the Agilent path carries one measurement, and the
+                # repeat counts recorded since v0.16.30.01 are repeat injections
+                # of one well rather than replicates of the quantity compared
+                # here (docs/2026-08-19-mame-assay-noise-model.md).
                 r=1,
                 hit_rates=list(hr_so_far),
+                # Denominators of those hit rates, which T3 needs to turn a
+                # slope into a significance test.
+                round_variant_counts=[
+                    per_round_metrics[j]["n_variants"] for j in range(i + 1)
+                ],
                 top_k_positions_n=tk_n,
                 top_k_positions_n1=tk_n1,
                 top_k_positions=sorted(tk_n),
@@ -658,6 +869,10 @@ def handle_classify_round(params: dict) -> dict:
         # the bootstrap's own threshold rather than the decision.
         r=1,
         hit_rates=hit_rates,
+        # One per entry of hit_rates, and the same denominator hit_rate was
+        # divided by. T3 compares its slope against the binomial standard error
+        # p(1-p)/n, so without these the signal has no scale to judge on.
+        round_variant_counts=[m["n_variants"] for m in per_round_metrics],
         top_k_positions_n=top_k_pos_n,
         top_k_positions_n1=top_k_pos_n1,
         top_k_positions=top_k_positions_list,
@@ -673,7 +888,50 @@ def handle_classify_round(params: dict) -> dict:
         # = log2_fc > 0 = activity > 1.0.  This ensures hit_star in bootstrap
         # (if ever activated) is consistent with the beneficial definition used
         # to compute hit_rates above.
+        #
+        # Known denominator mismatch, accepted: this list omits the variants
+        # that measured exactly 0, so it holds n minus zero_activity_count
+        # entries where hit_rate above was taken over n.
+        # bootstrap_confidence forms hit_star = count(a > tau_pos) / len(act_star)
+        # (classify.py:399-403), so the draws divide by the shorter count while
+        # the point estimate divides by n.  A zero cannot clear tau_pos under any
+        # resampling, so the omission removes rows from the denominator without
+        # ever removing one from the numerator, and hit_star therefore sits
+        # above the point hit_rate by the factor 94/92.  It is left in place
+        # rather than papered over: padding the list with a sentinel would put
+        # an unmeasured log2 value into the resample, and narrowing hit_rate to
+        # 92 would bias the reported hit rate upward for every round holding a
+        # dead variant, which is the worse of the two.  The mismatch is
+        # recorded here because bootstrap_confidence's own docstring commits to
+        # signal-set alignment -- "the draws are held to the signal set the
+        # point estimate had" -- and that guarantee is about which signals are
+        # live in a draw, not about the row count each one is taken over.  This
+        # is the one place the two differ, and it is stated rather than left
+        # for a third audit to find.
         current_round_activities=log2_activities_last,
+    )
+
+    # Reported for the round being judged rather than summed over the call, to
+    # match wt_replicate_count beside it, which is also the last round's.  A
+    # reader looking at the verdict on round n is owed the count that qualifies
+    # that verdict, and a total would attach an earlier round's dead variants to
+    # it.  Earlier rounds' zeros are dropped from their own interim log2 lists
+    # in the same way; those lists only feed the signals of rounds already
+    # decided, and their hit rates -- which is what the current verdict reads
+    # from them -- keep the full denominator.
+    zero_activity_count = per_round_metrics[-1]["zero_activity_count"]
+
+    # Same rule and the same reason as the line above: the round being judged.
+    wt_row_count = per_round_wt_rows[-1]
+
+    # Computed rather than asserted.  Every round that handed over enough
+    # replicates to estimate a sigma from has answered T2 on its own signals, so
+    # nothing about the wild type is missing from such a call.  The response
+    # shape is unchanged: this list is the one the RPC contract already carries
+    # (src/types/mame/strategy.ts), and only its content now depends on the
+    # input rather than being constant.
+    missing_inputs = (
+        [] if all(per_round_wt_usable) else list(_MISSING_INPUTS)
     )
 
     decision = classify(round_state, registered)
@@ -696,6 +954,8 @@ def handle_classify_round(params: dict) -> dict:
             "blocked_decisions": list(_BOOTSTRAP_GATED_LABELS),
             "wt_replicate_count": len(wt_values),
             "wt_replicate_min": wt_min,
+            "zero_activity_count": zero_activity_count,
+            "wt_row_count": wt_row_count,
         }
 
     return {
@@ -703,13 +963,23 @@ def handle_classify_round(params: dict) -> dict:
         "label": decision.label,
         "reason": decision.reason,
         "confidence": decision.confidence,
-        # Reported whether or not the replicates arrived.  They reach the
-        # bootstrap, not the point signals: sigma_assay stays None above, so the
-        # decision on screen was still reached with T2 and T_model NA and
-        # saturation resting on the hit-rate trend alone.  That is exactly what
-        # the note this field draws says, so emptying it on a supplied round
-        # would delete a true caveat from a verdict that still depends on it.
-        "missing_inputs": list(_MISSING_INPUTS),
+        # Empty when every round supplied enough wild-type replicates to
+        # estimate a sigma from, because then T2 was live on every round and
+        # nothing about the wild type was missing.  Naming wt_replicates on such
+        # a call used to be true of the code and is no longer: it would now
+        # attach a caveat about T2 being NA to a verdict T2 helped reach.
+        "missing_inputs": missing_inputs,
+        # Variants of this round that measured exactly 0 and so carry no log2
+        # value.  Reported so the screen can state the exclusion with the
+        # backend's own number instead of a figure typed into the UI.
+        "zero_activity_count": zero_activity_count,
+        # Wild-type rows this round's file carried.  Named for the row rather
+        # than for a replicate, to keep it clearly apart from
+        # wt_replicate_count above: that one counts the raw WT measurements
+        # step 4.1 forwarded beside the file, which do reach the noise
+        # estimate, while this one counts control rows inside the workbook,
+        # which reach nothing.
+        "wt_row_count": wt_row_count,
     }
 
 

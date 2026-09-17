@@ -2599,11 +2599,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Un pocillo cuya fracción de eventos indel cae exactamente en el umbral 0,50 ahora se marca AMBIGUOUS y pasa a revisión en lugar de PASS.",
-      "Los pocillos dentro de las bandas calibradas, ruido hasta 0,21 y deleciones reales desde 0,83, conservan el veredicto que tenían."
+      "Cada ronda estima ahora el assay noise a partir de sus propias réplicas wild-type, de modo que la prueba de plateau puede sostener la regla de saturación de dos rondas.",
+      "La tendencia del hit rate cuenta como descenso solo cuando la pendiente ajustada cae más que su propio sampling error.",
+      "Una variante con actividad exactamente cero se puntúa en lugar de detener el dictamen y permanece en el denominador del hit rate.",
+      "Una fila de control wild-type en cualquier parte del libro se cuenta y se mantiene fuera de las estadísticas de variantes.",
+      "El aviso informa cuántas variantes con actividad cero y cuántas filas de control llevaba cada ronda."
     ],
-    "highlightsStamp": "0.16.65+45d46897",
+    "highlightsStamp": "0.16.66+c8cb9c13",
     "releases": {
+      "0.16.66": [
+        "Cada ronda estima ahora el assay noise a partir de sus propias réplicas wild-type, de modo que la prueba de plateau puede sostener la regla de saturación de dos rondas.",
+        "La tendencia del hit rate cuenta como descenso solo cuando la pendiente ajustada cae más que su propio sampling error.",
+        "Una variante con actividad exactamente cero se puntúa en lugar de detener el dictamen y permanece en el denominador del hit rate.",
+        "Una fila de control wild-type en cualquier parte del libro se cuenta y se mantiene fuera de las estadísticas de variantes.",
+        "El aviso informa cuántas variantes con actividad cero y cuántas filas de control llevaba cada ronda."
+      ],
       "0.16.65": [
         "Un pocillo cuya fracción de eventos indel cae exactamente en el umbral 0,50 ahora se marca AMBIGUOUS y pasa a revisión en lugar de PASS.",
         "Los pocillos dentro de las bandas calibradas, ruido hasta 0,21 y deleciones reales desde 0,83, conservan el veredicto que tenían."
@@ -3069,6 +3079,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.66": "c8cb9c13",
       "0.16.65": "45d46897",
       "0.16.64": "b5666e23",
       "0.16.63": "27af3ec6",
@@ -3719,7 +3730,9 @@
     "missingInputs": {
       "wt_replicates": "mediciones de réplicas del tipo silvestre"
     },
-    "missingInputsNote": "Evaluado sin {{missing}}, de modo que la saturación se basa únicamente en la tendencia de la hit rate.",
+    "missingInputsNote": "Faltan {{missing}} en al menos una ronda, por lo que allí no pudo hacerse la comprobación de meseta y la saturación de esas rondas se basa únicamente en la tendencia de la hit rate. Esa tendencia es una pendiente por mínimos cuadrados sobre todas las rondas y solo cuenta como descenso si resulta más negativa que su propio error de muestreo.",
+    "zeroActivityNote": "{{n}} variante(s) de esta ronda midieron una actividad de exactamente 0. Se diseñaron y se midieron igualmente, así que siguen en el denominador de la hit rate y solo quedan fuera de la estadística log2.",
+    "wtRowNote": "{{n}} fila(s) de control de tipo silvestre (WT) en el libro de esta ronda. Un control no es una variante diseñada, por lo que también se retira del cálculo de la hit rate.",
     "notAssessableBadge": "No evaluable",
     "notAssessableSummary": "Las señales apuntan a una transición, pero confirmarla requiere {{missing}}, que estos archivos no contienen. Con esta entrada no se puede responder {{blocked}}; solo cabe comprobar si conviene continuar con el mutante único.",
     "notAssessableInsufficientSummary": "Las señales apuntan a una transición, pero confirmarla requiere al menos {{required}} {{missing}} y en esta ronda constan {{count}}. Por debajo de esa cifra no hay estimación de ruido con la que contrastar, así que la saturación se basa solo en la tendencia de la hit rate y con ella no se puede responder {{blocked}}.",
@@ -3730,7 +3743,7 @@
     "restoredUnverifiedNote": "Esta aplicacion no escribio {{files}}, por lo que no puede confirmar que sigan sin cambios desde entonces.",
     "rebuiltNote": "Una respuesta anterior del {{when}} se calculo a partir de estos mismos archivos ({{files}}) antes de que el paso 4.1 los regenerara. Describe la version previa y se conserva como historial. Ejecute la clasificacion de nuevo para la version actual.",
     "supersededNote": "Una respuesta anterior del {{when}} se calculo a partir de otra lista ({{files}}). No dice nada sobre los archivos seleccionados ahora, por eso no se muestra.",
-    "headingHelp": "Combina los resultados de EVOLVEpro de varias rondas para buscar una señal de saturación y sugerir continuar con el mutante único, cambiar a combinatorial, detener o aplazar. Solo lectura: aquí no se confirma ni se guarda nada, y con menos de 3 rondas aún no hay veredicto.",
+    "headingHelp": "Combina los resultados de EVOLVEpro de varias rondas para buscar una señal de saturación y sugerir continuar con el mutante único, cambiar a combinatorial, detener o aplazar. La tendencia de la hit rate es una pendiente por mínimos cuadrados sobre todas las rondas y solo cuenta como descenso si resulta más negativa que su propio error de muestreo. Las réplicas de tipo silvestre registradas en cada ronda alimentan la comprobación de meseta de esa misma ronda, de modo que una meseta puede confirmarse en dos rondas consecutivas. Solo lectura: aquí no se confirma ni se guarda nada, y con menos de 3 rondas aún no hay veredicto.",
     "nextRoundCapacity": "Capacidad de placa de la siguiente ronda",
     "nextRoundCapacityHelper": "Número de pozos disponibles para la siguiente ronda combinatoria. Determina la recomendación de rendimiento."
   },

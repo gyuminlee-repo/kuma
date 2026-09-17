@@ -2599,11 +2599,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Ein Well, dessen Indel-Event-Anteil genau auf dem Schwellenwert 0,50 liegt, wird jetzt als AMBIGUOUS geprüft statt als PASS gewertet.",
-      "Wells innerhalb der kalibrierten Bereiche, Rauschen bis 0,21 und echte Deletionen ab 0,83, behalten ihr bisheriges Urteil."
+      "Eine Runde schätzt das assay noise jetzt aus ihren eigenen wild-type Replikaten, sodass der plateau-Test die Sättigungsregel über zwei Runden tragen kann.",
+      "Der hit-rate-Trend gilt nur dann als Rückgang, wenn die angepasste Steigung stärker fällt als ihr eigener sampling error.",
+      "Eine Variante mit exakt null Aktivität wird bewertet, statt die Auswertung zu stoppen, und bleibt im Nenner der hit rate.",
+      "Eine wild-type-Kontrollzeile wird überall in der Arbeitsmappe gezählt und aus der Variantenstatistik herausgehalten.",
+      "Die Empfehlung meldet, wie viele Varianten mit Aktivität null und wie viele Kontrollzeilen eine Runde enthielt."
     ],
-    "highlightsStamp": "0.16.65+45d46897",
+    "highlightsStamp": "0.16.66+c8cb9c13",
     "releases": {
+      "0.16.66": [
+        "Eine Runde schätzt das assay noise jetzt aus ihren eigenen wild-type Replikaten, sodass der plateau-Test die Sättigungsregel über zwei Runden tragen kann.",
+        "Der hit-rate-Trend gilt nur dann als Rückgang, wenn die angepasste Steigung stärker fällt als ihr eigener sampling error.",
+        "Eine Variante mit exakt null Aktivität wird bewertet, statt die Auswertung zu stoppen, und bleibt im Nenner der hit rate.",
+        "Eine wild-type-Kontrollzeile wird überall in der Arbeitsmappe gezählt und aus der Variantenstatistik herausgehalten.",
+        "Die Empfehlung meldet, wie viele Varianten mit Aktivität null und wie viele Kontrollzeilen eine Runde enthielt."
+      ],
       "0.16.65": [
         "Ein Well, dessen Indel-Event-Anteil genau auf dem Schwellenwert 0,50 liegt, wird jetzt als AMBIGUOUS geprüft statt als PASS gewertet.",
         "Wells innerhalb der kalibrierten Bereiche, Rauschen bis 0,21 und echte Deletionen ab 0,83, behalten ihr bisheriges Urteil."
@@ -3069,6 +3079,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.66": "c8cb9c13",
       "0.16.65": "45d46897",
       "0.16.64": "b5666e23",
       "0.16.63": "27af3ec6",
@@ -3719,7 +3730,9 @@
     "missingInputs": {
       "wt_replicates": "Wildtyp-Replikatmessungen"
     },
-    "missingInputsNote": "Beurteilt ohne {{missing}}, die Sättigung stützt sich daher allein auf den Verlauf der Hit-Rate.",
+    "missingInputsNote": "In mindestens einer Runde fehlen {{missing}}, dort war die Plateau-Prüfung nicht möglich und die Sättigung dieser Runden stützt sich allein auf den Verlauf der Hit-Rate. Dieser Verlauf ist eine Least-Squares-Steigung über alle Runden und gilt nur dann als Rückgang, wenn sie stärker negativ ausfällt als ihr eigener Stichprobenfehler.",
+    "zeroActivityNote": "{{n}} Variante(n) dieser Runde wurden mit einer Aktivität von genau 0 gemessen. Sie waren entworfen und gemessen, bleiben deshalb im Nenner der Hit-Rate und werden allein aus der log2-Statistik herausgenommen.",
+    "wtRowNote": "{{n}} Wildtyp-Kontrollzeile(n) (WT) in der Arbeitsmappe dieser Runde. Eine Kontrolle ist keine entworfene Variante und wird daher auch aus der Berechnung der Hit-Rate herausgenommen.",
     "notAssessableBadge": "Nicht beurteilbar",
     "notAssessableSummary": "Die Signale deuten auf einen Übergang hin, doch dessen Bestätigung erfordert {{missing}}, die in diesen Dateien nicht enthalten sind. {{blocked}} lässt sich mit dieser Eingabe nicht beantworten; möglich ist nur die Prüfung, ob die Einzelmutante fortgesetzt werden soll.",
     "notAssessableInsufficientSummary": "Die Signale deuten auf einen Übergang hin, doch dessen Bestätigung erfordert mindestens {{required}} {{missing}}, und für diese Runde sind {{count}} erfasst. Darunter gibt es keine Rauschschätzung als Prüfgröße, die Sättigung stützt sich damit allein auf den Verlauf der Hit-Rate, und {{blocked}} lässt sich daraus nicht beantworten.",
@@ -3730,7 +3743,7 @@
     "restoredUnverifiedNote": "Diese Anwendung hat {{files}} nicht geschrieben und kann daher nicht bestaetigen, dass diese Dateien seitdem unveraendert sind.",
     "rebuiltNote": "Eine fruehere Antwort vom {{when}} wurde aus genau diesen Dateien ({{files}}) berechnet, bevor Schritt 4.1 sie neu erzeugt hat. Sie beschreibt den vorherigen Stand und bleibt als Verlauf erhalten. Fuer den aktuellen Stand die Klassifikation erneut ausfuehren.",
     "supersededNote": "Eine fruehere Antwort vom {{when}} wurde aus einer anderen Liste berechnet ({{files}}). Sie sagt nichts ueber die jetzt gewaehlten Dateien und wird deshalb nicht angezeigt.",
-    "headingHelp": "Bündelt EVOLVEpro-Ergebnisse über mehrere Runden, um ein Sättigungssignal zu erkennen, und schlägt Fortsetzen der Einzelmutante, Umstellung auf combinatorial, Stopp oder Zurückstellung vor. Schreibgeschützt: Hier wird nichts bestätigt oder gespeichert, und bei weniger als 3 Runden gibt es noch keine Einschätzung.",
+    "headingHelp": "Bündelt EVOLVEpro-Ergebnisse über mehrere Runden, um ein Sättigungssignal zu erkennen, und schlägt Fortsetzen der Einzelmutante, Umstellung auf combinatorial, Stopp oder Zurückstellung vor. Der Verlauf der Hit-Rate ist eine Least-Squares-Steigung über alle Runden und gilt nur dann als Rückgang, wenn sie stärker negativ ausfällt als ihr eigener Stichprobenfehler. Die je Runde erfassten Wildtyp-Replikate speisen die Plateau-Prüfung derselben Runde, sodass ein Plateau über zwei aufeinanderfolgende Runden bestätigt werden kann. Schreibgeschützt: Hier wird nichts bestätigt oder gespeichert, und bei weniger als 3 Runden gibt es noch keine Einschätzung.",
     "nextRoundCapacity": "Plattenkapazität der nächsten Runde",
     "nextRoundCapacityHelper": "Anzahl verfügbarer Wells in der nächsten kombinatorischen Runde. Sie bestimmt die Durchsatzempfehlung."
   },

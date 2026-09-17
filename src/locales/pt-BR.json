@@ -2599,11 +2599,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Um poço cuja fração de eventos indel cai exatamente no limiar 0,50 agora é marcado como AMBIGUOUS e vai para revisão em vez de PASS.",
-      "Poços dentro das faixas calibradas, ruído até 0,21 e deleções reais a partir de 0,83, mantêm o veredito que tinham."
+      "Cada rodada estima agora o assay noise a partir das próprias réplicas wild-type, de modo que o teste de plateau sustenta a regra de saturação de duas rodadas.",
+      "A tendência do hit rate só conta como queda quando a inclinação ajustada cai mais do que o próprio sampling error.",
+      "Uma variante com atividade exatamente zero passa a ser pontuada em vez de interromper o veredito e permanece no denominador do hit rate.",
+      "Uma linha de controle wild-type em qualquer parte da planilha é contada e mantida fora das estatísticas de variantes.",
+      "O aviso informa quantas variantes com atividade zero e quantas linhas de controle cada rodada continha."
     ],
-    "highlightsStamp": "0.16.65+45d46897",
+    "highlightsStamp": "0.16.66+c8cb9c13",
     "releases": {
+      "0.16.66": [
+        "Cada rodada estima agora o assay noise a partir das próprias réplicas wild-type, de modo que o teste de plateau sustenta a regra de saturação de duas rodadas.",
+        "A tendência do hit rate só conta como queda quando a inclinação ajustada cai mais do que o próprio sampling error.",
+        "Uma variante com atividade exatamente zero passa a ser pontuada em vez de interromper o veredito e permanece no denominador do hit rate.",
+        "Uma linha de controle wild-type em qualquer parte da planilha é contada e mantida fora das estatísticas de variantes.",
+        "O aviso informa quantas variantes com atividade zero e quantas linhas de controle cada rodada continha."
+      ],
       "0.16.65": [
         "Um poço cuja fração de eventos indel cai exatamente no limiar 0,50 agora é marcado como AMBIGUOUS e vai para revisão em vez de PASS.",
         "Poços dentro das faixas calibradas, ruído até 0,21 e deleções reais a partir de 0,83, mantêm o veredito que tinham."
@@ -3069,6 +3079,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.66": "c8cb9c13",
       "0.16.65": "45d46897",
       "0.16.64": "b5666e23",
       "0.16.63": "27af3ec6",
@@ -3719,7 +3730,9 @@
     "missingInputs": {
       "wt_replicates": "medições de réplicas do tipo selvagem"
     },
-    "missingInputsNote": "Avaliado sem {{missing}}, de modo que a saturação se apoia apenas na tendência da hit rate.",
+    "missingInputsNote": "Faltam {{missing}} em ao menos uma rodada, então ali a verificação de platô não pôde ser feita e a saturação dessas rodadas se apoia apenas na tendência da hit rate. Essa tendência é uma inclinação por mínimos quadrados sobre todas as rodadas e só conta como queda quando é mais negativa que o próprio erro amostral.",
+    "zeroActivityNote": "{{n}} variante(s) desta rodada mediram atividade exatamente igual a 0. Elas foram projetadas e medidas do mesmo jeito, então permanecem no denominador da hit rate e ficam de fora apenas da estatística log2.",
+    "wtRowNote": "{{n}} linha(s) de controle selvagem (WT) na planilha desta rodada. Um controle não é uma variante projetada, por isso também sai do cálculo da hit rate.",
     "notAssessableBadge": "Não avaliável",
     "notAssessableSummary": "Os sinais apontam para uma transição, mas confirmá-la exige {{missing}}, que estes arquivos não trazem. Com esta entrada não é possível responder {{blocked}}; só cabe verificar se vale continuar com o mutante único.",
     "notAssessableInsufficientSummary": "Os sinais apontam para uma transição, mas confirmá-la exige ao menos {{required}} {{missing}} e esta rodada tem {{count}} registradas. Abaixo disso não há estimativa de ruído para servir de referência, então a saturação se apoia apenas na tendência da hit rate e {{blocked}} não pode ser respondido a partir dela.",
@@ -3730,7 +3743,7 @@
     "restoredUnverifiedNote": "Este aplicativo nao gravou {{files}}, portanto nao pode confirmar que continuam inalterados desde entao.",
     "rebuiltNote": "Uma resposta anterior de {{when}} foi calculada a partir destes mesmos arquivos ({{files}}) antes de a etapa 4.1 os regerar. Ela descreve a versao anterior e fica como historico. Execute a classificacao novamente para a versao atual.",
     "supersededNote": "Uma resposta anterior de {{when}} foi calculada a partir de outra lista ({{files}}). Ela nao diz nada sobre os arquivos selecionados agora, por isso nao e exibida.",
-    "headingHelp": "Combina os resultados do EVOLVEpro de várias rodadas para procurar um sinal de saturação e sugerir continuar com o mutante único, mudar para combinatorial, parar ou adiar. Somente leitura: nada aqui é confirmado ou salvo, e com menos de 3 rodadas ainda não há veredito.",
+    "headingHelp": "Combina os resultados do EVOLVEpro de várias rodadas para procurar um sinal de saturação e sugerir continuar com o mutante único, mudar para combinatorial, parar ou adiar. A tendência da hit rate é uma inclinação por mínimos quadrados sobre todas as rodadas e só conta como queda quando é mais negativa que o próprio erro amostral. As réplicas selvagens registradas em cada rodada alimentam a verificação de platô daquela rodada, de modo que um platô pode ser confirmado em duas rodadas consecutivas. Somente leitura: nada aqui é confirmado ou salvo, e com menos de 3 rodadas ainda não há veredito.",
     "nextRoundCapacity": "Capacidade da placa da próxima rodada",
     "nextRoundCapacityHelper": "Número de poços disponíveis na próxima rodada combinatória. Determina a recomendação de capacidade."
   },

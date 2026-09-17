@@ -37,6 +37,7 @@ from dataclasses import dataclass
 from typing import Literal, Optional
 
 from kuma_core.strategy.signals import (
+    T3_SLOPE_Z_DEFAULT,
     compute_sigma_assay,
     compute_T1,
     compute_T2,
@@ -104,6 +105,15 @@ class RoundState:
     active_residues: list[int]
     unused_beneficial_count: int
 
+    # Variants each entry of hit_rates was taken over, same length and order.
+    # T3 turns a slope into a verdict by comparing it against its own binomial
+    # standard error, and that error is p(1-p)/n, so a hit rate without its
+    # denominator carries no scale to judge the slope on. None means the caller
+    # did not supply the counts and T3 is NA for this round: it is not a licence
+    # to assume one, because an assumed n would set the significance margin the
+    # signal exists to enforce.
+    round_variant_counts: Optional[list[int]] = None
+
     # Optional EVOLVEpro surrogate output
     n_designed: Optional[int] = None
     predicted_top_untested_gain: Optional[float] = None
@@ -162,13 +172,37 @@ def effective_seed(round_state: RoundState, registered: dict) -> int:
 # Signal computation
 # ---------------------------------------------------------------------------
 
+def _compute_T3_for(
+    hit_rates: list[float],
+    counts: Optional[list[int]],
+    min_rounds: int,
+    slope_z: float,
+) -> Optional[bool]:
+    """Call compute_T3, or report NA when the round sizes were not supplied.
+
+    The registered ``t3_window_rounds`` is validated either way. A caller that
+    sets it to 0 or 1 has a broken configuration whether or not this particular
+    round happens to carry counts, and letting the NA path swallow that would
+    make the refusal depend on unrelated input.
+    """
+    if min_rounds < 2:
+        raise ValueError(
+            f"min_rounds (t3_window_rounds) must be >= 2, got {min_rounds!r}: "
+            "a slope needs two points"
+        )
+    if counts is None:
+        return None
+    return compute_T3(hit_rates, counts, min_rounds=min_rounds, slope_z=slope_z)
+
+
 def compute_signals(round_state: RoundState, registered: dict) -> Signals:
     """Compute all 7 signals from round_state using registered parameters.
 
     Calls signals.py functions; does not reimplement them.
     """
     t2_method = registered.get("t2_null_method", "order_statistic")
-    t3_window = registered.get("t3_window_rounds", 2)
+    t3_min_rounds = registered.get("t3_window_rounds", 2)
+    t3_slope_z = registered.get("t3_slope_z", T3_SLOPE_Z_DEFAULT)
     jaccard_thr = registered.get("jaccard_threshold", 0.5)
     active_thr = registered.get("active_concentration_threshold", 0.4)
     m_min = registered.get("M_min_unused_beneficials", 5)
@@ -183,7 +217,9 @@ def compute_signals(round_state: RoundState, registered: dict) -> Signals:
         method=t2_method,
     )
 
-    T3 = compute_T3(round_state.hit_rates, window=t3_window)
+    T3 = _compute_T3_for(
+        round_state.hit_rates, round_state.round_variant_counts, t3_min_rounds, t3_slope_z
+    )
 
     T4 = compute_T4(
         round_state.top_k_positions_n,
@@ -343,7 +379,8 @@ def bootstrap_confidence(
 
     # Parameters from registered
     t2_method = registered.get("t2_null_method", "order_statistic")
-    t3_window = registered.get("t3_window_rounds", 2)
+    t3_min_rounds = registered.get("t3_window_rounds", 2)
+    t3_slope_z = registered.get("t3_slope_z", T3_SLOPE_Z_DEFAULT)
     tau_pos = registered.get("tau_pos", 0.0)
     wt_min = registered.get("wt_replicate_min", 4)
     # Checked here rather than only inside compute_sigma_assay, which the
@@ -405,7 +442,20 @@ def bootstrap_confidence(
         # delta* = point delta_best_ema adjusted for best_n* deviation
         delta_star = round_state.delta_best_ema + (best_n_star - best_n_point)
 
-        # hit_rates* = replace last round's hit rate with resampled value
+        # hit_rates* = replace last round's hit rate with resampled value.
+        #
+        # The earlier rounds are held at their point values, so a point estimate
+        # whose slope cleared the margin tends to produce draws whose slope
+        # clears it too: the draw only perturbs one of the points the line is
+        # fitted through. That is a self-confirmation in the confidence, not in
+        # the decision, and it is left in place here because resampling the
+        # earlier rounds needs their raw activities, which this call does not
+        # carry. It is a separate scientific choice from the margin this change
+        # introduces.
+        #
+        # The counts ride along unresampled for the same reason: the round sizes
+        # are design facts rather than measurements, so a draw is a redraw of
+        # the same plate.
         hit_rates_star = list(round_state.hit_rates[:-1]) + [hit_star]
 
         # Recompute noise-bearing signals
@@ -416,7 +466,9 @@ def bootstrap_confidence(
             n_designed=round_state.n_designed,
             method=t2_method,
         )
-        T3_star = compute_T3(hit_rates_star, window=t3_window)
+        T3_star = _compute_T3_for(
+            hit_rates_star, round_state.round_variant_counts, t3_min_rounds, t3_slope_z
+        )
 
         # Construct bootstrap signal snapshot (structural signals frozen)
         s_star = Signals(

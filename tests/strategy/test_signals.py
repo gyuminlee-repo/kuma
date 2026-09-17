@@ -142,53 +142,128 @@ def test_T2_threshold_n_designed_clamp():
 # compute_T3 / compute_T3_magnitude
 # ---------------------------------------------------------------------------
 
+# A plate carries 88 designed variants in these fixtures, the same size the
+# discrimination corpus uses, so the standard errors below are the ones a real
+# round produces rather than ones chosen to make an assertion come out.
+N88 = [88] * 8
+
+
 def test_T3_declining_hit_rate():
-    # slope < 0 -> True (plateau); uses last 2 points by default
-    assert compute_T3([0.5, 0.4, 0.3]) is True
+    # slope -0.1 over three rounds of 88, SE 0.036 -> z = 2.77, past the margin
+    assert compute_T3([0.5, 0.4, 0.3], N88[:3]) is True
 
 
 def test_T3_flat_hit_rate():
-    # slope = 0 -> True (plateau)
-    assert compute_T3([0.4, 0.4]) is True
+    """A flat hit rate is not a decline, and this is the defect being fixed.
+
+    The old rule was ``slope <= 0``, which made a genuinely constant hit rate a
+    saturation signal exactly half the time: nothing separates a zero slope
+    from a slightly negative one when the slope carries no error bar. Here the
+    slope is exactly zero, z is zero, and the answer is a plain no.
+    """
+    assert compute_T3([0.4, 0.4], N88[:2]) is False
 
 
 def test_T3_increasing_hit_rate():
-    # slope > 0 -> False
-    assert compute_T3([0.2, 0.4, 0.6]) is False
+    # slope > 0 -> z is negative -> False
+    assert compute_T3([0.2, 0.4, 0.6], N88[:3]) is False
 
 
 def test_T3_insufficient_data_returns_none():
-    # S1 [P1]: fewer than 2 points -> None (not False)
-    assert compute_T3([0.5]) is None
-    assert compute_T3([]) is None
+    # S1 [P1]: fewer than 2 rounds -> None (not False)
+    assert compute_T3([0.5], [88]) is None
+    assert compute_T3([], []) is None
 
 
-def test_T3_window_bug_regression():
-    # Regression for full-history bug: hit_rates=[0.5,0.1,0.2,0.3].
-    # Full-history slope is negative (T3 would fire incorrectly).
-    # Last 2 points [0.2, 0.3] have positive slope -> should be False.
-    assert compute_T3([0.5, 0.1, 0.2, 0.3]) is False
+def test_T3_reads_the_whole_history_not_the_last_two_rounds():
+    """A late uptick does not cancel a campaign-long fall.
+
+    This input was the regression that put the two-round window in: the whole
+    history falls, the last two rounds rise, and under ``slope <= 0`` the full
+    history fired while the window did not. The window is gone because it
+    cannot discriminate at any margin -- on 400 known-answer campaigns per
+    condition it fired on 14 % of decaying campaigns against 8 % of improving
+    ones, which is no signal at all (compute_T3_magnitude carries the sweep).
+    The whole history at 1.28 SE reaches 81 % against 7 %.
+
+    So the answer flips deliberately: 0.5 to 0.3 across four rounds of 88 is a
+    slope of -0.05 against an SE of 0.022, z = 2.24, and a campaign that lost
+    two fifths of its hit rate is called saturating whatever the final round
+    did.
+    """
+    assert compute_T3([0.5, 0.1, 0.2, 0.3], N88[:4]) is True
 
 
-def test_T3_window_2_declining():
-    # Last 2 points declining -> True even if earlier points rose
-    assert compute_T3([0.1, 0.5, 0.4]) is True
+def test_T3_recent_decline_inside_a_rising_campaign_is_not_saturation():
+    """The mirror of the test above, and it flips the same way for the same reason.
+
+    ``[0.1, 0.5, 0.4]`` rises overall (slope +0.15) and dips at the end. The
+    two-round window read only the dip and called it saturation; the whole
+    history reads the campaign.
+    """
+    assert compute_T3([0.1, 0.5, 0.4], N88[:3]) is False
 
 
-def test_T3_window_custom():
-    # window=3: last 3 of [0.1, 0.5, 0.4, 0.2] -> [0.5, 0.4, 0.2], slope < 0 -> True
-    assert compute_T3([0.1, 0.5, 0.4, 0.2], window=3) is True
+def test_T3_min_rounds_holds_the_signal_back():
+    """t3_window_rounds is a floor on history, not a window into it.
+
+    Three rounds are required here and two are present, so the signal is NA
+    even though a slope could be fitted.
+    """
+    assert compute_T3([0.5, 0.3], N88[:2], min_rounds=3) is None
+    assert compute_T3([0.5, 0.4, 0.3], N88[:3], min_rounds=3) is True
 
 
-def test_T3_magnitude_returns_slope():
-    mag = compute_T3_magnitude([0.2, 0.3])
-    assert mag is not None
-    assert mag > 0  # 0.3 > 0.2, positive slope
+def test_T3_monotone_decline_below_the_margin_is_not_saturation():
+    """Every round lower than the last, and still not significant.
+
+    The campaign files: 18 of 93 then 12 of 94. The fall is real to look at
+    and z is 1.23, under the 1.28 margin, so T3 answers False. This is the
+    measured boundary the margin was set against, kept here so a change to the
+    margin has to face it.
+    """
+    result = compute_T3_magnitude([18 / 93, 12 / 94], [93, 94])
+    assert result is not None
+    slope, z = result
+    assert slope < 0
+    assert z == pytest.approx(1.2314, abs=1e-4)
+    assert compute_T3([18 / 93, 12 / 94], [93, 94]) is False
+
+
+def test_T3_magnitude_returns_slope_and_z():
+    result = compute_T3_magnitude([0.2, 0.3], N88[:2])
+    assert result is not None
+    slope, z = result
+    assert slope > 0  # 0.3 > 0.2, positive slope
+    assert z is not None and z < 0  # z is -slope/SE, so a rise reads negative
 
 
 def test_T3_magnitude_insufficient_data():
-    assert compute_T3_magnitude([0.5]) is None
-    assert compute_T3_magnitude([]) is None
+    assert compute_T3_magnitude([0.5], [88]) is None
+    assert compute_T3_magnitude([], []) is None
+
+
+def test_T3_zero_standard_error_is_na_rather_than_true():
+    """Every round at a bound leaves the binomial model with no uncertainty.
+
+    ``p(1-p)`` is zero at 0 and at 1, so the standard error is zero and no
+    slope is distinguishable from noise against it. The slope is still
+    reported for the audit log, and the verdict is NA rather than True: a
+    division that cannot be done is not evidence of saturation.
+    """
+    assert compute_T3_magnitude([1.0, 0.0], [88, 88]) == (-1.0, None)
+    assert compute_T3([1.0, 0.0], [88, 88]) is None
+    assert compute_T3([0.0, 0.0], [88, 88]) is None
+
+
+def test_T3_refuses_counts_that_do_not_match_the_hit_rates():
+    with pytest.raises(ValueError, match="one count per hit rate"):
+        compute_T3_magnitude([0.5, 0.4, 0.3], [88, 88])
+
+
+def test_T3_refuses_a_non_positive_round_size():
+    with pytest.raises(ValueError, match="must be positive"):
+        compute_T3_magnitude([0.5, 0.4], [88, 0])
 
 
 # ---------------------------------------------------------------------------

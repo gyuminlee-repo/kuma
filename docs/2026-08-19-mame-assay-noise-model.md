@@ -251,6 +251,92 @@ The two figures at the head of this section remain unmeasured. Nothing here
 sets a coefficient of variation; it is read off the wild-type block of whatever
 plate is being judged, which is the point.
 
+## The margin T3 reads, and why the window went away
+
+T3 asks whether the hit rate is running out. It used to fit a slope through the
+two most recent rounds and call any slope of zero or less a decline. A slope
+with no error bar is a coin flip: a hit rate that is genuinely flat still falls
+half the time on sampling variation alone, and across five synthetic scenarios
+whose answer was known by construction T3 fired on 50 to 52 percent of
+campaigns in every one of them.
+
+It now fits ordinary least squares through every round of the campaign and
+calls a decline only when the slope is steeper than `t3_slope_z` times its own
+standard error. The error comes from the binomial variance of each round, which
+is why the round sizes had to be carried alongside the rates:
+
+    SE(slope)^2 = sum_i ((x_i - xbar) / Sxx)^2 * p_i (1 - p_i) / n_i
+
+The window and the margin were chosen by sweeping both against known answers:
+400 campaigns per condition, 94 variants per round, sigma = 0.1575 log2. The
+rate at which T3 fired was
+
+    window = 2
+
+    | k    | improving | decaying |
+    |------|-----------|----------|
+    | 1.00 |      14 % |     21 % |
+    | 1.28 |       8 % |     14 % |
+    | 1.96 |       2 % |      2 % |
+
+    whole history
+
+    | k    | improving | decaying | stagnant | realistic |
+    |------|-----------|----------|----------|-----------|
+    | 1.00 |      14 % |     89 % |     18 % |      41 % |
+    | 1.28 |       7 % |     81 % |     10 % |      28 % |
+    | 1.65 |       3 % |     72 % |      4 % |      16 % |
+
+The target was 80 percent or better on a decaying campaign and 10 percent or
+less on an improving one. A two-round window meets neither at any margin: the
+gap between its two columns never opens past seven points, because two rounds
+of about ninety wells carry too little information to separate the conditions.
+The whole history at k = 1.28 is the only pair that meets both, and it is what
+`T3_SLOPE_Z_DEFAULT` and the registered `t3_slope_z` carry.
+
+`t3_window_rounds` survives as a floor on how much history is required before
+T3 answers at all, not as a window into it. The refusal of a value below 2
+stands on its original reasoning: a slope needs two points, so 1 could only
+ever report insufficient data and 0 says nothing.
+
+Two cases are handled rather than allowed to pass silently. A standard error of
+zero, which happens when every round sits at a hit rate of 0 or 1, makes no
+slope distinguishable from noise, so T3 is NA there rather than True. Round
+sizes that do not line up with the hit rates, or that are not positive, are
+refused: a hit rate without its denominator has no standard error, and
+supplying one would invent the precision this margin exists to test.
+
+On the campaign files the new rule declines to call a plateau. The hit rate
+falls from 18 of 93 to 12 of 94, a slope of -0.0659 against a standard error of
+0.0535, so z is 1.23 and the margin is 1.28. Two rounds of ninety-odd wells
+cannot establish that fall, which is the answer the margin is for.
+
+## What T2 reads its null from
+
+`t2_null_method` is `order_statistic`. The threshold at the head of this page
+is written on that premise, and so is the handler note beside the interim
+rounds: the quantity T2 judges is the best of a plate, and the best of many is
+high even when none of them is. The registered default had stayed at `legacy`
+since the scaffold commit, which asks instead whether one nominated variant
+improved. On the campaign files the two agree, which is why nothing caught it:
+the increment is 0.356 against thresholds of 0.436 (legacy) and 0.476 (order
+statistic).
+
+## Every round gets its own sigma
+
+The replicates arrive on each `round_files` entry and every entry is read. The
+handler used to read the highest-numbered one alone and hand every earlier
+round `sigma_assay=None`, which left T2 NA on all of them. `_decide_core` asks
+for saturation in this round and in the one before it, so an earlier round
+could only ever saturate through T3, and T2 was structurally excluded from the
+two-round rule however certain it was. A campaign holding a flat hit rate and a
+flat best activity is a plateau by the classifier's own definition and was
+unreachable.
+
+`missing_inputs` follows from the same change. It is computed rather than
+constant: empty when every round handed over enough replicates to estimate a
+sigma from, and naming `wt_replicates` when any round did not.
+
 ## Related
 
 - `docs/2026-06-08-mame-transition-backtest.md`, the earlier revision to the

@@ -147,10 +147,13 @@ function formatDecidedAt(iso: string): string {
 /**
  * Footnote carried by an answered decision.
  *
- * The classifier reached a verdict, but some of its signals were unavailable
- * the whole time, so the verdict rests on a narrower base than the full model.
- * Saying which inputs were absent keeps that visible without implying the
- * verdict is in doubt.
+ * The classifier reached a verdict, but at least one round could not answer
+ * every signal, so the verdict rests on a narrower base than the full model.
+ * The list is per-campaign rather than per-round: a round that recorded no
+ * wild-type replicates leaves its own plateau check NA even when the judged
+ * round has them, which is why the note speaks of the rounds that lacked the
+ * input rather than of the verdict as a whole. It is drawn only when the list
+ * is non-empty, and an empty list is now the ordinary case.
  */
 function MissingInputsNote({
   missing,
@@ -165,6 +168,46 @@ function MissingInputsNote({
         missing: missingInputsText(missing, t),
       })}
     </p>
+  );
+}
+
+/**
+ * The two row counts the handler reports about the round being judged.
+ *
+ * Both are rendered straight from the response: nothing here recomputes or
+ * hardcodes a number, so the screen can only ever state what the backend
+ * counted. A count of zero says nothing an operator needs, and an answer stored
+ * before these fields existed carries neither, so each line is drawn only when
+ * its own count is present and non-zero.
+ *
+ * `wtRowNote` is worded around the workbook ROW on purpose. On the
+ * not_assessable branch it sits beside `wt_replicate_count`, and two wild-type
+ * numbers side by side are exactly the confusion the handler warns about: the
+ * replicates are raw step 4.1 measurements that feed the noise estimate, these
+ * rows are controls inside the file that feed nothing.
+ */
+function RoundCountsNote({
+  zeroActivityCount,
+  wtRowCount,
+}: {
+  zeroActivityCount?: number;
+  wtRowCount?: number;
+}) {
+  const { t } = useTranslation();
+  if (!zeroActivityCount && !wtRowCount) return null;
+  return (
+    <div className="flex flex-col gap-0.5">
+      {!!zeroActivityCount && (
+        <p className="text-meta text-muted-foreground">
+          {t("advisoryDecision.zeroActivityNote", { n: zeroActivityCount })}
+        </p>
+      )}
+      {!!wtRowCount && (
+        <p className="text-meta text-muted-foreground">
+          {t("advisoryDecision.wtRowNote", { n: wtRowCount })}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -204,6 +247,10 @@ function DecisionDisplay({ result }: { result: ClassifyDecisionResult }) {
         {reasonText(result.reason, t)}
       </p>
       <MissingInputsNote missing={result.missing_inputs} />
+      <RoundCountsNote
+        zeroActivityCount={result.zero_activity_count}
+        wtRowCount={result.wt_row_count}
+      />
     </div>
   );
 }
@@ -250,6 +297,10 @@ function NotAssessableDisplay({
           required: result.wt_replicate_min,
         })}
       </p>
+      <RoundCountsNote
+        zeroActivityCount={result.zero_activity_count}
+        wtRowCount={result.wt_row_count}
+      />
     </div>
   );
 }

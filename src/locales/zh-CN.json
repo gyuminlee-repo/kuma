@@ -2599,11 +2599,21 @@
     "descriptionRange": "自 v{{from}} 以来每次更新的主要变化。",
     "gotItBtn": "知道了",
     "highlights": [
-      "indel event 比例恰好落在阈值 0.50 上的孔现在判为 AMBIGUOUS 并送交复核，而不再判为 PASS。",
-      "位于校准区间内的孔，即噪声不高于 0.21 和真实缺失不低于 0.83 的孔，保持原有判定不变。"
+      "每一轮现在用自己的 wild-type 重复测量估计 assay noise，因此 plateau 检验能够支撑连续两轮的饱和判定规则。",
+      "hit rate 趋势只有在拟合斜率的下降幅度超过其自身 sampling error 时才算作下降。",
+      "活性恰好为 0 的变体现在照常计分，不再中断判定，并仍保留在 hit rate 的分母中。",
+      "工作簿中任何位置的 wild-type 对照行都会被计数，并排除在变体统计之外。",
+      "该建议会报告每一轮包含多少个零活性变体和多少条对照行。"
     ],
-    "highlightsStamp": "0.16.65+45d46897",
+    "highlightsStamp": "0.16.66+c8cb9c13",
     "releases": {
+      "0.16.66": [
+        "每一轮现在用自己的 wild-type 重复测量估计 assay noise，因此 plateau 检验能够支撑连续两轮的饱和判定规则。",
+        "hit rate 趋势只有在拟合斜率的下降幅度超过其自身 sampling error 时才算作下降。",
+        "活性恰好为 0 的变体现在照常计分，不再中断判定，并仍保留在 hit rate 的分母中。",
+        "工作簿中任何位置的 wild-type 对照行都会被计数，并排除在变体统计之外。",
+        "该建议会报告每一轮包含多少个零活性变体和多少条对照行。"
+      ],
       "0.16.65": [
         "indel event 比例恰好落在阈值 0.50 上的孔现在判为 AMBIGUOUS 并送交复核，而不再判为 PASS。",
         "位于校准区间内的孔，即噪声不高于 0.21 和真实缺失不低于 0.83 的孔，保持原有判定不变。"
@@ -3069,6 +3079,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.66": "c8cb9c13",
       "0.16.65": "45d46897",
       "0.16.64": "b5666e23",
       "0.16.63": "27af3ec6",
@@ -3719,7 +3730,9 @@
     "missingInputs": {
       "wt_replicates": "野生型重复测量值"
     },
-    "missingInputsNote": "在缺少{{missing}}的情况下作出判定，因此饱和判断仅依据 hit rate 趋势。",
+    "missingInputsNote": "至少有一轮缺少{{missing}}，该轮无法进行 plateau 判定，其饱和判断只能依据 hit rate 趋势。该趋势取全部轮次的 least-squares 斜率，只有当其负值超过自身抽样误差时才算下降。",
+    "zeroActivityNote": "本轮有 {{n}} 个变体的 activity 恰好为 0。它们同样经过设计并被测定，因此仍计入 hit rate 的分母，仅从 log2 统计中剔除。",
+    "wtRowNote": "本轮工作簿中有 {{n}} 行 wild-type（WT）对照。对照不是设计的变体，因此也从 hit rate 的计算中剔除。",
     "notAssessableBadge": "无法判定",
     "notAssessableSummary": "信号指向一次转变，但确认它需要{{missing}}，而这些文件并不包含。基于该输入无法回答{{blocked}}，只能判断是否继续 walking。",
     "notAssessableInsufficientSummary": "信号指向一次转变，但确认它至少需要 {{required}} 个{{missing}}，而本轮仅记录了 {{count}} 个。少于该数量就得不到噪声估计，饱和判断只能依据 hit rate 趋势，因而无法回答{{blocked}}。",
@@ -3730,7 +3743,7 @@
     "restoredUnverifiedNote": "{{files}} 不是本应用写入的，因此无法确认其后是否发生过改动。",
     "rebuiltNote": "{{when}} 的早前结论是在步骤 4.1 重新生成之前，由这些相同文件（{{files}}）算出的。它描述的是上一次生成的结果，因此仅作为历史保留；如需当前结果，请重新运行分类。",
     "supersededNote": "{{when}} 的早前结论是由另一组文件（{{files}}）算出的。它并未说明当前所选文件，因此不予显示。",
-    "headingHelp": "汇总多轮 EVOLVEpro 结果以寻找跨轮次的饱和信号，并给出继续 walking、转入 combinatorial、停止或暂缓的参考判定。只读：这里不确认也不保存任何内容，轮次不足 3 轮时尚不给出判定。",
+    "headingHelp": "汇总多轮 EVOLVEpro 结果以寻找跨轮次的饱和信号，并给出继续 walking、转入 combinatorial、停止或暂缓的参考判定。hit rate 趋势取全部轮次的 least-squares 斜率，只有负值超过自身抽样误差时才算下降。各轮记录的 wild-type 重复值用于该轮的 plateau 判定，因此可用连续两轮确认饱和。只读：这里不确认也不保存任何内容，轮次不足 3 轮时尚不给出判定。",
     "nextRoundCapacity": "下一轮板容量",
     "nextRoundCapacityHelper": "下一轮组合实验可用的孔数。它决定通量建议。"
   },

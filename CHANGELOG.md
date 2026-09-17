@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.16.66 (The last step reads its own signals)
+
+The transition advisory on the last MAME step recommends what to do in the next round. It was reaching those recommendations on a signal that could not tell an improving campaign from an exhausted one, while the signal that could was structurally excluded.
+
+Saturation is confirmed over two consecutive rounds. The handler read wild-type replicates from the last round alone and left every earlier round without a noise estimate, so the plateau test could only ever speak for the current round and the two-round rule rested on the hit-rate trend by itself. Measured against known answers, a campaign improving fourfold per round still drew a switch recommendation 13 percent of the time, and the hit-rate trend answered true in half of every scenario put to it, because a two-point slope was accepted with no margin at all. Each round now estimates noise from the replicates recorded for it, and the trend is a least-squares slope over every round that counts as a decline only when it falls further than its own sampling error.
+
+Real EVOLVEpro workbooks were refused before any of that was reached. A variant measured at exactly zero activity stopped the whole call, though a dead variant is an ordinary outcome. It is scored now and left out of the log2 statistics alone, staying in the hit-rate denominator because it was designed and measured. A wild-type control row anywhere in the sheet stopped the call as well. It is counted and taken out of the variant statistics, the denominator included, because a control was never a designed variant.
+
+The plateau threshold now uses the order-statistic null that the handler and the assay noise model were both written around, rather than the placeholder left in place when the advisory was first wired.
+
+### Highlights
+
+- A round now estimates assay noise from its own wild-type replicates, so the plateau test can carry the two-round saturation rule.
+- The hit-rate trend counts as a decline only when the fitted slope falls further than its own sampling error.
+- A variant measured at exactly zero activity is scored instead of stopping the call, and stays in the hit-rate denominator.
+- A wild-type control row anywhere in the workbook is counted and kept out of the variant statistics.
+- The advisory reports how many zero-activity variants and control rows a round carried.
+
 ## v0.16.65 (A well on the line goes to review)
 
 The indel event gate decides whether a well whose designed mutations are all confirmed still goes to human review because too many of its reads carry an insertion or deletion. That gate compared the observed indel event fraction against its threshold with a strict greater-than, so a well sitting exactly on the 0.50 threshold slipped past it and reached PASS. The fraction is a ratio of read counts, so that boundary is reached in practice: one well in a 288-well review sat at 0.500 and passed. The comparison is inclusive now, and a well on the threshold reads AMBIGUOUS with the indel note, the same as a well above it.

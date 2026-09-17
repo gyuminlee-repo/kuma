@@ -141,7 +141,9 @@ export async function sendRequest<T>(
  * @param roundFiles - Ordered list of {n, path, wt_values?} xlsx file entries.
  *   n is 1-based round number; the handler sorts by n internally. wt_values are
  *   the wild-type replicates step 4.1 recorded for that round, which the file
- *   itself cannot carry; only the highest-numbered entry is read.
+ *   itself cannot carry. Every entry is read: each round's own replicates
+ *   estimate the noise its T2 is judged against, and the highest-numbered entry
+ *   additionally feeds the bootstrap that confirms a switch or stop.
  * @param cNext - Optional capacity of the next combinatorial plate (wells).
  *   Used to derive K_throughput = floor((1+sqrt(1+8*cNext))/2). Defaults to 96.
  * @returns ClassifyDecisionResult when the classifier answered, or

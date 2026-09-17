@@ -224,7 +224,14 @@ const isClassifyRoundResult: MameResultValidator = (value) => {
       // back to `humanize` for a code with no phrase.
       isString(value.reason) &&
       isNullableFiniteNumber(value.confidence) &&
-      isStringArray(value.missing_inputs)
+      isStringArray(value.missing_inputs) &&
+      // The two round counts both shapes carry. Optional for the same reason
+      // as wt_replicate_count: an answer stored before they existed is
+      // replayed verbatim from the round snapshot and carries neither.
+      (value.zero_activity_count === undefined ||
+        isFiniteNumber(value.zero_activity_count)) &&
+      (value.wt_row_count === undefined ||
+        isFiniteNumber(value.wt_row_count))
     );
   }
   if (value.advisory === "not_assessable") {
@@ -240,7 +247,14 @@ const isClassifyRoundResult: MameResultValidator = (value) => {
       (value.wt_replicate_count === undefined ||
         isFiniteNumber(value.wt_replicate_count)) &&
       (value.wt_replicate_min === undefined ||
-        isFiniteNumber(value.wt_replicate_min))
+        isFiniteNumber(value.wt_replicate_min)) &&
+      // The two round counts both shapes carry. Optional for the same reason
+      // as wt_replicate_count: an answer stored before they existed is
+      // replayed verbatim from the round snapshot and carries neither.
+      (value.zero_activity_count === undefined ||
+        isFiniteNumber(value.zero_activity_count)) &&
+      (value.wt_row_count === undefined ||
+        isFiniteNumber(value.wt_row_count))
     );
   }
   return false;
