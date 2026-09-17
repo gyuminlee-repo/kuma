@@ -236,18 +236,18 @@ def test_overhang_max_below_binding_min_len_is_refused() -> None:
 
 @pytest.mark.parametrize("topology", ["linear", "circular"])
 @pytest.mark.parametrize("overhang_min,overhang_max", [(20, 60), (5, 60), (40, 120)])
-def test_search_direction_is_pinned_per_strand(
+def test_both_strands_search_outward(
     topology: str, overhang_min: int, overhang_max: int
 ) -> None:
-    """The two strands search in opposite directions and that is deliberate.
+    """Both strands walk outside-in, so both land on the reachable cap.
 
     With the Tm window opened wide and the GC clamp off, every candidate is
     acceptable, so the first one tried is the one returned and the resulting
-    coordinates are exact rather than approximate. Forward runs from the
-    largest reachable overhang inwards, so it lands on the cap. Reverse runs
-    from the smallest usable overhang outwards, so it lands on the floor.
-    Flipping either loop breaks this test, which is the point: the forward
-    ordering is what leaves terminal slack at the default of 60.
+    coordinates are exact rather than approximate. The 400 bp flanks exceed
+    every overhang_max in the grid, so no clamp binds and the cap is
+    overhang_max itself on both sides. Turning either loop towards the gene
+    breaks this test, which is the point: landing at the cap is what keeps the
+    30 bp terminal margin clear at both termini.
     """
     flank = 400
     gene = 750
@@ -271,13 +271,15 @@ def test_search_direction_is_pinned_per_strand(
     (fwd_start, _fwd_end), (_rev_start, rev_end) = _sites(template, fwd, rev)
 
     assert gene_start - fwd_start == overhang_max
-    assert rev_end - gene_end == max(overhang_min, 18)
+    assert rev_end - gene_end == overhang_max
     assert len(fwd) == len(rev) == 18
 
 
-def test_forward_direction_lands_on_the_clamped_cap() -> None:
-    """The same pin under a linear clamp: the cap is the template, not
-    overhang_max, and the forward primer still lands on it."""
+def test_both_strands_land_on_the_clamped_cap() -> None:
+    """The same pin under a linear clamp: the cap is the template rather than
+    overhang_max, and both strands still land on their own cap. The two caps
+    are min(overhang_max, gene_start) and min(overhang_max, seq_len - gene_end),
+    which is the same rule read from each end of the template."""
     flank = 30
     gene = 750
     template = _random_template(flank + gene + flank, seed=20260926)
@@ -293,5 +295,7 @@ def test_forward_direction_lands_on_the_clamped_cap() -> None:
     )
 
     (fwd_start, _fwd_end), (_rev_start, rev_end) = _sites(template, fwd, rev)
+    assert flank - fwd_start == min(60, flank)
+    assert rev_end - (flank + gene) == min(60, len(template) - (flank + gene))
     assert flank - fwd_start == 30
-    assert rev_end - (flank + gene) == 20
+    assert rev_end - (flank + gene) == 30

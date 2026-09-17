@@ -389,16 +389,24 @@ def design_flanking_primers(
     criteria, the candidate whose Tm is closest to ``(tm_min + tm_max) / 2`` is
     returned instead and a warning is appended.
 
-    The outer loop runs in opposite directions on the two strands, and this is
-    deliberate. Forward iterates ``pos`` ascending from
-    ``gene_start - overhang_max``, so the **largest** overhang is tried first
-    and the forward primer settles near ``overhang_max``. Reverse iterates
-    ``end`` ascending from ``gene_end + overhang_min``, so the **smallest**
-    reachable overhang is tried first and the reverse primer settles near
-    ``max(overhang_min, binding_min_len)``. Do not "fix" either direction
-    toward the gene or away from it without re-measuring: the forward ordering
-    is what leaves roughly ``overhang_max`` minus one binding site of terminal
-    slack at the default of 60, and both orderings are pinned by tests.
+    The outer loop walks **outside-in on both strands**, from the largest
+    reachable overhang towards ``overhang_min``. Forward iterates ``pos``
+    ascending from ``gene_start - overhang_max``; reverse iterates ``end``
+    descending from ``gene_end + overhang_max``, which is the same direction
+    expressed in that strand's coordinates. The first accepted candidate
+    therefore lands at the reachable cap on either side.
+
+    That direction is the point of the default of 60, so do not turn either
+    loop towards the gene without re-measuring. Landing at the cap leaves
+    roughly ``60`` minus one binding length of template between the primer and
+    the CDS on **both** sides, which keeps the 30 bp
+    ``variants_near_reference_edge`` margin clear at both termini. Walking
+    reverse inwards instead seated it near ``max(overhang_min,
+    binding_min_len)``, about 22 bp at the defaults, which pulled the last few
+    codons of the CDS inside that margin while the forward side was unaffected.
+    Both directions are pinned by
+    ``tests/mame/test_overhang_window.py::test_both_strands_search_outward``
+    and its clamped counterpart.
 
     Parameters
     ----------
@@ -547,18 +555,21 @@ def design_flanking_primers(
             f"{cause}."
         )
 
-    # Forward primer positions: `pos` runs from the largest reachable overhang
-    # down to overhang_min, so the first accepted candidate sits near
-    # overhang_max. The primer ends at gene_start at the latest, which caps its
+    # Both strands are walked outside-in: the first position tried is the one
+    # with the largest reachable overhang and the last is the one at
+    # overhang_min. `_first` and `_last` therefore name iteration order, not
+    # coordinate order, and the reverse loop counts down because on that strand
+    # the outermost coordinate is the largest one.
+    #
+    # Forward: the primer ends at gene_start at the latest, which caps its
     # length at the overhang itself.
     fwd_pos_first = gene_start - fwd_overhang_cap
     fwd_pos_last = gene_start - overhang_min  # inclusive
 
-    # Reverse binding sites end at `end`, which runs from the smallest overhang
-    # upwards. The site starts at gene_end at the earliest, which likewise caps
-    # its length at the overhang.
-    rev_end_first = gene_end + overhang_min
-    rev_end_last = gene_end + rev_overhang_cap  # inclusive
+    # Reverse: the binding site starts at gene_end at the earliest, which
+    # likewise caps its length at the overhang.
+    rev_end_first = gene_end + rev_overhang_cap
+    rev_end_last = gene_end + overhang_min  # inclusive
 
     tm_target = (tm_min + tm_max) / 2.0
 
@@ -614,7 +625,7 @@ def design_flanking_primers(
     rev_candidates: list[tuple[float, str]] = []
     rev_chosen: str | None = None
 
-    for end in range(rev_end_first, rev_end_last + 1):
+    for end in range(rev_end_first, rev_end_last - 1, -1):
         for length in range(binding_min_len, min(binding_max_len, end - gene_end) + 1):
             start = end - length
             if topology == "circular":
