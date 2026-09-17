@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import site
 from pathlib import Path
 
 import pytest
@@ -29,11 +30,12 @@ def isolated_home(tmp_path_factory) -> Path:
     previous = os.environ.get("HOME")
     previous_userbase = os.environ.get("PYTHONUSERBASE")
     # HOME also decides the per-user site-packages directory, and several tests
-    # re-launch a sidecar as a subprocess. Pin PYTHONUSERBASE to the real home
+    # re-launch a sidecar as a subprocess. Pin PYTHONUSERBASE to the real one
     # first or those subprocesses lose every dependency installed with
-    # "pip install --user".
-    if previous and previous_userbase is None:
-        os.environ["PYTHONUSERBASE"] = str(Path(previous) / ".local")
+    # "pip install --user". Read through site rather than assuming
+    # "$HOME/.local": macOS framework Python uses ~/Library/Python/3.x.
+    if previous_userbase is None:
+        os.environ["PYTHONUSERBASE"] = site.getuserbase()
     os.environ["HOME"] = str(home)
     yield home
     if previous is None:

@@ -204,10 +204,30 @@ class TestIdentityRules:
         assert report.error_codes == []
 
     def test_v11_case_only_stem_collision(self):
+        """The mixed-case file is the one rejected, and it names the survivor.
+
+        V11 is the one rule with no single-rule fixture, and that is a property
+        of the rule rather than of the test. A non-lowercase stem always trips
+        V7 (if it declares itself as the key) or V8 (if it declares the
+        lowercase key), so the collision can never be the only finding on the
+        file that loses it.
+        """
+        report = _report(
+            stem="Lab_Strain",
+            context=ValidationContext(sibling_stems=("lab_strain", "Lab_Strain")),
+        )
+        assert "V11" in report.error_codes
+        assert set(report.error_codes) == {"V8", "V11"}
+        assert report.warning_codes == []
+        assert report.checks_performed > 0
+        kept = next(f for f in report.errors if f.code == "V11").params["kept"]
+        assert kept == "lab_strain"
+
+    def test_v11_spares_the_lowercase_sibling(self):
         report = _report(
             context=ValidationContext(sibling_stems=("lab_strain", "Lab_Strain"))
         )
-        _assert_only(report, "V11")
+        assert report.error_codes == []
 
     def test_v12_no_display_name(self):
         _assert_only(_report(lambda d: d.update(name="   ")), "V12")
