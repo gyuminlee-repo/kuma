@@ -1,51 +1,86 @@
-name: Audit source snapshot (temporary)
+name: Audit regression verification (temporary)
 
-# Temporary review aid. Removed before this branch is merged.
+# PR #425 only. Removed before merge. Never writes main or creates a release.
 on:
   pull_request:
     branches: [main]
     paths:
       - .github/workflows/audit-snapshot.yml
-
+      - scripts/_audit_apply_20260918.py
 permissions:
   contents: read
-
 jobs:
-  test-runtime:
-    if: github.head_ref == 'audit/code-health-20260918'
+  reproduce-and-fix:
+    if: github.head_ref == 'audit/code-health-20260918' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-22.04
-    timeout-minutes: 15
+    timeout-minutes: 35
+    permissions:
+      contents: write
+    env:
+      AUDIT_BRANCH: audit/code-health-20260918
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
     steps:
       - uses: actions/checkout@v5
         with:
-          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 50
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
-      - name: Install test tools in isolated Python prefix
-        run: |
-          python -m pip install -e '.[test,typecheck,benchmark]' ruff
-          python python-core/scripts/vendor-minimap2.py
+      - run: python -m pip install -e '.[test,typecheck]' ruff
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
-      - name: Install locked frontend dependencies
-        run: pnpm install --frozen-lockfile
-      - name: Archive public test dependencies and tracked source
+      - run: pnpm install --frozen-lockfile
+      - name: Reproduce failures before changing production code
+        shell: bash
+        run: |
+          set +e
+          python -m pytest tests/test_audit_input_guards.py tests/mame/test_audit_runtime_guards.py -q > /tmp/audit-before-python.log 2>&1
+          py_status=$?
+          pnpm exec vitest run src/lib/primerSuggestion.audit.test.ts --reporter=dot > /tmp/audit-before-ui.log 2>&1
+          ui_status=$?
+          set -e
+          cat /tmp/audit-before-python.log /tmp/audit-before-ui.log
+          test "$py_status" = 1
+          test "$ui_status" = 1
+      - name: Apply only reviewed exact-preimage changes
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          python scripts/_audit_apply_20260918.py
+          git diff --check
+          git diff --stat
+      - name: Verify regression fixes
+        run: |
+          python -m pytest tests/test_audit_input_guards.py tests/mame/test_audit_runtime_guards.py -v
+          pnpm exec vitest run src/lib/primerSuggestion.audit.test.ts --reporter=dot
+      - name: Audit syntax and undefined names across the repository
+        run: |
+          python -m compileall -q kuma_core python-core scripts tests
+          python -m ruff check kuma_core python-core src-tauri scripts tests benchmark --select F821,F822,F823,E9 --output-format concise > /tmp/audit-static.log || true
+          cat /tmp/audit-static.log
+      - name: Verify complete Python suite and types
+        run: |
+          python python-core/scripts/vendor-minimap2.py
+          export KURO_MINIMAP2="$PWD/python-core/vendor/minimap2/minimap2-linux-x86_64"
+          if [ ! -f "$KURO_MINIMAP2" ]; then unset KURO_MINIMAP2; fi
+          python -m pytest tests/ -q -rs
+          python -m basedpyright
+      - name: Verify complete frontend suite and type contracts
+        run: |
+          pnpm exec tsc --noEmit
+          pnpm exec vitest run --silent --reporter=dot
+          pnpm gen:models:check
+      - name: Commit reviewed fixes to the audit branch only
+        shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/audit-runtime"
-          PY_PREFIX=$(python -c 'import sys; print(sys.prefix)')
-          tar -czf "$RUNNER_TEMP/audit-runtime/python-runtime.tar.gz" -C "$PY_PREFIX" .
-          tar -czf "$RUNNER_TEMP/audit-runtime/node-dependencies.tar.gz" node_modules python-core/vendor/minimap2
-          git bundle create "$RUNNER_TEMP/audit-runtime/review-history.bundle" --all
-          python -m pip freeze > "$RUNNER_TEMP/audit-runtime/python-packages.txt"
-      - uses: actions/upload-artifact@v6
-        with:
-          name: kuma-audit-runtime
-          path: ${{ runner.temp }}/audit-runtime/
-          retention-days: 1
-          if-no-files-found: error
-          compression-level: 0
+          test "$(git ls-remote origin "refs/heads/$AUDIT_BRANCH" | cut -f1)" = "$EXPECTED_HEAD"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add kuma_core/kuro/mutation.py kuma_core/mame/ingest/align.py kuma_core/mame/ingest/stage_marker.py kuma_core/mame/export/janus_mapping.py src/lib/primerSuggestion.ts
+          git -c core.hooksPath=/dev/null commit -m 'fix(audit): reject malformed inputs and safely drain alignment diagnostics'
+          git push origin "HEAD:refs/heads/$AUDIT_BRANCH"
+          git log -1 --format='%H %s'
+          git show --stat --oneline HEAD
