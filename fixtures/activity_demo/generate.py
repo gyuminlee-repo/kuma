@@ -47,11 +47,12 @@ SEED_WELLS: dict[str, str] = {
 
 # ── Generator ──────────────────────────────────────────────────────────────────
 
-def generate() -> None:
-    """Generate round1_activity.csv and plate_meta.json in this directory."""
+def generate(out_dir: Path | None = None) -> None:
+    """Generate activity files in out_dir, defaulting to this directory."""
     rng = random.Random(SEED)
 
-    out_dir = Path(__file__).parent
+    out_dir = Path(__file__).parent if out_dir is None else out_dir
+    out_dir.mkdir(parents=True, exist_ok=True)
     csv_path = out_dir / "round1_activity.csv"
     meta_path = out_dir / "plate_meta.json"
 

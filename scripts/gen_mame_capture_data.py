@@ -24,7 +24,6 @@ from __future__ import annotations
 import argparse
 import json
 import platform
-import subprocess
 import sys
 import time
 from pathlib import Path
@@ -69,61 +68,8 @@ def sidecar_path() -> Path:
     return ROOT / "src-tauri" / "binaries" / f"mame-sidecar-{triple}"
 
 
-class Sidecar:
-    """Line-delimited JSON-RPC client over the sidecar stdio pipe.
-
-    Progress notifications carry no `id`, so the read loop skips them and keeps
-    reading until the reply that answers the request arrives.
-    """
-
-    def __init__(self, binary: Path) -> None:
-        self._proc = subprocess.Popen(  # noqa: S603
-            [str(binary)],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
-            text=True,
-            bufsize=1,
-        )
-        self._next_id = 0
-
-    def call(self, method: str, params: dict, timeout_s: float = 900.0) -> dict:
-        self._next_id += 1
-        request_id = self._next_id
-        payload = {"jsonrpc": "2.0", "id": request_id, "method": method, "params": params}
-        assert self._proc.stdin is not None
-        assert self._proc.stdout is not None
-        self._proc.stdin.write(json.dumps(payload) + "\n")
-        self._proc.stdin.flush()
-
-        deadline = time.monotonic() + timeout_s
-        while time.monotonic() < deadline:
-            line = self._proc.stdout.readline()
-            if not line:
-                raise RuntimeError(f"{method}: sidecar closed the pipe")
-            try:
-                message = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if message.get("id") != request_id:
-                continue
-            if "error" in message:
-                raise RuntimeError(f"{method}: {json.dumps(message['error'], ensure_ascii=False)}")
-            return message["result"]
-        raise TimeoutError(f"{method}: no response within {timeout_s}s")
-
-    def close(self) -> None:
-        try:
-            self.call("shutdown", {}, timeout_s=10.0)
-        except Exception:  # noqa: BLE001 - shutdown is best effort
-            pass
-        assert self._proc.stdin is not None
-        self._proc.stdin.close()
-        try:
-            self._proc.wait(timeout=10)
-        except subprocess.TimeoutExpired:
-            self._proc.kill()
-
+sys.path.insert(0, str(ROOT / "python-core"))
+from scripts.capture_sidecar import Sidecar  # noqa: E402
 
 def log(message: str) -> None:
     sys.stdout.write(f"{message}\n")

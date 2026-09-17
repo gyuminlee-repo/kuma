@@ -26,7 +26,9 @@ Counting rules
 * All 64 codons are always emitted, taken from the genetic code rather than from
   the observed data, so a codon that never occurs appears with fraction 0.00 and
   the table stays complete for callers that build a codon-to-amino-acid map from
-  it.
+  it. An entirely unobserved amino acid group contains only 0.00 fractions.
+  Such sparse exports retain the genetic-code mapping but are not usable host
+  usage tables: CodonTableRegistry rejects any group without positive usage.
 
 Rounding
 --------
@@ -166,7 +168,8 @@ def build_rows(
         codons = by_aa[aa]
         total = sum(counts[c] for c in codons)
         if total == 0:
-            raise SystemExit(f"no codons counted for amino acid {aa!r}")
+            rows[aa] = [(c, 0.0) for c in sorted(codons)]
+            continue
         # Sort on the unrounded fraction so the emitted order can never
         # contradict the counts, and fall back to the codon string for an exact
         # tie. Descending raw order implies descending rounded order, so the

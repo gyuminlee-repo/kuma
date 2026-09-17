@@ -135,6 +135,7 @@ output/
 tmp/
 
 # Distribution artifacts
+tests/mame/e2e/artifacts/
 build/
 out/
 *.app/

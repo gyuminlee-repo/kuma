@@ -130,10 +130,10 @@ def write_reference(path: Path) -> None:
 
 
 def write_fastq_gz(path: Path, reads: list[tuple[str, str]]) -> None:
-    with gzip.open(path, "wt") as fh:
+    with path.open("wb") as raw, gzip.GzipFile(filename="", mode="wb", fileobj=raw, mtime=0) as fh:
         for read_id, seq in reads:
             qual = "I" * len(seq)
-            fh.write(f"@{read_id}\n{seq}\n+\n{qual}\n")
+            fh.write(f"@{read_id}\n{seq}\n+\n{qual}\n".encode("ascii"))
 
 
 def write_sample_map(path: Path) -> None:

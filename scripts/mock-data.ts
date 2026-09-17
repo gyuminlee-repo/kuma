@@ -6,11 +6,11 @@
  */
 
 import { createRequire } from "module";
+import type { AppState } from "../src/store/types";
 import type {
   SequenceInfo,
   SdmPrimerResult,
   PlateMapping,
-  FailedMutation,
 } from "../src/types/models";
 
 const require = createRequire(import.meta.url);
@@ -113,15 +113,7 @@ const mockYPredMap: Record<string, number> = Object.fromEntries(
 
 // --- Screen states ---
 
-// Mirrors SubStepId in src/store/slices/navigationSlice.ts. Declared locally
-// because tsconfig.scripts.json does not resolve the "@/" app alias.
-export type SubStepId =
-  | "design.load"
-  | "design.mutation"
-  | "design.params"
-  | "design.submit"
-  | "output.summary"
-  | "export.all";
+export type SubStepId = AppState["currentSubStep"];
 
 export interface ScreenState {
   name: string;
@@ -131,8 +123,7 @@ export interface ScreenState {
    * is a step wizard, so store state alone does not decide what renders.
    */
   nav?: SubStepId;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  state: Record<string, any>;
+  state: Partial<AppState>;
   /** Body of an IIFE run after the state is applied. Must not throw. */
   action?: string;
   /** Extra settle time before the shot (lazy dialogs need more). */
@@ -212,7 +203,7 @@ export const screenStates: ScreenState[] = [
       designResults: mockDesignResults,
       successCount: mockDesignResults.length,
       totalCount: 95,
-      failedMutations: [] as FailedMutation[],
+      failedMutations: [],
       plateMappings: mockPlateMappings,
       dedupInfo: mockDedupInfo,
       statusMessage: `${mockDesignResults.length}/95 designed | Tm: ${mockDesignResults.filter(r => r.tm_condition_met).length}/${mockDesignResults.length}`,
@@ -239,7 +230,7 @@ export const screenStates: ScreenState[] = [
       designResults: mockDesignResults,
       successCount: mockDesignResults.length,
       totalCount: 95,
-      failedMutations: [] as FailedMutation[],
+      failedMutations: [],
       plateMappings: mockPlateMappings,
       dedupInfo: mockDedupInfo,
       statusMessage: `${mockDesignResults.length}/95 designed | Tm: ${mockDesignResults.filter(r => r.tm_condition_met).length}/${mockDesignResults.length}`,
@@ -279,7 +270,7 @@ export const screenStates: ScreenState[] = [
       evolveproCsvPath: "C:\\samples\\sample_evolvepro.csv",
       mutationText: evolveMutationText,
       parsedMutations,
-      pipelineMode: true,
+      evolveproMode: "pipeline",
       evolveproTotalCount: 95,
       uniprotSearching: false,
       uniprotCandidates: [
@@ -361,10 +352,10 @@ export const screenStates: ScreenState[] = [
       mutationText: evolveMutationText,
       designResults: mockDesignResults.slice(0, 90),
       failedMutations: [
-        { mutation: "C361R", reason: "Tm out of range (fwd 71.2°C > target 62°C + 3)" },
-        { mutation: "H376S", reason: "Hairpin ΔG below threshold" },
-        { mutation: "F372N", reason: "No valid primer pair within GC range" },
-      ] as FailedMutation[],
+        { mutation: "C361R", rank: 13, reason: "Tm out of range (fwd 71.2°C > target 62°C + 3)" },
+        { mutation: "H376S", rank: 75, reason: "Hairpin ΔG below threshold" },
+        { mutation: "F372N", rank: 24, reason: "No valid primer pair within GC range" },
+      ],
       plateMappings: mockPlateMappings,
       dedupInfo: mockDedupInfo,
       successCount: 90,
@@ -378,7 +369,7 @@ export const screenStates: ScreenState[] = [
     name: "12-plate-multi",
     caption: "Multi-plate navigation (192 mutations = 2 plates)",
     nav: "output.summary",
-    state: (() => {
+    state: ((): Partial<AppState> => {
       const extended = [...mockDesignResults, ...mockDesignResults].slice(0, 192).map((r, i) => ({ ...r, mutation: `M${i+1}` }));
       const plates = extended.map((r, i) => ({
         well: wellName(i % 96),
@@ -439,7 +430,7 @@ export const screenStates: ScreenState[] = [
       evolveproCsvPath: "C:\\samples\\sample_evolvepro.csv",
       mutationText: evolveMutationText,
       parsedMutations,
-      pipelineMode: true,
+      evolveproMode: "pipeline",
       evolveproTotalCount: 95,
       positionDiversityEnabled: true,
       maxPerPosition: 2,
@@ -512,7 +503,7 @@ export const screenStates: ScreenState[] = [
       dedupInfo: mockDedupInfo,
       successCount: mockDesignResults.length,
       totalCount: 95,
-      failedMutations: [] as FailedMutation[],
+      failedMutations: [],
       showReport: true,
       progress: 100,
       isDesigning: false,
