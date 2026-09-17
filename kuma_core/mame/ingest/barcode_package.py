@@ -349,8 +349,8 @@ def design_flanking_primers(
     gene_start: int,
     gene_end: int,
     profile: PolymeraseProfile,
-    flank_min: int = 100,
-    flank_max: int = 400,
+    flank_min: int = 0,
+    flank_max: int = 60,
     binding_min_len: int = 18,
     binding_max_len: int = 35,
     tm_min: float = 55.0,
@@ -405,8 +405,9 @@ def design_flanking_primers(
         If True, the 3' terminal base of every candidate must be G or C.
     topology:
         Either "linear" (default) or "circular". When "linear", a search
-        window that falls outside ``cds_sequence`` boundaries raises
-        ValueError (unchanged behaviour). When "circular", the forward and
+        window that falls outside ``cds_sequence`` boundaries is clamped to
+        the sequence, and ValueError is raised only when the clamped window
+        is narrower than ``binding_min_len``. When "circular", the forward and
         reverse search windows are allowed to wrap around the sequence
         origin, since the corresponding template region physically exists on
         a circular molecule.
@@ -419,8 +420,8 @@ def design_flanking_primers(
     Raises
     ------
     ValueError
-        If topology is not "linear" or "circular", if the flank search window
-        falls outside ``cds_sequence`` boundaries under linear topology, if
+        If topology is not "linear" or "circular", if the clamped flank search
+        window under linear topology is narrower than ``binding_min_len``, if
         wrapping under circular topology would require reading past a full
         revolution of the sequence, or if ``gene_start >= gene_end``, or if
         parameter ranges are invalid.
@@ -477,12 +478,21 @@ def design_flanking_primers(
     fwd_region_start = gene_start - flank_max
     fwd_region_end = gene_start - flank_min  # exclusive upper bound for pos
 
-    if topology == "linear" and fwd_region_start < 0:
-        raise ValueError(
-            f"Forward primer search window starts at {fwd_region_start} "
-            f"(gene_start={gene_start}, flank_max={flank_max}); "
-            "sequence is too short upstream of the gene."
-        )
+    if topology == "linear":
+        # A linear template simply has no bases before position 0. Clamp the
+        # window to what exists instead of refusing: the physical requirement
+        # is flank_min plus one binding site, not the full flank_max.
+        fwd_region_start = max(0, fwd_region_start)
+        fwd_width = fwd_region_end - fwd_region_start
+        if fwd_width < binding_min_len:
+            raise ValueError(
+                f"Forward primer search window clamped to "
+                f"[{fwd_region_start}, {fwd_region_end}) leaves {fwd_width} bp, "
+                f"but binding_min_len ({binding_min_len}) bp is required "
+                f"(gene_start={gene_start}, flank_min={flank_min}, "
+                f"flank_max={flank_max}); "
+                "sequence is too short upstream of the gene."
+            )
     if fwd_region_end <= fwd_region_start:
         raise ValueError(
             f"Forward primer search window [{fwd_region_start}, {fwd_region_end}) "
@@ -494,12 +504,20 @@ def design_flanking_primers(
     rev_region_start = gene_end + flank_min
     rev_region_end = gene_end + flank_max    # inclusive upper bound for `end`
 
-    if topology == "linear" and rev_region_end > seq_len:
-        raise ValueError(
-            f"Reverse primer search window ends at {rev_region_end} "
-            f"(gene_end={gene_end}, flank_max={flank_max}); "
-            "sequence is too short downstream of the gene."
-        )
+    if topology == "linear":
+        # Same clamp on the downstream side: the window may not reach past the
+        # last base of the template, and what remains is often still enough.
+        rev_region_end = min(seq_len, rev_region_end)
+        rev_width = rev_region_end - rev_region_start
+        if rev_width < binding_min_len:
+            raise ValueError(
+                f"Reverse primer search window clamped to "
+                f"[{rev_region_start}, {rev_region_end}] leaves {rev_width} bp, "
+                f"but binding_min_len ({binding_min_len}) bp is required "
+                f"(gene_end={gene_end}, seq_len={seq_len}, "
+                f"flank_min={flank_min}, flank_max={flank_max}); "
+                "sequence is too short downstream of the gene."
+            )
     if rev_region_start > rev_region_end:
         raise ValueError(
             f"Reverse primer search window [{rev_region_start}, {rev_region_end}] "
@@ -643,8 +661,8 @@ def generate_mame_package(
     project_root: Path,
     gene_name: str,
     polymerase: str = "Q5",
-    flank_min: int = 100,
-    flank_max: int = 400,
+    flank_min: int = 0,
+    flank_max: int = 60,
     binding_min_len: int = 18,
     binding_max_len: int = 35,
     tm_min: float = 55.0,

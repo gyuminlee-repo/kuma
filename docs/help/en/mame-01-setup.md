@@ -22,7 +22,7 @@ This screen builds a MAME barcode package from a CDS sequence and a barcode seed
 | Polymerase | Q5 / Taq / Phusion / KOD | Defaults to Q5 |
 | Output location | Folder | Optional |
 
-The CDS sequence must be a plasmid or construct map that carries flanking template on both sides of the gene. MAME primers bind outside the gene, so at least flank_max (default 400 bp) of template is needed on each side. A CDS-only FASTA will not work.
+The CDS sequence must be a plasmid or construct map that carries flanking template on both sides of the gene. MAME primers bind outside the gene, so each side needs flank_min plus one binding site of template (35 bp per side at the defaults), not flank_max. On a linear template the search window is clamped to the sequence ends, and a circular template wraps around the origin, so the requirement applies to linear templates only. A CDS-only FASTA will not work.
 
 For GenBank input, only the first record and its CDS annotations are loaded. Export a desired later record with its flanking template as a separate GenBank file; annotations from different records cannot be combined with the first template.
 
@@ -35,7 +35,7 @@ The **Template topology** choice appears only for a plain FASTA (`.fa`, `.fasta`
 | Could not read gene annotations from this file | Check whether the GenBank or SnapGene file is damaged, then pick another file |
 | No CDS detected. Enter coordinates manually. | Type gene_start and gene_end yourself |
 | gene_end must be greater than gene_start. | Check that the two coordinates are not swapped |
-| Primer design may fail on a linear template | Template outside the gene is too short. Lower flank_max or use a file with longer flanking sequence. The button stays usable |
+| Primer design may fail on a linear template | Template outside the gene is shorter than flank_min plus one binding site. Lower flank_min or binding length, or use a file with longer flanking sequence. The button stays usable |
 | A project must be open to generate a package | Choose Open Project from the File menu. With no project the button stays disabled |
 | Cannot proceed, missing required input | Fill in the items listed in the toast. The button is clickable even with empty fields and answers with this notice |
 | Generation failed | Read the reason in the notice. Pressing again without changing a parameter gives the same outcome |

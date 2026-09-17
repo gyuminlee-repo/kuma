@@ -97,6 +97,11 @@ def _design_rows() -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
             fasta_path=_FASTA,
             gene_start=_GENE_START,
             gene_end=_GENE_END,
+            # Pinned to the values the committed sample workbook was generated
+            # with. The library defaults moved to 0/60; regenerating with those
+            # would silently change the sample primer sequences.
+            flank_min=100,
+            flank_max=400,
             barcode_seeds_path=_SEEDS,
             output_dir=tmp_path / "out",
             project_root=tmp_path,

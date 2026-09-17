@@ -86,8 +86,8 @@ def _make_fasta(path: Path, records: list[tuple[str, str]]) -> None:
 # Layout:
 #   - Total length: 1200 bp
 #   - Gene region: [500, 800]
-#   - Upstream flank available: 500 bp  (gene_start - flank_max = 500 - 400 = 100 >= 0)
-#   - Downstream flank available: 400 bp (gene_end + flank_max = 800 + 400 = 1200 <= 1200)
+#   - Upstream flank available: 500 bp  (far beyond the default flank_max = 60)
+#   - Downstream flank available: 400 bp (far beyond the default flank_max = 60)
 #
 # Sequence is a fixed mixed-composition string to give realistic Tm values.
 # ---------------------------------------------------------------------------
@@ -149,8 +149,8 @@ class TestDesignFlankingPrimers:
     """
     CDS layout:
       total = 1200 bp, gene = [500, 800]
-      upstream available: 500 bp (> flank_max=400)
-      downstream available: 400 bp (== flank_max=400)
+      upstream available: 500 bp (>> default flank_max=60)
+      downstream available: 400 bp (>> default flank_max=60)
     """
 
     _PROFILE = get_profile("Q5")
@@ -284,22 +284,31 @@ class TestDesignFlankingPrimers:
         assert len(warns) > 0, "Expected warnings when Tm window is unachievable"
 
     def test_gene_start_too_close_to_boundary_raises(self) -> None:
-        """gene_start - flank_max < 0 must raise ValueError."""
+        """An upstream window that clamps to less than one binding site raises.
+
+        The window overrunning position 0 is no longer the trigger: it is
+        clamped. Only a clamped width below binding_min_len is fatal, so
+        gene_start=10 leaves [0, 10), which is 10 bp against the 18 bp needed.
+        """
         with pytest.raises(ValueError, match="too short upstream"):
             design_flanking_primers(
                 _CDS_1200,
-                gene_start=50,   # 50 - 400 = -350 < 0
+                gene_start=10,
                 gene_end=800,
                 profile=self._PROFILE,
             )
 
     def test_gene_end_too_close_to_boundary_raises(self) -> None:
-        """gene_end + flank_max > len(cds_sequence) must raise ValueError."""
+        """A downstream window that clamps to less than one binding site raises.
+
+        gene_end=1195 on a 1200 bp template leaves [1195, 1200], which is 5 bp
+        against the 18 bp needed.
+        """
         with pytest.raises(ValueError, match="too short downstream"):
             design_flanking_primers(
                 _CDS_1200,
                 gene_start=500,
-                gene_end=900,    # 900 + 400 = 1300 > 1200
+                gene_end=1195,
                 profile=self._PROFILE,
             )
 
@@ -375,6 +384,8 @@ class TestCircularTopology:
             gene_start=267,
             gene_end=1950,
             profile=self._PROFILE,
+            flank_min=100,
+            flank_max=400,
             topology="circular",
         )
         assert fwd and fwd == fwd.lower()
@@ -390,6 +401,8 @@ class TestCircularTopology:
             gene_start=800,
             gene_end=1100,
             profile=self._PROFILE,
+            flank_min=100,
+            flank_max=400,
             topology="circular",
         )
         assert fwd and fwd == fwd.lower()
@@ -398,23 +411,44 @@ class TestCircularTopology:
         assert 18 <= len(rev) <= 35
 
     def test_linear_topology_still_raises_for_same_coordinates(self) -> None:
-        """The same coordinates that succeed under circular topology must still
-        raise the original error under (default) linear topology."""
+        """Wrapping remains the difference between the two topologies.
+
+        Linear clamping rescues a window that merely overruns the template. It
+        cannot rescue one that leaves less than a binding site, and at those
+        very coordinates circular topology still wraps and succeeds.
+        """
         with pytest.raises(ValueError, match="too short upstream"):
             design_flanking_primers(
-                _CDS_CIRCULAR_6494,
-                gene_start=267,
-                gene_end=1950,
+                _CDS_1200,
+                gene_start=10,
+                gene_end=800,
                 profile=self._PROFILE,
             )
+        fwd, rev, _warns = design_flanking_primers(
+            _CDS_1200,
+            gene_start=10,
+            gene_end=800,
+            profile=self._PROFILE,
+            topology="circular",
+        )
+        assert fwd and rev
+
         with pytest.raises(ValueError, match="too short downstream"):
             design_flanking_primers(
                 _CDS_1200,
-                gene_start=800,
-                gene_end=1100,
+                gene_start=500,
+                gene_end=1195,
                 profile=self._PROFILE,
                 topology="linear",
             )
+        fwd, rev, _warns = design_flanking_primers(
+            _CDS_1200,
+            gene_start=500,
+            gene_end=1195,
+            profile=self._PROFILE,
+            topology="circular",
+        )
+        assert fwd and rev
 
     def test_degenerate_window_wider_than_sequence_raises(self) -> None:
         """flank_max - flank_min > seq_len must raise a clear error naming
@@ -581,13 +615,18 @@ class TestGenerateMamePackage:
         )
 
     def test_amplicon_range_out_of_bounds_raises(self, tmp_path: Path) -> None:
+        """The package entry point propagates the window failure.
+
+        The downstream window is clamped to the template, so the trigger is a
+        clamped width below binding_min_len: gene_end=1195 leaves 5 bp.
+        """
         fasta, seeds, project_root = _make_project(tmp_path)
         output_dir = project_root / "design"
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="too short downstream"):
             generate_mame_package(
                 fasta_path=fasta,
                 gene_start=500,
-                gene_end=900,    # 900 + 400 = 1300 > 1200
+                gene_end=1195,
                 barcode_seeds_path=seeds,
                 output_dir=output_dir,
                 project_root=project_root,

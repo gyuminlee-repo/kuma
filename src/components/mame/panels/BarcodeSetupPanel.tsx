@@ -72,8 +72,8 @@ const DEFAULT_STATE: SetupFormState = {
   geneEnd: "",
   geneName: "",
   polymerase: "Q5",
-  flankMin: "100",
-  flankMax: "400",
+  flankMin: "0",
+  flankMax: "60",
   bindingMinLen: "18",
   bindingMaxLen: "35",
   tmMin: "55.0",
@@ -401,25 +401,28 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
     Boolean(form.fastaPath) && !ANNOTATED_EXTENSIONS.has(getExtension(form.fastaPath));
 
   // ─── 플랭크 preflight 경고 ────────────────────────────────────────────────
-  // 경고일 뿐 차단하지 않는다. circular-plasmid wraparound 지원이 백엔드에
-  // 추가되면 일부 케이스는 실제로 성공할 수 있으므로 "실패할 수 있음"으로 표현.
-  const flankMaxNum = parseInt(form.flankMax, 10);
+  // 경고일 뿐 차단하지 않는다. 백엔드는 linear 창을 서열 경계로 클램프하므로
+  // flank_max 가 아니라 flank_min + 결합 길이가 실제 물리적 최소 요구다.
+  const flankMinNum = parseInt(form.flankMin, 10);
+  const bindingMaxLenNum = parseInt(form.bindingMaxLen, 10);
+  const flankNeeded = flankMinNum + bindingMaxLenNum;
   const flankWarnings: string[] = [];
   if (
     isPlainFasta &&
     form.topology === "linear" &&
     isRangeValid &&
     seqLength !== null &&
-    Number.isFinite(flankMaxNum)
+    Number.isFinite(flankMinNum) &&
+    Number.isFinite(bindingMaxLenNum)
   ) {
     const upstreamAvailable = geneStartNum;
     const downstreamAvailable = seqLength - geneEndNum;
-    const upstreamShortfall = flankMaxNum - upstreamAvailable;
-    const downstreamShortfall = flankMaxNum - downstreamAvailable;
+    const upstreamShortfall = flankNeeded - upstreamAvailable;
+    const downstreamShortfall = flankNeeded - downstreamAvailable;
     if (upstreamShortfall > 0) {
       flankWarnings.push(
         t("mame.barcodeSetup.flankWarningUpstream", {
-          needed: flankMaxNum,
+          needed: flankNeeded,
           available: Math.max(upstreamAvailable, 0),
           shortfall: upstreamShortfall,
         }),
@@ -428,7 +431,7 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
     if (downstreamShortfall > 0) {
       flankWarnings.push(
         t("mame.barcodeSetup.flankWarningDownstream", {
-          needed: flankMaxNum,
+          needed: flankNeeded,
           available: Math.max(downstreamAvailable, 0),
           shortfall: downstreamShortfall,
         }),
@@ -837,7 +840,7 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
               onChange={(v) => setForm({ flankMin: v })}
               min={0}
               step={1}
-              placeholder="100"
+              placeholder="0"
             />
             <NumberField
               id="flank-max"
@@ -847,7 +850,7 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
               onChange={(v) => setForm({ flankMax: v })}
               min={1}
               step={1}
-              placeholder="400"
+              placeholder="60"
             />
           </div>
         </section>

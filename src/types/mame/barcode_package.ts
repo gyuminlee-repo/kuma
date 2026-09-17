@@ -24,9 +24,9 @@ export interface GenerateMamePackageParams {
   gene_name: string
   /** Polymerase preset for Tm calculation. Default: "Q5". */
   polymerase?: string
-  /** Minimum flank length (nt). Default: 100. */
+  /** Minimum flank length (nt). Default: 0. */
   flank_min?: number
-  /** Maximum flank length (nt). Default: 400. */
+  /** Maximum flank length (nt). Default: 60. */
   flank_max?: number
   /** Minimum binding region length (nt). Default: 18. */
   binding_min_len?: number
