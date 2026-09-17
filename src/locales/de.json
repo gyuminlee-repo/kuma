@@ -2599,14 +2599,15 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Eine Deletion, die nur die Hälfte der Reads stützt, befreit ein Well nicht mehr vom No-Call-Gate, daher liest sich eine Stelle mit 40 oder 50 Prozent als No Call.",
-      "Der Schritt für Aktivitätsdaten hängt ein NGS-Urteil nicht mehr an eine andere Variante als die, welche die Zeile nennt.",
-      "Echo- und JANUS-Dateien aus einem verkleinerten Zeilenbereich oder über mehrere Platten behalten die Stock-Positionen aus dem Bestellbogen.",
-      "Beim erneuten Öffnen bleibt die Auswahl erhalten und Ausgaben ohne ihre Eingaben entfallen; ein nie gelaufener Benchmark meldet keinen Schaden mehr.",
-      "Unter Linux funktioniert das Scratch-Autospeichern im versteckten App-Datenordner und Datei > Beenden schließt das Fenster."
+      "Ein Well, dessen Indel-Event-Anteil genau auf dem Schwellenwert 0,50 liegt, wird jetzt als AMBIGUOUS geprüft statt als PASS gewertet.",
+      "Wells innerhalb der kalibrierten Bereiche, Rauschen bis 0,21 und echte Deletionen ab 0,83, behalten ihr bisheriges Urteil."
     ],
-    "highlightsStamp": "0.16.64+b5666e23",
+    "highlightsStamp": "0.16.65+45d46897",
     "releases": {
+      "0.16.65": [
+        "Ein Well, dessen Indel-Event-Anteil genau auf dem Schwellenwert 0,50 liegt, wird jetzt als AMBIGUOUS geprüft statt als PASS gewertet.",
+        "Wells innerhalb der kalibrierten Bereiche, Rauschen bis 0,21 und echte Deletionen ab 0,83, behalten ihr bisheriges Urteil."
+      ],
       "0.16.64": [
         "Eine Deletion, die nur die Hälfte der Reads stützt, befreit ein Well nicht mehr vom No-Call-Gate, daher liest sich eine Stelle mit 40 oder 50 Prozent als No Call.",
         "Der Schritt für Aktivitätsdaten hängt ein NGS-Urteil nicht mehr an eine andere Variante als die, welche die Zeile nennt.",
@@ -3068,6 +3069,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.65": "45d46897",
       "0.16.64": "b5666e23",
       "0.16.63": "27af3ec6",
       "0.16.62": "e46c1db9",

@@ -2599,14 +2599,15 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Una deleción que solo respalda la mitad de las lecturas ya no exime a un pocillo del control de no call, así que un sitio con 40 o 50 por ciento se lee como no call.",
-      "El paso de datos de actividad se niega a asignar un veredicto NGS a una variante distinta de la que nombra su fila.",
-      "Los archivos de Echo y JANUS de un rango de filas reducido o de varias placas conservan las posiciones de stock que indica la hoja de pedido.",
-      "Al reabrir un espacio de trabajo se mantiene la selección y se descarta la salida cuyas entradas ya no están; un benchmark nunca ejecutado deja de avisar de daños.",
-      "En Linux el autoguardado temporal funciona bajo la carpeta oculta de datos de la aplicación y Archivo > Salir cierra la ventana."
+      "Un pocillo cuya fracción de eventos indel cae exactamente en el umbral 0,50 ahora se marca AMBIGUOUS y pasa a revisión en lugar de PASS.",
+      "Los pocillos dentro de las bandas calibradas, ruido hasta 0,21 y deleciones reales desde 0,83, conservan el veredicto que tenían."
     ],
-    "highlightsStamp": "0.16.64+b5666e23",
+    "highlightsStamp": "0.16.65+45d46897",
     "releases": {
+      "0.16.65": [
+        "Un pocillo cuya fracción de eventos indel cae exactamente en el umbral 0,50 ahora se marca AMBIGUOUS y pasa a revisión en lugar de PASS.",
+        "Los pocillos dentro de las bandas calibradas, ruido hasta 0,21 y deleciones reales desde 0,83, conservan el veredicto que tenían."
+      ],
       "0.16.64": [
         "Una deleción que solo respalda la mitad de las lecturas ya no exime a un pocillo del control de no call, así que un sitio con 40 o 50 por ciento se lee como no call.",
         "El paso de datos de actividad se niega a asignar un veredicto NGS a una variante distinta de la que nombra su fila.",
@@ -3068,6 +3069,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.65": "45d46897",
       "0.16.64": "b5666e23",
       "0.16.63": "27af3ec6",
       "0.16.62": "e46c1db9",
