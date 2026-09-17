@@ -99,6 +99,23 @@ class TestUserDirectoryResolution:
         assert set(failed) == {"broken.json"}
         assert failed["broken.json"]["code"] == "V3"
 
+    def test_case_only_collision_keeps_the_lowercase_file(self, user_dir):
+        # Linux lets both names coexist. The lowercase one is the one kuma can
+        # actually key on, so it loads and the other is reported.
+        (user_dir / "lab_strain.json").write_text(
+            json.dumps(_valid_user_table("lab_strain")), encoding="utf-8"
+        )
+        (user_dir / "Lab_Strain.json").write_text(
+            json.dumps(_valid_user_table("lab_strain")), encoding="utf-8"
+        )
+        registry = codon_table_mod.get_registry()
+        registry.refresh()
+        scan = registry.scan()
+        assert "lab_strain" in registry.list_organisms()
+        failed = {f["filename"]: f for f in scan["failed"]}
+        assert set(failed) == {"Lab_Strain.json"}
+        assert "lab_strain" in failed["Lab_Strain.json"]["reason"]
+
     def test_r5_bundled_stem_shadows_the_user_file(self, user_dir):
         # Different numbers under the built-in key, so the lookup assertion
         # below distinguishes the two files rather than comparing equals.

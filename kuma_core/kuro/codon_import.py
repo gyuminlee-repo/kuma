@@ -200,14 +200,16 @@ class ValidationReport:
     def warning_codes(self) -> list[str]:
         return [f.code for f in self.warnings]
 
-    def _err(self, code: str, detail: str, **params: Any) -> None:
-        self.errors.append(Finding(code, params, detail))
+    # ``message`` is positional-only: several rules carry a "detail" parameter
+    # of their own (V3 does), and a keyword named detail would collide.
+    def _err(self, code: str, message: str, /, **params: Any) -> None:
+        self.errors.append(Finding(code, params, message))
 
-    def _warn(self, code: str, detail: str, **params: Any) -> None:
-        self.warnings.append(Finding(code, params, detail))
+    def _warn(self, code: str, message: str, /, **params: Any) -> None:
+        self.warnings.append(Finding(code, params, message))
 
-    def _norm(self, code: str, detail: str, **params: Any) -> None:
-        self.normalizations.append(Finding(code, params, detail))
+    def _norm(self, code: str, message: str, /, **params: Any) -> None:
+        self.normalizations.append(Finding(code, params, message))
 
 
 def canonical_digest(
@@ -285,7 +287,7 @@ def validate_codon_table_file(
             f"{exc.colno}): {exc.msg}.",
             line=exc.lineno,
             col=exc.colno,
-            detail_msg=exc.msg,
+            detail=exc.msg,
         )
         return report
 
@@ -407,13 +409,19 @@ def _check_identity(
         if s != stem and s.lower() == stem.lower()
     ]
     if clashes:
-        kept = sorted([stem, *clashes])[0]
-        report._err(
-            "V11",
-            f"{stem}.json and {clashes[0]}.json produce the same key on "
-            f"case-insensitive file systems. Only {kept} was loaded.",
-            kept=kept,
-        )
+        # The survivor is the all-lowercase spelling, not whichever sorts
+        # first: V7 requires a lowercase key, so any other spelling is
+        # rejected anyway. Only the losers report V11, otherwise the file that
+        # is actually loaded would be rejected by a message naming itself as
+        # the one that was kept.
+        kept = stem.lower()
+        if stem != kept:
+            report._err(
+                "V11",
+                f"{stem}.json and {clashes[0]}.json produce the same key on "
+                f"case-insensitive file systems. Only {kept} was loaded.",
+                kept=kept,
+            )
 
     report.checks_performed += 1  # V12
     name = data.get("name")
