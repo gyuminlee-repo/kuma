@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.16.67 (The window is what reaches past the gene)
+
+The MAME barcode step asked for two numbers that measured different things under one name. flank_min was a gap, the empty distance between the primer end nearest the gene and the gene boundary. flank_max was an overhang, how far the outer end of the primer sat from that same boundary. Nothing said so, and the help text explained the pair as though both were the second kind, which is why it claimed a template needed at least 400 bp on each side.
+
+Measured against the run the workflow was built on, that claim was wrong by a factor of twenty-five. The forward primer of the shipped ispS design binds at 251 and the reverse at 1951 on a 6494 bp construct whose CDS runs from 267 to 1950, so the amplicon reaches 16 bp past the coding region at each end. The archived amplicon for that construct records the same span. The default window of 100 to 400 could not hold either site, and the 400 was never a requirement at all: the linear path refused any template shorter than flank_max upstream rather than searching the part of it that existed.
+
+The window is now a single axis. overhang_min and overhang_max state how far the amplicon may reach past the CDS, defaulting to 20 and 60. A primer never enters the coding region, which is a fixed property rather than a setting, because bases a primer supplies cannot be read as variants. A linear template is searched to its own edge and refused only when what remains cannot hold the shortest binding site, and the refusal says which of the two causes applies.
+
+Both strands now search outward from the gene. The reverse strand used to walk inward and land about 22 bp past the CDS while the forward strand landed at 60, so the last codons of a gene fell inside the edge margin that flags variants near the end of a reference. Both strands reach the same distance now and the amplicon is symmetric.
+
+A project saved before this release carries flank_min and flank_max. flank_max is the same quantity as overhang_max and is kept. flank_min measured a gap that no longer has a setting, so it is dropped and the new default applies.
+
+### Highlights
+
+- The barcode step now states one number, how far the amplicon may reach past the CDS, instead of a gap and an overhang sharing a name.
+- Defaults drop from 100 and 400 to 20 and 60, a range that holds the 16 bp overhang measured on the shipped ispS design.
+- A short linear template is searched to its own edge instead of being refused for being shorter than the outer search bound.
+- Both strands search outward, so the amplicon is symmetric and the last codons stay clear of the reference edge margin.
+- A primer can no longer sit inside the coding region, and a saved flank_max carries over as overhang_max.
+
 ## v0.16.66 (The last step reads its own signals)
 
 The transition advisory on the last MAME step recommends what to do in the next round. It was reaching those recommendations on a signal that could not tell an improving campaign from an exhausted one, while the signal that could was structurally excluded.

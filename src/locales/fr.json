@@ -2599,14 +2599,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Un tour estime désormais l’assay noise à partir de ses propres réplicats wild-type, si bien que le test de plateau peut porter la règle de saturation sur deux tours.",
-      "La tendance du hit rate ne compte comme baisse que si la pente ajustée descend plus que sa propre sampling error.",
-      "Un variant mesuré à une activité exactement nulle est noté au lieu d’arrêter le verdict, et reste au dénominateur du hit rate.",
-      "Une ligne de contrôle wild-type, où qu’elle soit dans le classeur, est comptée et tenue hors des statistiques de variants.",
-      "L’avis indique combien de variants à activité nulle et combien de lignes de contrôle chaque tour comportait."
+      "L etape de code-barres recoit desormais un seul nombre, la distance dont l amplicon depasse le CDS, au lieu de faire partager un nom au gap et a l overhang.",
+      "Les valeurs par defaut passent de 100 et 400 a 20 et 60, une plage qui contient l overhang de 16 bp mesure sur la conception ispS.",
+      "Une matrice lineaire courte est exploree jusqu a son propre bord au lieu d etre refusee parce qu elle est plus courte que la borne exterieure de recherche.",
+      "Les deux brins cherchent vers l exterieur, l amplicon est donc symetrique et les derniers codons restent hors de la marge de bord de reference.",
+      "Une amorce ne peut plus se placer dans la region codante, et un flank_max enregistre est repris comme overhang_max."
     ],
-    "highlightsStamp": "0.16.66+c8cb9c13",
+    "highlightsStamp": "0.16.67+a8a547ef",
     "releases": {
+      "0.16.67": [
+        "L etape de code-barres recoit desormais un seul nombre, la distance dont l amplicon depasse le CDS, au lieu de faire partager un nom au gap et a l overhang.",
+        "Les valeurs par defaut passent de 100 et 400 a 20 et 60, une plage qui contient l overhang de 16 bp mesure sur la conception ispS.",
+        "Une matrice lineaire courte est exploree jusqu a son propre bord au lieu d etre refusee parce qu elle est plus courte que la borne exterieure de recherche.",
+        "Les deux brins cherchent vers l exterieur, l amplicon est donc symetrique et les derniers codons restent hors de la marge de bord de reference.",
+        "Une amorce ne peut plus se placer dans la region codante, et un flank_max enregistre est repris comme overhang_max."
+      ],
       "0.16.66": [
         "Un tour estime désormais l’assay noise à partir de ses propres réplicats wild-type, si bien que le test de plateau peut porter la règle de saturation sur deux tours.",
         "La tendance du hit rate ne compte comme baisse que si la pente ajustée descend plus que sa propre sampling error.",
@@ -3079,6 +3086,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.67": "a8a547ef",
       "0.16.66": "c8cb9c13",
       "0.16.65": "45d46897",
       "0.16.64": "b5666e23",

@@ -2599,14 +2599,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Eine Runde schätzt das assay noise jetzt aus ihren eigenen wild-type Replikaten, sodass der plateau-Test die Sättigungsregel über zwei Runden tragen kann.",
-      "Der hit-rate-Trend gilt nur dann als Rückgang, wenn die angepasste Steigung stärker fällt als ihr eigener sampling error.",
-      "Eine Variante mit exakt null Aktivität wird bewertet, statt die Auswertung zu stoppen, und bleibt im Nenner der hit rate.",
-      "Eine wild-type-Kontrollzeile wird überall in der Arbeitsmappe gezählt und aus der Variantenstatistik herausgehalten.",
-      "Die Empfehlung meldet, wie viele Varianten mit Aktivität null und wie viele Kontrollzeilen eine Runde enthielt."
+      "Der Barcode-Schritt nimmt jetzt nur eine Zahl entgegen, wie weit das Amplikon über die CDS hinausreicht, statt Gap und Overhang unter einem Namen zu führen.",
+      "Die Standardwerte sinken von 100 und 400 auf 20 und 60, ein Bereich, der den auf dem ispS-Design gemessenen Overhang von 16 bp enthaelt.",
+      "Ein kurzes lineares Template wird bis zu seinem eigenen Rand durchsucht, statt wegen Unterschreitung der aeusseren Suchgrenze abgelehnt zu werden.",
+      "Beide Straenge suchen nach aussen, das Amplikon ist dadurch symmetrisch und die letzten Codons bleiben ausserhalb der Reference Edge Margin.",
+      "Ein Primer kann nicht mehr innerhalb der kodierenden Region liegen, und ein gespeichertes flank_max wird als overhang_max uebernommen."
     ],
-    "highlightsStamp": "0.16.66+c8cb9c13",
+    "highlightsStamp": "0.16.67+a8a547ef",
     "releases": {
+      "0.16.67": [
+        "Der Barcode-Schritt nimmt jetzt nur eine Zahl entgegen, wie weit das Amplikon über die CDS hinausreicht, statt Gap und Overhang unter einem Namen zu führen.",
+        "Die Standardwerte sinken von 100 und 400 auf 20 und 60, ein Bereich, der den auf dem ispS-Design gemessenen Overhang von 16 bp enthaelt.",
+        "Ein kurzes lineares Template wird bis zu seinem eigenen Rand durchsucht, statt wegen Unterschreitung der aeusseren Suchgrenze abgelehnt zu werden.",
+        "Beide Straenge suchen nach aussen, das Amplikon ist dadurch symmetrisch und die letzten Codons bleiben ausserhalb der Reference Edge Margin.",
+        "Ein Primer kann nicht mehr innerhalb der kodierenden Region liegen, und ein gespeichertes flank_max wird als overhang_max uebernommen."
+      ],
       "0.16.66": [
         "Eine Runde schätzt das assay noise jetzt aus ihren eigenen wild-type Replikaten, sodass der plateau-Test die Sättigungsregel über zwei Runden tragen kann.",
         "Der hit-rate-Trend gilt nur dann als Rückgang, wenn die angepasste Steigung stärker fällt als ihr eigener sampling error.",
@@ -3079,6 +3086,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.67": "a8a547ef",
       "0.16.66": "c8cb9c13",
       "0.16.65": "45d46897",
       "0.16.64": "b5666e23",

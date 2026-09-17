@@ -2653,14 +2653,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "A round now estimates assay noise from its own wild-type replicates, so the plateau test can carry the two-round saturation rule.",
-      "The hit-rate trend counts as a decline only when the fitted slope falls further than its own sampling error.",
-      "A variant measured at exactly zero activity is scored instead of stopping the call, and stays in the hit-rate denominator.",
-      "A wild-type control row anywhere in the workbook is counted and kept out of the variant statistics.",
-      "The advisory reports how many zero-activity variants and control rows a round carried."
+      "The barcode step now states one number, how far the amplicon may reach past the CDS, instead of a gap and an overhang sharing a name.",
+      "Defaults drop from 100 and 400 to 20 and 60, a range that holds the 16 bp overhang measured on the shipped ispS design.",
+      "A short linear template is searched to its own edge instead of being refused for being shorter than the outer search bound.",
+      "Both strands search outward, so the amplicon is symmetric and the last codons stay clear of the reference edge margin.",
+      "A primer can no longer sit inside the coding region, and a saved flank_max carries over as overhang_max."
     ],
-    "highlightsStamp": "0.16.66+c8cb9c13",
+    "highlightsStamp": "0.16.67+a8a547ef",
     "releases": {
+      "0.16.67": [
+        "The barcode step now states one number, how far the amplicon may reach past the CDS, instead of a gap and an overhang sharing a name.",
+        "Defaults drop from 100 and 400 to 20 and 60, a range that holds the 16 bp overhang measured on the shipped ispS design.",
+        "A short linear template is searched to its own edge instead of being refused for being shorter than the outer search bound.",
+        "Both strands search outward, so the amplicon is symmetric and the last codons stay clear of the reference edge margin.",
+        "A primer can no longer sit inside the coding region, and a saved flank_max carries over as overhang_max."
+      ],
       "0.16.66": [
         "A round now estimates assay noise from its own wild-type replicates, so the plateau test can carry the two-round saturation rule.",
         "The hit-rate trend counts as a decline only when the fitted slope falls further than its own sampling error.",
@@ -3133,6 +3140,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.67": "a8a547ef",
       "0.16.66": "c8cb9c13",
       "0.16.65": "45d46897",
       "0.16.64": "b5666e23",

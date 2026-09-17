@@ -2599,14 +2599,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Cada rodada estima agora o assay noise a partir das próprias réplicas wild-type, de modo que o teste de plateau sustenta a regra de saturação de duas rodadas.",
-      "A tendência do hit rate só conta como queda quando a inclinação ajustada cai mais do que o próprio sampling error.",
-      "Uma variante com atividade exatamente zero passa a ser pontuada em vez de interromper o veredito e permanece no denominador do hit rate.",
-      "Uma linha de controle wild-type em qualquer parte da planilha é contada e mantida fora das estatísticas de variantes.",
-      "O aviso informa quantas variantes com atividade zero e quantas linhas de controle cada rodada continha."
+      "A etapa de codigo de barras agora recebe um unico numero, o quanto o amplicon se estende alem do CDS, em vez de gap e overhang dividirem um nome.",
+      "Os padroes caem de 100 e 400 para 20 e 60, uma faixa que contem o overhang de 16 bp medido no design de ispS.",
+      "Um template linear curto e pesquisado ate a propria borda em vez de ser recusado por ser menor que o limite externo de busca.",
+      "As duas fitas buscam para fora, portanto o amplicon fica simetrico e os ultimos codons permanecem fora da margem de borda da referencia.",
+      "Um primer nao pode mais ficar dentro da regiao codificante, e um flank_max salvo passa a valer como overhang_max."
     ],
-    "highlightsStamp": "0.16.66+c8cb9c13",
+    "highlightsStamp": "0.16.67+a8a547ef",
     "releases": {
+      "0.16.67": [
+        "A etapa de codigo de barras agora recebe um unico numero, o quanto o amplicon se estende alem do CDS, em vez de gap e overhang dividirem um nome.",
+        "Os padroes caem de 100 e 400 para 20 e 60, uma faixa que contem o overhang de 16 bp medido no design de ispS.",
+        "Um template linear curto e pesquisado ate a propria borda em vez de ser recusado por ser menor que o limite externo de busca.",
+        "As duas fitas buscam para fora, portanto o amplicon fica simetrico e os ultimos codons permanecem fora da margem de borda da referencia.",
+        "Um primer nao pode mais ficar dentro da regiao codificante, e um flank_max salvo passa a valer como overhang_max."
+      ],
       "0.16.66": [
         "Cada rodada estima agora o assay noise a partir das próprias réplicas wild-type, de modo que o teste de plateau sustenta a regra de saturação de duas rodadas.",
         "A tendência do hit rate só conta como queda quando a inclinação ajustada cai mais do que o próprio sampling error.",
@@ -3079,6 +3086,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.67": "a8a547ef",
       "0.16.66": "c8cb9c13",
       "0.16.65": "45d46897",
       "0.16.64": "b5666e23",

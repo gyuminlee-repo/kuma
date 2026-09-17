@@ -2599,14 +2599,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Cada ronda estima ahora el assay noise a partir de sus propias réplicas wild-type, de modo que la prueba de plateau puede sostener la regla de saturación de dos rondas.",
-      "La tendencia del hit rate cuenta como descenso solo cuando la pendiente ajustada cae más que su propio sampling error.",
-      "Una variante con actividad exactamente cero se puntúa en lugar de detener el dictamen y permanece en el denominador del hit rate.",
-      "Una fila de control wild-type en cualquier parte del libro se cuenta y se mantiene fuera de las estadísticas de variantes.",
-      "El aviso informa cuántas variantes con actividad cero y cuántas filas de control llevaba cada ronda."
+      "El paso de codigo de barras ahora recibe un solo numero, cuanto se extiende el amplicon mas alla del CDS, en lugar de compartir un nombre entre gap y overhang.",
+      "Los valores por defecto bajan de 100 y 400 a 20 y 60, un rango que contiene el overhang de 16 bp medido en el diseno de ispS.",
+      "Una plantilla lineal corta se explora hasta su propio borde en vez de rechazarse por ser mas corta que el limite exterior de busqueda.",
+      "Ambas hebras buscan hacia afuera, por lo que el amplicon es simetrico y los ultimos codones quedan fuera del margen de borde de referencia.",
+      "Un primer ya no puede situarse dentro de la region codificante, y un flank_max guardado se traslada a overhang_max."
     ],
-    "highlightsStamp": "0.16.66+c8cb9c13",
+    "highlightsStamp": "0.16.67+a8a547ef",
     "releases": {
+      "0.16.67": [
+        "El paso de codigo de barras ahora recibe un solo numero, cuanto se extiende el amplicon mas alla del CDS, en lugar de compartir un nombre entre gap y overhang.",
+        "Los valores por defecto bajan de 100 y 400 a 20 y 60, un rango que contiene el overhang de 16 bp medido en el diseno de ispS.",
+        "Una plantilla lineal corta se explora hasta su propio borde en vez de rechazarse por ser mas corta que el limite exterior de busqueda.",
+        "Ambas hebras buscan hacia afuera, por lo que el amplicon es simetrico y los ultimos codones quedan fuera del margen de borde de referencia.",
+        "Un primer ya no puede situarse dentro de la region codificante, y un flank_max guardado se traslada a overhang_max."
+      ],
       "0.16.66": [
         "Cada ronda estima ahora el assay noise a partir de sus propias réplicas wild-type, de modo que la prueba de plateau puede sostener la regla de saturación de dos rondas.",
         "La tendencia del hit rate cuenta como descenso solo cuando la pendiente ajustada cae más que su propio sampling error.",
@@ -3079,6 +3086,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.67": "a8a547ef",
       "0.16.66": "c8cb9c13",
       "0.16.65": "45d46897",
       "0.16.64": "b5666e23",
