@@ -46,11 +46,38 @@ The classifier was never asked::
         "wt_replicate_min": int,     # replicates the noise estimate needs
     }
 
+Both shapes carry ``zero_activity_count``: variants of the round being judged
+whose measured activity was exactly 0.  See "Variants that measured zero".
+
 Raises (via dispatcher error codes):
     ValueError  -> -32602: missing/empty round_files, bad column headers,
-                           non-parseable Variant, activity <= 0, wt_values
-                           that is not a list of finite numbers.
+                           non-parseable Variant, activity < 0, a round in
+                           which every activity is 0, wt_values that is not a
+                           list of finite numbers.
     RuntimeError -> -32002: xlsx file not found.
+
+Variants that measured zero
+---------------------------
+An activity of exactly 0 is a measurement, not a failure: an SDM variant that
+kills the enzyme reads as no activity, and in the campaign file that prompted
+this the remaining 92 of 94 variants span 0.056 to 1.39, so 0 is the most
+certain "not beneficial" value in the distribution.  Those rows are kept in the
+round -- they are counted in ``n`` and therefore in the hit-rate denominator,
+because a dead variant was still designed and still measured -- and are left out
+of the log2 list alone, where log2(0) does not exist.  Nothing is lost by the
+omission: a zero cannot be the round best, cannot be beneficial, cannot be a
+hit.  Clamping to a floor instead would enter a log2 value nobody measured.
+
+A negative activity still raises.  No assay reports negative turnover, so a
+negative cell is a broken file rather than a dead variant, and the anti-fallback
+rule stands for it.  A round in which *every* activity is 0 also raises: it has
+no round best on the log2 scale and no signal to classify.
+
+This is the opposite of the wild-type policy at ``_wt_values`` / ``wt_log2``
+below, which discards a zero-valued WT well.  The two are deliberately
+different and must not be merged: a WT well is a control that should read about
+1.0, so a 0 there is a failed injection, whereas a mutant well reading 0 is the
+experiment succeeding at showing the mutation is lethal.
 
 Data availability
 -----------------
@@ -121,8 +148,11 @@ EMA_2 definition: exponential moving average with span=2 (alpha = 2/3).
 
 top-K size: K_throughput (T4 is informational and does not drive decisions).
 
-anti-fallback: missing columns, unparseable Variant rows, or activity <= 0
-raise explicit errors rather than silently skipping or defaulting.
+anti-fallback: missing columns, unparseable Variant rows, or a negative or
+non-finite activity raise explicit errors rather than silently skipping or
+defaulting.  An activity of exactly 0 is the one value excluded from the log2
+list instead, for the reason above, and the count of those exclusions is
+reported rather than swallowed.
 """
 
 from __future__ import annotations
@@ -171,7 +201,12 @@ def _load_xlsx(path: str) -> list[dict]:
         Columns ``Variant`` or ``activity`` absent.
         Variant cell has no leading integer (position).
         activity value cannot be cast to float.
-        activity value <= 0 (log2 undefined).
+        activity value is not finite.
+        activity value < 0 (no assay reports negative turnover).
+
+    An activity of exactly 0 is kept as a row.  It is a dead variant rather
+    than a broken cell, so it belongs to the round and to the hit-rate
+    denominator; ``_round_metrics`` is where it drops out of the log2 list.
     """
     try:
         import openpyxl
@@ -257,11 +292,11 @@ def _load_xlsx(path: str) -> list[dict]:
                 f"Row {row_num}: activity={activity!r} must be finite "
                 f"for Variant={variant_raw!r} in {path}"
             )
-        if activity <= 0.0:
+        if activity < 0.0:
             wb.close()
             raise ValueError(
-                f"Row {row_num}: activity={activity!r} <= 0 for Variant={variant_raw!r} "
-                f"in {path}; log2 is undefined"
+                f"Row {row_num}: activity={activity!r} < 0 for Variant={variant_raw!r} "
+                f"in {path}; no assay reports negative turnover"
             )
 
         records.append({"position": position, "activity": activity})
@@ -333,16 +368,42 @@ def _round_metrics(records: list[dict]) -> dict:
     dict with:
         beneficial_count: int       number of variants with activity > 1.0
         hit_rate: float             beneficial_count / n_variants
+        zero_activity_count: int    variants that measured exactly 0
         round_best: float           max(activity), reported as measured
         round_best_log2: float      log2 of that same maximum
-        log2_activities: list[float]   log2 of each activity (current_round_activities)
+        log2_activities: list[float]   log2 of each variant that measured above
+                                    zero (current_round_activities)
         positions: list[int]        position integers for all variants
+
+    Raises
+    ------
+    ValueError
+        Every variant in the round measured 0, which leaves no round best on
+        the log2 scale and nothing for the classifier to read.
     """
     n = len(records)
     beneficial_count = sum(1 for r in records if r["activity"] > 1.0)
+    # The denominator stays the full row count.  A variant that measured 0 was
+    # designed for this round and was measured in it, so dropping it here would
+    # raise the hit rate of every round that contains a dead variant, which is
+    # a bias in the direction of "keep walking".
     hit_rate = beneficial_count / n
+    zero_activity_count = sum(1 for r in records if r["activity"] == 0.0)
     round_best = max(r["activity"] for r in records)
-    log2_activities = [math.log2(r["activity"]) for r in records]
+    # A zero has no logarithm and nothing to contribute: it cannot be the round
+    # best, cannot clear tau_pos, cannot be a hit.  It is skipped rather than
+    # clamped to a floor, because a floor would put a log2 value into the list
+    # that no instrument produced.  This is deliberately the opposite of the
+    # wild-type handling in handle_classify_round below, where a zero-valued WT
+    # well is discarded as a failed injection: a WT well is a control expected
+    # to read about 1.0, while a mutant well reading 0 is the measurement
+    # succeeding at showing the mutation is lethal.  Do not merge the two.
+    log2_activities = [math.log2(r["activity"]) for r in records if r["activity"] > 0.0]
+    if not log2_activities:
+        raise ValueError(
+            f"every activity in the round is 0 ({n} rows); "
+            f"the round has no best on the log2 scale"
+        )
     # log2 is monotone, so this is log2(round_best). Taking it off the list the
     # classifier is handed keeps the two from drifting if either definition
     # moves later.
@@ -351,6 +412,7 @@ def _round_metrics(records: list[dict]) -> dict:
     return {
         "beneficial_count": beneficial_count,
         "hit_rate": hit_rate,
+        "zero_activity_count": zero_activity_count,
         "round_best": round_best,
         "round_best_log2": round_best_log2,
         "log2_activities": log2_activities,
@@ -673,8 +735,38 @@ def handle_classify_round(params: dict) -> dict:
         # = log2_fc > 0 = activity > 1.0.  This ensures hit_star in bootstrap
         # (if ever activated) is consistent with the beneficial definition used
         # to compute hit_rates above.
+        #
+        # Known denominator mismatch, accepted: this list omits the variants
+        # that measured exactly 0, so it holds n minus zero_activity_count
+        # entries where hit_rate above was taken over n.
+        # bootstrap_confidence forms hit_star = count(a > tau_pos) / len(act_star)
+        # (classify.py:399-403), so the draws divide by the shorter count while
+        # the point estimate divides by n.  A zero cannot clear tau_pos under any
+        # resampling, so the omission removes rows from the denominator without
+        # ever removing one from the numerator, and hit_star therefore sits
+        # above the point hit_rate by the factor 94/92.  It is left in place
+        # rather than papered over: padding the list with a sentinel would put
+        # an unmeasured log2 value into the resample, and narrowing hit_rate to
+        # 92 would bias the reported hit rate upward for every round holding a
+        # dead variant, which is the worse of the two.  The mismatch is
+        # recorded here because bootstrap_confidence's own docstring commits to
+        # signal-set alignment -- "the draws are held to the signal set the
+        # point estimate had" -- and that guarantee is about which signals are
+        # live in a draw, not about the row count each one is taken over.  This
+        # is the one place the two differ, and it is stated rather than left
+        # for a third audit to find.
         current_round_activities=log2_activities_last,
     )
+
+    # Reported for the round being judged rather than summed over the call, to
+    # match wt_replicate_count beside it, which is also the last round's.  A
+    # reader looking at the verdict on round n is owed the count that qualifies
+    # that verdict, and a total would attach an earlier round's dead variants to
+    # it.  Earlier rounds' zeros are dropped from their own interim log2 lists
+    # in the same way; those lists only feed the signals of rounds already
+    # decided, and their hit rates -- which is what the current verdict reads
+    # from them -- keep the full denominator.
+    zero_activity_count = per_round_metrics[-1]["zero_activity_count"]
 
     decision = classify(round_state, registered)
 
@@ -696,6 +788,7 @@ def handle_classify_round(params: dict) -> dict:
             "blocked_decisions": list(_BOOTSTRAP_GATED_LABELS),
             "wt_replicate_count": len(wt_values),
             "wt_replicate_min": wt_min,
+            "zero_activity_count": zero_activity_count,
         }
 
     return {
@@ -710,6 +803,10 @@ def handle_classify_round(params: dict) -> dict:
         # the note this field draws says, so emptying it on a supplied round
         # would delete a true caveat from a verdict that still depends on it.
         "missing_inputs": list(_MISSING_INPUTS),
+        # Variants of this round that measured exactly 0 and so carry no log2
+        # value.  Reported so the screen can state the exclusion with the
+        # backend's own number instead of a figure typed into the UI.
+        "zero_activity_count": zero_activity_count,
     }
 
 
