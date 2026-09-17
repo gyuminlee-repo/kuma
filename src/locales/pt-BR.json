@@ -2599,11 +2599,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Um poço cuja fração de eventos indel cai exatamente no limiar 0,50 agora é marcado como AMBIGUOUS e vai para revisão em vez de PASS.",
-      "Poços dentro das faixas calibradas, ruído até 0,21 e deleções reais a partir de 0,83, mantêm o veredito que tinham."
+      "Cada rodada estima agora o assay noise a partir das próprias réplicas wild-type, de modo que o teste de plateau sustenta a regra de saturação de duas rodadas.",
+      "A tendência do hit rate só conta como queda quando a inclinação ajustada cai mais do que o próprio sampling error.",
+      "Uma variante com atividade exatamente zero passa a ser pontuada em vez de interromper o veredito e permanece no denominador do hit rate.",
+      "Uma linha de controle wild-type em qualquer parte da planilha é contada e mantida fora das estatísticas de variantes.",
+      "O aviso informa quantas variantes com atividade zero e quantas linhas de controle cada rodada continha."
     ],
-    "highlightsStamp": "0.16.65+45d46897",
+    "highlightsStamp": "0.16.66+c8cb9c13",
     "releases": {
+      "0.16.66": [
+        "Cada rodada estima agora o assay noise a partir das próprias réplicas wild-type, de modo que o teste de plateau sustenta a regra de saturação de duas rodadas.",
+        "A tendência do hit rate só conta como queda quando a inclinação ajustada cai mais do que o próprio sampling error.",
+        "Uma variante com atividade exatamente zero passa a ser pontuada em vez de interromper o veredito e permanece no denominador do hit rate.",
+        "Uma linha de controle wild-type em qualquer parte da planilha é contada e mantida fora das estatísticas de variantes.",
+        "O aviso informa quantas variantes com atividade zero e quantas linhas de controle cada rodada continha."
+      ],
       "0.16.65": [
         "Um poço cuja fração de eventos indel cai exatamente no limiar 0,50 agora é marcado como AMBIGUOUS e vai para revisão em vez de PASS.",
         "Poços dentro das faixas calibradas, ruído até 0,21 e deleções reais a partir de 0,83, mantêm o veredito que tinham."
@@ -3069,6 +3079,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.66": "c8cb9c13",
       "0.16.65": "45d46897",
       "0.16.64": "b5666e23",
       "0.16.63": "27af3ec6",

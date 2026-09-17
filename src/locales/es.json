@@ -2599,11 +2599,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Un pocillo cuya fracción de eventos indel cae exactamente en el umbral 0,50 ahora se marca AMBIGUOUS y pasa a revisión en lugar de PASS.",
-      "Los pocillos dentro de las bandas calibradas, ruido hasta 0,21 y deleciones reales desde 0,83, conservan el veredicto que tenían."
+      "Cada ronda estima ahora el assay noise a partir de sus propias réplicas wild-type, de modo que la prueba de plateau puede sostener la regla de saturación de dos rondas.",
+      "La tendencia del hit rate cuenta como descenso solo cuando la pendiente ajustada cae más que su propio sampling error.",
+      "Una variante con actividad exactamente cero se puntúa en lugar de detener el dictamen y permanece en el denominador del hit rate.",
+      "Una fila de control wild-type en cualquier parte del libro se cuenta y se mantiene fuera de las estadísticas de variantes.",
+      "El aviso informa cuántas variantes con actividad cero y cuántas filas de control llevaba cada ronda."
     ],
-    "highlightsStamp": "0.16.65+45d46897",
+    "highlightsStamp": "0.16.66+c8cb9c13",
     "releases": {
+      "0.16.66": [
+        "Cada ronda estima ahora el assay noise a partir de sus propias réplicas wild-type, de modo que la prueba de plateau puede sostener la regla de saturación de dos rondas.",
+        "La tendencia del hit rate cuenta como descenso solo cuando la pendiente ajustada cae más que su propio sampling error.",
+        "Una variante con actividad exactamente cero se puntúa en lugar de detener el dictamen y permanece en el denominador del hit rate.",
+        "Una fila de control wild-type en cualquier parte del libro se cuenta y se mantiene fuera de las estadísticas de variantes.",
+        "El aviso informa cuántas variantes con actividad cero y cuántas filas de control llevaba cada ronda."
+      ],
       "0.16.65": [
         "Un pocillo cuya fracción de eventos indel cae exactamente en el umbral 0,50 ahora se marca AMBIGUOUS y pasa a revisión en lugar de PASS.",
         "Los pocillos dentro de las bandas calibradas, ruido hasta 0,21 y deleciones reales desde 0,83, conservan el veredicto que tenían."
@@ -3069,6 +3079,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.66": "c8cb9c13",
       "0.16.65": "45d46897",
       "0.16.64": "b5666e23",
       "0.16.63": "27af3ec6",

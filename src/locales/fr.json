@@ -2599,11 +2599,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Un puits dont la fraction d’événements indel tombe exactement sur le seuil 0,50 est désormais marqué AMBIGUOUS et envoyé en revue au lieu de PASS.",
-      "Les puits situés dans les bandes calibrées, bruit jusqu’à 0,21 et vraies délétions à partir de 0,83, conservent leur verdict."
+      "Un tour estime désormais l’assay noise à partir de ses propres réplicats wild-type, si bien que le test de plateau peut porter la règle de saturation sur deux tours.",
+      "La tendance du hit rate ne compte comme baisse que si la pente ajustée descend plus que sa propre sampling error.",
+      "Un variant mesuré à une activité exactement nulle est noté au lieu d’arrêter le verdict, et reste au dénominateur du hit rate.",
+      "Une ligne de contrôle wild-type, où qu’elle soit dans le classeur, est comptée et tenue hors des statistiques de variants.",
+      "L’avis indique combien de variants à activité nulle et combien de lignes de contrôle chaque tour comportait."
     ],
-    "highlightsStamp": "0.16.65+45d46897",
+    "highlightsStamp": "0.16.66+c8cb9c13",
     "releases": {
+      "0.16.66": [
+        "Un tour estime désormais l’assay noise à partir de ses propres réplicats wild-type, si bien que le test de plateau peut porter la règle de saturation sur deux tours.",
+        "La tendance du hit rate ne compte comme baisse que si la pente ajustée descend plus que sa propre sampling error.",
+        "Un variant mesuré à une activité exactement nulle est noté au lieu d’arrêter le verdict, et reste au dénominateur du hit rate.",
+        "Une ligne de contrôle wild-type, où qu’elle soit dans le classeur, est comptée et tenue hors des statistiques de variants.",
+        "L’avis indique combien de variants à activité nulle et combien de lignes de contrôle chaque tour comportait."
+      ],
       "0.16.65": [
         "Un puits dont la fraction d’événements indel tombe exactement sur le seuil 0,50 est désormais marqué AMBIGUOUS et envoyé en revue au lieu de PASS.",
         "Les puits situés dans les bandes calibrées, bruit jusqu’à 0,21 et vraies délétions à partir de 0,83, conservent leur verdict."
@@ -3069,6 +3079,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.66": "c8cb9c13",
       "0.16.65": "45d46897",
       "0.16.64": "b5666e23",
       "0.16.63": "27af3ec6",

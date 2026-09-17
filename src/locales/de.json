@@ -2599,11 +2599,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Ein Well, dessen Indel-Event-Anteil genau auf dem Schwellenwert 0,50 liegt, wird jetzt als AMBIGUOUS geprüft statt als PASS gewertet.",
-      "Wells innerhalb der kalibrierten Bereiche, Rauschen bis 0,21 und echte Deletionen ab 0,83, behalten ihr bisheriges Urteil."
+      "Eine Runde schätzt das assay noise jetzt aus ihren eigenen wild-type Replikaten, sodass der plateau-Test die Sättigungsregel über zwei Runden tragen kann.",
+      "Der hit-rate-Trend gilt nur dann als Rückgang, wenn die angepasste Steigung stärker fällt als ihr eigener sampling error.",
+      "Eine Variante mit exakt null Aktivität wird bewertet, statt die Auswertung zu stoppen, und bleibt im Nenner der hit rate.",
+      "Eine wild-type-Kontrollzeile wird überall in der Arbeitsmappe gezählt und aus der Variantenstatistik herausgehalten.",
+      "Die Empfehlung meldet, wie viele Varianten mit Aktivität null und wie viele Kontrollzeilen eine Runde enthielt."
     ],
-    "highlightsStamp": "0.16.65+45d46897",
+    "highlightsStamp": "0.16.66+c8cb9c13",
     "releases": {
+      "0.16.66": [
+        "Eine Runde schätzt das assay noise jetzt aus ihren eigenen wild-type Replikaten, sodass der plateau-Test die Sättigungsregel über zwei Runden tragen kann.",
+        "Der hit-rate-Trend gilt nur dann als Rückgang, wenn die angepasste Steigung stärker fällt als ihr eigener sampling error.",
+        "Eine Variante mit exakt null Aktivität wird bewertet, statt die Auswertung zu stoppen, und bleibt im Nenner der hit rate.",
+        "Eine wild-type-Kontrollzeile wird überall in der Arbeitsmappe gezählt und aus der Variantenstatistik herausgehalten.",
+        "Die Empfehlung meldet, wie viele Varianten mit Aktivität null und wie viele Kontrollzeilen eine Runde enthielt."
+      ],
       "0.16.65": [
         "Ein Well, dessen Indel-Event-Anteil genau auf dem Schwellenwert 0,50 liegt, wird jetzt als AMBIGUOUS geprüft statt als PASS gewertet.",
         "Wells innerhalb der kalibrierten Bereiche, Rauschen bis 0,21 und echte Deletionen ab 0,83, behalten ihr bisheriges Urteil."
@@ -3069,6 +3079,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.66": "c8cb9c13",
       "0.16.65": "45d46897",
       "0.16.64": "b5666e23",
       "0.16.63": "27af3ec6",
