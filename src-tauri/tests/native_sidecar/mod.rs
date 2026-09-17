@@ -109,13 +109,21 @@ pub fn run() {
         .prefix("rs03-native-")
         .tempdir()
         .unwrap();
-    let executable = dir.path().join("native-test");
+    // Resolve the temporary directory before the child runs from it. On macOS
+    // the system temporary directory sits under /var, which is a symlink to
+    // /private/var, and tauri's StartingBinary refuses a current_exe() whose
+    // path carries a symlink on that platform: "StartingBinary found
+    // current_exe() that contains a symlink on a non-allowed platform: /var".
+    // Canonicalizing hands the child the same directory by its real path. The
+    // TempDir handle still owns cleanup through its own path.
+    let base = dir.path().canonicalize().unwrap();
+    let executable = base.join("native-test");
     fs::copy(std::env::current_exe().unwrap(), &executable).unwrap();
-    let fixture = dir.path().join("kuro-sidecar");
+    let fixture = base.join("kuro-sidecar");
     fs::write(&fixture, include_bytes!("fixture.py")).unwrap();
     fs::set_permissions(&fixture, fs::Permissions::from_mode(0o700)).unwrap();
-    let status = runner::run(&executable, dir.path());
-    if let Ok(pid) = fs::read_to_string(dir.path().join("fixture.pid")) {
+    let status = runner::run(&executable, &base);
+    if let Ok(pid) = fs::read_to_string(base.join("fixture.pid")) {
         assert!(
             !runner::process_exists(pid.trim().parse().unwrap()),
             "fixture leaked after native runner exit"
