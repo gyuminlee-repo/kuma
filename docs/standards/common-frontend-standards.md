@@ -358,7 +358,7 @@ tags: [kuma, frontend, standards, charter, kuro, mame, primerbench]
 **Citation placeholder (Appendix C 도 참조)**
 ```bibtex
 @software{kuro_TBD,
-  title = {KURO: Kernel for Upstream Recombination Oligodesign},
+  title = {KURO: Kit for Unified Ranking and Oligodesign},
   author = {Kang, Hyemin and KRIBB C1 Lab},
   year = {2026},
   note = {DOI/citation forthcoming},
@@ -426,7 +426,7 @@ mame, primerbench 도 동일 형식 placeholder.
 
 ```bibtex
 @software{kuro_TBD,
-  title  = {KURO: Kernel for Upstream Recombination Oligodesign},
+  title  = {KURO: Kit for Unified Ranking and Oligodesign},
   author = {Kang, Hyemin and KRIBB C1 Lab},
   year   = {2026},
   note   = {DOI/citation forthcoming},
@@ -541,6 +541,7 @@ primerbench (대부분 🟡):
 - **v1.6 (2026-05-08, 수치 정정)**: audit-primerbench-v6.md 실측 결과로 PB Req 카운트 33/8/0 → 40/21/35 정정. PB는 카테고리 단위 8 ✅ / 14 🟡 / 0 ❌이나, Req 단위로 보면 [권장] 항목 35건이 미구현으로 잔여. kuma kuro/mame 수치는 변동 없음. v1.5의 "Phase 12 후 추정" 표기를 실측 출처(audit v10/v6)로 교체.
 - **v1.7 (2026-05-08, Phase J 일괄 보강)**: PB 잔여 ❌ 35건 + mame ❌ 1건 6 그룹 병렬 보강. PB §1 Recovery (Restart Sidecar busy-confirm + Dead-lock detector 15초 progress-idle), §2 Observability (ETA + 로그 패널), §3 Input Guards (pb:lastInputPath), §4 Error UX (Copy Crash Log + 네트워크 toast variant), §6 Settings (데이터 폴더 + sidecar 버전 + i18n locale slot), §8 A11y (sonner top-right), §9 Versioning (What's New menubar), §11 Build (codesign indicator + build SHA), §12 Reproducibility (Re-run manifest + seed N/A 명시), §13 Long-running (Job queue 연동), §14 Data Integrity (digest_file Tauri cmd + sidecar binary SHA-256), §17 Cross-platform (csvExport BOM util), §18 Partial Success (StatusBadge summary stats), §19 Performance (drag-drop pre-flight + psutil). mame §4 재현 정보 복사 메타데이터 풀-스택 (App ver + OS + sidecar ver + timestamp + RPC trace). 커밋: kuma `vX.X.X.X` (mame), PB `0adf25a v0.04.07.08` + `a042b84 v0.04.07.09`. 실측 audit v11 갱신 후 최종 수치 확정.
 - **v1.8 (2026-05-08, audit v11/v7 실측 확정 + PB §11/§5 fix)**: 실측 재감사 audit-kuma-v11 (kuro/mame 22/22 ✅), audit-primerbench-v7 (Req 50/21/2). audit-v7 summary 줄의 §21 Export as Zip ❌ 분류는 헌장 §21 [권장] 분류와 충돌하여 오분류로 정정 → 실제 [필수] ❌은 §11 1건. PB v0.04.07.12 후속 fix: (a) `.github/workflows/{build,release}.yml` tauri-action env에 `GITHUB_SHA: ${{ github.sha }}` 명시, vite.config.ts `__BUILD_SHA__` 주입 보장. (b) §5 HR/Mero export 폴더 기억 — Sanger 패턴 이식 (LS_LAST_HR_EXPORT_DIR + LS_LAST_MERO_XLSX_DIR + LS_LAST_MERO_GB_DIR). (c) PB vitest 인프라 도입 + Phase J 8 모듈 50 케이스 (40 pass / 10 component test follow-up). 커밋 PB `46fcae6 v0.04.07.12`. PB Req 51/21/1 (§11 CI 실주입은 다음 release 산출물에서 GitHub Actions log 확인으로 검증).
+- **v1.9 (2026-09-18, KURO 풀네임 교체)**: §20 Citation placeholder 와 Appendix C 의 KURO BibTeX `title` 을 `Kernel for Upstream Recombination Oligodesign` 에서 `Kit for Unified Ranking and Oligodesign` 으로 교체. 두문자 K-U-R-O 는 그대로이고 `for` 와 `and` 는 두문자에서 빠진다. 저장소의 README·docs·About 다이얼로그·로케일 10종과 같은 문구로 맞췄다.
 
 ## 후속 액션
 

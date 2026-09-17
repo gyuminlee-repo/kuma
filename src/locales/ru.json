@@ -2046,7 +2046,7 @@
     "chooseFolder": "Выбрать папку",
     "done": "Готово",
     "insideProject": "Внутри каждого проекта",
-    "kuroDesc": "Kernel for Upstream Recombination Oligodesign. Пакетный SDM primer design из шаблонов Gibson Assembly.",
+    "kuroDesc": "Kit for Unified Ranking and Oligodesign. Пакетный SDM primer design из шаблонов Gibson Assembly.",
     "mameDesc": "Mutagenesis Assessment & Measurement Export. Verdict для Oxford Nanopore NGS.",
     "autosaveNote": "Входные данные и параметры автоматически сохраняются для каждого проекта. Черновики Barcode Setup, включая абсолютные пути, доступны всем проектам.",
     "titleStart": "Начать",
@@ -2338,7 +2338,7 @@
     "ncbiBlastServiceSuffix": " -- поиск similarity sequence",
     "alphafoldServiceSuffix": " -- lookup предсказания структуры",
     "interproServiceSuffix": " -- аннотация protein domain",
-    "kuroSubtitle": "Kernel for Upstream Recombination Oligodesign",
+    "kuroSubtitle": "Kit for Unified Ranking and Oligodesign",
     "view": {
       "title": "Вид",
       "logs": "Показать логи",

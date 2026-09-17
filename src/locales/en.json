@@ -2088,7 +2088,7 @@
     "chooseFolder": "Choose folder",
     "done": "Done",
     "insideProject": "Inside each project",
-    "kuroDesc": "Kernel for Upstream Recombination Oligodesign. Batch SDM primer design from Gibson Assembly templates.",
+    "kuroDesc": "Kit for Unified Ranking and Oligodesign. Batch SDM primer design from Gibson Assembly templates.",
     "mameDesc": "Mutagenesis Assessment & Measurement Export. Oxford Nanopore NGS verdict.",
     "autosaveNote": "Inputs and parameters autosave per project. Barcode Setup drafts, including absolute paths, are shared across projects.",
     "titleStart": "Get started",
@@ -2381,7 +2381,7 @@
     "ncbiBlastServiceSuffix": " -- sequence similarity search",
     "alphafoldServiceSuffix": " -- structure prediction lookup",
     "interproServiceSuffix": " -- protein domain annotation",
-    "kuroSubtitle": "Kernel for Upstream Recombination Oligodesign",
+    "kuroSubtitle": "Kit for Unified Ranking and Oligodesign",
     "view": {
       "title": "View",
       "logs": "Show Logs",

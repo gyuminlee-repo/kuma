@@ -1,4 +1,4 @@
-"""KURO — KOD Upstream Region Oligodesigner."""
+"""KURO: Kit for Unified Ranking and Oligodesign."""
 
 __version__ = "0.9.35"
 
