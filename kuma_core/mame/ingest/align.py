@@ -34,12 +34,14 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Sequence
 
 from kuma_core.mame.perf import TIMER
+from kuma_core.mame.reference_fasta import multi_record_reason
 
 # CIGAR operation codes (BAM spec)
 _CIGAR_M = 0   # match or mismatch
@@ -227,6 +229,8 @@ def _parse_cigar(cigar_str: str) -> list[list[int]]:
     ops: list[list[int]] = []
     pos = 0
     for match in _CIGAR_TOKEN_RE.finditer(cigar_str):
+        if match.start() != pos:
+            raise ValueError(f"Malformed CIGAR string: {cigar_str!r}")
         ops.append([int(match.group(1)), _CIGAR_LETTER_TO_OP[match.group(2)]])
         pos = match.end()
     if pos != len(cigar_str):
@@ -407,34 +411,66 @@ def _run_minimap2(
         # -N caps secondary alignments reported per read.
         cmd += ["-N", str(best_n)]
     cmd += [str(reference), str(reads_fasta)]
-    proc = subprocess.Popen(
+    with subprocess.Popen(
         cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         shell=False,
-    )
-    if proc.stdout is None:
-        raise RuntimeError("minimap2 stdout pipe unavailable")
-    wall_key = f"{timing_prefix}.minimap2_wall"
-    parse_key = f"{timing_prefix}.sam_parse"
-    records: list[tuple[int, int, int, int, str]] = []
-    while True:
-        t0 = time.perf_counter()
-        block = proc.stdout.readlines(_SAM_BLOCK_BYTES)
-        TIMER.add(wall_key, time.perf_counter() - t0)
-        if not block:
-            break
-        t1 = time.perf_counter()
-        records.extend(_iter_sam_records_stream(block))
-        TIMER.add(parse_key, time.perf_counter() - t1)
-    _, err = proc.communicate()
-    if proc.returncode != 0:
-        raise RuntimeError(
-            f"minimap2 failed (exit {proc.returncode}): "
-            f"{(err or '').strip()[:500]}"
+    ) as proc:
+        stdout, stderr = proc.stdout, proc.stderr
+        if stdout is None or stderr is None:
+            proc.kill()
+            raise RuntimeError("minimap2 output pipes unavailable")
+
+        # Drain stderr concurrently: reading stdout to EOF first can deadlock
+        # when the child fills stderr's OS pipe buffer. Keep diagnostics bounded
+        # while consuming the entire stream; do not materialise SAM on disk.
+        error_parts: list[str] = []
+
+        def drain_stderr() -> None:
+            retained = 0
+            for chunk in iter(lambda: stderr.read(8192), ""):
+                if retained < 500:
+                    part = chunk[:500 - retained]
+                    error_parts.append(part)
+                    retained += len(part)
+
+        error_reader = threading.Thread(
+            target=drain_stderr, name="minimap2-stderr", daemon=True
         )
-    return records
+        error_reader.start()
+        wall_key = f"{timing_prefix}.minimap2_wall"
+        parse_key = f"{timing_prefix}.sam_parse"
+        records: list[tuple[int, int, int, int, str]] = []
+        try:
+            while True:
+                t0 = time.perf_counter()
+                block = stdout.readlines(_SAM_BLOCK_BYTES)
+                TIMER.add(wall_key, time.perf_counter() - t0)
+                if not block:
+                    break
+                t1 = time.perf_counter()
+                records.extend(_iter_sam_records_stream(block))
+                TIMER.add(parse_key, time.perf_counter() - t1)
+            proc.wait()
+        except BaseException:
+            # A parser failure or cancellation must not orphan a child blocked
+            # writing the stream the caller has stopped reading.
+            if proc.poll() is None:
+                proc.kill()
+            proc.wait()
+            raise
+        finally:
+            error_reader.join()
+        if proc.returncode != 0:
+            raise RuntimeError(
+                f"minimap2 failed (exit {proc.returncode}): "
+                f"{''.join(error_parts).strip()}"
+            )
+        return records
 
 
 def _iter_sam_records_stream(
@@ -1041,19 +1077,23 @@ def align_reads_multi_with_gate_counts(
 
 
 def _get_reference_length(reference_fasta: Path) -> int:
-    """Return the total length of the first sequence in a FASTA file."""
+    """Return the single reference length, rejecting multi-molecule input.
+
+    Every alignment is checked against this length. Taking only the first
+    record while minimap2 indexes every record would validate other molecules
+    against the wrong coordinates.
+    """
+    lines = reference_fasta.read_text(encoding="utf-8").splitlines()
+    reason = multi_record_reason(lines)
+    if reason is not None:
+        raise ValueError(reason)
     length = 0
     in_seq = False
-    with reference_fasta.open("r", encoding="utf-8") as fh:
-        for line in fh:
-            line = line.rstrip("\r\n")
-            if line.startswith(">"):
-                if in_seq:
-                    # Second header found -- stop; use length of first sequence.
-                    break
-                in_seq = True
-            elif in_seq:
-                length += len(line.strip())
+    for line in lines:
+        if line.startswith(">"):
+            in_seq = True
+        elif in_seq:
+            length += len(line.strip())
     if length == 0:
         raise ValueError(f"Reference FASTA contains no sequence data: {reference_fasta}")
     return length
