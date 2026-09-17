@@ -11,25 +11,41 @@ permissions:
   contents: read
 
 jobs:
-  snapshot:
+  test-runtime:
     if: github.head_ref == 'audit/code-health-20260918'
     runs-on: ubuntu-22.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
         with:
           persist-credentials: false
-          fetch-depth: 1
-      - name: Archive tracked source only
+          fetch-depth: 50
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install test tools in isolated Python prefix
+        run: |
+          python -m pip install -e '.[test,typecheck,benchmark]' ruff
+          python python-core/scripts/vendor-minimap2.py
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Install locked frontend dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Archive public test dependencies and tracked source
         run: |
           set -euo pipefail
-          git archive --format=tar.gz --output="$RUNNER_TEMP/kuma-audit-source.tar.gz" HEAD
-          git rev-parse HEAD
-          git ls-files | wc -l
+          mkdir -p "$RUNNER_TEMP/audit-runtime"
+          PY_PREFIX=$(python -c 'import sys; print(sys.prefix)')
+          tar -czf "$RUNNER_TEMP/audit-runtime/python-runtime.tar.gz" -C "$PY_PREFIX" .
+          tar -czf "$RUNNER_TEMP/audit-runtime/node-dependencies.tar.gz" node_modules python-core/vendor/minimap2
+          git bundle create "$RUNNER_TEMP/audit-runtime/review-history.bundle" --all
+          python -m pip freeze > "$RUNNER_TEMP/audit-runtime/python-packages.txt"
       - uses: actions/upload-artifact@v6
         with:
-          name: kuma-audit-source
-          path: ${{ runner.temp }}/kuma-audit-source.tar.gz
+          name: kuma-audit-runtime
+          path: ${{ runner.temp }}/audit-runtime/
           retention-days: 1
           if-no-files-found: error
           compression-level: 0
