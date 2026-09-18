@@ -1,34 +1,83 @@
-name: Follow-up source snapshot (temporary)
+name: Follow-up implementation check (temporary)
 
-# Review-only transport for this branch; removed before merging.
+# PR 428 only. Removed together with its exact-preimage patch helper before merge.
 on:
   pull_request:
     branches: [main]
-    paths: [.github/workflows/followup-snapshot.yml]
+    paths:
+      - .github/workflows/followup-snapshot.yml
+      - .github/scripts/apply-followup.py
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: followup-implementation-428
+  cancel-in-progress: false
 
 jobs:
-  snapshot:
-    if: github.head_ref == 'refactor/verified-contracts-20260918'
+  verify-and-publish:
+    if: github.repository == 'gyuminlee-repo/kuma' && github.event.pull_request.number == 428 && github.head_ref == 'refactor/verified-contracts-20260918' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-22.04
-    timeout-minutes: 10
+    timeout-minutes: 30
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+      TARGET_BRANCH: refactor/verified-contracts-20260918
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-          persist-credentials: false
-          fetch-depth: 0
-      - name: Bundle tracked repository history
+          fetch-depth: 2
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install test and typecheck dependencies
+        run: pip install -e '.[test,typecheck]'
+      - name: Provide minimap2
+        run: |
+          python python-core/scripts/vendor-minimap2.py
+          echo "$GITHUB_WORKSPACE/python-core/vendor/minimap2/linux-x64" >> "$GITHUB_PATH"
+      - name: Existing behavior contracts pass before refactoring
+        run: python -m pytest tests/mame/test_verdict_behavior_contract.py tests/mame/test_barcode_window_contract.py tests/test_validation_coverage_report.py -q
+      - name: Demonstrate missing CLI contracts before implementation
+        shell: bash
+        run: |
+          set +e
+          python -m pytest tests/test_kuro_cli_contract.py -q > "$RUNNER_TEMP/cli-before.txt" 2>&1
+          result=$?
+          set -e
+          cat "$RUNNER_TEMP/cli-before.txt"
+          test "$result" -eq 1
+      - name: Apply exact-preimage implementation
+        run: python .github/scripts/apply-followup.py
+      - name: Focused regressions after implementation
+        run: python -m pytest tests/test_kuro_cli_contract.py tests/mame/test_verdict_behavior_contract.py tests/mame/test_barcode_window_contract.py tests/test_validation_coverage_report.py -q
+      - name: Complete Python suite
+        run: python -m pytest tests/ -q -rs --junitxml=validation-python.xml
+      - name: Report external-data coverage without pretending skips are passes
+        run: python scripts/report_validation_coverage.py --junit validation-python.xml --output validation-coverage.json
+      - name: Python typecheck
+        run: basedpyright
+      - name: Publish only the verified implementation to this PR branch
+        shell: bash
         run: |
           set -euo pipefail
-          git bundle create "$RUNNER_TEMP/review-current.bundle" HEAD
+          current=$(git ls-remote origin "refs/heads/$TARGET_BRANCH" | cut -f1)
+          test "$current" = "$EXPECTED_HEAD"
+          git diff --check
+          git diff --stat
+          git add kuma_core/kuro/cli.py kuma_core/mame/models.py kuma_core/mame/ingest/combinatorial_demux.py .github/workflows/ci.yml
+          git -c user.name='Gyu Min Lee' -c user.email='42200537+gyuminlee-repo@users.noreply.github.com' commit -m 'refactor: wire host configuration and preserve verification contracts'
+          git push origin "HEAD:refs/heads/$TARGET_BRANCH"
           git rev-parse HEAD
-      - uses: actions/upload-artifact@v6
+      - name: Save verification evidence
+        if: always()
+        uses: actions/upload-artifact@v6
         with:
-          name: kuma-followup-source
-          path: ${{ runner.temp }}/review-current.bundle
-          retention-days: 1
-          if-no-files-found: error
-          compression-level: 0
+          name: followup-verification
+          path: |
+            validation-python.xml
+            validation-coverage.json
+          retention-days: 7
+          if-no-files-found: warn
