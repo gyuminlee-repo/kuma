@@ -11,6 +11,36 @@ set -e
 repo_root=$(git rev-parse --show-toplevel)
 cd "$repo_root"
 
+# git feeds a pre-push hook one line per ref on stdin:
+#   <local ref> <local sha> <remote ref> <remote sha>
+#
+# A tag push makes no claim about this working tree. The tag names a commit that
+# is already on the remote and was gated by CI on the pull request that landed
+# it, while the checkout running the hook may sit on an unrelated branch with
+# its own manifests and its own uncommitted work. Gating a tag push on the
+# working tree therefore fails on state the push does not touch: on 2026-09-18
+# pushing v0.16.66 was refused because this checkout held another session's
+# branch at 0.16.59 with 94 dirty files, and the version-label step dutifully
+# reported that branch's number instead of the tag's.
+#
+# An empty stdin means the hook was invoked by hand rather than by git, so the
+# gates still run.
+only_tags=1
+saw_ref=0
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  [ -z "$remote_ref" ] && continue
+  saw_ref=1
+  case "$remote_ref" in
+    refs/tags/*) ;;
+    *) only_tags=0 ;;
+  esac
+done
+
+if [ "$saw_ref" = 1 ] && [ "$only_tags" = 1 ]; then
+  echo "[pre-push] tag-only push: the working tree is not what is being pushed, skipping the gates"
+  exit 0
+fi
+
 # A worktree carries no dependencies of its own, so fall back to the main
 # checkout. `--git-common-dir` points at the shared git dir (.git of the main
 # checkout), whose parent is that checkout. It is relative in the main
