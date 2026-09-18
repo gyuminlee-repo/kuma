@@ -190,7 +190,7 @@ const NAV_SUBMIT = { currentMajor: "design", currentSubStep: "design.submit" };
 const NAV_OUTPUT = { currentMajor: "output", currentSubStep: "output.summary" };
 const NAV_EXPORT = { currentMajor: "export", currentSubStep: "export.all" };
 
-export const screenStates: ScreenState[] = [
+const allScreenStates: ScreenState[] = [
   {
     name: "01-initial",
     caption: "Load step before any file is selected",
@@ -499,3 +499,23 @@ export const screenStates: ScreenState[] = [
     },
   },
 ];
+
+/**
+ * CAPTURE_ONLY narrows the run to a named subset, comma separated.
+ *
+ * The screens share one page and `applyState` merges rather than replaces, so a
+ * screen inherits every key an earlier screen set. That is invisible until one
+ * screen has to be retaken on its own: shooting `06-parameter-advanced` after
+ * `04-design-complete` leaves the design counts of that earlier screen in the
+ * sequence map and the parameter inspector, on a step where the design has not
+ * been run yet. Naming the pre-design path instead
+ * (`01-initial,02-file-loaded,03-mutations-entered,06-parameter-advanced`)
+ * reaches the same screen with no design result in the store.
+ *
+ * Unset, the export is the full list this file has always produced.
+ */
+const ONLY = process.env.CAPTURE_ONLY;
+const KEEP = ONLY ? ONLY.split(",").map((x) => x.trim()) : null;
+export const screenStates: ScreenState[] = KEEP
+  ? allScreenStates.filter((x) => KEEP.includes(x.name))
+  : allScreenStates;
