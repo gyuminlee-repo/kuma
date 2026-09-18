@@ -27,6 +27,10 @@ vi.mock("@/lib/ipc", () => ({
   isSidecarRunning: vi.fn(),
 }));
 
+const mockWriteTextFile = vi.hoisted(() => vi.fn());
+
+vi.mock("@tauri-apps/plugin-fs", () => ({ writeTextFile: mockWriteTextFile }));
+
 function organism(over: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     key: "ecoli",
@@ -176,5 +180,65 @@ describe("loadOrganisms envelope unwrapping", () => {
     await slice.loadOrganisms();
     expect(state.organisms).toEqual([]);
     expect(state.statusMessage).toMatch(/Organism list load failed/);
+  });
+});
+
+/**
+ * Installing the project's copy (design note section 8.3, rows 2 and 5).
+ *
+ * The file goes into the drop-in folder Phase 1 shipped rather than through an
+ * RPC of its own, so the very next listing validates it exactly as it validates
+ * one a user copied there by hand. That is the property worth pinning: a bad
+ * embed has to land in `failed[]`, never in the dropdown.
+ */
+describe("installRestoredCodonTable", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const document = {
+    key: "mylab",
+    name: "Lab strain",
+    taxid: null,
+    source: "in-house",
+    genetic_code: 11,
+    aliases: [],
+    codons: { M: [["ATG", 1]] as [string, number][] },
+  };
+
+  it("writes <key>.json into the resolved folder and re-lists", async () => {
+    mockRawSidecarRpc.mockResolvedValue({ organisms: [], failed: [], user_dir: USER_DIR });
+    const { slice } = makeStore({
+      codonTableDir: USER_DIR,
+      restoredCodonTable: { key: "mylab", tableSha256: "aaa", document },
+    });
+    expect(await slice.installRestoredCodonTable()).toBeNull();
+    expect(mockWriteTextFile).toHaveBeenCalledTimes(1);
+    const [path, body] = mockWriteTextFile.mock.calls[0];
+    // The stem is what rule V8 checks the declared key against.
+    expect(path).toBe(`${USER_DIR}/mylab.json`);
+    expect(JSON.parse(body as string)).toEqual(document);
+    expect(mockRawSidecarRpc.mock.calls[0][1]).toBe("list_organisms");
+  });
+
+  it("refuses when the project carries no copy, and writes nothing", async () => {
+    const { slice } = makeStore({
+      codonTableDir: USER_DIR,
+      restoredCodonTable: { key: "mylab", tableSha256: "aaa" },
+    });
+    // i18next is initialized in the suite setup, so this is the rendered
+    // English sentence rather than the key.
+    expect(await slice.installRestoredCodonTable()).toBe(
+      "The project carries no copy of this table.",
+    );
+    expect(mockWriteTextFile).not.toHaveBeenCalled();
+  });
+
+  it("reports a failed write instead of claiming the table is installed", async () => {
+    mockWriteTextFile.mockRejectedValue(new Error("read-only folder"));
+    const { slice } = makeStore({
+      codonTableDir: USER_DIR,
+      restoredCodonTable: { key: "mylab", tableSha256: "aaa", document },
+    });
+    expect(await slice.installRestoredCodonTable()).toContain("read-only folder");
+    expect(mockRawSidecarRpc).not.toHaveBeenCalled();
   });
 });
