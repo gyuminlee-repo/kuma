@@ -23,7 +23,7 @@ from packaging.markers import default_environment
 from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
 
-LEGAL = re.compile(r"^(licen[cs]e|copying|notice|copyright)([._-].*)?$", re.I)
+LEGAL = re.compile(r"^(licen[cs]es?|copying|notice|copyright)([._-].*)?$", re.I)
 
 
 def dependency_closure(
@@ -74,12 +74,19 @@ def legal_files(dist: Any) -> list[dict[str, str]]:
     found = []
     for entry in sorted(dist.files or [], key=str):
         path = Path(str(entry))
+        # packaging/licenses is also an importable module. Source and compiled
+        # Python files there are not legal-text documents.
+        if "__pycache__" in path.parts or path.suffix.lower() in {".py", ".pyi", ".pyc", ".pyo"}:
+            continue
         # Include all files in a legal-text directory, even nonstandard names.
         in_legal = any(p.lower() in {"licenses", "license_files", "legal"} for p in path.parts[:-1])
         if not LEGAL.match(path.name) and not in_legal:
             continue
         raw = Path(dist.locate_file(entry)).read_bytes()
-        text = raw.decode("utf-8-sig")
+        try:
+            text = raw.decode("utf-8-sig")
+        except UnicodeDecodeError as exc:
+            raise ValueError(f"Non-text legal file in {dist.metadata['Name']}: {entry}") from exc
         if not text.strip():
             raise ValueError(f"Empty legal file in {dist.metadata['Name']}: {entry}")
         found.append({"path": path.as_posix(), "sha256": hashlib.sha256(raw).hexdigest(), "text": text})

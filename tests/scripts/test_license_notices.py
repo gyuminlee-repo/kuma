@@ -122,3 +122,25 @@ def test_about_displays_project_license_not_legacy_internal_use():
     source = (ROOT / "src/components/layout/SharedAboutDialog.tsx").read_text(encoding="utf8")
     assert "GNU GPL v2" in source
     assert 't("about.licenseText")' not in source
+
+
+def test_importable_licenses_module_is_not_a_notice(tmp_path):
+    dist = Distribution(tmp_path, "example")
+    for name in ["packaging/licenses/__init__.py", "packaging/licenses/__pycache__/__init__.pyc"]:
+        path = Path(name)
+        target = dist.root / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(b"\xcb\x00\x00")
+        dist.files.append(path)
+    assert len(collector.legal_files(dist)) == 1
+
+
+def test_xlwt_supplement_keeps_all_component_conditions(tmp_path):
+    dist = Distribution(tmp_path, "xlwt")
+    dist.version = "1.3.0"
+    dist.files = []
+    dist.metadata.replace_header("License-Expression", "BSD")
+    files = collector.legal_files(dist)
+    assert "All advertising materials" in files[0]["text"]
+    assert "GNU Lesser General Public License" in files[0]["text"]
+    assert "Exact xlwt 1.3.0" in files[0]["provenance"]
