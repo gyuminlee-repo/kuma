@@ -31,6 +31,9 @@ scripts/mame-real-data.json
 src-tauri/gen/
 *.bak
 
+# ui-smoke.mjs PASS marker (scripts/ui-smoke.mjs, scripts/ui-smoke-fingerprint.mjs)
+.ui-smoke-passed
+
 # Benchmark data (ProteinGym ~1GB)
 benchmark/data/
 
