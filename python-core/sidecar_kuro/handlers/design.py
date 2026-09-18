@@ -374,6 +374,26 @@ def _digest_or_none(path: Path) -> str | None:
         return None
 
 
+def _codon_table_provenance(organism: str) -> dict[str, Any] | None:
+    """Identify the codon table this design actually read.
+
+    ``params["organism"]`` alone cannot do it. Two machines holding different
+    files under one key produce different primers from manifests that read the
+    same word (design note section 8.1), so the key is recorded next to the
+    canonical digest of the codons and, for a user-installed table, the file
+    the sidecar opened. The export turns that path into
+    ``inputs["design_codon_table"]``.
+
+    Returns None only when the table cannot be described, which the caller
+    cannot reach: ``handle_design_sdm_primers`` has already listed and loaded
+    it. A None here reads as "not recorded", never as "built-in".
+    """
+    try:
+        return _core.get_registry().describe(organism)
+    except ValueError:
+        return None
+
+
 def _build_design_provenance(
     p: DesignSdmPrimersParams,
     resolved_fasta: Path,
@@ -422,6 +442,7 @@ def _build_design_provenance(
         "fasta_path": str(resolved_fasta),
         "fasta_sha256": _digest_or_none(resolved_fasta),
         "mutations": mutations,
+        "codon_table": _codon_table_provenance(p.organism),
         # As validated by pydantic, so defaults are filled in. A None here means
         # "resolved from the polymerase profile at run time" (the length and Tm
         # fields), not "unset". `seed` is carried through as supplied even

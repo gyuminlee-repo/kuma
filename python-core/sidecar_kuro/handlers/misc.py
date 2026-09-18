@@ -117,11 +117,19 @@ def handle_list_organisms(_params: dict) -> dict:
     Shape::
 
         {"organisms": [{key, name, taxid, source, aliases, cds_count,
-                        table_sha256, warnings: [{code, params}]}],
-         "failed":    [{filename, code, reason}],
+                        table_sha256, warnings: [{code, params}],
+                        normalizations: [{code, params}], document: {...}}],
+         "failed":    [{filename, code, reason, findings: [{code, params}]}],
          "user_dir":  "<absolute path>"}
 
     ``taxid`` is nullable: an in-house strain may have no NCBI id.
+
+    ``document`` is the whole table as a self-contained JSON object. The
+    workspace embeds it so a project stays readable on a machine that never had
+    the file (design note section 8.2), and the restore branches diff it
+    amino acid by amino acid when the digests disagree. ``normalizations``
+    reports what the import silently changed; it used to be computed and
+    dropped here, which left N1/N2/N4 unreachable in every locale.
     """
     ensure_user_codon_dir()
     registry = _core.get_registry()
