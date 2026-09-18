@@ -91,7 +91,15 @@ def ensure_user_codon_dir() -> Path:
     edited it.
     """
     directory = _core.user_codon_dir()
-    directory.mkdir(parents=True, exist_ok=True)
+    try:
+        directory.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        # A read-only home must not take the organism list down with it, and
+        # the mkdir is the first thing that fails there. The path is still
+        # returned so "Open folder" has something to show; the registry treats
+        # a directory that does not exist the same as an empty one and the
+        # bundled tables still list.
+        return directory
     for name in _CODON_SEED_FILES:
         source = _CODON_SEED_DIR / name
         target = directory / name
@@ -101,7 +109,7 @@ def ensure_user_codon_dir() -> Path:
                     source.read_text(encoding="utf-8"), encoding="utf-8"
                 )
             except OSError:
-                # A read-only home must not take the organism list down with it.
+                # Same reason: a seed that cannot be written is not fatal.
                 pass
     return directory
 
