@@ -297,6 +297,7 @@ class TestCodonSetRules:
         report = _report(mutate)
         assert report.error_codes == []
         assert {f.code for f in report.normalizations} == {"N1", "N2"}
+        assert report.table is not None
         assert report.table["W"] == [("TGG", 1.0)]
 
 
@@ -424,6 +425,7 @@ class TestDigest:
 
     def test_digest_follows_the_numbers(self):
         a = _report()
+        assert a.table is not None
         table = copy.deepcopy(a.table)
         table["D"] = [(c, f + 0.001) for c, f in table["D"]]
         assert canonical_digest(table, 11) != a.table_sha256
