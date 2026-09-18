@@ -1654,6 +1654,7 @@
     "sectionTmDistribution": "Distribution de Tm",
     "sectionDomainAllocation": "Allocation par domaine",
     "sectionFailedMutations": "Mutations échouées",
+    "statOrganism": "Organisme",
     "statStep1Filter": "Filtre étape 1",
     "statStep2Domains": "Domaines étape 2",
     "statStep2Overlap": "Overlap étape 2",
@@ -3798,7 +3799,8 @@
       "geneRangeInvalid": "Gene end must be greater than gene start",
       "projectPath": "Open or create a project first",
       "activeRound": "Select a round first",
-      "activityData": "Upload activity data first"
+      "activityData": "Upload activity data first",
+      "codonTableUnresolved": "Table de codons (traitez l'avis sous la liste des organismes)"
     },
     "actionBlockedTitle": "Cannot proceed — missing required input"
   },
@@ -3922,7 +3924,20 @@
       "N1": "Les codons ARN ont été convertis en ADN (U en T), soit {{n}} codons.",
       "N2": "{{n}} codon(s) étaient en minuscules et ont été convertis en majuscules.",
       "N4": "Les fréquences ont été recalculées à partir des décomptes de codons.",
+      "R5": "{{filename}} est masqué par la table intégrée '{{stem}}' et n'a pas été chargé. Renommez-le en {{stem}}_lab.json pour l'utiliser.",
       "unknown": "Le vérificateur de tables de codons a signalé {{code}}, pour lequel cette version de kuma n'a pas de description."
+    },
+    "restore": {
+      "notInstalled": "Ce projet utilise la table de codons '{{name}}', qui n'est pas installée ici. L'installer depuis le fichier de projet ?",
+      "absent": "Ce projet a utilisé la table de codons '{{key}}', absente de cette machine et dont le projet ne contient aucune copie. Placez le fichier dans le dossier des tables de codons avant de concevoir.",
+      "mismatch": "Ce projet a été conçu avec une autre version de la table de codons '{{key}}'. Acides aminés différents : {{list}}. Utilisez la copie enregistrée dans le projet, ou gardez la table locale et relancez la conception.",
+      "mismatchUnexplained": "La table de codons '{{key}}' de cette machine a changé depuis l'enregistrement de cette session. Ouvrez le fichier de projet pour comparer les deux versions, ou relancez la conception avec la table installée ici.",
+      "install": "Installer depuis le projet",
+      "useProjectCopy": "Utiliser la copie du projet",
+      "installing": "Installation...",
+      "overwriteWarning": "Cela remplace la table locale '{{key}}'.",
+      "installFailed": "Impossible d'installer la table : {{reason}}",
+      "installUnavailable": "Le projet ne contient aucune copie de cette table."
     }
   }
 }

@@ -50,6 +50,48 @@ export interface OrganismSummary {
   cds_count: number | null;
   table_sha256: string;
   warnings: CodonTableFinding[];
+  /**
+   * What the import silently changed (N1, N2, N4).
+   *
+   * The backend built these findings and then dropped them, so their thirty
+   * locale strings were unreachable from any production path. They are
+   * advisories, not defects: the table loaded, and this says what it looked
+   * like before it did.
+   */
+  normalizations: CodonTableFinding[];
+  /**
+   * The whole table as a self-contained JSON object.
+   *
+   * Optional so a sidecar built before Phase 2 still parses. When absent the
+   * workspace cannot embed this table and a digest disagreement cannot be
+   * explained amino acid by amino acid; both degrade to the digest-only path
+   * rather than to a wrong answer.
+   */
+  document?: CodonTableDocument;
+}
+
+/**
+ * A codon table in the shape its file on disk has.
+ *
+ * Built by the backend from what the validator normalised rather than from the
+ * bytes it read, so writing this object to `<key>.json` and validating it again
+ * yields the same `table_sha256` (kuma_core/kuro/codon_table.py,
+ * `_document_from_report`). That property is what makes the workspace embed
+ * installable: a restore that produced a table with a different digest than the
+ * project recorded would hit the mismatch branch it was meant to resolve.
+ *
+ * The traceability fields (`provenance`, `counts`, the assembly labels) ride
+ * along under the index signature. None of them enters the canonical digest.
+ */
+export interface CodonTableDocument {
+  key: string;
+  name: string;
+  taxid: number | null;
+  source: string;
+  genetic_code: number;
+  aliases: string[];
+  codons: Record<string, [string, number][]>;
+  [field: string]: unknown;
 }
 
 /**
@@ -58,15 +100,18 @@ export interface OrganismSummary {
  * `code` is the FIRST error code the validator raised (V1-V35), or the runtime
  * rule `R5` when a user file is shadowed by a bundled table of the same stem.
  * `reason` is the backend's English detail text, joined with `; ` when several
- * rules fired. It carries no `params`
- * (kuma_core/kuro/codon_table.py, `CodonTableRegistry.scan`), so the UI cannot
- * rebuild the localized sentence for a rejected file and renders the code plus
- * this text instead.
+ * rules fired, and stays as the fallback for a sidecar older than `findings`.
+ *
+ * `findings` carries every error with its `params`, which is what
+ * `formatCodonTableMessage` needs to rebuild the sentence in the active locale.
+ * Every error and not only the first: `reason` already joins them all, so
+ * localizing one code would drop the rest of what the file got wrong.
  */
 export interface CodonTableFailure {
   filename: string;
   code: string;
   reason: string;
+  findings?: CodonTableFinding[];
 }
 
 /**
@@ -659,6 +704,28 @@ export interface WorkspaceV3 {
   cache?: WorkspaceCache;
   rounds: import("./round").Round[];
   active_round_id: string | null;
+  /**
+   * The codon table this project designed with, in full.
+   *
+   * About 3.5 KB, and the whole table rather than a key, because a workspace is
+   * the artifact that travels: opened on a machine that never had the file, a
+   * key alone would name something nobody can produce. Written only for a
+   * user-installed table; a bundled one is identified by its key, which the app
+   * ships (design note section 8.2).
+   *
+   * Optional, and its absence is not a defect: every workspace saved before
+   * Phase 2 lacks it, and those restore exactly as they did before.
+   */
+  codon_table?: CodonTableDocument | null;
+  /**
+   * The canonical digest of that table, recorded for a bundled table too.
+   *
+   * Separate from `codon_table` because it is a property of the backend's
+   * normalisation, not of the document text, and because a bundled table needs
+   * the digest without the body: a later build can ship different numbers under
+   * a key this file names, and nothing but the digest would notice.
+   */
+  codon_table_sha256?: string | null;
 }
 
 export type WorkspaceData = WorkspaceV1 | WorkspaceV2 | WorkspaceV3;

@@ -1696,6 +1696,7 @@
     "sectionTmDistribution": "Tm Distribution",
     "sectionDomainAllocation": "Domain Allocation",
     "sectionFailedMutations": "Failed Mutations",
+    "statOrganism": "Organism",
     "statStep1Filter": "Step 1 filter",
     "statStep2Domains": "Step 2 domains",
     "statStep2Overlap": "Step 2 overlap",
@@ -3714,7 +3715,8 @@
       "geneRangeInvalid": "Gene end must be greater than gene start",
       "projectPath": "Open or create a project first",
       "activeRound": "Select a round first",
-      "activityData": "Upload activity data first"
+      "activityData": "Upload activity data first",
+      "codonTableUnresolved": "Codon table (resolve the notice under the organism list)"
     },
     "actionBlockedTitle": "Cannot proceed — missing required input"
   },
@@ -3922,7 +3924,20 @@
       "N1": "RNA codons were converted to DNA (U to T), {{n}} codons.",
       "N2": "{{n}} codon(s) were lowercase and have been converted to uppercase.",
       "N4": "Frequencies were recomputed from the codon counts.",
+      "R5": "{{filename}} is shadowed by the built-in table '{{stem}}' and was not loaded. Rename it to {{stem}}_lab.json to use it.",
       "unknown": "The codon table checker reported {{code}}, which this version of kuma has no description for."
+    },
+    "restore": {
+      "notInstalled": "This project uses the codon table '{{name}}', which is not installed here. Install it from the project file?",
+      "absent": "This project used the codon table '{{key}}', which is not installed here and the project carries no copy of it. Put the file in the codon table folder before designing.",
+      "mismatch": "This project was designed with a different version of the codon table '{{key}}'. Amino acids that differ: {{list}}. Use the copy stored in the project, or keep the local table and re-design.",
+      "mismatchUnexplained": "The codon table '{{key}}' on this machine has changed since this session was saved. Open the project file to compare the two versions, or design again with the table installed here.",
+      "install": "Install from project",
+      "useProjectCopy": "Use the project copy",
+      "installing": "Installing...",
+      "overwriteWarning": "This replaces the local table '{{key}}'.",
+      "installFailed": "Could not install the table: {{reason}}",
+      "installUnavailable": "The project carries no copy of this table."
     }
   }
 }

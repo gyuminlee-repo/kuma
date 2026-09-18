@@ -73,6 +73,8 @@ export function DesignReportContent({ onClose }: DesignReportContentProps) {
       evolveproParetoExchanges: s.evolveproParetoExchanges,
       evolveproStepStats: s.evolveproStepStats,
       mutationInputMode: s.mutationInputMode,
+      organism: s.organism,
+      organisms: s.organisms,
       rescueStats: s.rescueStats,
       rescuedMutationDetails: s.rescuedMutationDetails,
     })),
@@ -109,7 +111,20 @@ export function DesignReportContent({ onClose }: DesignReportContentProps) {
     evolveproStepStats,
     rescueStats,
     rescuedMutationDetails,
+    organism,
+    organisms,
   } = data;
+
+  // Name, key and - for a user-installed table - the first eight characters of
+  // the canonical digest. A key that is not listed here still prints, because a
+  // report that dropped the organism it could not resolve would read exactly
+  // like one designed with the default.
+  const selectedOrganism = organisms.find((o) => o.key === organism);
+  const organismLabel = selectedOrganism
+    ? selectedOrganism.source === "user"
+      ? `${selectedOrganism.name} (${organism}, ${selectedOrganism.table_sha256.slice(0, 8)})`
+      : `${selectedOrganism.name} (${organism})`
+    : organism;
 
   const successCount = designResults.length;
   const failCount = failedMutations.length;
@@ -245,6 +260,11 @@ export function DesignReportContent({ onClose }: DesignReportContentProps) {
 
         {/* Primer Design */}
         <Section title={t("designReport.sectionPrimerDesign")}>
+          {/* The key is shown next to the display name, and a user-installed
+              table also shows the first eight characters of its canonical
+              digest. Two machines can hold different files under one key, and
+              the name alone would read the same on both (design note 8.1). */}
+          <Stat label={t("designReport.statOrganism")} value={organismLabel} />
           <Stat label={t("designReport.statSucceeded")} value={`${successCount}/${totalCount}`} />
           <Stat label={t("designReport.statTmMet")} value={`${tmMet}/${successCount}`} warn={tmMet < successCount} />
           {failCount > 0 && <Stat label={t("designReport.statFailed")} value={failCount} warn />}

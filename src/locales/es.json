@@ -1654,6 +1654,7 @@
     "sectionTmDistribution": "Distribución de Tm",
     "sectionDomainAllocation": "Asignación de dominios",
     "sectionFailedMutations": "Mutaciones fallidas",
+    "statOrganism": "Organismo",
     "statStep1Filter": "Filtro Step 1",
     "statStep2Domains": "Dominios Step 2",
     "statStep2Overlap": "Overlap Step 2",
@@ -3798,7 +3799,8 @@
       "geneRangeInvalid": "Gene end must be greater than gene start",
       "projectPath": "Open or create a project first",
       "activeRound": "Select a round first",
-      "activityData": "Upload activity data first"
+      "activityData": "Upload activity data first",
+      "codonTableUnresolved": "Tabla de codones (resuelva el aviso bajo la lista de organismos)"
     },
     "actionBlockedTitle": "Cannot proceed — missing required input"
   },
@@ -3922,7 +3924,20 @@
       "N1": "Se convirtieron codones de ARN a ADN (U por T): {{n}} codones.",
       "N2": "{{n}} codón(es) estaban en minúsculas y se han pasado a mayúsculas.",
       "N4": "Las frecuencias se recalcularon a partir de los recuentos de codones.",
+      "R5": "{{filename}} queda oculto por la tabla integrada '{{stem}}' y no se cargó. Cambie el nombre a {{stem}}_lab.json para usarlo.",
       "unknown": "El verificador de tablas de codones informó {{code}}, para el que esta versión de kuma no tiene descripción."
+    },
+    "restore": {
+      "notInstalled": "Este proyecto usa la tabla de codones '{{name}}', que no está instalada aquí. ¿Instalarla desde el archivo del proyecto?",
+      "absent": "Este proyecto usó la tabla de codones '{{key}}', que no está instalada aquí y de la que el proyecto no guarda copia. Coloque el archivo en la carpeta de tablas de codones antes de diseñar.",
+      "mismatch": "Este proyecto se diseñó con otra versión de la tabla de codones '{{key}}'. Aminoácidos que difieren: {{list}}. Use la copia guardada en el proyecto, o mantenga la tabla local y vuelva a diseñar.",
+      "mismatchUnexplained": "La tabla de codones '{{key}}' de esta máquina cambió desde que se guardó esta sesión. Abra el archivo del proyecto para comparar las dos versiones, o vuelva a diseñar con la tabla instalada aquí.",
+      "install": "Instalar desde el proyecto",
+      "useProjectCopy": "Usar la copia del proyecto",
+      "installing": "Instalando...",
+      "overwriteWarning": "Esto reemplaza la tabla local '{{key}}'.",
+      "installFailed": "No se pudo instalar la tabla: {{reason}}",
+      "installUnavailable": "El proyecto no guarda copia de esta tabla."
     }
   }
 }

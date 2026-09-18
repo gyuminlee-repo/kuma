@@ -11,6 +11,7 @@ import type { EchoQuadrant } from "@/types/models";
  */
 
 import type { SortingState, Updater } from "@tanstack/react-table";
+import type { ExpectedCodonTable } from "../lib/codonTableRestore";
 import type { Round } from "../types/round";
 import type {
   BenchmarkResult,
@@ -68,12 +69,27 @@ export interface SequenceSlice {
   // The folder path the sidecar resolved, or null before the first listing.
   // Never reconstructed in the frontend; see ListOrganismsResult.
   codonTableDir: string | null;
+  // What a restored project says its codon table was, or null when nothing has
+  // been restored. Held as an expectation rather than resolved once at restore
+  // time because hydration can run before the first listing lands, where every
+  // key would read as "not installed here" (lib/codonTableRestore.ts).
+  restoredCodonTable: ExpectedCodonTable | null;
 
   // Actions
   loadSequence: (filepath: string) => Promise<void>;
   setSelectedGene: (gene: string) => void;
   setOrganism: (organism: string) => void;
   loadOrganisms: () => Promise<void>;
+  setRestoredCodonTable: (expected: ExpectedCodonTable | null) => void;
+  /**
+   * Write the project's copy of the codon table into the user folder and
+   * re-list. Resolves to the failure reason, or null on success.
+   *
+   * Only ever called from an explicit user action: the project's copy is the
+   * authoritative one, and overwriting a local table of the same key still
+   * needs saying so out loud (design note section 8.3, last row).
+   */
+  installRestoredCodonTable: () => Promise<string | null>;
 }
 
 // ---------------------------------------------------------------------------

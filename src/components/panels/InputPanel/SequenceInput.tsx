@@ -6,6 +6,7 @@ import { basename } from "../../../lib/utils";
 import { browseFile } from "../../../lib/file-utils";
 import { Button } from "../../ui/button";
 import { InlineHelp } from "../../ui/InlineHelp";
+import { CodonTableRestoreNotice } from "../../widgets/CodonTableRestoreNotice";
 
 const SEQUENCE_DROP_EXTENSIONS = new Set([".gb", ".gbk", ".gbff", ".dna"]);
 const FASTA_EXTENSIONS = new Set([".fa", ".fasta", ".fna"]);
@@ -190,6 +191,7 @@ export function SequenceInput() {
             <option key={o.key} value={o.key}>{o.name}</option>
           ))}
         </select>
+        <CodonTableRestoreNotice />
       </div>
     </>
   );

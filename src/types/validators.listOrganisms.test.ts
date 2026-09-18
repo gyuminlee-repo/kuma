@@ -194,3 +194,80 @@ describe("list_organisms envelope: rejected payloads", () => {
     ).toBe(false);
   });
 });
+
+/**
+ * Phase 2 widened the envelope with three optional fields. Optional and not
+ * required: a sidecar built before Phase 2 sends none of them, and rejecting
+ * its payload would empty the organism dropdown over a field the frontend
+ * degrades gracefully without.
+ */
+describe("list_organisms envelope: the Phase 2 fields", () => {
+  const document = () => ({
+    key: "example_strain",
+    name: "Example strain (rename me)",
+    taxid: null,
+    source: "in-house",
+    genetic_code: 11,
+    aliases: [],
+    codons: { K: [["AAA", 0.76], ["AAG", 0.24]], M: [["ATG", 1]] },
+    provenance: { method: "fraction_only" },
+  });
+
+  it("CONTROL a pre-Phase-2 payload carrying none of them still validates", () => {
+    expect(validate(envelope())).toBe(true);
+  });
+
+  it("accepts an organism carrying normalizations and a document", () => {
+    expect(
+      validate(
+        envelope({
+          organisms: [
+            { ...userTable(), normalizations: [{ code: "N1", params: { n: 2 } }], document: document() },
+          ],
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it("accepts a failed entry carrying findings", () => {
+    expect(
+      validate(
+        envelope({
+          failed: [
+            {
+              filename: "ecoli.json",
+              code: "R5",
+              reason: "shadowed",
+              findings: [{ code: "R5", params: { filename: "ecoli.json", stem: "ecoli" } }],
+            },
+          ],
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it.each([
+    ["normalizations not an array", { normalizations: {} }],
+    ["a normalization without params", { normalizations: [{ code: "N1" }] }],
+    ["a document without codons", { document: { ...document(), codons: undefined } }],
+    ["a document whose genetic_code is a string", { document: { ...document(), genetic_code: "11" } }],
+    ["a codon pair that is not [string, number]", {
+      document: { ...document(), codons: { K: [["AAA", "0.76"]] } },
+    }],
+    ["a codon entry that is not a list of pairs", {
+      document: { ...document(), codons: { K: "AAA" } },
+    }],
+  ])("rejects an organism with %s", (_label, over) => {
+    expect(validate(envelope({ organisms: [{ ...userTable(), ...over }] }))).toBe(false);
+  });
+
+  it("rejects a failed entry whose findings are not findings", () => {
+    expect(
+      validate(
+        envelope({
+          failed: [{ filename: "x.json", code: "V3", reason: "bad", findings: [{ code: "V3" }] }],
+        }),
+      ),
+    ).toBe(false);
+  });
+});
