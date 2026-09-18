@@ -166,7 +166,7 @@
     "savedAt": "{{time}}에 저장됨",
     "codonTables": {
       "title": "코돈 테이블",
-      "hint": "생물별 코돈 테이블 .json 파일을 이 폴더에 넣고 Refresh 를 누르십시오. .json 을 뗀 파일 이름이 그대로 생물 키가 됩니다.",
+      "hint": "생물별 코돈 테이블 .json 파일을 이 폴더에 넣고 새로고침을 누르십시오. .json 을 뗀 파일 이름이 그대로 생물 키가 됩니다.",
       "counts": "내장 {{builtin}} 개, 이 폴더에서 {{user}} 개.",
       "openFolder": "폴더 열기",
       "refresh": "새로고침",

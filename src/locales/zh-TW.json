@@ -166,7 +166,7 @@
     "savedAt": "已於 {{time}} 儲存",
     "codonTables": {
       "title": "密碼子表",
-      "hint": "請將物種密碼子表的 .json 檔案放入此資料夾，然後按 Refresh。去掉 .json 的檔名即為該物種的鍵。",
+      "hint": "請將物種密碼子表的 .json 檔案放入此資料夾，然後按重新整理。去掉 .json 的檔名即為該物種的鍵。",
       "counts": "內建 {{builtin}} 張，來自此資料夾 {{user}} 張。",
       "openFolder": "開啟資料夾",
       "refresh": "重新整理",

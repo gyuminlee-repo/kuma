@@ -166,7 +166,7 @@
     "savedAt": "Guardado a las {{time}}",
     "codonTables": {
       "title": "Tablas de codones",
-      "hint": "Coloca en esta carpeta un archivo .json con la tabla de codones del organismo y pulsa Refresh. El nombre del archivo sin .json pasa a ser la clave del organismo.",
+      "hint": "Coloca en esta carpeta un archivo .json con la tabla de codones del organismo y pulsa Actualizar. El nombre del archivo sin .json pasa a ser la clave del organismo.",
       "counts": "{{builtin}} integradas, {{user}} de esta carpeta.",
       "openFolder": "Abrir carpeta",
       "refresh": "Actualizar",

@@ -166,7 +166,7 @@
     "savedAt": "Salvo às {{time}}",
     "codonTables": {
       "title": "Tabelas de códons",
-      "hint": "Coloque nesta pasta um arquivo .json com a tabela de códons do organismo e clique em Refresh. O nome do arquivo sem .json vira a chave do organismo.",
+      "hint": "Coloque nesta pasta um arquivo .json com a tabela de códons do organismo e clique em Atualizar. O nome do arquivo sem .json vira a chave do organismo.",
       "counts": "{{builtin}} integradas, {{user}} desta pasta.",
       "openFolder": "Abrir pasta",
       "refresh": "Atualizar",
