@@ -82,14 +82,23 @@ jobs:
           echo "$GITHUB_WORKSPACE/.samtools/bin" >> $GITHUB_PATH
 
       - name: Run Python tests
-        # -rs prints a short summary of every skipped test with its reason.
-        # 15 tests (tests/integration/test_xlsx_pipeline.py, 9, and
-        # tests/mame/test_well_consensus_regression.py::TestReferenceGroundTruth,
-        # 6) gate on KUMA_TEST_DATA_DIR / WORKSPACE_ROOT, which no workflow sets,
-        # so they have never run here. The data is not in the repository, so the
-        # fix is that the log states which tests did not run rather than
-        # reporting a green that reads as full coverage.
-        run: python -m pytest tests/ -v -rs
+        # Actual execution outcomes, not a stale prose count of external tests.
+        run: python -m pytest tests/ -v -rs --junitxml=validation-python.xml
+
+      - name: Report external-data validation coverage
+        if: always()
+        run: python scripts/report_validation_coverage.py --junit validation-python.xml --output validation-coverage.json
+
+      - name: Archive validation evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: validation-${{ matrix.os }}-${{ matrix.python-version }}
+          path: |
+            validation-python.xml
+            validation-coverage.json
+          retention-days: 7
+          if-no-files-found: error
 
   # A Python type gate, deliberately its own job rather than a step inside
   # python-tests: that job is a 3-OS by 2-version matrix, so a step there would

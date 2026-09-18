@@ -2,7 +2,7 @@
 
 Algorithm (minimap2 align + alignment-anchored fuzzy barcode matching):
 ----------------------------------------------------------------------
-1. Align all raw FASTQ reads to reference using mappy (map-ont preset).
+1. Align all raw FASTQ reads to reference using minimap2 CLI (map-ont preset).
 2. MAPQ >= 25 filter.
 3. Coverage filter: each alignment must cover >= coverage_fraction of reference
    (default 0.98; replaces strict 100% filter to recover reads with 1-2 bp clip).
@@ -16,8 +16,8 @@ Algorithm (minimap2 align + alignment-anchored fuzzy barcode matching):
 6. Barcode demux using edlib HW (infix) edit-distance search:
    Library structure (sense strand of read):
      5-[F_barcode + F_anneal]-[insert]-[RC(R_anneal) + RC(R_barcode)]-3
-   - F-barcode window (5 end): [max(0, q_st - window_bp - max_f_len), q_st + window_bp]
-   - R-barcode window (3 end): [max(0, q_en - window_bp), min(L, q_en + window_bp + max_r_len)]
+   - F-barcode window (5 end): [max(0, q_st - window_bp - max_f_len), min(L, q_st)]
+   - R-barcode window (3 end): [max(0, q_en), min(L, q_en + window_bp + max_r_len)]
      R barcode prefixes are reverse-complemented before searching (RC form in read).
    - For each barcode, best infix edit distance is computed; only accept if
      edit_distance <= int(len(bc) * edit_dist_ratio)  (floor, conservative).
@@ -51,12 +51,14 @@ Barcode loading:
 Assumptions:
 - Reference FASTA has exactly one sequence record.
 - Barcodes xlsx rows: isps_f_1..12 then isps_r_1..8.
-- mappy and edlib available (pyproject.toml restricts mappy to Linux).
+- minimap2 executable and edlib available.
 - Edit-distance threshold uses floor(len * ratio), not ceil, to stay
   conservative on 10 bp barcodes (floor gives max 2 edits at ratio=0.20).
 """
 
 from __future__ import annotations
+
+from kuma_core.mame.ingest.barcode_windows import barcode_window_bounds
 
 import contextlib
 import gzip
@@ -1220,8 +1222,8 @@ def _extract_barcode_windows(
     both per-character on the ASCII bases a FASTQ read carries, so
         upper(S)[a:b]                == upper(S[a:b])
         RC(upper(S))[a:b]            == RC(upper(S[L-b:L-a]))
-    The -1 branch below is the second identity with the window bounds folded
-    in; see the comment there for the coordinate derivation.
+    The minus-strand bounds in barcode_window_bounds are the second identity
+    with the window bounds folded in; the whole-read oracle tests both forms.
 
     Window rationale (unchanged):
     F barcode is strictly 5' of alignment start (F_barcode + F_anneal tail).
@@ -1236,32 +1238,14 @@ def _extract_barcode_windows(
     3' of the alignment end, where the barcode appears as RC(R_barcode) (hence
     the R prefixes are searched in RC form, precomputed in the plan).
     """
-    L = len(read_seq)
-
+    f_start, f_end, r_start, r_end = barcode_window_bounds(
+        len(read_seq), q_st, q_en, strand, window_bp, max_f_len, max_r_len,
+    )
+    f_window = read_seq[f_start:f_end].upper()
+    r_window = read_seq[r_start:r_end].upper()
     if strand == -1:
-        # Original code normalised via norm_q_st = L - q_en, norm_q_en = L - q_st
-        # on rc = RC(upper(read_seq)), then took
-        #   f_window = rc[max(0, norm_q_st - window_bp - max_f_len) : min(L, norm_q_st)]
-        #   r_window = rc[max(0, norm_q_en) : min(L, norm_q_en + window_bp + max_r_len)]
-        # Mapping rc[a:b] back to the read via RC(upper(read_seq[L-b:L-a])) and
-        # substituting L - norm_q_st = q_en, L - norm_q_en = q_st gives:
-        #   f source = read_seq[max(0, q_en) : min(L, q_en + window_bp + max_f_len)]
-        #   r source = read_seq[max(0, q_st - window_bp - max_r_len) : min(L, q_st)]
-        # (min/max survive the mapping because L - min(L, x) == max(0, L - x).)
-        f_window = _reverse_complement(
-            read_seq[max(0, q_en):min(L, q_en + window_bp + max_f_len)].upper()
-        )
-        r_window = _reverse_complement(
-            read_seq[max(0, q_st - window_bp - max_r_len):min(L, q_st)].upper()
-        )
-    else:
-        f_window = read_seq[
-            max(0, q_st - window_bp - max_f_len):min(L, q_st)
-        ].upper()
-        r_window = read_seq[
-            max(0, q_en):min(L, q_en + window_bp + max_r_len)
-        ].upper()
-
+        f_window = _reverse_complement(f_window)
+        r_window = _reverse_complement(r_window)
     return f_window, r_window
 
 

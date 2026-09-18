@@ -8,7 +8,12 @@ from pathlib import Path
 
 
 class VerdictClass(StrEnum):
-    """8-class verdict enum. Order reflects comparison priority (fail-first checks)."""
+    """Stable serialized/display labels, NOT verdict-gate priority.
+
+    Runtime precedence belongs to compare.verdict.classify_verdict and is
+    exercised by tests/mame/test_verdict_behavior_contract.py. Keep this enum
+    order stable; sorting it cannot express gates that share the same label.
+    """
 
     PASS = "PASS"
     AMBIGUOUS = "AMBIGUOUS"
