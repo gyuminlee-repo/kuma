@@ -14,7 +14,7 @@ import sys
 import tempfile
 import unittest
 
-SCRIPT = Path(__file__).resolve().parents[2] / ".." / "scripts" / "plan_incremental_audit.py"
+SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "plan_incremental_audit.py"
 spec = importlib.util.spec_from_file_location("incremental_audit_planner", SCRIPT.resolve())
 assert spec is not None and spec.loader is not None
 planner = importlib.util.module_from_spec(spec)

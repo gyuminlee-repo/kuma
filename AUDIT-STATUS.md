@@ -1,5 +1,19 @@
 # What the audit pages are, and what landed from them
 
+## Incremental review index (2026-09-18)
+
+For the next debugging/refactoring pass, first run
+`python scripts/plan_incremental_audit.py` and read
+`docs/audit/incremental-review.md`. The machine-readable
+`docs/audit/registry.json` records nine bounded scopes from PR #425
+(`3577ea44`) and #428 (`bad3d1c9`), their original baselines, regression
+tests, historical CI evidence, dependency watches and explicit limits.
+This supplements the historical pages below; it does not relabel every old
+finding as resolved or certify an entire module. Context changes after #425
+can still require re-review. Missing independent data/calibration stays
+unverified. Only manual review effort can be reused; final full CI still runs.
+
+
 The eleven `AUDIT-*.md` pages record findings as of the sweep that produced them.
 They are not a to-do list and they were never rewritten as fixes landed, so a
 finding described there is open unless this page says otherwise.

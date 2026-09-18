@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 from fnmatch import fnmatchcase
+from functools import lru_cache
 import hashlib
 import json
 from pathlib import Path, PurePosixPath
@@ -108,6 +109,7 @@ def validate_registry(value: Any) -> dict[str, Any]:
     return value
 
 
+@lru_cache(maxsize=8192)
 def expand_pattern(pattern: str) -> list[str]:
     """Brace alternatives and zero-directory **/ in addition to fnmatch syntax.
 
@@ -218,6 +220,7 @@ def plan(repo: Repository, registry: dict[str, Any], groups: list[dict[str, Any]
     current_tree = repo.tree(repo.head)
     records = []
     errors = []
+    impact_cache: dict[str, tuple[set[str], list[str]]] = {}
     for item in registry["records"]:
         row = {key: item[key] for key in ("id", "scope", "reviewed_commit", "evidence", "tests", "limitations")}
         row.update(status="review_required", trigger_paths=[], dependency_groups=[], fingerprints={})
@@ -225,7 +228,9 @@ def plan(repo: Repository, registry: dict[str, Any], groups: list[dict[str, Any]
             original = repo.tree(item["reviewed_commit"])
             changes = repo.changes(item["reviewed_commit"])
             universe = set(current_tree) | set(original) | changes
-            impacted, group_ids = impact_closure(changes, universe, groups)
+            if item["reviewed_commit"] not in impact_cache:
+                impact_cache[item["reviewed_commit"]] = impact_closure(changes, universe, groups)
+            impacted, group_ids = impact_cache[item["reviewed_commit"]]
             watched = item["files"] + item["tests"] + item["watch"]
             relevant = sorted(path for path in impacted if matches(path, watched))
             global_changes = sorted(path for path in changes if matches(path, registry["global_inputs"]))

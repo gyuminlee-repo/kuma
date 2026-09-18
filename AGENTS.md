@@ -1,5 +1,19 @@
 # AGENTS.md
 
+## Incremental audit entry point (debugging / refactoring)
+
+Start repeated code-health work with `python scripts/plan_incremental_audit.py`.
+Read `docs/audit/incremental-review.md` and the generated plan before a fresh
+whole-repository sweep. `docs/audit/registry.json` records bounded prior reviews,
+immutable commits, tests, dependency watches and remaining unverified work.
+Reuse unchanged explanations only after reviewing unrecorded/new changes and
+checking dependency-map completeness. A `reuse_candidate` is NOT a passing
+test or approval. Missing history/evidence requires broader review, not a skip.
+Re-run regressions and the existing full CI on the final head before merge.
+Never automatically advance all baselines, promote skipped real-data tests,
+or remove final gates to save time. State reused/rechecked/unverified scopes
+in the PR summary. The detailed procedure includes safe ledger updates.
+
 이 저장소에서 코딩 에이전트가 따라야 할 규칙을 정의한다. Claude Code 는 CLAUDE.md 의 import 로 이 파일을 읽는다.
 
 ## Project Overview
