@@ -210,3 +210,78 @@ class TestManifestKnownAnswer:
         assert "design_codon_table" not in inputs
         assert extra["design"]["codon_table"]["key"] == "ecoli"
         assert extra["design"]["codon_table"]["source"] == "builtin"
+
+
+class TestEndToEndManifest:
+    """The whole point, at the level the artifact is actually written.
+
+    The unit above checks the digest the registry mints. This checks that two
+    real manifests, built the way the export builds them, actually read
+    differently - which is the sentence section 8.1 says is false today.
+    """
+
+    def _manifest(self, organism: str, monkeypatch) -> dict:
+        from datetime import datetime, timezone
+
+        import sidecar_kuro.core as core
+        from sidecar_kuro.handlers import export as export_mod
+        from sidecar_kuro.handlers.design import _codon_table_provenance
+        from kuma_core.shared.run_manifest import build_run_manifest
+
+        provenance = {"codon_table": _codon_table_provenance(organism)}
+        monkeypatch.setattr(core, "_provenance_snapshot", lambda: (provenance, []))
+        inputs, extra = export_mod._design_provenance_for_manifest("state")
+        now = datetime.now(timezone.utc)
+        return build_run_manifest(
+            method="export_primers",
+            inputs=inputs,
+            params={"organism": organism},
+            started_at=now,
+            finished_at=now,
+            extra=extra,
+        )
+
+    def test_two_tables_under_one_key_no_longer_read_alike(
+        self, user_dir, monkeypatch
+    ):
+        _write(user_dir, "mylab")
+        first = self._manifest("mylab", monkeypatch)
+
+        swapped = _ecoli_codons()
+        swapped["K"] = [["AAA", 0.24], ["AAG", 0.76]]
+        _write(user_dir, "mylab", codons=swapped)
+        second = self._manifest("mylab", monkeypatch)
+
+        # The word that used to be the only record is still identical, which is
+        # what made the old manifests indistinguishable.
+        assert first["params"]["organism"] == second["params"]["organism"]
+        assert (
+            first["inputs"]["design_codon_table"]["sha256"]
+            != second["inputs"]["design_codon_table"]["sha256"]
+        )
+        assert (
+            first["extra"]["design"]["codon_table"]["table_sha256"]
+            != second["extra"]["design"]["codon_table"]["table_sha256"]
+        )
+
+    def test_control_the_two_digests_answer_different_questions(
+        self, user_dir, monkeypatch
+    ):
+        """Paperwork moves the file digest and leaves the canonical one alone."""
+        _write(user_dir, "mylab")
+        first = self._manifest("mylab", monkeypatch)
+        _write(
+            user_dir,
+            "mylab",
+            provenance={"method": "fraction_only", "generated_at": "2030-12-31"},
+        )
+        second = self._manifest("mylab", monkeypatch)
+
+        assert (
+            first["inputs"]["design_codon_table"]["sha256"]
+            != second["inputs"]["design_codon_table"]["sha256"]
+        )
+        assert (
+            first["extra"]["design"]["codon_table"]["table_sha256"]
+            == second["extra"]["design"]["codon_table"]["table_sha256"]
+        )
