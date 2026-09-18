@@ -35,8 +35,32 @@ function readLegalFiles(root) {
     }
   }
   walk(root);
-  if (!found.length) throw new Error(`No LICENSE/LICENCE/COPYING/NOTICE/COPYRIGHT text in ${root}`);
   return found;
+}
+
+// esbuild publishes its binary as an exact-version optional companion. Some
+// platform tarballs omit LICENSE.md; retain the same-version parent package's
+// real text, with its source named, rather than substituting a generic MIT text.
+function companionLegalFiles(meta, data, baseDir) {
+  if (!meta.name.startsWith("@esbuild/")) return [];
+  for (const group of Object.values(data)) {
+    if (!Array.isArray(group)) continue;
+    for (const pkg of group) {
+      if (pkg?.name !== "esbuild" || !Array.isArray(pkg.paths)) continue;
+      for (const item of pkg.paths) {
+        const root = realpathSync(resolve(baseDir, item));
+        const parent = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
+        if (parent.name !== "esbuild" || parent.version !== meta.version ||
+            parent.optionalDependencies?.[meta.name] !== meta.version ||
+            parent.license !== "MIT" || meta.license !== "MIT") continue;
+        return readLegalFiles(root).map((file) => ({
+          ...file, path: `esbuild@${parent.version}/${file.path}`,
+          source_package: `esbuild@${parent.version}`,
+        }));
+      }
+    }
+  }
+  return [];
 }
 
 export function collectNodeLicenses(data, baseDir = process.cwd()) {
@@ -44,6 +68,7 @@ export function collectNodeLicenses(data, baseDir = process.cwd()) {
     throw new Error("Expected a non-empty pnpm license-group object");
   }
   const records = new Map();
+  const missing = [];
   for (const [license, packages] of Object.entries(data)) {
     if (!license.trim() || !Array.isArray(packages) || !packages.length) {
       throw new Error(`Invalid or empty license group: ${license}`);
@@ -64,7 +89,9 @@ export function collectNodeLicenses(data, baseDir = process.cwd()) {
         if (meta.name !== pkg.name || !versions.includes(meta.version)) {
           throw new Error(`Package identity mismatch at ${root}`);
         }
-        const files = readLegalFiles(root);
+        let files = readLegalFiles(root);
+        if (!files.length) files = companionLegalFiles(meta, data, baseDir);
+        if (!files.length) missing.push(`${meta.name}@${meta.version} (${root})`);
         const record = { name: meta.name, version: meta.version, license, files };
         const key = `${meta.name}@${meta.version}`;
         const previous = records.get(key);
@@ -79,6 +106,7 @@ export function collectNodeLicenses(data, baseDir = process.cwd()) {
       }
     }
   }
+  if (missing.length) throw new Error(`No LICENSE text for:\n${missing.join("\n")}`);
   return [...records.values()].sort((a, b) => compare(`${a.name}@${a.version}`, `${b.name}@${b.version}`));
 }
 

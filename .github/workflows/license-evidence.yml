@@ -54,12 +54,24 @@ jobs:
           pnpm licenses list --json --prod > pnpm-licenses.json
           node scripts/collect-node-licenses.mjs pnpm-licenses.json NOTICE-node.md
       - name: Collect Python legal texts
+        if: ${{ !cancelled() }}
         run: python scripts/collect-python-licenses.py --include-build
       - name: Retain versioned evidence for review (not a legal approval)
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v5
         with:
           name: license-evidence-${{ matrix.os }}
           path: |
+            pnpm-licenses.json
+            LICENSE
+            NOTICE-bundled.md
+            pyproject.toml
+            package.json
+            src-tauri/about.toml
+            src/components/layout/SharedAboutDialog.tsx
+            src/locales/*.json
+            docs/en/contributing.md
+            docs/ko/contributing.md
             NOTICE-node.md
             NOTICE-node.json
             NOTICE-python.md

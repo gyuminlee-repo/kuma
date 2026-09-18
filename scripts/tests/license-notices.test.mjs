@@ -92,3 +92,25 @@ test("merger preserves project license and rejects incomplete input without repl
   rmSync(join(root, "NOTICE-node.md"));
   assert.throws(() => buildNotice(root), /ENOENT/);
 });
+
+test("esbuild companion uses only the exact-version parent's original text", (t) => {
+  const { root } = fixture(t);
+  const parent = join(root, "esbuild");
+  const child = join(root, "platform");
+  mkdirSync(parent); mkdirSync(child);
+  writeFileSync(join(parent, "package.json"), JSON.stringify({
+    name: "esbuild", version: "0.27.7", license: "MIT",
+    optionalDependencies: { "@esbuild/linux-x64": "0.27.7" },
+  }));
+  writeFileSync(join(parent, "LICENSE.md"), "Copyright Evan Wallace\nActual distributed grant\n");
+  writeFileSync(join(child, "package.json"), JSON.stringify({ name: "@esbuild/linux-x64", version: "0.27.7", license: "MIT" }));
+  const data = { MIT: [
+    { name: "esbuild", versions: ["0.27.7"], paths: [parent] },
+    { name: "@esbuild/linux-x64", versions: ["0.27.7"], paths: [child] },
+  ] };
+  const records = collectNodeLicenses(data);
+  assert.equal(records[0].files[0].source_package, "esbuild@0.27.7");
+  assert.match(records[0].files[0].text, /Evan Wallace/);
+  data.MIT.shift();
+  assert.throws(() => collectNodeLicenses(data), /No LICENSE/);
+});
