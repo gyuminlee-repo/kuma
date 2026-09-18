@@ -163,7 +163,18 @@
         "interpro": "InterPro / Pfam via EBI (anotação de domínios)"
       }
     },
-    "savedAt": "Salvo às {{time}}"
+    "savedAt": "Salvo às {{time}}",
+    "codonTables": {
+      "title": "Tabelas de códons",
+      "hint": "Coloque nesta pasta um arquivo .json com a tabela de códons do organismo e clique em Refresh. O nome do arquivo sem .json vira a chave do organismo.",
+      "counts": "{{builtin}} integradas, {{user}} desta pasta.",
+      "openFolder": "Abrir pasta",
+      "refresh": "Atualizar",
+      "openFolderFailed": "Não foi possível abrir a pasta. Copie o caminho acima no seu gerenciador de arquivos.",
+      "notLoaded": "Não carregados",
+      "notLoadedEntry": "{{filename}} não foi carregado ({{code}}): {{reason}}",
+      "advisories": "Carregadas com avisos"
+    }
   },
   "mame": {
     "plateOrder": {
@@ -3830,6 +3841,49 @@
     "badge": {
       "staleHint": "Mais antigo que as entradas que o geraram. Execute a etapa novamente para atualizar.",
       "detected": "Saída de {{step}} detectada"
+    }
+  },
+  "codonTable": {
+    "messages": {
+      "V1": "Uma tabela de códons precisa ser um arquivo .json. Você selecionou {{ext}}.",
+      "V2": "Este arquivo tem {{size}}; uma tabela de códons ocupa poucos kilobytes. Será que você selecionou um arquivo de genoma?",
+      "V3": "Este arquivo não é um JSON válido (linha {{line}}, coluna {{col}}): {{detail}}. Verifique se há vírgula sobrando ou colchete sem fechar.",
+      "V4": "Uma tabela de códons precisa ser um objeto JSON, não um {{type}}.",
+      "V5": "Esta tabela exige uma versão mais recente do kuma (schema_version {{n}}; esta compilação suporta até {{max}}).",
+      "V6": "Não foi possível ler o arquivo ({{reason}}). Salve-o com codificação UTF-8 e verifique as permissões.",
+      "V7": "A chave de tabela '{{key}}' não pode ser usada. Use letras minúsculas, dígitos e sublinhado, de 2 a 32 caracteres, começando por uma letra.",
+      "V8": "O arquivo se chama {{stem}}.json, mas declara a chave '{{key}}'. Os dois precisam coincidir, porque o kuma localiza a tabela pelo nome do arquivo.",
+      "V9": "'{{key}}' é uma tabela integrada ({{name}}) e não pode ser substituída. Importe-a com outra chave, por exemplo {{key}}_lab. As execuções registram apenas a chave, então duas máquinas nunca podem divergir sobre o que ela significa.",
+      "V10": "'{{key}}' já existe ({{name}}, importada em {{date}}, resumo {{sha8}}). Substitua-a ou importe com outra chave.",
+      "V11": "Dois nomes de arquivo diferem apenas em maiúsculas e minúsculas e geram a mesma chave em sistemas de arquivos que não as distinguem. Apenas {{kept}} foi carregado. Renomeie um deles.",
+      "V12": "Esta tabela não tem nome de exibição. Acrescente um nome como 'Methylorubrum extorquens AM1'.",
+      "V13": "taxid precisa ser um identificador de taxonomia do NCBI ou ficar vazio, não {{value}}.",
+      "V14": "Nenhum código genético foi declarado. Assume-se a tabela {{n}} do NCBI (bacteriana).",
+      "V15": "O kuma suporta apenas os códigos genéticos 1 e 11 do NCBI, e esta tabela declara {{n}}. Um código fora do padrão muda a forma como o kuma lê os códons selvagens, não só a preferência de códons, portanto não pode ser importado apenas como tabela de frequências.",
+      "V16": "O códon {{codon}} está listado em {{declared}}, mas o código genético {{n}} o traduz como {{expected}}. Em geral isso indica que as colunas de aminoácido e de códon foram trocadas.",
+      "V17": "São esperadas 21 entradas de aminoácido, incluindo a de parada '*'. Faltando: {{missing}}. Inesperadas: {{extra}}.",
+      "V18": "Os 64 códons devem aparecer exatamente uma vez. Faltando: {{missing}}. Duplicados: {{dup}}.",
+      "V19": "'{{codon}}' não é uma entrada de códon utilizável. Um códon tem exatamente três letras entre A, C, G, T ou U, e letras de ambiguidade como N, R ou Y não são aceitas.",
+      "V20": "'{{codon}}' tem {{n}} letras. Um códon tem exatamente 3.",
+      "V21": "A frequência de {{codon}} é {{value}}. Ela precisa ser um número entre 0 e 1. Se a sua fonte usa porcentagens, divida por 100.",
+      "V22": "As frequências de {{aa}} somam {{sum}}, não 1. Os códons sinônimos de um aminoácido devem ser frações do uso desse aminoácido.",
+      "V23": "As frequências de {{aa}} somam {{sum}}. Está dentro da tolerância, mas sugere uma fonte arredondada ou incompleta.",
+      "V24": "Todos os códons de {{aa}} têm frequência 0, então o kuma não consegue escolher nenhum.",
+      "V25": "A contagem de {{codon}} é {{value}}. As contagens precisam ser números inteiros não negativos.",
+      "V26": "counts e codons listam códons diferentes: {{diff}}.",
+      "V27": "A frequência registrada para {{codon}} é {{stored}}, mas a contagem implica {{computed}}. Um dos dois foi editado à mão. Corrija o arquivo ou remova o bloco counts.",
+      "V28": "'{{alias}}' não serve como alias. aliases precisa ser uma lista de nomes não vazios.",
+      "V29": "O alias '{{alias}}' já é a chave de {{other}}. Uma anotação nunca pode resolver para duas tabelas diferentes.",
+      "V30": "O alias '{{alias}}' já aponta para {{other}}. Remova-o ou escolha um nome mais específico.",
+      "V31": "Esta tabela foi construída a partir de {{cds}} sequências codificantes ({{codons}} códons). A amostra é pequena e as frequências podem não representar o organismo.",
+      "V32": "Esta tabela não registra procedência. O kuma vai guardá-la, mas uma execução feita com ela não poderá dizer de onde vieram os números.",
+      "V33": "Sem aliases. O kuma não vai selecionar este organismo automaticamente ao carregar uma sequência anotada como '{{name}}'. Acrescente os nomes de organismo usados nos seus arquivos GenBank.",
+      "V34": "{{n}} códon(s) têm frequência 0 e nunca serão escolhidos: {{list}}.",
+      "V35": "Campos não reconhecidos foram ignorados: {{list}}.",
+      "N1": "Os códons de RNA foram convertidos para DNA (U para T): {{n}} códons.",
+      "N2": "{{n}} códon(s) estavam em minúsculas e foram convertidos para maiúsculas.",
+      "N4": "As frequências foram recalculadas a partir das contagens de códons.",
+      "unknown": "O verificador de tabelas de códons relatou {{code}}, para o qual esta versão do kuma não tem descrição."
     }
   }
 }

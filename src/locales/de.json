@@ -163,7 +163,18 @@
         "interpro": "InterPro / Pfam via EBI (Domänen-Annotation)"
       }
     },
-    "savedAt": "Gespeichert um {{time}}"
+    "savedAt": "Gespeichert um {{time}}",
+    "codonTables": {
+      "title": "Codon-Tabellen",
+      "hint": "Legen Sie eine Organismus-Codon-Tabelle als .json-Datei in diesen Ordner und klicken Sie auf Refresh. Der Dateiname ohne .json wird zum Organismus-Schlüssel.",
+      "counts": "{{builtin}} mitgeliefert, {{user}} aus diesem Ordner.",
+      "openFolder": "Ordner öffnen",
+      "refresh": "Aktualisieren",
+      "openFolderFailed": "Der Ordner konnte nicht geöffnet werden. Kopieren Sie den Pfad oben in Ihren Dateimanager.",
+      "notLoaded": "Nicht geladen",
+      "notLoadedEntry": "{{filename}} wurde nicht geladen ({{code}}): {{reason}}",
+      "advisories": "Mit Hinweisen geladen"
+    }
   },
   "mame": {
     "plateOrder": {
@@ -3830,6 +3841,49 @@
     "badge": {
       "staleHint": "Älter als die Eingaben, aus denen es stammt. Schritt erneut ausführen, um es zu aktualisieren.",
       "detected": "Ausgabe von {{step}} erkannt"
+    }
+  },
+  "codonTable": {
+    "messages": {
+      "V1": "Eine Codon-Tabelle muss eine .json-Datei sein. Ausgewählt wurde {{ext}}.",
+      "V2": "Diese Datei ist {{size}} groß; eine Codon-Tabelle umfasst nur wenige Kilobyte. Wurde versehentlich eine Genomdatei gewählt?",
+      "V3": "Diese Datei ist kein gültiges JSON (Zeile {{line}}, Spalte {{col}}): {{detail}}. Prüfen Sie auf ein überzähliges Komma oder eine nicht geschlossene Klammer.",
+      "V4": "Eine Codon-Tabelle muss ein JSON-Objekt sein, kein {{type}}.",
+      "V5": "Diese Tabelle erfordert ein neueres kuma (schema_version {{n}}; dieser Build unterstützt höchstens {{max}}).",
+      "V6": "Die Datei konnte nicht gelesen werden ({{reason}}). Speichern Sie sie in UTF-8 und prüfen Sie die Dateirechte.",
+      "V7": "Der Tabellenschlüssel '{{key}}' ist unzulässig. Verwenden Sie Kleinbuchstaben, Ziffern und Unterstriche, 2 bis 32 Zeichen, beginnend mit einem Buchstaben.",
+      "V8": "Die Datei heißt {{stem}}.json, deklariert aber den Schlüssel '{{key}}'. Beide müssen übereinstimmen, da kuma die Tabelle über den Dateinamen sucht.",
+      "V9": "'{{key}}' ist eine mitgelieferte Tabelle ({{name}}) und lässt sich nicht ersetzen. Importieren Sie sie unter einem anderen Schlüssel, etwa {{key}}_lab. Läufe protokollieren nur den Schlüssel, daher dürfen zwei Rechner ihn niemals unterschiedlich deuten.",
+      "V10": "'{{key}}' existiert bereits ({{name}}, importiert am {{date}}, Prüfsumme {{sha8}}). Ersetzen Sie die Tabelle oder importieren Sie sie unter einem anderen Schlüssel.",
+      "V11": "Zwei Dateinamen unterscheiden sich nur in der Groß- und Kleinschreibung und ergeben auf Dateisystemen ohne Unterscheidung denselben Schlüssel. Geladen wurde nur {{kept}}. Benennen Sie eine der Dateien um.",
+      "V12": "Diese Tabelle hat keinen Anzeigenamen. Ergänzen Sie einen Namen wie 'Methylorubrum extorquens AM1'.",
+      "V13": "taxid muss eine NCBI-Taxonomie-ID oder leer sein, nicht {{value}}.",
+      "V14": "Es wurde kein genetischer Code angegeben. Es wird NCBI-Tabelle {{n}} (bakteriell) angenommen.",
+      "V15": "kuma unterstützt nur die NCBI-Codes 1 und 11; diese Tabelle gibt {{n}} an. Ein abweichender Code ändert nicht nur die Codon-Präferenz, sondern auch, wie kuma Wildtyp-Codons liest, und lässt sich daher nicht als bloße Häufigkeitstabelle importieren.",
+      "V16": "Codon {{codon}} steht unter {{declared}}, doch der genetische Code {{n}} übersetzt es als {{expected}}. Meist wurden die Spalten für Aminosäure und Codon vertauscht.",
+      "V17": "Erwartet werden 21 Aminosäure-Einträge einschließlich des Stopps '*'. Fehlend: {{missing}}. Unerwartet: {{extra}}.",
+      "V18": "Alle 64 Codons müssen genau einmal vorkommen. Fehlend: {{missing}}. Doppelt: {{dup}}.",
+      "V19": "'{{codon}}' ist kein brauchbarer Codon-Eintrag. Ein Codon besteht aus genau drei Buchstaben aus A, C, G, T oder U; Mehrdeutigkeitszeichen wie N, R oder Y sind unzulässig.",
+      "V20": "'{{codon}}' hat {{n}} Buchstaben. Ein Codon besteht aus genau drei.",
+      "V21": "Die Häufigkeit von {{codon}} beträgt {{value}}. Sie muss eine Zahl zwischen 0 und 1 sein. Liegt die Quelle in Prozent vor, teilen Sie durch 100.",
+      "V22": "Die Häufigkeiten für {{aa}} summieren sich auf {{sum}} statt auf 1. Die synonymen Codons einer Aminosäure müssen Anteile an deren Verwendung sein.",
+      "V23": "Die Häufigkeiten für {{aa}} summieren sich auf {{sum}}. Das liegt in der Toleranz, deutet aber auf eine gerundete oder unvollständige Quelle hin.",
+      "V24": "Alle Codons für {{aa}} haben die Häufigkeit 0, sodass kuma keines auswählen kann.",
+      "V25": "Die Anzahl für {{codon}} ist {{value}}. Anzahlen müssen nichtnegative ganze Zahlen sein.",
+      "V26": "counts und codons führen unterschiedliche Codons auf: {{diff}}.",
+      "V27": "Die gespeicherte Häufigkeit für {{codon}} lautet {{stored}}, aus der Anzahl ergäbe sich jedoch {{computed}}. Einer der beiden Werte wurde von Hand geändert. Korrigieren Sie die Datei oder entfernen Sie den counts-Block.",
+      "V28": "'{{alias}}' ist als Alias unbrauchbar. aliases muss eine Liste nicht leerer Namen sein.",
+      "V29": "Der Alias '{{alias}}' ist bereits der Schlüssel von {{other}}. Eine Annotation darf niemals auf zwei verschiedene Tabellen führen.",
+      "V30": "Der Alias '{{alias}}' verweist bereits auf {{other}}. Entfernen Sie ihn oder wählen Sie einen genaueren Namen.",
+      "V31": "Diese Tabelle beruht auf {{cds}} kodierenden Sequenzen ({{codons}} Codons). Die Stichprobe ist klein, die Häufigkeiten sind für den Organismus womöglich nicht repräsentativ.",
+      "V32": "Diese Tabelle enthält keine Herkunftsangaben. kuma speichert sie, doch ein damit ausgeführter Lauf kann nicht belegen, woher die Zahlen stammen.",
+      "V33": "Keine Aliase vorhanden. kuma wählt diesen Organismus nicht automatisch, wenn Sie eine mit '{{name}}' annotierte Sequenz laden. Ergänzen Sie die Organismusnamen, die Ihre GenBank-Dateien verwenden.",
+      "V34": "{{n}} Codon(s) haben die Häufigkeit 0 und werden nie gewählt: {{list}}.",
+      "V35": "Nicht erkannte Felder werden ignoriert: {{list}}.",
+      "N1": "RNA-Codons wurden in DNA umgewandelt (U zu T), insgesamt {{n}} Codons.",
+      "N2": "{{n}} Codon(s) lagen in Kleinbuchstaben vor und wurden in Großbuchstaben umgewandelt.",
+      "N4": "Die Häufigkeiten wurden aus den Codon-Anzahlen neu berechnet.",
+      "unknown": "Die Codon-Tabellenprüfung meldete {{code}}; für diesen Code liegt in dieser kuma-Version keine Beschreibung vor."
     }
   }
 }
