@@ -48,8 +48,9 @@ import type {
  *
  * Tightening here is safe for the top-level `isRecord(value)` calls that open
  * most validators in this file: no KURO or MAME handler returns a bare array for
- * a result those guards cover (the two that do return lists,
- * `list_polymerases` and `list_organisms`, go through `isArrayOf` instead).
+ * a result those guards cover (`list_polymerases`, the one that still returns a
+ * bare list, goes through `isArrayOf` instead; `list_organisms` returns an
+ * envelope and is checked by `isListOrganismsResult`).
  */
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -191,19 +192,48 @@ function isPolymeraseProfile(value: unknown): value is PolymeraseProfile {
   );
 }
 
-// `taxid` is nullable on purpose: the backend emits `data.get("taxid")` and a
-// codon table JSON need not carry the field (an in-house strain has none).
-// This guard runs per element through `isArrayOf`, so requiring a number here
-// made one taxid-less table reject the entire `list_organisms` payload and
-// render an empty organism dropdown.
-function isOrganismSummary(
-  value: unknown,
-): value is { key: string; name: string; taxid: number | null } {
+function isCodonTableFinding(value: unknown): boolean {
+  return isRecord(value) && isString(value.code) && isRecord(value.params);
+}
+
+// `taxid` and `cds_count` are nullable on purpose: the backend emits
+// `data.get("taxid")` and a codon table JSON need not carry either field (an
+// in-house strain has no NCBI id and a hand-written table declares no CDS
+// count). This guard runs per element, so requiring a number here made one
+// taxid-less table reject the entire `list_organisms` payload and render an
+// empty organism dropdown.
+function isOrganismSummary(value: unknown): boolean {
   return (
     isRecord(value) &&
     isString(value.key) &&
     isString(value.name) &&
-    (value.taxid === null || isNumber(value.taxid))
+    (value.taxid === null || isNumber(value.taxid)) &&
+    (value.source === "builtin" || value.source === "user") &&
+    isStringArray(value.aliases) &&
+    (value.cds_count === null || isNumber(value.cds_count)) &&
+    isString(value.table_sha256) &&
+    isArrayOf(value.warnings, isCodonTableFinding)
+  );
+}
+
+function isCodonTableFailure(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isString(value.filename) &&
+    isString(value.code) &&
+    isString(value.reason)
+  );
+}
+
+// The envelope, not a bare array. `failed` and `user_dir` are properties of the
+// listing as a whole and have no place inside an element, so widening the
+// result meant changing its top-level shape rather than adding fields.
+function isListOrganismsResult(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isArrayOf(value.organisms, isOrganismSummary) &&
+    isArrayOf(value.failed, isCodonTableFailure) &&
+    isString(value.user_dir)
   );
 }
 
@@ -1078,7 +1108,7 @@ const rpcResultValidators = {
   save_custom_polymerase: (value): value is RpcMethodResult<"save_custom_polymerase"> =>
     isSaveCustomPolymeraseResult(value),
   list_organisms: (value): value is RpcMethodResult<"list_organisms"> =>
-    isArrayOf(value, isOrganismSummary),
+    isListOrganismsResult(value),
   load_fasta: (value): value is RpcMethodResult<"load_fasta"> =>
     isSequenceInfo(value),
   parse_mutations_text: (value): value is RpcMethodResult<"parse_mutations_text"> =>

@@ -36,6 +36,8 @@ import { useTheme } from "../ui/ThemeToggle";
 import type { Theme } from "../ui/ThemeToggle";
 import { notificationPermissionGranted, requestNotificationPermission } from "../../lib/notify";
 import { getConfig } from "../../lib/project";
+import { revealInOSFolder } from "../../lib/openFolder";
+import { formatCodonTableMessage } from "../../lib/codonTableMessages";
 import { useAppStore } from "../../store/appStore";
 import { mapThemeToBundle } from "../../store/slices/settingsSlice";
 
@@ -60,6 +62,28 @@ import { mapThemeToBundle } from "../../store/slices/settingsSlice";
 export const INACTIVE_SETTINGS: readonly string[] = [];
 
 const CB_KEY = "kuma:kuro:colorblindMode";
+
+/**
+ * The seed file `handle_list_organisms` writes into the codon-table folder
+ * (`_CODON_SEED_FILES` in python-core/sidecar_kuro/handlers/misc.py).
+ *
+ * `revealItemInDir` selects an ITEM inside its parent, so handing it the folder
+ * itself would open the folder's parent with the folder highlighted. Pointing
+ * at a file the backend guarantees exists opens the codon-table folder itself,
+ * which is what a user who has never installed a table needs to see.
+ */
+const CODON_SEED_FILE = "README.txt";
+
+/**
+ * Join a sidecar-resolved directory with a file name using the separator that
+ * directory already uses. `user_dir` comes from Python's `Path`, so it carries
+ * backslashes on Windows and forward slashes elsewhere, and there is no
+ * `path.join` in the renderer.
+ */
+function joinCodonDir(dir: string, name: string): string {
+  const sep = dir.includes("\\") && !dir.includes("/") ? "\\" : "/";
+  return dir.endsWith(sep) ? `${dir}${name}` : `${dir}${sep}${name}`;
+}
 
 interface SettingsDialogProps {
   open: boolean;
@@ -112,6 +136,49 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
       .then((cfg) => setDataFolder(cfg.projects_root))
       .catch(() => setDataFolder("unknown"));
   }, [open, dataFolder]);
+
+  // §6 Settings: user codon tables. `loadOrganisms` IS the refresh action -
+  // `handle_list_organisms` drops the registry caches, seeds the folder and
+  // re-reads both directories before answering - so Refresh needs no RPC of
+  // its own and the dropdown updates from the same call.
+  const organisms = useAppStore((s) => s.organisms);
+  const codonTableFailures = useAppStore((s) => s.codonTableFailures);
+  const codonTableDir = useAppStore((s) => s.codonTableDir);
+  const loadOrganisms = useAppStore((s) => s.loadOrganisms);
+  const [codonRefreshing, setCodonRefreshing] = useState(false);
+  const [codonOpenFailed, setCodonOpenFailed] = useState(false);
+
+  // No listing is triggered on open. AppLayout already calls loadOrganisms once
+  // the sidecar reports ready, and firing it from here would run before that on
+  // a cold start, where it rejects and writes "Organism list load failed" into
+  // the status bar for a dialog the user merely opened. Until that first
+  // listing lands the path line shows the loading placeholder and Refresh is
+  // the way out.
+
+  async function handleCodonRefresh() {
+    setCodonRefreshing(true);
+    try {
+      await loadOrganisms();
+    } finally {
+      setCodonRefreshing(false);
+    }
+  }
+
+  async function handleCodonOpenFolder() {
+    if (codonTableDir === null) return;
+    setCodonOpenFailed(false);
+    try {
+      await revealInOSFolder(joinCodonDir(codonTableDir, CODON_SEED_FILE));
+    } catch {
+      // The opener plugin is absent in the mock harness and an OS can refuse.
+      // Neither is worth a toast, but a dead button is worse than a message.
+      setCodonOpenFailed(true);
+    }
+  }
+
+  const userTables = organisms.filter((o) => o.source === "user");
+  const builtinCount = organisms.length - userTables.length;
+  const advisories = userTables.filter((o) => o.warnings.length > 0);
 
   // Theme (ThemeToggle hook — single source of truth for localStorage)
   const { theme, setTheme } = useTheme();
@@ -279,6 +346,87 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
               >
                 {t("settings.dataFolderChange")}
               </Button>
+            </section>
+
+            {/* §6 User codon tables (drop-in folder) */}
+            <section aria-labelledby="settings-codontables-heading" className="flex flex-col gap-1.5">
+              <p id="settings-codontables-heading" className="text-sm font-semibold text-foreground">
+                {t("settings.codonTables.title")}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {t("settings.codonTables.hint")}
+              </p>
+              <p
+                className="font-mono text-xs text-muted-foreground break-all"
+                title={codonTableDir ?? undefined}
+              >
+                {codonTableDir ?? t("settings.dataFolderLoading")}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {t("settings.codonTables.counts", {
+                  builtin: builtinCount,
+                  user: userTables.length,
+                })}
+              </p>
+              <div className="flex gap-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={codonTableDir === null}
+                  onClick={() => void handleCodonOpenFolder()}
+                >
+                  {t("settings.codonTables.openFolder")}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={codonRefreshing}
+                  onClick={() => void handleCodonRefresh()}
+                >
+                  {t("settings.codonTables.refresh")}
+                </Button>
+              </div>
+              {codonOpenFailed && (
+                <p className="text-xs text-warning">
+                  {t("settings.codonTables.openFolderFailed")}
+                </p>
+              )}
+              {codonTableFailures.length > 0 && (
+                <div className="flex flex-col gap-1 rounded-control border border-warning/30 bg-warning/5 p-2">
+                  <p className="text-xs font-medium text-foreground">
+                    {t("settings.codonTables.notLoaded")}
+                  </p>
+                  {/* `failed[]` carries no `params`, only the first rule code and
+                      the backend's English detail, so these lines name the code
+                      and quote the reason rather than rebuilding a sentence. */}
+                  {codonTableFailures.map((f) => (
+                    <p key={f.filename} className="text-xs text-muted-foreground break-words">
+                      {t("settings.codonTables.notLoadedEntry", {
+                        filename: f.filename,
+                        code: f.code,
+                        reason: f.reason,
+                      })}
+                    </p>
+                  ))}
+                </div>
+              )}
+              {advisories.length > 0 && (
+                <div className="flex flex-col gap-1 rounded-control border border-border bg-muted/40 p-2">
+                  <p className="text-xs font-medium text-foreground">
+                    {t("settings.codonTables.advisories")}
+                  </p>
+                  {advisories.map((o) => (
+                    <div key={o.key} className="flex flex-col gap-0.5">
+                      <p className="font-mono text-xs text-foreground">{o.key}</p>
+                      {o.warnings.map((w, i) => (
+                        <p key={`${o.key}-${w.code}-${i}`} className="text-xs text-muted-foreground break-words">
+                          {formatCodonTableMessage(t, w.code, w.params)}
+                        </p>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
           </TabsContent>
 

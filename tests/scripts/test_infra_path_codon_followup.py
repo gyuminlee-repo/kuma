@@ -196,6 +196,12 @@ def test_registry_consumers_reject_unobserved_usage(
         assert codon_table.codon_usage_fraction("GCA", "synthetic") == 0.25
     else:
         for _ in range(2):
-            with pytest.raises(ValueError, match="unavailable.*A"):
+            # The rejection now comes from the import validator (V24), so the
+            # wording changed while the behaviour did not: a table with an
+            # amino acid nobody can encode never reaches a primer.
+            with pytest.raises(
+                ValueError,
+                match="could not be loaded.*Every codon for A has frequency 0",
+            ):
                 observed = calls[consumer]()
                 print(f"unsafe {consumer}: {observed}")

@@ -163,7 +163,18 @@
         "interpro": "InterPro / Pfam via EBI (domain annotation)"
       }
     },
-    "savedAt": "Saved at {{time}}"
+    "savedAt": "Saved at {{time}}",
+    "codonTables": {
+      "title": "Codon tables",
+      "hint": "Put an organism codon table .json file in this folder, then press Refresh. The file name without .json becomes the organism key.",
+      "counts": "{{builtin}} built in, {{user}} from this folder.",
+      "openFolder": "Open folder",
+      "refresh": "Refresh",
+      "openFolderFailed": "The folder could not be opened. Copy the path above into your file manager.",
+      "notLoaded": "Not loaded",
+      "notLoadedEntry": "{{filename}} was not loaded ({{code}}): {{reason}}",
+      "advisories": "Loaded with advisories"
+    }
   },
   "mame": {
     "plateOrder": {
@@ -3854,6 +3865,49 @@
     "badge": {
       "staleHint": "Older than the inputs it came from. Re-run the step to refresh it.",
       "detected": "{{step}} output detected"
+    }
+  },
+  "codonTable": {
+    "messages": {
+      "V1": "A codon table must be a .json file. You selected {{ext}}.",
+      "V2": "This file is {{size}}; a codon table is a few kilobytes. Did you pick a genome file?",
+      "V3": "This file is not valid JSON (line {{line}}, column {{col}}): {{detail}}. Check for a trailing comma or an unclosed bracket.",
+      "V4": "A codon table must be a JSON object, not a {{type}}.",
+      "V5": "This table needs a newer kuma (schema_version {{n}}; this build supports up to {{max}}).",
+      "V6": "Could not read the file ({{reason}}). Save it with UTF-8 encoding and check file permissions.",
+      "V7": "Table key '{{key}}' is not usable. Use lowercase letters, digits and underscore, 2 to 32 characters, starting with a letter.",
+      "V8": "The file is named {{stem}}.json but declares key '{{key}}'. They must match, because kuma looks the table up by filename.",
+      "V9": "'{{key}}' is a built-in table ({{name}}) and cannot be replaced. Import it under a different key, for example {{key}}_lab. Runs record only the key, so two machines must never disagree about what it means.",
+      "V10": "'{{key}}' already exists ({{name}}, imported {{date}}, digest {{sha8}}). Replace it, or import under a different key.",
+      "V11": "Two file names differ only in case and produce the same key on case-insensitive file systems. Only {{kept}} was loaded. Rename one of them.",
+      "V12": "This table has no display name. Add a name such as 'Methylorubrum extorquens AM1'.",
+      "V13": "taxid must be an NCBI taxonomy id or left empty, not {{value}}.",
+      "V14": "No genetic code was declared. Assuming NCBI table {{n}} (bacterial).",
+      "V15": "kuma supports NCBI genetic code 1 and 11 only. This table declares {{n}}. A non-standard code changes how kuma reads wild-type codons, not just codon preference, so it cannot be imported as a frequency table alone.",
+      "V16": "Codon {{codon}} is listed under {{declared}}, but genetic code {{n}} translates it as {{expected}}. This usually means the amino acid and codon columns were swapped.",
+      "V17": "Expected 21 amino acid entries including the stop '*'. Missing: {{missing}}. Unexpected: {{extra}}.",
+      "V18": "Expected all 64 codons exactly once. Missing: {{missing}}. Duplicated: {{dup}}.",
+      "V19": "'{{codon}}' is not a usable codon entry. A codon is exactly three letters from A, C, G, T or U, and ambiguity letters such as N, R or Y are not allowed.",
+      "V20": "'{{codon}}' is {{n}} letters. A codon is exactly 3.",
+      "V21": "Frequency for {{codon}} is {{value}}. It must be a number between 0 and 1. If your source lists percentages, divide by 100.",
+      "V22": "Frequencies for {{aa}} add up to {{sum}}, not 1. Every synonymous codon for one amino acid must be a fraction of that amino acid usage.",
+      "V23": "Frequencies for {{aa}} add up to {{sum}}. This is within tolerance but suggests a rounded or incomplete source.",
+      "V24": "Every codon for {{aa}} has frequency 0, so kuma cannot choose one.",
+      "V25": "Count for {{codon}} is {{value}}. Counts must be non-negative whole numbers.",
+      "V26": "counts and codons list different codons: {{diff}}.",
+      "V27": "The stored frequency for {{codon}} is {{stored}} but its count implies {{computed}}. One of the two was edited by hand. Fix the file or remove the counts block.",
+      "V28": "'{{alias}}' is not a usable alias. Aliases must be a list of non-empty names.",
+      "V29": "Alias '{{alias}}' is already the key of {{other}}. An annotation must never resolve to two different tables.",
+      "V30": "Alias '{{alias}}' already points to {{other}}. Remove it or choose a more specific name.",
+      "V31": "This table was built from {{cds}} coding sequences ({{codons}} codons). That is a small sample and the frequencies may not represent the organism.",
+      "V32": "This table records no provenance. kuma will store it, but a run made with it cannot say where the numbers came from.",
+      "V33": "No aliases. kuma will not auto-select this organism when you load a sequence annotated as '{{name}}'. Add the organism names your GenBank files use.",
+      "V34": "{{n}} codon(s) have frequency 0 and will never be chosen: {{list}}.",
+      "V35": "Ignoring unrecognised field(s): {{list}}.",
+      "N1": "RNA codons were converted to DNA (U to T), {{n}} codons.",
+      "N2": "{{n}} codon(s) were lowercase and have been converted to uppercase.",
+      "N4": "Frequencies were recomputed from the codon counts.",
+      "unknown": "The codon table checker reported {{code}}, which this version of kuma has no description for."
     }
   }
 }

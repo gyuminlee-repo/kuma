@@ -28,6 +28,7 @@ import type {
   PredictStructureEsmfoldResult,
   LinkerHandling,
   MutationInputMode,
+  CodonTableFailure,
   OrganismSummary,
   OverlapMode,
   ParsedMutation,
@@ -60,6 +61,13 @@ export interface SequenceSlice {
   // reports ready, and empty again if the list call fails, so every consumer
   // has to tolerate a selection that is not in it.
   organisms: OrganismSummary[];
+  // Files in the user codon-table folder that did not load. Shown in Settings
+  // rather than swallowed: a table that is silently ignored is worse than one
+  // that is rejected out loud, because the user goes on believing it is in use.
+  codonTableFailures: CodonTableFailure[];
+  // The folder path the sidecar resolved, or null before the first listing.
+  // Never reconstructed in the frontend; see ListOrganismsResult.
+  codonTableDir: string | null;
 
   // Actions
   loadSequence: (filepath: string) => Promise<void>;
