@@ -141,6 +141,22 @@ class AuditPlannerTests(unittest.TestCase):
         self.assertIn("kuma_core/shared/helper.py", report["working_tree_changes"])
         self.assertEqual(report["records"][0]["status"], "review_required")
 
+    def test_staged_change_hidden_by_worktree_restore_requires_review(self):
+        original = (self.root / "kuma_core/core.py").read_text(encoding="utf-8")
+        self.write("kuma_core/core.py", "def tested(): return 42\n")
+        self.git("add", "kuma_core/core.py")
+        self.write("kuma_core/core.py", original)
+        self.assertEqual(self.git("diff", "HEAD", "--", "kuma_core/core.py"), "")
+        self.assertNotEqual(self.git("diff", "--cached", "--", "kuma_core/core.py"), "")
+        self.assertEqual(self.status(), "review_required")
+        self.assertIn("kuma_core/core.py", self.report()["working_tree_changes"])
+
+    def test_staged_deletion_with_restored_worktree_cannot_reuse(self):
+        original = (self.root / "kuma_core/core.py").read_text(encoding="utf-8")
+        self.git("rm", "--cached", "kuma_core/core.py")
+        self.write("kuma_core/core.py", original)
+        self.assertEqual(self.status(), "review_required")
+
     def test_untracked_new_dependency_is_not_invisible(self):
         self.write("kuma_core/shared/new.py", "value = 1\n")
         self.assertEqual(self.status(), "review_required")

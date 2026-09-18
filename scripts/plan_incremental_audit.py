@@ -173,7 +173,11 @@ class Repository:
         self._changes: dict[str, set[str]] = {}
         self.local_changes: set[str] = set()
         if not committed_only:
-            self.local_changes = self.names("diff", "--name-only", "--no-renames", "-z", "HEAD", "--")
+            # Inspect the index and worktree separately. A staged edit followed
+            # by restoring the worktree to HEAD cancels out in git diff HEAD,
+            # but the staged content could still be committed.
+            self.local_changes = self.names("diff", "--cached", "--name-only", "--no-renames", "-z", "HEAD", "--")
+            self.local_changes |= self.names("diff", "--name-only", "--no-renames", "-z", "--")
             self.local_changes |= self.names("ls-files", "--others", "--exclude-standard", "-z")
 
     def git(self, *args: str) -> bytes:
