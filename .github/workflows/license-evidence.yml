@@ -1,0 +1,68 @@
+name: License evidence
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/license-evidence.yml'
+      - '.github/workflows/build.yml'
+      - 'scripts/*licenses*'
+      - 'scripts/build-notice.mjs'
+      - 'scripts/tests/license-notices.test.mjs'
+      - 'tests/scripts/test_license_notices.py'
+      - 'docs/**/license-compliance.md'
+      - 'docs/**/contributing.md'
+      - 'pyproject.toml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'src-tauri/Cargo.lock'
+      - 'src-tauri/about.toml'
+      - 'NOTICE-bundled.md'
+      - 'LICENSE'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  collect:
+    name: License evidence (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: pnpm
+      - name: Install the same declared dependencies as the release build
+        run: |
+          python -m pip install -e '.[build]' pytest
+          pnpm install --frozen-lockfile
+      - name: Regression tests
+        run: python -m pytest tests/scripts/test_license_notices.py -q
+      - name: Collect Node legal texts
+        shell: bash
+        run: |
+          pnpm licenses list --json --prod > pnpm-licenses.json
+          node scripts/collect-node-licenses.mjs pnpm-licenses.json NOTICE-node.md
+      - name: Collect Python legal texts
+        run: python scripts/collect-python-licenses.py --include-build
+      - name: Retain versioned evidence for review (not a legal approval)
+        uses: actions/upload-artifact@v5
+        with:
+          name: license-evidence-${{ matrix.os }}
+          path: |
+            NOTICE-node.md
+            NOTICE-node.json
+            NOTICE-python.md
+            NOTICE-python.json
+          if-no-files-found: error
+          retention-days: 14
