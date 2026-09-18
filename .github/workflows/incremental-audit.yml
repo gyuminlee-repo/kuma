@@ -1,0 +1,56 @@
+name: Incremental audit
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: incremental-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  audit-plan:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # Per-scope immutable baselines must be available; depth 2 cannot prove ancestry.
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Test the planner against temporary Git repositories
+        run: python -m unittest discover -s tests/audit -p 'test_*.py' -v
+      - name: Generate a committed-source review plan
+        run: |
+          python scripts/plan_incremental_audit.py --committed-only \
+            --json "$RUNNER_TEMP/incremental-audit.json" \
+            --markdown "$RUNNER_TEMP/incremental-audit.md"
+      - name: Publish review scope, not an approval
+        if: always()
+        run: |
+          if test -f "$RUNNER_TEMP/incremental-audit.md"; then
+            cat "$RUNNER_TEMP/incremental-audit.md" >> "$GITHUB_STEP_SUMMARY"
+          else
+            printf '## Incremental audit unavailable\n\nNo plan was produced. Require full review; do not reuse prior approval.\n' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: incremental-audit-plan
+          path: |
+            ${{ runner.temp }}/incremental-audit.json
+            ${{ runner.temp }}/incremental-audit.md
+          retention-days: 30
+          if-no-files-found: error
