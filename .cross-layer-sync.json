@@ -1434,7 +1434,11 @@
         "kuma_core/kuro/codon_table.py",
         "kuma_core/kuro/codon_import.py",
         "python-core/sidecar_kuro/core.py",
-        "python-core/sidecar_kuro/handlers/misc.py"
+        "python-core/sidecar_kuro/handlers/misc.py",
+        "src/types/models.ts",
+        "src/types/validators.ts",
+        "src/lib/ipc.ts",
+        "src/components/panels/InputPanel/SequenceInput.tsx"
       ],
       "symbols": [
         "get_registry",
@@ -1442,7 +1446,7 @@
         "validate_codon_table_data",
         "handle_list_organisms"
       ],
-      "note": "User-installed codon tables: the search path and scan live in codon_table.py, the rules in codon_import.py, the single registry in core.get_registry() and the list_organisms envelope in misc.py. Backend symbols only; the TypeScript consumers of the envelope (models.ts, validators.ts, ipc.ts, SequenceInput.tsx) join this group when the frontend side lands.",
+      "note": "User-installed codon tables: the search path and scan live in codon_table.py, the rules in codon_import.py, the single registry in core.get_registry() and the list_organisms envelope in misc.py. The TypeScript consumers of that envelope join the group now that the frontend side has landed: models.ts declares ListOrganismsResult, validators.ts guards it, SequenceInput.tsx renders the organisms it carries, and ipc.ts is listed because a Phase 3 import/export RPC lands there and must not be added without the rest.",
       "severity": "blocking"
     }
   ]
