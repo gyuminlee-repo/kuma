@@ -40,14 +40,15 @@ The plateau threshold now uses the order-statistic null that the handler and the
 
 ## v0.16.65 (A well on the line goes to review)
 
-The indel event gate decides whether a well whose designed mutations are all confirmed still goes to human review because too many of its reads carry an insertion or deletion. That gate compared the observed indel event fraction against its threshold with a strict greater-than, so a well sitting exactly on the 0.50 threshold slipped past it and reached PASS. The fraction is a ratio of read counts, so that boundary is reached in practice: one well in a 288-well review sat at 0.500 and passed. The comparison is inclusive now, and a well on the threshold reads AMBIGUOUS with the indel note, the same as a well above it.
+The indel event gate decides whether a well whose designed mutations are all confirmed still goes to human review because too many of its reads carry an insertion or deletion. That gate compared the observed indel event fraction against its threshold with a strict greater-than, so a well sitting exactly on the 0.50 threshold was not sent to review by it. The fraction is a ratio of read counts, so that boundary is reached in practice: one well in a 288-well review sat at 0.500, though it carried 8 reads and the read-count gate had already called it LOWDEPTH. The comparison is inclusive now, and a well on the threshold reads AMBIGUOUS with the indel note, the same as a well above it, provided no earlier gate has already decided it.
 
-No threshold value moved. The calibration that fixed the gate placed noise at or below 0.21 and true deletions at or above 0.83, so every well inside those bands keeps the verdict it had. Analysing an existing project again moves only a well that sits exactly on the line, from PASS to AMBIGUOUS.
+No threshold value moved. The calibration that fixed the gate placed noise at or below 0.21 and true deletions at or above 0.83, so every well inside those bands keeps the verdict it had. Analysing an existing project again changes only a well that sits exactly on the line and that no earlier gate has already decided. In the 288-well review that prompted this, no well met both conditions, so nothing in it changes.
 
 ### Highlights
 
-- A well whose indel event fraction lands exactly on the 0.50 threshold now reads AMBIGUOUS and goes to review instead of PASS.
+- A well whose indel event fraction lands exactly on 0.50 now reaches the review gate instead of slipping past a strict comparison.
 - Wells inside the calibrated bands, noise at or below 0.21 and true deletions at or above 0.83, keep the verdict they had.
+- Earlier gates still decide first, so a well already called LOWDEPTH or MIXED keeps that verdict.
 
 ## v0.16.64 (What the reads support, and what the order sheet says)
 

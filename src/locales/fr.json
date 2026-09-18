@@ -2622,8 +2622,9 @@
         "L’avis indique combien de variants à activité nulle et combien de lignes de contrôle chaque tour comportait."
       ],
       "0.16.65": [
-        "Un puits dont la fraction d’événements indel tombe exactement sur le seuil 0,50 est désormais marqué AMBIGUOUS et envoyé en revue au lieu de PASS.",
-        "Les puits situés dans les bandes calibrées, bruit jusqu’à 0,21 et vraies délétions à partir de 0,83, conservent leur verdict."
+        "Un puits dont la fraction indel event vaut exactement 0,50 atteint désormais la porte de revue au lieu de contourner la comparaison stricte.",
+        "Les puits situés dans les bandes calibrées, bruit jusqu'à 0,21 et délétions réelles à partir de 0,83, conservent leur verdict.",
+        "Les portes antérieures décident toujours en premier, donc un puits déjà classé LOWDEPTH ou MIXED conserve ce verdict."
       ],
       "0.16.64": [
         "Une délétion que seule la moitié des lectures soutient n'exempte plus un puits du contrôle no call, donc un site à 40 ou 50 pour cent se lit comme un no call.",
@@ -3088,7 +3089,7 @@
     "releaseStamps": {
       "0.16.67": "a8a547ef",
       "0.16.66": "c8cb9c13",
-      "0.16.65": "45d46897",
+      "0.16.65": "2d61386f",
       "0.16.64": "b5666e23",
       "0.16.63": "27af3ec6",
       "0.16.62": "e46c1db9",

@@ -2676,8 +2676,9 @@
         "The advisory reports how many zero-activity variants and control rows a round carried."
       ],
       "0.16.65": [
-        "A well whose indel event fraction lands exactly on the 0.50 threshold now reads AMBIGUOUS and goes to review instead of PASS.",
-        "Wells inside the calibrated bands, noise at or below 0.21 and true deletions at or above 0.83, keep the verdict they had."
+        "A well whose indel event fraction lands exactly on 0.50 now reaches the review gate instead of slipping past a strict comparison.",
+        "Wells inside the calibrated bands, noise at or below 0.21 and true deletions at or above 0.83, keep the verdict they had.",
+        "Earlier gates still decide first, so a well already called LOWDEPTH or MIXED keeps that verdict."
       ],
       "0.16.64": [
         "A deletion only half the reads support no longer exempts a well from the no-call gate, so a site at 40 or 50 percent reads as a no call.",
@@ -3142,7 +3143,7 @@
     "releaseStamps": {
       "0.16.67": "a8a547ef",
       "0.16.66": "c8cb9c13",
-      "0.16.65": "45d46897",
+      "0.16.65": "2d61386f",
       "0.16.64": "b5666e23",
       "0.16.63": "27af3ec6",
       "0.16.62": "e46c1db9",
