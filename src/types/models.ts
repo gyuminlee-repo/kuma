@@ -15,19 +15,77 @@ export interface PolymeraseInfo {
 }
 
 /**
+ * One rule outcome the codon-table validator reports about a table it accepted.
+ *
+ * `code` is one of the strings in `MESSAGE_CODES`
+ * (kuma_core/kuro/codon_import.py); `params` carries exactly the
+ * `{{placeholder}}` names the locale string for that code interpolates.
+ * `src/lib/codonTableMessages.ts` owns the code -> locale-key mapping, so
+ * nothing here needs to know what a code means.
+ */
+export interface CodonTableFinding {
+  code: string;
+  params: Record<string, unknown>;
+}
+
+/**
  * One codon table as `list_organisms` reports it.
  *
  * `taxid` is nullable because the backend emits `data.get("taxid")`
  * (kuma_core/kuro/codon_table.py) and a table JSON is not required to carry
  * the field. An in-house strain legitimately has none. The result is
- * validated element-by-element through `isArrayOf`, so declaring `taxid` as a
- * plain number would make a single taxid-less table reject the WHOLE payload
- * and leave the organism dropdown empty.
+ * validated element-by-element, so declaring `taxid` as a plain number would
+ * make a single taxid-less table reject the WHOLE payload and leave the
+ * organism dropdown empty.
+ *
+ * `cds_count` is nullable for the same reason: a hand-written table declares no
+ * `n_cds` and the backend cannot invent one.
  */
 export interface OrganismSummary {
   key: string;
   name: string;
   taxid: number | null;
+  source: "builtin" | "user";
+  aliases: string[];
+  cds_count: number | null;
+  table_sha256: string;
+  warnings: CodonTableFinding[];
+}
+
+/**
+ * One file in the user codon-table folder that did not become an organism.
+ *
+ * `code` is the FIRST error code the validator raised (V1-V35), or the runtime
+ * rule `R5` when a user file is shadowed by a bundled table of the same stem.
+ * `reason` is the backend's English detail text, joined with `; ` when several
+ * rules fired. It carries no `params`
+ * (kuma_core/kuro/codon_table.py, `CodonTableRegistry.scan`), so the UI cannot
+ * rebuild the localized sentence for a rejected file and renders the code plus
+ * this text instead.
+ */
+export interface CodonTableFailure {
+  filename: string;
+  code: string;
+  reason: string;
+}
+
+/**
+ * The `list_organisms` envelope.
+ *
+ * Calling `list_organisms` IS the refresh action: the handler drops the
+ * registry caches, seeds the user folder and re-reads both directories
+ * (python-core/sidecar_kuro/handlers/misc.py, `handle_list_organisms`). There
+ * is no separate refresh RPC in Phase 1.
+ *
+ * `user_dir` is the absolute path the sidecar actually resolved, not one the
+ * frontend reconstructs: `kuma_home()` reads `HOME` before `Path.home()`, so a
+ * guess would be wrong for any Windows process that inherited an MSYS
+ * environment.
+ */
+export interface ListOrganismsResult {
+  organisms: OrganismSummary[];
+  failed: CodonTableFailure[];
+  user_dir: string;
 }
 
 export interface PolymeraseProfile {
@@ -755,7 +813,7 @@ export interface RpcMethodMap {
   };
   list_organisms: {
     params: Record<string, never>;
-    result: OrganismSummary[];
+    result: ListOrganismsResult;
   };
   load_fasta: {
     params: { filepath: string };

@@ -36,6 +36,8 @@ export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> 
   selectedGene: "",
   organism: "ecoli",
   organisms: [],
+  codonTableFailures: [],
+  codonTableDir: null,
 
   loadSequence: async (filepath: string) => {
     // 판정에 쓸 직전 상태는 set()이 덮어쓰기 전에 잡아 둔다.
@@ -207,11 +209,20 @@ export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> 
    */
   loadOrganisms: async () => {
     try {
-      const organisms = await sendRequest("list_organisms", {});
-      // sendRequest validates and throws on a bad payload, so a non-array only
-      // reaches here from a stubbed transport. Guard anyway: assigning
-      // undefined would break every reader of this list.
-      if (Array.isArray(organisms)) set({ organisms });
+      // This call IS the refresh: the handler drops the registry caches, seeds
+      // the user folder and re-reads both directories before answering, so the
+      // Settings "Refresh" button needs no RPC of its own.
+      const result = await sendRequest("list_organisms", {});
+      // sendRequest validates and throws on a bad payload, so a malformed
+      // envelope only reaches here from a stubbed transport. Guard anyway:
+      // assigning undefined would break every reader of these lists.
+      if (result && Array.isArray(result.organisms)) {
+        set({
+          organisms: result.organisms,
+          codonTableFailures: Array.isArray(result.failed) ? result.failed : [],
+          codonTableDir: typeof result.user_dir === "string" ? result.user_dir : null,
+        });
+      }
     } catch (err) {
       set({ statusMessage: `Organism list load failed: ${formatError(err)}` });
     }
