@@ -5,6 +5,7 @@ const baseState: KuroSnapshotState = {
   fastaPath: "/project/input.gb",
   selectedGene: "42",
   organism: "ecoli",
+  organisms: [],
   seqInfo: null,
   mutationText: "A1V",
   mutationInputMode: "evolvepro",
@@ -102,10 +103,38 @@ const baseState: KuroSnapshotState = {
   domainStats: {},
 };
 
-describe("buildKuroSnapshot: schema 6", () => {
-  it("uses schema 6", () => {
-    expect(KURO_SCHEMA).toBe(6);
-    expect(buildKuroSnapshot(baseState).schema).toBe(6);
+describe("buildKuroSnapshot: schema 7", () => {
+  it("uses schema 7", () => {
+    expect(KURO_SCHEMA).toBe(7);
+    expect(buildKuroSnapshot(baseState).schema).toBe(7);
+  });
+
+  it("records the digest of the selected organism's table, not the table", () => {
+    const snapshot = buildKuroSnapshot({
+      ...baseState,
+      organism: "mylab",
+      organisms: [
+        {
+          key: "mylab",
+          name: "Lab strain",
+          taxid: null,
+          source: "user",
+          aliases: [],
+          cds_count: null,
+          table_sha256: "deadbeef",
+          warnings: [],
+          normalizations: [],
+        },
+      ],
+    });
+    const input = snapshot.input as Record<string, unknown>;
+    expect(input.codon_table_sha256).toBe("deadbeef");
+    expect(JSON.stringify(snapshot)).not.toContain("codons");
+  });
+
+  it("leaves the digest null when the selected key is not listed here", () => {
+    const snapshot = buildKuroSnapshot({ ...baseState, organism: "gone" });
+    expect((snapshot.input as Record<string, unknown>).codon_table_sha256).toBeNull();
   });
 
   it("serializes navigation, pipeline, ui, benchmark and sequence_info blocks", () => {
@@ -174,8 +203,8 @@ describe("buildKuroSnapshot: schema 6", () => {
 });
 
 describe("buildKuroSnapshot: schema 4 poolVariants", () => {
-  it("uses schema 6 (schema 4 필드는 그대로 유지)", () => {
-    expect(buildKuroSnapshot(baseState).schema).toBe(6);
+  it("uses schema 7 (schema 4 필드는 그대로 유지)", () => {
+    expect(buildKuroSnapshot(baseState).schema).toBe(7);
   });
 
   it("includes poolVariants in the results block", () => {

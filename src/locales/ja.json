@@ -1654,6 +1654,7 @@
     "sectionTmDistribution": "Tm 分布",
     "sectionDomainAllocation": "Domain 割当",
     "sectionFailedMutations": "失敗 mutations",
+    "statOrganism": "生物種",
     "statStep1Filter": "Step 1 filter",
     "statStep2Domains": "Step 2 domains",
     "statStep2Overlap": "Step 2 overlap",
@@ -3759,7 +3760,8 @@
       "geneRangeInvalid": "Gene end must be greater than gene start",
       "projectPath": "Open or create a project first",
       "activeRound": "Select a round first",
-      "activityData": "Upload activity data first"
+      "activityData": "Upload activity data first",
+      "codonTableUnresolved": "コドンテーブル (生物種リスト下の通知を解消してください)"
     },
     "actionBlockedTitle": "Cannot proceed — missing required input"
   },
@@ -3883,7 +3885,20 @@
       "N1": "RNA のコドンを DNA に変換しました（U を T に）。対象は {{n}} 個です。",
       "N2": "小文字だったコドン {{n}} 個を大文字に変換しました。",
       "N4": "コドンの個数から頻度を再計算しました。",
+      "R5": "{{filename}} は組み込みテーブル '{{stem}}' に隠されて読み込まれませんでした。使うには {{stem}}_lab.json に名前を変更してください。",
       "unknown": "コドン表チェッカーが {{code}} を報告しましたが、このバージョンの kuma には該当する説明がありません。"
+    },
+    "restore": {
+      "notInstalled": "このプロジェクトはコドンテーブル '{{name}}' を使いますが、この環境には入っていません。プロジェクトファイルからインストールしますか。",
+      "absent": "このプロジェクトが使ったコドンテーブル '{{key}}' はこの環境になく、プロジェクトにも複製がありません。設計の前にコドンテーブルフォルダへファイルを置いてください。",
+      "mismatch": "このプロジェクトはコドンテーブル '{{key}}' の別の版で設計されています。異なるアミノ酸: {{list}}。プロジェクトに保存された複製を使うか、この環境のテーブルのまま設計し直してください。",
+      "mismatchUnexplained": "このセッションを保存したあと、この環境のコドンテーブル '{{key}}' が変わりました。2 つの版を比べるにはプロジェクトファイルを開き、そうでなければここにあるテーブルで設計し直してください。",
+      "install": "プロジェクトからインストール",
+      "useProjectCopy": "プロジェクトの複製を使う",
+      "installing": "インストール中...",
+      "overwriteWarning": "この環境のテーブル '{{key}}' を上書きします。",
+      "installFailed": "テーブルをインストールできませんでした: {{reason}}",
+      "installUnavailable": "このプロジェクトにはこのテーブルの複製がありません。"
     }
   }
 }

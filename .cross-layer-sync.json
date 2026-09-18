@@ -1429,6 +1429,27 @@
       "severity": "warning"
     },
     {
+      "id": "kuro-codon-table-reproducibility",
+      "files": [
+        "kuma_core/kuro/codon_table.py",
+        "python-core/sidecar_kuro/handlers/design.py",
+        "python-core/sidecar_kuro/handlers/export.py",
+        "src/lib/codonTableRestore.ts",
+        "src/lib/kuroSnapshot.ts",
+        "src/hooks/useAutosaveHydration.ts",
+        "src/store/slices/exportSlice.ts",
+        "src/types/models.ts"
+      ],
+      "symbols": [
+        "describe",
+        "_codon_table_provenance",
+        "_design_provenance_for_manifest",
+        "resolveCodonTableRestore"
+      ],
+      "note": "What a run made with a given codon table records, and what a restored project is entitled to. The digest is minted in codon_table.py (describe), carried by design.py into the session provenance, turned into inputs[design_codon_table] by export.py, and stored by two frontend paths that deliberately store different things: kuroSnapshot.ts writes key plus digest, exportSlice.ts writes the whole document, and codonTableRestore.ts is the only place that reconciles them. models.ts declares both shapes. Changing what one path stores without the other reopens the section 8.1 hole, where two manifests read identically and the primers differ.",
+      "severity": "blocking"
+    },
+    {
       "id": "kuro-custom-codon-tables",
       "files": [
         "kuma_core/kuro/codon_table.py",

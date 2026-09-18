@@ -1696,6 +1696,7 @@
     "sectionTmDistribution": "Tm 분포",
     "sectionDomainAllocation": "도메인 할당",
     "sectionFailedMutations": "실패한 돌연변이",
+    "statOrganism": "생물종",
     "statStep1Filter": "Step 1 필터",
     "statStep2Domains": "Step 2 도메인",
     "statStep2Overlap": "Step 2 오버랩",
@@ -3677,7 +3678,8 @@
       "geneRangeInvalid": "gene_end가 gene_start보다 커야 합니다",
       "projectPath": "프로젝트를 먼저 열거나 생성해 주세요",
       "activeRound": "Round를 먼저 선택해 주세요",
-      "activityData": "Activity 데이터를 먼저 업로드해 주세요"
+      "activityData": "Activity 데이터를 먼저 업로드해 주세요",
+      "codonTableUnresolved": "코돈 테이블 (생물종 목록 아래 안내를 처리하세요)"
     },
     "actionBlockedTitle": "필수 입력이 누락되어 진행할 수 없습니다"
   },
@@ -3883,7 +3885,20 @@
       "N1": "RNA 코돈을 DNA 로 바꿨습니다(U 를 T 로), 코돈 {{n}} 개.",
       "N2": "소문자였던 코돈 {{n}} 개를 대문자로 바꿨습니다.",
       "N4": "코돈 개수로부터 빈도를 다시 계산했습니다.",
+      "R5": "{{filename}} 은(는) 내장 테이블 '{{stem}}' 에 가려져 로드되지 않았습니다. 사용하려면 {{stem}}_lab.json 으로 이름을 바꾸세요.",
       "unknown": "코돈 테이블 검사기가 {{code}} 를 보고했으나 이 버전의 kuma 에는 해당 설명이 없습니다."
+    },
+    "restore": {
+      "notInstalled": "이 프로젝트는 코돈 테이블 '{{name}}' 을(를) 사용하지만 이 컴퓨터에는 설치되어 있지 않습니다. 프로젝트 파일에서 설치할까요?",
+      "absent": "이 프로젝트가 사용한 코돈 테이블 '{{key}}' 이(가) 이 컴퓨터에 없고 프로젝트에도 사본이 없습니다. 설계 전에 코돈 테이블 폴더에 파일을 넣으세요.",
+      "mismatch": "이 프로젝트는 코돈 테이블 '{{key}}' 의 다른 판으로 설계되었습니다. 달라진 아미노산: {{list}}. 프로젝트에 저장된 사본을 쓰거나, 이 컴퓨터의 테이블을 유지하고 다시 설계하세요.",
+      "mismatchUnexplained": "이 세션을 저장한 뒤 이 컴퓨터의 코돈 테이블 '{{key}}' 이(가) 바뀌었습니다. 두 판을 비교하려면 프로젝트 파일을 열고, 아니면 여기 설치된 테이블로 다시 설계하세요.",
+      "install": "프로젝트에서 설치",
+      "useProjectCopy": "프로젝트 사본 사용",
+      "installing": "설치 중...",
+      "overwriteWarning": "이 컴퓨터의 테이블 '{{key}}' 을(를) 덮어씁니다.",
+      "installFailed": "테이블을 설치하지 못했습니다: {{reason}}",
+      "installUnavailable": "이 프로젝트에는 이 테이블의 사본이 없습니다."
     }
   }
 }

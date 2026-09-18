@@ -1654,6 +1654,7 @@
     "sectionTmDistribution": "Distribuição de Tm",
     "sectionDomainAllocation": "Alocação de domínios",
     "sectionFailedMutations": "Mutações falhadas",
+    "statOrganism": "Organismo",
     "statStep1Filter": "Filtro Step 1",
     "statStep2Domains": "Domínios Step 2",
     "statStep2Overlap": "Overlap Step 2",
@@ -3759,7 +3760,8 @@
       "geneRangeInvalid": "Gene end must be greater than gene start",
       "projectPath": "Open or create a project first",
       "activeRound": "Select a round first",
-      "activityData": "Upload activity data first"
+      "activityData": "Upload activity data first",
+      "codonTableUnresolved": "Tabela de códons (resolva o aviso abaixo da lista de organismos)"
     },
     "actionBlockedTitle": "Cannot proceed — missing required input"
   },
@@ -3883,7 +3885,20 @@
       "N1": "Os códons de RNA foram convertidos para DNA (U para T): {{n}} códons.",
       "N2": "{{n}} códon(s) estavam em minúsculas e foram convertidos para maiúsculas.",
       "N4": "As frequências foram recalculadas a partir das contagens de códons.",
+      "R5": "{{filename}} está encoberto pela tabela integrada '{{stem}}' e não foi carregado. Renomeie para {{stem}}_lab.json para usá-lo.",
       "unknown": "O verificador de tabelas de códons relatou {{code}}, para o qual esta versão do kuma não tem descrição."
+    },
+    "restore": {
+      "notInstalled": "Este projeto usa a tabela de códons '{{name}}', que não está instalada aqui. Instalar a partir do arquivo do projeto?",
+      "absent": "Este projeto usou a tabela de códons '{{key}}', que não está instalada aqui e da qual o projeto não guarda cópia. Coloque o arquivo na pasta de tabelas de códons antes de projetar.",
+      "mismatch": "Este projeto foi desenhado com outra versão da tabela de códons '{{key}}'. Aminoácidos que diferem: {{list}}. Use a cópia guardada no projeto, ou mantenha a tabela local e refaça o desenho.",
+      "mismatchUnexplained": "A tabela de códons '{{key}}' desta máquina mudou desde que esta sessão foi salva. Abra o arquivo do projeto para comparar as duas versões, ou refaça o desenho com a tabela instalada aqui.",
+      "install": "Instalar do projeto",
+      "useProjectCopy": "Usar a cópia do projeto",
+      "installing": "Instalando...",
+      "overwriteWarning": "Isto substitui a tabela local '{{key}}'.",
+      "installFailed": "Não foi possível instalar a tabela: {{reason}}",
+      "installUnavailable": "O projeto não guarda cópia desta tabela."
     }
   }
 }

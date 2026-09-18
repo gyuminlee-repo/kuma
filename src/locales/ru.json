@@ -1654,6 +1654,7 @@
     "sectionTmDistribution": "Распределение Tm",
     "sectionDomainAllocation": "Domain Allocation",
     "sectionFailedMutations": "Failed Mutations",
+    "statOrganism": "Организм",
     "statStep1Filter": "Step 1 filter",
     "statStep2Domains": "Step 2 domains",
     "statStep2Overlap": "Step 2 overlap",
@@ -3759,7 +3760,8 @@
       "geneRangeInvalid": "Gene end must be greater than gene start",
       "projectPath": "Open or create a project first",
       "activeRound": "Select a round first",
-      "activityData": "Upload activity data first"
+      "activityData": "Upload activity data first",
+      "codonTableUnresolved": "Кодонная таблица (разберите уведомление под списком организмов)"
     },
     "actionBlockedTitle": "Cannot proceed — missing required input"
   },
@@ -3883,7 +3885,20 @@
       "N1": "Кодоны РНК преобразованы в ДНК (U в T), всего {{n}}.",
       "N2": "Кодонов в нижнем регистре: {{n}}; они приведены к верхнему регистру.",
       "N4": "Частоты пересчитаны по числу кодонов.",
+      "R5": "{{filename}} перекрыт встроенной таблицей '{{stem}}' и не был загружен. Переименуйте файл в {{stem}}_lab.json, чтобы использовать его.",
       "unknown": "Проверка таблицы кодонов сообщила о коде {{code}}, описания которого в этой версии kuma нет."
+    },
+    "restore": {
+      "notInstalled": "Проект использует кодонную таблицу '{{name}}', которой здесь нет. Установить её из файла проекта?",
+      "absent": "Проект использовал кодонную таблицу '{{key}}': её нет на этой машине, и в проекте нет её копии. Положите файл в папку кодонных таблиц перед расчётом.",
+      "mismatch": "Проект рассчитан с другой версией кодонной таблицы '{{key}}'. Различающиеся аминокислоты: {{list}}. Возьмите копию, сохранённую в проекте, либо оставьте локальную таблицу и пересчитайте.",
+      "mismatchUnexplained": "Кодонная таблица '{{key}}' на этой машине изменилась после сохранения сессии. Откройте файл проекта, чтобы сравнить обе версии, либо пересчитайте с таблицей, установленной здесь.",
+      "install": "Установить из проекта",
+      "useProjectCopy": "Взять копию из проекта",
+      "installing": "Установка...",
+      "overwriteWarning": "Локальная таблица '{{key}}' будет заменена.",
+      "installFailed": "Не удалось установить таблицу: {{reason}}",
+      "installUnavailable": "В проекте нет копии этой таблицы."
     }
   }
 }

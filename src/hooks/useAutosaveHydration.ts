@@ -412,6 +412,15 @@ export async function applyKuroSnapshot(
   }
   if (typeof input?.organism === "string") {
     patch.organism = input.organism;
+    // schema 7+. The key alone cannot tell "the same table" from "a different
+    // table filed under the same name", which is the hole section 8.1 names.
+    // Older snapshots carry no digest and get no expectation, so they restore
+    // exactly as they did before rather than being reported as a mismatch
+    // against a digest that was never recorded.
+    patch.restoredCodonTable =
+      typeof input.codon_table_sha256 === "string" && input.codon_table_sha256
+        ? { key: input.organism, tableSha256: input.codon_table_sha256 }
+        : null;
   }
   if (isEvolveproModeRaw(input?.evolvepro_mode)) {
     // Legacy "others" (pre-merge autosaves) coerces to "pipeline", the

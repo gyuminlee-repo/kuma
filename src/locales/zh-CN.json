@@ -1654,6 +1654,7 @@
     "sectionTmDistribution": "Tm 分布",
     "sectionDomainAllocation": "Domain 分配",
     "sectionFailedMutations": "失败的 Mutation",
+    "statOrganism": "物种",
     "statStep1Filter": "Step 1 filter",
     "statStep2Domains": "Step 2 domains",
     "statStep2Overlap": "Step 2 overlap",
@@ -3759,7 +3760,8 @@
       "geneRangeInvalid": "Gene end must be greater than gene start",
       "projectPath": "Open or create a project first",
       "activeRound": "Select a round first",
-      "activityData": "Upload activity data first"
+      "activityData": "Upload activity data first",
+      "codonTableUnresolved": "密码子表 (请处理物种列表下方的提示)"
     },
     "actionBlockedTitle": "Cannot proceed — missing required input"
   },
@@ -3883,7 +3885,20 @@
       "N1": "已将 RNA 密码子转换为 DNA（U 转 T），共 {{n}} 个。",
       "N2": "已将 {{n}} 个小写密码子转换为大写。",
       "N4": "已根据密码子计数重新计算频率。",
+      "R5": "{{filename}} 被内置表 '{{stem}}' 遮蔽，未加载。若要使用，请改名为 {{stem}}_lab.json。",
       "unknown": "密码子表校验器报告了 {{code}}，但当前版本的 kuma 没有对应说明。"
+    },
+    "restore": {
+      "notInstalled": "本项目使用密码子表 '{{name}}'，此处尚未安装。是否从项目文件安装？",
+      "absent": "本项目使用的密码子表 '{{key}}' 在此处未安装，项目中也没有副本。请在设计前把文件放入密码子表文件夹。",
+      "mismatch": "本项目由密码子表 '{{key}}' 的另一版本设计。差异氨基酸：{{list}}。可使用项目中保存的副本，或保留本机表并重新设计。",
+      "mismatchUnexplained": "自本会话保存以来，本机的密码子表 '{{key}}' 已更改。请打开项目文件比较两个版本，或用此处安装的表重新设计。",
+      "install": "从项目安装",
+      "useProjectCopy": "使用项目副本",
+      "installing": "正在安装...",
+      "overwriteWarning": "这会覆盖本机的表 '{{key}}'。",
+      "installFailed": "无法安装该表：{{reason}}",
+      "installUnavailable": "项目中没有该表的副本。"
     }
   }
 }

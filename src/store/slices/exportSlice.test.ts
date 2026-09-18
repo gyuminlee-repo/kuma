@@ -101,6 +101,7 @@ function makeStore() {
     autoRedesignOnLoad: true,
     saveCache: true,
     organism: "ecoli",
+    organisms: [],
     evolveproMode: "pipeline" as const,
     positionDiversityEnabled: true,
     maxPerPosition: 1,
@@ -717,3 +718,91 @@ describe("exportSlice — schema_version 0.3", () => {
     expect(snap.inputs.fastaPath).toBe("/test/sequence.fa")
   })
 })
+
+/**
+ * The workspace half of design note section 8.2: a project file carries the
+ * table itself, because it is the artifact that travels.
+ */
+describe("exportSlice - codon table portability", () => {
+  let store: ReturnType<typeof makeStore>;
+
+  const userTable = {
+    key: "mylab",
+    name: "Lab strain",
+    taxid: null,
+    source: "in-house",
+    genetic_code: 11,
+    aliases: ["lab strain"],
+    codons: { K: [["AAA", 0.76], ["AAG", 0.24]] as [string, number][] },
+  };
+
+  const listed = (over: Record<string, unknown> = {}) => [
+    {
+      key: "mylab",
+      name: "Lab strain",
+      taxid: null,
+      source: "user" as const,
+      aliases: [],
+      cds_count: null,
+      table_sha256: "digest-a",
+      warnings: [],
+      normalizations: [],
+      document: userTable,
+      ...over,
+    },
+  ];
+
+  beforeEach(() => {
+    store = makeStore();
+  });
+
+  it("embeds a user table in full, not just its key", () => {
+    Object.assign(store.state, { organism: "mylab", organisms: listed() });
+    const snap = store.slice.getWorkspaceSnapshot() as WorkspaceV3;
+    expect(snap.codon_table).toEqual(userTable);
+    expect(snap.codon_table_sha256).toBe("digest-a");
+  });
+
+  it("records a bundled table by digest alone, with no embedded copy", () => {
+    Object.assign(store.state, {
+      organism: "ecoli",
+      organisms: listed({ key: "ecoli", source: "builtin", table_sha256: "digest-e" }),
+    });
+    const snap = store.slice.getWorkspaceSnapshot() as WorkspaceV3;
+    expect(snap.codon_table).toBeNull();
+    expect(snap.codon_table_sha256).toBe("digest-e");
+  });
+
+  it("restores the expectation the project recorded, key digest and body", async () => {
+    Object.assign(store.state, {
+      organism: "mylab",
+      organisms: listed(),
+      // The unit harness has no design slice, and the auto-redesign this flag
+      // drives is not what this case is about.
+      autoRedesignOnLoad: false,
+    });
+    const snapshot = store.slice.getWorkspaceSnapshot() as WorkspaceV3;
+    await store.slice.restoreWorkspace(snapshot);
+    expect(store.state.restoredCodonTable).toEqual({
+      key: "mylab",
+      tableSha256: "digest-a",
+      document: userTable,
+    });
+  });
+
+  it("leaves a pre-Phase-2 workspace with no expectation at all", async () => {
+    Object.assign(store.state, {
+      organism: "mylab",
+      organisms: listed(),
+      autoRedesignOnLoad: false,
+    });
+    const snapshot = store.slice.getWorkspaceSnapshot() as WorkspaceV3;
+    delete snapshot.codon_table;
+    delete snapshot.codon_table_sha256;
+    await store.slice.restoreWorkspace(snapshot);
+    // Not a mismatch: a project that recorded nothing must open exactly as it
+    // did before, and the organism it named survives untouched.
+    expect(store.state.restoredCodonTable).toBeNull();
+    expect(store.state.organism).toBe("mylab");
+  });
+});

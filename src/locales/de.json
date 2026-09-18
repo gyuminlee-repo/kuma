@@ -1654,6 +1654,7 @@
     "sectionTmDistribution": "Tm-Verteilung",
     "sectionDomainAllocation": "Domänenverteilung",
     "sectionFailedMutations": "Fehlgeschlagen Mutationen",
+    "statOrganism": "Organismus",
     "statStep1Filter": "Schritt 1 Filter",
     "statStep2Domains": "Schritt 2 Domänen",
     "statStep2Overlap": "Schritt 2 Overlap",
@@ -3759,7 +3760,8 @@
       "geneRangeInvalid": "Gene end must be greater than gene start",
       "projectPath": "Open or create a project first",
       "activeRound": "Select a round first",
-      "activityData": "Upload activity data first"
+      "activityData": "Upload activity data first",
+      "codonTableUnresolved": "Codon-Tabelle (Hinweis unter der Organismusliste klären)"
     },
     "actionBlockedTitle": "Cannot proceed — missing required input"
   },
@@ -3883,7 +3885,20 @@
       "N1": "RNA-Codons wurden in DNA umgewandelt (U zu T), insgesamt {{n}} Codons.",
       "N2": "{{n}} Codon(s) lagen in Kleinbuchstaben vor und wurden in Großbuchstaben umgewandelt.",
       "N4": "Die Häufigkeiten wurden aus den Codon-Anzahlen neu berechnet.",
+      "R5": "{{filename}} wird von der integrierten Tabelle '{{stem}}' verdeckt und wurde nicht geladen. Benennen Sie die Datei in {{stem}}_lab.json um, um sie zu verwenden.",
       "unknown": "Die Codon-Tabellenprüfung meldete {{code}}; für diesen Code liegt in dieser kuma-Version keine Beschreibung vor."
+    },
+    "restore": {
+      "notInstalled": "Dieses Projekt verwendet die Codon-Tabelle '{{name}}', die hier nicht installiert ist. Aus der Projektdatei installieren?",
+      "absent": "Dieses Projekt verwendete die Codon-Tabelle '{{key}}', die hier nicht installiert ist und von der das Projekt keine Kopie enthält. Legen Sie die Datei vor dem Design in den Codon-Tabellenordner.",
+      "mismatch": "Dieses Projekt wurde mit einer anderen Fassung der Codon-Tabelle '{{key}}' erstellt. Abweichende Aminosäuren: {{list}}. Verwenden Sie die im Projekt gespeicherte Kopie oder behalten Sie die lokale Tabelle und entwerfen Sie neu.",
+      "mismatchUnexplained": "Die Codon-Tabelle '{{key}}' auf diesem Rechner hat sich geändert, seit diese Sitzung gespeichert wurde. Öffnen Sie die Projektdatei, um beide Fassungen zu vergleichen, oder entwerfen Sie mit der hier installierten Tabelle neu.",
+      "install": "Aus Projekt installieren",
+      "useProjectCopy": "Projektkopie verwenden",
+      "installing": "Wird installiert...",
+      "overwriteWarning": "Dies ersetzt die lokale Tabelle '{{key}}'.",
+      "installFailed": "Tabelle konnte nicht installiert werden: {{reason}}",
+      "installUnavailable": "Das Projekt enthält keine Kopie dieser Tabelle."
     }
   }
 }

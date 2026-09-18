@@ -212,7 +212,41 @@ function isOrganismSummary(value: unknown): boolean {
     isStringArray(value.aliases) &&
     (value.cds_count === null || isNumber(value.cds_count)) &&
     isString(value.table_sha256) &&
-    isArrayOf(value.warnings, isCodonTableFinding)
+    isArrayOf(value.warnings, isCodonTableFinding) &&
+    // Both optional so a sidecar built before Phase 2 still lists its
+    // organisms instead of rendering an empty dropdown. The consumers treat an
+    // absent document as "cannot embed, cannot diff", which is the same answer
+    // they give for a table that has none.
+    (value.normalizations === undefined ||
+      isArrayOf(value.normalizations, isCodonTableFinding)) &&
+    (value.document === undefined || isCodonTableDocument(value.document))
+  );
+}
+
+function isCodonPairList(value: unknown): boolean {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (pair) =>
+        Array.isArray(pair) &&
+        pair.length === 2 &&
+        isString(pair[0]) &&
+        isNumber(pair[1]),
+    )
+  );
+}
+
+export function isCodonTableDocument(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isString(value.key) &&
+    isString(value.name) &&
+    (value.taxid === null || isNumber(value.taxid)) &&
+    isString(value.source) &&
+    isNumber(value.genetic_code) &&
+    isStringArray(value.aliases) &&
+    isRecord(value.codons) &&
+    Object.values(value.codons).every(isCodonPairList)
   );
 }
 
@@ -221,7 +255,9 @@ function isCodonTableFailure(value: unknown): boolean {
     isRecord(value) &&
     isString(value.filename) &&
     isString(value.code) &&
-    isString(value.reason)
+    isString(value.reason) &&
+    (value.findings === undefined ||
+      isArrayOf(value.findings, isCodonTableFinding))
   );
 }
 

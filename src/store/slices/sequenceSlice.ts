@@ -36,6 +36,7 @@ export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> 
   selectedGene: "",
   organism: "ecoli",
   organisms: [],
+  restoredCodonTable: null,
   codonTableFailures: [],
   codonTableDir: null,
 
@@ -207,6 +208,42 @@ export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> 
    * survive a workspace restore rather than be silently switched to another
    * organism. SequenceInput keeps such a key selectable.
    */
+  setRestoredCodonTable: (expected) => set({ restoredCodonTable: expected }),
+
+  /**
+   * Install the project's copy of the codon table into the user folder.
+   *
+   * Written straight to the drop-in folder rather than through an RPC, because
+   * that folder IS the install interface Phase 1 shipped: the next
+   * `list_organisms` validates the file exactly as it validates one a user
+   * copied there by hand, so a bad embed lands in `failed[]` and never in the
+   * dropdown. No new RPC, no dispatcher or generated-model change.
+   *
+   * The file is named after the key, which is what rule V8 checks the stem
+   * against, and an existing file of that name is replaced - that replacement
+   * is the explicit overwrite the caller has already confirmed.
+   */
+  installRestoredCodonTable: async () => {
+    const expected = get().restoredCodonTable;
+    const dir = get().codonTableDir;
+    if (!expected?.document || !dir) {
+      return i18next.t("codonTable.restore.installUnavailable");
+    }
+    try {
+      const { writeTextFile } = await import("@tauri-apps/plugin-fs");
+      const separator = dir.includes("\\") && !dir.includes("/") ? "\\" : "/";
+      const target = `${dir.replace(/[/\\]$/, "")}${separator}${expected.key}.json`;
+      await writeTextFile(target, JSON.stringify(expected.document, null, 2));
+    } catch (err) {
+      return formatError(err);
+    }
+    await get().loadOrganisms();
+    // Whatever the listing now says is the answer; the resolver re-runs against
+    // it. Dropping the expectation here instead would hide a write that landed
+    // but did not validate.
+    return null;
+  },
+
   loadOrganisms: async () => {
     try {
       // This call IS the refresh: the handler drops the registry caches, seeds
