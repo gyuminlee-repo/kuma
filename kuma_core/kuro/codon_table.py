@@ -45,6 +45,19 @@ _RESOURCES_DIR = _resource_path(
 # path construction in ``_load``.
 _KEY_RE = re.compile(r"^[a-z][a-z0-9_]{1,31}$")
 
+# Table fields that say where the numbers came from. They are copied verbatim
+# into the portable document (``_document_from_report``) and none of them is an
+# input to ``canonical_digest``.
+_TRACEABILITY_FIELDS = (
+    "schema_version",
+    "provenance",
+    "counts",
+    "n_cds",
+    "assembly",
+    "strain",
+    "source_release",
+)
+
 # Organism aliases: user-facing key -> JSON filename (without .json)
 _ORGANISM_ALIASES: dict[str, str] = {
     "ecoli": "ecoli",
@@ -97,6 +110,43 @@ def _search_dirs() -> list[tuple[Path, bool]]:
     the module global on each call so tests can redirect it.
     """
     return [(_RESOURCES_DIR, True), (user_codon_dir(), False)]
+
+
+def _document_from_report(key: str, report, raw: dict | None = None) -> dict:
+    """Rebuild the table as a self-contained JSON document.
+
+    The workspace carries this block so a project opened on another machine
+    still knows what codons produced its primers (design note section 8.2), and
+    the install path writes it back into the user directory verbatim. It is
+    therefore built from what the validator *normalised*, not from the bytes on
+    disk: writing this document to ``<key>.json`` and validating it again has
+    to return the same ``table_sha256``, which raw bytes carrying a rounding
+    error or a "U" codon would not.
+
+    The traceability fields (``provenance``, ``counts`` and the assembly
+    labels) ride along unchanged. They do not enter ``canonical_digest``, which
+    is the point: two documents that differ only in ``provenance.generated_at``
+    still carry one ``table_sha256``, so the restore branches compare codons
+    and not paperwork.
+    """
+    meta = report.metadata or {}
+    raw = raw or {}
+    document = {
+        "key": key,
+        "name": meta.get("name", key),
+        "taxid": meta.get("taxid"),
+        "source": meta.get("source", ""),
+        "genetic_code": report.genetic_code,
+        "aliases": list(report.aliases),
+        "codons": {
+            aa: [[codon, freq] for codon, freq in pairs]
+            for aa, pairs in (report.table or {}).items()
+        },
+    }
+    for field_name in _TRACEABILITY_FIELDS:
+        if field_name in raw:
+            document[field_name] = raw[field_name]
+    return document
 
 
 class CodonTableRegistry:
@@ -162,6 +212,15 @@ class CodonTableRegistry:
                             f"'{path.stem}' and was not loaded. Rename it to "
                             f"{path.stem}_lab.json to use it."
                         ),
+                        "findings": [
+                            {
+                                "code": "R5",
+                                "params": {
+                                    "filename": path.name,
+                                    "stem": path.stem,
+                                },
+                            }
+                        ],
                     })
                     continue
                 ctx = ValidationContext(
@@ -178,22 +237,40 @@ class CodonTableRegistry:
                         "filename": path.name,
                         "code": report.errors[0].code,
                         "reason": "; ".join(f.detail for f in report.errors),
+                        # Every error, not just the first: ``reason`` already
+                        # joins them all in English, so localizing from
+                        # ``code`` alone would drop the rest of the sentence.
+                        "findings": [
+                            {"code": f.code, "params": f.params}
+                            for f in report.errors
+                        ],
                     })
                     continue
                 key = report.key or path.stem
                 meta = report.metadata or {}
+                raw = _read_json(path)
                 entry = {
                     "key": key,
                     "name": meta.get("name", key),
                     "taxid": meta.get("taxid"),
                     "source": "builtin" if is_builtin else "user",
                     "aliases": list(report.aliases),
-                    "cds_count": _cds_count(path),
+                    "cds_count": _cds_count(raw),
                     "table_sha256": report.table_sha256,
                     "warnings": [
                         {"code": f.code, "params": f.params}
                         for f in report.warnings
                     ],
+                    # N1/N2/N4 were previously produced and then dropped here,
+                    # which left their ten locales unreachable from any
+                    # production path. They say what the import silently
+                    # changed (U->T, lowercase codons, counts adopted), which
+                    # is exactly what an operator needs to see once.
+                    "normalizations": [
+                        {"code": f.code, "params": f.params}
+                        for f in report.normalizations
+                    ],
+                    "document": _document_from_report(key, report, raw),
                 }
                 organisms.append(entry)
                 if is_builtin:
@@ -296,6 +373,37 @@ class CodonTableRegistry:
             self._cache[key] = self._load(key)
         return {aa: list(pairs) for aa, pairs in self._cache[key].items()}
 
+    def describe(self, organism: str) -> dict:
+        """Return what identifies the table *organism* resolves to.
+
+        Loading is forced rather than assumed: ``_metadata`` is only populated
+        by ``_load``, and the design handler asks for this right after it has
+        already validated the organism, so a cached hit costs nothing and a
+        cold one is the same read the design is about to do anyway.
+
+        Returns:
+            ``{"key", "name", "source", "path", "table_sha256"}``. ``source``
+            is ``"builtin"`` or ``"user"``; ``path`` is the file that was read.
+
+        Raises:
+            ValueError: If *organism* resolves to no installed table.
+        """
+        key = self._resolve_key(organism)
+        if key not in self._cache:
+            self._cache[key] = self._load(key)
+        found = self._find(key)
+        if found is None:  # pragma: no cover - _load would have raised first
+            raise ValueError(f"Unknown organism: '{organism}'.")
+        path, is_builtin = found
+        meta = self._metadata.get(key, {})
+        return {
+            "key": key,
+            "name": meta.get("name", key),
+            "source": "builtin" if is_builtin else "user",
+            "path": str(path),
+            "table_sha256": meta.get("table_sha256"),
+        }
+
     def list_organisms(self) -> list[str]:
         """Return the canonical keys of every table that validated."""
         return [entry["key"] for entry in self.scan()["organisms"]]
@@ -305,14 +413,22 @@ class CodonTableRegistry:
         return self.scan()["organisms"]
 
 
-def _cds_count(path: Path) -> int | None:
-    """Best-effort coding-sequence count for a table, or None."""
-    import json as _json
+def _read_json(path: Path) -> dict:
+    """Parse *path* as a JSON object, or return ``{}``.
 
+    The file has already been validated by the time this runs, so a failure
+    here means it changed underneath us. Both callers degrade to "unknown"
+    rather than failing the whole scan over it.
+    """
     try:
-        data = _json.loads(path.read_text(encoding="utf-8"))
+        data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        return None
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _cds_count(data: dict) -> int | None:
+    """Best-effort coding-sequence count for a table, or None."""
     provenance = data.get("provenance")
     if isinstance(provenance, dict):
         value = provenance.get("cds_counted")

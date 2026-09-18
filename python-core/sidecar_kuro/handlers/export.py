@@ -261,6 +261,15 @@ def _design_provenance_for_manifest(
         # from no mutations at all. Those are recorded inline under extra.design.
         if mutations.get("source") == "file" and mutations.get("path"):
             inputs["design_mutations"] = Path(str(mutations["path"]))
+        # A user-installed codon table is a file this machine holds and another
+        # may not, so it is an input like the fasta: build_run_manifest hashes
+        # it and manifestDiff points at it when two runs disagree. A bundled
+        # table is not listed here because its path is inside the app; its key
+        # and canonical digest travel in extra.design.codon_table, which is the
+        # same dict as `provenance` below.
+        codon_table = provenance.get("codon_table") or {}
+        if codon_table.get("source") == "user" and codon_table.get("path"):
+            inputs["design_codon_table"] = Path(str(codon_table["path"]))
 
     return inputs, {
         "results_source": "state",
