@@ -1,4 +1,4 @@
-"""Report whether the existing external-data tests actually executed.
+"""Report whether the known external-data test scopes actually executed.
 
 Read a pytest JUnit report, not environment-variable presence. The external
 scopes below are deliberately explicit; expected test functions are discovered
@@ -24,6 +24,7 @@ import xml.etree.ElementTree as ET
 EXTERNAL_SCOPES = (
     ("tests/integration/test_xlsx_pipeline.py", None, "test_scenario_"),
     ("tests/mame/test_well_consensus_regression.py", "TestReferenceGroundTruth", "test_"),
+    ("tests/mame/test_plate_order_check.py", None, "test_the_260722_export_"),
 )
 
 
@@ -82,7 +83,7 @@ def summarize(junit_path: Path, expected: set[tuple[str, str]]) -> dict:
         "expected_test_functions": len(expected),
         "counts": counts,
         "all_executed_and_passed": counts["passed"] == len(expected),
-        "scope_note": "Execution evidence only. The external-read suite checks self-consistency, not independent biological ground truth. Synthetic contracts and samtools equivalence are separate evidence.",
+        "scope_note": "Execution evidence for the explicitly inventoried external-data scopes only. The external-read suite checks self-consistency, not independent biological ground truth. Synthetic contracts and samtools equivalence are separate evidence.",
         "tests": rows,
     }
 

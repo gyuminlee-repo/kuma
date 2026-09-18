@@ -55,10 +55,11 @@ an existing output directory are not deleted and are not listed as new artifacts
 
 ## External-data coverage: executed is different from collected or skipped
 
-The workbook scenarios and `TestReferenceGroundTruth` require external files.
-The latter's name is historical: its reference comes from a read and it checks
-self-consistency, not independent biological ground truth. Those data are not
-committed here and CI does not acquire or publish them.
+The workbook scenarios, `TestReferenceGroundTruth`, and the historical 260722
+plate-export mismatch test require external files. The read suite's name is
+historical: its reference comes from a read and it checks self-consistency, not
+independent biological ground truth. Those data are not committed here and CI
+does not acquire or publish them.
 
 Every Python CI matrix leg writes JUnit and an external-coverage JSON artifact.
 The inventory is derived from the test definitions without importing them; the
@@ -66,11 +67,13 @@ report reads **actual test outcomes**, not whether an environment variable exist
 Missing inventory entries or failures fail reporting. Documented skips are
 allowed in normal CI but visibly state that external validation is incomplete.
 Synthetic tests in the same files do not fill the external-data coverage count.
+The reporter is scoped to its explicit inventory, not a claim to discover every
+future data dependency. Add a scope when introducing another external test.
 
 An authorized environment holding the original data can require real execution:
 
 ```bash
-# Configure KUMA_TEST_DATA_DIR, WORKSPACE_ROOT and minimap2 for the existing tests.
+# Configure the existing tests' data paths and minimap2 in the authorized environment.
 python -m pytest tests/ -v -rs --junitxml=validation-python.xml
 python scripts/report_validation_coverage.py \
   --junit validation-python.xml --output validation-coverage.json --require-executed
@@ -89,8 +92,10 @@ and no force-push/deletion. The connected review tool does not have repository
 Administration permission; this document does **not** assert that protection was
 enabled. Do not weaken existing rules or substitute a successful old-head run.
 
-Use the six `python-tests (OS, Python)` jobs, `python-typecheck`,
-`frontend-typecheck`, `benchmark-tests`, and `rust-check` as required check names
-from CI. Include new relevant workflows when adopted. Before merging, verify
-all checks on the exact current PR head and pass that SHA to the merge request.
-No extra human approval is prescribed for a solo-maintainer repository.
+The nine product check names are the six `python-tests (OS, Python)` jobs,
+`python-typecheck`, `frontend-typecheck`, and `rust-check`. The research-only
+`benchmark-tests` job is currently non-blocking by explicit workflow policy;
+changing that policy is a separate maintainer decision. Include new relevant
+workflows when adopted. Before merging, inspect all outcomes on the exact
+current PR head and pass that SHA to the merge request. No extra human approval
+is prescribed for a solo-maintainer repository.
