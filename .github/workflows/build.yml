@@ -302,10 +302,9 @@ jobs:
         shell: bash
 
       - name: Collect Python dependency licenses
-        run: |
-          pip install pip-licenses
-          pip-licenses --format=markdown --output-file NOTICE-python.md \
-            --packages primer3-py biopython openpyxl xlwt xlrd pydantic pandas python-calamine psutil edlib truststore pyinstaller
+        # Read declared runtime dependencies and their installed transitive closure.
+        # Keep the packaging closure (including PyInstaller) identified separately.
+        run: python scripts/collect-python-licenses.py --include-build
         shell: bash
 
       - name: Build NOTICE.md and copy to Tauri resources
