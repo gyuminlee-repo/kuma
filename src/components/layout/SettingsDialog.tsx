@@ -148,13 +148,12 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
   const [codonRefreshing, setCodonRefreshing] = useState(false);
   const [codonOpenFailed, setCodonOpenFailed] = useState(false);
 
-  // The folder path is only known after a listing. Ask for one when the dialog
-  // opens without it, otherwise the path line would sit on "loading..." until
-  // the user pressed Refresh.
-  useEffect(() => {
-    if (!open || codonTableDir !== null) return;
-    void loadOrganisms();
-  }, [open, codonTableDir, loadOrganisms]);
+  // No listing is triggered on open. AppLayout already calls loadOrganisms once
+  // the sidecar reports ready, and firing it from here would run before that on
+  // a cold start, where it rejects and writes "Organism list load failed" into
+  // the status bar for a dialog the user merely opened. Until that first
+  // listing lands the path line shows the loading placeholder and Refresh is
+  // the way out.
 
   async function handleCodonRefresh() {
     setCodonRefreshing(true);

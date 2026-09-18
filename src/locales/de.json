@@ -166,7 +166,7 @@
     "savedAt": "Gespeichert um {{time}}",
     "codonTables": {
       "title": "Codon-Tabellen",
-      "hint": "Legen Sie eine Organismus-Codon-Tabelle als .json-Datei in diesen Ordner und klicken Sie auf Refresh. Der Dateiname ohne .json wird zum Organismus-Schlüssel.",
+      "hint": "Legen Sie eine Organismus-Codon-Tabelle als .json-Datei in diesen Ordner und klicken Sie auf Aktualisieren. Der Dateiname ohne .json wird zum Organismus-Schlüssel.",
       "counts": "{{builtin}} mitgeliefert, {{user}} aus diesem Ordner.",
       "openFolder": "Ordner öffnen",
       "refresh": "Aktualisieren",

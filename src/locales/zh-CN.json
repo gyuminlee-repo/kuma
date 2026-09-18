@@ -166,7 +166,7 @@
     "savedAt": "已于 {{time}} 保存",
     "codonTables": {
       "title": "密码子表",
-      "hint": "请将物种密码子表的 .json 文件放入此文件夹，然后点击 Refresh。去掉 .json 的文件名即为该物种的键。",
+      "hint": "请将物种密码子表的 .json 文件放入此文件夹，然后点击刷新。去掉 .json 的文件名即为该物种的键。",
       "counts": "内置 {{builtin}} 张，来自此文件夹 {{user}} 张。",
       "openFolder": "打开文件夹",
       "refresh": "刷新",

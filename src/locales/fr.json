@@ -166,7 +166,7 @@
     "savedAt": "Enregistré à {{time}}",
     "codonTables": {
       "title": "Tables de codons",
-      "hint": "Placez dans ce dossier un fichier .json contenant la table de codons de l'organisme, puis cliquez sur Refresh. Le nom du fichier sans .json devient la clé de l'organisme.",
+      "hint": "Placez dans ce dossier un fichier .json contenant la table de codons de l'organisme, puis cliquez sur Actualiser. Le nom du fichier sans .json devient la clé de l'organisme.",
       "counts": "{{builtin}} intégrées, {{user}} depuis ce dossier.",
       "openFolder": "Ouvrir le dossier",
       "refresh": "Actualiser",
