@@ -1835,7 +1835,7 @@ consensus 단계가 메모리에 있는 read를 그대로 쓰기 때문에 이 �
 <tr>
 <td>indel event gate 0.50</td>
 <td><strong>자체 실측</strong> 위에 놓은 값 (이 저장소에서 재실행 불가)</td>
-<td>운용 임계값은 <code>max_indel_event_fraction</code> 기본값 0.50 이고 비교는 <code>&gt;=</code>. 근거는 <code>bench_v2 depth_50</code> 관측값으로 노이즈 웰 &lt;= 0.21, 진짜 결손 웰 &gt;= 0.83. bench_v2 의 데이터와 실행 조건은 이 저장소에 없다</td>
+<td>운용 임계값은 <code>max_indel_event_fraction</code> 기본값 0.50 이고 비교는 <code>&gt;=</code>. 근거는 <code>bench_v2 depth_50</code> 관측값으로 노이즈 웰 &lt;= 0.21, 결손 웰 &gt;= 0.83. 상단 값은 결손을 뜻하지 않는다(아래 「상단 구간이 뜻하는 것」). bench_v2 의 데이터와 실행 조건은 이 저장소에 없다</td>
 </tr>
 </tbody>
 </table>
@@ -1890,8 +1890,14 @@ alignment drop 때문에 판정이 내려졌는지 추적할 수 있다.</p>
 <h4 id="indel-event-gate-ambiguous">indel event gate 가 AMBIGUOUS 를 주는 조건<a class="headerlink" href="#indel-event-gate-ambiguous" title="Permanent link">&para;</a></h4>
 <p><code>max_indel_event_fraction</code> 이 임계값 0.50 이상이라고 해서 웰이 반드시 사람 검토로 가지는 않는다. 게이트는 <strong>설계 변이가 전부 올바른 MT 로 확인된 웰</strong>에만 AMBIGUOUS 를 돌려준다. 확인되지 않은 웰에서는 indel 신호가 <code>verdict_notes</code> 에만 남고 나머지 검사(NO_CALL / FRAMESHIFT / MANY / MIXED / WRONG_AA)가 판정을 정한다. 기대 변이 목록이 비어 있으면(WT 대조 등) 확인된 것으로 본다.</p>
 <p>의도된 설계다. AMBIGUOUS 는 <code>detected</code> 로 집계되고 <code>select/best_pick.py</code> 에서 1 순위로 정렬되며 그 둘은 「기대 변이가 전부 일치했다」는 계약 위에 있다. 설계 변이를 보기 전에 AMBIGUOUS 를 돌려주던 이전 판은 그 계약을 깨 설계 변이가 없는 웰로 <code>recovery_rate</code> 를 부풀렸다.</p>
-<p>비교는 경계를 포함한다(<code>&gt;=</code>). 분율이 read 개수의 비율이라 288 웰 검토에서 <code>NB07 F3</code> 이 정확히 0.500 에 앉았고 보정 구간(노이즈 &lt;= 0.21, 진짜 결손 &gt;= 0.83)은 그 점을 다루지 않으므로 경계 웰은 사람 검토 쪽으로 보낸다. 두 보정 무리의 판정은 이 방향으로 바뀌지 않는다.</p>
-<h4 id="_4">열린 항목 (임계값 미변경)<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h4>
+<p>비교는 경계를 포함한다(<code>&gt;=</code>). 분율이 read 개수의 비율이라 288 웰 검토에서 <code>NB07 F3</code> 이 정확히 0.500 에 앉았고 보정 구간(노이즈 &lt;= 0.21, 결손 &gt;= 0.83)은 그 점을 다루지 않으므로 경계 웰은 사람 검토 쪽으로 보낸다. 두 보정 무리의 판정은 이 방향으로 바뀌지 않는다.</p>
+<h4 id="_4">상단 구간이 뜻하는 것<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h4>
+<p><code>max_indel_event_fraction</code> 이 높다고 분자가 염기를 잃은 것은 아니다. 이 카운터는 read 안의 indel <strong>이벤트</strong>를 세지 무엇이 남았는지를 세지 않는다. 설계된 코돈 치환을 정렬기가 인접한 삽입과 결손으로 표현하면 이벤트 비율이 1.0 근처로 올라가면서 net 은 0 이 된다. 잃은 염기와 다시 쓴 코돈을 가르는 것은 <code>consensus_net_indel_bp</code> 다. <code>ingest/consensus.py</code> 의 <code>DEL_MAJORITY_FRACTION</code> 주석이 같은 내용을 적고 AA 쪽은 <code>translate/aa_translator.py</code> 의 <code>build_length_true_nt</code> 가 결손과 삽입을 다시 붙여 길이가 맞는 분자를 복원해 읽는다.</p>
+<p>실측이 있다. 260212 ispS 런 288 웰에서 <code>&gt;= 0.83</code> 인 웰은 15 이고 그중 9 웰의 <code>consensus_net_indel_bp</code> 가 0 이다. 세 설계 변이가 세 플레이트에 반복된 것이고 전부 설계 부위의 삽입과 결손 쌍이다. 나머지는 -1 bp 가 5 웰, +2 bp 가 1 웰이다. 즉 bench_v2 가 관측한 <code>0.83</code> 은 그 벤치의 결손 웰에서 나온 값이고 설계 방식이 다른 캠페인에서는 같은 값이 다른 것을 뜻한다.</p>
+<h4 id="_5">무방비 구간에 실제로 무엇이 들어오는가<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h4>
+<p><code>0.21</code> 초과 <code>0.50</code> 미만 구간을 두 런에서 셌다. 260729 ispS 런은 9 웰 중 PASS 3 이고 나머지는 LOWDEPTH 4 와 MIXED 2 다. 260212 ispS 런은 10 웰 중 PASS 2 이고 나머지는 LOWDEPTH 7 과 NO_CALL 1 이다. 게이트 순서가 LOWDEPTH 먼저이므로 저리드 웰은 이 구간에 들어와도 indel 게이트에 닿지 않는다. 두 런 모두 실제 노출은 288 중 2~3 이다.</p>
+<p>구간 안에서 정렬 artifact 와 진짜 저빈도 indel 을 가르려고 특징 다섯을 재 봤다. 레퍼런스 homopolymer 길이, <code>n_indel_event_positions</code>, 삽입 대 결손 종류, depth 는 두 앵커에서 겹쳐 판별력이 없었다. 가른 것은 둘이다. argmax 위치와 그 웰 설계 코돈 사이 거리, 그리고 같은 플레이트 다른 웰의 같은 위치 배경 대비 순위다. 둘 다 한 런에서 고른 뒤 다른 런에서 방향이 유지됐다. 표본이 작아(상단 앵커 두 런 합쳐 8) 잠정이며 이 값들로 게이트를 바꾸지 않았다.</p>
+<h4 id="_6">열린 항목 (임계값 미변경)<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h4>
 <p>아래 셋은 실험 없이는 닫히지 않는다. 지금 값(<code>0.50</code>, <code>0.20</code>, <code>30</code>)을 바꾸면 기존 프로젝트의 웰이 전부 재분류되고 결과 계약이 움직이므로 재는 일이 끝나기 전에는 값을 옮기지 않는다.</p>
 <ul>
 <li><strong>보정 천장과 게이트 사이의 구간(0.21 ~ 0.50)</strong>. 보정은 노이즈 천장을 0.21 로 잡았는데 게이트는 0.50 에 있다. 그 사이 웰은 노이즈로 설명되지 않은 채 PASS 한다. 288 웰 검토의 실측 사례 셋이 전부 PASS 였다: <code>NB08 H4</code> 0.344, <code>NB08 F5</code> 0.432, <code>NB09 F8</code> 0.467. 셋 다 <code>review</code> 열에만 잡혔다. 해소하려면 그 구간의 웰이 정렬 artifact 인지 진짜 저빈도 indel 인지 독립 방법으로 가르는 실험이 필요하다.</li>
@@ -1909,7 +1915,7 @@ alignment drop 때문에 판정이 내려졌는지 추적할 수 있다.</p>
 <h2 id="rpc">RPC 메서드<a class="headerlink" href="#rpc" title="Permanent link">&para;</a></h2>
 <p><code>mame.run_combinatorial_demux</code></p>
 <p>파라미터 스키마: <code>python-core/sidecar_mame/models.py::CombinatorialDemuxParams</code></p>
-<h2 id="_5">코어 모듈<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
+<h2 id="_7">코어 모듈<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h2>
 <p><code>kuma_core.mame.ingest.combinatorial_demux.run_combinatorial_demux</code></p>
 
 
