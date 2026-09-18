@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "comparison_base": "bad3d1c9e094a0283f6a3206d167c05659db8fce",
+  "global_inputs": [
+    "pyproject.toml", "requirements*.txt", "uv.lock", "poetry.lock",
+    "package.json", "pnpm-lock.yaml", ".npmrc", ".nvmrc", ".gitattributes",
+    "tsconfig*.json", "vite.config.*", "vitest.config.*",
+    "src-tauri/Cargo.toml", "src-tauri/Cargo.lock", "src-tauri/tauri.conf.json",
+    ".github/workflows/ci.yml", ".github/workflows/build.yml",
+    ".cross-layer-sync.json", "tests/conftest.py", "tests/**/conftest.py",
+    "scripts/gen-models.mjs", "scripts/sync-check*.mjs", "python-core/build_sidecar.py"
+  ],
+  "records": [
+    {
+      "id": "425-mutation-input",
+      "scope": "Reject zero residue positions before offset lookup; reject malformed compound components instead of silently dropping them.",
+      "reviewed_commit": "3577ea44cee54f6938bdfa519eb87a4625ea37a0",
+      "files": ["kuma_core/kuro/mutation.py"],
+      "tests": ["tests/test_audit_input_guards.py"],
+      "watch": ["kuma_core/kuro/*", "python-core/sidecar_kuro/*", "src/store/kuro/*", "src/types/models*", "src/lib/ipc*"],
+      "evidence": {"kind": "regression", "tested_commit": "21d1ee4077bb936bf18bf0cded103ef949ba8fef", "pull_request": "https://github.com/gyuminlee-repo/kuma/pull/425", "ci_run": "https://github.com/gyuminlee-repo/kuma/actions/runs/35283408468"},
+      "limitations": "Specific parser regressions, not a certification of all accepted genotypes or the complete design engine. The original baseline is intentionally retained; later caller/config changes still require context review."
+    },
+    {
+      "id": "425-alignment-io",
+      "scope": "Drain subprocess diagnostics alongside SAM output, clean up failed children, reject malformed CIGAR and multi-record references.",
+      "reviewed_commit": "3577ea44cee54f6938bdfa519eb87a4625ea37a0",
+      "files": ["kuma_core/mame/ingest/align.py"],
+      "tests": ["tests/mame/test_audit_runtime_guards.py"],
+      "watch": ["kuma_core/mame/ingest/*", "kuma_core/shared/*", "python-core/sidecar_mame/*", "python-core/scripts/vendor-minimap2.py"],
+      "evidence": {"kind": "regression", "tested_commit": "21d1ee4077bb936bf18bf0cded103ef949ba8fef", "pull_request": "https://github.com/gyuminlee-repo/kuma/pull/425", "ci_run": "https://github.com/gyuminlee-repo/kuma/actions/runs/35283408468"},
+      "limitations": "IO/input guard tests do not calibrate MAPQ, validate every aligner version, or establish biological accuracy."
+    },
+    {
+      "id": "425-completion-markers",
+      "scope": "Malformed completion records, stage/unit mismatch, invalid counts and missing regular FASTA files cannot certify a completed unit.",
+      "reviewed_commit": "3577ea44cee54f6938bdfa519eb87a4625ea37a0",
+      "files": ["kuma_core/mame/ingest/stage_marker.py"],
+      "tests": ["tests/mame/test_audit_runtime_guards.py"],
+      "watch": ["kuma_core/mame/ingest/*", "kuma_core/shared/*", "python-core/sidecar_mame/*"],
+      "evidence": {"kind": "regression", "tested_commit": "21d1ee4077bb936bf18bf0cded103ef949ba8fef", "pull_request": "https://github.com/gyuminlee-repo/kuma/pull/425", "ci_run": "https://github.com/gyuminlee-repo/kuma/actions/runs/35283408468"},
+      "limitations": "Bounded marker contracts, not a proof that every interrupted OS/process/IO state can be resumed."
+    },
+    {
+      "id": "425-janus-volume",
+      "scope": "Device-export transfer volume must be finite and positive.",
+      "reviewed_commit": "3577ea44cee54f6938bdfa519eb87a4625ea37a0",
+      "files": ["kuma_core/mame/export/janus_mapping.py"],
+      "tests": ["tests/test_audit_input_guards.py"],
+      "watch": ["kuma_core/mame/export/*", "kuma_core/shared/*", "python-core/sidecar_mame/*", "src/lib/mame/janus*", "src/components/mame/*"],
+      "evidence": {"kind": "regression", "tested_commit": "21d1ee4077bb936bf18bf0cded103ef949ba8fef", "pull_request": "https://github.com/gyuminlee-repo/kuma/pull/425", "ci_run": "https://github.com/gyuminlee-repo/kuma/actions/runs/35283408468"},
+      "limitations": "Numeric export guard only; no liquid-handler hardware validation or deck setup certification."
+    },
+    {
+      "id": "425-primer-retry-ui",
+      "scope": "Use the configured per-axis default when no finite Tm evidence exists; preserve finite values including zero.",
+      "reviewed_commit": "3577ea44cee54f6938bdfa519eb87a4625ea37a0",
+      "files": ["src/lib/primerSuggestion.ts"],
+      "tests": ["src/lib/primerSuggestion.audit.test.ts"],
+      "watch": ["src/components/*", "src/store/*", "src/types/*", "src/lib/primerSuggestion*", "python-core/sidecar_kuro/*", "kuma_core/kuro/*"],
+      "evidence": {"kind": "regression", "tested_commit": "21d1ee4077bb936bf18bf0cded103ef949ba8fef", "pull_request": "https://github.com/gyuminlee-repo/kuma/pull/425", "ci_run": "https://github.com/gyuminlee-repo/kuma/actions/runs/35283408468"},
+      "limitations": "A tested frontend calculation, not visual/browser/desktop usability acceptance or full frontend coverage."
+    },
+    {
+      "id": "428-cli-contract",
+      "scope": "Registered host routing, explicit partial failures, atomic execution summary, error-state persistence and opt-in strict exits.",
+      "reviewed_commit": "bad3d1c9e094a0283f6a3206d167c05659db8fce",
+      "files": ["kuma_core/kuro/cli.py"],
+      "tests": ["tests/test_kuro_cli_contract.py"],
+      "watch": ["kuma_core/kuro/*", "kuma_core/shared/*"],
+      "evidence": {"kind": "regression", "tested_commit": "fa0964cb5e44313409a484f5c3cbba6dc2556fdc", "pull_request": "https://github.com/gyuminlee-repo/kuma/pull/428", "ci_run": "https://github.com/gyuminlee-repo/kuma/actions/runs/35303563355"},
+      "limitations": "CLI-only outcome summary, not a full replay manifest or new GUI report integration. Custom codon-table import is separate."
+    },
+    {
+      "id": "428-verdict-contract",
+      "scope": "First-applicable gate precedence, inclusive indel boundary, legitimate multi-site designs, strict deletion/no-call subset and legacy advisories.",
+      "reviewed_commit": "bad3d1c9e094a0283f6a3206d167c05659db8fce",
+      "files": ["kuma_core/mame/compare/verdict.py", "kuma_core/mame/models.py"],
+      "tests": ["tests/mame/test_verdict_behavior_contract.py"],
+      "watch": ["kuma_core/mame/*", "kuma_core/shared/*", "python-core/sidecar_mame/*", "src/types/mame/*"],
+      "evidence": {"kind": "regression", "tested_commit": "fa0964cb5e44313409a484f5c3cbba6dc2556fdc", "pull_request": "https://github.com/gyuminlee-repo/kuma/pull/428", "ci_run": "https://github.com/gyuminlee-repo/kuma/actions/runs/35303563355"},
+      "limitations": "Synthetic behavior contracts, not sensitivity/specificity measurements or scientific threshold calibration. Enum order is not runtime priority."
+    },
+    {
+      "id": "428-barcode-windows",
+      "scope": "Pure original-read window coordinates agree with independent whole-read strand normalization, including asymmetric lengths and clipped ends.",
+      "reviewed_commit": "bad3d1c9e094a0283f6a3206d167c05659db8fce",
+      "files": ["kuma_core/mame/ingest/barcode_windows.py", "kuma_core/mame/ingest/combinatorial_demux.py"],
+      "tests": ["tests/mame/test_barcode_window_contract.py"],
+      "watch": ["kuma_core/mame/ingest/*", "kuma_core/mame/models.py", "kuma_core/shared/*", "python-core/sidecar_mame/*"],
+      "evidence": {"kind": "regression", "tested_commit": "fa0964cb5e44313409a484f5c3cbba6dc2556fdc", "pull_request": "https://github.com/gyuminlee-repo/kuma/pull/428", "ci_run": "https://github.com/gyuminlee-repo/kuma/actions/runs/35303563355"},
+      "limitations": "The audited unit is coordinate extraction, not every behavior in the large demultiplexing module or a measured barcode misassignment rate."
+    },
+    {
+      "id": "428-validation-inventory",
+      "scope": "Distinguish actual passed, skipped, failed and missing external-test outcomes; synthetic cases do not fill missing external evidence.",
+      "reviewed_commit": "bad3d1c9e094a0283f6a3206d167c05659db8fce",
+      "files": ["scripts/report_validation_coverage.py", ".github/workflows/ci.yml"],
+      "tests": ["tests/test_validation_coverage_report.py"],
+      "watch": ["tests/integration/test_xlsx_pipeline.py", "tests/mame/test_well_consensus_regression.py", "tests/mame/test_plate_order_check.py", "scripts/report_validation_coverage.py"],
+      "evidence": {"kind": "regression", "tested_commit": "fa0964cb5e44313409a484f5c3cbba6dc2556fdc", "pull_request": "https://github.com/gyuminlee-repo/kuma/pull/428", "ci_run": "https://github.com/gyuminlee-repo/kuma/actions/runs/35303563355"},
+      "limitations": "Explicit inventory only; additional external-data tests may exist outside it. Its implementation passing does not mean the external tests executed."
+    }
+  ],
+  "unverified": [
+    {"id": "independent-real-data", "reason": "Approved independent biological labels and a shareable real-data fixture remain unavailable. External/private-data skips, read self-consistency and matched-rule samtools agreement are not biological ground truth."},
+    {"id": "scientific-calibration", "reason": "MAPQ, mixture, indel, read-depth and primer thresholds require separate measured evidence. No operational threshold is calibrated or changed by this audit planner."},
+    {"id": "repository-protection", "reason": "A workflow does not enforce protected-branch settings. Repository Administration permission and a verified settings change are still required; not implemented by this tooling."},
+    {"id": "whole-product-review", "reason": "Only the nine described historical scopes are recorded. Other audit findings, GUI integration of new CLI summaries, visual/hardware tests and full replay provenance are not certified by their regression tests."}
+  ]
+}

@@ -360,6 +360,26 @@
       "path": "_fixture.md",
       "category": "prose",
       "reason": "ASCII tail of a Korean fixture filename in the docstring of tests/mame/create_fixtures.py; the extractor cannot match the Korean segment, so it reports the fragment."
+    },
+    {
+      "path": "docs/explanation.md",
+      "category": "prose",
+      "reason": "Created only inside a temporary Git repository by tests/audit/test_incremental_audit.py to verify that an unrelated document does not invalidate a recorded code scope. Not a reference to a project document."
+    },
+    {
+      "path": "incremental-audit.md",
+      "category": "generated",
+      "reason": "Markdown review plan generated in the Actions runner temporary directory by scripts/plan_incremental_audit.py and uploaded by the incremental-audit workflow. It is not a checked-in report."
+    },
+    {
+      "path": "RUNNER_TEMP/incremental-audit.md",
+      "category": "generated",
+      "reason": "The citation extractor strips the dollar sign from the workflow environment-variable path. This is the same generated per-run review plan in the runner temporary directory, not a missing source document."
+    },
+    {
+      "path": "tmp/kuma-audit-plan.md",
+      "category": "generated",
+      "reason": "Example optional output of scripts/plan_incremental_audit.py in docs/audit/incremental-review.md; the command writes this review plan outside the source checkout. It is not an existing audit evidence document."
     }
   ]
 }
