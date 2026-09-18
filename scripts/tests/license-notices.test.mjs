@@ -102,7 +102,7 @@ test("esbuild companion uses only the exact-version parent's original text", (t)
     name: "esbuild", version: "0.27.7", license: "MIT",
     optionalDependencies: { "@esbuild/linux-x64": "0.27.7" },
   }));
-  writeFileSync(join(parent, "LICENSE.md"), "Copyright Evan Wallace\nActual distributed grant\n");
+  writeFileSync(join(parent, "LICENSE"), "Copyright Evan Wallace\nActual distributed grant\n");
   writeFileSync(join(child, "package.json"), JSON.stringify({ name: "@esbuild/linux-x64", version: "0.27.7", license: "MIT" }));
   const data = { MIT: [
     { name: "esbuild", versions: ["0.27.7"], paths: [parent] },
@@ -113,4 +113,16 @@ test("esbuild companion uses only the exact-version parent's original text", (t)
   assert.match(records[0].files[0].text, /Evan Wallace/);
   data.MIT.shift();
   assert.throws(() => collectNodeLicenses(data), /No LICENSE/);
+});
+
+test("supplements are version-bound, preserve provenance and reject tampering", async () => {
+  const { supplementFor } = await import("../collect-node-licenses.mjs");
+  const legal = supplementFor("@radix-ui/number", "1.1.1", "MIT");
+  assert.match(legal[0].text, /2022 WorkOS/);
+  assert.match(legal[0].source, /git\/blobs\//);
+  assert.deepEqual(supplementFor("@radix-ui/number", "9.9.9", "MIT"), []);
+  assert.throws(() => supplementFor("@radix-ui/number", "1.1.1", "Apache-2.0"), /Invalid/);
+  const data = { node: { "example@1": "broken" }, sources: { broken: { license: "MIT", text: "changed", sha256: "0".repeat(64) } } };
+  assert.throws(() => supplementFor("example", "1", "MIT", data), /Invalid/);
+  assert.match(supplementFor("dlv", "1.1.3", "MIT")[0].provenance, /Redistributor/);
 });

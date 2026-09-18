@@ -100,3 +100,25 @@ def test_node_collectors():
     if node is None:
         pytest.skip("Node notice tests also run explicitly in license-evidence CI")
     subprocess.run([node, "--test", "scripts/tests/license-notices.test.mjs"], cwd=ROOT, check=True)
+
+
+def test_edlib_supplement_is_version_bound_and_preserves_provenance(tmp_path):
+    dist = Distribution(tmp_path, "edlib")
+    dist.version = "1.3.9.post1"
+    dist.files = []
+    files = collector.legal_files(dist)
+    assert "2014 Martin Šošić" in files[0]["text"]
+    assert "git/blobs/" in files[0]["source"]
+    dist.version = "999.0"
+    with pytest.raises(ValueError, match="No license text"):
+        collector.legal_files(dist)
+    dist.version = "1.3.9.post1"
+    dist.metadata.replace_header("License-Expression", "Apache-2.0")
+    with pytest.raises(ValueError, match="Invalid version-bound"):
+        collector.legal_files(dist)
+
+
+def test_about_displays_project_license_not_legacy_internal_use():
+    source = (ROOT / "src/components/layout/SharedAboutDialog.tsx").read_text(encoding="utf8")
+    assert "GNU GPL v2" in source
+    assert 't("about.licenseText")' not in source

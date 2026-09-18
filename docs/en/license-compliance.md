@@ -66,9 +66,9 @@ until that review is recorded**; adding this checklist does not approve them.
   modifications and permission evidence for images, icons, fonts, sample data,
   scientific tables and documentation shipped with the product. A citation is
   not a reuse license. Do not assume an external seminar figure is in the app,
-  or that the project's code license covers third-party assets. Material marked
-  NC, ND or lacking permission must be excluded or separately cleared for the
-  proposed commercial use. Do not upload confidential lab data as evidence.
+  or that the project's code license covers third-party assets. Material with NC restrictions, adaptations subject to ND restrictions, or
+  missing permission must be excluded or separately cleared for the proposed
+  use. ND alone does not prohibit commercial distribution of an unmodified work. Do not upload confidential lab data as evidence.
 - **Models and external services:** distinguish consuming a user's prediction
   CSV from redistributing model code/weights or sending sequences to a service.
   Record applicable service terms, data-use restrictions and customer consent.
@@ -87,3 +87,20 @@ This document records an engineering review process, not a legal opinion.
 - PyInstaller licensing: https://pyinstaller.org/en/v6.16.0/license.html
 - Installed Python license files: https://packaging.python.org/en/latest/specifications/recording-installed-packages/
 - Dependency regeneration commands: [Contributing](contributing.md#third-party-license-collection)
+
+## Version-bounded supplemental notices
+
+Some published wheels and npm tarballs omit their legal files. The reviewed
+`scripts/license-supplements.json` maps only specific package versions to
+retained notice text, a source URL, provenance, and a SHA256. Collectors verify
+that the installed declared license and text hash match before using a
+supplement; an unlisted version still fails. The esbuild native companion can
+also use its exact-version parent package's actual notice when the parent
+explicitly declares that companion. No package is dropped from the inventory.
+
+Repository snapshots are identified as snapshots, not claimed to be historical
+release texts. The dlv supplement is explicitly identified as the notice used
+by the Microsoft VS Code redistributor, paired with dlv's own MIT declaration;
+it is not mislabeled as an original dlv license file. These distinctions and
+all supplemental text survive into both generated formats. Final artifact and
+rights review remains required.

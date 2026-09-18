@@ -2,6 +2,7 @@
 /** Collect installed production packages and their actual legal texts.
  * Input: pnpm licenses list --json --prod
  * Usage: node scripts/collect-node-licenses.mjs input.json NOTICE-node.md
+ * <output.md> is the destination notice; the JSON inventory uses the same stem.
  * Also writes NOTICE-node.json. No license is inferred from an SPDX name.
  */
 import { readFileSync, writeFileSync, readdirSync, realpathSync } from "node:fs";
@@ -39,7 +40,7 @@ function readLegalFiles(root) {
 }
 
 // esbuild publishes its binary as an exact-version optional companion. Some
-// platform tarballs omit LICENSE.md; retain the same-version parent package's
+// platform tarballs omit their license file; retain the same-version parent package's
 // real text, with its source named, rather than substituting a generic MIT text.
 function companionLegalFiles(meta, data, baseDir) {
   if (!meta.name.startsWith("@esbuild/")) return [];
@@ -61,6 +62,18 @@ function companionLegalFiles(meta, data, baseDir) {
     }
   }
   return [];
+}
+
+const supplementData = JSON.parse(readFileSync(new URL("./license-supplements.json", import.meta.url), "utf8"));
+
+export function supplementFor(name, version, declaredLicense, data = supplementData) {
+  const id = data.node[`${name}@${version}`];
+  if (!id) return [];
+  const entry = data.sources[id];
+  if (!entry || declaredLicense !== entry.license || sha256(Buffer.from(entry.text, "utf8")) !== entry.sha256) {
+    throw new Error(`Invalid version-bound license supplement: ${name}@${version}`);
+  }
+  return [{ path: `supplement:${id}`, ...entry }];
 }
 
 export function collectNodeLicenses(data, baseDir = process.cwd()) {
@@ -91,6 +104,7 @@ export function collectNodeLicenses(data, baseDir = process.cwd()) {
         }
         let files = readLegalFiles(root);
         if (!files.length) files = companionLegalFiles(meta, data, baseDir);
+        if (!files.length) files = supplementFor(meta.name, meta.version, meta.license);
         if (!files.length) missing.push(`${meta.name}@${meta.version} (${root})`);
         const record = { name: meta.name, version: meta.version, license, files };
         const key = `${meta.name}@${meta.version}`;
@@ -111,12 +125,13 @@ export function collectNodeLicenses(data, baseDir = process.cwd()) {
 }
 
 export function renderNodeNotice(records) {
-  const lines = ["# Node / pnpm dependency licenses", "", "Installed production dependency inventory. Texts below come from those packages.",
+  const lines = ["# Node / pnpm dependency licenses", "", "Installed production dependency inventory. Texts come from installed packages or explicitly identified, version-bounded supplements.",
     "This is license evidence, not a legal compatibility or commercial-use approval.", ""];
   for (const pkg of records) {
     lines.push(`## ${pkg.name} ${pkg.version}`, `Declared license: ${pkg.license}`, "");
     for (const file of pkg.files) {
       const fence = "`".repeat(Math.max(3, ...[...file.text.matchAll(/`+/g)].map((m) => m[0].length + 1)));
+      if (file.source) lines.push(`Source: ${file.source}`, `Provenance: ${file.provenance}`, "");
       lines.push(`### ${file.path}`, `SHA256: ${file.sha256}`, "", fence, file.text, fence, "");
     }
   }

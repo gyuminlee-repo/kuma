@@ -1,6 +1,9 @@
 # cargo-about configuration for KUMA
 # https://embarkstudios.github.io/cargo-about/
 
+# Collection allowlist only, not a combined-work compatibility approval.
+# In particular, Apache-2.0/GPLv2 compatibility and MPL source obligations need
+# release-specific review; see docs/en/license-compliance.md.
 # Accepted SPDX license identifiers. Crates under an accepted license are
 # included in NOTICE-rust.md. A crate whose license is not listed here fails
 # the build (no silent skip). Full license TEXT (not just the SPDX id) is

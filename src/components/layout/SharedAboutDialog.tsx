@@ -339,7 +339,7 @@ export function SharedAboutDialog({
         {/* License */}
         <div className="flex flex-col gap-1">
           <p className="text-sm font-semibold text-foreground">{t("about.license")}</p>
-          <p className="text-xs text-muted-foreground">{t("about.licenseText")}</p>
+          <p className="text-xs text-muted-foreground">GNU GPL v2</p>
         </div>
 
         {/* §8 A11y: Keyboard shortcuts — kuro uses button, mame uses inline table */}

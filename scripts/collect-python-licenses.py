@@ -32,7 +32,9 @@ def dependency_closure(
     environment: dict[str, str] | None = None,
 ) -> list[tuple[Any, list[str]]]:
     """Resolve installed versions; revisit packages when another extra is needed."""
-    env = default_environment() if environment is None else environment
+    env: dict[str, str] = {key: str(value) for key, value in default_environment().items()}
+    if environment is not None:
+        env.update(environment)
     queue: deque = deque()
     for role, requirements in roots.items():
         for raw in requirements:
@@ -88,6 +90,16 @@ def legal_files(dist: Any) -> list[dict[str, str]]:
         raw = declared.encode("utf8")
         found.append({"path": "METADATA:License", "sha256": hashlib.sha256(raw).hexdigest(), "text": declared})
     if not found:
+        supplements = json.loads((Path(__file__).with_name("license-supplements.json")).read_text(encoding="utf8"))
+        key = f"{canonicalize_name(dist.metadata['Name'])}@{dist.version}"
+        source_id = supplements["python"].get(key)
+        if source_id:
+            entry = supplements["sources"][source_id]
+            declared_license = dist.metadata.get("License-Expression") or dist.metadata.get("License")
+            if declared_license != entry["license"] or hashlib.sha256(entry["text"].encode("utf8")).hexdigest() != entry["sha256"]:
+                raise ValueError(f"Invalid version-bound license supplement: {key}")
+            found.append({"path": f"supplement:{source_id}", **entry})
+    if not found:
         raise ValueError(f"No license text for {dist.metadata['Name']} {dist.version}; inspect the distribution")
     return found
 
@@ -95,13 +107,21 @@ def legal_files(dist: Any) -> list[dict[str, str]]:
 def collect(roots: dict[str, list[str]], lookup: Callable = metadata.distribution,
             environment: dict[str, str] | None = None) -> list[dict]:
     records = []
+    failures = []
     for dist, roles in dependency_closure(roots, lookup, environment):
         declared = dist.metadata.get("License-Expression") or dist.metadata.get("License")
         if not declared:
             declared = "; ".join(x for x in dist.metadata.get_all("Classifier", []) if x.startswith("License ::"))
+        try:
+            files = legal_files(dist)
+        except (OSError, ValueError) as exc:
+            failures.append(str(exc))
+            continue
         records.append({"name": dist.metadata["Name"], "version": dist.version,
                         "roles": roles, "license": declared or "Not declared; review legal texts",
-                        "files": legal_files(dist)})
+                        "files": files})
+    if failures:
+        raise ValueError("Missing legal evidence:\n" + "\n".join(failures))
     return records
 
 
@@ -111,6 +131,8 @@ def render(records: list[dict]) -> str:
     for pkg in records:
         lines += [f"## {pkg['name']} {pkg['version']}", f"Scope: {', '.join(pkg['roles'])}", "Declared license:", pkg["license"], ""]
         for doc in pkg["files"]:
+            if doc.get("source"):
+                lines += [f"Source: {doc['source']}", f"Provenance: {doc['provenance']}", ""]
             fence = "`" * max([3] + [len(x) + 1 for x in re.findall(r"`+", doc["text"])])
             lines += [f"### {doc['path']}", f"SHA256: {doc['sha256']}", "", fence, doc["text"], fence, ""]
     return "\n".join(lines) + "\n"

@@ -77,8 +77,8 @@ zlib.h -- interface of the 'zlib' general purpose compression library
   jloup@gzip.org          madler@alumni.caltech.edu
 ```
 
-> Note: The Windows static build also embeds GCC runtime support libraries
-> (libgcc / libwinpthread from MinGW-w64). These carry the GCC Runtime
-> Library Exception and a permissive MIT-style license respectively and
-> impose no additional notice obligation; they are recorded here for
-> completeness.
+> Windows static builds also include toolchain runtime code (for example,
+> libgcc and libwinpthread from MinGW-w64). Review the actual package versions,
+> runtime exceptions and legal texts for each delivered binary. Static linking
+> is not a blanket waiver of attribution or source obligations. This summary
+> is not a complete native-runtime audit; see docs/en/license-compliance.md.
