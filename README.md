@@ -6,7 +6,7 @@
 
 `kuma` packages two subtools into one Tauri desktop app:
 
-- **Kuro** — *Kernel for Upstream Recombination Oligodesign.* Batch SDM primer design from Gibson Assembly templates.
+- **Kuro** — *Kit for Unified Ranking and Oligodesign.* Batch SDM primer design from Gibson Assembly templates.
 - **Mame** — *Mutagenesis Assessment & Measurement Export.* Oxford Nanopore NGS verdict on which clones carry the intended mutations.
 
 Design primers in the Kuro tab, run wet-lab + sequencing, then switch to the Mame tab to verify which clones carry the intended mutations.

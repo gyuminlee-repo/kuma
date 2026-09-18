@@ -2046,7 +2046,7 @@
     "chooseFolder": "選擇資料夾",
     "done": "完成",
     "insideProject": "每個專案內部",
-    "kuroDesc": "Kernel for Upstream Recombination Oligodesign. 基於 Gibson Assembly 模板的批次 SDM primer 設計。",
+    "kuroDesc": "Kit for Unified Ranking and Oligodesign. 基於 Gibson Assembly 模板的批次 SDM primer 設計。",
     "mameDesc": "Mutagenesis Assessment & Measurement Export. Oxford Nanopore NGS verdict。",
     "autosaveNote": "輸入和參數會依專案自動儲存。包含絕對路徑的 Barcode Setup 草稿會在專案之間共用。",
     "titleStart": "開始使用",
@@ -2338,7 +2338,7 @@
     "ncbiBlastServiceSuffix": " -- 序列相似性搜尋",
     "alphafoldServiceSuffix": " -- 結構預測查詢",
     "interproServiceSuffix": " -- 蛋白質 domain 註釋",
-    "kuroSubtitle": "Kernel for Upstream Recombination Oligodesign",
+    "kuroSubtitle": "Kit for Unified Ranking and Oligodesign",
     "view": {
       "title": "檢視",
       "logs": "顯示日誌",

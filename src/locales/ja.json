@@ -2046,7 +2046,7 @@
     "chooseFolder": "フォルダを選択",
     "done": "完了",
     "insideProject": "各プロジェクト内",
-    "kuroDesc": "Kernel for Upstream Recombination Oligodesign。Gibson Assembly テンプレートからのバッチ SDM primer 設計。",
+    "kuroDesc": "Kit for Unified Ranking and Oligodesign。Gibson Assembly テンプレートからのバッチ SDM primer 設計。",
     "mameDesc": "Mutagenesis Assessment & Measurement Export。Oxford Nanopore NGS verdict。",
     "autosaveNote": "入力とパラメーターはプロジェクトごとに自動保存されます。絶対パスを含むBarcode Setupの下書きはプロジェクト間で共有されます。",
     "titleStart": "始める",
@@ -2338,7 +2338,7 @@
     "ncbiBlastServiceSuffix": " -- 配列類似度検索",
     "alphafoldServiceSuffix": " -- 構造予測ルックアップ",
     "interproServiceSuffix": " -- タンパク質ドメインアノテーション",
-    "kuroSubtitle": "Kernel for Upstream Recombination Oligodesign",
+    "kuroSubtitle": "Kit for Unified Ranking and Oligodesign",
     "view": {
       "title": "View",
       "logs": "ログを表示",

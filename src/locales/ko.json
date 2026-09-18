@@ -2088,7 +2088,7 @@
     "chooseFolder": "폴더 선택",
     "done": "완료",
     "insideProject": "각 프로젝트 내부",
-    "kuroDesc": "Kernel for Upstream Recombination Oligodesign. Gibson Assembly 템플릿 기반 SDM primer 일괄 설계 도구.",
+    "kuroDesc": "Kit for Unified Ranking and Oligodesign. Gibson Assembly 템플릿 기반 SDM primer 일괄 설계 도구.",
     "mameDesc": "Mutagenesis Assessment & Measurement Export. Oxford Nanopore NGS 기반 변이 판정 도구.",
     "autosaveNote": "입력과 매개변수는 프로젝트별로 자동 저장됩니다. 절대 경로를 포함한 Barcode Setup 초안은 프로젝트 간에 공유됩니다.",
     "titleStart": "시작하기",
@@ -2381,7 +2381,7 @@
     "ncbiBlastServiceSuffix": " -- 서열 유사성 검색",
     "alphafoldServiceSuffix": " -- 구조 예측 조회",
     "interproServiceSuffix": " -- 단백질 도메인 주석",
-    "kuroSubtitle": "Kernel for Upstream Recombination Oligodesign",
+    "kuroSubtitle": "Kit for Unified Ranking and Oligodesign",
     "view": {
       "title": "보기",
       "logs": "로그 표시",

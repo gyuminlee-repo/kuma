@@ -51,7 +51,7 @@ interface SharedAboutDialogProps {
 }
 
 const KURO_BIBTEX = `@software{kuro_TBD,
-  title  = {KURO: Kernel for Upstream Recombination Oligodesign},
+  title  = {KURO: Kit for Unified Ranking and Oligodesign},
   author = {Lee, Gyu Min and Kang, Hyemin and KRIBB C1 Lab},
   year   = {2026},
   note   = {DOI/citation forthcoming},
@@ -59,7 +59,7 @@ const KURO_BIBTEX = `@software{kuro_TBD,
 }`;
 
 const MAME_BIBTEX = `@software{mame_TBD,
-  title  = {MAME: Multi-round Activity & Mutation Engine},
+  title  = {MAME: Mutagenesis Assessment and Measurement Export},
   author = {Lee, Gyu Min and Kang, Hyemin and KRIBB C1 Lab},
   year   = {2026},
   note   = {DOI/citation forthcoming},
