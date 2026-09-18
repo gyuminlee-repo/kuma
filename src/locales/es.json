@@ -2622,8 +2622,9 @@
         "El aviso informa cuántas variantes con actividad cero y cuántas filas de control llevaba cada ronda."
       ],
       "0.16.65": [
-        "Un pocillo cuya fracción de eventos indel cae exactamente en el umbral 0,50 ahora se marca AMBIGUOUS y pasa a revisión en lugar de PASS.",
-        "Los pocillos dentro de las bandas calibradas, ruido hasta 0,21 y deleciones reales desde 0,83, conservan el veredicto que tenían."
+        "Un pocillo con una fracción de indel event de exactamente 0,50 ahora llega a la puerta de revisión en lugar de eludir la comparación estricta.",
+        "Los pocillos dentro de las bandas calibradas, ruido hasta 0,21 y deleciones reales desde 0,83, conservan el verdict que tenían.",
+        "Las puertas anteriores siguen decidiendo primero, así que un pocillo ya calificado como LOWDEPTH o MIXED conserva ese verdict."
       ],
       "0.16.64": [
         "Una deleción que solo respalda la mitad de las lecturas ya no exime a un pocillo del control de no call, así que un sitio con 40 o 50 por ciento se lee como no call.",
@@ -3088,7 +3089,7 @@
     "releaseStamps": {
       "0.16.67": "a8a547ef",
       "0.16.66": "c8cb9c13",
-      "0.16.65": "45d46897",
+      "0.16.65": "2d61386f",
       "0.16.64": "b5666e23",
       "0.16.63": "27af3ec6",
       "0.16.62": "e46c1db9",

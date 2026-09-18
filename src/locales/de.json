@@ -2622,8 +2622,9 @@
         "Die Empfehlung meldet, wie viele Varianten mit Aktivität null und wie viele Kontrollzeilen eine Runde enthielt."
       ],
       "0.16.65": [
-        "Ein Well, dessen Indel-Event-Anteil genau auf dem Schwellenwert 0,50 liegt, wird jetzt als AMBIGUOUS geprüft statt als PASS gewertet.",
-        "Wells innerhalb der kalibrierten Bereiche, Rauschen bis 0,21 und echte Deletionen ab 0,83, behalten ihr bisheriges Urteil."
+        "Ein Well mit einem indel-event-Anteil von genau 0,50 erreicht jetzt das Review-Gate, statt am strikten Vergleich vorbeizulaufen.",
+        "Wells innerhalb der kalibrierten Bereiche, Rauschen bis 0,21 und echte Deletionen ab 0,83, behalten ihr bisheriges Verdict.",
+        "Frühere Gates entscheiden weiterhin zuerst, daher behält ein bereits als LOWDEPTH oder MIXED eingestuftes Well dieses Verdict."
       ],
       "0.16.64": [
         "Eine Deletion, die nur die Hälfte der Reads stützt, befreit ein Well nicht mehr vom No-Call-Gate, daher liest sich eine Stelle mit 40 oder 50 Prozent als No Call.",
@@ -3088,7 +3089,7 @@
     "releaseStamps": {
       "0.16.67": "a8a547ef",
       "0.16.66": "c8cb9c13",
-      "0.16.65": "45d46897",
+      "0.16.65": "2d61386f",
       "0.16.64": "b5666e23",
       "0.16.63": "27af3ec6",
       "0.16.62": "e46c1db9",

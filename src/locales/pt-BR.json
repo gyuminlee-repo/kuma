@@ -2622,8 +2622,9 @@
         "O aviso informa quantas variantes com atividade zero e quantas linhas de controle cada rodada continha."
       ],
       "0.16.65": [
-        "Um poço cuja fração de eventos indel cai exatamente no limiar 0,50 agora é marcado como AMBIGUOUS e vai para revisão em vez de PASS.",
-        "Poços dentro das faixas calibradas, ruído até 0,21 e deleções reais a partir de 0,83, mantêm o veredito que tinham."
+        "Um poço com fração de indel event exatamente 0,50 agora alcança o portão de revisão em vez de escapar pela comparação estrita.",
+        "Poços dentro das faixas calibradas, ruído até 0,21 e deleções reais a partir de 0,83, mantêm o verdict que tinham.",
+        "Portões anteriores ainda decidem primeiro, então um poço já classificado como LOWDEPTH ou MIXED mantém esse verdict."
       ],
       "0.16.64": [
         "Uma deleção que apenas metade das leituras sustenta não isenta mais um poço do controle de no call, então um sítio com 40 ou 50 por cento é lido como no call.",
@@ -3088,7 +3089,7 @@
     "releaseStamps": {
       "0.16.67": "a8a547ef",
       "0.16.66": "c8cb9c13",
-      "0.16.65": "45d46897",
+      "0.16.65": "2d61386f",
       "0.16.64": "b5666e23",
       "0.16.63": "27af3ec6",
       "0.16.62": "e46c1db9",
