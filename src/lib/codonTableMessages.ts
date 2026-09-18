@@ -20,11 +20,13 @@
  * V1-V35 and N1, N2, N4 come from `MESSAGE_CODES`. N3 (leading and trailing
  * whitespace trimmed) is in that tuple but is never emitted - codon_import.py
  * calls it "silent by design" - so it has no string and falls to `unknown`.
- * The runtime rules R1 and R5 are deliberately absent: they are reported
- * through `failed[]`, which carries `{filename, code, reason}` and NO `params`
- * (kuma_core/kuro/codon_table.py, `CodonTableRegistry.scan`), so their
- * sentences cannot be rebuilt here. SettingsDialog renders those entries from
- * the code and the backend's English `reason` instead.
+ * The runtime rule R5 is handled too. `failed[]` now carries a `findings` list
+ * with the params behind every rejection (kuma_core/kuro/codon_table.py,
+ * `CodonTableRegistry.scan`), so a rejected file gets the same localized
+ * treatment as an accepted one. R1 has no sentence of its own: it is the rule
+ * that a broken file is skipped rather than emptying the list, and what the
+ * user reads is the V-code that broke it. Entries from a sidecar older than
+ * `findings` still fall back to the backend's English `reason`.
  */
 import type { TFunction } from "i18next";
 
@@ -117,6 +119,8 @@ export function formatCodonTableMessage(
       return t("codonTable.messages.N2", { n: params.n });
     case "N4":
       return t("codonTable.messages.N4");
+    case "R5":
+      return t("codonTable.messages.R5", { filename: params.filename, stem: params.stem });
     default:
       return t("codonTable.messages.unknown", { code });
   }

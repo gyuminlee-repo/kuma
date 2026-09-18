@@ -178,7 +178,12 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
 
   const userTables = organisms.filter((o) => o.source === "user");
   const builtinCount = organisms.length - userTables.length;
-  const advisories = userTables.filter((o) => o.warnings.length > 0);
+  // Normalizations sit beside warnings: both say something about a table that
+  // did load. They were computed by the backend and then dropped before Phase 2,
+  // so N1/N2/N4 had ten translations each and no way to reach a screen.
+  const advisories = userTables.filter(
+    (o) => o.warnings.length > 0 || (o.normalizations?.length ?? 0) > 0,
+  );
 
   // Theme (ThemeToggle hook — single source of truth for localStorage)
   const { theme, setTheme } = useTheme();
@@ -396,16 +401,27 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
                   <p className="text-xs font-medium text-foreground">
                     {t("settings.codonTables.notLoaded")}
                   </p>
-                  {/* `failed[]` carries no `params`, only the first rule code and
-                      the backend's English detail, so these lines name the code
-                      and quote the reason rather than rebuilding a sentence. */}
+                  {/* `findings` carries every rule with its params, so the
+                      sentences are rebuilt in the active locale. A sidecar older
+                      than that field sends none, and those entries fall back to
+                      the code plus the backend's English detail. */}
                   {codonTableFailures.map((f) => (
                     <p key={f.filename} className="text-xs text-muted-foreground break-words">
-                      {t("settings.codonTables.notLoadedEntry", {
-                        filename: f.filename,
-                        code: f.code,
-                        reason: f.reason,
-                      })}
+                      {f.findings && f.findings.length > 0
+                        ? t("settings.codonTables.notLoadedEntry", {
+                            filename: f.filename,
+                            code: f.code,
+                            reason: f.findings
+                              .map((finding) =>
+                                formatCodonTableMessage(t, finding.code, finding.params),
+                              )
+                              .join(" "),
+                          })
+                        : t("settings.codonTables.notLoadedEntry", {
+                            filename: f.filename,
+                            code: f.code,
+                            reason: f.reason,
+                          })}
                     </p>
                   ))}
                 </div>
@@ -418,7 +434,7 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
                   {advisories.map((o) => (
                     <div key={o.key} className="flex flex-col gap-0.5">
                       <p className="font-mono text-xs text-foreground">{o.key}</p>
-                      {o.warnings.map((w, i) => (
+                      {[...o.warnings, ...(o.normalizations ?? [])].map((w, i) => (
                         <p key={`${o.key}-${w.code}-${i}`} className="text-xs text-muted-foreground break-words">
                           {formatCodonTableMessage(t, w.code, w.params)}
                         </p>

@@ -47,6 +47,26 @@ function messageCodes(): string[] {
   return codes;
 }
 
+/**
+ * Runtime rule codes, read from the scan that emits them.
+ *
+ * These are not in `MESSAGE_CODES`: they are produced by
+ * `CodonTableRegistry.scan` rather than by a validator rule, and they reach the
+ * frontend through `failed[].findings`. Derived here for the same reason the
+ * V/N list is: a hardcoded ["R5"] would check its own copy.
+ */
+function runtimeCodes(): string[] {
+  const source = readFileSync(resolve(REPO, "kuma_core/kuro/codon_table.py"), "utf-8");
+  const found = [...source.matchAll(/"code":\s*"(R\d+)"/g)].map((m) => m[1]);
+  if (found.length === 0) {
+    throw new Error(
+      "No runtime rule code found in kuma_core/kuro/codon_table.py. Update "
+      + "this reader rather than hardcoding the codes.",
+    );
+  }
+  return [...new Set(found)];
+}
+
 /** `codonTable.messages` as English ships it. */
 function englishMessages(): Record<string, string> {
   const en = JSON.parse(readFileSync(resolve(REPO, "src/locales/en.json"), "utf-8"));
@@ -84,7 +104,7 @@ function tracingParams(): Record<string, unknown> {
   return new Proxy({}, { get: (_t, prop) => `PARAM:${String(prop)}` });
 }
 
-const CODES = messageCodes();
+const CODES = [...messageCodes(), ...runtimeCodes()];
 const MESSAGES = englishMessages();
 const SILENT_CODES = ["N3"];
 
@@ -94,6 +114,7 @@ describe("MESSAGE_CODES coverage", () => {
     expect(CODES).toContain("V1");
     expect(CODES).toContain("N1");
     expect(CODES).toContain("N3");
+    expect(CODES).toContain("R5");
   });
 
   it.each(CODES.filter((c) => !SILENT_CODES.includes(c)))(
@@ -160,7 +181,7 @@ describe("placeholder wiring", () => {
 });
 
 describe("unknown codes", () => {
-  it.each(["", "V0", "V36", "N5", "R1", "R5", "v1", "V1 ", "V1x", "1", "unknown", "ZZ"])(
+  it.each(["", "V0", "V36", "N5", "R1", "R6", "v1", "V1 ", "V1x", "1", "unknown", "ZZ"])(
     "falls back to the unknown sentence for %j",
     (code) => {
       const { t, calls } = recordingT();
