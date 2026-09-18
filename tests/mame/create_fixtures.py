@@ -176,7 +176,7 @@ def _create_reference(dest: Path) -> None:
 # a WINDOW-mean Q around a candidate position (Ye et al. 2025, GigaScience 14
 # giaf018), and MAME weights a single base. The direction of the net effect is
 # unmeasured. This fixture exists so the effect can be MEASURED rather than
-# assumed, before and after the FASTQ-quality wiring change.
+# assumed, by running the same reads with and without the quality channel.
 #
 # Layout (228 bp, 76 codons):
 #   ATG | control block A (72 bp, max run 1) | homopolymer block (78 bp)

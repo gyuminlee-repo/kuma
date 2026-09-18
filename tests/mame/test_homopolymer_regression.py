@@ -22,12 +22,12 @@ direction, shows up as a baseline diff for a human to read.
 
 TWO ARMS
 --------
-`no_quality` feeds two-field read tuples, which is what the raw_run FASTQ reader
-delivers on `main`. `with_quality` feeds three-field tuples carrying the Phred
-string, which is what the wiring change on `fix/mame-fastq-quality-wiring`
-delivers. Both arms run on the same simulated reads and both run on either
-branch, so this module measures what the WIRING BUYS without depending on the
-wiring being present. The plumbing itself is that branch's own test concern.
+`no_quality` feeds two-field read tuples, so the per-base quality gate has
+nothing to key on. `with_quality` feeds three-field tuples carrying the Phred
+string. Both arms run on the same simulated reads, so this module measures what
+the quality channel BUYS rather than asserting that it helps. Which arm the
+shipped reader corresponds to is not this module's concern and is deliberately
+not asserted here, because that wiring has moved and can move again.
 
 WHAT THIS FIXTURE CANNOT SEE
 ----------------------------

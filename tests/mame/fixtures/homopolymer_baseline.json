@@ -26,12 +26,12 @@
       },
       "reads_passed_filter": 959,
       "verdicts_design_empty": {
-        "AMBIGUOUS": 7,
+        "AMBIGUOUS": 8,
         "FRAMESHIFT": 4,
         "LOWDEPTH": 0,
         "MANY": 0,
         "MIXED": 0,
-        "NO_CALL": 1,
+        "NO_CALL": 0,
         "PASS": 12,
         "WRONG_AA": 0
       },
@@ -70,12 +70,12 @@
       },
       "reads_passed_filter": 959,
       "verdicts_design_empty": {
-        "AMBIGUOUS": 7,
+        "AMBIGUOUS": 8,
         "FRAMESHIFT": 4,
         "LOWDEPTH": 0,
         "MANY": 0,
         "MIXED": 0,
-        "NO_CALL": 1,
+        "NO_CALL": 0,
         "PASS": 12,
         "WRONG_AA": 0
       },
