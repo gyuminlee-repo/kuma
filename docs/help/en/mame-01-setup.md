@@ -30,6 +30,16 @@ For GenBank input, only the first record and its CDS annotations are loaded. Exp
 
 The **Template topology** choice appears only for a plain FASTA (`.fa`, `.fasta`), because a FASTA records no topology. A GenBank or SnapGene file carries its own topology, so the choice stays hidden for those.
 
+## Primer quality checks
+
+A barcode primer binding site has to clear the same five criteria a KURO SDM primer does before it is selected: the Tm window (55-68 C by default), the 3' terminal GC clamp, hairpin, homodimer and off-target binding. Hairpin and homodimer are rejected when the primer3 structure Tm exceeds 40.0 C. Off-target scans the whole template that was loaded and rejects a candidate when any site outside the intended binding position binds at 45.0 C or above. The thresholds match the KURO defaults and are not exposed on screen. Hairpin and homodimer use fixed design-scale concentrations rather than the polymerase profile, so changing the enzyme cannot change which molecule gets ordered. The Tm window keeps following the polymerase profile as before.
+
+The off-target search space is whatever file was loaded. A plasmid or construct map that carries the flanking sequence is searched the way KURO searches a template; a FASTA holding the CDS alone offers that much less sequence to search.
+
+When no candidate clears all five, the design is not refused. The candidate whose Tm is closest to the target is selected instead and a warning states which check it failed and at what temperature. Read that warning before ordering the primers.
+
+The molecules that are actually synthesised are the 20 oligos formed by a seed joined to a binding site. Hairpin and homodimer are run over those full oligos too, and everything above 40.0 C is collected into a single warning. That pass is advisory and never changes a selection, because a seed is a fixed input that was already ordered and there is nothing to choose in its place. An oligo longer than 60 nt is reported as unchecked, since primer3 refuses the calculation at that length.
+
 ## Warnings and errors
 
 | What the screen says | What to do |
