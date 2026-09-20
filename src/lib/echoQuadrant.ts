@@ -58,7 +58,6 @@ export const HALF_LAYOUT_VERSION = "0.16.61";
  * First release that writes column-parity names again. A project saved at or
  * after it means parities, whatever the half era spelled the same way.
  */
-// TODO(release): 실제 릴리스 라벨로 교체
 export const QUADRANT_RESTORE_VERSION = "0.16.68";
 
 const HALF_LAYOUT_PARTS: number[] = parseVersionParts(HALF_LAYOUT_VERSION) ?? [];

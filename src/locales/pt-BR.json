@@ -2599,14 +2599,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "A etapa de codigo de barras agora recebe um unico numero, o quanto o amplicon se estende alem do CDS, em vez de gap e overhang dividirem um nome.",
-      "Os padroes caem de 100 e 400 para 20 e 60, uma faixa que contem o overhang de 16 bp medido no design de ispS.",
-      "Um template linear curto e pesquisado ate a propria borda em vez de ser recusado por ser menor que o limite externo de busca.",
-      "As duas fitas buscam para fora, portanto o amplicon fica simetrico e os ultimos codons permanecem fora da margem de borda da referencia.",
-      "Um primer nao pode mais ficar dentro da regiao codificante, e um flank_max salvo passa a valer como overhang_max."
+      "A placa fonte Echo volta a colunas intercaladas, porque um 96-head não alcança uma metade contígua da placa em uma única estampagem.",
+      "Uma rodada é uma paridade de colunas sobre as dezesseis linhas, 192 poços, e duas rodadas preenchem uma placa fonte.",
+      "O seletor oferece duas rodadas em vez de quatro, pois o antigo eixo de linhas nomeava as mesmas duas rodadas com forward e reverse trocados.",
+      "Um projeto salvo antes da v0.16.61 abre inalterado, porque os nomes salvos designam rodadas desta versão e nenhum poço fonte se move.",
+      "Um projeto salvo com o layout half perde a seleção e marca ambas as rodadas como usadas, porque uma metade não corresponde a nenhuma paridade de colunas."
     ],
-    "highlightsStamp": "0.16.67+a8a547ef",
+    "highlightsStamp": "0.16.68+33844e5d",
     "releases": {
+      "0.16.68": [
+        "A placa fonte Echo volta a colunas intercaladas, porque um 96-head não alcança uma metade contígua da placa em uma única estampagem.",
+        "Uma rodada é uma paridade de colunas sobre as dezesseis linhas, 192 poços, e duas rodadas preenchem uma placa fonte.",
+        "O seletor oferece duas rodadas em vez de quatro, pois o antigo eixo de linhas nomeava as mesmas duas rodadas com forward e reverse trocados.",
+        "Um projeto salvo antes da v0.16.61 abre inalterado, porque os nomes salvos designam rodadas desta versão e nenhum poço fonte se move.",
+        "Um projeto salvo com o layout half perde a seleção e marca ambas as rodadas como usadas, porque uma metade não corresponde a nenhuma paridade de colunas."
+      ],
       "0.16.67": [
         "A etapa de codigo de barras agora recebe um unico numero, o quanto o amplicon se estende alem do CDS, em vez de gap e overhang dividirem um nome.",
         "Os padroes caem de 100 e 400 para 20 e 60, uma faixa que contem o overhang de 16 bp medido no design de ispS.",
@@ -3087,6 +3094,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.68": "33844e5d",
       "0.16.67": "a8a547ef",
       "0.16.66": "c8cb9c13",
       "0.16.65": "2d61386f",

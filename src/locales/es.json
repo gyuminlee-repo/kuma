@@ -2599,14 +2599,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "El paso de codigo de barras ahora recibe un solo numero, cuanto se extiende el amplicon mas alla del CDS, en lugar de compartir un nombre entre gap y overhang.",
-      "Los valores por defecto bajan de 100 y 400 a 20 y 60, un rango que contiene el overhang de 16 bp medido en el diseno de ispS.",
-      "Una plantilla lineal corta se explora hasta su propio borde en vez de rechazarse por ser mas corta que el limite exterior de busqueda.",
-      "Ambas hebras buscan hacia afuera, por lo que el amplicon es simetrico y los ultimos codones quedan fuera del margen de borde de referencia.",
-      "Un primer ya no puede situarse dentro de la region codificante, y un flank_max guardado se traslada a overhang_max."
+      "La placa fuente Echo vuelve a columnas intercaladas, porque un 96-head no alcanza una mitad contigua de la placa en una sola estampada.",
+      "Una ronda es una paridad de columnas sobre las dieciséis filas, 192 pocillos, y dos rondas llenan una placa fuente.",
+      "El selector ofrece dos rondas en lugar de cuatro, ya que el antiguo eje de filas nombraba las mismas dos rondas con forward y reverse intercambiados.",
+      "Un proyecto guardado antes de v0.16.61 se abre sin cambios, porque los nombres guardados designan rondas de esta versión y ningún pocillo fuente se mueve.",
+      "Un proyecto guardado con el diseño half pierde su selección y marca ambas rondas como gastadas, porque una mitad no coincide con ninguna paridad de columnas."
     ],
-    "highlightsStamp": "0.16.67+a8a547ef",
+    "highlightsStamp": "0.16.68+33844e5d",
     "releases": {
+      "0.16.68": [
+        "La placa fuente Echo vuelve a columnas intercaladas, porque un 96-head no alcanza una mitad contigua de la placa en una sola estampada.",
+        "Una ronda es una paridad de columnas sobre las dieciséis filas, 192 pocillos, y dos rondas llenan una placa fuente.",
+        "El selector ofrece dos rondas en lugar de cuatro, ya que el antiguo eje de filas nombraba las mismas dos rondas con forward y reverse intercambiados.",
+        "Un proyecto guardado antes de v0.16.61 se abre sin cambios, porque los nombres guardados designan rondas de esta versión y ningún pocillo fuente se mueve.",
+        "Un proyecto guardado con el diseño half pierde su selección y marca ambas rondas como gastadas, porque una mitad no coincide con ninguna paridad de columnas."
+      ],
       "0.16.67": [
         "El paso de codigo de barras ahora recibe un solo numero, cuanto se extiende el amplicon mas alla del CDS, en lugar de compartir un nombre entre gap y overhang.",
         "Los valores por defecto bajan de 100 y 400 a 20 y 60, un rango que contiene el overhang de 16 bp medido en el diseno de ispS.",
@@ -3087,6 +3094,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.68": "33844e5d",
       "0.16.67": "a8a547ef",
       "0.16.66": "c8cb9c13",
       "0.16.65": "2d61386f",

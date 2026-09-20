@@ -2653,14 +2653,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The barcode step now states one number, how far the amplicon may reach past the CDS, instead of a gap and an overhang sharing a name.",
-      "Defaults drop from 100 and 400 to 20 and 60, a range that holds the 16 bp overhang measured on the shipped ispS design.",
-      "A short linear template is searched to its own edge instead of being refused for being shorter than the outer search bound.",
-      "Both strands search outward, so the amplicon is symmetric and the last codons stay clear of the reference edge margin.",
-      "A primer can no longer sit inside the coding region, and a saved flank_max carries over as overhang_max."
+      "The Echo source plate returns to interleaved columns, because a 96-head cannot reach a contiguous half of the plate in one stamp.",
+      "A round is one column parity over all sixteen rows, 192 wells, and the two rounds tile a single source plate.",
+      "The picker offers two rounds instead of four, since the old row axis named the same two rounds with forward and reverse swapped.",
+      "A project saved before v0.16.61 loads unchanged, because the names it stored denote rounds this release has and no source well moves.",
+      "A project saved under the half layout loses its selection and has both rounds marked spent, because a half matches no column parity."
     ],
-    "highlightsStamp": "0.16.67+a8a547ef",
+    "highlightsStamp": "0.16.68+33844e5d",
     "releases": {
+      "0.16.68": [
+        "The Echo source plate returns to interleaved columns, because a 96-head cannot reach a contiguous half of the plate in one stamp.",
+        "A round is one column parity over all sixteen rows, 192 wells, and the two rounds tile a single source plate.",
+        "The picker offers two rounds instead of four, since the old row axis named the same two rounds with forward and reverse swapped.",
+        "A project saved before v0.16.61 loads unchanged, because the names it stored denote rounds this release has and no source well moves.",
+        "A project saved under the half layout loses its selection and has both rounds marked spent, because a half matches no column parity."
+      ],
       "0.16.67": [
         "The barcode step now states one number, how far the amplicon may reach past the CDS, instead of a gap and an overhang sharing a name.",
         "Defaults drop from 100 and 400 to 20 and 60, a range that holds the 16 bp overhang measured on the shipped ispS design.",
@@ -3141,6 +3148,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.68": "33844e5d",
       "0.16.67": "a8a547ef",
       "0.16.66": "c8cb9c13",
       "0.16.65": "2d61386f",

@@ -2599,14 +2599,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Der Barcode-Schritt nimmt jetzt nur eine Zahl entgegen, wie weit das Amplikon über die CDS hinausreicht, statt Gap und Overhang unter einem Namen zu führen.",
-      "Die Standardwerte sinken von 100 und 400 auf 20 und 60, ein Bereich, der den auf dem ispS-Design gemessenen Overhang von 16 bp enthaelt.",
-      "Ein kurzes lineares Template wird bis zu seinem eigenen Rand durchsucht, statt wegen Unterschreitung der aeusseren Suchgrenze abgelehnt zu werden.",
-      "Beide Straenge suchen nach aussen, das Amplikon ist dadurch symmetrisch und die letzten Codons bleiben ausserhalb der Reference Edge Margin.",
-      "Ein Primer kann nicht mehr innerhalb der kodierenden Region liegen, und ein gespeichertes flank_max wird als overhang_max uebernommen."
+      "Die Echo-Quellplatte kehrt zu verschachtelten Spalten zurück, weil ein 96-head in einem Stempelgang keine zusammenhängende Plattenhälfte erreicht.",
+      "Eine Runde ist eine Spaltenparität über alle sechzehn Zeilen mit 192 Wells, und zwei Runden füllen eine Quellplatte.",
+      "Die Auswahl bietet zwei Runden statt vier, denn die alte Zeilenachse benannte dieselben zwei Runden mit vertauschtem forward und reverse.",
+      "Ein vor v0.16.61 gespeichertes Projekt lädt unverändert, da die gespeicherten Namen Runden dieser Version bezeichnen und kein Quell-Well wandert.",
+      "Ein unter dem half-Layout gespeichertes Projekt verliert seine Auswahl und markiert beide Runden als verbraucht, da eine Hälfte keiner Spaltenparität entspricht."
     ],
-    "highlightsStamp": "0.16.67+a8a547ef",
+    "highlightsStamp": "0.16.68+33844e5d",
     "releases": {
+      "0.16.68": [
+        "Die Echo-Quellplatte kehrt zu verschachtelten Spalten zurück, weil ein 96-head in einem Stempelgang keine zusammenhängende Plattenhälfte erreicht.",
+        "Eine Runde ist eine Spaltenparität über alle sechzehn Zeilen mit 192 Wells, und zwei Runden füllen eine Quellplatte.",
+        "Die Auswahl bietet zwei Runden statt vier, denn die alte Zeilenachse benannte dieselben zwei Runden mit vertauschtem forward und reverse.",
+        "Ein vor v0.16.61 gespeichertes Projekt lädt unverändert, da die gespeicherten Namen Runden dieser Version bezeichnen und kein Quell-Well wandert.",
+        "Ein unter dem half-Layout gespeichertes Projekt verliert seine Auswahl und markiert beide Runden als verbraucht, da eine Hälfte keiner Spaltenparität entspricht."
+      ],
       "0.16.67": [
         "Der Barcode-Schritt nimmt jetzt nur eine Zahl entgegen, wie weit das Amplikon über die CDS hinausreicht, statt Gap und Overhang unter einem Namen zu führen.",
         "Die Standardwerte sinken von 100 und 400 auf 20 und 60, ein Bereich, der den auf dem ispS-Design gemessenen Overhang von 16 bp enthaelt.",
@@ -3087,6 +3094,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.68": "33844e5d",
       "0.16.67": "a8a547ef",
       "0.16.66": "c8cb9c13",
       "0.16.65": "2d61386f",
