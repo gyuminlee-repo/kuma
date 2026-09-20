@@ -12,9 +12,12 @@ These tests fix two things:
    Exclusivity and exhaustiveness are pinned by a sum identity whose right-hand
    side is read off the OUTPUT STRING rather than off the counting code, so the
    test cannot agree with a bug by sharing it.
-2. The stored sequence does not change. Deletion-majority positions travel on
-   their own channel and are written into a local copy at translation time, so
-   the FASTA on disk stays in the alphabet every existing project uses.
+2. The stored sequence separates the two kinds of no-call. A
+   deletion-majority position is written ``-`` because the called molecule does
+   not have that base; every other no-call stays ``N``. The separate
+   ``del_majority_positions`` channel still travels in the header and still
+   names exactly the gapped coordinates, so a legacy file that carries ``N``
+   there keeps translating the way it always did.
 """
 
 from __future__ import annotations
@@ -134,10 +137,17 @@ CASES: dict[str, list[Alignment]] = {
 def _covered_no_call_from_output(call) -> int:
     """No-call positions inside the covered amplicon, read off the output.
 
-    Independent of the counting code under test: this is the same expression
-    ``fasta_parser._recover_covered_n_fraction`` uses for its numerator.
+    Independent of the counting code under test. Both no-call characters are
+    counted: the four buckets partition the no-call MASK, and writing ``-`` at
+    the deletion-majority subset of it moved no position out of that mask.
+    ``fasta_parser._recover_covered_n_fraction`` counts ``N`` alone because it
+    reads LEGACY headers, whose files predate the gap character.
     """
-    return call.consensus_seq.count("N") - call.n_low_depth_positions
+    return (
+        call.consensus_seq.count("N")
+        + call.consensus_seq.count("-")
+        - call.n_low_depth_positions
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -328,12 +338,19 @@ def test_the_majority_rule_is_the_named_constant() -> None:
     assert call.n_del_majority_positions == 0
 
 
-def test_stored_sequence_never_carries_a_gap_character() -> None:
-    """The promise this whole design rests on."""
+def test_stored_gaps_are_exactly_the_deletion_majority_positions() -> None:
+    """The promise this whole design rests on, in its current form.
+
+    A gap is never written anywhere else. In particular ``del_vs_split``, whose
+    deletion leads the vote at 0.4 without reaching a majority, keeps its ``N``:
+    that position is a genuine no-call, not a missing base.
+    """
     for name, alns in CASES.items():
         call = call_consensus_with_metrics(alns, REF)
-        assert "-" not in call.consensus_seq, name
-        assert set(call.consensus_seq) <= set("ACGTN"), name
+        assert set(call.consensus_seq) <= set("ACGTN-"), name
+        gaps = {i + 1 for i, c in enumerate(call.consensus_seq) if c == "-"}
+        assert gaps == set(call.del_majority_positions), name
+        assert len(gaps) == call.n_del_majority_positions, name
 
 
 def test_position_run_encoding_round_trips() -> None:
@@ -409,10 +426,11 @@ def test_deletion_channel_round_trips_through_the_fasta_header(
     path = tmp_path / "1_1.fasta"
     path.write_text(record, encoding="utf-8")
 
-    # The sequence line is the stored artifact and it carries no gap.
+    # The sequence line is the stored artifact and it carries the gaps.
     seq_line = path.read_text(encoding="utf-8").splitlines()[1]
     assert seq_line == call.consensus_seq
-    assert "-" not in seq_line
+    assert seq_line[60:63] == "---"
+    assert seq_line.count("-") == 3
 
     parsed = parse_fasta_file(path, native_barcode="NB01")
     assert parsed.del_majority_positions == (61, 62, 63)
@@ -442,6 +460,17 @@ def test_legacy_header_without_the_new_keys_parses_to_the_old_behaviour(
 # ---------------------------------------------------------------------------
 
 
+def _legacy_seq(consensus_seq: str) -> str:
+    """The same consensus as a pre-gap-character release stored it.
+
+    Those releases wrote ``N`` at deletion-majority positions too, so this is
+    what every consensus FASTA already on disk looks like. The tests that pin
+    backward compatibility have to read one of those rather than the sequence
+    the current caller emits.
+    """
+    return consensus_seq.replace("-", "N")
+
+
 def _record(consensus_seq: str, del_positions: tuple[int, ...]) -> BarcodeRecord:
     return BarcodeRecord(
         native_barcode="NB01",
@@ -459,10 +488,13 @@ def test_one_bp_deletion_becomes_a_del_marker_instead_of_a_fake_substitution() -
     call = call_consensus_with_metrics(CASES["del1"], REF)
     assert call.del_majority_positions == (61,)
 
-    # Before: the deleted base is an 'N' like any other, so the NT diff calls it
-    # a substitution to N and the codon translates to the ambiguous 'X', which is
-    # counted as a no-call rather than reported as a change.
-    old = translate_and_diff(_record(call.consensus_seq, ()), REF, 0, len(REF))
+    # Before: a legacy file writes the deleted base as an 'N' like any other, so
+    # the NT diff calls it a substitution to N and the codon translates to the
+    # ambiguous 'X', which is counted as a no-call rather than reported as a
+    # change.
+    old = translate_and_diff(
+        _record(_legacy_seq(call.consensus_seq), ()), REF, 0, len(REF)
+    )
     assert f"{REF[60]}61N" in old.observed_nt_changes
     assert not any(c.endswith("del") for c in old.observed_nt_changes)
     assert not any(c.endswith("del") for c in old.observed_aa_changes)
@@ -478,8 +510,8 @@ def test_one_bp_deletion_becomes_a_del_marker_instead_of_a_fake_substitution() -
     assert len(deletions) == 1 and deletions[0].endswith("21del")
     assert new.aa_sequence[20] == "-"
     assert new.n_no_call_aa == 0
-    # The record itself is untouched by translation.
-    assert "-" not in call.consensus_seq
+    # The stored sequence says the same thing on its own.
+    assert call.consensus_seq[60] == "-"
 
 
 def test_in_frame_three_bp_deletion_reports_exactly_one_deleted_residue() -> None:
@@ -503,7 +535,7 @@ def test_empty_channel_reproduces_the_previous_behaviour_exactly() -> None:
     """Backward compatibility for every consensus file already on disk."""
     for name in ("wt", "del1", "ambiguous", "no_majority"):
         call = call_consensus_with_metrics(CASES[name], REF)
-        record = _record(call.consensus_seq, ())
+        record = _record(_legacy_seq(call.consensus_seq), ())
         result = translate_and_diff(record, REF, 0, len(REF))
         assert "-" not in result.aa_sequence, name
         assert not any(c.endswith("del") for c in result.observed_nt_changes), name
@@ -577,7 +609,7 @@ def _confirmed_design_plus_deletion():
         alns = [read(alt)] * 18 + [_full()] * 2
         call = call_consensus_with_metrics(alns, REF)
         labels = translate_and_diff(
-            _record(call.consensus_seq, ()), REF, 0, len(REF)
+            _record(_legacy_seq(call.consensus_seq), ()), REF, 0, len(REF)
         ).observed_aa_changes
         # A stop would be judged as nonsense rather than by the label comparison.
         if len(labels) == 1 and "*" not in labels[0]:
@@ -588,11 +620,11 @@ def _confirmed_design_plus_deletion():
 def _verdicts(call, expected, params):
     from kuma_core.mame.compare.verdict import classify_verdict
 
-    def record(dels):
+    def record(dels, seq=None):
         return BarcodeRecord(
             native_barcode="NB",
             custom_barcode="1_1",
-            consensus_seq=call.consensus_seq,
+            consensus_seq=call.consensus_seq if seq is None else seq,
             file_size_kb=100.0,
             source_path=Path("x.fasta"),
             read_count=200,
@@ -605,8 +637,15 @@ def _verdicts(call, expected, params):
             n_del_majority_positions=len(dels),
         )
 
+    # "before" is a LEGACY well: the deletion is an 'N' in the sequence and no
+    # channel names it, which is every consensus file written before either
+    # carrier existed.
     before = classify_verdict(
-        translate_and_diff(record(()), REF, 0, len(REF)), expected, params
+        translate_and_diff(
+            record((), _legacy_seq(call.consensus_seq)), REF, 0, len(REF)
+        ),
+        expected,
+        params,
     )
     after = classify_verdict(
         translate_and_diff(record(call.del_majority_positions), REF, 0, len(REF)),
@@ -635,12 +674,17 @@ def test_shipped_defaults_do_not_move_the_class() -> None:
     )  # the label is new, the class is not
 
 
-def test_the_label_does_move_the_class_once_the_earlier_gates_stand_down() -> None:
+def test_the_deletion_moves_the_class_once_the_earlier_gates_stand_down() -> None:
     """With the indel gate off and the N gate tolerant, the deletion decides.
 
     Reported rather than hidden: this is the regime a caller enters by relaxing
     ``max_indel_event_fraction``, and there the well stops being a clean PASS
     because a codon it did not design for is missing.
+
+    The legacy well stays PASS because neither carrier exists in it. A well
+    called today reaches the same verdict through the gap in the sequence
+    alone, which is what the third assertion pins: the channel is no longer the
+    only way the deletion is seen.
     """
     from kuma_core.mame.models import CompareParams, VerdictClass
 
@@ -652,6 +696,32 @@ def test_the_label_does_move_the_class_once_the_earlier_gates_stand_down() -> No
     assert before.verdict == VerdictClass.PASS
     assert after.verdict == VerdictClass.WRONG_AA
     assert "41del" in after.verdict_notes or "41-" in after.verdict_notes
+
+    from kuma_core.mame.compare.verdict import classify_verdict
+
+    no_channel = classify_verdict(
+        translate_and_diff(
+            BarcodeRecord(
+                native_barcode="NB",
+                custom_barcode="1_1",
+                consensus_seq=call.consensus_seq,
+                file_size_kb=100.0,
+                source_path=Path("x.fasta"),
+                read_count=200,
+                consensus_net_indel_bp=call.consensus_net_indel_bp,
+                max_indel_event_fraction=call.max_indel_event_fraction,
+                max_del_run_length=call.max_del_run_length,
+                consensus_n_fraction=call.consensus_n_fraction,
+                n_low_depth_positions=call.n_low_depth_positions,
+            ),
+            REF,
+            0,
+            len(REF),
+        ),
+        expected,
+        params,
+    )
+    assert no_channel.verdict == VerdictClass.WRONG_AA
 
 
 # ---------------------------------------------------------------------------

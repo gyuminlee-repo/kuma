@@ -375,7 +375,10 @@ class TestReferenceGroundTruth:
         depths = per_position_depth(alignments, ref_len)
 
         from collections import defaultdict
-        from kuma_core.mame.ingest.consensus import _accumulate
+        from kuma_core.mame.ingest.consensus import (
+            DEL_MAJORITY_FRACTION,
+            _accumulate,
+        )
 
         per_position: list[dict] = [defaultdict(int) for _ in range(ref_len)]
         ins_events: list[int] = [0] * ref_len
@@ -392,8 +395,15 @@ class TestReferenceGroundTruth:
             if not counts:
                 continue
             majority_base = max(counts, key=lambda b: counts[b])
+            total = sum(counts.values())
             if majority_base == "-":
-                if consensus[pos] == "N":
+                # A gap is written only when the deletion clears a MAJORITY of
+                # the spanning depth. Leading the vote without clearing it is a
+                # no-call, so 'N' is the consistent answer there.
+                expected = (
+                    "-" if counts["-"] / total > DEL_MAJORITY_FRACTION else "N"
+                )
+                if consensus[pos] == expected:
                     n_consistent += 1
             else:
                 if consensus[pos] == majority_base.upper():

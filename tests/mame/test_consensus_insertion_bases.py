@@ -123,6 +123,17 @@ def _block_sub(del_pos: int, ins_pos: int, base: str) -> Alignment:
     )
 
 
+def _legacy_seq(consensus_seq: str) -> str:
+    """The same consensus as a pre-gap-character release stored it.
+
+    Those releases wrote 'N' at deletion-majority positions, so a record that
+    stands for an old project has to carry that sequence as well as an empty
+    channel. Passing today's gapped sequence with an empty channel describes no
+    file that ever existed.
+    """
+    return consensus_seq.replace("-", "N")
+
+
 def _record(call, **over) -> BarcodeRecord:
     kw: dict[str, Any] = dict(
         native_barcode="nb01",
@@ -275,7 +286,11 @@ def test_scalar_and_vectorized_accumulators_agree() -> None:
 def test_stored_sequence_stays_reference_length_and_drops_insertions(make) -> None:
     call = call_consensus_with_metrics(make(), REF)
     assert len(call.consensus_seq) == len(REF)
-    assert set(call.consensus_seq) <= set("ACGTN")
+    assert set(call.consensus_seq) <= set("ACGTN-")
+    # A gap only ever marks a deletion majority; the insertion is still dropped
+    # from the sequence and carried on its own channel.
+    gaps = {i + 1 for i, c in enumerate(call.consensus_seq) if c == "-"}
+    assert gaps == set(call.del_majority_positions)
 
 
 def test_an_insertion_only_well_stores_exactly_the_reference() -> None:
@@ -649,6 +664,7 @@ def test_a_deletion_only_well_keeps_the_deletion_labels() -> None:
     without_channel = translate_and_diff(
         _record(
             call,
+            consensus_seq=_legacy_seq(call.consensus_seq),
             del_majority_positions=(),
             n_del_majority_positions=0,
             ins_majority_bases=(),
@@ -668,21 +684,23 @@ def test_a_record_without_the_channel_is_untouched() -> None:
 
     alns = [_block_sub(80, 70, "G") for _ in range(9)] + [_full()]
     call = call_consensus_with_metrics(alns, REF)
+    legacy = _legacy_seq(call.consensus_seq)
     bare = _record(
         call,
+        consensus_seq=legacy,
         del_majority_positions=(),
         n_del_majority_positions=0,
         ins_majority_bases=(),
         n_ins_majority_anchors=0,
     )
     result = translate_and_diff(bare, REF, 0, len(REF))
-    assert result.length_true_nt == call.consensus_seq
+    assert result.length_true_nt == legacy
     assert not [c for c in result.observed_aa_changes if c.endswith("del")]
     # Identical to translating the stored sequence with no channel machinery at
     # all, which is what a consensus written before the keys existed gets.
     from kuma_core.mame.translate.aa_translator import _aa_ungapped_diffs
 
-    aa, changes, n_no_call = _aa_ungapped_diffs(call.consensus_seq, REF, table=11)
+    aa, changes, n_no_call = _aa_ungapped_diffs(legacy, REF, table=11)
     assert (result.aa_sequence, result.observed_aa_changes, result.n_no_call_aa) == (
         aa,
         changes,

@@ -228,9 +228,17 @@ def consensus_identity(consensus_seq: str, reference_seq: str) -> float | None:
     """Fraction of CALLED consensus bases that match the reference.
 
     Denominator is the positions the consensus actually calls, i.e. those whose
-    character is not ``N``.  Every uncovered or ambiguous position is already an
-    ``N`` by construction (see ``call_consensus``), so "called" and "covered and
+    character is neither ``N`` nor ``-``.  Every uncovered or ambiguous position
+    is already an ``N`` and every deletion-majority position a ``-`` by
+    construction (see ``call_consensus``), so "called" and "covered and
     unambiguous" are the same set and no separate depth mask is needed.
+
+    A gap is EXCLUDED rather than scored as a mismatch.  It is not a base the
+    well read differently; it is a base the molecule does not have, so counting
+    it against identity would report a confident deletion as a sequencing
+    disagreement and drive the number down by the deletion length.  Excluding
+    it also keeps this metric byte-identical to what it was while the same
+    positions were written ``N``.
 
     ``None`` means the denominator was empty: the well called nothing, so its
     identity is UNKNOWN.  0.0 is the opposite and much stronger statement, that
@@ -255,7 +263,7 @@ def consensus_identity(consensus_seq: str, reference_seq: str) -> float | None:
 
     cons = np.frombuffer(consensus_seq[:n].upper().encode("ascii"), dtype=np.uint8)
     ref = np.frombuffer(reference_seq[:n].upper().encode("ascii"), dtype=np.uint8)
-    called = cons != ord("N")
+    called = (cons != ord("N")) & (cons != ord("-"))
     n_called = int(called.sum())
     if n_called == 0:
         return None

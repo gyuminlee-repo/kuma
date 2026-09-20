@@ -157,10 +157,11 @@ def _apply_deletion_gaps(
 ) -> str:
     """Return *query_cds* with '-' written at each deletion-majority position.
 
-    A LOCAL COPY. The stored consensus keeps 'N' at these positions and the FASTA
-    on disk is never rewritten, so a project analysed today and the same project
-    analysed before this existed hold byte-identical sequence records. What
-    changes is only what the comparison below is handed.
+    A LOCAL COPY, and since the caller writes '-' at these same positions it is
+    IDEMPOTENT on anything the current consensus caller produced. It is kept
+    for the LEGACY files: every consensus written before the caller used the
+    gap character carries 'N' at a deletion-majority position, and this is what
+    turns that 'N' back into the deletion its header already names.
 
     Why the substitution matters: 'N' at a deleted position is indistinguishable
     from 'N' at an uncovered one, so ``extract_nt_changes`` reported a deleted
@@ -358,7 +359,7 @@ def translate_and_diff(
     #
     # Why it must read it at all: an insertion and a deletion that sit in the
     # same codon cancel, and the stored consensus cannot show that. It keeps
-    # reference length and writes 'N' where the deletion is, so the gap copy
+    # reference length and marks the deletion rather than closing it, so the gap copy
     # turns that codon into '---' and the diff reports a residue that never left
     # the molecule. Three wells of a real 96-well plate (A5 designed V218L, B3
     # designed R93A, H5 designed E228D) were reported V218del, R93del and
