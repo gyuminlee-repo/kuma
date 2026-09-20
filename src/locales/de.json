@@ -2599,14 +2599,19 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Die Echo-Quellplatte kehrt zu verschachtelten Spalten zurück, weil ein 96-head in einem Stempelgang keine zusammenhängende Plattenhälfte erreicht.",
-      "Eine Runde ist eine Spaltenparität über alle sechzehn Zeilen mit 192 Wells, und zwei Runden füllen eine Quellplatte.",
-      "Die Auswahl bietet zwei Runden statt vier, denn die alte Zeilenachse benannte dieselben zwei Runden mit vertauschtem forward und reverse.",
-      "Ein vor v0.16.61 gespeichertes Projekt lädt unverändert, da die gespeicherten Namen Runden dieser Version bezeichnen und kein Quell-Well wandert.",
-      "Ein unter dem half-Layout gespeichertes Projekt verliert seine Auswahl und markiert beide Runden als verbraucht, da eine Hälfte keiner Spaltenparität entspricht."
+      "Consensus-Sequenzen schreiben einen Bindestrich, wo eine Base fehlt, sodass eine Deletion nicht mehr wie eine nicht auswertbare Position aussieht.",
+      "Barcode-Primer bestehen jetzt dieselben Hairpin-, Self-Dimer- und Off-Target-Prüfungen wie Design-Primer.",
+      "Ein Barcode-Primer, der diese Prüfungen nicht besteht, wird ersetzt; besteht kein Kandidat, nennt der Hinweis den Messwert, der versagt hat.",
+      "Beim erneuten Öffnen einer gespeicherten Analyse bleiben Deletionslänge und wiederhergestellte Sequenz erhalten, die frühere Builds verloren haben."
     ],
-    "highlightsStamp": "0.16.68+33844e5d",
+    "highlightsStamp": "0.16.69+60279e8e",
     "releases": {
+      "0.16.69": [
+        "Consensus-Sequenzen schreiben einen Bindestrich, wo eine Base fehlt, sodass eine Deletion nicht mehr wie eine nicht auswertbare Position aussieht.",
+        "Barcode-Primer bestehen jetzt dieselben Hairpin-, Self-Dimer- und Off-Target-Prüfungen wie Design-Primer.",
+        "Ein Barcode-Primer, der diese Prüfungen nicht besteht, wird ersetzt; besteht kein Kandidat, nennt der Hinweis den Messwert, der versagt hat.",
+        "Beim erneuten Öffnen einer gespeicherten Analyse bleiben Deletionslänge und wiederhergestellte Sequenz erhalten, die frühere Builds verloren haben."
+      ],
       "0.16.68": [
         "Die Echo-Quellplatte kehrt zu verschachtelten Spalten zurück, weil ein 96-head in einem Stempelgang keine zusammenhängende Plattenhälfte erreicht.",
         "Eine Runde ist eine Spaltenparität über alle sechzehn Zeilen mit 192 Wells, und zwei Runden füllen eine Quellplatte.",
@@ -3094,6 +3099,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.69": "60279e8e",
       "0.16.68": "33844e5d",
       "0.16.67": "a8a547ef",
       "0.16.66": "c8cb9c13",

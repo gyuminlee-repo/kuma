@@ -2599,14 +2599,19 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "La placa fuente Echo vuelve a columnas intercaladas, porque un 96-head no alcanza una mitad contigua de la placa en una sola estampada.",
-      "Una ronda es una paridad de columnas sobre las dieciséis filas, 192 pocillos, y dos rondas llenan una placa fuente.",
-      "El selector ofrece dos rondas en lugar de cuatro, ya que el antiguo eje de filas nombraba las mismas dos rondas con forward y reverse intercambiados.",
-      "Un proyecto guardado antes de v0.16.61 se abre sin cambios, porque los nombres guardados designan rondas de esta versión y ningún pocillo fuente se mueve.",
-      "Un proyecto guardado con el diseño half pierde su selección y marca ambas rondas como gastadas, porque una mitad no coincide con ninguna paridad de columnas."
+      "Las secuencias consensus escriben un guion donde falta una base, de modo que una deleción ya no parece una posición que no se pudo interpretar.",
+      "Los primers de barcode ahora pasan las mismas comprobaciones de hairpin, self-dimer y off-target que los primers de diseño.",
+      "Un primer de barcode que falla esas comprobaciones se reemplaza y, si ninguno pasa, el aviso indica la medida que falló.",
+      "Al reabrir un análisis guardado se conservan la longitud de la deleción y la secuencia restaurada que las versiones anteriores perdían."
     ],
-    "highlightsStamp": "0.16.68+33844e5d",
+    "highlightsStamp": "0.16.69+60279e8e",
     "releases": {
+      "0.16.69": [
+        "Las secuencias consensus escriben un guion donde falta una base, de modo que una deleción ya no parece una posición que no se pudo interpretar.",
+        "Los primers de barcode ahora pasan las mismas comprobaciones de hairpin, self-dimer y off-target que los primers de diseño.",
+        "Un primer de barcode que falla esas comprobaciones se reemplaza y, si ninguno pasa, el aviso indica la medida que falló.",
+        "Al reabrir un análisis guardado se conservan la longitud de la deleción y la secuencia restaurada que las versiones anteriores perdían."
+      ],
       "0.16.68": [
         "La placa fuente Echo vuelve a columnas intercaladas, porque un 96-head no alcanza una mitad contigua de la placa en una sola estampada.",
         "Una ronda es una paridad de columnas sobre las dieciséis filas, 192 pocillos, y dos rondas llenan una placa fuente.",
@@ -3094,6 +3099,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.69": "60279e8e",
       "0.16.68": "33844e5d",
       "0.16.67": "a8a547ef",
       "0.16.66": "c8cb9c13",

@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.16.69 (A missing base and an uncalled base stop sharing a letter)
+
+A stored consensus used one letter for two different facts. An N meant the run could not call the position, and an N also meant the molecule has no base there. The two are opposite kinds of statement, one an absence of knowledge and the other a confident observation, and no reader of the output could tell them apart. Deletion positions now carry a dash. An N means a no-call and nothing else.
+
+The rule that writes the dash is the majority rule the reported deletion positions already use, not the plurality that decides a no-call. A deletion that leads the vote without clearing half the spanning depth is a genuine no-call and keeps its N, which matters because real runs put passing wells in that band. Because the two rules now name one set, the stored string and the reported coordinates cannot disagree. No counter moves: the no-call fraction and its four-way split count exactly the positions they counted before, and the gate that subtracts confident deletions still sees them. Across 288 wells of a real run, no verdict, amino-acid change, identity or fraction changed.
+
+Barcode primers are held to the checks KURO applies to design primers. Until now a barcode primer passed on melting temperature and a 3-prime GC clamp alone, while hairpin, self-dimer and off-target were applied to design primers only. The question of whether both paths share a standard was answered as though they did, and they did not. A candidate binding region now has to clear hairpin and self-dimer thresholds and carry no off-target site, at the same thresholds and the same fixed design concentrations KURO uses, so changing the enzyme cannot change which physical primer is chosen. On the bundled sample the previous reverse primer folded at 64.9 degrees, and it no longer ships.
+
+The full ordered oligo, seed plus binding region, is checked separately and reported as an advisory. Rejecting a binding region because a seed folds against it has no defined rule, since the seed is a fixed input the operator already ordered, so that finding is stated rather than acted on. When nothing clears the checks the previous fallback still runs, and the advisory now names the failing measurement instead of letting an unchecked primer leave without comment.
+
+Saving an analysis and opening it again no longer drops what the run measured. The serializer copied fields by hand, so a field added to the model did not reach the payload until somebody remembered to add it, and four had been left behind, among them the consensus deletion length and the length-restored sequence. A test now builds every field from the declared type and fails by name when one does not survive the round trip, so the next omission is caught when it is made rather than months later. Fields left out on purpose have to be named with a reason.
+
+### Highlights
+
+- Consensus sequences write a dash where a base is missing, so a deletion no longer looks like a position the run could not call.
+- Barcode primers now pass the same hairpin, self-dimer and off-target checks that design primers already had to pass.
+- A barcode primer failing those checks is replaced, and when none passes, the advisory names the measurement that failed.
+- Reopening a saved analysis keeps the deletion length and the restored sequence that earlier builds dropped on the way in.
+
 ## v0.16.68 (One stamp reaches every other column)
 
 The Echo 384 source plate is built by a 96-head Zephyr. The head sits on a 9 mm pitch and the plate is on 4.5 mm, so one stamp reaches every other column and every other row. v0.16.61 replaced that interleaved geometry with two contiguous halves, columns 1 to 12 and columns 13 to 24, on the strength of a real worklist whose occupied columns run 1 to 12 with no gap. The operator confirmed on 2026-09-20 that the instrument itself cannot reach a contiguous half, and that statement governs the geometry.
