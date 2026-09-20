@@ -2653,14 +2653,19 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The Echo source plate returns to interleaved columns, because a 96-head cannot reach a contiguous half of the plate in one stamp.",
-      "A round is one column parity over all sixteen rows, 192 wells, and the two rounds tile a single source plate.",
-      "The picker offers two rounds instead of four, since the old row axis named the same two rounds with forward and reverse swapped.",
-      "A project saved before v0.16.61 loads unchanged, because the names it stored denote rounds this release has and no source well moves.",
-      "A project saved under the half layout loses its selection and has both rounds marked spent, because a half matches no column parity."
+      "Consensus sequences write a dash where a base is missing, so a deletion no longer looks like a position the run could not call.",
+      "Barcode primers now pass the same hairpin, self-dimer and off-target checks that design primers already had to pass.",
+      "A barcode primer failing those checks is replaced, and when none passes, the advisory names the measurement that failed.",
+      "Reopening a saved analysis keeps the deletion length and the restored sequence that earlier builds dropped on the way in."
     ],
-    "highlightsStamp": "0.16.68+33844e5d",
+    "highlightsStamp": "0.16.69+60279e8e",
     "releases": {
+      "0.16.69": [
+        "Consensus sequences write a dash where a base is missing, so a deletion no longer looks like a position the run could not call.",
+        "Barcode primers now pass the same hairpin, self-dimer and off-target checks that design primers already had to pass.",
+        "A barcode primer failing those checks is replaced, and when none passes, the advisory names the measurement that failed.",
+        "Reopening a saved analysis keeps the deletion length and the restored sequence that earlier builds dropped on the way in."
+      ],
       "0.16.68": [
         "The Echo source plate returns to interleaved columns, because a 96-head cannot reach a contiguous half of the plate in one stamp.",
         "A round is one column parity over all sixteen rows, 192 wells, and the two rounds tile a single source plate.",
@@ -3148,6 +3153,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.69": "60279e8e",
       "0.16.68": "33844e5d",
       "0.16.67": "a8a547ef",
       "0.16.66": "c8cb9c13",

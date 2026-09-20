@@ -2599,14 +2599,19 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "A placa fonte Echo volta a colunas intercaladas, porque um 96-head não alcança uma metade contígua da placa em uma única estampagem.",
-      "Uma rodada é uma paridade de colunas sobre as dezesseis linhas, 192 poços, e duas rodadas preenchem uma placa fonte.",
-      "O seletor oferece duas rodadas em vez de quatro, pois o antigo eixo de linhas nomeava as mesmas duas rodadas com forward e reverse trocados.",
-      "Um projeto salvo antes da v0.16.61 abre inalterado, porque os nomes salvos designam rodadas desta versão e nenhum poço fonte se move.",
-      "Um projeto salvo com o layout half perde a seleção e marca ambas as rodadas como usadas, porque uma metade não corresponde a nenhuma paridade de colunas."
+      "As sequências consensus escrevem um traço onde falta uma base, de modo que uma deleção não parece mais uma posição que não pôde ser interpretada.",
+      "Os primers de barcode agora passam pelas mesmas verificações de hairpin, self-dimer e off-target que os primers de design.",
+      "Um primer de barcode que falha nessas verificações é substituído e, quando nenhum passa, o aviso indica a medida que falhou.",
+      "Reabrir uma análise salva preserva o comprimento da deleção e a sequência restaurada que versões anteriores perdiam."
     ],
-    "highlightsStamp": "0.16.68+33844e5d",
+    "highlightsStamp": "0.16.69+60279e8e",
     "releases": {
+      "0.16.69": [
+        "As sequências consensus escrevem um traço onde falta uma base, de modo que uma deleção não parece mais uma posição que não pôde ser interpretada.",
+        "Os primers de barcode agora passam pelas mesmas verificações de hairpin, self-dimer e off-target que os primers de design.",
+        "Um primer de barcode que falha nessas verificações é substituído e, quando nenhum passa, o aviso indica a medida que falhou.",
+        "Reabrir uma análise salva preserva o comprimento da deleção e a sequência restaurada que versões anteriores perdiam."
+      ],
       "0.16.68": [
         "A placa fonte Echo volta a colunas intercaladas, porque um 96-head não alcança uma metade contígua da placa em uma única estampagem.",
         "Uma rodada é uma paridade de colunas sobre as dezesseis linhas, 192 poços, e duas rodadas preenchem uma placa fonte.",
@@ -3094,6 +3099,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.69": "60279e8e",
       "0.16.68": "33844e5d",
       "0.16.67": "a8a547ef",
       "0.16.66": "c8cb9c13",

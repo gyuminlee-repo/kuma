@@ -2599,14 +2599,19 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "La plaque source Echo revient à des colonnes entrelacées, car un 96-head n'atteint pas une moitié contiguë de la plaque en un seul tampon.",
-      "Une série est une parité de colonnes sur les seize lignes, 192 puits, et deux séries remplissent une plaque source.",
-      "Le sélecteur propose deux séries au lieu de quatre, car l'ancien axe des lignes nommait les mêmes deux séries avec forward et reverse permutés.",
-      "Un projet enregistré avant v0.16.61 s'ouvre inchangé, car les noms stockés désignent des séries de cette version et aucun puits source ne bouge.",
-      "Un projet enregistré avec la disposition half perd sa sélection et marque les deux séries comme utilisées, car une moitié ne correspond à aucune parité de colonnes."
+      "Les séquences consensus écrivent un tiret là où une base manque, si bien qu'une délétion ne ressemble plus à une position non interprétable.",
+      "Les amorces barcode passent désormais les mêmes contrôles hairpin, self-dimer et off-target que les amorces de conception.",
+      "Une amorce barcode qui échoue à ces contrôles est remplacée, et si aucune ne passe, l'avertissement nomme la mesure en cause.",
+      "La réouverture d'une analyse enregistrée conserve la longueur de délétion et la séquence restaurée que les versions précédentes perdaient."
     ],
-    "highlightsStamp": "0.16.68+33844e5d",
+    "highlightsStamp": "0.16.69+60279e8e",
     "releases": {
+      "0.16.69": [
+        "Les séquences consensus écrivent un tiret là où une base manque, si bien qu'une délétion ne ressemble plus à une position non interprétable.",
+        "Les amorces barcode passent désormais les mêmes contrôles hairpin, self-dimer et off-target que les amorces de conception.",
+        "Une amorce barcode qui échoue à ces contrôles est remplacée, et si aucune ne passe, l'avertissement nomme la mesure en cause.",
+        "La réouverture d'une analyse enregistrée conserve la longueur de délétion et la séquence restaurée que les versions précédentes perdaient."
+      ],
       "0.16.68": [
         "La plaque source Echo revient à des colonnes entrelacées, car un 96-head n'atteint pas une moitié contiguë de la plaque en un seul tampon.",
         "Une série est une parité de colonnes sur les seize lignes, 192 puits, et deux séries remplissent une plaque source.",
@@ -3094,6 +3099,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.69": "60279e8e",
       "0.16.68": "33844e5d",
       "0.16.67": "a8a547ef",
       "0.16.66": "c8cb9c13",
