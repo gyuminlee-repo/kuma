@@ -621,9 +621,9 @@ export async function applyKuroSnapshot(
     patch.echoTransferVol = params.echo_transfer_vol;
   }
   // The two fields are read together, and with the build that wrote the file,
-  // because one old value dates the whole placement and a lone "A1" is dated
-  // by nothing else (`foldPersistedPlacement`). An old placement spanned the
-  // full plate width, so it resolves to no half selected and both halves
+  // because one half name dates the whole placement and a lone "A1" is dated
+  // by nothing else (`foldPersistedPlacement`). A half-era placement covers
+  // part of both rounds, so it resolves to nothing selected and both rounds
   // spent rather than folding onto one of them.
   const echoQuadrant = params?.echo_quadrant;
   const echoUsedQuadrants = params?.echo_used_quadrants;

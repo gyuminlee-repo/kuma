@@ -23,10 +23,10 @@ export const PLATE_FILL_DEST_COMPLETE = "bg-emerald-400 dark:bg-emerald-500";
 export const PLATE_FILL_DEST_PARTIAL = "bg-amber-400 dark:bg-amber-500";
 
 /**
- * Echo source well outside the selected half: it belongs to the other half
- * and is held for the next round.
+ * Echo source well outside the selected round: it belongs to the other column
+ * parity and is held for the next round.
  *
- * Dashed *and* muted, not muted alone: an empty well of the selected half is
+ * Dashed *and* muted, not muted alone: an empty well of the selected round is
  * also pale, so colour alone would leave the two indistinguishable to a
  * red-green or low-contrast reader. The border style carries the same split.
  */

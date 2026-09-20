@@ -2599,14 +2599,21 @@
     "descriptionRange": "v{{from}} 以降のすべてのアップデートの主な変更点です。",
     "gotItBtn": "了解",
     "highlights": [
-      "バーコード工程は gap と overhang が名前を共有する方式ではなく、アンプリコンが CDS の外へ伸びる距離のみを受け取ります。",
-      "既定値が 100 と 400 から 20 と 60 に下がり、この範囲は ispS 設計で実測した 16 bp の overhang を含みます。",
-      "短い線形 template を外側の探索上限より短いという理由で拒否せず、template の端まで探索します。",
-      "両方の鎖が外向きに探索するためアンプリコンが対称になり、最後のコドンが reference edge margin の外に収まります。",
-      "プライマーがコーディング領域内に入ることはなくなり、保存された flank_max は overhang_max として引き継がれます。"
+      "Echo ソースプレートがインターリーブ列の配置に戻る。96-head は1回のスタンプでプレートの連続した半分に届かないため。",
+      "1ラウンドは16行すべてにまたがる1つの列パリティで192ウェルであり、2ラウンドでソースプレート1枚を埋める。",
+      "選択肢は4つではなく2つになる。旧来の行軸は同じ2ラウンドを forward と reverse を入れ替えて呼んでいたにすぎない。",
+      "v0.16.61 より前に保存したプロジェクトはそのまま開く。保存された名前は本リリースのラウンドを指し、ソースウェルは移動しない。",
+      "half レイアウトで保存したプロジェクトは選択が解除され、両ラウンドが使用済みになる。half はどの列パリティとも一致しない。"
     ],
-    "highlightsStamp": "0.16.67+a8a547ef",
+    "highlightsStamp": "0.16.68+33844e5d",
     "releases": {
+      "0.16.68": [
+        "Echo ソースプレートがインターリーブ列の配置に戻る。96-head は1回のスタンプでプレートの連続した半分に届かないため。",
+        "1ラウンドは16行すべてにまたがる1つの列パリティで192ウェルであり、2ラウンドでソースプレート1枚を埋める。",
+        "選択肢は4つではなく2つになる。旧来の行軸は同じ2ラウンドを forward と reverse を入れ替えて呼んでいたにすぎない。",
+        "v0.16.61 より前に保存したプロジェクトはそのまま開く。保存された名前は本リリースのラウンドを指し、ソースウェルは移動しない。",
+        "half レイアウトで保存したプロジェクトは選択が解除され、両ラウンドが使用済みになる。half はどの列パリティとも一致しない。"
+      ],
       "0.16.67": [
         "バーコード工程は gap と overhang が名前を共有する方式ではなく、アンプリコンが CDS の外へ伸びる距離のみを受け取ります。",
         "既定値が 100 と 400 から 20 と 60 に下がり、この範囲は ispS 設計で実測した 16 bp の overhang を含みます。",
@@ -3087,6 +3094,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.68": "33844e5d",
       "0.16.67": "a8a547ef",
       "0.16.66": "c8cb9c13",
       "0.16.65": "2d61386f",
@@ -3380,16 +3388,17 @@
         },
         "bomLabel": "UTF-8 BOM を追加",
         "bomHint": "(Excel 互換)",
-        "quadrantLabel": "Echoソースプレートの半分",
-        "quadrantNone": "指定なし(1-12列、使用済み半区の照合なし)",
-        "quadrantColumns": "{{from}}〜{{to}} 列",
-        "quadrantHelper": "1ラウンドが半分を埋めます。Forwardプライマーは A, C, E ... 行に、reverseプライマーは同じ列の1行下に入ります。",
-        "usedQuadrantsLabel": "このプレートで既に使用済みの半分",
-        "usedQuadrantsHelper": "選択した半分がこれらのいずれかであれば、エクスポートは拒否されます。",
-        "legacyPlacementNotice": "このプロジェクトは v{{version}} より前に保存されています。当時は 1 ラウンドが半分ではなく source plate 全幅に配置されていました。保存された配置（{{values}}）は両方の半分にまたがるため、両方が使用済みとして表示され、どの半分も選択されません。新しい plate を使う場合は、下の使用済みチェックを外してから半分を選んでください。",
+        "quadrantLabel": "Echo ソースプレートの列",
+        "quadrantNone": "指定なし（1-12 列、使用済み round の確認なし）",
+        "quadrantColumnsOdd": "奇数列 1, 3 ... 23",
+        "quadrantColumnsEven": "偶数列 2, 4 ... 24",
+        "quadrantHelper": "96-head は 1 列おきのウェルにしか届かないため、1 ラウンドはこのどちらかを使います。forward primer は A, C, E ... 行に置かれ、reverse primer は同じ列の 1 行下に置かれます。",
+        "usedQuadrantsLabel": "このプレートで使用済みの round",
+        "usedQuadrantsHelper": "選択した round がこのいずれかであれば export は拒否されます。",
+        "legacyPlacementNotice": "このプロジェクトは v{{from}} から v{{to}} の間に保存されました。当時は 1 ラウンドが 1 列おきではなく連続した 12 列を埋めていました。保存された配置（{{values}}）は 2 つの round の両方に一部ずつ重なるため、どちらも使用済みとして表示され、いずれも選択されません。新しいプレートを使う場合は、下の使用済みチェックを外してから選んでください。",
         "placementBlocked": {
-          "noHalfSelected": "この plate に使用済みの半分がありますが、今回のラウンドの半分が選択されていません。A1 または A13 を選ぶか、新しい plate であれば使用済みチェックを外してください。",
-          "halfAlreadyUsed": "選択した半分はこの plate で使用済みとして表示されています。その上に分注すると既存の primer が失われます。別の半分を選ぶか、その使用済みチェックを外してください。"
+          "noQuadrantSelected": "このプレートに使用済みの round がありますが、今回の実行の round が選択されていません。A1 または A2 を選ぶか、新しいプレートなら使用済みチェックを外してください。",
+          "quadrantAlreadyUsed": "選択した round はこのプレートで使用済みとして表示されています。その上に分注すると既に入っている primer が失われます。別の round を選ぶか、該当する使用済みチェックを外してください。"
         },
         "plateNameFwd": "Forwardプライマープレート名",
         "plateNameRev": "Reverseプライマープレート名",
@@ -3680,14 +3689,14 @@
     "errorTitle": "プレビューに失敗しました",
     "echoSourcePlateLabel": "Echo ソースプレート (384 ウェル)",
     "destPlateLabel": "デスティネーションプレート (96 ウェル)",
-    "quadrantBatch": "今回の配置はプレートの半分 {{half}}、つまり {{from}}〜{{to}} 列を埋めます。Forward プライマーは A, C, E ... 行に入り、reverse プライマーはそれぞれ1行下に入ります。",
-    "quadrantProgress": "今回の配置が終わると、このプレートの半分 {{total}} 個のうち {{filled}} 個を使用します。",
-    "quadrantHalfNote": "{{from}}〜{{to}} 列はもう一方の半分 {{others}} の分で、次のラウンドのために空けてあります。",
+    "quadrantBatch": "今回のバッチは round {{round}}、つまり {{first}} 列から始まる 1 列おきのウェルを埋めます。forward primer は A, C, E ... 行に置かれ、reverse primer はそれぞれ 1 行下に置かれます。",
+    "quadrantProgress": "今回のバッチを終えると、このプレートの round {{total}} 個のうち {{filled}} 個を使用します。",
+    "quadrantInterleaveNote": "96-head は一度に 1 列おきのウェルにしか届きません。間の列は {{others}} の分で、次のラウンドのために空けておきます。",
     "quadrantUsedNote": "このプレートで使用済みの半分: {{list}}",
-    "quadrantNoneNote": "半区が未選択です。実行は 1-12 列、つまり半区 A1 と同じウェルに配置され、使用済み半区との照合だけを省きます。",
+    "quadrantNoneNote": "round が未選択です。実行は列を飛ばさず 1-12 列に置かれ、これは round を選べるようになる前の配置です。使用済み round との照合のみが省かれます。",
     "quadrantLegendFree": "実線の枠: 今回の配置が使うウェル",
     "quadrantLegendReserved": "破線の枠: {{others}} 用に空けたウェル",
-    "echoReservedWellTitle": "{{well}}、半分 {{quadrants}} 用"
+    "echoReservedWellTitle": "{{well}}、round {{quadrants}} 用"
   },
   "errors": {
     "sequence": {

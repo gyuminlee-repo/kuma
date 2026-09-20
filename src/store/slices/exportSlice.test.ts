@@ -41,7 +41,7 @@ import { createExportSlice } from "./exportSlice"
 import { sendRequest } from "@/lib/ipc-kuro"
 import { MAX_MUTATIONS_PER_RUN } from "@/lib/inputThresholds"
 import type { PlateMapping, SdmPrimerResult, SequenceInfo, WorkspaceV3 } from "@/types/models"
-import { HALF_LAYOUT_VERSION } from "../../lib/echoQuadrant"
+import { HALF_LAYOUT_VERSION, QUADRANT_RESTORE_VERSION } from "../../lib/echoQuadrant"
 
 // 최소 Zustand store 생성 helper
 function makeStore() {
@@ -220,16 +220,16 @@ describe("exportSlice — schema_version 0.3", () => {
       structureAccession: "8abc",
       structureLoaded: true,
       echoTransferVol: 250,
-      echoQuadrant: "A13",
-      echoUsedQuadrants: ["A1", "A13"],
+      echoQuadrant: "A2",
+      echoUsedQuadrants: ["A1", "A2"],
       janusTransferVol: 1.5,
     });
 
     const snapshot = store.slice.getWorkspaceSnapshot() as WorkspaceV3;
-    // The test build stamps "0.0.0-test", which reads as unparseable and so as
-    // a pre-half-layout file. This case is about a project saved by a build
-    // that has the half layout, so it says which build that is.
-    snapshot.kuma_version = HALF_LAYOUT_VERSION;
+    // The test build stamps "0.0.0-test", which is unparseable and so reads as
+    // an interleaved-era file already. Stamping the restoring build keeps this
+    // case about a round trip rather than about dating.
+    snapshot.kuma_version = QUADRANT_RESTORE_VERSION;
     expect(snapshot.settings).toMatchObject({
       domainDiversityEnabled: false,
       paretoDiversityEnabled: false,
@@ -237,8 +237,8 @@ describe("exportSlice — schema_version 0.3", () => {
       structureAccession: "8abc",
       structureLoaded: true,
       echoTransferVol: 250,
-      echoQuadrant: "A13",
-      echoUsedQuadrants: ["A1", "A13"],
+      echoQuadrant: "A2",
+      echoUsedQuadrants: ["A1", "A2"],
       janusTransferVol: 1.5,
     });
 
@@ -251,39 +251,70 @@ describe("exportSlice — schema_version 0.3", () => {
       structureAccession: "8abc",
       structureLoaded: true,
       echoTransferVol: 250,
-      echoQuadrant: "A13",
-      echoUsedQuadrants: ["A1", "A13"],
+      echoQuadrant: "A2",
+      echoUsedQuadrants: ["A1", "A2"],
       janusTransferVol: 1.5,
     });
   });
 
-  // The sidecar workspace path is the second place a stored placement is read,
-  // and it took the value through untouched. A workspace saved before the half
-  // layout therefore restored "B2" into a store that now only knows two
-  // halves, and every surface downstream read a value the picker cannot show.
-  // Folding it onto one half was the next wrong answer: an old round spanned
-  // the full plate width, so it occupies 96 wells of each half and no half of
-  // it is free.
-  it("reads a legacy placement as both halves spent on the workspace restore path too", async () => {
+  // (a) An interleaved-era workspace. "B1" and "B2" named these same rounds
+  // from their reverse rows, so they fold onto "A1" and "A2" and not a single
+  // source well moves. Refusing them instead would make the operator re-pick
+  // for a change that is purely a rename.
+  it("folds an interleaved-era B name on the workspace restore path too", async () => {
     const snapshot = store.slice.getWorkspaceSnapshot() as WorkspaceV3;
-    // No cast needed: the persisted type accepts the legacy names on purpose,
-    // and this fixture is exactly the old-project case.
+    // No cast needed: the persisted type accepts the legacy names on purpose.
+    snapshot.kuma_version = "0.16.60";
     snapshot.settings.echoQuadrant = "B2";
-    snapshot.settings.echoUsedQuadrants = ["A1", "B1"];
+    snapshot.settings.echoUsedQuadrants = ["B1"];
+
+    await store.slice.restoreWorkspace(snapshot);
+
+    expect(store.state).toMatchObject({
+      echoQuadrant: "A2",
+      echoUsedQuadrants: ["A1"],
+      echoLegacyPlacement: null,
+    });
+  });
+
+  // (b) A half-era workspace. The sidecar workspace path is the second place a
+  // stored placement is read, and it took the value through untouched, so an
+  // "A13" reached a store that knows only column parities. Folding it onto one
+  // parity is the next wrong answer: twelve consecutive columns hold six odd
+  // and six even ones, so neither round is free.
+  it("reads a stored half as both rounds spent on the workspace restore path too", async () => {
+    const snapshot = store.slice.getWorkspaceSnapshot() as WorkspaceV3;
+    snapshot.settings.echoQuadrant = "A13";
+    snapshot.settings.echoUsedQuadrants = ["A1"];
 
     await store.slice.restoreWorkspace(snapshot);
 
     expect(store.state).toMatchObject({
       echoQuadrant: null,
-      echoUsedQuadrants: ["A1", "A13"],
-      echoLegacyPlacement: ["B2", "A1", "B1"],
+      echoUsedQuadrants: ["A1", "A2"],
+      echoLegacyPlacement: ["A13", "A1"],
     });
   });
 
-  // The value no stored name can date: both vocabularies spell it "A1". The
-  // file's own version stamp is the only thing that separates the old odd
-  // columns 1-23 from the new left half.
-  it("reads a lone A1 as legacy when the workspace predates the half layout", async () => {
+  // (c) The value no stored name can date: both vocabularies spell it "A1".
+  // The file's own version stamp is the only thing that separates the half
+  // layout's columns 1-12 from the odd columns.
+  it("reads a lone A1 as legacy when the workspace is from the half layout", async () => {
+    const snapshot = store.slice.getWorkspaceSnapshot() as WorkspaceV3;
+    snapshot.kuma_version = HALF_LAYOUT_VERSION;
+    snapshot.settings.echoQuadrant = "A1";
+    snapshot.settings.echoUsedQuadrants = [];
+
+    await store.slice.restoreWorkspace(snapshot);
+
+    expect(store.state).toMatchObject({
+      echoQuadrant: null,
+      echoUsedQuadrants: ["A1", "A2"],
+      echoLegacyPlacement: ["A1"],
+    });
+  });
+
+  it("passes a pre-0.16.61 A1 through untouched", async () => {
     const snapshot = store.slice.getWorkspaceSnapshot() as WorkspaceV3;
     snapshot.kuma_version = "0.16.58";
     snapshot.settings.echoQuadrant = "A1";
@@ -292,9 +323,9 @@ describe("exportSlice — schema_version 0.3", () => {
     await store.slice.restoreWorkspace(snapshot);
 
     expect(store.state).toMatchObject({
-      echoQuadrant: null,
-      echoUsedQuadrants: ["A1", "A13"],
-      echoLegacyPlacement: ["A1"],
+      echoQuadrant: "A1",
+      echoUsedQuadrants: [],
+      echoLegacyPlacement: null,
     });
   });
 

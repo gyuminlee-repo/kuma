@@ -4,50 +4,55 @@ import {
   echoPlacementIssue,
   foldPersistedPlacement,
   HALF_LAYOUT_VERSION,
-  predatesHalfLayout,
-  isColumnInHalf,
+  QUADRANT_RESTORE_VERSION,
+  savedUnderHalfLayout,
+  isColumnInQuadrant,
   isForwardRow,
-  otherHalves,
+  otherQuadrants,
+  quadrantColumnOffset,
   quadrantFirstColumn,
   quadrantLastColumn,
   quadrantsFilledAfterRun,
 } from "./echoQuadrant";
 
-describe("Echo source plate halves", () => {
-  it("offers exactly the two halves the core does", () => {
+describe("Echo source plate column parities", () => {
+  it("offers exactly the two rounds the core does", () => {
     // kuma_core/kuro/plate_quadrant.QUADRANTS. A third entry here would put an
-    // option in the picker the sidecar rejects.
-    expect([...ECHO_QUADRANTS]).toEqual(["A1", "A13"]);
+    // option in the picker the sidecar rejects. The v0.14.0 picker had four,
+    // with a row axis that duplicated this one.
+    expect([...ECHO_QUADRANTS]).toEqual(["A1", "A2"]);
   });
 
-  it("puts the halves on contiguous, non-overlapping column blocks", () => {
-    expect([quadrantFirstColumn("A1"), quadrantLastColumn("A1")]).toEqual([1, 12]);
-    expect([quadrantFirstColumn("A13"), quadrantLastColumn("A13")]).toEqual([13, 24]);
+  it("puts one round on the odd columns and the other on the even ones", () => {
+    expect(quadrantColumnOffset("A1")).toBe(0);
+    expect(quadrantColumnOffset("A2")).toBe(1);
+    expect([quadrantFirstColumn("A1"), quadrantLastColumn("A1")]).toEqual([1, 23]);
+    expect([quadrantFirstColumn("A2"), quadrantLastColumn("A2")]).toEqual([2, 24]);
   });
 
-  it("tests membership by column range, not by column parity", () => {
-    // The interleaved layout this replaced called every second column of a
-    // half someone else's. These four assertions are exactly where the two
-    // rules disagree.
-    expect(isColumnInHalf(1, "A1")).toBe(true);
-    expect(isColumnInHalf(2, "A1")).toBe(true);
-    expect(isColumnInHalf(13, "A1")).toBe(false);
-    expect(isColumnInHalf(14, "A13")).toBe(true);
+  it("decides membership by column parity, not by a contiguous range", () => {
+    // 절반 배치에서는 1~12 가 전부 A1 이고 13 이 아니었다. 이 네 줄이 판별점이다.
+    expect(isColumnInQuadrant(1, "A1")).toBe(true);
+    expect(isColumnInQuadrant(2, "A1")).toBe(false);
+    expect(isColumnInQuadrant(13, "A1")).toBe(true);
+    expect(isColumnInQuadrant(2, "A2")).toBe(true);
+    expect(isColumnInQuadrant(24, "A2")).toBe(true);
+    expect(isColumnInQuadrant(23, "A2")).toBe(false);
   });
 
-  it("names the one other half", () => {
-    expect(otherHalves("A1")).toEqual(["A13"]);
-    expect(otherHalves("A13")).toEqual(["A1"]);
+  it("names the round a run leaves untouched", () => {
+    expect(otherQuadrants("A1")).toEqual(["A2"]);
+    expect(otherQuadrants("A2")).toEqual(["A1"]);
   });
 
-  it("counts a run as spending one half, and a stated one only once", () => {
+  it("counts a run as spending one of the two rounds", () => {
     expect(quadrantsFilledAfterRun("A1", [])).toBe(1);
+    expect(quadrantsFilledAfterRun("A1", ["A2"])).toBe(2);
     expect(quadrantsFilledAfterRun("A1", ["A1"])).toBe(1);
-    expect(quadrantsFilledAfterRun("A1", ["A13"])).toBe(2);
   });
 
-  it("reads direction off row parity alone", () => {
-    // Forward at 384 row 2r, reverse at 2r+1, in either half.
+  it("reads direction from row parity alone, in either round", () => {
+    // 행 축은 선택지가 아니므로 round 를 인자로 받지 않는다.
     expect(isForwardRow(0)).toBe(true);
     expect(isForwardRow(1)).toBe(false);
     expect(isForwardRow(14)).toBe(true);
@@ -55,61 +60,56 @@ describe("Echo source plate halves", () => {
   });
 });
 
-// A project saved before the half layout stored an interleaved placement, and
-// every one of those values spanned the full plate width: old "A1"/"B1" were
-// the odd columns 1-23 and old "A2"/"B2" the even columns 2-24. So one old
-// round occupies 96 wells of each new half, and no half of it is free. Folding
-// such a placement onto one half was the permissive answer, and it moved every
-// source well of a reopened project without saying so.
-describe("dating a stored placement by the saved app version", () => {
-  it("calls a build older than the half layout old, comparing segments as numbers", () => {
-    // "0.16.9" is the case a string comparison gets wrong: "0.16.9" > "0.16.61"
-    // lexically, and it is an older build.
-    expect(predatesHalfLayout("0.16.58")).toBe(true);
-    // 0.16.59 and 0.16.60 shipped from main with the interleaved layout.
-    expect(predatesHalfLayout("0.16.59")).toBe(true);
-    expect(predatesHalfLayout("0.16.60.3")).toBe(true);
-    expect(predatesHalfLayout("0.16.9")).toBe(true);
-    expect(predatesHalfLayout("0.9.99")).toBe(true);
+describe("dating a saved file against the half layout", () => {
+  it("calls the releases that wrote contiguous-half names half-era", () => {
+    expect(savedUnderHalfLayout(HALF_LAYOUT_VERSION)).toBe(true);
+    expect(savedUnderHalfLayout("0.16.61")).toBe(true);
+    expect(savedUnderHalfLayout("0.16.61.1")).toBe(true);
+    expect(savedUnderHalfLayout("0.16.65")).toBe(true);
+    expect(savedUnderHalfLayout("v0.16.63")).toBe(true);
   });
 
-  it("calls the half-layout release and anything after it current", () => {
-    expect(predatesHalfLayout(HALF_LAYOUT_VERSION)).toBe(false);
-    expect(predatesHalfLayout("0.16.61")).toBe(false);
-    expect(predatesHalfLayout("0.16.61.1")).toBe(false);
-    expect(predatesHalfLayout("0.17.0")).toBe(false);
-    expect(predatesHalfLayout("1.0.0")).toBe(false);
-    // The parser strips a leading "v", so a tag-shaped string is the same build.
-    expect(predatesHalfLayout("v0.16.61")).toBe(false);
+  it("calls anything before 0.16.61 an interleaved-era file", () => {
+    expect(savedUnderHalfLayout("0.16.60.3")).toBe(false);
+    expect(savedUnderHalfLayout("0.16.9")).toBe(false);
+    expect(savedUnderHalfLayout("0.9.99")).toBe(false);
   });
 
-  it("treats an unreadable or absent version as old", () => {
-    // A file with no version predates the field itself. Guessing "current" here
-    // is the one guess that silently moves wells.
-    expect(predatesHalfLayout("")).toBe(true);
-    expect(predatesHalfLayout(undefined)).toBe(true);
-    expect(predatesHalfLayout(null)).toBe(true);
-    expect(predatesHalfLayout("0.0.0-test")).toBe(true);
-    expect(predatesHalfLayout("latest")).toBe(true);
-    expect(predatesHalfLayout(16.59)).toBe(true);
+  it("calls this release and later current", () => {
+    expect(savedUnderHalfLayout(QUADRANT_RESTORE_VERSION)).toBe(false);
+    expect(savedUnderHalfLayout("0.17.0")).toBe(false);
+    expect(savedUnderHalfLayout("1.0.0")).toBe(false);
+  });
+
+  it("treats an absent or unparseable version as not half-era", () => {
+    // 이 방향이어야 하는 이유: half 이름을 쓴 릴리스는 전부 이 스탬프도 함께
+    // 썼다. 스탬프가 없다는 것은 0.16.61 이전이라는 뜻이고 그 시절 값은 이미
+    // 열 패리티를 뜻한다. 반대로 읽으면 0.16.61 이전 프로젝트의 선택이 전부
+    // 이유 없이 떨어진다.
+    expect(savedUnderHalfLayout("")).toBe(false);
+    expect(savedUnderHalfLayout(undefined)).toBe(false);
+    expect(savedUnderHalfLayout(null)).toBe(false);
+    expect(savedUnderHalfLayout("0.0.0-test")).toBe(false);
+    expect(savedUnderHalfLayout("latest")).toBe(false);
+    expect(savedUnderHalfLayout(16.61)).toBe(false);
   });
 });
 
 describe("reading a persisted placement", () => {
-  const CURRENT = HALF_LAYOUT_VERSION;
+  const CURRENT = QUADRANT_RESTORE_VERSION;
 
   it("passes a placement this version wrote through unchanged", () => {
-    expect(foldPersistedPlacement("A13", ["A1"], CURRENT)).toEqual({
-      quadrant: "A13",
+    expect(foldPersistedPlacement("A2", ["A1"], CURRENT)).toEqual({
+      quadrant: "A2",
       usedQuadrants: ["A1"],
       legacySeen: [],
     });
   });
 
-  it("normalises case and padding, and orders used halves canonically", () => {
-    expect(foldPersistedPlacement(" a1 ", ["a13", "A1", "A13"], CURRENT)).toEqual({
+  it("normalises case and padding, and orders used rounds canonically", () => {
+    expect(foldPersistedPlacement(" a1 ", ["a2", "A1", "A2"], CURRENT)).toEqual({
       quadrant: "A1",
-      usedQuadrants: ["A1", "A13"],
+      usedQuadrants: ["A1", "A2"],
       legacySeen: [],
     });
   });
@@ -122,53 +122,77 @@ describe("reading a persisted placement", () => {
     });
   });
 
-  it("spends both halves when any stored name is a legacy one", () => {
-    // The old quadrant is not folded onto a half: its 192 wells split 96/96
-    // across the two halves, so neither half is free and neither is a
-    // legitimate selection.
-    expect(foldPersistedPlacement("A2", [], CURRENT)).toEqual({
-      quadrant: null,
-      usedQuadrants: ["A1", "A13"],
-      legacySeen: ["A2"],
+  it("folds an interleaved-era B1 or B2 without calling it legacy", () => {
+    // (a) 그 이름들은 이 라운드들을 reverse 쪽에서 부른 것이다. 접어도 좌표가
+    // 하나도 움직이지 않으므로 작업자가 할 일이 없고, 경고를 띄울 이유도 없다.
+    expect(foldPersistedPlacement("B1", [], "0.16.60")).toEqual({
+      quadrant: "A1",
+      usedQuadrants: [],
+      legacySeen: [],
+    });
+    expect(foldPersistedPlacement("B2", ["B1"], "0.16.60")).toEqual({
+      quadrant: "A2",
+      usedQuadrants: ["A1"],
+      legacySeen: [],
+    });
+    expect(foldPersistedPlacement("A2", ["B2", "A2"], "0.16.58")).toEqual({
+      quadrant: "A2",
+      usedQuadrants: ["A2"],
+      legacySeen: [],
     });
   });
 
-  it("dates the whole placement from one legacy name, quadrant or used", () => {
-    // The "A1" beside "B2" is an old name too, so it is reported rather than
-    // read as the left half.
-    expect(foldPersistedPlacement("B2", ["A1"], CURRENT)).toEqual({
+  it("spends both rounds when a stored name is a half name", () => {
+    // (b) 12 연속 열은 어느 열 패리티에도 대응되지 않고 두 라운드 각각의 192 웰
+    // 중 96 웰 위에 앉는다. 한쪽으로 접으면 모든 소스 웰이 말없이 옮겨진다.
+    expect(foldPersistedPlacement("A13", [], CURRENT)).toEqual({
       quadrant: null,
-      usedQuadrants: ["A1", "A13"],
-      legacySeen: ["B2", "A1"],
+      usedQuadrants: ["A1", "A2"],
+      legacySeen: ["A13"],
     });
-    expect(foldPersistedPlacement("A13", ["B1"], CURRENT)).toEqual({
+    expect(foldPersistedPlacement(null, ["A13"], CURRENT)).toEqual({
       quadrant: null,
-      usedQuadrants: ["A1", "A13"],
-      legacySeen: ["A13", "B1"],
+      usedQuadrants: ["A1", "A2"],
+      legacySeen: ["A13"],
     });
   });
 
-  it("reads a lone A1 as old when the file is older than the half layout", () => {
-    // This is the case no stored value can settle: both vocabularies spell it
-    // "A1". Without the version test the old odd-column set is read as the
-    // left half and the right half is declared free while primers sit in it.
-    expect(foldPersistedPlacement("A1", [], "0.16.58")).toEqual({
+  it("dates the whole placement from one half name, quadrant or used", () => {
+    // The "A1" beside "A13" is columns 1-12 too, so it is reported rather than
+    // read as the odd columns.
+    expect(foldPersistedPlacement("A13", ["A1"], CURRENT)).toEqual({
       quadrant: null,
-      usedQuadrants: ["A1", "A13"],
+      usedQuadrants: ["A1", "A2"],
+      legacySeen: ["A13", "A1"],
+    });
+  });
+
+  it("refuses a lone A1 saved inside the half-layout range", () => {
+    // (c) 이 입력은 저장값만으로는 판별되지 않는다. 두 어휘가 "A1" 을 같은 글자로
+    // 쓰기 때문이다. 버전 판별이 없으면 half 시절의 1~12 열 블록이 홀수 열로
+    // 읽히고, 프라이머가 든 짝수 열 라운드가 비어 있다고 선언된다.
+    expect(foldPersistedPlacement("A1", [], HALF_LAYOUT_VERSION)).toEqual({
+      quadrant: null,
+      usedQuadrants: ["A1", "A2"],
       legacySeen: ["A1"],
     });
-    expect(foldPersistedPlacement("A1", [], undefined)).toEqual({
+    expect(foldPersistedPlacement("A1", [], "0.16.65")).toEqual({
       quadrant: null,
-      usedQuadrants: ["A1", "A13"],
+      usedQuadrants: ["A1", "A2"],
       legacySeen: ["A1"],
     });
-    expect(foldPersistedPlacement("A1", [], "0.16.61").quadrant).toBe("A1");
+    expect(foldPersistedPlacement("A1", [], QUADRANT_RESTORE_VERSION).quadrant).toBe("A1");
   });
 
-  it("leaves an empty placement empty however old the file is", () => {
-    // A project that never picked a half states nothing about the plate, so
-    // there is nothing to re-date. Reporting both halves spent here would
+  it("leaves an empty placement empty however the file is dated", () => {
+    // A project that never picked a round states nothing about the plate, so
+    // there is nothing to re-date. Reporting both rounds spent here would
     // invent a plate state and make the operator clear a claim nobody made.
+    expect(foldPersistedPlacement(null, [], HALF_LAYOUT_VERSION)).toEqual({
+      quadrant: null,
+      usedQuadrants: [],
+      legacySeen: [],
+    });
     expect(foldPersistedPlacement(null, [], "0.1.0")).toEqual({
       quadrant: null,
       usedQuadrants: [],
@@ -178,22 +202,23 @@ describe("reading a persisted placement", () => {
 });
 
 describe("refusing a placement the sidecar would reject", () => {
-  it("passes a half that is not marked spent", () => {
+  it("passes a round that is not marked spent", () => {
     expect(echoPlacementIssue("A1", [])).toBeNull();
-    expect(echoPlacementIssue("A1", ["A13"])).toBeNull();
+    expect(echoPlacementIssue("A1", ["A2"])).toBeNull();
   });
 
-  it("refuses spent halves with no half chosen", () => {
-    // This is what a legacy placement folds to, and it is the combination the
-    // mapper raises on rather than quietly drawing the left half.
-    expect(echoPlacementIssue(null, ["A1", "A13"])).toBe("noHalfSelected");
+  it("refuses spent rounds with none chosen", () => {
+    // This is what a half-era placement folds to, and it is the combination
+    // the mapper raises on rather than quietly drawing columns 1-12.
+    expect(echoPlacementIssue(null, ["A1", "A2"])).toBe("noQuadrantSelected");
+    expect(echoPlacementIssue(null, ["A1"])).toBe("noQuadrantSelected");
   });
 
   it("passes an empty placement, which is the untouched-plate default", () => {
     expect(echoPlacementIssue(null, [])).toBeNull();
   });
 
-  it("refuses dispensing on top of a half the operator marked spent", () => {
-    expect(echoPlacementIssue("A13", ["A13"])).toBe("halfAlreadyUsed");
+  it("refuses dispensing on top of a round the operator marked spent", () => {
+    expect(echoPlacementIssue("A2", ["A2"])).toBe("quadrantAlreadyUsed");
   });
 });

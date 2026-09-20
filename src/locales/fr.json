@@ -2599,14 +2599,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "L etape de code-barres recoit desormais un seul nombre, la distance dont l amplicon depasse le CDS, au lieu de faire partager un nom au gap et a l overhang.",
-      "Les valeurs par defaut passent de 100 et 400 a 20 et 60, une plage qui contient l overhang de 16 bp mesure sur la conception ispS.",
-      "Une matrice lineaire courte est exploree jusqu a son propre bord au lieu d etre refusee parce qu elle est plus courte que la borne exterieure de recherche.",
-      "Les deux brins cherchent vers l exterieur, l amplicon est donc symetrique et les derniers codons restent hors de la marge de bord de reference.",
-      "Une amorce ne peut plus se placer dans la region codante, et un flank_max enregistre est repris comme overhang_max."
+      "La plaque source Echo revient à des colonnes entrelacées, car un 96-head n'atteint pas une moitié contiguë de la plaque en un seul tampon.",
+      "Une série est une parité de colonnes sur les seize lignes, 192 puits, et deux séries remplissent une plaque source.",
+      "Le sélecteur propose deux séries au lieu de quatre, car l'ancien axe des lignes nommait les mêmes deux séries avec forward et reverse permutés.",
+      "Un projet enregistré avant v0.16.61 s'ouvre inchangé, car les noms stockés désignent des séries de cette version et aucun puits source ne bouge.",
+      "Un projet enregistré avec la disposition half perd sa sélection et marque les deux séries comme utilisées, car une moitié ne correspond à aucune parité de colonnes."
     ],
-    "highlightsStamp": "0.16.67+a8a547ef",
+    "highlightsStamp": "0.16.68+33844e5d",
     "releases": {
+      "0.16.68": [
+        "La plaque source Echo revient à des colonnes entrelacées, car un 96-head n'atteint pas une moitié contiguë de la plaque en un seul tampon.",
+        "Une série est une parité de colonnes sur les seize lignes, 192 puits, et deux séries remplissent une plaque source.",
+        "Le sélecteur propose deux séries au lieu de quatre, car l'ancien axe des lignes nommait les mêmes deux séries avec forward et reverse permutés.",
+        "Un projet enregistré avant v0.16.61 s'ouvre inchangé, car les noms stockés désignent des séries de cette version et aucun puits source ne bouge.",
+        "Un projet enregistré avec la disposition half perd sa sélection et marque les deux séries comme utilisées, car une moitié ne correspond à aucune parité de colonnes."
+      ],
       "0.16.67": [
         "L etape de code-barres recoit desormais un seul nombre, la distance dont l amplicon depasse le CDS, au lieu de faire partager un nom au gap et a l overhang.",
         "Les valeurs par defaut passent de 100 et 400 a 20 et 60, une plage qui contient l overhang de 16 bp mesure sur la conception ispS.",
@@ -3087,6 +3094,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.68": "33844e5d",
       "0.16.67": "a8a547ef",
       "0.16.66": "c8cb9c13",
       "0.16.65": "2d61386f",
@@ -3380,16 +3388,17 @@
         },
         "bomLabel": "Ajouter un BOM UTF-8",
         "bomHint": "(compatibilité Excel)",
-        "quadrantLabel": "Moitié de la plaque source Echo",
-        "quadrantNone": "Non spécifiée (colonnes 1-12, sans contrôle des moitiés utilisées)",
-        "quadrantColumns": "colonnes {{from}}-{{to}}",
-        "quadrantHelper": "Une série remplit une moitié : les amorces forward sur les lignes A, C, E ... et chaque reverse une ligne en dessous, dans la même colonne.",
-        "usedQuadrantsLabel": "Moitiés déjà utilisées sur cette plaque",
-        "usedQuadrantsHelper": "L'export est refusé si la moitié sélectionnée est l'une d'elles.",
-        "legacyPlacementNotice": "Ce projet a été enregistré avant la v{{version}}, quand une série occupait toute la source plate au lieu d'une moitié. La disposition enregistrée ({{values}}) couvre les deux moitiés, donc les deux sont marquées comme utilisées et aucune n'est sélectionnée. Sur une plaque neuve, décochez d'abord les moitiés utilisées ci-dessous, puis choisissez une moitié.",
+        "quadrantLabel": "Colonnes de la plaque source Echo",
+        "quadrantNone": "Non spécifié (colonnes 1-12, sans vérification des séries utilisées)",
+        "quadrantColumnsOdd": "colonnes impaires 1, 3 ... 23",
+        "quadrantColumnsEven": "colonnes paires 2, 4 ... 24",
+        "quadrantHelper": "Un passage du 96-head n'atteint qu'une colonne sur deux, donc une série prend l'une des deux. Les forward primers occupent les lignes A, C, E ... et chaque reverse primer une ligne en dessous, dans la même colonne.",
+        "usedQuadrantsLabel": "Séries déjà utilisées sur cette plaque",
+        "usedQuadrantsHelper": "L'export est refusé si la série sélectionnée est l'une d'elles.",
+        "legacyPlacementNotice": "Ce projet a été enregistré entre v{{from}} et v{{to}}, lorsqu'une série remplissait douze colonnes consécutives au lieu d'une colonne sur deux. La disposition enregistrée ({{values}}) recouvre une partie des deux séries, donc les deux sont marquées comme utilisées et aucune n'est sélectionnée. Sur une plaque neuve, décochez d'abord les cases ci-dessous avant d'en choisir une.",
         "placementBlocked": {
-          "noHalfSelected": "Des moitiés sont marquées comme utilisées sur cette plaque, mais aucune moitié n'est sélectionnée pour cette série. Choisissez A1 ou A13, ou décochez les moitiés utilisées si la plaque est neuve.",
-          "halfAlreadyUsed": "La moitié sélectionnée est déjà marquée comme utilisée sur cette plaque. Y distribuer détruirait les primers qui s'y trouvent. Choisissez l'autre moitié ou décochez sa case."
+          "noQuadrantSelected": "Des séries sont marquées comme utilisées sur cette plaque mais aucune n'est sélectionnée pour cette exécution. Choisissez A1 ou A2, ou décochez les cases s'il s'agit d'une plaque neuve.",
+          "quadrantAlreadyUsed": "La série sélectionnée est déjà marquée comme utilisée sur cette plaque. Y distribuer détruirait les primers déjà présents. Choisissez l'autre série, ou décochez sa case."
         },
         "plateNameFwd": "Nom de la plaque d'amorces forward",
         "plateNameRev": "Nom de la plaque d'amorces reverse",
@@ -3680,14 +3689,14 @@
     "errorTitle": "Échec de l'aperçu",
     "echoSourcePlateLabel": "Plaque source Echo (384 puits)",
     "destPlateLabel": "Plaque de destination (96 puits)",
-    "quadrantBatch": "Cette série remplit la moitié {{half}} de la plaque, colonnes {{from}}-{{to}}. Les amorces sens occupent les lignes A, C, E ... et chaque amorce antisens se place une ligne en dessous.",
-    "quadrantProgress": "Après cette série, {{filled}} moitiés sur {{total}} de cette plaque sont occupées.",
-    "quadrantHalfNote": "Les colonnes {{from}}-{{to}} forment l'autre moitié, {{others}}, et restent libres pour la série suivante.",
+    "quadrantBatch": "Cette exécution remplit la série {{round}} : une colonne sur deux, à partir de la colonne {{first}}. Les forward primers occupent les lignes A, C, E ... et chaque reverse primer une ligne en dessous.",
+    "quadrantProgress": "Après cette exécution, {{filled}} des {{total}} séries de cette plaque seront occupées.",
+    "quadrantInterleaveNote": "Un passage du 96-head n'atteint qu'une colonne sur deux. Les colonnes intermédiaires appartiennent à {{others}} et restent libres pour la série suivante.",
     "quadrantUsedNote": "Déjà occupées sur cette plaque : {{list}}",
-    "quadrantNoneNote": "Aucune moitié sélectionnée. Le run occupe toujours les colonnes 1-12, les mêmes puits que la moitié A1, seule la vérification des moitiés déjà utilisées est ignorée.",
+    "quadrantNoneNote": "Aucune série sélectionnée. L'exécution se place toujours sur les colonnes 1-12 sans en sauter, ce qui correspond à la disposition antérieure au choix de série, et seule la vérification des séries déjà utilisées est omise.",
     "quadrantLegendFree": "Bordure pleine : puits utilisé par cette série",
     "quadrantLegendReserved": "Bordure pointillée : réservé pour {{others}}",
-    "echoReservedWellTitle": "{{well}}, réservé à la moitié {{quadrants}}"
+    "echoReservedWellTitle": "{{well}}, réservé à la série {{quadrants}}"
   },
   "errors": {
     "sequence": {
