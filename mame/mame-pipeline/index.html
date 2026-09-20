@@ -1609,6 +1609,7 @@ quality를 보존한 뒤, 자체 demux/consensus/verdict 레이어에서 품질 
     - FASTQ quality가 있으면 Q10 미만 base vote 제외
     - FASTA-only legacy input은 기존 unweighted majority 유지
     - N if depth &lt; min_depth
+    - '-' if deletion 이 spanning depth 의 과반을 넘김 (과반 미만은 N 유지)
     - mixed allele, low-depth, low-quality base 지표 기록
     출력: {unit_dir}/{r_idx}_{f_idx}.fasta
 </code></pre></div>
@@ -1736,7 +1737,7 @@ consensus 단계가 메모리에 있는 read를 그대로 쓰기 때문에 이 �
 </tr>
 <tr>
 <td><code>consensus_n_fraction</code></td>
-<td><code>min_depth</code>에 도달한 position 중 <code>N</code> 비율</td>
+<td><code>min_depth</code>에 도달한 position 중 no-call 비율. 문자로는 <code>N</code> 과 <code>-</code> 를 모두 센다. 값 자체는 문자가 아니라 mask 로 계산한다</td>
 <td>기본값 0 초과 시 LOWDEPTH</td>
 </tr>
 <tr>
