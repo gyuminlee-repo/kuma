@@ -395,6 +395,25 @@ def _serialize_verdict(vr: Any) -> dict:
         for anchor, bases in b.ins_majority_bases
     ]
     out["n_ins_majority_anchors"] = b.n_ins_majority_anchors
+    # The remaining consensus-header fields. They come from the same header as
+    # the block above and were lost the same way, so they are carried here under
+    # the same rule and the round-trip completeness test now holds all of them.
+    #
+    # ``max_del_run_length`` is a plain count and 0 is a real answer (no
+    # deletion-majority run), so it is emitted unconditionally.
+    #
+    # The two net-indel fields carry their ``None`` through JSON null rather
+    # than defaulting to 0, because None is NOT MEASURED and 0 is a measured
+    # indel-free consensus. The FRAMESHIFT gate reads
+    # ``consensus_net_indel_bp`` and skips itself on None (models.py:227-235),
+    # so substituting 0 would turn a skipped gate into a passed one.
+    out["max_del_run_length"] = b.max_del_run_length
+    out["consensus_net_indel_bp"] = b.consensus_net_indel_bp
+    out["median_read_net_indel_bp"] = b.median_read_net_indel_bp
+    # The molecule at its own length (TranslatedRecord, not BarcodeRecord).
+    # ``None`` means it could not be built honestly and travels as JSON null for
+    # the same reason: an empty string would claim a zero-length molecule.
+    out["length_true_nt"] = t.length_true_nt
     return out
 
 
@@ -477,6 +496,11 @@ def _deserialize_verdict(d: dict) -> Any:
         """``None`` when the key is absent, so unknown never becomes 0.0."""
         value = d.get(key)
         return None if value is None else float(value)
+
+    def _opt_int(key: str) -> int | None:
+        """``None`` when the key is absent, so unmeasured never becomes 0."""
+        value = d.get(key)
+        return None if value is None else int(value)
 
     depth_min_covered = d.get("depth_min_covered")
     barcode = BarcodeRecord(
@@ -570,13 +594,29 @@ def _deserialize_verdict(d: dict) -> Any:
             for item in d.get("ins_majority_bases", ())
         ),
         n_ins_majority_anchors=int(d.get("n_ins_majority_anchors", 0)),
+        # Same legacy contract as the block above: absent means the payload was
+        # written before the key was carried, and BarcodeRecord's own default
+        # stands. ``max_del_run_length`` defaults to 0 because 0 is what a
+        # record built without it already reports.
+        max_del_run_length=int(d.get("max_del_run_length", 0)),
+        # These two keep their ``None`` rather than coercing to 0, because None
+        # is NOT MEASURED and skips the FRAMESHIFT gate while 0 is a measured
+        # indel-free consensus. A legacy payload lacks the key and restores as
+        # None, which is the model's own default and the pre-existing behaviour.
+        consensus_net_indel_bp=_opt_int("consensus_net_indel_bp"),
+        median_read_net_indel_bp=_opt_int("median_read_net_indel_bp"),
     )
+    # ``None`` when the length-true molecule could not be built, and that is
+    # also what a legacy payload restores as. An empty string would claim a
+    # zero-length molecule, so the key is read without a string default.
+    length_true_nt = d.get("length_true_nt")
     translated = TranslatedRecord(
         barcode=barcode,
         aa_sequence=d.get("aa_sequence", ""),
         observed_nt_changes=list(d.get("observed_nt_changes", [])),
         observed_aa_changes=list(d.get("observed_aa_changes", [])),
         n_no_call_aa=int(d.get("n_no_call_aa", 0)),
+        length_true_nt=(None if length_true_nt is None else str(length_true_nt)),
     )
     return VerdictRecord(
         translated=translated,
