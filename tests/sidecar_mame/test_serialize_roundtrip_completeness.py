@@ -65,6 +65,9 @@ EXCLUDED: dict[str, str] = {
 }
 
 
+_T = typing.TypeVar("_T")
+
+
 class _Filler:
     """Build a model instance whose every field differs from its default.
 
@@ -80,10 +83,13 @@ class _Filler:
         self._counter += 1
         return self._counter
 
-    def build(self, cls: type, path: str) -> object:
+    def build(self, cls: type[_T], path: str) -> _T:
         hints = typing.get_type_hints(cls)
         kwargs: dict[str, object] = {}
-        for field in dc.fields(cls):
+        # ``cls`` is a dataclass by contract, which the TypeVar cannot state
+        # without a protocol that every model would have to declare.
+        dataclass_cls: typing.Any = cls
+        for field in dc.fields(dataclass_cls):
             if field.default is not dc.MISSING:
                 default: object = field.default
             elif field.default_factory is not dc.MISSING:  # type: ignore[misc]
