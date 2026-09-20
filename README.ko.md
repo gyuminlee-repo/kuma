@@ -316,4 +316,29 @@ Kuro·Mame 는 `docs/standards/common-frontend-standards.md` (v1.1 stable) 의 2
 
 ## 라이선스
 
-[GPL v2](LICENSE)
+KUMA 소스 코드는 [GNU GPL version 2](LICENSE) 를 따른다. 지금까지 공개된 모든
+릴리스도 같은 조건으로 배포되었고 앞으로도 그 조건으로 이용할 수 있다.
+
+KUMA 는 `primer3-py` 에 의존한다. 이 라이브러리는 링크 예외 없이 GPL version 2
+로 배포되며 두 PyInstaller 사이드카 바이너리에 함께 수집된다. GPL version 2 의
+6항은 수령자에게 추가 제한을 부과하는 것을 금지하므로 결합 저작물에 비상업 조항을
+붙일 수 없다. 따라서 현재 구성에서는 연구 전용이나 비상업 제한을 담은 라이선스를
+선택할 수 없다. 근거는 [라이선스 검토표](docs/ko/license-compliance.md) 에 있다.
+
+GPL version 2 가 상업적 재배포자에게 요구하는 것은 소스 공개다. KUMA 나 그
+파생물을 제품으로 배포하거나 바이너리를 전달하는 서비스로 제공하는 쪽은 그
+파생물의 대응 소스 전체를 동일한 GPL version 2 조건으로 제공해야 한다.
+
+GPL version 2 밖의 조건을 문의하려면 저작권자(이규민, GitHub `gyuminlee-repo`)
+에게 연락한다. 그런 조건을 마련하려면 위에 적은 GPL 의존성을 먼저 교체해야 하며
+이 문단은 대체 라이선스가 존재한다고 약속하지 않는다.
+
+KUMA, KURO, MAME 이름은 LICENSE 파일이 상표로 허락한 대상이 아니다.
+
+### 문서 라이선스
+
+`docs/en/` 과 `docs/ko/` 의 사용자 문서와 `docs/screenshots*/` 의 스크린샷은
+[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/) 을 따른다. 파일이
+다른 출처를 명시한 경우는 제외한다. 애플리케이션 번들에 컴파일되어 GPL version 2
+로 배포되는 `docs/help/**` 와 [NOTICE-bundled.md](NOTICE-bundled.md) 에 나열된
+서드파티 자료에는 이 허락을 적용하지 않는다.
