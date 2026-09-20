@@ -321,4 +321,35 @@ Kuro and Mame conform to the **Common Frontend Standards charter** (`docs/standa
 
 ## License
 
-[GPL v2](LICENSE)
+The KUMA source code is licensed under [GNU GPL version 2](LICENSE). Every
+release published so far carries the same terms and stays available under them.
+
+KUMA depends on `primer3-py`, which is distributed under GPL version 2 with no
+linking exception, and that library is collected into both PyInstaller sidecar
+binaries. Section 6 of GPL version 2 forbids imposing further restrictions on
+recipients, so no noncommercial clause can be attached to the combined work. A
+research-only or noncommercial license is therefore not available for KUMA as
+currently built. See [license compliance](docs/en/license-compliance.md) for
+the evidence behind that finding.
+
+What GPL version 2 does require of a commercial redistributor is source
+release. Anyone who distributes KUMA or a derivative of it, in a product or
+through a service that delivers the binary, has to supply the complete
+corresponding source of that derivative under the same GPL version 2 terms.
+
+For inquiries about terms outside GPL version 2, contact the copyright holder
+(Gyu Min Lee, `gyuminlee-repo` on GitHub). Any such arrangement would first
+require replacing the GPL dependencies described above, and this notice does
+not promise that an alternative license exists.
+
+The names KUMA, KURO and MAME are not licensed as trademarks by the LICENSE
+file.
+
+### Documentation license
+
+The user documentation under `docs/en/` and `docs/ko/` and the screenshots
+under `docs/screenshots*/` are licensed
+[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/), except where a
+file names a different source. That grant does not cover `docs/help/**`, which
+is compiled into the application bundle and ships under GPL version 2, nor any
+third-party material listed in [NOTICE-bundled.md](NOTICE-bundled.md).
