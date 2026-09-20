@@ -277,6 +277,12 @@ def _recover_covered_n_fraction(
     consensus.py). Both the numerator and denominator therefore follow by
     subtraction.
 
+    That ``N``-only count is correct HERE and only here. The caller now writes
+    '-' at deletion-majority positions, so a sequence it produced today has
+    no-calls under two characters. Files written that way carry the
+    ``consensus_n_fraction_basis=covered`` marker and never reach this
+    function; a legacy header has no such marker and no gap character either.
+
     Returns ``None`` when recovery is not possible: no ``low_depth_positions``
     key, an empty sequence, or counts that contradict the invariant. Callers must
     treat ``None`` as "not evaluable" rather than substituting a value.

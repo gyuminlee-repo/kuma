@@ -36,6 +36,7 @@ MinKNOW run dir (fastq_pass/)
     - FASTQ quality가 있으면 Q10 미만 base vote 제외
     - FASTA-only legacy input은 기존 unweighted majority 유지
     - N if depth < min_depth
+    - '-' if deletion 이 spanning depth 의 과반을 넘김 (과반 미만은 N 유지)
     - mixed allele, low-depth, low-quality base 지표 기록
     출력: {unit_dir}/{r_idx}_{f_idx}.fasta
 ```
@@ -99,7 +100,7 @@ consensus 단계가 메모리에 있는 read를 그대로 쓰기 때문에 이 �
 | Header field | 의미 | verdict 영향 |
 |---|---|---|
 | `depth` | consensus에 실제로 기여한 passing read 수 | optional `min_read_count` LOWDEPTH gate |
-| `consensus_n_fraction` | `min_depth`에 도달한 position 중 `N` 비율 | 기본값 0 초과 시 LOWDEPTH |
+| `consensus_n_fraction` | `min_depth`에 도달한 position 중 no-call 비율. 문자로는 `N` 과 `-` 를 모두 센다. 값 자체는 문자가 아니라 mask 로 계산한다 | 기본값 0 초과 시 LOWDEPTH |
 | `consensus_n_fraction_basis` | 위 비율의 분모 정의. 현재 값은 `covered` | 표식이 없으면 아래 참조 |
 | `low_depth_positions` | `min_depth` 미만 position 수 | LOWDEPTH note에 기록 |
 | `low_quality_bases` | Phred gate로 vote 제외된 base 수 | LOWDEPTH note / Excel QC 근거 |

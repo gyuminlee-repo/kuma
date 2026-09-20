@@ -166,11 +166,12 @@ class BarcodeRecord:
     max_del_run_length: int = 0
     # Reference positions (1-based) the called molecule is missing, i.e. the
     # positions whose deletion fraction won a majority. ``consensus_seq`` writes
-    # 'N' at each of them and KEEPS DOING SO: the stored record stays in the
-    # ACGTN alphabet, and this list is the separate channel that carries the same
-    # fact. ``translate/aa_translator.py`` reads it to build a gapped copy at
-    # translation time, which is what turns a deletion into a `{REF}{pos}del`
-    # marker instead of a spurious substitution to N.
+    # '-' at exactly these positions, so the two agree; 'N' in that string now
+    # means no call and nothing else. The list is still carried because a
+    # LEGACY consensus file has 'N' there instead, and
+    # ``translate/aa_translator.py`` reads it to build a gapped copy at
+    # translation time, which is what turns that deletion into a
+    # `{REF}{pos}del` marker instead of a spurious substitution to N.
     #
     # Empty for a well with no deletion majority, for a consensus file written
     # before the key existed, and for a well whose deletion runs exceeded the
@@ -192,7 +193,7 @@ class BarcodeRecord:
     # time to build the length-true sequence.
     #
     # Without it a block substitution is unreadable. minimap2 writes a swapped
-    # codon as an insertion beside a deletion, so the deletion becomes an 'N' and
+    # codon as an insertion beside a deletion, so the deletion becomes a gap and
     # the insertion vanishes: the LENGTH is right
     # (``consensus_net_indel_bp == 0``) and the BASES are absent. That is the one
     # case where a zero net indel does not mean "nothing happened", and the only

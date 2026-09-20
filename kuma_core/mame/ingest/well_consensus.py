@@ -228,9 +228,31 @@ def consensus_identity(consensus_seq: str, reference_seq: str) -> float | None:
     """Fraction of CALLED consensus bases that match the reference.
 
     Denominator is the positions the consensus actually calls, i.e. those whose
-    character is not ``N``.  Every uncovered or ambiguous position is already an
-    ``N`` by construction (see ``call_consensus``), so "called" and "covered and
+    character is neither ``N`` nor ``-``.  Every uncovered or ambiguous position
+    is already an ``N`` and every deletion-majority position a ``-`` by
+    construction (see ``call_consensus``), so "called" and "covered and
     unambiguous" are the same set and no separate depth mask is needed.
+
+    A gap is EXCLUDED rather than scored as a mismatch.  It is not a base the
+    well read differently; it is a base the molecule does not have, so counting
+    it against identity would report a confident deletion as a sequencing
+    disagreement and drive the number down by the deletion length.  Excluding
+    it also keeps this metric byte-identical to what it was while the same
+    positions were written ``N``.
+
+    That exclusion is not merely conservative, it is what keeps the number
+    readable at all.  This consensus is emitted at reference length, so an
+    insertion never reaches the string (see ``call_consensus``: insertions are
+    counted, not incorporated).  Scoring deletions as mismatches while
+    insertions stay invisible would penalise one direction of the same event
+    and leave a figure that cannot be read as "how much of the molecule matches
+    the reference".  Both indel directions are reported instead by channels of
+    their own, ``del_majority_positions``, ``ins_majority_bases`` and
+    ``consensus_net_indel_bp``, and this metric deliberately answers the
+    narrower question its denominator states: of the positions where a base was
+    called, how many match.  An identity that sees both directions has to be
+    computed on the length-restored molecule ``build_length_true_nt`` returns,
+    not here.
 
     ``None`` means the denominator was empty: the well called nothing, so its
     identity is UNKNOWN.  0.0 is the opposite and much stronger statement, that
@@ -255,7 +277,7 @@ def consensus_identity(consensus_seq: str, reference_seq: str) -> float | None:
 
     cons = np.frombuffer(consensus_seq[:n].upper().encode("ascii"), dtype=np.uint8)
     ref = np.frombuffer(reference_seq[:n].upper().encode("ascii"), dtype=np.uint8)
-    called = cons != ord("N")
+    called = (cons != ord("N")) & (cons != ord("-"))
     n_called = int(called.sum())
     if n_called == 0:
         return None
