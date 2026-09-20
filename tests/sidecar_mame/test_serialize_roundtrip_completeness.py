@@ -2,9 +2,9 @@
 
 ``_serialize_verdict`` and ``_deserialize_verdict`` copy model fields by hand,
 so adding a field to ``kuma_core.mame.models`` and carrying it across the
-serialization boundary are independent acts. Three fields were lost that way
-before this test existed, each found only after a reopened session reported
-something the live run had measured.
+serialization boundary are independent acts. Four fields were lost that way
+before this test existed, three of them found only after a reopened session
+reported something the live run had measured and the fourth found by this test.
 
 The test therefore names no field. It reads ``dataclasses.fields`` at run time,
 fills every field with a value derived from its declared type, pushes the record
@@ -167,44 +167,56 @@ class _Filler:
         )
 
 
-def _diff(original: object, restored: object, path: str) -> list[str]:
-    """Field-level differences between two records, each named by its path."""
+def _diff(
+    original: object, restored: object, path: str, owner: str = ""
+) -> list[tuple[str, str]]:
+    """Differences between two records as ``(<class>.<field>, message)`` pairs.
+
+    *owner* is the ``<declaring class>.<field>`` of whatever is being compared,
+    which is what the exclusion lists key on. It is carried down into list,
+    tuple and dict elements, so a difference inside ``noisy_positions`` is still
+    attributed to the field that holds them. *path* is the human-readable
+    location and keeps the full nesting.
+    """
     if dc.is_dataclass(original) and not isinstance(original, type):
         if not dc.is_dataclass(restored) or isinstance(restored, type):
-            return [f"{path}: restored as {type(restored).__name__}, not a record"]
-        problems: list[str] = []
+            return [(owner, f"{path}: restored as {type(restored).__name__}")]
+        problems: list[tuple[str, str]] = []
         for field in dc.fields(original):
-            child = f"{path}.{field.name}"
-            if f"{type(original).__name__}.{field.name}" in EXCLUDED:
+            qualified = f"{type(original).__name__}.{field.name}"
+            if qualified in EXCLUDED:
                 continue
             problems += _diff(
-                getattr(original, field.name), getattr(restored, field.name), child
+                getattr(original, field.name),
+                getattr(restored, field.name),
+                f"{path}.{field.name}",
+                qualified,
             )
         return problems
 
     if isinstance(original, dict):
         if not isinstance(restored, dict) or set(original) != set(restored):
-            return [f"{path}: keys {sorted(map(str, original))} not restored"]
+            return [(owner, f"{path}: keys {sorted(map(str, original))} not restored")]
         problems = []
         for key in original:
-            problems += _diff(original[key], restored[key], f"{path}[{key!r}]")
+            problems += _diff(original[key], restored[key], f"{path}[{key!r}]", owner)
         return problems
 
     if isinstance(original, (list, tuple)):
         if not isinstance(restored, (list, tuple)) or len(original) != len(restored):
-            return [f"{path}: {original!r} restored as {restored!r}"]
+            return [(owner, f"{path}: {original!r} restored as {restored!r}")]
         problems = []
         for index, (left, right) in enumerate(zip(original, restored)):
-            problems += _diff(left, right, f"{path}[{index}]")
+            problems += _diff(left, right, f"{path}[{index}]", owner)
         return problems
 
     if original != restored:
-        return [f"{path}: {original!r} restored as {restored!r}"]
+        return [(owner, f"{path}: {original!r} restored as {restored!r}")]
     return []
 
 
-def _report(problems: list[str]) -> str:
-    listing = "\n".join(f"  - {p}" for p in problems)
+def _report(problems: list[tuple[str, str]]) -> str:
+    listing = "\n".join(f"  - {message}" for _, message in problems)
     return (
         f"{len(problems)} field(s) did not survive the analyze round trip:\n"
         f"{listing}\n"
@@ -349,17 +361,9 @@ CLI_KNOWN_GAP: dict[str, str] = {
 }
 
 
-def _gap_names(problems: list[str]) -> set[str]:
-    """``<class>.<field>`` for each reported difference.
-
-    The path already carries the declaring class as the segment before the
-    field, because ``_diff`` walks records rather than raw dicts.
-    """
-    names: set[str] = set()
-    for problem in problems:
-        path = problem.split(":", 1)[0]
-        names.add(path.rsplit(".", 1)[-1])
-    return names
+def _gap_names(problems: list[tuple[str, str]]) -> set[str]:
+    """The ``<declaring class>.<field>`` of each reported difference."""
+    return {owner for owner, _ in problems}
 
 
 def test_cli_dump_reload_gap_is_exactly_the_recorded_one(tmp_path: Path) -> None:
@@ -391,10 +395,10 @@ def test_cli_dump_reload_gap_is_exactly_the_recorded_one(tmp_path: Path) -> None
         [
             problem
             for problem in _diff(replicate, restored_replicates[0], "ReplicateResult")
-            if "plate_verdicts" not in problem
+            if "plate_verdicts" not in problem[1]
         ]
     )
-    recorded = {entry.rsplit(".", 1)[-1] for entry in CLI_KNOWN_GAP}
+    recorded = set(CLI_KNOWN_GAP)
     newly_lost = sorted(observed - recorded)
     newly_carried = sorted(recorded - observed)
     assert not newly_lost, (
