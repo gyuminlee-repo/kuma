@@ -148,11 +148,47 @@ export interface VerdictRecord {
   n_aligned_reads: number | null;
   n_mapq_failed: number;
   n_span_failed: number;
+  /**
+   * Longest contiguous run of deletion-majority positions in this consensus.
+   * 0 is insertion-driven or no deletion at all, 1 is an isolated position
+   * (artifact suspect) and >= 2 is an N-bp contiguous deletion.
+   *
+   * Optional for the same replay reason as the fields above: a result persisted
+   * before the key was serialized is replayed verbatim and carries none.
+   */
+  max_del_run_length?: number;
+  /**
+   * Net indel of the consensus relative to the reference, in bases. The
+   * FRAMESHIFT gate reads it.
+   *
+   * `null` and `undefined` both mean NOT MEASURED, which is what a pre-aligned
+   * FASTA input reports and what skips the gate. `0` is a measured, indel-free
+   * consensus, so the two must never be collapsed.
+   */
+  consensus_net_indel_bp?: number | null;
+  /**
+   * Median per-read net indel. Read-quality evidence only and deliberately not
+   * a verdict input: ONT per-read indel error makes it non-zero on wells whose
+   * consensus is indel-free. Same `null` = NOT MEASURED rule as above.
+   */
+  median_read_net_indel_bp?: number | null;
   source_path: string;
   aa_sequence: string;
   observed_nt_changes: string[];
   observed_aa_changes: string[];
   n_no_call_aa: number;
+  /**
+   * The molecule as called, at its own length rather than the reference's:
+   * deletion-majority positions removed and majority insertions spliced back
+   * in. `null` and `undefined` both mean it could not be built honestly, which
+   * is every record whose consensus carries no indel channel and every record
+   * whose channel went over the reporting budget.
+   *
+   * Reported only; no gate reads it. It exists because a block substitution is
+   * invisible in every other output, where the length is unchanged, the deleted
+   * base reads as an `N` and the inserted base is absent.
+   */
+  length_true_nt?: string | null;
   expected_mutations: string[];
   /**
    * What the well read at each designed site, one entry per site in
