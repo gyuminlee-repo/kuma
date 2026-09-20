@@ -371,7 +371,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
   setEchoTransferVol: (value: number) => set({ echoTransferVol: value }),
   setEchoQuadrant: (value) => set({ echoQuadrant: value }),
   // 소진 표시를 고치는 것이 레거시 안내가 요청하는 행동이다. 그래서 그 입력이
-  // 들어온 시점에 안내를 지운다. 절반 선택만으로는 지우지 않는다. 양쪽이
+  // 들어온 시점에 안내를 지운다. round 선택만으로는 지우지 않는다. 양쪽이
   // 소진으로 남아 있는 한 안내가 설명하는 상태가 그대로이기 때문이다.
   setEchoUsedQuadrants: (value) => set({ echoUsedQuadrants: value, echoLegacyPlacement: null }),
   setJanusTransferVol: (value: number) => set({ janusTransferVol: value }),
@@ -383,8 +383,8 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
     const roundState = useRoundStore.getState();
     const snapshot: WorkspaceV3 = {
       schema_version: "0.3",
-      // 저장 시점 빌드. 저장된 Echo 절반 이름 중 "A1" 은 옛 어휘와 새 어휘가
-      // 같은 글자라 값만으로 구분되지 않아, 이 값이 유일한 판별 신호다
+      // 저장 시점 빌드. 저장된 Echo round 이름 중 "A1" 과 "A2" 는 half 어휘와
+      // 현재 어휘가 같은 글자라 값만으로 구분되지 않아 이 값이 유일한 판별 신호다
       // (`foldPersistedPlacement`). kuroSnapshot.ts:149 와 같은 관용구다.
       kuma_version: __APP_VERSION__,
       rounds: roundState.rounds,
@@ -716,10 +716,11 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       structureLoaded: settings.structureLoaded ?? false,
       echoTransferVol: settings.echoTransferVol ?? 100,
       // Same reading as the autosave path (useAutosaveHydration), and for the
-      // same reason: a placement stored before the half layout spanned the
-      // full plate width, so it names no half and marks both of them spent.
-      // The saved build is read alongside the values because a lone "A1" is
-      // spelled the same in both vocabularies.
+      // same reason: a placement stored under the half layout is a block of
+      // twelve consecutive columns, which matches no column parity and covers
+      // part of both rounds, so it marks both spent. The saved build is read
+      // alongside the values because a lone "A1" is spelled the same in both
+      // vocabularies.
       echoQuadrant: restoredEchoPlacement.quadrant,
       echoUsedQuadrants: restoredEchoPlacement.usedQuadrants,
       echoLegacyPlacement:

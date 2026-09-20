@@ -3380,16 +3380,17 @@
         },
         "bomLabel": "添加 UTF-8 BOM",
         "bomHint": "(Excel 兼容)",
-        "quadrantLabel": "Echo 源板半区",
-        "quadrantNone": "未指定(第 1-12 列，不检查已用半区)",
-        "quadrantColumns": "第 {{from}}-{{to}} 列",
-        "quadrantHelper": "一轮填充一个半区：forward 引物在 A、C、E ... 行，reverse 引物在同一列的下一行。",
-        "usedQuadrantsLabel": "此板上已使用的半区",
-        "usedQuadrantsHelper": "如果所选半区是其中之一，导出将被拒绝。",
-        "legacyPlacementNotice": "此项目保存于 v{{version}} 之前。当时一个 round 分布在整块 source plate 上，而不是其中一半。保存的排布（{{values}}）覆盖两个半区，因此两者都标记为已使用，且未选择任何半区。若使用新板，请先清除下方的已使用勾选，再选择半区。",
+        "quadrantLabel": "Echo 源板列",
+        "quadrantNone": "未指定（1-12 列，不检查已用 round）",
+        "quadrantColumnsOdd": "奇数列 1、3 ... 23",
+        "quadrantColumnsEven": "偶数列 2、4 ... 24",
+        "quadrantHelper": "96-head 只能触及每隔一列的孔位，因此一轮使用其中之一。forward primer 位于 A、C、E ... 行，reverse primer 在同一列的下一行。",
+        "usedQuadrantsLabel": "该板上已使用的 round",
+        "usedQuadrantsHelper": "若所选 round 为其中之一，将拒绝 export。",
+        "legacyPlacementNotice": "该项目保存于 v{{from}} 与 v{{to}} 之间。当时一轮填充的是连续的 12 列，而非每隔一列。保存的布局（{{values}}）与两个 round 各有部分重叠，因此两者都标记为已使用且均未选中。若使用新板，请先清除下方的已使用勾选再进行选择。",
         "placementBlocked": {
-          "noHalfSelected": "此板上已有标记为已使用的半区，但本轮尚未选择半区。请选择 A1 或 A13；若为新板，请清除已使用勾选。",
-          "halfAlreadyUsed": "所选半区在此板上已标记为已使用。在其上分液会破坏已有的 primer。请选择另一半区，或清除该半区的已使用勾选。"
+          "noQuadrantSelected": "该板上有标记为已使用的 round，但本次运行未选择 round。请选择 A1 或 A2；若为新板，请清除已使用勾选。",
+          "quadrantAlreadyUsed": "所选 round 在该板上已标记为已使用。向其分液会破坏其中已有的 primer。请选择另一个 round，或清除相应的已使用勾选。"
         },
         "plateNameFwd": "Forward 引物板名称",
         "plateNameRev": "Reverse 引物板名称",
@@ -3680,14 +3681,14 @@
     "errorTitle": "预览失败",
     "echoSourcePlateLabel": "Echo 源板 (384 孔)",
     "destPlateLabel": "目标板 (96 孔)",
-    "quadrantBatch": "本次分配填充板的 {{half}} 半区，即第 {{from}}-{{to}} 列。Forward 引物位于 A、C、E ... 行，reverse 引物各在下一行。",
-    "quadrantProgress": "本次分配完成后，本板 {{total}} 个半区中已使用 {{filled}} 个。",
-    "quadrantHalfNote": "第 {{from}}-{{to}} 列属于另一半区 {{others}}，留给下一轮。",
+    "quadrantBatch": "本次运行填充 round {{round}}，即从第 {{first}} 列开始每隔一列的孔位。forward primer 位于 A、C、E ... 行，reverse primer 各在其下一行。",
+    "quadrantProgress": "本次运行完成后，该板的 {{total}} 个 round 中将占用 {{filled}} 个。",
+    "quadrantInterleaveNote": "96-head 一次只能触及每隔一列的孔位，中间的列属于 {{others}}，为下一轮保留空置。",
     "quadrantUsedNote": "本板已使用的半区：{{list}}",
-    "quadrantNoneNote": "未选择半区。运行仍落在第 1-12 列，与半区 A1 的孔位相同，只是跳过与已用半区的核对。",
+    "quadrantNoneNote": "未选择 round。运行仍将不跳列地落在 1-12 列，这是可选择 round 之前的布局，仅跳过与已用 round 的比对。",
     "quadrantLegendFree": "实线边框：本次分配使用的孔",
     "quadrantLegendReserved": "虚线边框：为 {{others}} 保留的孔",
-    "echoReservedWellTitle": "{{well}}，属于半区 {{quadrants}}"
+    "echoReservedWellTitle": "{{well}}，为 round {{quadrants}} 保留"
   },
   "errors": {
     "sequence": {

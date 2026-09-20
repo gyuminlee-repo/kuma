@@ -203,11 +203,12 @@ export interface ExportAllUiParams {
   janusTransferVol: number;
   bom: boolean;
   /**
-   * Half of the 384 Echo source plate this round occupies: "A1" is columns
-   * 1-12 and "A13" is columns 13-24. Omitted keeps the no-half layout.
+   * Column parity of the 384 Echo source plate this round occupies: "A1" is
+   * the odd columns and "A2" the even ones. Omitted keeps the row-doubled
+   * layout that skips no column.
    */
   quadrant?: EchoQuadrant | null;
-  /** Halves already spent on a part-used plate, stated by the operator. */
+  /** Rounds already spent on a part-used plate, stated by the operator. */
   usedQuadrants?: EchoQuadrant[];
 }
 

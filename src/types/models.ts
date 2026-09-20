@@ -367,27 +367,28 @@ export interface ExportOrderResult extends ExportResult {
 }
 
 /**
- * The two halves of a 384 Echo source plate a round can occupy: "A1" is
- * columns 1-12 and "A13" is columns 13-24. Forward primers sit on the even
- * rows of the half and their reverses one row below, so a half is 192 wells
- * and one plate holds two rounds. Mirrors
- * kuma_core/kuro/plate_quadrant.QUADRANTS.
- *
- * The persisted key is still spelled `quadrant` so projects saved before the
- * half layout keep loading; only the value set changed.
+ * The two column parities of a 384 Echo source plate a round can occupy: "A1"
+ * is the odd columns 1, 3 ... 23 and "A2" the even columns 2, 4 ... 24. A
+ * 96-head stamp skips every other column, which is why a round is a parity
+ * rather than a contiguous block. Forward primers sit on the even rows and
+ * their reverses one row below, so a round is 192 wells and one plate holds
+ * two of them. Mirrors kuma_core/kuro/plate_quadrant.QUADRANTS.
  */
-export type EchoQuadrant = "A1" | "A13";
+export type EchoQuadrant = "A1" | "A2";
 
 /**
- * What a saved project's `quadrant` field may hold. "A2", "B1" and "B2" are
- * the interleaved-quadrant names written before the half layout and are
- * accepted on load only. None of them folds onto a half: each spanned the
- * full plate width, so `foldPersistedPlacement` in lib/echoQuadrant.ts reads
- * such a placement as both halves spent and no half selected. A stored "A1"
- * is dated by the saved app version, because the two vocabularies spell it
- * the same. Nothing this app writes is outside {@link EchoQuadrant}.
+ * What a saved project's `quadrant` field may hold. "B1" and "B2" are
+ * interleaved-era names for these same rounds seen from their reverse rows,
+ * so `foldPersistedPlacement` in lib/echoQuadrant.ts folds them onto "A1" and
+ * "A2" without moving a single source well. "A13" is the right-half name
+ * written between v0.16.61 and the release that restored this geometry, and
+ * it folds onto neither: a block of twelve consecutive columns covers part of
+ * both rounds, so such a placement reads as both rounds spent and none
+ * selected. A stored "A1" or "A2" is dated by the saved app version, because
+ * the half era spelled them the same. Nothing this app writes is outside
+ * {@link EchoQuadrant}.
  */
-export type PersistedEchoQuadrant = EchoQuadrant | "A2" | "B1" | "B2";
+export type PersistedEchoQuadrant = EchoQuadrant | "A13" | "B1" | "B2";
 
 export interface ExportMappingResult extends ExportResult {
   format: "echo" | "janus";
@@ -579,9 +580,9 @@ export interface WorkspaceV3 {
   /**
    * Build that wrote the file, the same `__APP_VERSION__` stamp the autosave
    * snapshot carries. Optional because files written before this field exists
-   * do not have it, and that absence is itself the signal: such a file
-   * predates the source-plate half layout, so its stored Echo placement is
-   * read as the old full-width geometry (`foldPersistedPlacement`).
+   * do not have it, and that absence places the file before v0.16.61, in the
+   * interleaved era whose stored Echo placement already means a column parity
+   * (`foldPersistedPlacement`).
    */
   kuma_version?: string;
   inputs: WorkspaceInputs;
@@ -796,12 +797,12 @@ export interface RpcMethodMap {
       bom?: boolean;
       mapping_range?: { row_start: string; row_end: string } | null;
       /**
-       * Half of the 384 source plate this round fills: "A1" is columns 1-12
-       * and "A13" is columns 13-24. The reverse primer sits one 384 row below
-       * its forward primer inside the same half. Takes precedence over
-       * mapping_range, which cannot express a column offset. Echo only. A
-       * value that predates the half layout is refused by the sidecar rather
-       * than folded, so only {@link EchoQuadrant} may be sent.
+       * Column parity of the 384 source plate this round fills: "A1" is the
+       * odd columns and "A2" the even ones. The reverse primer sits one 384
+       * row below its forward primer in the same column. Takes precedence over
+       * mapping_range, which cannot express a column offset. Echo only. A half
+       * name from v0.16.61 is refused by the sidecar rather than folded, so
+       * only {@link EchoQuadrant} may be sent.
        */
       quadrant?: EchoQuadrant | null;
       /** Quadrants already spent on a part-used plate, stated by the operator. */

@@ -27,7 +27,11 @@ import type { AppState } from "@/store/appStore";
 import { validateExportAll } from "@/store/validation";
 import { localeIsKorean } from "@/lib/localeUtils";
 import { PLATE_WELL_COUNT } from "@/lib/plate-utils";
-import { echoPlacementIssue, HALF_LAYOUT_VERSION } from "@/lib/echoQuadrant";
+import {
+  echoPlacementIssue,
+  HALF_LAYOUT_VERSION,
+  QUADRANT_RESTORE_VERSION,
+} from "@/lib/echoQuadrant";
 const PLATE_NAME_RE = /^[A-Za-z0-9_-]{1,20}$/;
 const PROJECT_NAME_RE = /^[A-Za-z0-9가-힣_\-]{0,40}$/;
 const ECHO_RANGE = { min: 25, max: 500, step: 1, unit: "nL" } as const;
@@ -68,7 +72,7 @@ export function ExportFormatSelector() {
   const canExport = !wellOverflow && !running && projectNameValid;
 
   // 사이드카가 거부하는 두 조합은 여기서 먼저 막는다. 넘기면 돌아오는 것은
-  // 개발자용 영어 문장이고, 작업자가 할 일(절반 고르기 또는 소진 표시 해제)은
+  // 개발자용 영어 문장이고, 작업자가 할 일(round 고르기 또는 소진 표시 해제)은
   // 거기 없다.
   const placementIssue = echoPlacementIssue(echoQuadrant, echoUsedQuadrants);
 
@@ -300,9 +304,10 @@ export function ExportFormatSelector() {
       </div>
 
       {/*
-        Echo source plate 의 절반. 한 round 가 연속한 12열(A1 = 1~12,
-        A13 = 13~24)을 쓰고, reverse 는 같은 절반에서 forward 바로 아래 행으로
-        간다. 고르지 않으면 절반을 나누지 않은 기존 배치를 그대로 쓴다.
+        Echo source plate 의 열 패리티. 96-head 는 한 번에 한 칸 건너 열에만
+        닿으므로 한 round 가 홀수 열(A1 = 1, 3 .. 23) 또는 짝수 열(A2 = 2,
+        4 .. 24)을 쓴다. reverse 는 같은 열에서 forward 바로 아래 행으로 간다.
+        고르지 않으면 열을 건너뛰지 않는 기존 배치를 그대로 쓴다.
       */}
       {echoLegacyPlacement !== null && (
         <p
@@ -312,7 +317,8 @@ export function ExportFormatSelector() {
         >
           {t("phaseC.export.all.legacyPlacementNotice", {
             values: echoLegacyPlacement.join(", "),
-            version: HALF_LAYOUT_VERSION,
+            from: HALF_LAYOUT_VERSION,
+            to: QUADRANT_RESTORE_VERSION,
           })}
         </p>
       )}

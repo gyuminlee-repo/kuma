@@ -251,16 +251,16 @@ describe("buildKuroSnapshot", () => {
     const snapshot = buildKuroSnapshot({
       ...baseState,
       echoTransferVol: 250,
-      echoQuadrant: "A13",
-      echoUsedQuadrants: ["A1", "A13"],
+      echoQuadrant: "A2",
+      echoUsedQuadrants: ["A1", "A2"],
       janusTransferVol: 1.5,
       evolveproExtraExposed: 24,
     });
 
     expect(snapshot.parameters).toMatchObject({
       echo_transfer_vol: 250,
-      echo_quadrant: "A13",
-      echo_used_quadrants: ["A1", "A13"],
+      echo_quadrant: "A2",
+      echo_used_quadrants: ["A1", "A2"],
       janus_transfer_vol: 1.5,
     });
     expect(snapshot.pipeline).toMatchObject({ evolvepro_extra_exposed: 24 });

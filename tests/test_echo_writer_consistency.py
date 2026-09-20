@@ -5,7 +5,7 @@ describe the same physical dispense, and each used to derive its own source
 wells. Only the CSV read both placement parameters: the XLSX worklist sheet
 read neither and the preview only ``mapping_range``. So one ``export_all`` wrote
 a csv and an xlsx naming different wells for the same primer, and the preview
-rendered above the half selector agreed with neither, which is what the
+rendered above the quadrant selector agreed with neither, which is what the
 operator checks before loading the csv onto the robot.
 
 These tests deliberately compare the three outputs *to each other* rather than
@@ -38,16 +38,16 @@ TRANSFER_VOL = 100
 # is what each of them hard-coded. The other two are where they split.
 PLACEMENTS = [
     pytest.param(None, None, id="no-placement-parameters"),
-    pytest.param("A1", None, id="left-half"),
-    pytest.param("A13", None, id="right-half"),
+    pytest.param("A1", None, id="odd-columns"),
+    pytest.param("A2", None, id="even-columns"),
     pytest.param(None, ("A", "P"), id="mapping-range"),
 ]
 
 #: The placements the layout sheet is expected to follow. It draws the source
-#: plate this worklist aspirates from, so a half moves it. ``mapping_range`` is
-#: left out on purpose: the sheet still keeps the default row bands for it and
-#: nothing in this change touched that.
-HALVES = [pytest.param("A1", id="left-half"), pytest.param("A13", id="right-half")]
+#: plate this worklist aspirates from, so the column parity moves it.
+#: ``mapping_range`` is left out on purpose: the sheet still keeps the default
+#: row bands for it and nothing in this change touched that.
+ROUNDS = [pytest.param("A1", id="odd-columns"), pytest.param("A2", id="even-columns")]
 
 
 @pytest.fixture
@@ -183,7 +183,7 @@ class TestWritersAgree:
         """Every forward mutation gets a reverse row, in all three writers."""
         fwd, rev, groups = shared_rev_mappings
         csv_path, xlsx_path, preview = _write_both(
-            fwd, rev, groups, tmp_path, "A13", None
+            fwd, rev, groups, tmp_path, "A2", None
         )
 
         expected = 2 * len(fwd)
@@ -203,7 +203,7 @@ class TestWritersAgree:
             assert row["mutation"]
 
 
-class TestSpentHalfRefusal:
+class TestSpentRoundRefusal:
     def test_the_xlsx_export_refuses_before_writing(
         self, shared_rev_mappings, tmp_path
     ):
@@ -234,18 +234,18 @@ class TestSpentHalfRefusal:
 class TestLayoutSheetFollowsTheWorklist:
     """The layout sheet is the picture of the worklist printed beside it.
 
-    It used to draw columns 1-12 whatever half was selected, so an ``A13`` run
-    shipped a grid exactly twelve columns away from its own transfer list. The
-    old ``A1``-only test could not see it: ``A1`` happens to equal the
-    no-quadrant fallback.
+    It used to draw columns 1-12 whatever was selected, so a run on either
+    parity shipped a grid naming wells its own transfer list never mentions.
+    The old ``A1``-only test could not see it: the first column is where the
+    parity rule and the no-quadrant fallback agree.
     """
 
-    @pytest.mark.parametrize("half", HALVES)
+    @pytest.mark.parametrize("round_name", ROUNDS)
     def test_the_grid_names_the_wells_the_worklist_aspirates_from(
-        self, shared_rev_mappings, tmp_path, half
+        self, shared_rev_mappings, tmp_path, round_name
     ):
         fwd, rev, groups = shared_rev_mappings
-        _, xlsx_path, _ = _write_both(fwd, rev, groups, tmp_path, half, None)
+        _, xlsx_path, _ = _write_both(fwd, rev, groups, tmp_path, round_name, None)
 
         well_col = ECHO_DEVICE_HEADER.index("Source Well")
         name_col = ECHO_DEVICE_HEADER.index("Source Well Name")
@@ -255,36 +255,43 @@ class TestLayoutSheetFollowsTheWorklist:
         assert drawn, "an empty grid would pass every assertion below"
         assert {(r[well_col], r[name_col]) for r in worklist} >= set(drawn.items())
 
-    def test_the_right_half_grid_is_the_left_one_moved_twelve_columns(
+    def test_the_even_column_grid_is_the_odd_one_moved_one_column(
         self, shared_rev_mappings, tmp_path
     ):
         fwd, rev, groups = shared_rev_mappings
-        left = tmp_path / "left.xlsx"
-        right = tmp_path / "right.xlsx"
-        for path, half in ((left, "A1"), (right, "A13")):
+        odd = tmp_path / "a1.xlsx"
+        even = tmp_path / "a2.xlsx"
+        for path, round_name in ((odd, "A1"), (even, "A2")):
             export_echo_mapping_xlsx(
                 fwd, rev, path, transfer_vol=TRANSFER_VOL, rev_groups=groups,
-                quadrant=half,
+                quadrant=round_name,
             )
 
         shifted = {
-            f"{well[0]}{int(well[1:]) + 12}": name
-            for well, name in _layout_names(left).items()
+            f"{well[0]}{int(well[1:]) + 1}": name
+            for well, name in _layout_names(odd).items()
         }
-        assert _layout_names(right) == shifted
+        assert _layout_names(even) == shifted
 
-    def test_no_half_still_draws_the_default_plate(
+    def test_no_round_draws_the_grid_that_skips_no_column(
         self, shared_rev_mappings, tmp_path
     ):
+        # 기본 배치는 열을 건너뛰지 않으므로 A1 과 같지 않다. 1열에서만 겹친다는
+        # 사실 자체가 이 기하의 판별점이다.
         fwd, rev, groups = shared_rev_mappings
         plain = tmp_path / "plain.xlsx"
-        left = tmp_path / "left.xlsx"
+        odd = tmp_path / "a1.xlsx"
         export_echo_mapping_xlsx(
             fwd, rev, plain, transfer_vol=TRANSFER_VOL, rev_groups=groups,
         )
         export_echo_mapping_xlsx(
-            fwd, rev, left, transfer_vol=TRANSFER_VOL, rev_groups=groups,
+            fwd, rev, odd, transfer_vol=TRANSFER_VOL, rev_groups=groups,
             quadrant="A1",
         )
 
-        assert _layout_names(plain) == _layout_names(left)
+        drawn_plain = _layout_names(plain)
+        drawn_odd = _layout_names(odd)
+        assert drawn_plain != drawn_odd
+        first_column = {w: n for w, n in drawn_plain.items() if w[1:] == "1"}
+        assert first_column
+        assert all(drawn_odd[w] == n for w, n in first_column.items())

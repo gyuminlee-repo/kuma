@@ -845,8 +845,8 @@ def _build_echo_preview_rows(
     use, so the preview cannot describe a different plate than the file the
     operator ends up loading onto the instrument. It used to re-derive the rows
     and honour ``mapping_range`` alone, which put the preview above the
-    half selector in ExportStepView showing wells the exported csv would not
-    use.
+    quadrant selector in ExportStepView showing wells the exported csv would
+    not use.
     """
     from kuma_core.kuro.plate_mapper import build_echo_rows
 
@@ -1129,7 +1129,7 @@ def handle_export_all(params: dict) -> dict:
             quadrant=p.quadrant,
             used_quadrants=list(p.used_quadrants or []),
         ),
-        # The same half the csv above is written with. One export_all used
+        # The same quadrant the csv above is written with. One export_all used
         # to leave a csv and an xlsx naming different source wells for the same
         # primer, and nothing in either file says which one the plate was
         # stamped from.

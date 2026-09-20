@@ -3380,16 +3380,17 @@
         },
         "bomLabel": "Añadir BOM UTF-8",
         "bomHint": "(compatibilidad con Excel)",
-        "quadrantLabel": "Mitad de la placa fuente Echo",
-        "quadrantNone": "No especificada (columnas 1-12, sin comprobar mitades usadas)",
-        "quadrantColumns": "columnas {{from}}-{{to}}",
-        "quadrantHelper": "Una ronda llena una mitad: los primers forward en las filas A, C, E ... y cada reverse una fila más abajo, en la misma columna.",
-        "usedQuadrantsLabel": "Mitades ya utilizadas en esta placa",
-        "usedQuadrantsHelper": "La exportación se rechaza si la mitad seleccionada es una de estas.",
-        "legacyPlacementNotice": "Este proyecto se guardó antes de v{{version}}, cuando una ronda se repartía por toda la source plate en lugar de por una mitad. La disposición guardada ({{values}}) cubre ambas mitades, por lo que las dos quedan marcadas como usadas y no hay ninguna seleccionada. Si la placa es nueva, desmarque abajo las mitades usadas antes de elegir una.",
+        "quadrantLabel": "Columnas de la placa fuente Echo",
+        "quadrantNone": "Sin especificar (columnas 1-12, sin comprobar rondas usadas)",
+        "quadrantColumnsOdd": "columnas impares 1, 3 ... 23",
+        "quadrantColumnsEven": "columnas pares 2, 4 ... 24",
+        "quadrantHelper": "Un sello del 96-head solo alcanza una columna de cada dos, así que una ronda toma una de las dos. Los forward primers ocupan las filas A, C, E ... y cada reverse primer una fila más abajo, en la misma columna.",
+        "usedQuadrantsLabel": "Rondas ya usadas en esta placa",
+        "usedQuadrantsHelper": "La exportación se rechaza si la ronda seleccionada es una de estas.",
+        "legacyPlacementNotice": "Este proyecto se guardó entre v{{from}} y v{{to}}, cuando una ronda llenaba doce columnas consecutivas en lugar de una de cada dos. La disposición guardada ({{values}}) cubre parte de ambas rondas, por lo que las dos figuran como usadas y ninguna queda seleccionada. En una placa nueva, desmarque abajo las casillas de uso antes de elegir una.",
         "placementBlocked": {
-          "noHalfSelected": "Hay mitades marcadas como usadas en esta placa, pero no se ha seleccionado ninguna para esta ronda. Elija A1 o A13, o desmarque las mitades usadas si la placa es nueva.",
-          "halfAlreadyUsed": "La mitad seleccionada ya está marcada como usada en esta placa. Dispensar allí destruiría los primers que ya contiene. Elija la otra mitad o desmarque su casilla."
+          "noQuadrantSelected": "Hay rondas marcadas como usadas en esta placa, pero no se ha seleccionado ninguna para esta ejecución. Elija A1 o A2, o desmarque las casillas si la placa es nueva.",
+          "quadrantAlreadyUsed": "La ronda seleccionada ya figura como usada en esta placa. Dispensar allí destruiría los primers que ya contiene. Elija la otra ronda, o desmarque su casilla de uso."
         },
         "plateNameFwd": "Nombre de la placa de primers forward",
         "plateNameRev": "Nombre de la placa de primers reverse",
@@ -3680,14 +3681,14 @@
     "errorTitle": "Error en la vista previa",
     "echoSourcePlateLabel": "Placa de origen Echo (384 pocillos)",
     "destPlateLabel": "Placa de destino (96 pocillos)",
-    "quadrantBatch": "Esta tanda llena la mitad {{half}} de la placa, columnas {{from}}-{{to}}. Los primers forward ocupan las filas A, C, E ... y cada reverse queda una fila más abajo.",
-    "quadrantProgress": "Tras esta tanda quedan ocupadas {{filled}} de {{total}} mitades de esta placa.",
-    "quadrantHalfNote": "Las columnas {{from}}-{{to}} son la otra mitad, {{others}}, y quedan libres para la siguiente ronda.",
+    "quadrantBatch": "Esta ejecución llena la ronda {{round}}: una columna de cada dos, empezando en la columna {{first}}. Los forward primers ocupan las filas A, C, E ... y cada reverse primer una fila más abajo.",
+    "quadrantProgress": "Tras esta ejecución se habrán usado {{filled}} de {{total}} rondas de esta placa.",
+    "quadrantInterleaveNote": "Un sello del 96-head solo alcanza una columna de cada dos. Las columnas intermedias pertenecen a {{others}} y quedan libres para la siguiente ronda.",
     "quadrantUsedNote": "Ya ocupadas en esta placa: {{list}}",
-    "quadrantNoneNote": "Ninguna mitad seleccionada. El run sigue ocupando las columnas 1-12, los mismos pocillos que la mitad A1, y solo se omite la comprobación de las mitades ya usadas.",
+    "quadrantNoneNote": "No hay ronda seleccionada. La ejecución sigue cayendo en las columnas 1-12 sin saltar ninguna, que es la disposición anterior a poder elegir ronda, y solo se omite la comprobación contra las rondas ya usadas.",
     "quadrantLegendFree": "Borde continuo: pocillo que usa esta tanda",
     "quadrantLegendReserved": "Borde discontinuo: reservado para {{others}}",
-    "echoReservedWellTitle": "{{well}}, reservado a la mitad {{quadrants}}"
+    "echoReservedWellTitle": "{{well}}, reservado para la ronda {{quadrants}}"
   },
   "errors": {
     "sequence": {
