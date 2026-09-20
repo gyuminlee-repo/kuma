@@ -240,6 +240,20 @@ def consensus_identity(consensus_seq: str, reference_seq: str) -> float | None:
     it also keeps this metric byte-identical to what it was while the same
     positions were written ``N``.
 
+    That exclusion is not merely conservative, it is what keeps the number
+    readable at all.  This consensus is emitted at reference length, so an
+    insertion never reaches the string (see ``call_consensus``: insertions are
+    counted, not incorporated).  Scoring deletions as mismatches while
+    insertions stay invisible would penalise one direction of the same event
+    and leave a figure that cannot be read as "how much of the molecule matches
+    the reference".  Both indel directions are reported instead by channels of
+    their own, ``del_majority_positions``, ``ins_majority_bases`` and
+    ``consensus_net_indel_bp``, and this metric deliberately answers the
+    narrower question its denominator states: of the positions where a base was
+    called, how many match.  An identity that sees both directions has to be
+    computed on the length-restored molecule ``build_length_true_nt`` returns,
+    not here.
+
     ``None`` means the denominator was empty: the well called nothing, so its
     identity is UNKNOWN.  0.0 is the opposite and much stronger statement, that
     bases were called and none of them matched, which is what a wrong reference
