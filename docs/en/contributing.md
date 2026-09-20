@@ -57,6 +57,40 @@ cd src-tauri && cargo check
 3. Screenshots regenerated if UI changed (`pnpm run capture-guide`)
 4. Wiki updated for new features (this repo's `.wiki.git`)
 
+## Developer Certificate of Origin
+
+Every commit needs a `Signed-off-by` trailer. The trailer certifies the
+Developer Certificate of Origin 1.1, kept verbatim in [`DCO`](../../DCO) at the
+repository root: the contribution is yours to submit under the license this
+project carries, or it comes from work that may be submitted that way, and the
+record of the contribution stays public.
+
+Sign a commit while making it:
+
+```bash
+git commit -s -m "summary in English"
+```
+
+The trailer has to name the commit author, so `git config user.name` and
+`git config user.email` must hold the identity that authors the commit.
+
+A branch that already has commits without the trailer takes it from a rebase:
+
+```bash
+git rebase --signoff main   # or the sha the branch started from
+git push --force-with-lease
+```
+
+A pull request that is already open needs the same treatment. Rebase it with
+`--signoff` and push the branch again, or the DCO workflow keeps blocking it.
+
+The DCO workflow inspects only the commits a pull request adds and names every
+commit whose trailer is missing or disagrees with the commit author. A merge
+commit is exempt only when it adds no content of its own, because the parents
+are covered on their own pull requests. A merge that resolved a conflict holds
+lines that exist in no parent, so it needs a sign-off like any other commit and
+the workflow says how many merges it skipped.
+
 ## Third-party license collection
 
 The release build generates `NOTICE.md` from the unchanged project LICENSE,

@@ -57,6 +57,39 @@ cd src-tauri && cargo check
 3. UI 변경 시 스크린샷 재생성 (`pnpm run capture-guide`)
 4. 신규 기능은 Wiki 업데이트 (이 repo의 `.wiki.git`)
 
+## Developer Certificate of Origin
+
+모든 커밋에 `Signed-off-by` 트레일러가 있어야 한다. 이 트레일러는 저장소 루트의
+[`DCO`](../../DCO)에 원문 그대로 담긴 Developer Certificate of Origin 1.1 에
+동의한다는 표시다. 기여물을 이 프로젝트의 라이선스로 제출할 권리가 본인에게
+있거나 그렇게 제출할 수 있는 작업에서 비롯했다는 것과 기여 기록이 공개로
+남는다는 것을 확인하는 내용이다.
+
+커밋할 때 함께 서명한다:
+
+```bash
+git commit -s -m "summary in English"
+```
+
+트레일러는 커밋 author 와 일치해야 하므로 `git config user.name` 과
+`git config user.email` 에 실제로 커밋하는 신원을 넣어야 한다.
+
+트레일러 없이 쌓인 브랜치는 리베이스로 한꺼번에 붙인다:
+
+```bash
+git rebase --signoff main   # 브랜치가 갈라져 나온 sha 를 써도 된다
+git push --force-with-lease
+```
+
+이미 열려 있는 PR 도 같다. `--signoff` 로 리베이스해 브랜치를 다시 올려야 하고
+그러지 않으면 DCO 워크플로가 계속 막는다.
+
+DCO 워크플로는 해당 PR 이 추가한 커밋만 검사한다. 트레일러가 없거나 커밋
+author 와 어긋난 커밋을 전부 이름으로 지목한다. 머지 커밋은 자체 내용이 없을
+때만 면제된다. 부모 커밋은 각자의 PR 에서 검사되기 때문이다. 충돌을 해소한
+머지는 어느 부모에도 없는 줄을 담으므로 다른 커밋과 똑같이 sign-off 가
+필요하다. 워크플로는 건너뛴 머지 개수를 함께 출력한다.
+
 ## 서드파티 라이선스 수집
 
 배포 빌드는 변경하지 않은 프로젝트 LICENSE, Rust 본문, 실제 설치된 Node
