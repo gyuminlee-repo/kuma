@@ -30,6 +30,7 @@ from __future__ import annotations
 import datetime
 import json
 import warnings
+from typing import TypedDict
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -129,12 +130,27 @@ _PRIMER3_THAL_MAX_LEN = 60
 # stays profile-dependent because that is the module's existing, deliberate
 # behaviour; the asymmetry is intentional. primer3.calc_hairpin/calc_homodimer
 # accept only these four values, no tm_method/salt_corrections_method.
-_QC_CONCS = dict(
-    mv_conc=50.0,
-    dv_conc=0.0,
-    dntp_conc=0.0,
-    dna_conc=250.0,
-)
+class _ThermoConcs(TypedDict):
+    """The four concentrations primer3 thermodynamics accepts.
+
+    Declared as a TypedDict rather than a plain dict so the ``**`` expansion
+    below names exactly these four parameters. A ``dict[str, float]`` widens to
+    every keyword the primer3 signatures take, including the ``int`` and
+    ``bool`` ones, and the type checker rejects the call.
+    """
+
+    mv_conc: float
+    dv_conc: float
+    dntp_conc: float
+    dna_conc: float
+
+
+_QC_CONCS: _ThermoConcs = {
+    "mv_conc": 50.0,
+    "dv_conc": 0.0,
+    "dntp_conc": 0.0,
+    "dna_conc": 250.0,
+}
 
 
 def _structure_tms(seq: str) -> tuple[float, float] | None:

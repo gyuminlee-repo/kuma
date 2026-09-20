@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import random
 from pathlib import Path
+from typing import Any
 
 import openpyxl
 import pytest
@@ -45,7 +46,7 @@ def _plant(template: str, at: int, motif: str) -> str:
 
 
 def _design(template: str, **kwargs) -> tuple[str, str, list[str]]:
-    params = dict(
+    params: dict[str, Any] = dict(
         gene_start=_GENE_START,
         gene_end=_GENE_START + _GENE_LEN,
         profile=_PROFILE,
@@ -193,6 +194,7 @@ _REV_SEEDS = {
 def _write_seeds(path: Path, fwd: dict[int, str], rev: dict[int, str]) -> None:
     wb = openpyxl.Workbook()
     ws = wb.active
+    assert ws is not None
     ws.append(["name", "sequence"])
     for i in range(1, 13):
         ws.append([f"fwd_{i}", fwd[i]])
@@ -220,7 +222,10 @@ def _run_package(tmp_path: Path, fwd_seeds: dict[int, str]) -> tuple[list[str], 
         gene_name="egfp",
     )
     wb = openpyxl.load_workbook(result.barcodes_xlsx)
-    row = wb.active["B2"].value
+    sheet = wb.active
+    assert sheet is not None
+    row = sheet["B2"].value
+    assert isinstance(row, str)
     flanking = row[len(fwd_seeds[1]):]
     return result.warnings, flanking
 
@@ -253,7 +258,9 @@ def test_full_oligo_warning_does_not_change_the_selected_flanking(
 
     # The advisory quotes the folded oligo that was actually written, and the
     # value is read back from the module rather than restated as a literal.
-    hairpin_tm, _homodimer_tm = bp._structure_tms(folded[1] + folded_flank)
+    tms = bp._structure_tms(folded[1] + folded_flank)
+    assert tms is not None
+    hairpin_tm, _homodimer_tm = tms
     assert f"egfp_f_1: hairpin Tm={hairpin_tm:.1f} C" in folded_line
 
 
