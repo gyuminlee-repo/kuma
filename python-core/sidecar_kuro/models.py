@@ -281,6 +281,14 @@ class SdmPrimerResultModel(WorkspaceModel):
     hairpin_dg_rev: Optional[float] = None
     homodimer_dg_fwd: Optional[float] = None
     homodimer_dg_rev: Optional[float] = None
+    # Per-structure warning verdicts computed at serialize time by
+    # kuma_core.kuro.sdm_engine.secondary_structure_warn_flags: hairpin warns
+    # on folded fraction at the pair's annealing temperature, homodimer on the
+    # absolute design-scale Tm. Display-only; ranking is unaffected.
+    hairpin_warn_fwd: Optional[bool] = None
+    hairpin_warn_rev: Optional[bool] = None
+    homodimer_warn_fwd: Optional[bool] = None
+    homodimer_warn_rev: Optional[bool] = None
     synthesis_score_fwd: Optional[float] = None
     synthesis_score_rev: Optional[float] = None
     warnings: list[str] = Field(default_factory=list)

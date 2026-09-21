@@ -112,11 +112,15 @@ export interface SdmPrimerResultModel {
   hairpin_dg_rev?: number | null;
   hairpin_tm_fwd?: number | null;
   hairpin_tm_rev?: number | null;
+  hairpin_warn_fwd?: boolean | null;
+  hairpin_warn_rev?: boolean | null;
   has_offtarget: boolean;
   homodimer_dg_fwd?: number | null;
   homodimer_dg_rev?: number | null;
   homodimer_tm_fwd?: number | null;
   homodimer_tm_rev?: number | null;
+  homodimer_warn_fwd?: boolean | null;
+  homodimer_warn_rev?: boolean | null;
   mt_codon: string;
   mutation: string;
   offtarget_fwd?: OffTargetHitModel[] | null;

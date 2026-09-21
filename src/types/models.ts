@@ -163,6 +163,15 @@ export interface SdmPrimerResult {
   hairpin_dg_rev?: number;
   homodimer_dg_fwd?: number;
   homodimer_dg_rev?: number;
+  // Per-structure warning verdicts from the engine
+  // (sdm_engine.secondary_structure_warn_flags): hairpin warns when its
+  // folded fraction at the pair's recommended Ta exceeds the engine limit,
+  // homodimer on the absolute design-scale Tm. Absent on rows serialized
+  // before the fields existed and cleared wherever pair Ta is unknown.
+  hairpin_warn_fwd?: boolean;
+  hairpin_warn_rev?: boolean;
+  homodimer_warn_fwd?: boolean;
+  homodimer_warn_rev?: boolean;
   synthesis_score_fwd?: number;
   synthesis_score_rev?: number;
   recommended_ta?: number | null;

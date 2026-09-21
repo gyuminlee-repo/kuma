@@ -306,6 +306,10 @@ function isSdmPrimerResult(value: unknown): value is SdmPrimerResult {
     isOptional(value.hairpin_dg_rev, isNumber) &&
     isOptional(value.homodimer_dg_fwd, isNumber) &&
     isOptional(value.homodimer_dg_rev, isNumber) &&
+    isOptional(value.hairpin_warn_fwd, isBoolean) &&
+    isOptional(value.hairpin_warn_rev, isBoolean) &&
+    isOptional(value.homodimer_warn_fwd, isBoolean) &&
+    isOptional(value.homodimer_warn_rev, isBoolean) &&
     isOptional(value.synthesis_score_fwd, isNumber) &&
     isOptional(value.synthesis_score_rev, isNumber) &&
     isOptionalNullable(value.recommended_ta, isNumber) &&

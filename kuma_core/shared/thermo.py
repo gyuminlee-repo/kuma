@@ -27,8 +27,8 @@ class ThermoStructure(Protocol):
     """What kuma reads off a secondary-structure result.
 
     ``structure_found`` says whether a duplex or hairpin was predicted at all;
-    both ``tm`` (degrees Celsius) and ``dg`` (cal/mol, the engine's native
-    unit) are meaningless when it is false, and every caller guards on it.
+    ``tm`` (degrees Celsius), ``dg`` and ``dh`` (cal/mol, the engine's native
+    units) are meaningless when it is false, and every caller guards on it.
     """
 
     @property
@@ -36,6 +36,9 @@ class ThermoStructure(Protocol):
 
     @property
     def dg(self) -> float: ...
+
+    @property
+    def dh(self) -> float: ...
 
     @property
     def structure_found(self) -> bool: ...

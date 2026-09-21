@@ -110,10 +110,11 @@ def _reverse_complement(seq: str) -> str:
 # and the 3' GC clamp.
 #
 # Thresholds are internal constants rather than parameters. KURO exposes none
-# of them either (every call site uses the defaults at ``sdm_engine.py:235``,
-# ``:726`` and ``:728``), and a knob nothing sets is a knob that only has to be
-# threaded through the RPC models, the TypeScript types and ten locale files.
-_QC_STRUCTURE_TM_MAX = 40.0   # sdm_engine._check_secondary_structure warn_tm
+# of them either (every call site uses the ``sdm_engine.py`` defaults:
+# ``WARN_STRUCTURE_TM`` and ``check_offtarget``'s tm thresholds), and a knob
+# nothing sets is a knob that only has to be threaded through the RPC models,
+# the TypeScript types and ten locale files.
+_QC_STRUCTURE_TM_MAX = 40.0   # sdm_engine.WARN_STRUCTURE_TM
 _QC_OFFTARGET_TM = 45.0       # sdm_engine.check_offtarget tm_threshold defaults
 
 # primer3's thermodynamic alignment refuses a pair where both sequences exceed
