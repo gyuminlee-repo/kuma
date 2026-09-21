@@ -13,7 +13,7 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Literal
 
-import primer3
+from kuma_core.shared import thermo
 
 from .polymerase import PolymeraseProfile, PolymeraseRegistry
 
@@ -165,7 +165,7 @@ def _calc_sdm_tm(seq: str) -> float:
     neither the profile buffer nor the NEB calibration table participates here.
     NEB calibration is Ta-only and lives in kuro/annealing.py.
     """
-    return primer3.calc_tm(
+    return thermo.calc_tm(
         seq,
         **_thermo_concs(),
         tm_method=_DESIGN_TM_METHOD,
@@ -234,18 +234,18 @@ def _check_secondary_structure(
     result: SdmPrimerResult,
     warn_tm: float = 40.0,
 ) -> None:
-    """Check hairpin and homodimer for both fwd/rev primers using primer3.
+    """Check hairpin and homodimer for both fwd/rev primers.
 
     Concentrations are the fixed design scale, not the profile buffer: this
     routine adds to result.penalty, and candidates are ranked by penalty, so a
     per-profile buffer here would change which primer is selected per enzyme.
-    primer3.calc_hairpin/calc_homodimer accept only the four concentrations,
+    calc_hairpin/calc_homodimer accept only the four concentrations,
     not tm_method/salt_corrections_method.
     """
     concs = _thermo_concs()
     for label, seq, is_fwd in [("Fwd", result.forward_seq, True), ("Rev", result.reverse_seq, False)]:
-        hp = primer3.calc_hairpin(seq, **concs)
-        hd = primer3.calc_homodimer(seq, **concs)
+        hp = thermo.calc_hairpin(seq, **concs)
+        hd = thermo.calc_homodimer(seq, **concs)
         hp_tm = round(hp.tm if hp.structure_found else 0.0, 1)
         hd_tm = round(hd.tm if hd.structure_found else 0.0, 1)
         hp_dg = round(hp.dg / 1000.0 if hp.structure_found else 0.0, 2)
@@ -749,7 +749,7 @@ def check_offtarget(
 
     2. Mismatch-tolerant duplex rule (``mismatch_tm_threshold``): every
        candidate alignment window of full primer length is scored with
-       ``primer3.calc_heterodimer``, which -- unlike ``_calc_sdm_tm`` --
+       ``thermo.calc_heterodimer``, which -- unlike ``_calc_sdm_tm`` --
        evaluates the actual (possibly mismatched) pairing instead of
        assuming perfect complementarity. The Tm comparison is the verdict;
        everything before it is only a prefilter that decides which windows
@@ -941,7 +941,7 @@ def check_offtarget(
                     continue
 
                 rc_site = reverse_complement(site)
-                result = primer3.calc_heterodimer(p_upper, rc_site, **concs)
+                result = thermo.calc_heterodimer(p_upper, rc_site, **concs)
                 tm = result.tm if result.structure_found else 0.0
 
                 if tm >= mismatch_tm_threshold:

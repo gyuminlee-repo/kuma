@@ -26,7 +26,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import primer3
+from kuma_core.shared import thermo
 
 from . import neb_tm
 from .polymerase import PolymeraseProfile
@@ -64,7 +64,7 @@ def _primer3_profile_tm(seq: str, profile: PolymeraseProfile) -> float:
     Uses the profile's committed salt/method parameters; it does not alter
     them and is decoupled from the design path.
     """
-    return primer3.calc_tm(
+    return thermo.calc_tm(
         seq,
         mv_conc=profile.salt_monovalent,
         dv_conc=profile.salt_divalent,

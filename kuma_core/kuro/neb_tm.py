@@ -4,7 +4,7 @@ NEB polymerases (Q5/Phusion/Taq/Q5 SDM) report Tm on the NEB Tm Calculator
 scale. This module reproduces that scale offline from a committed calibration
 table (resources/neb_tm_offsets.json):
 
-    neb_tm = primer3.calc_tm(seq, **ref_config) + (c0 + c1*len(seq) + c2*gc_percent)
+    neb_tm = thermo.calc_tm(seq, **ref_config) + (c0 + c1*len(seq) + c2*gc_percent)
 
 The design path uses neb_estimated_tm (no network). neb_api_tm calls the live
 NEB Tm API and is for regeneration / optional verification only - never the
@@ -18,7 +18,7 @@ import urllib.error
 import urllib.request
 from typing import Any
 
-import primer3
+from kuma_core.shared import thermo
 
 from .polymerase import _resource_path
 
@@ -66,7 +66,7 @@ def neb_product_for(profile_name: str) -> str | None:
 def neb_estimated_tm(seq: str, product: str) -> float:
     """Estimate NEB-scale Tm offline from the committed calibration table.
 
-    neb_tm = primer3.calc_tm(seq, **ref_config) + (c0 + c1*len + c2*gc_percent)
+    neb_tm = thermo.calc_tm(seq, **ref_config) + (c0 + c1*len + c2*gc_percent)
 
     Design-path only; no network access.
     """
@@ -74,7 +74,7 @@ def neb_estimated_tm(seq: str, product: str) -> float:
     entry = offsets["products"][product]
     ref_config = entry["ref_config"]
     c0, c1, c2 = entry["coef"]
-    base = primer3.calc_tm(seq, **ref_config)
+    base = thermo.calc_tm(seq, **ref_config)
     gc = _gc_percent(seq)
     return base + (c0 + c1 * len(seq) + c2 * gc)
 

@@ -34,7 +34,7 @@ from typing import TypedDict
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import primer3
+from kuma_core.shared import thermo
 
 from kuma_core.mame.ingest.polymerase import PolymeraseProfile, get_profile
 
@@ -174,8 +174,8 @@ def _structure_tms(seq: str) -> tuple[float, float] | None:
     if len(seq) > _PRIMER3_THAL_MAX_LEN:
         return None
     upper = seq.upper()
-    hairpin = primer3.calc_hairpin(upper, **_QC_CONCS)
-    homodimer = primer3.calc_homodimer(upper, **_QC_CONCS)
+    hairpin = thermo.calc_hairpin(upper, **_QC_CONCS)
+    homodimer = thermo.calc_homodimer(upper, **_QC_CONCS)
     return (
         round(hairpin.tm if hairpin.structure_found else 0.0, 1),
         round(homodimer.tm if homodimer.structure_found else 0.0, 1),
@@ -249,7 +249,7 @@ def _perfect_repeat_failure(
                 sites.append((strand, pos))
     if not sites:
         return []
-    tm = primer3.calc_tm(
+    tm = thermo.calc_tm(
         upper,
         **_QC_CONCS,
         tm_method=_QC_TM_METHOD,
@@ -327,10 +327,10 @@ def _binding_qc_failures(
 def _calc_tm(seq: str, profile: PolymeraseProfile) -> float:
     """Calculate Tm using the given polymerase salt profile.
 
-    Uses primer3.calc_tm with SantaLucia 1998 nearest-neighbour parameters.
-    ``seq`` is converted to uppercase before passing to primer3.
+    Uses thermo.calc_tm with SantaLucia 1998 nearest-neighbour parameters.
+    ``seq`` is converted to uppercase before passing to the engine.
     """
-    return primer3.calc_tm(
+    return thermo.calc_tm(
         seq.upper(),
         mv_conc=profile.mv_conc,
         dv_conc=profile.dv_conc,
