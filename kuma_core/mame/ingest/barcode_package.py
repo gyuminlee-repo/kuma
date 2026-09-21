@@ -152,6 +152,16 @@ _QC_CONCS: _ThermoConcs = {
     "dna_conc": 250.0,
 }
 
+# The Tm scale the off-target threshold is measured on. ``check_offtarget``
+# rule 1 scores a full-length match with ``sdm_engine._calc_sdm_tm``, which is
+# the SantaLucia 1998 pair below, so the fast path in
+# ``_perfect_repeat_failure`` must use the same pair to reach the same verdict.
+# Named constants rather than call-site literals so the golden corpus in
+# ``python-core/scripts/gen_thermo_golden.py`` reads them instead of retyping
+# them.
+_QC_TM_METHOD = "santalucia"
+_QC_SALT_CORRECTION = "santalucia"
+
 
 def _structure_tms(seq: str) -> tuple[float, float] | None:
     """Return ``(hairpin_tm, homodimer_tm)`` or None when primer3 cannot check.
@@ -242,8 +252,8 @@ def _perfect_repeat_failure(
     tm = primer3.calc_tm(
         upper,
         **_QC_CONCS,
-        tm_method="santalucia",
-        salt_corrections_method="santalucia",
+        tm_method=_QC_TM_METHOD,
+        salt_corrections_method=_QC_SALT_CORRECTION,
     )
     if tm < _QC_OFFTARGET_TM:
         return []

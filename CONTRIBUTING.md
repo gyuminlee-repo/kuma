@@ -1,5 +1,13 @@
 # Contributing to KUMA
 
+## Sign your commits
+
+Every commit needs a `Signed-off-by` trailer certifying the
+[Developer Certificate of Origin](DCO). `git commit -s` adds it, and the DCO
+workflow checks every commit a pull request adds. Full instructions are in
+[Contributing](docs/en/contributing.md#developer-certificate-of-origin)
+([한국어](docs/ko/contributing.md)).
+
 ## Versioning Convention
 
 KUMA uses a **4-segment commit/tag version** (`vA.BB.CC.DD`) but **3-segment manifest and in-binary version** (`A.BB.CC`).
