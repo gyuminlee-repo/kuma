@@ -18,6 +18,7 @@ from kuma_core.kuro.sdm_engine import (
     design_sdm_primers,
     evaluate_custom_primer,
     load_sequence,
+    secondary_structure_warn_flags,
 )
 from kuma_core.kuro.mutation import Mutation, parse_mutation_notation
 from kuma_core.kuro.codon_table import CODON_TO_AA, best_codon
@@ -252,6 +253,10 @@ def _serialize_result(
         "ta_detail": None, "ta_touchdown": None,
     }
     result.update(ta)
+    # UI warning verdicts ride on the pair's Ta (None -> 60 C fallback inside
+    # secondary_structure_warn_flags). Display-only fields: they are derived
+    # here at serialize time and never feed penalty or candidate ranking.
+    result.update(secondary_structure_warn_flags(r, ta["recommended_ta"]))
     if candidate_count is not None:
         result["candidate_count"] = candidate_count
     return SdmPrimerResultModel.model_validate(result)

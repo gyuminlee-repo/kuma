@@ -31,6 +31,7 @@ Click a column header. Default sort: input order. Common sorts: mutation positio
 
 - **Fwd / Rev cell click** → candidate comparison popover with top 10 alternatives ([Candidate Swap](candidate-swap.md))
 - **HP badge click** → 4-row breakdown: hairpin ΔG (forward, reverse) and homodimer ΔG (forward, reverse). No heterodimer (fwd×rev) row is shown: Kuro fwd/rev primers are designed to share the Gibson overlap, so they pair 5'-to-5' with both 3' ends dangling, a duplex geometry a polymerase cannot extend and so cannot form a primer-dimer amplicon (Kwok et al. 1990, NAR 18(4):999-1005, PMID 2179874, the extendability criterion already cited in sdm_engine.py).
+- **Amber badge** = the engine flagged a structure for this primer pair. A hairpin warns when its two-state folded fraction at the pair's recommended annealing temperature exceeds 10% (60 °C fallback when the profile has no Ta rule); a homodimer warns when its Tm exceeds 40 °C. The same verdict drives the status column in the breakdown popover.
 
 ## Failed rows
 

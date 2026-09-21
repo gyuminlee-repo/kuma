@@ -12,11 +12,16 @@ export function HairpinDetail({
   const { t } = useTranslation();
   const focusTrapRef = useFocusTrap<HTMLDivElement>();
 
+  // The status column reads the engine's per-structure verdict: hairpin flags
+  // are computed from the folded fraction at the pair's recommended Ta,
+  // homodimer flags from the absolute design-scale Tm. A flag that is absent
+  // (older payload, or cleared where the pair Ta is unknown) renders "-"
+  // rather than a guessed verdict.
   const rows = [
-    { label: t("hairpinDetail.rowHairpinFwd"), tm: result.hairpin_tm_fwd ?? 0, dg: result.hairpin_dg_fwd ?? 0 },
-    { label: t("hairpinDetail.rowHairpinRev"), tm: result.hairpin_tm_rev ?? 0, dg: result.hairpin_dg_rev ?? 0 },
-    { label: t("hairpinDetail.rowHomodimerFwd"), tm: result.homodimer_tm_fwd ?? 0, dg: result.homodimer_dg_fwd ?? 0 },
-    { label: t("hairpinDetail.rowHomodimerRev"), tm: result.homodimer_tm_rev ?? 0, dg: result.homodimer_dg_rev ?? 0 },
+    { label: t("hairpinDetail.rowHairpinFwd"), tm: result.hairpin_tm_fwd ?? 0, dg: result.hairpin_dg_fwd ?? 0, warn: result.hairpin_warn_fwd },
+    { label: t("hairpinDetail.rowHairpinRev"), tm: result.hairpin_tm_rev ?? 0, dg: result.hairpin_dg_rev ?? 0, warn: result.hairpin_warn_rev },
+    { label: t("hairpinDetail.rowHomodimerFwd"), tm: result.homodimer_tm_fwd ?? 0, dg: result.homodimer_dg_fwd ?? 0, warn: result.homodimer_warn_fwd },
+    { label: t("hairpinDetail.rowHomodimerRev"), tm: result.homodimer_tm_rev ?? 0, dg: result.homodimer_dg_rev ?? 0, warn: result.homodimer_warn_rev },
   ];
 
   return (
@@ -66,9 +71,9 @@ export function HairpinDetail({
                   {r.dg !== 0 ? r.dg.toFixed(1) : "—"}
                 </td>
                 <td className="px-3 py-1.5 text-center">
-                  {r.tm <= 0 ? (
+                  {r.tm <= 0 || r.warn == null ? (
                     <span className="text-muted-foreground">—</span>
-                  ) : r.tm > 40 ? (
+                  ) : r.warn ? (
                     <span className="inline-block px-1.5 py-0.5 rounded text-caption font-medium bg-warning/10 text-warning">
                       {t("hairpinDetail.statusWarn")}
                     </span>

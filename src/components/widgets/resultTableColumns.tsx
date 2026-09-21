@@ -32,7 +32,7 @@ export const HEADER_TOOLTIPS: Record<string, string> = {
   // carries real signal for user-added custom primer rows (Evaluate tab),
   // which are not filtered the same way.
   has_offtarget: "Off-target binding detected on template strand (custom-evaluated primers only; design-search results are always OK by construction)",
-  hairpin: "Hairpin/Homodimer worst Tm (>40°C = warning)",
+  hairpin: "Hairpin/Homodimer worst Tm (amber = warning; hairpin judged by folded fraction at the recommended Ta)",
   gc_fwd: "Forward primer GC content (40-60% recommended)",
   gc_rev: "Reverse primer GC content (40-60% recommended)",
   synth: "Synthesis quality score (100=ideal). Penalizes: homopolymer runs, GC-rich stretches, dinucleotide repeats, extreme GC%. Hover cell for Fwd/Rev breakdown",
@@ -390,7 +390,15 @@ export function makeResultTableColumns(opts: {
         const maxHd = Math.max(row.homodimer_tm_fwd ?? 0, row.homodimer_tm_rev ?? 0);
         const worst = Math.max(maxHp, maxHd);
         if (worst <= 0) return "—";
-        const warn = worst > 40;
+        // The verdict comes from the engine (per-structure warn flags on the
+        // row): hairpin by folded fraction at the pair's Ta, homodimer by the
+        // absolute design-scale Tm. Rows serialized before the flags existed
+        // show the bare number with no warn tint.
+        const warn =
+          row.hairpin_warn_fwd === true ||
+          row.hairpin_warn_rev === true ||
+          row.homodimer_warn_fwd === true ||
+          row.homodimer_warn_rev === true;
         return (
           <span className={`inline-block px-1 py-0.5 rounded-control text-caption font-medium cursor-pointer ${warn ? "bg-warning/10 text-warning" : "bg-muted text-muted-foreground"}`}>
             {worst.toFixed(0)}
