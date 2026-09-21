@@ -10,6 +10,38 @@ The precise grant and authority to issue an alternative license require a
 rights-holder decision. Do not infer an "or later" grant from the example
 application instructions printed at the end of the GPL text.
 
+### Noncommercial relicensing evaluated, 2026-09-20
+
+A move to a research-only or noncommercial license was evaluated on 2026-09-20
+and is not available for the current build. `primer3-py` 2.3.0 declares `GPLv2`
+in its installed metadata and ships the plain GPL version 2 text with no
+linking exception. It is a hard runtime dependency in `pyproject.toml`,
+imported at module level by `kuma_core/kuro/sdm_engine.py`,
+`kuma_core/kuro/annealing.py`, `kuma_core/kuro/neb_tm.py` and
+`kuma_core/mame/ingest/barcode_package.py`, and `python-core/build_sidecar.py`
+names it in the `collect_all` list of both sidecar builds. Section 6 of GPL
+version 2 forbids imposing further restrictions on recipients, so the
+distributed combined work cannot carry a noncommercial term.
+
+No other runtime component forces that outcome. certifi is MPL-2.0, which is
+file-level copyleft with no commercial restriction, and PyInstaller carries the
+exception that permits distributing non-free programs built with it. The
+bundled native binaries are MIT (minimap2) and zlib.
+
+Lifting the constraint would mean replacing the primer3 entry points in use
+(`calc_tm`, `calc_hairpin`, `calc_homodimer`, `calc_heterodimer`) and
+revalidating the numeric output, including
+`kuma_core/kuro/resources/neb_tm_offsets.json`, which was fitted against
+primer3 output. That is a scientific revalidation task and it has not been
+done. This record states a finding. It does not relicense KUMA and does not
+grant rights on behalf of contributors or an employer.
+
+The documentation licensing statement in the READMEs applies CC BY-NC 4.0 to
+authored material under `docs/en/`, `docs/ko/` and `docs/screenshots*/` only.
+`docs/help/**` is compiled into the application bundle by
+`src/help/content.ts` and stays under GPL version 2, so the NC grant is written
+to exclude it and the Assets bullet below still governs third-party material.
+
 ## What the collectors actually cover
 
 | Source | Collected evidence | Boundary |

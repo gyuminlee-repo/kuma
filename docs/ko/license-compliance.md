@@ -10,6 +10,34 @@ GPL-2.0-or-later 중 하나를 새로 선택하는 작업이 아니다. 기여�
 권리자가 확인해야 한다. GPL 본문 끝의 적용 예시만 보고 프로젝트에 "or later"
 권한이 있다고 추정하지 않는다.
 
+### 비상업 재라이선스 검토, 2026-09-20
+
+연구 전용이나 비상업 라이선스로 옮기는 안을 2026-09-20 에 검토했고 현재 구성에는
+적용할 수 없다고 판정했다. `primer3-py` 2.3.0 은 설치 메타데이터에 `GPLv2` 를
+선언하고 링크 예외 없는 GPL version 2 본문을 그대로 포함한다. `pyproject.toml`
+의 필수 런타임 의존성이고 `kuma_core/kuro/sdm_engine.py`,
+`kuma_core/kuro/annealing.py`, `kuma_core/kuro/neb_tm.py`,
+`kuma_core/mame/ingest/barcode_package.py` 가 모듈 레벨에서 import 한다.
+`python-core/build_sidecar.py` 는 두 사이드카 빌드의 `collect_all` 목록에 이를
+올린다. GPL version 2 의 6항이 수령자에 대한 추가 제한을 금지하므로 배포되는
+결합 저작물에는 비상업 조항을 붙일 수 없다.
+
+다른 런타임 구성요소는 이 결론을 만들지 않는다. certifi 는 파일 단위 카피레프트인
+MPL-2.0 이고 상업 이용 제한이 없다. PyInstaller 에는 그것으로 만든 비자유 프로그램
+배포를 허용하는 예외가 있다. 번들된 네이티브 바이너리는 MIT(minimap2) 와 zlib 다.
+
+이 제약을 없애려면 실제로 쓰는 primer3 진입점(`calc_tm`, `calc_hairpin`,
+`calc_homodimer`, `calc_heterodimer`)을 교체하고 수치 출력을 다시 검증해야 한다.
+primer3 출력에 맞춰 보정한 `kuma_core/kuro/resources/neb_tm_offsets.json` 도
+대상이다. 이는 과학적 재검증 작업이고 아직 수행하지 않았다. 이 기록은 판정을
+남기는 것이지 KUMA 를 재라이선스하거나 기여자와 고용기관을 대신해 권리를 부여하는
+것이 아니다.
+
+README 의 문서 라이선스 조항은 `docs/en/`, `docs/ko/`, `docs/screenshots*/` 의
+자체 작성 자료에만 CC BY-NC 4.0 을 적용한다. `docs/help/**` 는
+`src/help/content.ts` 가 애플리케이션 번들로 컴파일하므로 GPL version 2 를 유지하고
+NC 허락 범위에서 제외했다. 서드파티 자료는 아래 자산 항목이 계속 규율한다.
+
 ## 자동 수집 범위
 
 | 출처 | 수집하는 근거 | 범위의 한계 |
