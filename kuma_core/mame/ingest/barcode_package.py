@@ -174,8 +174,8 @@ def _structure_tms(seq: str) -> tuple[float, float] | None:
     if len(seq) > _PRIMER3_THAL_MAX_LEN:
         return None
     upper = seq.upper()
-    hairpin = primer3.calc_hairpin(upper, **_QC_CONCS)
-    homodimer = primer3.calc_homodimer(upper, **_QC_CONCS)
+    hairpin = thermo.calc_hairpin(upper, **_QC_CONCS)
+    homodimer = thermo.calc_homodimer(upper, **_QC_CONCS)
     return (
         round(hairpin.tm if hairpin.structure_found else 0.0, 1),
         round(homodimer.tm if homodimer.structure_found else 0.0, 1),
@@ -249,7 +249,7 @@ def _perfect_repeat_failure(
                 sites.append((strand, pos))
     if not sites:
         return []
-    tm = primer3.calc_tm(
+    tm = thermo.calc_tm(
         upper,
         **_QC_CONCS,
         tm_method=_QC_TM_METHOD,
