@@ -12,6 +12,7 @@ import sys
 import tempfile
 import threading
 import time
+from dataclasses import fields as dc_fields
 from dataclasses import replace as dc_replace
 from pathlib import Path
 
@@ -24,7 +25,7 @@ if str(_SIDECAR_DIR) not in sys.path:
     sys.path.insert(0, str(_SIDECAR_DIR))
 
 from sidecar_kuro.dispatcher import dispatch  # noqa: E402
-from sidecar_kuro.core import _state, SidecarState  # noqa: E402
+from sidecar_kuro.core import SidecarState  # noqa: E402
 from sidecar_kuro.handlers.external import (  # noqa: E402
     _candidate_rank_key,
     _organism_match_score,
@@ -120,10 +121,27 @@ def _rpc(method: str, params: dict | None = None, req_id: int = 1) -> dict:
 
 # ── Fixtures ─────────────────────────────────────────────────────────────
 
+def _reset_state_in_place() -> None:
+    """Clear every field of ``_sidecar_core._state`` without rebinding it.
+
+    Other suites capture ``from sidecar_kuro.core import _state`` at import
+    time. Assigning ``_sidecar_core._state = SidecarState()`` would orphan
+    those references: fixtures would keep writing the old object while
+    handlers read the new one, so any leftover state leaks across suites.
+    Production code only ever mutates this object in place, so tests reset
+    it the same way. Fields are copied off a fresh instance so a field
+    added to ``SidecarState`` later is cleared automatically.
+    """
+    fresh = SidecarState()
+    with _sidecar_core._state_lock:
+        for f in dc_fields(SidecarState):
+            setattr(_sidecar_core._state, f.name, getattr(fresh, f.name))
+
+
 @pytest.fixture(autouse=True)
 def _reset_state():
     """Reset sidecar state before each test."""
-    _sidecar_core._state = SidecarState()
+    _reset_state_in_place()
     yield
 
 
@@ -729,7 +747,7 @@ class TestExportOrder:
         with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as f:
             tmp_path = f.name
         try:
-            _sidecar_core._state = SidecarState()
+            _reset_state_in_place()
             resp = _rpc(
                 "export_order",
                 {
@@ -803,7 +821,7 @@ class TestExportMapping:
         try:
             plate_resp = _rpc("get_plate_map")
             plate = plate_resp["result"]
-            _sidecar_core._state = SidecarState()
+            _reset_state_in_place()
             resp = _rpc(
                 "export_mapping",
                 {
