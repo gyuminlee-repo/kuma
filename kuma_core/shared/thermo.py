@@ -17,7 +17,7 @@ keywords are not passed keep the engine's behaviour, exactly as before.
 
 from __future__ import annotations
 
-from typing import Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 import primer3
 
@@ -41,21 +41,21 @@ class ThermoStructure(Protocol):
     def structure_found(self) -> bool: ...
 
 
-def calc_tm(seq: str, **params: float | str) -> float:
+def calc_tm(seq: str, **params: Any) -> float:
     """Nearest-neighbour melting temperature of ``seq`` in degrees Celsius."""
     return primer3.calc_tm(seq, **params)
 
 
-def calc_hairpin(seq: str, **params: float | str) -> ThermoStructure:
+def calc_hairpin(seq: str, **params: Any) -> ThermoStructure:
     """Most stable hairpin ``seq`` can form with itself."""
     return primer3.calc_hairpin(seq, **params)
 
 
-def calc_homodimer(seq: str, **params: float | str) -> ThermoStructure:
+def calc_homodimer(seq: str, **params: Any) -> ThermoStructure:
     """Most stable duplex two copies of ``seq`` can form."""
     return primer3.calc_homodimer(seq, **params)
 
 
-def calc_heterodimer(seq1: str, seq2: str, **params: float | str) -> ThermoStructure:
+def calc_heterodimer(seq1: str, seq2: str, **params: Any) -> ThermoStructure:
     """Most stable duplex ``seq1`` and ``seq2`` can form with each other."""
     return primer3.calc_heterodimer(seq1, seq2, **params)
