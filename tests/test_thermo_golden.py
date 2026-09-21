@@ -110,9 +110,12 @@ def test_recorded_parameters_still_match_the_code() -> None:
     """
     from kuma_core.kuro import sdm_engine
 
-    live = _load_generator().build_param_sets()
-    recorded = {k: v for k, v in PARAM_SETS.items() if k != "design_concs_only"}
-    assert live == recorded, (
+    generator = _load_generator()
+    live = {
+        **generator.build_param_sets(),
+        **generator.build_structure_param_sets(),
+    }
+    assert live == PARAM_SETS, (
         "primer3 parameters in the code no longer match the corpus; regenerate "
         "it with python3 python-core/scripts/gen_thermo_golden.py"
     )

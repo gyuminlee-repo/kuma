@@ -2,7 +2,7 @@
   "_meta": {
     "purpose": "Golden corpus of primer3 thermodynamic output, frozen so a future permissive replacement for primer3-py can be judged on whether it reproduces the numbers kuma ships.",
     "generated_by": "python3 python-core/scripts/gen_thermo_golden.py",
-    "generated_at": "2026-09-20T10:58:12+00:00",
+    "generated_at": "2026-09-21T01:58:14+00:00",
     "primer3_version": "2.3.0",
     "python_version": "3.11.15 (main, Mar 24 2026, 22:50:29) [Clang 22.1.1 ]",
     "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
@@ -155,7 +155,21 @@
       "tm_method": "santalucia",
       "salt_corrections_method": "santalucia"
     },
+    "mame_qc_tm": {
+      "mv_conc": 50.0,
+      "dv_conc": 0.0,
+      "dntp_conc": 0.0,
+      "dna_conc": 250.0,
+      "tm_method": "santalucia",
+      "salt_corrections_method": "santalucia"
+    },
     "design_concs_only": {
+      "mv_conc": 50.0,
+      "dv_conc": 0.0,
+      "dntp_conc": 0.0,
+      "dna_conc": 250.0
+    },
+    "mame_qc_structure": {
       "mv_conc": 50.0,
       "dv_conc": 0.0,
       "dntp_conc": 0.0,
@@ -346,6 +360,30 @@
     "repo_m13_rev": {
       "seq": "GACCATGATTACGCCAAGCTTG",
       "origin": "in-repo test sequence"
+    },
+    "offtarget_below_43_7": {
+      "seq": "CACGTTACCATATATGC",
+      "origin": "pinned off-target threshold probe"
+    },
+    "offtarget_below_44_6": {
+      "seq": "TTAGGGCATATTGTGC",
+      "origin": "pinned off-target threshold probe"
+    },
+    "offtarget_below_44_9": {
+      "seq": "CACTGTCATAGCTTCC",
+      "origin": "pinned off-target threshold probe"
+    },
+    "offtarget_above_45_2": {
+      "seq": "AAACAAGGTAGCACAC",
+      "origin": "pinned off-target threshold probe"
+    },
+    "offtarget_above_45_3": {
+      "seq": "CTGAGACAGTTTTGTCA",
+      "origin": "pinned off-target threshold probe"
+    },
+    "offtarget_above_45_8": {
+      "seq": "CTTAGGCCTCCACTAG",
+      "origin": "pinned off-target threshold probe"
     }
   },
   "entries": [
@@ -467,6 +505,16 @@
       "param_set": "mame_profile:Taq",
       "expected": {
         "tm": 50.18518928224182
+      }
+    },
+    {
+      "id": "calc_tm|flat_a_rich|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "flat_a_rich",
+      "seq": "AAAGAAATAAAGAAATAAAGAAAT",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 43.625404599887815
       }
     },
     {
@@ -620,6 +668,16 @@
       }
     },
     {
+      "id": "calc_tm|flat_at_18|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "flat_at_18",
+      "seq": "ATATATATATATATATAT",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 24.214146426646153
+      }
+    },
+    {
       "id": "calc_tm|flat_at_18|neb_ref:phusion",
       "call": "calc_tm",
       "seq_id": "flat_at_18",
@@ -767,6 +825,16 @@
       "param_set": "mame_profile:Taq",
       "expected": {
         "tm": 38.41847313478638
+      }
+    },
+    {
+      "id": "calc_tm|hairpin_above_40_1|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "hairpin_above_40_1",
+      "seq": "ACGTTTTTACGT",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 32.70529635737984
       }
     },
     {
@@ -920,6 +988,16 @@
       }
     },
     {
+      "id": "calc_tm|hairpin_above_41_1|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "hairpin_above_41_1",
+      "seq": "ATGCTTTTTTTTGCAT",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 41.18389568834408
+      }
+    },
+    {
       "id": "calc_tm|hairpin_above_41_1|neb_ref:phusion",
       "call": "calc_tm",
       "seq_id": "hairpin_above_41_1",
@@ -1067,6 +1145,16 @@
       "param_set": "mame_profile:Taq",
       "expected": {
         "tm": 40.02828409144905
+      }
+    },
+    {
+      "id": "calc_tm|hairpin_above_41_3|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "hairpin_above_41_3",
+      "seq": "TGCATTTTTGCA",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 34.17905141696514
       }
     },
     {
@@ -1220,6 +1308,16 @@
       }
     },
     {
+      "id": "calc_tm|hairpin_above_41_4|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "hairpin_above_41_4",
+      "seq": "ATCGTTTTTTCGAT",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 36.459436506706766
+      }
+    },
+    {
       "id": "calc_tm|hairpin_above_41_4|neb_ref:phusion",
       "call": "calc_tm",
       "seq_id": "hairpin_above_41_4",
@@ -1367,6 +1465,16 @@
       "param_set": "mame_profile:Taq",
       "expected": {
         "tm": 38.80051423698637
+      }
+    },
+    {
+      "id": "calc_tm|hairpin_above_42_0|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "hairpin_above_42_0",
+      "seq": "GCATATTTTTATGC",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 33.00957461315073
       }
     },
     {
@@ -1520,6 +1628,16 @@
       }
     },
     {
+      "id": "calc_tm|hairpin_above_44_4|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "hairpin_above_44_4",
+      "seq": "AGCTATTTTTAGCT",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 33.931911488768264
+      }
+    },
+    {
       "id": "calc_tm|hairpin_above_44_4|neb_ref:phusion",
       "call": "calc_tm",
       "seq_id": "hairpin_above_44_4",
@@ -1667,6 +1785,16 @@
       "param_set": "mame_profile:Taq",
       "expected": {
         "tm": 63.48851342391413
+      }
+    },
+    {
+      "id": "calc_tm|hairpin_bamhi|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "hairpin_bamhi",
+      "seq": "GGATCCGGTTTTCCGGATCC",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 56.94446101692091
       }
     },
     {
@@ -1820,6 +1948,16 @@
       }
     },
     {
+      "id": "calc_tm|hairpin_below_34_0|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "hairpin_below_34_0",
+      "seq": "GCTATTTTTAGC",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 27.57903518993197
+      }
+    },
+    {
       "id": "calc_tm|hairpin_below_34_0|neb_ref:phusion",
       "call": "calc_tm",
       "seq_id": "hairpin_below_34_0",
@@ -1967,6 +2105,16 @@
       "param_set": "mame_profile:Taq",
       "expected": {
         "tm": 37.425631924559355
+      }
+    },
+    {
+      "id": "calc_tm|hairpin_below_34_9|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "hairpin_below_34_9",
+      "seq": "GACTTTTTTTAGTC",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 31.641484755070337
       }
     },
     {
@@ -2120,6 +2268,16 @@
       }
     },
     {
+      "id": "calc_tm|hairpin_below_37_9|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "hairpin_below_37_9",
+      "seq": "AAGACTTTTTAGTCAA",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 37.346177261050684
+      }
+    },
+    {
       "id": "calc_tm|hairpin_below_37_9|neb_ref:phusion",
       "call": "calc_tm",
       "seq_id": "hairpin_below_37_9",
@@ -2267,6 +2425,16 @@
       "param_set": "mame_profile:Taq",
       "expected": {
         "tm": 46.15759534424808
+      }
+    },
+    {
+      "id": "calc_tm|hairpin_below_38_3|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "hairpin_below_38_3",
+      "seq": "ATCGTTTTTTTTCGAT",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 40.05803638401096
       }
     },
     {
@@ -2420,6 +2588,16 @@
       }
     },
     {
+      "id": "calc_tm|hairpin_below_38_8|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "hairpin_below_38_8",
+      "seq": "AGCTTTTTAGCT",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 30.652234167050494
+      }
+    },
+    {
       "id": "calc_tm|hairpin_below_38_8|neb_ref:phusion",
       "call": "calc_tm",
       "seq_id": "hairpin_below_38_8",
@@ -2567,6 +2745,16 @@
       "param_set": "mame_profile:Taq",
       "expected": {
         "tm": 45.67233463497536
+      }
+    },
+    {
+      "id": "calc_tm|hairpin_below_39_4|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "hairpin_below_39_4",
+      "seq": "AGCTTTTTTTTTAGCT",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 39.45305426528813
       }
     },
     {
@@ -2720,6 +2908,16 @@
       }
     },
     {
+      "id": "calc_tm|hairpin_gc_stem8|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "hairpin_gc_stem8",
+      "seq": "GCGCGCGCTTTTGCGCGCGC",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 71.0334331394414
+      }
+    },
+    {
       "id": "calc_tm|hairpin_gc_stem8|neb_ref:phusion",
       "call": "calc_tm",
       "seq_id": "hairpin_gc_stem8",
@@ -2867,6 +3065,16 @@
       "param_set": "mame_profile:Taq",
       "expected": {
         "tm": 60.622627034641425
+      }
+    },
+    {
+      "id": "calc_tm|hairpin_hindiii|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "hairpin_hindiii",
+      "seq": "AAGCTTGCTTTTGCAAGCTT",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 54.10265588403519
       }
     },
     {
@@ -3020,6 +3228,16 @@
       }
     },
     {
+      "id": "calc_tm|hairpin_nsii|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "hairpin_nsii",
+      "seq": "ATGCATTTTTATGCAT",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 39.78864801199893
+      }
+    },
+    {
       "id": "calc_tm|hairpin_nsii|neb_ref:phusion",
       "call": "calc_tm",
       "seq_id": "hairpin_nsii",
@@ -3167,6 +3385,16 @@
       "param_set": "mame_profile:Taq",
       "expected": {
         "tm": 69.00761296585762
+      }
+    },
+    {
+      "id": "calc_tm|homodimer_atgc24|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "homodimer_atgc24",
+      "seq": "ATGCATGCATGCATGCATGCATGC",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 62.37473834023399
       }
     },
     {
@@ -3320,6 +3548,16 @@
       }
     },
     {
+      "id": "calc_tm|homodimer_ccgg16|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "homodimer_ccgg16",
+      "seq": "CCGGCCGGCCGGCCGG",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 70.19118141393358
+      }
+    },
+    {
       "id": "calc_tm|homodimer_ccgg16|neb_ref:phusion",
       "call": "calc_tm",
       "seq_id": "homodimer_ccgg16",
@@ -3467,6 +3705,16 @@
       "param_set": "mame_profile:Taq",
       "expected": {
         "tm": 86.13424730599274
+      }
+    },
+    {
+      "id": "calc_tm|homodimer_gc20|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "homodimer_gc20",
+      "seq": "GCGCGCGCGCGCGCGCGCGC",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 80.0801706112872
       }
     },
     {
@@ -3620,6 +3868,16 @@
       }
     },
     {
+      "id": "calc_tm|homodimer_gcrich22|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "homodimer_gcrich22",
+      "seq": "GCCGGCATGCCGGCATGCCGGC",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 73.18832162228256
+      }
+    },
+    {
       "id": "calc_tm|homodimer_gcrich22|neb_ref:phusion",
       "call": "calc_tm",
       "seq_id": "homodimer_gcrich22",
@@ -3767,6 +4025,16 @@
       "param_set": "mame_profile:Taq",
       "expected": {
         "tm": 57.1518178319219
+      }
+    },
+    {
+      "id": "calc_tm|mame_ref_0_18|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "mame_ref_0_18",
+      "seq": "ATGGCTTGCTCTGTATCC",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 50.68523145453884
       }
     },
     {
@@ -3920,6 +4188,16 @@
       }
     },
     {
+      "id": "calc_tm|mame_ref_11_24|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "mame_ref_11_24",
+      "seq": "TGTATCCACTGAGAACGTATCTTT",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 53.40763293587929
+      }
+    },
+    {
       "id": "calc_tm|mame_ref_11_24|neb_ref:phusion",
       "call": "calc_tm",
       "seq_id": "mame_ref_11_24",
@@ -4067,6 +4345,16 @@
       "param_set": "mame_profile:Taq",
       "expected": {
         "tm": 63.083643055676646
+      }
+    },
+    {
+      "id": "calc_tm|mame_ref_15_25|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "mame_ref_15_25",
+      "seq": "TCCACTGAGAACGTATCTTTCACTG",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 56.43699907498467
       }
     },
     {
@@ -4220,6 +4508,16 @@
       }
     },
     {
+      "id": "calc_tm|mame_ref_19_27|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "mame_ref_19_27",
+      "seq": "CTGAGAACGTATCTTTCACTGAGACTG",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 57.0573292750841
+      }
+    },
+    {
       "id": "calc_tm|mame_ref_19_27|neb_ref:phusion",
       "call": "calc_tm",
       "seq_id": "mame_ref_19_27",
@@ -4367,6 +4665,16 @@
       "param_set": "mame_profile:Taq",
       "expected": {
         "tm": 65.39801029452343
+      }
+    },
+    {
+      "id": "calc_tm|mame_ref_23_30|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "mame_ref_23_30",
+      "seq": "GAACGTATCTTTCACTGAGACTGAAACTGA",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 58.65941166387506
       }
     },
     {
@@ -4520,6 +4828,16 @@
       }
     },
     {
+      "id": "calc_tm|mame_ref_27_33|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "mame_ref_27_33",
+      "seq": "GTATCTTTCACTGAGACTGAAACTGAGACCCGT",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 62.5012914689367
+      }
+    },
+    {
       "id": "calc_tm|mame_ref_27_33|neb_ref:phusion",
       "call": "calc_tm",
       "seq_id": "mame_ref_27_33",
@@ -4667,6 +4985,16 @@
       "param_set": "mame_profile:Taq",
       "expected": {
         "tm": 72.1853807918369
+      }
+    },
+    {
+      "id": "calc_tm|mame_ref_31_36|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "mame_ref_31_36",
+      "seq": "CTTTCACTGAGACTGAAACTGAGACCCGTATGGCTT",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 65.2052519248673
       }
     },
     {
@@ -4820,6 +5148,16 @@
       }
     },
     {
+      "id": "calc_tm|mame_ref_35_39|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "mame_ref_35_39",
+      "seq": "CACTGAGACTGAAACTGAGACCCGTATGGCTTGCTCTGT",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 68.27757408888061
+      }
+    },
+    {
       "id": "calc_tm|mame_ref_35_39|neb_ref:phusion",
       "call": "calc_tm",
       "seq_id": "mame_ref_35_39",
@@ -4967,6 +5305,16 @@
       "param_set": "mame_profile:Taq",
       "expected": {
         "tm": 60.26240543923575
+      }
+    },
+    {
+      "id": "calc_tm|mame_ref_3_20|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "mame_ref_3_20",
+      "seq": "GCTTGCTCTGTATCCACTGA",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 53.74394453592316
       }
     },
     {
@@ -5120,6 +5468,16 @@
       }
     },
     {
+      "id": "calc_tm|mame_ref_41_40|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "mame_ref_41_40",
+      "seq": "GACTGAAACTGAGACCCGTATGGCTTGCTCTGTATCCACT",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 67.86089272009173
+      }
+    },
+    {
       "id": "calc_tm|mame_ref_41_40|neb_ref:phusion",
       "call": "calc_tm",
       "seq_id": "mame_ref_41_40",
@@ -5267,6 +5625,16 @@
       "param_set": "mame_profile:Taq",
       "expected": {
         "tm": 61.732634866042304
+      }
+    },
+    {
+      "id": "calc_tm|mame_ref_47_20|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "mame_ref_47_20",
+      "seq": "AACTGAGACCCGTATGGCTT",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 55.06808802596987
       }
     },
     {
@@ -5420,6 +5788,16 @@
       }
     },
     {
+      "id": "calc_tm|mame_ref_7_22|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "mame_ref_7_22",
+      "seq": "GCTCTGTATCCACTGAGAACGT",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 56.01495258511886
+      }
+    },
+    {
       "id": "calc_tm|mame_ref_7_22|neb_ref:phusion",
       "call": "calc_tm",
       "seq_id": "mame_ref_7_22",
@@ -5447,6 +5825,966 @@
       "param_set": "neb_ref:taq",
       "expected": {
         "tm": 63.34665638867324
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_2|design",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_2",
+      "seq": "AAACAAGGTAGCACAC",
+      "param_set": "design",
+      "expected": {
+        "tm": 45.18979604697006
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_2|kuro_profile:DreamTaq",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_2",
+      "seq": "AAACAAGGTAGCACAC",
+      "param_set": "kuro_profile:DreamTaq",
+      "expected": {
+        "tm": 53.053601792462416
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_2|kuro_profile:KOD",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_2",
+      "seq": "AAACAAGGTAGCACAC",
+      "param_set": "kuro_profile:KOD",
+      "expected": {
+        "tm": 50.36385505335045
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_2|kuro_profile:Phusion",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_2",
+      "seq": "AAACAAGGTAGCACAC",
+      "param_set": "kuro_profile:Phusion",
+      "expected": {
+        "tm": 52.77434608670552
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_2|kuro_profile:Q5",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_2",
+      "seq": "AAACAAGGTAGCACAC",
+      "param_set": "kuro_profile:Q5",
+      "expected": {
+        "tm": 54.740511252896795
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_2|kuro_profile:Q5 SDM",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_2",
+      "seq": "AAACAAGGTAGCACAC",
+      "param_set": "kuro_profile:Q5 SDM",
+      "expected": {
+        "tm": 54.740511252896795
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_2|kuro_profile:TAKARA_GXL",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_2",
+      "seq": "AAACAAGGTAGCACAC",
+      "param_set": "kuro_profile:TAKARA_GXL",
+      "expected": {
+        "tm": 50.74435658171734
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_2|kuro_profile:Taq",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_2",
+      "seq": "AAACAAGGTAGCACAC",
+      "param_set": "kuro_profile:Taq",
+      "expected": {
+        "tm": 52.96643349473163
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_2|mame_profile:KOD",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_2",
+      "seq": "AAACAAGGTAGCACAC",
+      "param_set": "mame_profile:KOD",
+      "expected": {
+        "tm": 51.402596176801126
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_2|mame_profile:Phusion",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_2",
+      "seq": "AAACAAGGTAGCACAC",
+      "param_set": "mame_profile:Phusion",
+      "expected": {
+        "tm": 51.402596176801126
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_2|mame_profile:Q5",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_2",
+      "seq": "AAACAAGGTAGCACAC",
+      "param_set": "mame_profile:Q5",
+      "expected": {
+        "tm": 52.82395721550796
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_2|mame_profile:Taq",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_2",
+      "seq": "AAACAAGGTAGCACAC",
+      "param_set": "mame_profile:Taq",
+      "expected": {
+        "tm": 51.402596176801126
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_2|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_2",
+      "seq": "AAACAAGGTAGCACAC",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 45.18979604697006
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_2|neb_ref:phusion",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_2",
+      "seq": "AAACAAGGTAGCACAC",
+      "param_set": "neb_ref:phusion",
+      "expected": {
+        "tm": 47.27728224166145
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_2|neb_ref:q5",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_2",
+      "seq": "AAACAAGGTAGCACAC",
+      "param_set": "neb_ref:q5",
+      "expected": {
+        "tm": 52.234302143779246
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_2|neb_ref:taq",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_2",
+      "seq": "AAACAAGGTAGCACAC",
+      "param_set": "neb_ref:taq",
+      "expected": {
+        "tm": 52.146620064448655
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_3|design",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_3",
+      "seq": "CTGAGACAGTTTTGTCA",
+      "param_set": "design",
+      "expected": {
+        "tm": 45.31389876014447
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_3|kuro_profile:DreamTaq",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_3",
+      "seq": "CTGAGACAGTTTTGTCA",
+      "param_set": "kuro_profile:DreamTaq",
+      "expected": {
+        "tm": 52.982162250906924
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_3|kuro_profile:KOD",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_3",
+      "seq": "CTGAGACAGTTTTGTCA",
+      "param_set": "kuro_profile:KOD",
+      "expected": {
+        "tm": 50.51523326082901
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_3|kuro_profile:Phusion",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_3",
+      "seq": "CTGAGACAGTTTTGTCA",
+      "param_set": "kuro_profile:Phusion",
+      "expected": {
+        "tm": 52.904142002965216
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_3|kuro_profile:Q5",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_3",
+      "seq": "CTGAGACAGTTTTGTCA",
+      "param_set": "kuro_profile:Q5",
+      "expected": {
+        "tm": 54.56374577555931
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_3|kuro_profile:Q5 SDM",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_3",
+      "seq": "CTGAGACAGTTTTGTCA",
+      "param_set": "kuro_profile:Q5 SDM",
+      "expected": {
+        "tm": 54.56374577555931
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_3|kuro_profile:TAKARA_GXL",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_3",
+      "seq": "CTGAGACAGTTTTGTCA",
+      "param_set": "kuro_profile:TAKARA_GXL",
+      "expected": {
+        "tm": 50.707143406062926
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_3|kuro_profile:Taq",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_3",
+      "seq": "CTGAGACAGTTTTGTCA",
+      "param_set": "kuro_profile:Taq",
+      "expected": {
+        "tm": 52.869263728446924
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_3|mame_profile:KOD",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_3",
+      "seq": "CTGAGACAGTTTTGTCA",
+      "param_set": "mame_profile:KOD",
+      "expected": {
+        "tm": 51.559548055178254
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_3|mame_profile:Phusion",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_3",
+      "seq": "CTGAGACAGTTTTGTCA",
+      "param_set": "mame_profile:Phusion",
+      "expected": {
+        "tm": 51.559548055178254
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_3|mame_profile:Q5",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_3",
+      "seq": "CTGAGACAGTTTTGTCA",
+      "param_set": "mame_profile:Q5",
+      "expected": {
+        "tm": 52.98858885306589
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_3|mame_profile:Taq",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_3",
+      "seq": "CTGAGACAGTTTTGTCA",
+      "param_set": "mame_profile:Taq",
+      "expected": {
+        "tm": 51.559548055178254
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_3|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_3",
+      "seq": "CTGAGACAGTTTTGTCA",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 45.31389876014447
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_3|neb_ref:phusion",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_3",
+      "seq": "CTGAGACAGTTTTGTCA",
+      "param_set": "neb_ref:phusion",
+      "expected": {
+        "tm": 47.40707815792115
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_3|neb_ref:q5",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_3",
+      "seq": "CTGAGACAGTTTTGTCA",
+      "param_set": "neb_ref:q5",
+      "expected": {
+        "tm": 52.21090606392795
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_3|neb_ref:taq",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_3",
+      "seq": "CTGAGACAGTTTTGTCA",
+      "param_set": "neb_ref:taq",
+      "expected": {
+        "tm": 52.097834304319406
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_8|design",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_8",
+      "seq": "CTTAGGCCTCCACTAG",
+      "param_set": "design",
+      "expected": {
+        "tm": 45.747045314253114
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_8|kuro_profile:DreamTaq",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_8",
+      "seq": "CTTAGGCCTCCACTAG",
+      "param_set": "kuro_profile:DreamTaq",
+      "expected": {
+        "tm": 54.49798910852104
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_8|kuro_profile:KOD",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_8",
+      "seq": "CTTAGGCCTCCACTAG",
+      "param_set": "kuro_profile:KOD",
+      "expected": {
+        "tm": 50.98336209745082
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_8|kuro_profile:Phusion",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_8",
+      "seq": "CTTAGGCCTCCACTAG",
+      "param_set": "kuro_profile:Phusion",
+      "expected": {
+        "tm": 53.52639855913611
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_8|kuro_profile:Q5",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_8",
+      "seq": "CTTAGGCCTCCACTAG",
+      "param_set": "kuro_profile:Q5",
+      "expected": {
+        "tm": 56.263684218832054
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_8|kuro_profile:Q5 SDM",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_8",
+      "seq": "CTTAGGCCTCCACTAG",
+      "param_set": "kuro_profile:Q5 SDM",
+      "expected": {
+        "tm": 56.263684218832054
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_8|kuro_profile:TAKARA_GXL",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_8",
+      "seq": "CTTAGGCCTCCACTAG",
+      "param_set": "kuro_profile:TAKARA_GXL",
+      "expected": {
+        "tm": 52.56225102636745
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_8|kuro_profile:Taq",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_8",
+      "seq": "CTTAGGCCTCCACTAG",
+      "param_set": "kuro_profile:Taq",
+      "expected": {
+        "tm": 54.536432632799006
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_8|mame_profile:KOD",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_8",
+      "seq": "CTTAGGCCTCCACTAG",
+      "param_set": "mame_profile:KOD",
+      "expected": {
+        "tm": 52.03480927895339
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_8|mame_profile:Phusion",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_8",
+      "seq": "CTTAGGCCTCCACTAG",
+      "param_set": "mame_profile:Phusion",
+      "expected": {
+        "tm": 52.03480927895339
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_8|mame_profile:Q5",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_8",
+      "seq": "CTTAGGCCTCCACTAG",
+      "param_set": "mame_profile:Q5",
+      "expected": {
+        "tm": 53.47366895404889
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_8|mame_profile:Taq",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_8",
+      "seq": "CTTAGGCCTCCACTAG",
+      "param_set": "mame_profile:Taq",
+      "expected": {
+        "tm": 52.03480927895339
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_8|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_8",
+      "seq": "CTTAGGCCTCCACTAG",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 45.747045314253114
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_8|neb_ref:phusion",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_8",
+      "seq": "CTTAGGCCTCCACTAG",
+      "param_set": "neb_ref:phusion",
+      "expected": {
+        "tm": 48.029334714092045
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_8|neb_ref:q5",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_8",
+      "seq": "CTTAGGCCTCCACTAG",
+      "param_set": "neb_ref:q5",
+      "expected": {
+        "tm": 53.664556587431605
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_above_45_8|neb_ref:taq",
+      "call": "calc_tm",
+      "seq_id": "offtarget_above_45_8",
+      "seq": "CTTAGGCCTCCACTAG",
+      "param_set": "neb_ref:taq",
+      "expected": {
+        "tm": 53.70064647100543
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_43_7|design",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_43_7",
+      "seq": "CACGTTACCATATATGC",
+      "param_set": "design",
+      "expected": {
+        "tm": 43.69177971443304
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_43_7|kuro_profile:DreamTaq",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_43_7",
+      "seq": "CACGTTACCATATATGC",
+      "param_set": "kuro_profile:DreamTaq",
+      "expected": {
+        "tm": 51.09277900556674
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_43_7|kuro_profile:KOD",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_43_7",
+      "seq": "CACGTTACCATATATGC",
+      "param_set": "kuro_profile:KOD",
+      "expected": {
+        "tm": 48.7794796808833
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_43_7|kuro_profile:Phusion",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_43_7",
+      "seq": "CACGTTACCATATATGC",
+      "param_set": "kuro_profile:Phusion",
+      "expected": {
+        "tm": 50.92945840406469
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_43_7|kuro_profile:Q5",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_43_7",
+      "seq": "CACGTTACCATATATGC",
+      "param_set": "kuro_profile:Q5",
+      "expected": {
+        "tm": 52.63869189177785
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_43_7|kuro_profile:Q5 SDM",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_43_7",
+      "seq": "CACGTTACCATATATGC",
+      "param_set": "kuro_profile:Q5 SDM",
+      "expected": {
+        "tm": 52.63869189177785
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_43_7|kuro_profile:TAKARA_GXL",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_43_7",
+      "seq": "CACGTTACCATATATGC",
+      "param_set": "kuro_profile:TAKARA_GXL",
+      "expected": {
+        "tm": 48.86547290946862
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_43_7|kuro_profile:Taq",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_43_7",
+      "seq": "CACGTTACCATATATGC",
+      "param_set": "kuro_profile:Taq",
+      "expected": {
+        "tm": 50.98118458142039
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_43_7|mame_profile:KOD",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_43_7",
+      "seq": "CACGTTACCATATATGC",
+      "param_set": "mame_profile:KOD",
+      "expected": {
+        "tm": 49.800647221707834
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_43_7|mame_profile:Phusion",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_43_7",
+      "seq": "CACGTTACCATATATGC",
+      "param_set": "mame_profile:Phusion",
+      "expected": {
+        "tm": 49.800647221707834
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_43_7|mame_profile:Q5",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_43_7",
+      "seq": "CACGTTACCATATATGC",
+      "param_set": "mame_profile:Q5",
+      "expected": {
+        "tm": 51.197833515949924
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_43_7|mame_profile:Taq",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_43_7",
+      "seq": "CACGTTACCATATATGC",
+      "param_set": "mame_profile:Taq",
+      "expected": {
+        "tm": 49.800647221707834
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_43_7|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_43_7",
+      "seq": "CACGTTACCATATATGC",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 43.69177971443304
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_43_7|neb_ref:phusion",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_43_7",
+      "seq": "CACGTTACCATATATGC",
+      "param_set": "neb_ref:phusion",
+      "expected": {
+        "tm": 45.43239455902062
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_43_7|neb_ref:q5",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_43_7",
+      "seq": "CACGTTACCATATATGC",
+      "param_set": "neb_ref:q5",
+      "expected": {
+        "tm": 50.339198708797596
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_43_7|neb_ref:taq",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_43_7",
+      "seq": "CACGTTACCATATATGC",
+      "param_set": "neb_ref:taq",
+      "expected": {
+        "tm": 50.22742392213928
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_6|design",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_6",
+      "seq": "TTAGGGCATATTGTGC",
+      "param_set": "design",
+      "expected": {
+        "tm": 44.587183373717664
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_6|kuro_profile:DreamTaq",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_6",
+      "seq": "TTAGGGCATATTGTGC",
+      "param_set": "kuro_profile:DreamTaq",
+      "expected": {
+        "tm": 52.628222649490965
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_6|kuro_profile:KOD",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_6",
+      "seq": "TTAGGGCATATTGTGC",
+      "param_set": "kuro_profile:KOD",
+      "expected": {
+        "tm": 49.8072751343833
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_6|kuro_profile:Phusion",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_6",
+      "seq": "TTAGGGCATATTGTGC",
+      "param_set": "kuro_profile:Phusion",
+      "expected": {
+        "tm": 52.31742922773822
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_6|kuro_profile:Q5",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_6",
+      "seq": "TTAGGGCATATTGTGC",
+      "param_set": "kuro_profile:Q5",
+      "expected": {
+        "tm": 54.330980281123914
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_6|kuro_profile:Q5 SDM",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_6",
+      "seq": "TTAGGGCATATTGTGC",
+      "param_set": "kuro_profile:Q5 SDM",
+      "expected": {
+        "tm": 54.330980281123914
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_6|kuro_profile:TAKARA_GXL",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_6",
+      "seq": "TTAGGGCATATTGTGC",
+      "param_set": "kuro_profile:TAKARA_GXL",
+      "expected": {
+        "tm": 50.299887057152944
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_6|kuro_profile:Taq",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_6",
+      "seq": "TTAGGGCATATTGTGC",
+      "param_set": "kuro_profile:Taq",
+      "expected": {
+        "tm": 52.54128151331105
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_6|mame_profile:KOD",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_6",
+      "seq": "TTAGGGCATATTGTGC",
+      "param_set": "mame_profile:KOD",
+      "expected": {
+        "tm": 50.85547533812968
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_6|mame_profile:Phusion",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_6",
+      "seq": "TTAGGGCATATTGTGC",
+      "param_set": "mame_profile:Phusion",
+      "expected": {
+        "tm": 50.85547533812968
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_6|mame_profile:Q5",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_6",
+      "seq": "TTAGGGCATATTGTGC",
+      "param_set": "mame_profile:Q5",
+      "expected": {
+        "tm": 52.28989762238274
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_6|mame_profile:Taq",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_6",
+      "seq": "TTAGGGCATATTGTGC",
+      "param_set": "mame_profile:Taq",
+      "expected": {
+        "tm": 50.85547533812968
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_6|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_6",
+      "seq": "TTAGGGCATATTGTGC",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 44.587183373717664
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_6|neb_ref:phusion",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_6",
+      "seq": "TTAGGGCATATTGTGC",
+      "param_set": "neb_ref:phusion",
+      "expected": {
+        "tm": 46.82036538269415
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_6|neb_ref:q5",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_6",
+      "seq": "TTAGGGCATATTGTGC",
+      "param_set": "neb_ref:q5",
+      "expected": {
+        "tm": 51.80082443870094
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_6|neb_ref:taq",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_6",
+      "seq": "TTAGGGCATATTGTGC",
+      "param_set": "neb_ref:taq",
+      "expected": {
+        "tm": 51.71337579289195
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_9|design",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_9",
+      "seq": "CACTGTCATAGCTTCC",
+      "param_set": "design",
+      "expected": {
+        "tm": 44.89211570137866
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_9|kuro_profile:DreamTaq",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_9",
+      "seq": "CACTGTCATAGCTTCC",
+      "param_set": "kuro_profile:DreamTaq",
+      "expected": {
+        "tm": 52.96283930020837
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_9|kuro_profile:KOD",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_9",
+      "seq": "CACTGTCATAGCTTCC",
+      "param_set": "kuro_profile:KOD",
+      "expected": {
+        "tm": 50.01341216547348
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_9|kuro_profile:Phusion",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_9",
+      "seq": "CACTGTCATAGCTTCC",
+      "param_set": "kuro_profile:Phusion",
+      "expected": {
+        "tm": 52.3113839109314
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_9|kuro_profile:Q5",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_9",
+      "seq": "CACTGTCATAGCTTCC",
+      "param_set": "kuro_profile:Q5",
+      "expected": {
+        "tm": 54.66039844078182
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_9|kuro_profile:Q5 SDM",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_9",
+      "seq": "CACTGTCATAGCTTCC",
+      "param_set": "kuro_profile:Q5 SDM",
+      "expected": {
+        "tm": 54.66039844078182
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_9|kuro_profile:TAKARA_GXL",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_9",
+      "seq": "CACTGTCATAGCTTCC",
+      "param_set": "kuro_profile:TAKARA_GXL",
+      "expected": {
+        "tm": 50.87468648401364
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_9|kuro_profile:Taq",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_9",
+      "seq": "CACTGTCATAGCTTCC",
+      "param_set": "kuro_profile:Taq",
+      "expected": {
+        "tm": 52.938309431868106
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_9|mame_profile:KOD",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_9",
+      "seq": "CACTGTCATAGCTTCC",
+      "param_set": "mame_profile:KOD",
+      "expected": {
+        "tm": 51.04137766194731
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_9|mame_profile:Phusion",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_9",
+      "seq": "CACTGTCATAGCTTCC",
+      "param_set": "mame_profile:Phusion",
+      "expected": {
+        "tm": 51.04137766194731
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_9|mame_profile:Q5",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_9",
+      "seq": "CACTGTCATAGCTTCC",
+      "param_set": "mame_profile:Q5",
+      "expected": {
+        "tm": 52.44789471559329
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_9|mame_profile:Taq",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_9",
+      "seq": "CACTGTCATAGCTTCC",
+      "param_set": "mame_profile:Taq",
+      "expected": {
+        "tm": 51.04137766194731
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_9|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_9",
+      "seq": "CACTGTCATAGCTTCC",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 44.89211570137866
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_9|neb_ref:phusion",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_9",
+      "seq": "CACTGTCATAGCTTCC",
+      "param_set": "neb_ref:phusion",
+      "expected": {
+        "tm": 46.81432006588733
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_9|neb_ref:q5",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_9",
+      "seq": "CACTGTCATAGCTTCC",
+      "param_set": "neb_ref:q5",
+      "expected": {
+        "tm": 52.15069006165169
+      }
+    },
+    {
+      "id": "calc_tm|offtarget_below_44_9|neb_ref:taq",
+      "call": "calc_tm",
+      "seq_id": "offtarget_below_44_9",
+      "seq": "CACTGTCATAGCTTCC",
+      "param_set": "neb_ref:taq",
+      "expected": {
+        "tm": 52.12473798956006
       }
     },
     {
@@ -5567,6 +6905,16 @@
       "param_set": "mame_profile:Taq",
       "expected": {
         "tm": 72.53993587290381
+      }
+    },
+    {
+      "id": "calc_tm|repo_cloning_site|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "repo_cloning_site",
+      "seq": "GCTAGCTAGCGGATCCAAAGGTGCTGACC",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 65.70294313630376
       }
     },
     {
@@ -5720,6 +7068,16 @@
       }
     },
     {
+      "id": "calc_tm|repo_m13_fwd|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "repo_m13_fwd",
+      "seq": "CAGGAAACAGCTATGACCATG",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 53.00094178299992
+      }
+    },
+    {
       "id": "calc_tm|repo_m13_fwd|neb_ref:phusion",
       "call": "calc_tm",
       "seq_id": "repo_m13_fwd",
@@ -5867,6 +7225,16 @@
       "param_set": "mame_profile:Taq",
       "expected": {
         "tm": 62.93411554321733
+      }
+    },
+    {
+      "id": "calc_tm|repo_m13_rev|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "repo_m13_rev",
+      "seq": "GACCATGATTACGCCAAGCTTG",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 56.45277498006084
       }
     },
     {
@@ -6020,6 +7388,16 @@
       }
     },
     {
+      "id": "calc_tm|repo_t7_like|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "repo_t7_like",
+      "seq": "ACGACTCACTATAGGGCGAATTGG",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 58.22852350526472
+      }
+    },
+    {
       "id": "calc_tm|repo_t7_like|neb_ref:phusion",
       "call": "calc_tm",
       "seq_id": "repo_t7_like",
@@ -6167,6 +7545,16 @@
       "param_set": "mame_profile:Taq",
       "expected": {
         "tm": 59.65712127118155
+      }
+    },
+    {
+      "id": "calc_tm|synth_gc20_0|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "synth_gc20_0",
+      "seq": "TATATAGTCAGAATAGATTTAAAGGGCTTC",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 52.85274894825409
       }
     },
     {
@@ -6320,6 +7708,16 @@
       }
     },
     {
+      "id": "calc_tm|synth_gc20_1|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "synth_gc20_1",
+      "seq": "GAGCAAATATAGTGATCCATTCAA",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 51.03891846015364
+      }
+    },
+    {
       "id": "calc_tm|synth_gc20_1|neb_ref:phusion",
       "call": "calc_tm",
       "seq_id": "synth_gc20_1",
@@ -6467,6 +7865,16 @@
       "param_set": "mame_profile:Taq",
       "expected": {
         "tm": 68.57238785416723
+      }
+    },
+    {
+      "id": "calc_tm|synth_gc35_2|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "synth_gc35_2",
+      "seq": "AGTGTTACTGTAGAATTGACTTCTTTGGGCGATTAC",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 61.671859356763036
       }
     },
     {
@@ -6620,6 +8028,16 @@
       }
     },
     {
+      "id": "calc_tm|synth_gc35_3|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "synth_gc35_3",
+      "seq": "GAAAGAAGTGGTATTGGTATCTGGATGCTG",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 59.2171955573649
+      }
+    },
+    {
       "id": "calc_tm|synth_gc35_3|neb_ref:phusion",
       "call": "calc_tm",
       "seq_id": "synth_gc35_3",
@@ -6767,6 +8185,16 @@
       "param_set": "mame_profile:Taq",
       "expected": {
         "tm": 63.79039552345529
+      }
+    },
+    {
+      "id": "calc_tm|synth_gc50_4|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "synth_gc50_4",
+      "seq": "GTTGGACGTGCTGCACGTATA",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 57.35586269678436
       }
     },
     {
@@ -6920,6 +8348,16 @@
       }
     },
     {
+      "id": "calc_tm|synth_gc50_5|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "synth_gc50_5",
+      "seq": "TTCTGAAGCACATGGACGCGACCGACGCGT",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 70.2196169116612
+      }
+    },
+    {
       "id": "calc_tm|synth_gc50_5|neb_ref:phusion",
       "call": "calc_tm",
       "seq_id": "synth_gc50_5",
@@ -7067,6 +8505,16 @@
       "param_set": "mame_profile:Taq",
       "expected": {
         "tm": 75.17533942912411
+      }
+    },
+    {
+      "id": "calc_tm|synth_gc65_6|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "synth_gc65_6",
+      "seq": "TCCCGGGGCTCGAGACGGGGG",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 68.30706936024382
       }
     },
     {
@@ -7220,6 +8668,16 @@
       }
     },
     {
+      "id": "calc_tm|synth_gc65_7|mame_qc_tm",
+      "call": "calc_tm",
+      "seq_id": "synth_gc65_7",
+      "seq": "GCGAGTAGCCCTTGCTCCCGGGCACCGAGG",
+      "param_set": "mame_qc_tm",
+      "expected": {
+        "tm": 73.09651856021463
+      }
+    },
+    {
       "id": "calc_tm|synth_gc65_7|neb_ref:phusion",
       "call": "calc_tm",
       "seq_id": "synth_gc65_7",
@@ -7250,7 +8708,7 @@
       }
     },
     {
-      "id": "calc_hairpin|flat_a_rich",
+      "id": "calc_hairpin|flat_a_rich|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "flat_a_rich",
       "seq": "AAAGAAATAAAGAAATAAAGAAAT",
@@ -7262,7 +8720,7 @@
       }
     },
     {
-      "id": "calc_homodimer|flat_a_rich",
+      "id": "calc_homodimer|flat_a_rich|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "flat_a_rich",
       "seq": "AAAGAAATAAAGAAATAAAGAAAT",
@@ -7274,7 +8732,31 @@
       }
     },
     {
-      "id": "calc_hairpin|flat_at_18",
+      "id": "calc_hairpin|flat_a_rich|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "flat_a_rich",
+      "seq": "AAAGAAATAAAGAAATAAAGAAAT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": false,
+        "tm": 0.0,
+        "dg": 0.0
+      }
+    },
+    {
+      "id": "calc_homodimer|flat_a_rich|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "flat_a_rich",
+      "seq": "AAAGAAATAAAGAAATAAAGAAAT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": -127.78835186556867,
+        "dg": 432.50850218853884
+      }
+    },
+    {
+      "id": "calc_hairpin|flat_at_18|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "flat_at_18",
       "seq": "ATATATATATATATATAT",
@@ -7286,7 +8768,7 @@
       }
     },
     {
-      "id": "calc_homodimer|flat_at_18",
+      "id": "calc_homodimer|flat_at_18|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "flat_at_18",
       "seq": "ATATATATATATATATAT",
@@ -7298,7 +8780,31 @@
       }
     },
     {
-      "id": "calc_hairpin|hairpin_above_40_1",
+      "id": "calc_hairpin|flat_at_18|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "flat_at_18",
+      "seq": "ATATATATATATATATAT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 36.42221367377368,
+        "dg": 85.85451094269956
+      }
+    },
+    {
+      "id": "calc_homodimer|flat_at_18|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "flat_at_18",
+      "seq": "ATATATATATATATATAT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 25.19089449753426,
+        "dg": -4706.5004627948365
+      }
+    },
+    {
+      "id": "calc_hairpin|hairpin_above_40_1|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "hairpin_above_40_1",
       "seq": "ACGTTTTTACGT",
@@ -7310,7 +8816,7 @@
       }
     },
     {
-      "id": "calc_homodimer|hairpin_above_40_1",
+      "id": "calc_homodimer|hairpin_above_40_1|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "hairpin_above_40_1",
       "seq": "ACGTTTTTACGT",
@@ -7322,7 +8828,31 @@
       }
     },
     {
-      "id": "calc_hairpin|hairpin_above_41_1",
+      "id": "calc_hairpin|hairpin_above_40_1|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "hairpin_above_40_1",
+      "seq": "ACGTTTTTACGT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 40.06938509152354,
+        "dg": -223.4279978114646
+      }
+    },
+    {
+      "id": "calc_homodimer|hairpin_above_40_1|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "hairpin_above_40_1",
+      "seq": "ACGTTTTTACGT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": -12.040652130921615,
+        "dg": -3349.6594934343884
+      }
+    },
+    {
+      "id": "calc_hairpin|hairpin_above_41_1|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "hairpin_above_41_1",
       "seq": "ATGCTTTTTTTTGCAT",
@@ -7334,7 +8864,7 @@
       }
     },
     {
-      "id": "calc_homodimer|hairpin_above_41_1",
+      "id": "calc_homodimer|hairpin_above_41_1|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "hairpin_above_41_1",
       "seq": "ATGCTTTTTTTTGCAT",
@@ -7346,7 +8876,31 @@
       }
     },
     {
-      "id": "calc_hairpin|hairpin_above_41_3",
+      "id": "calc_hairpin|hairpin_above_41_1|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "hairpin_above_41_1",
+      "seq": "ATGCTTTTTTTTGCAT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 41.07053459903017,
+        "dg": -380.8589956229298
+      }
+    },
+    {
+      "id": "calc_homodimer|hairpin_above_41_1|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "hairpin_above_41_1",
+      "seq": "ATGCTTTTTTTTGCAT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": -29.843539424661202,
+        "dg": -2806.039493434386
+      }
+    },
+    {
+      "id": "calc_hairpin|hairpin_above_41_3|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "hairpin_above_41_3",
       "seq": "TGCATTTTTGCA",
@@ -7358,7 +8912,7 @@
       }
     },
     {
-      "id": "calc_homodimer|hairpin_above_41_3",
+      "id": "calc_homodimer|hairpin_above_41_3|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "hairpin_above_41_3",
       "seq": "TGCATTTTTGCA",
@@ -7370,7 +8924,31 @@
       }
     },
     {
-      "id": "calc_hairpin|hairpin_above_41_4",
+      "id": "calc_hairpin|hairpin_above_41_3|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "hairpin_above_41_3",
+      "seq": "TGCATTTTTGCA",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 41.25085603152536,
+        "dg": -298.8029978114646
+      }
+    },
+    {
+      "id": "calc_homodimer|hairpin_above_41_3|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "hairpin_above_41_3",
+      "seq": "TGCATTTTTGCA",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": -5.022590124170222,
+        "dg": -1791.8749846802384
+      }
+    },
+    {
+      "id": "calc_hairpin|hairpin_above_41_4|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "hairpin_above_41_4",
       "seq": "ATCGTTTTTTCGAT",
@@ -7382,7 +8960,7 @@
       }
     },
     {
-      "id": "calc_homodimer|hairpin_above_41_4",
+      "id": "calc_homodimer|hairpin_above_41_4|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "hairpin_above_41_4",
       "seq": "ATCGTTTTTTCGAT",
@@ -7394,7 +8972,31 @@
       }
     },
     {
-      "id": "calc_hairpin|hairpin_above_42_0",
+      "id": "calc_hairpin|hairpin_above_41_4|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "hairpin_above_41_4",
+      "seq": "ATCGTTTTTTCGAT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 41.38242969655744,
+        "dg": -434.714495622924
+      }
+    },
+    {
+      "id": "calc_homodimer|hairpin_above_41_4|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "hairpin_above_41_4",
+      "seq": "ATCGTTTTTTCGAT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": -31.95357917659095,
+        "dg": -2447.7694934343817
+      }
+    },
+    {
+      "id": "calc_hairpin|hairpin_above_42_0|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "hairpin_above_42_0",
       "seq": "GCATATTTTTATGC",
@@ -7406,7 +9008,7 @@
       }
     },
     {
-      "id": "calc_homodimer|hairpin_above_42_0",
+      "id": "calc_homodimer|hairpin_above_42_0|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "hairpin_above_42_0",
       "seq": "GCATATTTTTATGC",
@@ -7418,7 +9020,31 @@
       }
     },
     {
-      "id": "calc_hairpin|hairpin_above_44_4",
+      "id": "calc_hairpin|hairpin_above_42_0|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "hairpin_above_42_0",
+      "seq": "GCATATTTTTATGC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 41.949379551831726,
+        "dg": -479.0744956260278
+      }
+    },
+    {
+      "id": "calc_homodimer|hairpin_above_42_0|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "hairpin_above_42_0",
+      "seq": "GCATATTTTTATGC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 1.7309080453150045,
+        "dg": -1242.2679803093633
+      }
+    },
+    {
+      "id": "calc_hairpin|hairpin_above_44_4|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "hairpin_above_44_4",
       "seq": "AGCTATTTTTAGCT",
@@ -7430,7 +9056,7 @@
       }
     },
     {
-      "id": "calc_homodimer|hairpin_above_44_4",
+      "id": "calc_homodimer|hairpin_above_44_4|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "hairpin_above_44_4",
       "seq": "AGCTATTTTTAGCT",
@@ -7442,7 +9068,31 @@
       }
     },
     {
-      "id": "calc_hairpin|hairpin_bamhi",
+      "id": "calc_hairpin|hairpin_above_44_4|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "hairpin_above_44_4",
+      "seq": "AGCTATTTTTAGCT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 44.43595410146344,
+        "dg": -660.2744956229253
+      }
+    },
+    {
+      "id": "calc_homodimer|hairpin_above_44_4|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "hairpin_above_44_4",
+      "seq": "AGCTATTTTTAGCT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 0.8848966545454573,
+        "dg": -1604.6679803031511
+      }
+    },
+    {
+      "id": "calc_hairpin|hairpin_bamhi|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "hairpin_bamhi",
       "seq": "GGATCCGGTTTTCCGGATCC",
@@ -7454,7 +9104,7 @@
       }
     },
     {
-      "id": "calc_homodimer|hairpin_bamhi",
+      "id": "calc_homodimer|hairpin_bamhi|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "hairpin_bamhi",
       "seq": "GGATCCGGTTTTCCGGATCC",
@@ -7466,7 +9116,31 @@
       }
     },
     {
-      "id": "calc_hairpin|hairpin_below_34_0",
+      "id": "calc_hairpin|hairpin_bamhi|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "hairpin_bamhi",
+      "seq": "GGATCCGGTTTTCCGGATCC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 71.06862493568434,
+        "dg": -4285.565489057313
+      }
+    },
+    {
+      "id": "calc_homodimer|hairpin_bamhi|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "hairpin_bamhi",
+      "seq": "GGATCCGGTTTTCCGGATCC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 41.39823044623057,
+        "dg": -12055.47696717814
+      }
+    },
+    {
+      "id": "calc_hairpin|hairpin_below_34_0|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "hairpin_below_34_0",
       "seq": "GCTATTTTTAGC",
@@ -7478,7 +9152,7 @@
       }
     },
     {
-      "id": "calc_homodimer|hairpin_below_34_0",
+      "id": "calc_homodimer|hairpin_below_34_0|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "hairpin_below_34_0",
       "seq": "GCTATTTTTAGC",
@@ -7490,7 +9164,31 @@
       }
     },
     {
-      "id": "calc_hairpin|hairpin_below_34_9",
+      "id": "calc_hairpin|hairpin_below_34_0|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "hairpin_below_34_0",
+      "seq": "GCTATTTTTAGC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 33.946805482801665,
+        "dg": 224.69200218543483
+      }
+    },
+    {
+      "id": "calc_homodimer|hairpin_below_34_0|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "hairpin_below_34_0",
+      "seq": "GCTATTTTTAGC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": -44.095465479031986,
+        "dg": -1443.4444934374842
+      }
+    },
+    {
+      "id": "calc_hairpin|hairpin_below_34_9|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "hairpin_below_34_9",
       "seq": "GACTTTTTTTAGTC",
@@ -7502,7 +9200,7 @@
       }
     },
     {
-      "id": "calc_homodimer|hairpin_below_34_9",
+      "id": "calc_homodimer|hairpin_below_34_9|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "hairpin_below_34_9",
       "seq": "GACTTTTTTTAGTC",
@@ -7514,7 +9212,31 @@
       }
     },
     {
-      "id": "calc_hairpin|hairpin_below_37_9",
+      "id": "calc_hairpin|hairpin_below_34_9|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "hairpin_below_34_9",
+      "seq": "GACTTTTTTTAGTC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 34.90338969703794,
+        "dg": 187.84550437397775
+      }
+    },
+    {
+      "id": "calc_homodimer|hairpin_below_34_9|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "hairpin_below_34_9",
+      "seq": "GACTTTTTTTAGTC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": -37.367587260143125,
+        "dg": -2023.144493437485
+      }
+    },
+    {
+      "id": "calc_hairpin|hairpin_below_37_9|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "hairpin_below_37_9",
       "seq": "AAGACTTTTTAGTCAA",
@@ -7526,7 +9248,7 @@
       }
     },
     {
-      "id": "calc_homodimer|hairpin_below_37_9",
+      "id": "calc_homodimer|hairpin_below_37_9|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "hairpin_below_37_9",
       "seq": "AAGACTTTTTAGTCAA",
@@ -7538,7 +9260,31 @@
       }
     },
     {
-      "id": "calc_hairpin|hairpin_below_38_3",
+      "id": "calc_hairpin|hairpin_below_37_9|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "hairpin_below_37_9",
+      "seq": "AAGACTTTTTAGTCAA",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 37.8511430218731,
+        "dg": -73.6194956260224
+      }
+    },
+    {
+      "id": "calc_homodimer|hairpin_below_37_9|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "hairpin_below_37_9",
+      "seq": "AAGACTTTTTAGTCAA",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 8.069455398537968,
+        "dg": -2590.3949846864416
+      }
+    },
+    {
+      "id": "calc_hairpin|hairpin_below_38_3|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "hairpin_below_38_3",
       "seq": "ATCGTTTTTTTTCGAT",
@@ -7550,7 +9296,7 @@
       }
     },
     {
-      "id": "calc_homodimer|hairpin_below_38_3",
+      "id": "calc_homodimer|hairpin_below_38_3|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "hairpin_below_38_3",
       "seq": "ATCGTTTTTTTTCGAT",
@@ -7562,7 +9308,31 @@
       }
     },
     {
-      "id": "calc_hairpin|hairpin_below_38_8",
+      "id": "calc_hairpin|hairpin_below_38_3|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "hairpin_below_38_3",
+      "seq": "ATCGTTTTTTTTCGAT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 38.336486638345775,
+        "dg": -133.86899562292456
+      }
+    },
+    {
+      "id": "calc_homodimer|hairpin_below_38_3|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "hairpin_below_38_3",
+      "seq": "ATCGTTTTTTTTCGAT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": -31.95357917659095,
+        "dg": -2447.7694934343817
+      }
+    },
+    {
+      "id": "calc_hairpin|hairpin_below_38_8|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "hairpin_below_38_8",
       "seq": "AGCTTTTTAGCT",
@@ -7574,7 +9344,7 @@
       }
     },
     {
-      "id": "calc_homodimer|hairpin_below_38_8",
+      "id": "calc_homodimer|hairpin_below_38_8|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "hairpin_below_38_8",
       "seq": "AGCTTTTTAGCT",
@@ -7586,7 +9356,31 @@
       }
     },
     {
-      "id": "calc_hairpin|hairpin_below_39_4",
+      "id": "calc_hairpin|hairpin_below_38_8|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "hairpin_below_38_8",
+      "seq": "AGCTTTTTAGCT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 38.83778295612558,
+        "dg": -126.05799781146561
+      }
+    },
+    {
+      "id": "calc_homodimer|hairpin_below_38_8|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "hairpin_below_38_8",
+      "seq": "AGCTTTTTAGCT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": -16.036959026486386,
+        "dg": -3086.499493434385
+      }
+    },
+    {
+      "id": "calc_hairpin|hairpin_below_39_4|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "hairpin_below_39_4",
       "seq": "AGCTTTTTTTTTAGCT",
@@ -7598,7 +9392,7 @@
       }
     },
     {
-      "id": "calc_homodimer|hairpin_below_39_4",
+      "id": "calc_homodimer|hairpin_below_39_4|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "hairpin_below_39_4",
       "seq": "AGCTTTTTTTTTAGCT",
@@ -7610,7 +9404,31 @@
       }
     },
     {
-      "id": "calc_hairpin|hairpin_gc_stem8",
+      "id": "calc_hairpin|hairpin_below_39_4|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "hairpin_below_39_4",
+      "seq": "AGCTTTTTTTTTAGCT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 39.40601829140809,
+        "dg": -203.22399562292776
+      }
+    },
+    {
+      "id": "calc_homodimer|hairpin_below_39_4|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "hairpin_below_39_4",
+      "seq": "AGCTTTTTTTTTAGCT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": -16.036959026486386,
+        "dg": -3086.499493434385
+      }
+    },
+    {
+      "id": "calc_hairpin|hairpin_gc_stem8|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "hairpin_gc_stem8",
       "seq": "GCGCGCGCTTTTGCGCGCGC",
@@ -7622,7 +9440,7 @@
       }
     },
     {
-      "id": "calc_homodimer|hairpin_gc_stem8",
+      "id": "calc_homodimer|hairpin_gc_stem8|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "hairpin_gc_stem8",
       "seq": "GCGCGCGCTTTTGCGCGCGC",
@@ -7634,7 +9452,31 @@
       }
     },
     {
-      "id": "calc_hairpin|hairpin_hindiii",
+      "id": "calc_hairpin|hairpin_gc_stem8|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "hairpin_gc_stem8",
+      "seq": "GCGCGCGCTTTTGCGCGCGC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 89.47601201697114,
+        "dg": -11229.581986871868
+      }
+    },
+    {
+      "id": "calc_homodimer|hairpin_gc_stem8|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "hairpin_gc_stem8",
+      "seq": "GCGCGCGCTTTTGCGCGCGC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 59.55658251703079,
+        "dg": -20664.516967178148
+      }
+    },
+    {
+      "id": "calc_hairpin|hairpin_hindiii|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "hairpin_hindiii",
       "seq": "AAGCTTGCTTTTGCAAGCTT",
@@ -7646,7 +9488,7 @@
       }
     },
     {
-      "id": "calc_homodimer|hairpin_hindiii",
+      "id": "calc_homodimer|hairpin_hindiii|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "hairpin_hindiii",
       "seq": "AAGCTTGCTTTTGCAAGCTT",
@@ -7658,7 +9500,31 @@
       }
     },
     {
-      "id": "calc_hairpin|hairpin_nsii",
+      "id": "calc_hairpin|hairpin_hindiii|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "hairpin_hindiii",
+      "seq": "AAGCTTGCTTTTGCAAGCTT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 73.468014086256,
+        "dg": -5586.701986868771
+      }
+    },
+    {
+      "id": "calc_homodimer|hairpin_hindiii|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "hairpin_hindiii",
+      "seq": "AAGCTTGCTTTTGCAAGCTT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 38.31186065414772,
+        "dg": -10756.976967171926
+      }
+    },
+    {
+      "id": "calc_hairpin|hairpin_nsii|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "hairpin_nsii",
       "seq": "ATGCATTTTTATGCAT",
@@ -7670,7 +9536,7 @@
       }
     },
     {
-      "id": "calc_homodimer|hairpin_nsii",
+      "id": "calc_homodimer|hairpin_nsii|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "hairpin_nsii",
       "seq": "ATGCATTTTTATGCAT",
@@ -7682,7 +9548,31 @@
       }
     },
     {
-      "id": "calc_hairpin|homodimer_atgc24",
+      "id": "calc_hairpin|hairpin_nsii|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "hairpin_nsii",
+      "seq": "ATGCATTTTTATGCAT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 52.35218835341203,
+        "dg": -1631.8959934343802
+      }
+    },
+    {
+      "id": "calc_homodimer|hairpin_nsii|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "hairpin_nsii",
+      "seq": "ATGCATTTTTATGCAT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 15.739823893987761,
+        "dg": -4027.240975926077
+      }
+    },
+    {
+      "id": "calc_hairpin|homodimer_atgc24|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "homodimer_atgc24",
       "seq": "ATGCATGCATGCATGCATGCATGC",
@@ -7694,7 +9584,7 @@
       }
     },
     {
-      "id": "calc_homodimer|homodimer_atgc24",
+      "id": "calc_homodimer|homodimer_atgc24|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "homodimer_atgc24",
       "seq": "ATGCATGCATGCATGCATGCATGC",
@@ -7706,7 +9596,31 @@
       }
     },
     {
-      "id": "calc_hairpin|homodimer_ccgg16",
+      "id": "calc_hairpin|homodimer_atgc24|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "homodimer_atgc24",
+      "seq": "ATGCATGCATGCATGCATGCATGC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 70.30442966037259,
+        "dg": -7020.554982491703
+      }
+    },
+    {
+      "id": "calc_homodimer|homodimer_atgc24|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "homodimer_atgc24",
+      "seq": "ATGCATGCATGCATGCATGCATGC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 62.181102963058095,
+        "dg": -24446.406454046926
+      }
+    },
+    {
+      "id": "calc_hairpin|homodimer_ccgg16|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "homodimer_ccgg16",
       "seq": "CCGGCCGGCCGGCCGG",
@@ -7718,7 +9632,7 @@
       }
     },
     {
-      "id": "calc_homodimer|homodimer_ccgg16",
+      "id": "calc_homodimer|homodimer_ccgg16|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "homodimer_ccgg16",
       "seq": "CCGGCCGGCCGGCCGG",
@@ -7730,7 +9644,31 @@
       }
     },
     {
-      "id": "calc_hairpin|homodimer_gc20",
+      "id": "calc_hairpin|homodimer_ccgg16|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "homodimer_ccgg16",
+      "seq": "CCGGCCGGCCGGCCGG",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 78.20757136940551,
+        "dg": -6028.243991248957
+      }
+    },
+    {
+      "id": "calc_homodimer|homodimer_ccgg16|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "homodimer_ccgg16",
+      "seq": "CCGGCCGGCCGGCCGG",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 71.32240148354089,
+        "dg": -22880.18746717814
+      }
+    },
+    {
+      "id": "calc_hairpin|homodimer_gc20|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "homodimer_gc20",
       "seq": "GCGCGCGCGCGCGCGCGCGC",
@@ -7742,7 +9680,7 @@
       }
     },
     {
-      "id": "calc_homodimer|homodimer_gc20",
+      "id": "calc_homodimer|homodimer_gc20|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "homodimer_gc20",
       "seq": "GCGCGCGCGCGCGCGCGCGC",
@@ -7754,7 +9692,31 @@
       }
     },
     {
-      "id": "calc_hairpin|homodimer_gcrich22",
+      "id": "calc_hairpin|homodimer_gc20|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "homodimer_gc20",
+      "seq": "GCGCGCGCGCGCGCGCGCGC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 87.30265612393043,
+        "dg": -10885.221986871882
+      }
+    },
+    {
+      "id": "calc_homodimer|homodimer_gc20|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "homodimer_gc20",
+      "seq": "GCGCGCGCGCGCGCGCGCGC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 80.91975811207925,
+        "dg": -33334.37345842403
+      }
+    },
+    {
+      "id": "calc_hairpin|homodimer_gcrich22|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "homodimer_gcrich22",
       "seq": "GCCGGCATGCCGGCATGCCGGC",
@@ -7766,7 +9728,7 @@
       }
     },
     {
-      "id": "calc_homodimer|homodimer_gcrich22",
+      "id": "calc_homodimer|homodimer_gcrich22|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "homodimer_gcrich22",
       "seq": "GCCGGCATGCCGGCATGCCGGC",
@@ -7778,7 +9740,31 @@
       }
     },
     {
-      "id": "calc_hairpin|mame_ref_0_18",
+      "id": "calc_hairpin|homodimer_gcrich22|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "homodimer_gcrich22",
+      "seq": "GCCGGCATGCCGGCATGCCGGC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 78.83296370392435,
+        "dg": -9198.943484683332
+      }
+    },
+    {
+      "id": "calc_homodimer|homodimer_gcrich22|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "homodimer_gcrich22",
+      "seq": "GCCGGCATGCCGGCATGCCGGC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 74.02314819628248,
+        "dg": -29290.006454046932
+      }
+    },
+    {
+      "id": "calc_hairpin|mame_ref_0_18|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "mame_ref_0_18",
       "seq": "ATGGCTTGCTCTGTATCC",
@@ -7790,7 +9776,7 @@
       }
     },
     {
-      "id": "calc_homodimer|mame_ref_0_18",
+      "id": "calc_homodimer|mame_ref_0_18|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "mame_ref_0_18",
       "seq": "ATGGCTTGCTCTGTATCC",
@@ -7802,7 +9788,31 @@
       }
     },
     {
-      "id": "calc_hairpin|mame_ref_11_24",
+      "id": "calc_hairpin|mame_ref_0_18|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "mame_ref_0_18",
+      "seq": "ATGGCTTGCTCTGTATCC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": false,
+        "tm": 0.0,
+        "dg": 0.0
+      }
+    },
+    {
+      "id": "calc_homodimer|mame_ref_0_18|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "mame_ref_0_18",
+      "seq": "ATGGCTTGCTCTGTATCC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": -8.215739977026658,
+        "dg": -1724.4894934405966
+      }
+    },
+    {
+      "id": "calc_hairpin|mame_ref_11_24|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "mame_ref_11_24",
       "seq": "TGTATCCACTGAGAACGTATCTTT",
@@ -7814,7 +9824,7 @@
       }
     },
     {
-      "id": "calc_homodimer|mame_ref_11_24",
+      "id": "calc_homodimer|mame_ref_11_24|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "mame_ref_11_24",
       "seq": "TGTATCCACTGAGAACGTATCTTT",
@@ -7826,7 +9836,31 @@
       }
     },
     {
-      "id": "calc_hairpin|mame_ref_15_25",
+      "id": "calc_hairpin|mame_ref_11_24|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "mame_ref_11_24",
+      "seq": "TGTATCCACTGAGAACGTATCTTT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 34.30654395285558,
+        "dg": 157.68800437707978
+      }
+    },
+    {
+      "id": "calc_homodimer|mame_ref_11_24|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "mame_ref_11_24",
+      "seq": "TGTATCCACTGAGAACGTATCTTT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": -26.63306989372171,
+        "dg": -3047.769493434378
+      }
+    },
+    {
+      "id": "calc_hairpin|mame_ref_15_25|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "mame_ref_15_25",
       "seq": "TCCACTGAGAACGTATCTTTCACTG",
@@ -7838,7 +9872,7 @@
       }
     },
     {
-      "id": "calc_homodimer|mame_ref_15_25",
+      "id": "calc_homodimer|mame_ref_15_25|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "mame_ref_15_25",
       "seq": "TCCACTGAGAACGTATCTTTCACTG",
@@ -7850,7 +9884,31 @@
       }
     },
     {
-      "id": "calc_hairpin|mame_ref_19_27",
+      "id": "calc_hairpin|mame_ref_15_25|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "mame_ref_15_25",
+      "seq": "TCCACTGAGAACGTATCTTTCACTG",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 34.30654395285558,
+        "dg": 157.68800437707978
+      }
+    },
+    {
+      "id": "calc_homodimer|mame_ref_15_25|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "mame_ref_15_25",
+      "seq": "TCCACTGAGAACGTATCTTTCACTG",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": -26.63306989372171,
+        "dg": -3047.769493434378
+      }
+    },
+    {
+      "id": "calc_hairpin|mame_ref_19_27|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "mame_ref_19_27",
       "seq": "CTGAGAACGTATCTTTCACTGAGACTG",
@@ -7862,7 +9920,7 @@
       }
     },
     {
-      "id": "calc_homodimer|mame_ref_19_27",
+      "id": "calc_homodimer|mame_ref_19_27|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "mame_ref_19_27",
       "seq": "CTGAGAACGTATCTTTCACTGAGACTG",
@@ -7874,7 +9932,31 @@
       }
     },
     {
-      "id": "calc_hairpin|mame_ref_23_30",
+      "id": "calc_hairpin|mame_ref_19_27|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "mame_ref_19_27",
+      "seq": "CTGAGAACGTATCTTTCACTGAGACTG",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 34.30654395285558,
+        "dg": 157.68800437707978
+      }
+    },
+    {
+      "id": "calc_homodimer|mame_ref_19_27|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "mame_ref_19_27",
+      "seq": "CTGAGAACGTATCTTTCACTGAGACTG",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": -26.63306989372171,
+        "dg": -3047.769493434378
+      }
+    },
+    {
+      "id": "calc_hairpin|mame_ref_23_30|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "mame_ref_23_30",
       "seq": "GAACGTATCTTTCACTGAGACTGAAACTGA",
@@ -7886,7 +9968,7 @@
       }
     },
     {
-      "id": "calc_homodimer|mame_ref_23_30",
+      "id": "calc_homodimer|mame_ref_23_30|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "mame_ref_23_30",
       "seq": "GAACGTATCTTTCACTGAGACTGAAACTGA",
@@ -7898,7 +9980,31 @@
       }
     },
     {
-      "id": "calc_hairpin|mame_ref_27_33",
+      "id": "calc_hairpin|mame_ref_23_30|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "mame_ref_23_30",
+      "seq": "GAACGTATCTTTCACTGAGACTGAAACTGA",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 29.881053869465404,
+        "dg": 810.4900087541537
+      }
+    },
+    {
+      "id": "calc_homodimer|mame_ref_23_30|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "mame_ref_23_30",
+      "seq": "GAACGTATCTTTCACTGAGACTGAAACTGA",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": -26.63306989372171,
+        "dg": -3047.769493434378
+      }
+    },
+    {
+      "id": "calc_hairpin|mame_ref_27_33|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "mame_ref_27_33",
       "seq": "GTATCTTTCACTGAGACTGAAACTGAGACCCGT",
@@ -7910,7 +10016,7 @@
       }
     },
     {
-      "id": "calc_homodimer|mame_ref_27_33",
+      "id": "calc_homodimer|mame_ref_27_33|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "mame_ref_27_33",
       "seq": "GTATCTTTCACTGAGACTGAAACTGAGACCCGT",
@@ -7922,7 +10028,31 @@
       }
     },
     {
-      "id": "calc_hairpin|mame_ref_31_36",
+      "id": "calc_hairpin|mame_ref_27_33|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "mame_ref_27_33",
+      "seq": "GTATCTTTCACTGAGACTGAAACTGAGACCCGT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 29.881053869465404,
+        "dg": 810.4900087541537
+      }
+    },
+    {
+      "id": "calc_homodimer|mame_ref_27_33|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "mame_ref_27_33",
+      "seq": "GTATCTTTCACTGAGACTGAAACTGAGACCCGT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": -28.982980277956415,
+        "dg": -2386.869493440583
+      }
+    },
+    {
+      "id": "calc_hairpin|mame_ref_31_36|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "mame_ref_31_36",
       "seq": "CTTTCACTGAGACTGAAACTGAGACCCGTATGGCTT",
@@ -7934,7 +10064,7 @@
       }
     },
     {
-      "id": "calc_homodimer|mame_ref_31_36",
+      "id": "calc_homodimer|mame_ref_31_36|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "mame_ref_31_36",
       "seq": "CTTTCACTGAGACTGAAACTGAGACCCGTATGGCTT",
@@ -7946,7 +10076,31 @@
       }
     },
     {
-      "id": "calc_hairpin|mame_ref_35_39",
+      "id": "calc_hairpin|mame_ref_31_36|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "mame_ref_31_36",
+      "seq": "CTTTCACTGAGACTGAAACTGAGACCCGTATGGCTT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 29.272016554951847,
+        "dg": 1249.5730131281307
+      }
+    },
+    {
+      "id": "calc_homodimer|mame_ref_31_36|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "mame_ref_31_36",
+      "seq": "CTTTCACTGAGACTGAAACTGAGACCCGTATGGCTT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": -7.148950412603028,
+        "dg": -2688.5774890635075
+      }
+    },
+    {
+      "id": "calc_hairpin|mame_ref_35_39|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "mame_ref_35_39",
       "seq": "CACTGAGACTGAAACTGAGACCCGTATGGCTTGCTCTGT",
@@ -7958,7 +10112,7 @@
       }
     },
     {
-      "id": "calc_homodimer|mame_ref_35_39",
+      "id": "calc_homodimer|mame_ref_35_39|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "mame_ref_35_39",
       "seq": "CACTGAGACTGAAACTGAGACCCGTATGGCTTGCTCTGT",
@@ -7970,7 +10124,31 @@
       }
     },
     {
-      "id": "calc_hairpin|mame_ref_3_20",
+      "id": "calc_hairpin|mame_ref_35_39|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "mame_ref_35_39",
+      "seq": "CACTGAGACTGAAACTGAGACCCGTATGGCTTGCTCTGT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 32.190809908031895,
+        "dg": 798.5370109427022
+      }
+    },
+    {
+      "id": "calc_homodimer|mame_ref_35_39|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "mame_ref_35_39",
+      "seq": "CACTGAGACTGAAACTGAGACCCGTATGGCTTGCTCTGT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 10.466143600843168,
+        "dg": 722.2515328281006
+      }
+    },
+    {
+      "id": "calc_hairpin|mame_ref_3_20|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "mame_ref_3_20",
       "seq": "GCTTGCTCTGTATCCACTGA",
@@ -7982,7 +10160,7 @@
       }
     },
     {
-      "id": "calc_homodimer|mame_ref_3_20",
+      "id": "calc_homodimer|mame_ref_3_20|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "mame_ref_3_20",
       "seq": "GCTTGCTCTGTATCCACTGA",
@@ -7994,7 +10172,31 @@
       }
     },
     {
-      "id": "calc_hairpin|mame_ref_41_40",
+      "id": "calc_hairpin|mame_ref_3_20|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "mame_ref_3_20",
+      "seq": "GCTTGCTCTGTATCCACTGA",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": false,
+        "tm": 0.0,
+        "dg": 0.0
+      }
+    },
+    {
+      "id": "calc_homodimer|mame_ref_3_20|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "mame_ref_3_20",
+      "seq": "GCTTGCTCTGTATCCACTGA",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": -28.41890518671829,
+        "dg": -2257.926497817669
+      }
+    },
+    {
+      "id": "calc_hairpin|mame_ref_41_40|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "mame_ref_41_40",
       "seq": "GACTGAAACTGAGACCCGTATGGCTTGCTCTGTATCCACT",
@@ -8006,7 +10208,7 @@
       }
     },
     {
-      "id": "calc_homodimer|mame_ref_41_40",
+      "id": "calc_homodimer|mame_ref_41_40|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "mame_ref_41_40",
       "seq": "GACTGAAACTGAGACCCGTATGGCTTGCTCTGTATCCACT",
@@ -8018,7 +10220,31 @@
       }
     },
     {
-      "id": "calc_hairpin|mame_ref_47_20",
+      "id": "calc_hairpin|mame_ref_41_40|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "mame_ref_41_40",
+      "seq": "GACTGAAACTGAGACCCGTATGGCTTGCTCTGTATCCACT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 30.176906454688492,
+        "dg": 1140.4555131312445
+      }
+    },
+    {
+      "id": "calc_homodimer|mame_ref_41_40|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "mame_ref_41_40",
+      "seq": "GACTGAAACTGAGACCCGTATGGCTTGCTCTGTATCCACT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 13.821443332276658,
+        "dg": -369.8584671719145
+      }
+    },
+    {
+      "id": "calc_hairpin|mame_ref_47_20|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "mame_ref_47_20",
       "seq": "AACTGAGACCCGTATGGCTT",
@@ -8030,7 +10256,7 @@
       }
     },
     {
-      "id": "calc_homodimer|mame_ref_47_20",
+      "id": "calc_homodimer|mame_ref_47_20|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "mame_ref_47_20",
       "seq": "AACTGAGACCCGTATGGCTT",
@@ -8042,7 +10268,31 @@
       }
     },
     {
-      "id": "calc_hairpin|mame_ref_7_22",
+      "id": "calc_hairpin|mame_ref_47_20|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "mame_ref_47_20",
+      "seq": "AACTGAGACCCGTATGGCTT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 34.92127830595632,
+        "dg": 97.16450218543469
+      }
+    },
+    {
+      "id": "calc_homodimer|mame_ref_47_20|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "mame_ref_47_20",
+      "seq": "AACTGAGACCCGTATGGCTT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": -7.148950412603028,
+        "dg": -2688.5774890635075
+      }
+    },
+    {
+      "id": "calc_hairpin|mame_ref_7_22|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "mame_ref_7_22",
       "seq": "GCTCTGTATCCACTGAGAACGT",
@@ -8054,7 +10304,7 @@
       }
     },
     {
-      "id": "calc_homodimer|mame_ref_7_22",
+      "id": "calc_homodimer|mame_ref_7_22|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "mame_ref_7_22",
       "seq": "GCTCTGTATCCACTGAGAACGT",
@@ -8066,7 +10316,319 @@
       }
     },
     {
-      "id": "calc_hairpin|repo_cloning_site",
+      "id": "calc_hairpin|mame_ref_7_22|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "mame_ref_7_22",
+      "seq": "GCTCTGTATCCACTGAGAACGT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 43.09491980263442,
+        "dg": -747.7839912489435
+      }
+    },
+    {
+      "id": "calc_homodimer|mame_ref_7_22|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "mame_ref_7_22",
+      "seq": "GCTCTGTATCCACTGAGAACGT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 13.072376007326113,
+        "dg": -2900.5579803093424
+      }
+    },
+    {
+      "id": "calc_hairpin|offtarget_above_45_2|design_concs_only",
+      "call": "calc_hairpin",
+      "seq_id": "offtarget_above_45_2",
+      "seq": "AAACAAGGTAGCACAC",
+      "param_set": "design_concs_only",
+      "expected": {
+        "structure_found": false,
+        "tm": 0.0,
+        "dg": 0.0
+      }
+    },
+    {
+      "id": "calc_homodimer|offtarget_above_45_2|design_concs_only",
+      "call": "calc_homodimer",
+      "seq_id": "offtarget_above_45_2",
+      "seq": "AAACAAGGTAGCACAC",
+      "param_set": "design_concs_only",
+      "expected": {
+        "structure_found": true,
+        "tm": -7.076460503809699,
+        "dg": -2868.65449344059
+      }
+    },
+    {
+      "id": "calc_hairpin|offtarget_above_45_2|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "offtarget_above_45_2",
+      "seq": "AAACAAGGTAGCACAC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": false,
+        "tm": 0.0,
+        "dg": 0.0
+      }
+    },
+    {
+      "id": "calc_homodimer|offtarget_above_45_2|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "offtarget_above_45_2",
+      "seq": "AAACAAGGTAGCACAC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": -7.076460503809699,
+        "dg": -2868.65449344059
+      }
+    },
+    {
+      "id": "calc_hairpin|offtarget_above_45_3|design_concs_only",
+      "call": "calc_hairpin",
+      "seq_id": "offtarget_above_45_3",
+      "seq": "CTGAGACAGTTTTGTCA",
+      "param_set": "design_concs_only",
+      "expected": {
+        "structure_found": true,
+        "tm": 48.706774974601444,
+        "dg": -1185.7474934374877
+      }
+    },
+    {
+      "id": "calc_homodimer|offtarget_above_45_3|design_concs_only",
+      "call": "calc_homodimer",
+      "seq_id": "offtarget_above_45_3",
+      "seq": "CTGAGACAGTTTTGTCA",
+      "param_set": "design_concs_only",
+      "expected": {
+        "structure_found": true,
+        "tm": 10.154296338868278,
+        "dg": -3059.9449846864445
+      }
+    },
+    {
+      "id": "calc_hairpin|offtarget_above_45_3|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "offtarget_above_45_3",
+      "seq": "CTGAGACAGTTTTGTCA",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 48.706774974601444,
+        "dg": -1185.7474934374877
+      }
+    },
+    {
+      "id": "calc_homodimer|offtarget_above_45_3|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "offtarget_above_45_3",
+      "seq": "CTGAGACAGTTTTGTCA",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 10.154296338868278,
+        "dg": -3059.9449846864445
+      }
+    },
+    {
+      "id": "calc_hairpin|offtarget_above_45_8|design_concs_only",
+      "call": "calc_hairpin",
+      "seq_id": "offtarget_above_45_8",
+      "seq": "CTTAGGCCTCCACTAG",
+      "param_set": "design_concs_only",
+      "expected": {
+        "structure_found": false,
+        "tm": 0.0,
+        "dg": 0.0
+      }
+    },
+    {
+      "id": "calc_homodimer|offtarget_above_45_8|design_concs_only",
+      "call": "calc_homodimer",
+      "seq_id": "offtarget_above_45_8",
+      "seq": "CTTAGGCCTCCACTAG",
+      "param_set": "design_concs_only",
+      "expected": {
+        "structure_found": true,
+        "tm": 11.637668256977236,
+        "dg": -6501.1624890573075
+      }
+    },
+    {
+      "id": "calc_hairpin|offtarget_above_45_8|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "offtarget_above_45_8",
+      "seq": "CTTAGGCCTCCACTAG",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": false,
+        "tm": 0.0,
+        "dg": 0.0
+      }
+    },
+    {
+      "id": "calc_homodimer|offtarget_above_45_8|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "offtarget_above_45_8",
+      "seq": "CTTAGGCCTCCACTAG",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 11.637668256977236,
+        "dg": -6501.1624890573075
+      }
+    },
+    {
+      "id": "calc_hairpin|offtarget_below_43_7|design_concs_only",
+      "call": "calc_hairpin",
+      "seq_id": "offtarget_below_43_7",
+      "seq": "CACGTTACCATATATGC",
+      "param_set": "design_concs_only",
+      "expected": {
+        "structure_found": false,
+        "tm": 0.0,
+        "dg": 0.0
+      }
+    },
+    {
+      "id": "calc_homodimer|offtarget_below_43_7|design_concs_only",
+      "call": "calc_homodimer",
+      "seq_id": "offtarget_below_43_7",
+      "seq": "CACGTTACCATATATGC",
+      "param_set": "design_concs_only",
+      "expected": {
+        "structure_found": true,
+        "tm": 7.417263458340869,
+        "dg": -3686.525484686441
+      }
+    },
+    {
+      "id": "calc_hairpin|offtarget_below_43_7|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "offtarget_below_43_7",
+      "seq": "CACGTTACCATATATGC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": false,
+        "tm": 0.0,
+        "dg": 0.0
+      }
+    },
+    {
+      "id": "calc_homodimer|offtarget_below_43_7|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "offtarget_below_43_7",
+      "seq": "CACGTTACCATATATGC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 7.417263458340869,
+        "dg": -3686.525484686441
+      }
+    },
+    {
+      "id": "calc_hairpin|offtarget_below_44_6|design_concs_only",
+      "call": "calc_hairpin",
+      "seq_id": "offtarget_below_44_6",
+      "seq": "TTAGGGCATATTGTGC",
+      "param_set": "design_concs_only",
+      "expected": {
+        "structure_found": true,
+        "tm": 51.58099663411167,
+        "dg": -1153.9754978145684
+      }
+    },
+    {
+      "id": "calc_homodimer|offtarget_below_44_6|design_concs_only",
+      "call": "calc_homodimer",
+      "seq_id": "offtarget_below_44_6",
+      "seq": "TTAGGGCATATTGTGC",
+      "param_set": "design_concs_only",
+      "expected": {
+        "structure_found": true,
+        "tm": -4.497365766987002,
+        "dg": -1759.0754846864438
+      }
+    },
+    {
+      "id": "calc_hairpin|offtarget_below_44_6|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "offtarget_below_44_6",
+      "seq": "TTAGGGCATATTGTGC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 51.58099663411167,
+        "dg": -1153.9754978145684
+      }
+    },
+    {
+      "id": "calc_homodimer|offtarget_below_44_6|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "offtarget_below_44_6",
+      "seq": "TTAGGGCATATTGTGC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": -4.497365766987002,
+        "dg": -1759.0754846864438
+      }
+    },
+    {
+      "id": "calc_hairpin|offtarget_below_44_9|design_concs_only",
+      "call": "calc_hairpin",
+      "seq_id": "offtarget_below_44_9",
+      "seq": "CACTGTCATAGCTTCC",
+      "param_set": "design_concs_only",
+      "expected": {
+        "structure_found": false,
+        "tm": 0.0,
+        "dg": 0.0
+      }
+    },
+    {
+      "id": "calc_homodimer|offtarget_below_44_9|design_concs_only",
+      "call": "calc_homodimer",
+      "seq_id": "offtarget_below_44_9",
+      "seq": "CACTGTCATAGCTTCC",
+      "param_set": "design_concs_only",
+      "expected": {
+        "structure_found": true,
+        "tm": -20.01027485146571,
+        "dg": -3737.619493434384
+      }
+    },
+    {
+      "id": "calc_hairpin|offtarget_below_44_9|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "offtarget_below_44_9",
+      "seq": "CACTGTCATAGCTTCC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": false,
+        "tm": 0.0,
+        "dg": 0.0
+      }
+    },
+    {
+      "id": "calc_homodimer|offtarget_below_44_9|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "offtarget_below_44_9",
+      "seq": "CACTGTCATAGCTTCC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": -20.01027485146571,
+        "dg": -3737.619493434384
+      }
+    },
+    {
+      "id": "calc_hairpin|repo_cloning_site|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "repo_cloning_site",
       "seq": "GCTAGCTAGCGGATCCAAAGGTGCTGACC",
@@ -8078,7 +10640,7 @@
       }
     },
     {
-      "id": "calc_homodimer|repo_cloning_site",
+      "id": "calc_homodimer|repo_cloning_site|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "repo_cloning_site",
       "seq": "GCTAGCTAGCGGATCCAAAGGTGCTGACC",
@@ -8090,7 +10652,31 @@
       }
     },
     {
-      "id": "calc_hairpin|repo_m13_fwd",
+      "id": "calc_hairpin|repo_cloning_site|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "repo_cloning_site",
+      "seq": "GCTAGCTAGCGGATCCAAAGGTGCTGACC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 36.23819860389165,
+        "dg": 107.84800874795474
+      }
+    },
+    {
+      "id": "calc_homodimer|repo_cloning_site|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "repo_cloning_site",
+      "seq": "GCTAGCTAGCGGATCCAAAGGTGCTGACC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 27.99450672767597,
+        "dg": -7986.908480309357
+      }
+    },
+    {
+      "id": "calc_hairpin|repo_m13_fwd|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "repo_m13_fwd",
       "seq": "CAGGAAACAGCTATGACCATG",
@@ -8102,7 +10688,7 @@
       }
     },
     {
-      "id": "calc_homodimer|repo_m13_fwd",
+      "id": "calc_homodimer|repo_m13_fwd|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "repo_m13_fwd",
       "seq": "CAGGAAACAGCTATGACCATG",
@@ -8114,7 +10700,31 @@
       }
     },
     {
-      "id": "calc_hairpin|repo_m13_rev",
+      "id": "calc_hairpin|repo_m13_fwd|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "repo_m13_fwd",
+      "seq": "CAGGAAACAGCTATGACCATG",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": false,
+        "tm": 0.0,
+        "dg": 0.0
+      }
+    },
+    {
+      "id": "calc_homodimer|repo_m13_fwd|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "repo_m13_fwd",
+      "seq": "CAGGAAACAGCTATGACCATG",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": -34.3634702445253,
+        "dg": -2632.729493434381
+      }
+    },
+    {
+      "id": "calc_hairpin|repo_m13_rev|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "repo_m13_rev",
       "seq": "GACCATGATTACGCCAAGCTTG",
@@ -8126,7 +10736,7 @@
       }
     },
     {
-      "id": "calc_homodimer|repo_m13_rev",
+      "id": "calc_homodimer|repo_m13_rev|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "repo_m13_rev",
       "seq": "GACCATGATTACGCCAAGCTTG",
@@ -8138,7 +10748,31 @@
       }
     },
     {
-      "id": "calc_hairpin|repo_t7_like",
+      "id": "calc_hairpin|repo_m13_rev|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "repo_m13_rev",
+      "seq": "GACCATGATTACGCCAAGCTTG",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": false,
+        "tm": 0.0,
+        "dg": 0.0
+      }
+    },
+    {
+      "id": "calc_homodimer|repo_m13_rev|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "repo_m13_rev",
+      "seq": "GACCATGATTACGCCAAGCTTG",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 20.114302137361506,
+        "dg": -6377.505484686451
+      }
+    },
+    {
+      "id": "calc_hairpin|repo_t7_like|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "repo_t7_like",
       "seq": "ACGACTCACTATAGGGCGAATTGG",
@@ -8150,7 +10784,7 @@
       }
     },
     {
-      "id": "calc_homodimer|repo_t7_like",
+      "id": "calc_homodimer|repo_t7_like|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "repo_t7_like",
       "seq": "ACGACTCACTATAGGGCGAATTGG",
@@ -8162,7 +10796,31 @@
       }
     },
     {
-      "id": "calc_hairpin|synth_gc20_0",
+      "id": "calc_hairpin|repo_t7_like|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "repo_t7_like",
+      "seq": "ACGACTCACTATAGGGCGAATTGG",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": false,
+        "tm": 0.0,
+        "dg": 0.0
+      }
+    },
+    {
+      "id": "calc_homodimer|repo_t7_like|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "repo_t7_like",
+      "seq": "ACGACTCACTATAGGGCGAATTGG",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 7.687408464041596,
+        "dg": -2374.6944759446924
+      }
+    },
+    {
+      "id": "calc_hairpin|synth_gc20_0|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "synth_gc20_0",
       "seq": "TATATAGTCAGAATAGATTTAAAGGGCTTC",
@@ -8174,7 +10832,7 @@
       }
     },
     {
-      "id": "calc_homodimer|synth_gc20_0",
+      "id": "calc_homodimer|synth_gc20_0|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "synth_gc20_0",
       "seq": "TATATAGTCAGAATAGATTTAAAGGGCTTC",
@@ -8186,7 +10844,31 @@
       }
     },
     {
-      "id": "calc_hairpin|synth_gc20_1",
+      "id": "calc_hairpin|synth_gc20_0|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "synth_gc20_0",
+      "seq": "TATATAGTCAGAATAGATTTAAAGGGCTTC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": false,
+        "tm": 0.0,
+        "dg": 0.0
+      }
+    },
+    {
+      "id": "calc_homodimer|synth_gc20_0|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "synth_gc20_0",
+      "seq": "TATATAGTCAGAATAGATTTAAAGGGCTTC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": -8.134301626500871,
+        "dg": -2014.8974890573081
+      }
+    },
+    {
+      "id": "calc_hairpin|synth_gc20_1|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "synth_gc20_1",
       "seq": "GAGCAAATATAGTGATCCATTCAA",
@@ -8198,7 +10880,7 @@
       }
     },
     {
-      "id": "calc_homodimer|synth_gc20_1",
+      "id": "calc_homodimer|synth_gc20_1|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "synth_gc20_1",
       "seq": "GAGCAAATATAGTGATCCATTCAA",
@@ -8210,7 +10892,31 @@
       }
     },
     {
-      "id": "calc_hairpin|synth_gc35_2",
+      "id": "calc_hairpin|synth_gc20_1|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "synth_gc20_1",
+      "seq": "GAGCAAATATAGTGATCCATTCAA",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 31.32879092586927,
+        "dg": 350.16800437707934
+      }
+    },
+    {
+      "id": "calc_homodimer|synth_gc20_1|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "synth_gc20_1",
+      "seq": "GAGCAAATATAGTGATCCATTCAA",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": -15.727585538994902,
+        "dg": -2358.309493440589
+      }
+    },
+    {
+      "id": "calc_hairpin|synth_gc35_2|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "synth_gc35_2",
       "seq": "AGTGTTACTGTAGAATTGACTTCTTTGGGCGATTAC",
@@ -8222,7 +10928,7 @@
       }
     },
     {
-      "id": "calc_homodimer|synth_gc35_2",
+      "id": "calc_homodimer|synth_gc35_2|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "synth_gc35_2",
       "seq": "AGTGTTACTGTAGAATTGACTTCTTTGGGCGATTAC",
@@ -8234,7 +10940,31 @@
       }
     },
     {
-      "id": "calc_hairpin|synth_gc35_3",
+      "id": "calc_hairpin|synth_gc35_2|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "synth_gc35_2",
+      "seq": "AGTGTTACTGTAGAATTGACTTCTTTGGGCGATTAC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 35.56744124288275,
+        "dg": 97.91150656561877
+      }
+    },
+    {
+      "id": "calc_homodimer|synth_gc35_2|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "synth_gc35_2",
+      "seq": "AGTGTTACTGTAGAATTGACTTCTTTGGGCGATTAC",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": -14.691737330003832,
+        "dg": -423.7284803031507
+      }
+    },
+    {
+      "id": "calc_hairpin|synth_gc35_3|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "synth_gc35_3",
       "seq": "GAAAGAAGTGGTATTGGTATCTGGATGCTG",
@@ -8246,7 +10976,7 @@
       }
     },
     {
-      "id": "calc_homodimer|synth_gc35_3",
+      "id": "calc_homodimer|synth_gc35_3|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "synth_gc35_3",
       "seq": "GAAAGAAGTGGTATTGGTATCTGGATGCTG",
@@ -8258,7 +10988,31 @@
       }
     },
     {
-      "id": "calc_hairpin|synth_gc50_4",
+      "id": "calc_hairpin|synth_gc35_3|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "synth_gc35_3",
+      "seq": "GAAAGAAGTGGTATTGGTATCTGGATGCTG",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": false,
+        "tm": 0.0,
+        "dg": 0.0
+      }
+    },
+    {
+      "id": "calc_homodimer|synth_gc35_3|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "synth_gc35_3",
+      "seq": "GAAAGAAGTGGTATTGGTATCTGGATGCTG",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": -0.47252553900301564,
+        "dg": -466.6154846864374
+      }
+    },
+    {
+      "id": "calc_hairpin|synth_gc50_4|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "synth_gc50_4",
       "seq": "GTTGGACGTGCTGCACGTATA",
@@ -8270,7 +11024,7 @@
       }
     },
     {
-      "id": "calc_homodimer|synth_gc50_4",
+      "id": "calc_homodimer|synth_gc50_4|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "synth_gc50_4",
       "seq": "GTTGGACGTGCTGCACGTATA",
@@ -8282,7 +11036,31 @@
       }
     },
     {
-      "id": "calc_hairpin|synth_gc50_5",
+      "id": "calc_hairpin|synth_gc50_4|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "synth_gc50_4",
+      "seq": "GTTGGACGTGCTGCACGTATA",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 57.99562198091206,
+        "dg": -2206.42399124895
+      }
+    },
+    {
+      "id": "calc_homodimer|synth_gc50_4|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "synth_gc50_4",
+      "seq": "GTTGGACGTGCTGCACGTATA",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 45.64506080062398,
+        "dg": -12957.231475926092
+      }
+    },
+    {
+      "id": "calc_hairpin|synth_gc50_5|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "synth_gc50_5",
       "seq": "TTCTGAAGCACATGGACGCGACCGACGCGT",
@@ -8294,7 +11072,7 @@
       }
     },
     {
-      "id": "calc_homodimer|synth_gc50_5",
+      "id": "calc_homodimer|synth_gc50_5|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "synth_gc50_5",
       "seq": "TTCTGAAGCACATGGACGCGACCGACGCGT",
@@ -8306,7 +11084,31 @@
       }
     },
     {
-      "id": "calc_hairpin|synth_gc65_6",
+      "id": "calc_hairpin|synth_gc50_5|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "synth_gc50_5",
+      "seq": "TTCTGAAGCACATGGACGCGACCGACGCGT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 76.6871636415305,
+        "dg": -5252.488493434386
+      }
+    },
+    {
+      "id": "calc_homodimer|synth_gc50_5|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "synth_gc50_5",
+      "seq": "TTCTGAAGCACATGGACGCGACCGACGCGT",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 36.48557725969033,
+        "dg": -10036.008475926108
+      }
+    },
+    {
+      "id": "calc_hairpin|synth_gc65_6|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "synth_gc65_6",
       "seq": "TCCCGGGGCTCGAGACGGGGG",
@@ -8318,7 +11120,7 @@
       }
     },
     {
-      "id": "calc_homodimer|synth_gc65_6",
+      "id": "calc_homodimer|synth_gc65_6|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "synth_gc65_6",
       "seq": "TCCCGGGGCTCGAGACGGGGG",
@@ -8330,7 +11132,31 @@
       }
     },
     {
-      "id": "calc_hairpin|synth_gc65_7",
+      "id": "calc_hairpin|synth_gc65_6|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "synth_gc65_6",
+      "seq": "TCCCGGGGCTCGAGACGGGGG",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 55.032941044286304,
+        "dg": -2027.5749934374908
+      }
+    },
+    {
+      "id": "calc_homodimer|synth_gc65_6|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "synth_gc65_6",
+      "seq": "TCCCGGGGCTCGAGACGGGGG",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 36.782806945495224,
+        "dg": -10133.204471555218
+      }
+    },
+    {
+      "id": "calc_hairpin|synth_gc65_7|design_concs_only",
       "call": "calc_hairpin",
       "seq_id": "synth_gc65_7",
       "seq": "GCGAGTAGCCCTTGCTCCCGGGCACCGAGG",
@@ -8342,7 +11168,7 @@
       }
     },
     {
-      "id": "calc_homodimer|synth_gc65_7",
+      "id": "calc_homodimer|synth_gc65_7|design_concs_only",
       "call": "calc_homodimer",
       "seq_id": "synth_gc65_7",
       "seq": "GCGAGTAGCCCTTGCTCCCGGGCACCGAGG",
@@ -8354,7 +11180,31 @@
       }
     },
     {
-      "id": "calc_heterodimer|mame_ref_0_18|rc(mame_ref_0_18)",
+      "id": "calc_hairpin|synth_gc65_7|mame_qc_structure",
+      "call": "calc_hairpin",
+      "seq_id": "synth_gc65_7",
+      "seq": "GCGAGTAGCCCTTGCTCCCGGGCACCGAGG",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 60.2672226024921,
+        "dg": -2575.033489063506
+      }
+    },
+    {
+      "id": "calc_homodimer|synth_gc65_7|mame_qc_structure",
+      "call": "calc_homodimer",
+      "seq_id": "synth_gc65_7",
+      "seq": "GCGAGTAGCCCTTGCTCCCGGGCACCGAGG",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 22.037277861895973,
+        "dg": -4587.137471555194
+      }
+    },
+    {
+      "id": "calc_heterodimer|mame_ref_0_18|rc(mame_ref_0_18)|design_concs_only",
       "call": "calc_heterodimer",
       "seq_id": "mame_ref_0_18",
       "seq": "ATGGCTTGCTCTGTATCC",
@@ -8368,7 +11218,21 @@
       }
     },
     {
-      "id": "calc_heterodimer|mame_ref_19_27|rc(mame_ref_19_27)",
+      "id": "calc_heterodimer|mame_ref_0_18|rc(mame_ref_0_18)|mame_qc_structure",
+      "call": "calc_heterodimer",
+      "seq_id": "mame_ref_0_18",
+      "seq": "ATGGCTTGCTCTGTATCC",
+      "seq2": "GGATACAGAGCAAGCCAT",
+      "seq2_source": "reverse_complement(mame_ref_0_18)",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 50.605816608578436,
+        "dg": -15955.945462797972
+      }
+    },
+    {
+      "id": "calc_heterodimer|mame_ref_19_27|rc(mame_ref_19_27)|design_concs_only",
       "call": "calc_heterodimer",
       "seq_id": "mame_ref_19_27",
       "seq": "CTGAGAACGTATCTTTCACTGAGACTG",
@@ -8382,7 +11246,21 @@
       }
     },
     {
-      "id": "calc_heterodimer|mame_ref_41_40|rc(mame_ref_41_40)",
+      "id": "calc_heterodimer|mame_ref_19_27|rc(mame_ref_19_27)|mame_qc_structure",
+      "call": "calc_heterodimer",
+      "seq_id": "mame_ref_19_27",
+      "seq": "CTGAGAACGTATCTTTCACTGAGACTG",
+      "seq2": "CAGTCTCAGTGAAAGATACGTTCTCAG",
+      "seq2_source": "reverse_complement(mame_ref_19_27)",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 57.004224045488854,
+        "dg": -23074.998943104176
+      }
+    },
+    {
+      "id": "calc_heterodimer|mame_ref_41_40|rc(mame_ref_41_40)|design_concs_only",
       "call": "calc_heterodimer",
       "seq_id": "mame_ref_41_40",
       "seq": "GACTGAAACTGAGACCCGTATGGCTTGCTCTGTATCCACT",
@@ -8396,7 +11274,21 @@
       }
     },
     {
-      "id": "calc_heterodimer|mame_ref_0_18|rc(mame_ref_35_39)",
+      "id": "calc_heterodimer|mame_ref_41_40|rc(mame_ref_41_40)|mame_qc_structure",
+      "call": "calc_heterodimer",
+      "seq_id": "mame_ref_41_40",
+      "seq": "GACTGAAACTGAGACCCGTATGGCTTGCTCTGTATCCACT",
+      "seq2": "AGTGGATACAGAGCAAGCCATACGGGTCTCAGTTTCAGTC",
+      "seq2_source": "reverse_complement(mame_ref_41_40)",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 67.82305552135625,
+        "dg": -38924.89841465012
+      }
+    },
+    {
+      "id": "calc_heterodimer|mame_ref_0_18|rc(mame_ref_35_39)|design_concs_only",
       "call": "calc_heterodimer",
       "seq_id": "mame_ref_0_18",
       "seq": "ATGGCTTGCTCTGTATCC",
@@ -8410,7 +11302,21 @@
       }
     },
     {
-      "id": "calc_heterodimer|mame_ref_3_20|rc(mame_ref_27_33)",
+      "id": "calc_heterodimer|mame_ref_0_18|rc(mame_ref_35_39)|mame_qc_structure",
+      "call": "calc_heterodimer",
+      "seq_id": "mame_ref_0_18",
+      "seq": "ATGGCTTGCTCTGTATCC",
+      "seq2": "ACAGAGCAAGCCATACGGGTCTCAGTTTCAGTCTCAGTG",
+      "seq2_source": "reverse_complement(mame_ref_35_39)",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 47.17170883112692,
+        "dg": -13557.984471549018
+      }
+    },
+    {
+      "id": "calc_heterodimer|mame_ref_3_20|rc(mame_ref_27_33)|design_concs_only",
       "call": "calc_heterodimer",
       "seq_id": "mame_ref_3_20",
       "seq": "GCTTGCTCTGTATCCACTGA",
@@ -8424,7 +11330,21 @@
       }
     },
     {
-      "id": "calc_heterodimer|mame_ref_7_22|rc(flat_a_rich)",
+      "id": "calc_heterodimer|mame_ref_3_20|rc(mame_ref_27_33)|mame_qc_structure",
+      "call": "calc_heterodimer",
+      "seq_id": "mame_ref_3_20",
+      "seq": "GCTTGCTCTGTATCCACTGA",
+      "seq2": "ACGGGTCTCAGTTTCAGTCTCAGTGAAAGATAC",
+      "seq2_source": "reverse_complement(mame_ref_27_33)",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 12.174051511069308,
+        "dg": -3349.9814781239256
+      }
+    },
+    {
+      "id": "calc_heterodimer|mame_ref_7_22|rc(flat_a_rich)|design_concs_only",
       "call": "calc_heterodimer",
       "seq_id": "mame_ref_7_22",
       "seq": "GCTCTGTATCCACTGAGAACGT",
@@ -8438,7 +11358,21 @@
       }
     },
     {
-      "id": "calc_heterodimer|synth_gc65_6|rc(synth_gc20_0)",
+      "id": "calc_heterodimer|mame_ref_7_22|rc(flat_a_rich)|mame_qc_structure",
+      "call": "calc_heterodimer",
+      "seq_id": "mame_ref_7_22",
+      "seq": "GCTCTGTATCCACTGAGAACGT",
+      "seq2": "ATTTCTTTATTTCTTTATTTCTTT",
+      "seq2_source": "reverse_complement(flat_a_rich)",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": -46.63684306793732,
+        "dg": -1435.9244934343842
+      }
+    },
+    {
+      "id": "calc_heterodimer|synth_gc65_6|rc(synth_gc20_0)|design_concs_only",
       "call": "calc_heterodimer",
       "seq_id": "synth_gc65_6",
       "seq": "TCCCGGGGCTCGAGACGGGGG",
@@ -8452,7 +11386,21 @@
       }
     },
     {
-      "id": "calc_heterodimer|synth_gc50_4|rc(synth_gc50_4)",
+      "id": "calc_heterodimer|synth_gc65_6|rc(synth_gc20_0)|mame_qc_structure",
+      "call": "calc_heterodimer",
+      "seq_id": "synth_gc65_6",
+      "seq": "TCCCGGGGCTCGAGACGGGGG",
+      "seq2": "GAAGCCCTTTAAATCTATTCTGACTATATA",
+      "seq2_source": "reverse_complement(synth_gc20_0)",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 5.575609065730362,
+        "dg": -5375.790991248949
+      }
+    },
+    {
+      "id": "calc_heterodimer|synth_gc50_4|rc(synth_gc50_4)|design_concs_only",
       "call": "calc_heterodimer",
       "seq_id": "synth_gc50_4",
       "seq": "GTTGGACGTGCTGCACGTATA",
@@ -8466,7 +11414,21 @@
       }
     },
     {
-      "id": "calc_heterodimer|repo_m13_fwd|rc(repo_m13_rev)",
+      "id": "calc_heterodimer|synth_gc50_4|rc(synth_gc50_4)|mame_qc_structure",
+      "call": "calc_heterodimer",
+      "seq_id": "synth_gc50_4",
+      "seq": "GTTGGACGTGCTGCACGTATA",
+      "seq2": "TATACGTGCAGCACGTCCAAC",
+      "seq2_source": "reverse_complement(synth_gc50_4)",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 57.288658914671714,
+        "dg": -20532.66495623236
+      }
+    },
+    {
+      "id": "calc_heterodimer|repo_m13_fwd|rc(repo_m13_rev)|design_concs_only",
       "call": "calc_heterodimer",
       "seq_id": "repo_m13_fwd",
       "seq": "CAGGAAACAGCTATGACCATG",
@@ -8480,7 +11442,21 @@
       }
     },
     {
-      "id": "calc_heterodimer|flat_at_18|rc(flat_a_rich)",
+      "id": "calc_heterodimer|repo_m13_fwd|rc(repo_m13_rev)|mame_qc_structure",
+      "call": "calc_heterodimer",
+      "seq_id": "repo_m13_fwd",
+      "seq": "CAGGAAACAGCTATGACCATG",
+      "seq2": "CAAGCTTGGCGTAATCATGGTC",
+      "seq2_source": "reverse_complement(repo_m13_rev)",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 13.950287854674343,
+        "dg": -5607.383986874971
+      }
+    },
+    {
+      "id": "calc_heterodimer|flat_at_18|rc(flat_a_rich)|design_concs_only",
       "call": "calc_heterodimer",
       "seq_id": "flat_at_18",
       "seq": "ATATATATATATATATAT",
@@ -8494,7 +11470,21 @@
       }
     },
     {
-      "id": "calc_heterodimer|hairpin_gc_stem8|rc(hairpin_gc_stem8)",
+      "id": "calc_heterodimer|flat_at_18|rc(flat_a_rich)|mame_qc_structure",
+      "call": "calc_heterodimer",
+      "seq_id": "flat_at_18",
+      "seq": "ATATATATATATATATAT",
+      "seq2": "ATTTCTTTATTTCTTTATTTCTTT",
+      "seq2_source": "reverse_complement(flat_a_rich)",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": -82.2669735899571,
+        "dg": -101.70799562292086
+      }
+    },
+    {
+      "id": "calc_heterodimer|hairpin_gc_stem8|rc(hairpin_gc_stem8)|design_concs_only",
       "call": "calc_heterodimer",
       "seq_id": "hairpin_gc_stem8",
       "seq": "GCGCGCGCTTTTGCGCGCGC",
@@ -8508,13 +11498,41 @@
       }
     },
     {
-      "id": "calc_heterodimer|homodimer_ccgg16|rc(flat_at_18)",
+      "id": "calc_heterodimer|hairpin_gc_stem8|rc(hairpin_gc_stem8)|mame_qc_structure",
+      "call": "calc_heterodimer",
+      "seq_id": "hairpin_gc_stem8",
+      "seq": "GCGCGCGCTTTTGCGCGCGC",
+      "seq2": "GCGCGCGCAAAAGCGCGCGC",
+      "seq2_source": "reverse_complement(hairpin_gc_stem8)",
+      "param_set": "mame_qc_structure",
+      "expected": {
+        "structure_found": true,
+        "tm": 70.96612377369797,
+        "dg": -28168.388458424015
+      }
+    },
+    {
+      "id": "calc_heterodimer|homodimer_ccgg16|rc(flat_at_18)|design_concs_only",
       "call": "calc_heterodimer",
       "seq_id": "homodimer_ccgg16",
       "seq": "CCGGCCGGCCGGCCGG",
       "seq2": "ATATATATATATATATAT",
       "seq2_source": "reverse_complement(flat_at_18)",
       "param_set": "design_concs_only",
+      "expected": {
+        "structure_found": false,
+        "tm": 0.0,
+        "dg": 0.0
+      }
+    },
+    {
+      "id": "calc_heterodimer|homodimer_ccgg16|rc(flat_at_18)|mame_qc_structure",
+      "call": "calc_heterodimer",
+      "seq_id": "homodimer_ccgg16",
+      "seq": "CCGGCCGGCCGGCCGG",
+      "seq2": "ATATATATATATATATAT",
+      "seq2_source": "reverse_complement(flat_at_18)",
+      "param_set": "mame_qc_structure",
       "expected": {
         "structure_found": false,
         "tm": 0.0,

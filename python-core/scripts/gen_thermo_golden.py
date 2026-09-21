@@ -14,12 +14,22 @@ actually passes, read out of the live code rather than retyped here:
   - kuma_core.kuro.sdm_engine        design Tm plus hairpin/homodimer/heterodimer
   - kuma_core.kuro.annealing         per polymerase profile Tm
   - kuma_core.kuro.neb_tm            NEB calibration reference Tm
-  - kuma_core.mame.ingest.barcode_package  MAME barcode Tm
+  - kuma_core.mame.ingest.barcode_package  MAME barcode Tm, plus the barcode
+    primer QC scale (hairpin/homodimer, and the Tm the off-target fast path
+    is scored on)
 
 Both tm and dg are recorded for every structure call. kuma warns on hairpins and
 homodimers at a Tm threshold of 40.0 C (sdm_engine._check_secondary_structure),
 so a corpus holding only dg would not cover the value the product actually gates
-on.
+on. The MAME barcode QC path gates at the same 40.0 C on structures and at
+45.0 C on the off-target Tm (barcode_package._QC_STRUCTURE_TM_MAX,
+_QC_OFFTARGET_TM), and the corpus straddles both.
+
+The MAME barcode QC concentrations currently equal the KURO design scale
+numerically, so the entries under the two keys hold the same numbers today.
+They are recorded under separate keys on purpose: they are separate constants
+in separate modules, and keeping them apart is what makes an edit to either one
+show up as a mismatch rather than being absorbed by the other.
 
 Run from anywhere:
 
@@ -45,6 +55,7 @@ if str(REPO_ROOT) not in sys.path:
 import primer3  # noqa: E402
 
 from kuma_core.kuro import sdm_engine  # noqa: E402
+from kuma_core.mame.ingest import barcode_package as mame_barcode  # noqa: E402
 from kuma_core.mame.ingest.polymerase import POLYMERASE_PROFILES as MAME_PROFILES  # noqa: E402
 
 OUT_PATH = REPO_ROOT / "tests" / "fixtures" / "thermo_golden.json"
@@ -117,7 +128,31 @@ def build_param_sets() -> dict[str, dict]:
             "salt_corrections_method": p.salt_corrections_method,
         }
 
+    # 5. mame/ingest/barcode_package._perfect_repeat_failure: the scale the
+    #    off-target fast path scores a full-length repeat on. Read from the
+    #    module rather than retyped, same as every set above.
+    sets["mame_qc_tm"] = {
+        **dict(mame_barcode._QC_CONCS),
+        "tm_method": mame_barcode._QC_TM_METHOD,
+        "salt_corrections_method": mame_barcode._QC_SALT_CORRECTION,
+    }
+
     return sets
+
+
+def build_structure_param_sets() -> dict[str, dict]:
+    """The concentration-only sets the structure calls take.
+
+    calc_hairpin/calc_homodimer/calc_heterodimer accept the four
+    concentrations and no method arguments, so these are not calc_tm
+    combinations and are swept separately.
+    """
+    return {
+        # kuro/sdm_engine._check_secondary_structure
+        "design_concs_only": _design_concs(),
+        # mame/ingest/barcode_package._structure_tms
+        "mame_qc_structure": dict(mame_barcode._QC_CONCS),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -177,6 +212,26 @@ _STRUCTURED = {
 }
 
 
+# Straddlers for the barcode QC off-target threshold
+# (barcode_package._QC_OFFTARGET_TM, 45.0 C). Found by a random probe over
+# 13-18mers and pinned here, the same way _STRUCTURED was built: the corpus must
+# not depend on the engine it is meant to hold to account. The comment on each
+# line records the QC-scale Tm seen at selection time; the authoritative value
+# is whatever this script writes out. The pool already spanned 24-80 C, but
+# nothing sat within 1.3 C of the threshold, and a threshold is only covered
+# where an engine difference could actually flip a verdict.
+_OFFTARGET_STRADDLE = {
+    # Just below 45.0 C: a full-length repeat here is reported as clean.
+    "offtarget_below_43_7": "CACGTTACCATATATGC",   # ~43.7 C
+    "offtarget_below_44_6": "TTAGGGCATATTGTGC",    # ~44.6 C
+    "offtarget_below_44_9": "CACTGTCATAGCTTCC",    # ~44.9 C
+    # Just above it: the same repeat is a QC failure.
+    "offtarget_above_45_2": "AAACAAGGTAGCACAC",    # ~45.2 C
+    "offtarget_above_45_3": "CTGAGACAGTTTTGTCA",   # ~45.3 C
+    "offtarget_above_45_8": "CTTAGGCCTCCACTAG",    # ~45.8 C
+}
+
+
 def _synthetic_gc_ladder() -> dict[str, str]:
     """Random sequences spanning length and GC, from a pinned seed.
 
@@ -215,6 +270,9 @@ def build_sequences() -> dict[str, dict]:
     for key, seq in _STRUCTURED.items():
         origin = "in-repo test sequence" if key.startswith("repo_") else "pinned structure probe"
         seqs[key] = {"seq": seq, "origin": origin}
+
+    for key, seq in _OFFTARGET_STRADDLE.items():
+        seqs[key] = {"seq": seq, "origin": "pinned off-target threshold probe"}
 
     return seqs
 
@@ -274,18 +332,19 @@ def _structure_record(res) -> dict:
     }
 
 
-def build_entries(param_sets: dict[str, dict], sequences: dict[str, dict]) -> list[dict]:
+def build_entries(
+    param_sets: dict[str, dict],
+    structure_param_sets: dict[str, dict],
+    sequences: dict[str, dict],
+) -> list[dict]:
     entries: list[dict] = []
-    concs = _design_concs()
 
-    # design_concs_only drives the structure calls, which take no method
-    # arguments. It is not a calc_tm combination any kuma call site issues, so
-    # it is excluded here rather than sweeping 46 imaginary Tm entries.
-    tm_param_sets = [k for k in sorted(param_sets) if k != "design_concs_only"]
-
+    # param_sets holds only calc_tm combinations. The concentration-only sets
+    # in structure_param_sets take no method arguments and are swept
+    # separately below, rather than generating imaginary Tm entries for them.
     for seq_id in sorted(sequences):
         seq = sequences[seq_id]["seq"]
-        for ps_id in tm_param_sets:
+        for ps_id in sorted(param_sets):
             entries.append({
                 "id": f"calc_tm|{seq_id}|{ps_id}",
                 "call": "calc_tm",
@@ -297,46 +356,54 @@ def build_entries(param_sets: dict[str, dict], sequences: dict[str, dict]) -> li
 
     for seq_id in sorted(sequences):
         seq = sequences[seq_id]["seq"]
-        entries.append({
-            "id": f"calc_hairpin|{seq_id}",
-            "call": "calc_hairpin",
-            "seq_id": seq_id,
-            "seq": seq,
-            "param_set": "design_concs_only",
-            "expected": _structure_record(primer3.calc_hairpin(seq, **concs)),
-        })
-        entries.append({
-            "id": f"calc_homodimer|{seq_id}",
-            "call": "calc_homodimer",
-            "seq_id": seq_id,
-            "seq": seq,
-            "param_set": "design_concs_only",
-            "expected": _structure_record(primer3.calc_homodimer(seq, **concs)),
-        })
+        for ps_id in sorted(structure_param_sets):
+            concs = structure_param_sets[ps_id]
+            entries.append({
+                "id": f"calc_hairpin|{seq_id}|{ps_id}",
+                "call": "calc_hairpin",
+                "seq_id": seq_id,
+                "seq": seq,
+                "param_set": ps_id,
+                "expected": _structure_record(primer3.calc_hairpin(seq, **concs)),
+            })
+            entries.append({
+                "id": f"calc_homodimer|{seq_id}|{ps_id}",
+                "call": "calc_homodimer",
+                "seq_id": seq_id,
+                "seq": seq,
+                "param_set": ps_id,
+                "expected": _structure_record(primer3.calc_homodimer(seq, **concs)),
+            })
 
     for left_id, right_id in _HETERO_PAIRS:
         left = sequences[left_id]["seq"]
         right = reverse_complement(sequences[right_id]["seq"])
-        entries.append({
-            "id": f"calc_heterodimer|{left_id}|rc({right_id})",
-            "call": "calc_heterodimer",
-            "seq_id": left_id,
-            "seq": left,
-            "seq2": right,
-            "seq2_source": f"reverse_complement({right_id})",
-            "param_set": "design_concs_only",
-            "expected": _structure_record(primer3.calc_heterodimer(left, right, **concs)),
-        })
+        for ps_id in sorted(structure_param_sets):
+            entries.append({
+                "id": f"calc_heterodimer|{left_id}|rc({right_id})|{ps_id}",
+                "call": "calc_heterodimer",
+                "seq_id": left_id,
+                "seq": left,
+                "seq2": right,
+                "seq2_source": f"reverse_complement({right_id})",
+                "param_set": ps_id,
+                "expected": _structure_record(
+                    primer3.calc_heterodimer(left, right, **structure_param_sets[ps_id])
+                ),
+            })
 
     return entries
 
 
 def main() -> int:
     param_sets = build_param_sets()
-    param_sets["design_concs_only"] = _design_concs()
+    structure_param_sets = build_structure_param_sets()
     concs_keys = set(_design_concs())
     sequences = build_sequences()
-    entries = build_entries(param_sets, sequences)
+    entries = build_entries(param_sets, structure_param_sets, sequences)
+    # Every entry's param_set key must resolve here: the test looks expected
+    # parameters up as PARAM_SETS[entry.param_set].
+    all_param_sets = {**param_sets, **structure_param_sets}
 
     payload = {
         "_meta": {
@@ -364,7 +431,7 @@ def main() -> int:
                 "calc_heterodimer": _implicit_defaults(primer3.calc_heterodimer, set(concs_keys)),
             },
         },
-        "param_sets": param_sets,
+        "param_sets": all_param_sets,
         "sequences": sequences,
         "entries": entries,
     }
@@ -372,7 +439,7 @@ def main() -> int:
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUT_PATH.write_text(json.dumps(payload, indent=2, sort_keys=False) + "\n", encoding="utf-8")
     print(f"wrote {OUT_PATH.relative_to(REPO_ROOT)}: {len(entries)} entries, "
-          f"{len(sequences)} sequences, {len(param_sets)} parameter sets")
+          f"{len(sequences)} sequences, {len(all_param_sets)} parameter sets")
     return 0
 
 
