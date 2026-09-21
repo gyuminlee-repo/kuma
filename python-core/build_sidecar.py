@@ -62,8 +62,12 @@ TARGETS = {
             "setuptools._vendor.jaraco.text",
             "setuptools._vendor.jaraco.functools",
         ],
-        "collect_all": ["pydantic", "primer3", "sidecar_kuro", "kuma_core", "setuptools", "truststore"],
-        "excludes": [],
+        # setuptools is collected by pyinstaller_hooks/hook-setuptools._vendor.py
+        # (same as `--collect-all setuptools`, minus LGPL-3.0 autocommand);
+        # `--exclude-module` alone would leave autocommand's .py sources inside
+        # the binary as data files.
+        "collect_all": ["pydantic", "primer3", "sidecar_kuro", "kuma_core", "truststore"],
+        "excludes": ["setuptools._vendor.autocommand"],
     },
     "mame": {
         "entry": "sidecar_main_mame.py",
@@ -101,8 +105,11 @@ TARGETS = {
             "setuptools._vendor.jaraco.text",
             "setuptools._vendor.jaraco.functools",
         ],
-        "collect_all": ["openpyxl", "primer3", "sidecar_mame", "kuma_core", "setuptools", "truststore"],
+        # setuptools is collected by pyinstaller_hooks/hook-setuptools._vendor.py
+        # (same as `--collect-all setuptools`, minus LGPL-3.0 autocommand).
+        "collect_all": ["openpyxl", "primer3", "sidecar_mame", "kuma_core", "truststore"],
         "excludes": [
+            "setuptools._vendor.autocommand",
             "matplotlib",
             "sklearn",
             "tensorflow",
@@ -153,6 +160,10 @@ def build_sidecar(target: str, onefile: bool = True) -> Path:
         "--name",
         sidecar_name,
         "--onefile" if onefile else "--onedir",
+        # Project hooks: hook-setuptools._vendor.py re-runs collect_all for
+        # setuptools with the LGPL-3.0 vendored autocommand filtered out.
+        "--additional-hooks-dir",
+        str(SCRIPT_DIR / "pyinstaller_hooks"),
     ]
 
     for hi in cfg["hidden_imports"]:
