@@ -1582,14 +1582,14 @@
     "errorTitle": "Preview failed",
     "echoSourcePlateLabel": "Echo source plate (384 wells)",
     "destPlateLabel": "Destination plate (96 wells)",
-    "quadrantBatch": "This run fills half {{half}} of the plate, columns {{from}}-{{to}}. Forward primers sit on rows A, C, E ... and each reverse primer one row below.",
-    "quadrantProgress": "{{filled}} of {{total}} halves on this plate are spent once this run lands.",
-    "quadrantHalfNote": "Columns {{from}}-{{to}} are the other half, {{others}}, and stay empty for the next round.",
+    "quadrantBatch": "This run fills round {{round}}: every other column, starting at column {{first}}. Forward primers sit on rows A, C, E ... and each reverse primer one row below.",
+    "quadrantProgress": "{{filled}} of {{total}} rounds on this plate are spent once this run lands.",
+    "quadrantInterleaveNote": "One 96-head stamp reaches every other column, so the columns in between belong to {{others}} and stay empty for the next round.",
     "quadrantUsedNote": "Already used on this plate: {{list}}",
-    "quadrantNoneNote": "No half selected. The run still lands on columns 1-12, the same wells as half A1, and only the check against halves already spent is skipped.",
+    "quadrantNoneNote": "No round selected. The run still lands on columns 1-12 without skipping any, which is the layout used before rounds were a choice, and only the check against rounds already spent is skipped.",
     "quadrantLegendFree": "Solid outline: well this run can reach",
     "quadrantLegendReserved": "Dashed outline: held for {{others}}",
-    "echoReservedWellTitle": "{{well}}, held for half {{quadrants}}"
+    "echoReservedWellTitle": "{{well}}, held for round {{quadrants}}"
   },
   "globalAppBar": {
     "navAriaLabel": "Application navigation",
@@ -2653,14 +2653,26 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The barcode step now states one number, how far the amplicon may reach past the CDS, instead of a gap and an overhang sharing a name.",
-      "Defaults drop from 100 and 400 to 20 and 60, a range that holds the 16 bp overhang measured on the shipped ispS design.",
-      "A short linear template is searched to its own edge instead of being refused for being shorter than the outer search bound.",
-      "Both strands search outward, so the amplicon is symmetric and the last codons stay clear of the reference edge margin.",
-      "A primer can no longer sit inside the coding region, and a saved flank_max carries over as overhang_max."
+      "Consensus sequences write a dash where a base is missing, so a deletion no longer looks like a position the run could not call.",
+      "Barcode primers now pass the same hairpin, self-dimer and off-target checks that design primers already had to pass.",
+      "A barcode primer failing those checks is replaced, and when none passes, the advisory names the measurement that failed.",
+      "Reopening a saved analysis keeps the deletion length and the restored sequence that earlier builds dropped on the way in."
     ],
-    "highlightsStamp": "0.16.67+a8a547ef",
+    "highlightsStamp": "0.16.69+60279e8e",
     "releases": {
+      "0.16.69": [
+        "Consensus sequences write a dash where a base is missing, so a deletion no longer looks like a position the run could not call.",
+        "Barcode primers now pass the same hairpin, self-dimer and off-target checks that design primers already had to pass.",
+        "A barcode primer failing those checks is replaced, and when none passes, the advisory names the measurement that failed.",
+        "Reopening a saved analysis keeps the deletion length and the restored sequence that earlier builds dropped on the way in."
+      ],
+      "0.16.68": [
+        "The Echo source plate returns to interleaved columns, because a 96-head cannot reach a contiguous half of the plate in one stamp.",
+        "A round is one column parity over all sixteen rows, 192 wells, and the two rounds tile a single source plate.",
+        "The picker offers two rounds instead of four, since the old row axis named the same two rounds with forward and reverse swapped.",
+        "A project saved before v0.16.61 loads unchanged, because the names it stored denote rounds this release has and no source well moves.",
+        "A project saved under the half layout loses its selection and has both rounds marked spent, because a half matches no column parity."
+      ],
       "0.16.67": [
         "The barcode step now states one number, how far the amplicon may reach past the CDS, instead of a gap and an overhang sharing a name.",
         "Defaults drop from 100 and 400 to 20 and 60, a range that holds the 16 bp overhang measured on the shipped ispS design.",
@@ -3141,6 +3153,8 @@
       ]
     },
     "releaseStamps": {
+      "0.16.69": "60279e8e",
+      "0.16.68": "33844e5d",
       "0.16.67": "a8a547ef",
       "0.16.66": "c8cb9c13",
       "0.16.65": "2d61386f",
@@ -3434,16 +3448,17 @@
         },
         "bomLabel": "Add UTF-8 BOM",
         "bomHint": "(Excel compatibility)",
-        "quadrantLabel": "Echo source plate half",
-        "quadrantNone": "Not specified (columns 1-12, no spent-half check)",
-        "quadrantColumns": "columns {{from}}-{{to}}",
-        "quadrantHelper": "A round fills one half: forward primers on rows A, C, E ... and each reverse primer one row below, in the same column.",
-        "usedQuadrantsLabel": "Halves already used on this plate",
-        "usedQuadrantsHelper": "Export is refused if the selected half is one of these.",
-        "legacyPlacementNotice": "This project was saved before v{{version}}, when a round was spread across the whole source plate instead of one half. The stored placement ({{values}}) covers both halves, so both are marked as used and no half is selected. On a fresh plate, clear the used-half checkboxes below before choosing a half.",
+        "quadrantLabel": "Echo source plate columns",
+        "quadrantNone": "Not specified (columns 1-12, no spent-round check)",
+        "quadrantColumnsOdd": "odd columns 1, 3 ... 23",
+        "quadrantColumnsEven": "even columns 2, 4 ... 24",
+        "quadrantHelper": "A 96-head stamp reaches every other column, so a round takes one of the two: forward primers on rows A, C, E ... and each reverse primer one row below, in the same column.",
+        "usedQuadrantsLabel": "Rounds already used on this plate",
+        "usedQuadrantsHelper": "Export is refused if the selected round is one of these.",
+        "legacyPlacementNotice": "This project was saved between v{{from}} and v{{to}}, when a round filled twelve consecutive columns instead of every other column. The stored placement ({{values}}) covers part of both rounds, so both are marked as used and neither is selected. On a fresh plate, clear the used-round checkboxes below before choosing one.",
         "placementBlocked": {
-          "noHalfSelected": "Halves are marked as used on this plate but no half is selected for this round. Choose A1 or A13, or clear the used-half checkboxes if this is a fresh plate.",
-          "halfAlreadyUsed": "The selected half is already marked as used on this plate. Dispensing into it would destroy the primers already there. Choose the other half, or clear its used-half checkbox."
+          "noQuadrantSelected": "Rounds are marked as used on this plate but none is selected for this run. Choose A1 or A2, or clear the used-round checkboxes if this is a fresh plate.",
+          "quadrantAlreadyUsed": "The selected round is already marked as used on this plate. Dispensing into it would destroy the primers already there. Choose the other round, or clear its used-round checkbox."
         },
         "plateNameFwd": "Forward primer plate name",
         "plateNameRev": "Reverse primer plate name",

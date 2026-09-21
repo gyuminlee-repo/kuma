@@ -2,9 +2,9 @@
 // Assumptions:
 // - Echo source plate is 384-well. Well code format "<RowLetter><2-digit col>" e.g. "A01".."P24".
 // - Direction is row parity: `isForwardRow(rowIndex)` (`echoQuadrant.ts`). The
-//   half a run occupies shifts columns only, so "A(idx 0)=fwd, B(idx 1)=rev"
-//   holds in either half and in the no-half fallback the mapper uses when
-//   nothing is selected (`plate_mapper.py`).
+//   round a run occupies shifts columns only, so "A(idx 0)=fwd, B(idx 1)=rev"
+//   holds in either column parity and in the no-quadrant fallback the mapper
+//   uses when nothing is selected (`plate_mapper.py`).
 // - Janus uses 96-well racks (A1..H12). Direction comes from the row's `role`
 //   field ("fwd"/"rev"), which the sidecar states outright; the rack fields hold
 //   plate names set by deck policy and are not read as a direction marker. A row
@@ -153,9 +153,9 @@ export function parseJanusName(name: string): {
 /**
  * Adapt Echo dry-run rows for the preview.
  *
- * `isFwd` is the 384 row parity, which the half does not change, so every
+ * `isFwd` is the 384 row parity, which the round does not change, so every
  * surface reading that field agrees with the grid without being told which
- * half the run took.
+ * column parity the run took.
  */
 export function adaptEchoRows(rows: EchoDryRunRow[]): EchoCell[] {
   return rows.map((r) => {
@@ -234,7 +234,7 @@ function ensureDest(
  * Build a `DestCell[]` from Echo dry-run rows, grouped by physical plate/well.
  *
  * Direction of an Echo row is its 384 source row parity ({@link
- * isForwardRow}): rows A, C, E, ... carry forward primers in either half.
+ * isForwardRow}): rows A, C, E, ... carry forward primers in either round.
  */
 export function adaptDestCellsEcho(rows: EchoDryRunRow[]): DestCell[] {
   const map = new Map<string, DestCell>();

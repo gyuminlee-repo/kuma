@@ -2599,14 +2599,26 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "A etapa de codigo de barras agora recebe um unico numero, o quanto o amplicon se estende alem do CDS, em vez de gap e overhang dividirem um nome.",
-      "Os padroes caem de 100 e 400 para 20 e 60, uma faixa que contem o overhang de 16 bp medido no design de ispS.",
-      "Um template linear curto e pesquisado ate a propria borda em vez de ser recusado por ser menor que o limite externo de busca.",
-      "As duas fitas buscam para fora, portanto o amplicon fica simetrico e os ultimos codons permanecem fora da margem de borda da referencia.",
-      "Um primer nao pode mais ficar dentro da regiao codificante, e um flank_max salvo passa a valer como overhang_max."
+      "As sequências consensus escrevem um traço onde falta uma base, de modo que uma deleção não parece mais uma posição que não pôde ser interpretada.",
+      "Os primers de barcode agora passam pelas mesmas verificações de hairpin, self-dimer e off-target que os primers de design.",
+      "Um primer de barcode que falha nessas verificações é substituído e, quando nenhum passa, o aviso indica a medida que falhou.",
+      "Reabrir uma análise salva preserva o comprimento da deleção e a sequência restaurada que versões anteriores perdiam."
     ],
-    "highlightsStamp": "0.16.67+a8a547ef",
+    "highlightsStamp": "0.16.69+60279e8e",
     "releases": {
+      "0.16.69": [
+        "As sequências consensus escrevem um traço onde falta uma base, de modo que uma deleção não parece mais uma posição que não pôde ser interpretada.",
+        "Os primers de barcode agora passam pelas mesmas verificações de hairpin, self-dimer e off-target que os primers de design.",
+        "Um primer de barcode que falha nessas verificações é substituído e, quando nenhum passa, o aviso indica a medida que falhou.",
+        "Reabrir uma análise salva preserva o comprimento da deleção e a sequência restaurada que versões anteriores perdiam."
+      ],
+      "0.16.68": [
+        "A placa fonte Echo volta a colunas intercaladas, porque um 96-head não alcança uma metade contígua da placa em uma única estampagem.",
+        "Uma rodada é uma paridade de colunas sobre as dezesseis linhas, 192 poços, e duas rodadas preenchem uma placa fonte.",
+        "O seletor oferece duas rodadas em vez de quatro, pois o antigo eixo de linhas nomeava as mesmas duas rodadas com forward e reverse trocados.",
+        "Um projeto salvo antes da v0.16.61 abre inalterado, porque os nomes salvos designam rodadas desta versão e nenhum poço fonte se move.",
+        "Um projeto salvo com o layout half perde a seleção e marca ambas as rodadas como usadas, porque uma metade não corresponde a nenhuma paridade de colunas."
+      ],
       "0.16.67": [
         "A etapa de codigo de barras agora recebe um unico numero, o quanto o amplicon se estende alem do CDS, em vez de gap e overhang dividirem um nome.",
         "Os padroes caem de 100 e 400 para 20 e 60, uma faixa que contem o overhang de 16 bp medido no design de ispS.",
@@ -3087,6 +3099,8 @@
       ]
     },
     "releaseStamps": {
+      "0.16.69": "60279e8e",
+      "0.16.68": "33844e5d",
       "0.16.67": "a8a547ef",
       "0.16.66": "c8cb9c13",
       "0.16.65": "2d61386f",
@@ -3380,16 +3394,17 @@
         },
         "bomLabel": "Adicionar BOM UTF-8",
         "bomHint": "(compatibilidade com Excel)",
-        "quadrantLabel": "Metade da placa de origem Echo",
-        "quadrantNone": "Não especificada (colunas 1-12, sem verificar metades usadas)",
-        "quadrantColumns": "colunas {{from}}-{{to}}",
-        "quadrantHelper": "Uma rodada preenche uma metade: os primers forward nas linhas A, C, E ... e cada reverse uma linha abaixo, na mesma coluna.",
-        "usedQuadrantsLabel": "Metades já usadas nesta placa",
-        "usedQuadrantsHelper": "A exportação é recusada se a metade selecionada for uma destas.",
-        "legacyPlacementNotice": "Este projeto foi salvo antes da v{{version}}, quando uma rodada se espalhava por toda a source plate em vez de uma metade. A disposição salva ({{values}}) cobre as duas metades, então ambas ficam marcadas como usadas e nenhuma metade fica selecionada. Em uma placa nova, desmarque abaixo as metades usadas antes de escolher uma metade.",
+        "quadrantLabel": "Colunas da placa fonte Echo",
+        "quadrantNone": "Não especificado (colunas 1-12, sem checagem de rodadas usadas)",
+        "quadrantColumnsOdd": "colunas ímpares 1, 3 ... 23",
+        "quadrantColumnsEven": "colunas pares 2, 4 ... 24",
+        "quadrantHelper": "Uma estampagem do 96-head alcança apenas uma coluna a cada duas, então uma rodada toma uma das duas. Os forward primers ficam nas linhas A, C, E ... e cada reverse primer uma linha abaixo, na mesma coluna.",
+        "usedQuadrantsLabel": "Rodadas já usadas nesta placa",
+        "usedQuadrantsHelper": "A exportação é recusada se a rodada selecionada for uma destas.",
+        "legacyPlacementNotice": "Este projeto foi salvo entre v{{from}} e v{{to}}, quando uma rodada preenchia doze colunas consecutivas em vez de uma a cada duas. O layout salvo ({{values}}) cobre parte de ambas as rodadas, então as duas ficam marcadas como usadas e nenhuma é selecionada. Em uma placa nova, desmarque abaixo as caixas de uso antes de escolher uma.",
         "placementBlocked": {
-          "noHalfSelected": "Há metades marcadas como usadas nesta placa, mas nenhuma metade foi selecionada para esta rodada. Escolha A1 ou A13, ou desmarque as metades usadas se a placa for nova.",
-          "halfAlreadyUsed": "A metade selecionada já está marcada como usada nesta placa. Dispensar nela destruiria os primers que já estão lá. Escolha a outra metade ou desmarque a caixa dela."
+          "noQuadrantSelected": "Há rodadas marcadas como usadas nesta placa, mas nenhuma foi selecionada para esta execução. Escolha A1 ou A2, ou desmarque as caixas se a placa for nova.",
+          "quadrantAlreadyUsed": "A rodada selecionada já está marcada como usada nesta placa. Dispensar ali destruiria os primers já presentes. Escolha a outra rodada, ou desmarque sua caixa de uso."
         },
         "plateNameFwd": "Nome da placa de primers forward",
         "plateNameRev": "Nome da placa de primers reverse",
@@ -3680,14 +3695,14 @@
     "errorTitle": "Falha na prévia",
     "echoSourcePlateLabel": "Placa de origem Echo (384 poços)",
     "destPlateLabel": "Placa de destino (96 poços)",
-    "quadrantBatch": "Esta rodada preenche a metade {{half}} da placa, colunas {{from}}-{{to}}. Os primers forward ficam nas linhas A, C, E ... e cada reverse uma linha abaixo.",
-    "quadrantProgress": "Após esta rodada, {{filled}} de {{total}} metades desta placa estão ocupadas.",
-    "quadrantHalfNote": "As colunas {{from}}-{{to}} são a outra metade, {{others}}, e ficam livres para a próxima rodada.",
+    "quadrantBatch": "Esta execução preenche a rodada {{round}}: uma coluna a cada duas, a partir da coluna {{first}}. Os forward primers ficam nas linhas A, C, E ... e cada reverse primer uma linha abaixo.",
+    "quadrantProgress": "Após esta execução, {{filled}} de {{total}} rodadas desta placa estarão ocupadas.",
+    "quadrantInterleaveNote": "Uma estampagem do 96-head alcança apenas uma coluna a cada duas. As colunas intermediárias pertencem a {{others}} e ficam livres para a próxima rodada.",
     "quadrantUsedNote": "Já ocupadas nesta placa: {{list}}",
-    "quadrantNoneNote": "Nenhuma metade selecionada. A execução continua nas colunas 1-12, os mesmos poços da metade A1, e apenas a verificação das metades já usadas é ignorada.",
+    "quadrantNoneNote": "Nenhuma rodada selecionada. A execução continua caindo nas colunas 1-12 sem pular nenhuma, que é o layout anterior à escolha de rodada, e apenas a verificação contra rodadas já usadas é ignorada.",
     "quadrantLegendFree": "Borda contínua: poço usado por esta rodada",
     "quadrantLegendReserved": "Borda tracejada: reservado para {{others}}",
-    "echoReservedWellTitle": "{{well}}, reservado à metade {{quadrants}}"
+    "echoReservedWellTitle": "{{well}}, reservado para a rodada {{quadrants}}"
   },
   "errors": {
     "sequence": {

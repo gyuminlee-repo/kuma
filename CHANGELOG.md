@@ -1,5 +1,46 @@
 # Changelog
 
+## v0.16.69 (A missing base and an uncalled base stop sharing a letter)
+
+A stored consensus used one letter for two different facts. An N meant the run could not call the position, and an N also meant the molecule has no base there. The two are opposite kinds of statement, one an absence of knowledge and the other a confident observation, and no reader of the output could tell them apart. Deletion positions now carry a dash. An N means a no-call and nothing else.
+
+The rule that writes the dash is the majority rule the reported deletion positions already use, not the plurality that decides a no-call. A deletion that leads the vote without clearing half the spanning depth is a genuine no-call and keeps its N, which matters because real runs put passing wells in that band. Because the two rules now name one set, the stored string and the reported coordinates cannot disagree. No counter moves: the no-call fraction and its four-way split count exactly the positions they counted before, and the gate that subtracts confident deletions still sees them. Across 288 wells of a real run, no verdict, amino-acid change, identity or fraction changed.
+
+Barcode primers are held to the checks KURO applies to design primers. Until now a barcode primer passed on melting temperature and a 3-prime GC clamp alone, while hairpin, self-dimer and off-target were applied to design primers only. The question of whether both paths share a standard was answered as though they did, and they did not. A candidate binding region now has to clear hairpin and self-dimer thresholds and carry no off-target site, at the same thresholds and the same fixed design concentrations KURO uses, so changing the enzyme cannot change which physical primer is chosen. On the bundled sample the previous reverse primer folded at 64.9 degrees, and it no longer ships.
+
+The full ordered oligo, seed plus binding region, is checked separately and reported as an advisory. Rejecting a binding region because a seed folds against it has no defined rule, since the seed is a fixed input the operator already ordered, so that finding is stated rather than acted on. When nothing clears the checks the previous fallback still runs, and the advisory now names the failing measurement instead of letting an unchecked primer leave without comment.
+
+Saving an analysis and opening it again no longer drops what the run measured. The serializer copied fields by hand, so a field added to the model did not reach the payload until somebody remembered to add it, and four had been left behind, among them the consensus deletion length and the length-restored sequence. A test now builds every field from the declared type and fails by name when one does not survive the round trip, so the next omission is caught when it is made rather than months later. Fields left out on purpose have to be named with a reason.
+
+### Highlights
+
+- Consensus sequences write a dash where a base is missing, so a deletion no longer looks like a position the run could not call.
+- Barcode primers now pass the same hairpin, self-dimer and off-target checks that design primers already had to pass.
+- A barcode primer failing those checks is replaced, and when none passes, the advisory names the measurement that failed.
+- Reopening a saved analysis keeps the deletion length and the restored sequence that earlier builds dropped on the way in.
+
+## v0.16.68 (One stamp reaches every other column)
+
+The Echo 384 source plate is built by a 96-head Zephyr. The head sits on a 9 mm pitch and the plate is on 4.5 mm, so one stamp reaches every other column and every other row. v0.16.61 replaced that interleaved geometry with two contiguous halves, columns 1 to 12 and columns 13 to 24, on the strength of a real worklist whose occupied columns run 1 to 12 with no gap. The operator confirmed on 2026-09-20 that the instrument itself cannot reach a contiguous half, and that statement governs the geometry.
+
+A round is therefore one column parity. A1 is the odd columns 1, 3 up to 23 and A2 is the even columns 2, 4 up to 24, each spanning all sixteen rows for 192 wells, 96 forward primers on rows A, C, E and so on with 96 reverse primers on the rows between them. The two rounds tile one plate, which is the two-round primer set per source plate the campaign runs on.
+
+The picker offers two rounds and not the four of v0.14.0. That version listed A1, A2, B1 and B2 and then derived the reverse placement from the forward one, so A1 and B1 named the same round with the axes swapped, as did A2 and B2. The row axis was a duplicate and the helper that paired them existed only to undo it.
+
+Everything else about plate placement is unchanged. The saved app version still dates a stored selection, the exhaustion check still covers the path where no round is selected, the layout sheet of the exported workbook still honours the selection, and the plate view still shades the wells a run does not touch.
+
+A stored selection is read by its saved version. A project written before v0.16.61 used this same geometry, so B1 and B2 fold onto A1 and A2 without moving a single source well and the project loads as it was. A project written under the half layout is refused instead: a block of twelve consecutive columns holds six odd columns and six even ones, so it matches no parity and sits on 48 of the 192 wells of each round. Such a project loses its selection and has both rounds marked spent, and the operator states the plate again.
+
+Why the worklist holds contiguous columns is not established. It may record a different dispensing method or a different instrument. The geometry module carries that open question along with the two prior flips, so changing it a third time needs more than another reading of that file.
+
+### Highlights
+
+- The Echo source plate returns to interleaved columns, because a 96-head cannot reach a contiguous half of the plate in one stamp.
+- A round is one column parity over all sixteen rows, 192 wells, and the two rounds tile a single source plate.
+- The picker offers two rounds instead of four, since the old row axis named the same two rounds with forward and reverse swapped.
+- A project saved before v0.16.61 loads unchanged, because the names it stored denote rounds this release has and no source well moves.
+- A project saved under the half layout loses its selection and has both rounds marked spent, because a half matches no column parity.
+
 ## v0.16.67 (The window is what reaches past the gene)
 
 The MAME barcode step asked for two numbers that measured different things under one name. flank_min was a gap, the empty distance between the primer end nearest the gene and the gene boundary. flank_max was an overhang, how far the outer end of the primer sat from that same boundary. Nothing said so, and the help text explained the pair as though both were the second kind, which is why it claimed a template needed at least 400 bp on each side.

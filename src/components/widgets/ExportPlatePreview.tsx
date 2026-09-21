@@ -22,9 +22,8 @@ import { useAppStore } from "@/store/appStore";
 import { getSortedMutations, reorderMappings } from "@/lib/plate-utils";
 import {
   echoPlacementIssue,
-  otherHalves,
+  otherQuadrants,
   quadrantFirstColumn,
-  quadrantLastColumn,
   quadrantsFilledAfterRun,
   ECHO_QUADRANTS,
 } from "@/lib/echoQuadrant";
@@ -39,17 +38,18 @@ import type { EchoQuadrant } from "@/types/models";
 type View = "echo" | "janus";
 
 /**
- * Caption that makes the Echo grid explain itself: which half of the plate
- * this run fills, how much of the plate that leaves, and why the other block
- * of columns is empty.
+ * Caption that makes the Echo grid explain itself: which column parity this
+ * run fills, how much of the plate that leaves, and why the columns in
+ * between are empty.
  *
- * A round occupies a contiguous block of twelve columns, forward primers on
- * the even rows and their reverses one row below
+ * The grid reads as "primers placed every other column" and the question it
+ * draws is why they are not one contiguous block. They cannot be: a 96-head
+ * on a 9 mm pitch over a 4.5 mm plate reaches every other column in one stamp
  * (kuma_core/kuro/plate_quadrant.py). The picker in ExportFormatSelector says
  * this at the point of choosing; this says it at the point of looking, which
  * is where the layout is actually seen.
  *
- * A run spends one half, so progress is stated as halves filled out of two
+ * A run spends one round, so progress is stated as rounds filled out of two
  * rather than as a batch ordinal the mapper does not have.
  */
 function EchoQuadrantNote({
@@ -69,15 +69,13 @@ function EchoQuadrantNote({
     );
   }
 
-  const otherList = otherHalves(quadrant);
-  const others = otherList.join(", ");
+  const others = otherQuadrants(quadrant).join(", ");
   return (
     <div data-testid="echo-quadrant-note" className="space-y-1">
       <p className="text-sm font-medium text-foreground">
         {t("exportPreview.quadrantBatch", {
-          half: quadrant,
-          from: quadrantFirstColumn(quadrant),
-          to: quadrantLastColumn(quadrant),
+          round: quadrant,
+          first: quadrantFirstColumn(quadrant),
         })}
       </p>
       <p data-testid="echo-quadrant-progress" className="text-caption text-muted-foreground">
@@ -87,11 +85,7 @@ function EchoQuadrantNote({
         })}
       </p>
       <p className="text-caption text-muted-foreground">
-        {t("exportPreview.quadrantHalfNote", {
-          others,
-          from: otherList.length > 0 ? quadrantFirstColumn(otherList[0]) : 0,
-          to: otherList.length > 0 ? quadrantLastColumn(otherList[0]) : 0,
-        })}
+        {t("exportPreview.quadrantInterleaveNote", { others })}
       </p>
       {usedQuadrants.length > 0 ? (
         <p data-testid="echo-quadrant-used" className="text-caption text-muted-foreground">
@@ -123,9 +117,9 @@ function EchoQuadrantNote({
  * 384-well Echo plate or 96-well JANUS racks under a Tabs switcher. Echo
  * and JANUS are mutually exclusive views (never rendered simultaneously).
  *
- * Source-plate placement is chosen by the half picker rendered beneath this
- * preview: a round fills one contiguous block of twelve columns, which is the
- * layout the bench worklists actually ran (kuma_core/kuro/plate_quadrant.py).
+ * Source-plate placement is chosen by the round picker rendered beneath this
+ * preview: a round fills one column parity, which is what a 96-head stamp can
+ * reach (kuma_core/kuro/plate_quadrant.py).
  * A row-band picker used to sit here as well; it fed ``mapping_range``,
  * which the mapper wraps modulo the band width, so every band it could
  * express other than the full plate stacked different mutants onto one well
@@ -203,8 +197,8 @@ export function ExportPlatePreview() {
       ]);
       const echoRows = e?.rows ?? [];
       const janusRows = j?.rows ?? [];
-      // Direction is 384 row parity in either half, so the adapters do not
-      // need to be told which half this run took.
+      // Direction is 384 row parity in either round, so the adapters do not
+      // need to be told which round this run took.
       setEcho(adaptEchoRows(echoRows));
       setEchoDest(adaptDestCellsEcho(echoRows));
       setJanus(adaptJanusRows(janusRows));

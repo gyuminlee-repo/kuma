@@ -474,7 +474,7 @@ class TestAdditiveOnly:
         )
         expected_seq = (
             _REF[:_DEL_START]
-            + "N" * _DEL_LEN
+            + "-" * _DEL_LEN
             + _mutated(_REF, {_DESIGNED_POS: _alt(_REF[_DESIGNED_POS])})[
                 _DEL_START + _DEL_LEN:
             ]
@@ -500,4 +500,4 @@ class TestAdditiveOnly:
         assert call.n_mixed_positions > 0
         assert call.n_variant_positions > 0
         assert call.consensus_net_indel_bp < 0
-        assert "N" in call.consensus_seq
+        assert "-" in call.consensus_seq

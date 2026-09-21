@@ -2599,14 +2599,26 @@
     "descriptionRange": "自 v{{from}} 以來每次更新的主要變更。",
     "gotItBtn": "知道了",
     "highlights": [
-      "條碼步驟現在只接收擴增子伸出 CDS 的距離這一個數值，不再讓 gap 與 overhang 共用一個名稱。",
-      "預設值從 100 與 400 降至 20 與 60，該範圍可容納在 ispS 設計中實測到的 16 bp overhang。",
-      "短的線性模板不再因短於外側搜尋上限而被拒絕，而是搜尋到模板本身的邊緣。",
-      "兩條股都向外搜尋，因此擴增子是對稱的，最後幾個密碼子位於 reference edge margin 之外。",
-      "引子不會再落在編碼區內，已儲存的 flank_max 會延續為 overhang_max。"
+      "consensus 序列在缺失鹼基的位置寫入短橫線，缺失不再看起來像無法判讀的位置。",
+      "barcode 引子現在必須通過與設計引子相同的 hairpin、self-dimer 與 off-target 檢查。",
+      "未通過檢查的 barcode 引子會被替換；若沒有候選通過，提示會指出未達標的測量值。",
+      "重新開啟已儲存的分析時，缺失長度與復原序列會保留，舊版本在載入時會遺失這些值。"
     ],
-    "highlightsStamp": "0.16.67+a8a547ef",
+    "highlightsStamp": "0.16.69+60279e8e",
     "releases": {
+      "0.16.69": [
+        "consensus 序列在缺失鹼基的位置寫入短橫線，缺失不再看起來像無法判讀的位置。",
+        "barcode 引子現在必須通過與設計引子相同的 hairpin、self-dimer 與 off-target 檢查。",
+        "未通過檢查的 barcode 引子會被替換；若沒有候選通過，提示會指出未達標的測量值。",
+        "重新開啟已儲存的分析時，缺失長度與復原序列會保留，舊版本在載入時會遺失這些值。"
+      ],
+      "0.16.68": [
+        "Echo 來源盤恢復為交錯欄配置，因為 96-head 無法一次壓印涵蓋盤上連續的一半。",
+        "一輪是橫跨全部 16 列的一個欄奇偶性，共 192 孔，兩輪正好鋪滿一塊來源盤。",
+        "選項從四個減為兩個，舊的列軸只是把同樣的兩輪按 forward 與 reverse 互換命名。",
+        "v0.16.61 之前儲存的專案照常開啟，其儲存的名稱指向本次發布的輪次，來源孔不會移動。",
+        "以 half 配置儲存的專案會失去選擇並將兩輪都標記為已用，因為 half 與任何欄奇偶性都不相符。"
+      ],
       "0.16.67": [
         "條碼步驟現在只接收擴增子伸出 CDS 的距離這一個數值，不再讓 gap 與 overhang 共用一個名稱。",
         "預設值從 100 與 400 降至 20 與 60，該範圍可容納在 ispS 設計中實測到的 16 bp overhang。",
@@ -3087,6 +3099,8 @@
       ]
     },
     "releaseStamps": {
+      "0.16.69": "60279e8e",
+      "0.16.68": "33844e5d",
       "0.16.67": "a8a547ef",
       "0.16.66": "c8cb9c13",
       "0.16.65": "2d61386f",
@@ -3380,16 +3394,17 @@
         },
         "bomLabel": "新增 UTF-8 BOM",
         "bomHint": "(Excel 相容)",
-        "quadrantLabel": "Echo 來源盤半區",
-        "quadrantNone": "未指定(第 1-12 欄，不檢查已用半區)",
-        "quadrantColumns": "第 {{from}}-{{to}} 列",
-        "quadrantHelper": "一輪填充一個半區：forward 引子在 A、C、E ... 行，reverse 引子在同一列的下一行。",
-        "usedQuadrantsLabel": "此盤上已使用的半區",
-        "usedQuadrantsHelper": "若所選半區是其中之一，匯出將被拒絕。",
-        "legacyPlacementNotice": "此專案儲存於 v{{version}} 之前。當時一個 round 分布在整塊 source plate 上，而非其中一半。已儲存的排佈（{{values}}）涵蓋兩個半區，因此兩者都標記為已使用，且未選取任何半區。若使用新盤，請先清除下方的已使用勾選，再選擇半區。",
+        "quadrantLabel": "Echo 來源盤欄",
+        "quadrantNone": "未指定（1-12 欄，不檢查已用 round）",
+        "quadrantColumnsOdd": "奇數欄 1、3 ... 23",
+        "quadrantColumnsEven": "偶數欄 2、4 ... 24",
+        "quadrantHelper": "96-head 只能觸及每隔一欄的孔位，因此一輪使用其中之一。forward primer 位於 A、C、E ... 列，reverse primer 在同一欄的下一列。",
+        "usedQuadrantsLabel": "此盤上已使用的 round",
+        "usedQuadrantsHelper": "若所選 round 為其中之一，將拒絕 export。",
+        "legacyPlacementNotice": "此專案儲存於 v{{from}} 與 v{{to}} 之間。當時一輪填充的是連續的 12 欄，而非每隔一欄。儲存的配置（{{values}}）與兩個 round 各有部分重疊，因此兩者都標記為已使用且均未選取。若使用新盤，請先清除下方的已使用勾選再進行選擇。",
         "placementBlocked": {
-          "noHalfSelected": "此盤上已有標記為已使用的半區，但本輪尚未選取半區。請選擇 A1 或 A13；若為新盤，請清除已使用勾選。",
-          "halfAlreadyUsed": "所選半區在此盤上已標記為已使用。在其上分注會破壞既有的 primer。請選擇另一半區，或清除該半區的已使用勾選。"
+          "noQuadrantSelected": "此盤上有標記為已使用的 round，但本次執行未選擇 round。請選擇 A1 或 A2；若為新盤，請清除已使用勾選。",
+          "quadrantAlreadyUsed": "所選 round 在此盤上已標記為已使用。向其分液會破壞其中已有的 primer。請選擇另一個 round，或清除相應的已使用勾選。"
         },
         "plateNameFwd": "Forward 引子盤名稱",
         "plateNameRev": "Reverse 引子盤名稱",
@@ -3680,14 +3695,14 @@
     "errorTitle": "預覽失敗",
     "echoSourcePlateLabel": "Echo 來源盤 (384 孔)",
     "destPlateLabel": "目的地盤 (96 孔)",
-    "quadrantBatch": "本次分配填充盤的 {{half}} 半區，即第 {{from}}-{{to}} 列。Forward 引子位於 A、C、E ... 行，reverse 引子各在下一行。",
-    "quadrantProgress": "本次分配完成後，本盤 {{total}} 個半區中已使用 {{filled}} 個。",
-    "quadrantHalfNote": "第 {{from}}-{{to}} 列屬於另一半區 {{others}}，留給下一輪。",
+    "quadrantBatch": "本次執行填充 round {{round}}，即從第 {{first}} 欄開始每隔一欄的孔位。forward primer 位於 A、C、E ... 列，reverse primer 各在其下一列。",
+    "quadrantProgress": "本次執行完成後，此盤的 {{total}} 個 round 中將佔用 {{filled}} 個。",
+    "quadrantInterleaveNote": "96-head 一次只能觸及每隔一欄的孔位，中間的欄屬於 {{others}}，為下一輪保留空置。",
     "quadrantUsedNote": "本盤已使用的半區：{{list}}",
-    "quadrantNoneNote": "未選擇半區。執行仍落在第 1-12 欄，與半區 A1 的孔位相同，只是略過與已用半區的核對。",
+    "quadrantNoneNote": "未選擇 round。執行仍將不跳欄地落在 1-12 欄，這是可選擇 round 之前的配置，僅略過與已用 round 的比對。",
     "quadrantLegendFree": "實線邊框：本次分配使用的孔",
     "quadrantLegendReserved": "虛線邊框：為 {{others}} 保留的孔",
-    "echoReservedWellTitle": "{{well}}，屬於半區 {{quadrants}}"
+    "echoReservedWellTitle": "{{well}}，為 round {{quadrants}} 保留"
   },
   "errors": {
     "sequence": {

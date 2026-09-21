@@ -23,7 +23,7 @@ def test_start_codon_combo_is_excluded(tmp_path: Path, variant: str) -> None:
     assert result["start_codon_removed"] == 1
 
 
-@pytest.mark.parametrize("quadrant", [None, "A1", "A13"])
+@pytest.mark.parametrize("quadrant", [None, "A1", "A2"])
 @pytest.mark.parametrize("mapping_range", [None, ("C", "F")])
 def test_echo_layout_matches_transfer_coordinates(
     tmp_path: Path, quadrant: str | None, mapping_range: tuple[str, str] | None,

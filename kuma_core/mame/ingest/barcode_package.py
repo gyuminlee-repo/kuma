@@ -30,6 +30,7 @@ from __future__ import annotations
 import datetime
 import json
 import warnings
+from typing import TypedDict
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -96,6 +97,217 @@ def _reverse_complement(seq: str) -> str:
     """Return the reverse complement of a DNA sequence (case-preserving)."""
     table = str.maketrans("ACGTacgt", "TGCAtgca")
     return seq.translate(table)[::-1]
+
+
+# ---------------------------------------------------------------------------
+# Primer QC (hairpin / homodimer / off-target)
+# ---------------------------------------------------------------------------
+#
+# A barcode primer is ordered, synthesised and put into a PCR exactly like a
+# KURO SDM primer, so it is held to the same three structural checks KURO
+# applies (``kuma_core/kuro/sdm_engine.py`` ``_check_secondary_structure`` and
+# ``check_offtarget``). Until v0.16 the barcode path checked only the Tm window
+# and the 3' GC clamp.
+#
+# Thresholds are internal constants rather than parameters. KURO exposes none
+# of them either (every call site uses the defaults at ``sdm_engine.py:235``,
+# ``:726`` and ``:728``), and a knob nothing sets is a knob that only has to be
+# threaded through the RPC models, the TypeScript types and ten locale files.
+_QC_STRUCTURE_TM_MAX = 40.0   # sdm_engine._check_secondary_structure warn_tm
+_QC_OFFTARGET_TM = 45.0       # sdm_engine.check_offtarget tm_threshold defaults
+
+# primer3's thermodynamic alignment refuses a pair where both sequences exceed
+# 60 nt ("At least one sequence must be equal to or shorter than 60bp"). A full
+# barcode oligo is seed (<= 30) + flanking (<= 35), so 65 nt is reachable and
+# the call would raise inside package generation on otherwise valid input.
+_PRIMER3_THAL_MAX_LEN = 60
+
+# Fixed design-scale concentrations for hairpin/homodimer, deliberately NOT the
+# polymerase profile this module uses for Tm. Same reasoning as
+# ``sdm_engine.py:130-150`` and ``:238-243``: these numbers decide which
+# candidate is *selected*, so taking them from the enzyme buffer would make the
+# choice of enzyme change which physical oligo gets ordered. The Tm window here
+# stays profile-dependent because that is the module's existing, deliberate
+# behaviour; the asymmetry is intentional. primer3.calc_hairpin/calc_homodimer
+# accept only these four values, no tm_method/salt_corrections_method.
+class _ThermoConcs(TypedDict):
+    """The four concentrations primer3 thermodynamics accepts.
+
+    Declared as a TypedDict rather than a plain dict so the ``**`` expansion
+    below names exactly these four parameters. A ``dict[str, float]`` widens to
+    every keyword the primer3 signatures take, including the ``int`` and
+    ``bool`` ones, and the type checker rejects the call.
+    """
+
+    mv_conc: float
+    dv_conc: float
+    dntp_conc: float
+    dna_conc: float
+
+
+_QC_CONCS: _ThermoConcs = {
+    "mv_conc": 50.0,
+    "dv_conc": 0.0,
+    "dntp_conc": 0.0,
+    "dna_conc": 250.0,
+}
+
+
+def _structure_tms(seq: str) -> tuple[float, float] | None:
+    """Return ``(hairpin_tm, homodimer_tm)`` or None when primer3 cannot check.
+
+    Rounded to one decimal and reported as 0.0 when no structure is found, the
+    same convention as ``sdm_engine._check_secondary_structure``. None means the
+    oligo is longer than ``_PRIMER3_THAL_MAX_LEN``, which is "unknown" rather
+    than "clean" and callers must say so instead of treating it as a pass.
+    """
+    if len(seq) > _PRIMER3_THAL_MAX_LEN:
+        return None
+    upper = seq.upper()
+    hairpin = primer3.calc_hairpin(upper, **_QC_CONCS)
+    homodimer = primer3.calc_homodimer(upper, **_QC_CONCS)
+    return (
+        round(hairpin.tm if hairpin.structure_found else 0.0, 1),
+        round(homodimer.tm if homodimer.structure_found else 0.0, 1),
+    )
+
+
+def _structure_failures(seq: str) -> list[str]:
+    """Human-readable hairpin/homodimer failures for ``seq`` (empty = clean)."""
+    tms = _structure_tms(seq)
+    if tms is None:
+        return []
+    hairpin_tm, homodimer_tm = tms
+    failures: list[str] = []
+    if hairpin_tm > _QC_STRUCTURE_TM_MAX:
+        failures.append(
+            f"hairpin Tm={hairpin_tm:.1f} C exceeds {_QC_STRUCTURE_TM_MAX:.1f} C"
+        )
+    if homodimer_tm > _QC_STRUCTURE_TM_MAX:
+        failures.append(
+            f"homodimer Tm={homodimer_tm:.1f} C exceeds {_QC_STRUCTURE_TM_MAX:.1f} C"
+        )
+    return failures
+
+
+def _offtarget_frame(
+    template: str, start: int, length: int, seq_len: int
+) -> tuple[str, int, int]:
+    """Present the candidate's own binding site as a contiguous span.
+
+    ``check_offtarget`` reads the template as a flat string and excludes hits
+    that overlap ``[intended_start, intended_end)``. Under circular topology a
+    candidate may wrap the origin, where no such half-open interval exists and
+    the candidate's own two fragments would be reported as off-target hits of
+    itself. Rotating the template so the candidate starts at 0 restores a
+    contiguous intended span without changing which sites exist.
+    """
+    if start >= 0 and start + length <= seq_len:
+        return template, start, start + length
+    rotation = start % seq_len
+    return template[rotation:] + template[:rotation], 0, length
+
+
+def _perfect_repeat_failure(
+    primer_seq: str, template: str, intended_start: int, intended_end: int
+) -> list[str]:
+    """Fast path for a full-length perfect repeat of the primer.
+
+    ``check_offtarget`` rule 1 already catches these: a site where the whole
+    primer matches is anchored at its 3' end, extends to full length and is
+    scored with the perfect-complement Tm. That rule is reproduced here with one
+    string search and one Tm call, because finding it this way costs microseconds
+    while the full scan costs ~0.12 s on a repetitive template, and a repetitive
+    template is exactly where every candidate has such a site. The threshold and
+    the Tm scale are the same, so the verdict is the same; a repeat whose Tm is
+    below the threshold falls through to the full scan rather than being
+    accepted here.
+    """
+    upper = primer_seq.upper()
+    template_upper = template.upper()
+    rc_upper = _reverse_complement(upper)
+    # The intended site is excluded on BOTH searches. A forward primer is
+    # identical to its own site and a reverse primer is the reverse complement
+    # of it, so whichever of the two searches is skipped is the one that finds
+    # the candidate's own binding site and rejects every primer on that strand.
+    sites: list[tuple[str, int]] = []
+    for strand, needle in (("sense", upper), ("antisense", rc_upper)):
+        start = 0
+        while (pos := template_upper.find(needle, start)) >= 0:
+            start = pos + 1
+            if pos + len(needle) <= intended_start or pos >= intended_end:
+                sites.append((strand, pos))
+    if not sites:
+        return []
+    tm = primer3.calc_tm(
+        upper,
+        **_QC_CONCS,
+        tm_method="santalucia",
+        salt_corrections_method="santalucia",
+    )
+    if tm < _QC_OFFTARGET_TM:
+        return []
+    strand, pos = sites[0]
+    return [
+        f"{len(sites)} full-length off-target repeat(s) of the primer on the "
+        f"template, Tm={tm:.1f} C exceeds {_QC_OFFTARGET_TM:.1f} C "
+        f"(first at position {pos}, {strand} strand)"
+    ]
+
+
+def _offtarget_failures(
+    primer_seq: str, template: str, intended_start: int, intended_end: int
+) -> list[str]:
+    """Off-target failures for ``primer_seq`` against ``template`` (empty = clean)."""
+    from kuma_core.kuro.sdm_engine import check_offtarget  # local: see module note
+
+    hits = check_offtarget(
+        primer_seq,
+        template,
+        intended_start,
+        intended_end,
+        tm_threshold=_QC_OFFTARGET_TM,
+        mismatch_tm_threshold=_QC_OFFTARGET_TM,
+        # overlap_arm_len stays 0: that argument is for a Gibson homology arm
+        # and a barcode seed is not one.
+    )
+    if not hits:
+        return []
+    worst = max(hits, key=lambda hit: hit.tm)
+    return [
+        f"{len(hits)} off-target site(s) above {_QC_OFFTARGET_TM:.1f} C, worst "
+        f"Tm={worst.tm:.1f} C at template position {worst.position} "
+        f"({worst.strand} strand)"
+    ]
+
+
+def _binding_qc_failures(
+    primer_seq: str,
+    template: str,
+    start: int,
+    length: int,
+    seq_len: int,
+) -> list[str]:
+    """All QC failures for one binding-site candidate (empty = accepted).
+
+    Structure first and off-target only on a structurally clean candidate: the
+    verdict is the same either way (any non-empty list rejects) and the
+    off-target scan is two orders of magnitude more expensive, measured at
+    ~0.12 s against a repetitive 6.5 kb template versus ~0.3 ms for the pair of
+    thermodynamic calls.
+    """
+    structure = _structure_failures(primer_seq)
+    if structure:
+        return structure
+    frame, intended_start, intended_end = _offtarget_frame(
+        template, start, length, seq_len
+    )
+    repeat = _perfect_repeat_failure(
+        primer_seq, frame, intended_start, intended_end
+    )
+    if repeat:
+        return repeat
+    return _offtarget_failures(primer_seq, frame, intended_start, intended_end)
 
 
 # ---------------------------------------------------------------------------
@@ -384,10 +596,24 @@ def design_flanking_primers(
     Search order
     ------------
     Inner loop: binding length ascending from ``binding_min_len`` to
-    ``binding_max_len``. First candidate satisfying both the Tm window and the
-    GC-clamp (if requested) is returned immediately. If no candidate meets the
-    criteria, the candidate whose Tm is closest to ``(tm_min + tm_max) / 2`` is
-    returned instead and a warning is appended.
+    ``binding_max_len``. First candidate satisfying the Tm window, the GC-clamp
+    (if requested) and the structural QC below is returned immediately. If no
+    candidate meets the criteria, the candidate whose Tm is closest to
+    ``(tm_min + tm_max) / 2`` is returned instead and a warning is appended;
+    that warning states that the selected primer did not pass QC when it did
+    not, so a fallback pick is never silently presented as a clean one.
+
+    Structural QC
+    -------------
+    On top of Tm and the GC clamp every candidate must clear hairpin,
+    homodimer and off-target checks, the same three KURO applies to an SDM
+    primer. Thresholds are the KURO defaults and are internal constants
+    (``_QC_STRUCTURE_TM_MAX``, ``_QC_OFFTARGET_TM``); hairpin and homodimer use
+    the fixed design-scale concentrations rather than ``profile``, for the
+    reason given at ``_QC_CONCS``. Off-target is searched against
+    ``cds_sequence`` itself, which is the whole template this module was given,
+    so a plasmid input is searched like a KURO template and a bare-CDS input
+    has the same narrow search space it has in KURO.
 
     The outer loop walks **outside-in on both strands**, from the largest
     reachable overhang towards ``overhang_min``. Forward iterates ``pos``
@@ -574,8 +800,12 @@ def design_flanking_primers(
     tm_target = (tm_min + tm_max) / 2.0
 
     # --- Forward primer -------------------------------------------------------
-    fwd_candidates: list[tuple[float, str]] = []  # (abs(Tm - target), seq)
+    # (abs(Tm - target), seq, binding start, binding length). The coordinates
+    # ride along because a fallback pick still has to be QC-reported, and that
+    # needs the site it came from.
+    fwd_candidates: list[tuple[float, str, int, int]] = []
     fwd_chosen: str | None = None
+    fwd_qc_rejected = 0
 
     for pos in range(fwd_pos_first, fwd_pos_last + 1):
         for length in range(binding_min_len, min(binding_max_len, gene_start - pos) + 1):
@@ -587,8 +817,15 @@ def design_flanking_primers(
                     break  # hit end of sequence
             tm = _calc_tm(candidate, profile)
             gc_ok = (not require_gc_clamp) or (candidate[-1].upper() in "GC")
-            fwd_candidates.append((abs(tm - tm_target), candidate))
+            fwd_candidates.append((abs(tm - tm_target), candidate, pos, length))
             if tm_min <= tm <= tm_max and gc_ok:
+                # QC runs only on Tm/GC survivors: it is the expensive check and
+                # a candidate outside the Tm window is rejected regardless.
+                if _binding_qc_failures(
+                    candidate, cds_sequence, pos, length, seq_len
+                ):
+                    fwd_qc_rejected += 1
+                    continue
                 fwd_chosen = candidate
                 break
         if fwd_chosen is not None:
@@ -602,13 +839,23 @@ def design_flanking_primers(
         )
         if fallback_candidates:
             fallback_candidates.sort(key=lambda x: x[0])
-            fwd_chosen = fallback_candidates[0][1]
+            _, fwd_chosen, fb_pos, fb_len = fallback_candidates[0]
             best_tm = _calc_tm(fwd_chosen, profile)
             collected_warnings.append(
-                f"No forward primer candidate met Tm [{tm_min}, {tm_max}] "
-                f"(require_gc_clamp={require_gc_clamp}). "
+                f"No forward primer candidate passed Tm [{tm_min}, {tm_max}] "
+                f"(require_gc_clamp={require_gc_clamp}) together with the "
+                f"hairpin/homodimer/off-target checks; {fwd_qc_rejected} "
+                f"candidate(s) met Tm and GC but failed QC. "
                 f"Using closest candidate (Tm={best_tm:.1f} C): {fwd_chosen.upper()}"
             )
+            fb_failures = _binding_qc_failures(
+                fwd_chosen, cds_sequence, fb_pos, fb_len, seq_len
+            )
+            if fb_failures:
+                collected_warnings.append(
+                    "Selected forward primer did not pass QC: "
+                    + "; ".join(fb_failures)
+                )
         elif require_gc_clamp:
             raise ValueError(
                 "Forward primer search produced no candidate satisfying the required "
@@ -622,8 +869,11 @@ def design_flanking_primers(
             )
 
     # --- Reverse primer -------------------------------------------------------
-    rev_candidates: list[tuple[float, str]] = []
+    # Same 4-tuple as the forward list; the coordinates are the sense-strand
+    # binding site, which is the frame check_offtarget is given.
+    rev_candidates: list[tuple[float, str, int, int]] = []
     rev_chosen: str | None = None
+    rev_qc_rejected = 0
 
     for end in range(rev_end_first, rev_end_last - 1, -1):
         for length in range(binding_min_len, min(binding_max_len, end - gene_end) + 1):
@@ -639,8 +889,13 @@ def design_flanking_primers(
             candidate = _reverse_complement(candidate_raw)
             tm = _calc_tm(candidate, profile)
             gc_ok = (not require_gc_clamp) or (candidate[-1].upper() in "GC")
-            rev_candidates.append((abs(tm - tm_target), candidate))
+            rev_candidates.append((abs(tm - tm_target), candidate, start, length))
             if tm_min <= tm <= tm_max and gc_ok:
+                if _binding_qc_failures(
+                    candidate, cds_sequence, start, length, seq_len
+                ):
+                    rev_qc_rejected += 1
+                    continue
                 rev_chosen = candidate
                 break
         if rev_chosen is not None:
@@ -654,13 +909,23 @@ def design_flanking_primers(
         )
         if fallback_candidates:
             fallback_candidates.sort(key=lambda x: x[0])
-            rev_chosen = fallback_candidates[0][1]
+            _, rev_chosen, fb_start, fb_len = fallback_candidates[0]
             best_tm = _calc_tm(rev_chosen, profile)
             collected_warnings.append(
-                f"No reverse primer candidate met Tm [{tm_min}, {tm_max}] "
-                f"(require_gc_clamp={require_gc_clamp}). "
+                f"No reverse primer candidate passed Tm [{tm_min}, {tm_max}] "
+                f"(require_gc_clamp={require_gc_clamp}) together with the "
+                f"hairpin/homodimer/off-target checks; {rev_qc_rejected} "
+                f"candidate(s) met Tm and GC but failed QC. "
                 f"Using closest candidate (Tm={best_tm:.1f} C): {rev_chosen.upper()}"
             )
+            fb_failures = _binding_qc_failures(
+                rev_chosen, cds_sequence, fb_start, fb_len, seq_len
+            )
+            if fb_failures:
+                collected_warnings.append(
+                    "Selected reverse primer did not pass QC: "
+                    + "; ".join(fb_failures)
+                )
         elif require_gc_clamp:
             raise ValueError(
                 "Reverse primer search produced no candidate satisfying the required "
@@ -718,7 +983,11 @@ def generate_mame_package(
     -----
     1. Read the first sequence from ``fasta_path`` (warn if multi-record).
     2. Call :func:`design_flanking_primers` to obtain fwd/rev flanking sequences.
-    3. Call :func:`parse_barcode_seeds` to obtain 12 fwd + 8 rev seed sequences.
+       Candidates are filtered on Tm, GC clamp, hairpin, homodimer and
+       off-target binding.
+    3. Call :func:`parse_barcode_seeds` to obtain 12 fwd + 8 rev seed sequences,
+       then run an advisory hairpin/homodimer pass over the 20 full
+       ``seed + flanking`` oligos. That pass only appends warnings.
     4. Write ``barcodes_sequence.xlsx`` (20 data rows, 1 header row).
        Row format: name ``{sanitized_gene}_f_N`` / ``{sanitized_gene}_r_N``,
        sequence = SEED + flanking (all upper). The ``sanitized_gene`` prefix
@@ -818,6 +1087,13 @@ def generate_mame_package(
     # Step 4: barcodes_sequence.xlsx
     # Derive sanitized prefix from gene_name (raises ValueError on empty).
     gene_prefix = _sanitize_gene_prefix(gene_name)
+    rows = _barcode_rows(seeds, fwd_flanking, rev_flanking, gene_prefix)
+
+    # Advisory QC on the full synthesised oligos. Runs after seed parsing
+    # because the seeds are what makes an oligo whole, and it only appends
+    # warnings: selection already happened in step 2 and is not revisited.
+    pkg_warnings = list(pkg_warnings) + _full_oligo_qc_warnings(rows)
+
     barcodes_xlsx_path = output_dir / "barcodes_sequence.xlsx"
     _write_barcodes_xlsx(
         path=barcodes_xlsx_path,
@@ -891,6 +1167,70 @@ def _compute_amplicon_length(
 # Private write helpers
 # ---------------------------------------------------------------------------
 
+def _barcode_rows(
+    seeds: dict[str, str],
+    fwd_flanking: str,
+    rev_flanking: str,
+    gene_prefix: str,
+) -> list[tuple[str, str]]:
+    """Return the 20 ``(row name, oligo sequence)`` pairs of the package.
+
+    Single source for the concatenation, used both by the writer and by the
+    full-oligo QC pass, so the molecule that is checked is provably the one
+    that is written.
+    """
+    rows = [
+        (f"{gene_prefix}{_FWD_SUFFIX}{i}", seeds[f"fwd_{i}"].upper() + fwd_flanking)
+        for i in range(1, _N_FWD + 1)
+    ]
+    rows += [
+        (f"{gene_prefix}{_REV_SUFFIX}{i}", seeds[f"rev_{i}"].upper() + rev_flanking)
+        for i in range(1, _N_REV + 1)
+    ]
+    return rows
+
+
+def _full_oligo_qc_warnings(rows: list[tuple[str, str]]) -> list[str]:
+    """Advisory hairpin/homodimer pass over the whole synthesised oligos.
+
+    The molecule an operator orders is ``seed + flanking``, not the binding site
+    alone, so it is checked here as well. This pass is ADVISORY ONLY and never
+    changes a selection: the seed is a fixed input the operator already ordered,
+    so a seed-driven structure has no alternative to fall back to and rejecting
+    the binding site for it would apply an undefined criterion.
+    """
+    flagged: list[str] = []
+    unchecked: list[str] = []
+    for name, seq in rows:
+        if _structure_tms(seq) is None:
+            unchecked.append(f"{name} ({len(seq)} nt)")
+            continue
+        failures = _structure_failures(seq)
+        if failures:
+            flagged.append(f"{name}: " + ", ".join(failures))
+
+    # One line per finding kind rather than one per oligo. Roughly half of a
+    # normal 20-oligo package is flagged (12 of 20 on the shipped EGFP sample),
+    # and twenty separate banner entries would train an operator to dismiss the
+    # banner without reading it.
+    out: list[str] = []
+    if flagged:
+        out.append(
+            f"{len(flagged)} of {len(rows)} full barcode oligos "
+            f"(seed + flanking) exceed the {_QC_STRUCTURE_TM_MAX:.1f} C "
+            f"advisory structure limit: " + "; ".join(flagged) + ". Advisory "
+            "only: the seed is a fixed input that was already ordered, so this "
+            "did not change primer selection."
+        )
+    if unchecked:
+        out.append(
+            f"{len(unchecked)} of {len(rows)} full barcode oligos were not "
+            f"checked for hairpin/homodimer because primer3 requires "
+            f"{_PRIMER3_THAL_MAX_LEN} nt or fewer: " + "; ".join(unchecked) + "."
+        )
+    return out
+
+
 def _write_barcodes_xlsx(
     path: Path,
     seeds: dict[str, str],
@@ -918,14 +1258,7 @@ def _write_barcodes_xlsx(
     ws.title = "Barcodes"
     ws.append(["name", "sequence"])
 
-    for i in range(1, _N_FWD + 1):
-        name = f"{gene_prefix}{_FWD_SUFFIX}{i}"
-        seq = seeds[f"fwd_{i}"].upper() + fwd_flanking
-        ws.append([name, seq])
-
-    for i in range(1, _N_REV + 1):
-        name = f"{gene_prefix}{_REV_SUFFIX}{i}"
-        seq = seeds[f"rev_{i}"].upper() + rev_flanking
+    for name, seq in _barcode_rows(seeds, fwd_flanking, rev_flanking, gene_prefix):
         ws.append([name, seq])
 
     wb.save(str(path))

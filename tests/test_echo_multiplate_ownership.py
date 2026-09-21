@@ -41,7 +41,7 @@ def ownership_results(count: int) -> list[SdmPrimerResult]:
 
 
 @pytest.mark.parametrize("count,quadrant,mapping_range", [
-    (40, None, None), (97, None, None), (193, "A13", None),
+    (40, None, None), (97, None, None), (193, "A2", None),
     (97, None, ("C", "J")),
 ])
 def test_echo_sources_match_order_workbook(
@@ -76,7 +76,11 @@ def test_echo_sources_match_order_workbook(
                 row_index = "ABCDEFGH".index(str(well)[0]) * 2 + int(reverse)
                 if quadrant is None and mapping_range:
                     row_index += "ABCDEFGHIJKLMNOP".index(mapping_range[0])
-                col = int(str(well)[1:]) + (12 if quadrant == "A13" else 0)
+                col = int(str(well)[1:])
+                if quadrant is not None:
+                    # 96-head 는 한 칸 건너 열에만 닿는다. round 이름의 열 숫자가
+                    # 열 offset 이다.
+                    col = (col - 1) * 2 + 1 + (0 if quadrant == "A1" else 1)
                 source_well = f"{'ABCDEFGHIJKLMNOP'[row_index]}{col}"
                 stock[(f"Source [{plate}]", source_well)] = str(name)
         assert len(rows) == 2 * count

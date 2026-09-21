@@ -20,7 +20,10 @@ import random
 
 import pytest
 
-from kuma_core.mame.ingest.barcode_package import design_flanking_primers
+from kuma_core.mame.ingest.barcode_package import (
+    _binding_qc_failures,
+    design_flanking_primers,
+)
 from kuma_core.mame.ingest.polymerase import get_profile
 
 _PROFILE = get_profile("Q5")
@@ -239,15 +242,23 @@ def test_overhang_max_below_binding_min_len_is_refused() -> None:
 def test_both_strands_search_outward(
     topology: str, overhang_min: int, overhang_max: int
 ) -> None:
-    """Both strands walk outside-in, so both land on the reachable cap.
+    """Both strands walk outside-in, so both land on the outermost usable site.
 
-    With the Tm window opened wide and the GC clamp off, every candidate is
-    acceptable, so the first one tried is the one returned and the resulting
+    With the Tm window opened wide and the GC clamp off, the only remaining
+    filter is the structural QC (hairpin, homodimer, off-target), so the
     coordinates are exact rather than approximate. The 400 bp flanks exceed
     every overhang_max in the grid, so no clamp binds and the cap is
     overhang_max itself on both sides. Turning either loop towards the gene
-    breaks this test, which is the point: landing at the cap is what keeps the
-    30 bp terminal margin clear at both termini.
+    breaks this test, which is the point: landing as far out as QC allows is
+    what keeps the 30 bp terminal margin clear at both termini.
+
+    The forward side at overhang_max=60 lands at 54 rather than 60. QC moved
+    it: on this template every binding length at overhangs 60 down to 55 folds
+    on itself (hairpin Tm 53.1-57.3 C against the 40.0 C limit) and overhang 54
+    is the first site that does not. The reverse side and both sides at
+    overhang_max=120 still land on the cap itself. The direction assertion
+    below is what actually pins the loop: no site outside the landing one is
+    acceptable, so the loop cannot have skipped an outer candidate.
     """
     flank = 400
     gene = 750
@@ -270,9 +281,20 @@ def test_both_strands_search_outward(
 
     (fwd_start, _fwd_end), (_rev_start, rev_end) = _sites(template, fwd, rev)
 
-    assert gene_start - fwd_start == overhang_max
-    assert rev_end - gene_end == overhang_max
+    # (fwd overhang, rev overhang) per overhang_max, both measured above.
+    expected_fwd, expected_rev = {60: (54, 60), 120: (120, 120)}[overhang_max]
+    assert gene_start - fwd_start == expected_fwd
+    assert rev_end - gene_end == expected_rev
     assert len(fwd) == len(rev) == 18
+
+    # Outside-in, restated without a literal: every forward site further out
+    # than the one chosen has to be unusable, at every binding length.
+    seq_len = len(template)
+    for pos in range(gene_start - overhang_max, fwd_start):
+        for length in range(18, min(35, gene_start - pos) + 1):
+            assert _binding_qc_failures(
+                template[pos: pos + length], template, pos, length, seq_len
+            ), f"site at overhang {gene_start - pos} length {length} was usable"
 
 
 def test_both_strands_land_on_the_clamped_cap() -> None:

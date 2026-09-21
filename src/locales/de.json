@@ -2599,14 +2599,26 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Der Barcode-Schritt nimmt jetzt nur eine Zahl entgegen, wie weit das Amplikon über die CDS hinausreicht, statt Gap und Overhang unter einem Namen zu führen.",
-      "Die Standardwerte sinken von 100 und 400 auf 20 und 60, ein Bereich, der den auf dem ispS-Design gemessenen Overhang von 16 bp enthaelt.",
-      "Ein kurzes lineares Template wird bis zu seinem eigenen Rand durchsucht, statt wegen Unterschreitung der aeusseren Suchgrenze abgelehnt zu werden.",
-      "Beide Straenge suchen nach aussen, das Amplikon ist dadurch symmetrisch und die letzten Codons bleiben ausserhalb der Reference Edge Margin.",
-      "Ein Primer kann nicht mehr innerhalb der kodierenden Region liegen, und ein gespeichertes flank_max wird als overhang_max uebernommen."
+      "Consensus-Sequenzen schreiben einen Bindestrich, wo eine Base fehlt, sodass eine Deletion nicht mehr wie eine nicht auswertbare Position aussieht.",
+      "Barcode-Primer bestehen jetzt dieselben Hairpin-, Self-Dimer- und Off-Target-Prüfungen wie Design-Primer.",
+      "Ein Barcode-Primer, der diese Prüfungen nicht besteht, wird ersetzt; besteht kein Kandidat, nennt der Hinweis den Messwert, der versagt hat.",
+      "Beim erneuten Öffnen einer gespeicherten Analyse bleiben Deletionslänge und wiederhergestellte Sequenz erhalten, die frühere Builds verloren haben."
     ],
-    "highlightsStamp": "0.16.67+a8a547ef",
+    "highlightsStamp": "0.16.69+60279e8e",
     "releases": {
+      "0.16.69": [
+        "Consensus-Sequenzen schreiben einen Bindestrich, wo eine Base fehlt, sodass eine Deletion nicht mehr wie eine nicht auswertbare Position aussieht.",
+        "Barcode-Primer bestehen jetzt dieselben Hairpin-, Self-Dimer- und Off-Target-Prüfungen wie Design-Primer.",
+        "Ein Barcode-Primer, der diese Prüfungen nicht besteht, wird ersetzt; besteht kein Kandidat, nennt der Hinweis den Messwert, der versagt hat.",
+        "Beim erneuten Öffnen einer gespeicherten Analyse bleiben Deletionslänge und wiederhergestellte Sequenz erhalten, die frühere Builds verloren haben."
+      ],
+      "0.16.68": [
+        "Die Echo-Quellplatte kehrt zu verschachtelten Spalten zurück, weil ein 96-head in einem Stempelgang keine zusammenhängende Plattenhälfte erreicht.",
+        "Eine Runde ist eine Spaltenparität über alle sechzehn Zeilen mit 192 Wells, und zwei Runden füllen eine Quellplatte.",
+        "Die Auswahl bietet zwei Runden statt vier, denn die alte Zeilenachse benannte dieselben zwei Runden mit vertauschtem forward und reverse.",
+        "Ein vor v0.16.61 gespeichertes Projekt lädt unverändert, da die gespeicherten Namen Runden dieser Version bezeichnen und kein Quell-Well wandert.",
+        "Ein unter dem half-Layout gespeichertes Projekt verliert seine Auswahl und markiert beide Runden als verbraucht, da eine Hälfte keiner Spaltenparität entspricht."
+      ],
       "0.16.67": [
         "Der Barcode-Schritt nimmt jetzt nur eine Zahl entgegen, wie weit das Amplikon über die CDS hinausreicht, statt Gap und Overhang unter einem Namen zu führen.",
         "Die Standardwerte sinken von 100 und 400 auf 20 und 60, ein Bereich, der den auf dem ispS-Design gemessenen Overhang von 16 bp enthaelt.",
@@ -3087,6 +3099,8 @@
       ]
     },
     "releaseStamps": {
+      "0.16.69": "60279e8e",
+      "0.16.68": "33844e5d",
       "0.16.67": "a8a547ef",
       "0.16.66": "c8cb9c13",
       "0.16.65": "2d61386f",
@@ -3380,16 +3394,17 @@
         },
         "bomLabel": "Hinzufügen UTF-8 BOM",
         "bomHint": "(Excel-Kompatibilität)",
-        "quadrantLabel": "Hälfte der Echo-Quellplatte",
-        "quadrantNone": "Nicht angegeben (Spalten 1-12, keine Prüfung verbrauchter Hälften)",
-        "quadrantColumns": "Spalten {{from}}-{{to}}",
-        "quadrantHelper": "Eine Runde füllt eine Hälfte: Forward-Primer auf den Zeilen A, C, E ... und jeder Reverse-Primer eine Zeile darunter in derselben Spalte.",
-        "usedQuadrantsLabel": "Auf dieser Platte bereits belegte Hälften",
-        "usedQuadrantsHelper": "Der Export wird abgelehnt, wenn die gewählte Hälfte eine davon ist.",
-        "legacyPlacementNotice": "Dieses Projekt wurde vor v{{version}} gespeichert. Damals verteilte sich eine Runde über die gesamte Source Plate statt über eine Hälfte. Die gespeicherte Belegung ({{values}}) deckt beide Hälften ab, daher gelten beide als belegt und keine Hälfte ist ausgewählt. Bei einer neuen Platte zuerst die Häkchen für belegte Hälften unten entfernen und dann eine Hälfte wählen.",
+        "quadrantLabel": "Spalten der Echo-Quellplatte",
+        "quadrantNone": "Nicht angegeben (Spalten 1-12, keine Prüfung belegter Runden)",
+        "quadrantColumnsOdd": "ungerade Spalten 1, 3 ... 23",
+        "quadrantColumnsEven": "gerade Spalten 2, 4 ... 24",
+        "quadrantHelper": "Ein 96-Head-Stempel erreicht nur jede zweite Spalte, daher nimmt eine Runde eine der beiden. Forward-Primer sitzen in den Zeilen A, C, E ... und jeder Reverse-Primer eine Zeile darunter, in derselben Spalte.",
+        "usedQuadrantsLabel": "Auf dieser Platte bereits belegte Runden",
+        "usedQuadrantsHelper": "Der Export wird abgelehnt, wenn die gewählte Runde eine davon ist.",
+        "legacyPlacementNotice": "Dieses Projekt wurde zwischen v{{from}} und v{{to}} gespeichert. Damals füllte eine Runde zwölf aufeinanderfolgende Spalten statt jeder zweiten. Die gespeicherte Belegung ({{values}}) überdeckt einen Teil beider Runden, daher gelten beide als belegt und keine ist ausgewählt. Auf einer frischen Platte zuerst die Häkchen unten entfernen und dann eine Runde wählen.",
         "placementBlocked": {
-          "noHalfSelected": "Auf dieser Platte sind Hälften als belegt markiert, für diese Runde ist aber keine Hälfte ausgewählt. Wählen Sie A1 oder A13, oder entfernen Sie die Häkchen, wenn die Platte neu ist.",
-          "halfAlreadyUsed": "Die gewählte Hälfte ist auf dieser Platte bereits als belegt markiert. Ein Dispensieren dort zerstört die vorhandenen Primer. Wählen Sie die andere Hälfte oder entfernen Sie deren Häkchen."
+          "noQuadrantSelected": "Auf dieser Platte sind Runden als belegt markiert, für diesen Lauf ist jedoch keine ausgewählt. Wählen Sie A1 oder A2, oder entfernen Sie die Häkchen, wenn die Platte frisch ist.",
+          "quadrantAlreadyUsed": "Die gewählte Runde ist auf dieser Platte bereits als belegt markiert. Ein Dispensieren darauf zerstört die dort vorhandenen Primer. Wählen Sie die andere Runde, oder entfernen Sie das betreffende Häkchen."
         },
         "plateNameFwd": "Forward-Primer-Plattenname",
         "plateNameRev": "Reverse-Primer-Plattenname",
@@ -3680,14 +3695,14 @@
     "errorTitle": "Vorschau fehlgeschlagen",
     "echoSourcePlateLabel": "Echo-Quellplatte (384 Wells)",
     "destPlateLabel": "Zielplatte (96 Wells)",
-    "quadrantBatch": "Dieser Lauf füllt die Plattenhälfte {{half}}, Spalten {{from}}-{{to}}. Vorwärtsprimer liegen auf den Zeilen A, C, E ... und jeder Rückwärtsprimer eine Zeile darunter.",
-    "quadrantProgress": "Nach diesem Lauf sind {{filled}} von {{total}} Hälften dieser Platte belegt.",
-    "quadrantHalfNote": "Die Spalten {{from}}-{{to}} sind die andere Hälfte, {{others}}, und bleiben für die nächste Runde frei.",
+    "quadrantBatch": "Dieser Lauf füllt Runde {{round}}: jede zweite Spalte, beginnend bei Spalte {{first}}. Forward-Primer sitzen in den Zeilen A, C, E ... und jeder Reverse-Primer eine Zeile darunter.",
+    "quadrantProgress": "Nach diesem Lauf sind {{filled}} von {{total}} Runden dieser Platte belegt.",
+    "quadrantInterleaveNote": "Ein 96-Head-Stempel erreicht nur jede zweite Spalte. Die Spalten dazwischen gehören zu {{others}} und bleiben für die nächste Runde frei.",
     "quadrantUsedNote": "Auf dieser Platte bereits belegt: {{list}}",
-    "quadrantNoneNote": "Keine Hälfte gewählt. Der Lauf landet weiterhin in den Spalten 1-12, denselben Wells wie Hälfte A1, nur der Abgleich mit bereits verbrauchten Hälften entfällt.",
+    "quadrantNoneNote": "Keine Runde ausgewählt. Der Lauf landet weiterhin ohne Spaltensprung auf den Spalten 1-12, dem Layout von vor der Rundenauswahl, und nur die Prüfung gegen bereits belegte Runden entfällt.",
     "quadrantLegendFree": "Durchgezogener Rahmen: Well, das dieser Lauf nutzt",
     "quadrantLegendReserved": "Gestrichelter Rahmen: freigehalten für {{others}}",
-    "echoReservedWellTitle": "{{well}}, freigehalten für Hälfte {{quadrants}}"
+    "echoReservedWellTitle": "{{well}}, reserviert für Runde {{quadrants}}"
   },
   "errors": {
     "sequence": {
