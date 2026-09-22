@@ -11,6 +11,13 @@ const GROUP_COLORS = [
   "#8b5cf6", "#ec4899", "#06b6d4", "#f97316",
 ];
 
+// Legacy hairpin/homodimer warn threshold (pre-engine-flag behavior). The
+// frontend has no dH, so it cannot recompute the engine's folded-fraction
+// verdict (theta) itself. Used only as a fallback when a row has none of
+// the four per-structure warn flags (e.g. rows serialized before the flags
+// existed), so those rows are not silently rendered as warning-free.
+const LEGACY_STRUCTURE_WARN_TM = 40;
+
 export const HEADER_TOOLTIPS: Record<string, string> = {
   rank: "Input order (y_pred descending rank)",
   mutation: "Amino acid substitution. Click header to sort by aa position",
@@ -393,12 +400,22 @@ export function makeResultTableColumns(opts: {
         // The verdict comes from the engine (per-structure warn flags on the
         // row): hairpin by folded fraction at the pair's Ta, homodimer by the
         // absolute design-scale Tm. Rows serialized before the flags existed
-        // show the bare number with no warn tint.
-        const warn =
-          row.hairpin_warn_fwd === true ||
-          row.hairpin_warn_rev === true ||
-          row.homodimer_warn_fwd === true ||
-          row.homodimer_warn_rev === true;
+        // (or rows whose pair Ta is unknown after a swap) carry none of the
+        // four flags; falling back to "no warning" made those rows look
+        // clean even when the raw Tm was high. Fall back to the pre-engine
+        // legacy threshold only in that no-flags case, since the frontend
+        // has no dH to recompute the engine's theta itself.
+        const hasAnyFlag =
+          row.hairpin_warn_fwd != null ||
+          row.hairpin_warn_rev != null ||
+          row.homodimer_warn_fwd != null ||
+          row.homodimer_warn_rev != null;
+        const warn = hasAnyFlag
+          ? row.hairpin_warn_fwd === true ||
+            row.hairpin_warn_rev === true ||
+            row.homodimer_warn_fwd === true ||
+            row.homodimer_warn_rev === true
+          : worst > LEGACY_STRUCTURE_WARN_TM;
         return (
           <span className={`inline-block px-1 py-0.5 rounded-control text-caption font-medium cursor-pointer ${warn ? "bg-warning/10 text-warning" : "bg-muted text-muted-foreground"}`}>
             {worst.toFixed(0)}

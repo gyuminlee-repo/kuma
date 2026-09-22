@@ -86,12 +86,24 @@ describe("hairpin column", () => {
     expect(badge.className).not.toContain("text-warning");
   });
 
-  it("does not guess a verdict when the flags are absent", () => {
+  it("falls back to the legacy Tm threshold when all warn flags are absent", () => {
     const cell = hairpinCell();
     // Rows serialized before the flags existed, or rows whose pair Ta is
-    // unknown after a swap, show the bare number with no warn tint.
+    // unknown after a swap, carry none of the four warn flags. The
+    // frontend cannot recompute the engine's theta (no dH available), so
+    // it falls back to the pre-engine legacy threshold rather than
+    // silently rendering these rows as warning-free.
     render(<>{cell({ row: { original: row({ hairpin_tm_fwd: 55 }) } })}</>);
     const badge = screen.getByText("55");
+    expect(badge.className).toContain("text-warning");
+  });
+
+  it("does not warn via the legacy fallback below the legacy threshold", () => {
+    const cell = hairpinCell();
+    // Same no-flags case, but the worst Tm (30) is below the legacy 40
+    // threshold, so no warning is shown.
+    render(<>{cell({ row: { original: row({ hairpin_tm_fwd: 30 }) } })}</>);
+    const badge = screen.getByText("30");
     expect(badge.className).not.toContain("text-warning");
   });
 
