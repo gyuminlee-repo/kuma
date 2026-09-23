@@ -515,8 +515,14 @@ def handle_compute_codon_table(params: dict) -> dict:
         # will not parse the file twice to get one -- so the bar stays at 0 and
         # the count rides in the message. Deriving a percentage from ``done``
         # alone would draw a bar that fills at a rate no one can interpret.
+        # Not capped below 100. tally_codons calls back once more at the end
+        # with done == total, so a FASTA scan finishes at 100 the way the
+        # design path's "Design complete" does. Nothing renders this number
+        # outside a running job (JobQueuePanel uses it only for a running
+        # job's ETA), so a value left behind is inert either way; ending at
+        # the number that means finished is simply the honest one.
         pct = int(done * 100 / total) if total else 0
-        _progress(min(pct, 99), f"Counting codons: {done} coding sequences read")
+        _progress(pct, f"Counting codons: {done} coding sequences read")
 
     try:
         computed = _compute.compute_codon_table(

@@ -339,12 +339,7 @@ def test_a_bundled_key_is_refused(tmp_path, user_dir):
 
 
 def test_progress_is_reported_while_the_scan_runs(tmp_path, user_dir, monkeypatch):
-    """The notification exists and its value stays inside the bar's range.
-
-    A GenBank scan has no denominator, so the percentage is 0 there by design
-    and the count rides in the message; the assertion is on the range and on
-    the fact that something was sent, not on a curve.
-    """
+    """A FASTA has a denominator, so the reported percentage is a real one."""
     seen: list[tuple[int, str]] = []
     import sidecar_kuro.handlers.codon as handler_mod
 
@@ -354,7 +349,34 @@ def test_progress_is_reported_while_the_scan_runs(tmp_path, user_dir, monkeypatc
     fasta = _build_synthetic(tmp_path)[1]
     handle_compute_codon_table(_params(fasta))
     assert seen, "the scan reported no progress at all"
-    assert all(0 <= value <= 99 for value, _ in seen)
+    assert all(0 <= value <= 100 for value, _ in seen)
+    # tally_codons calls back once more at the end with done == total, so the
+    # bar lands on the number that means finished rather than short of it.
+    assert seen[-1][0] == 100
+    assert "8" in seen[-1][1]
+
+
+def test_a_genbank_scan_reports_a_count_without_a_percentage(
+    tmp_path, user_dir, monkeypatch
+):
+    """The total=None path, asserted rather than assumed.
+
+    ``compute_codon_table`` passes ``total=None`` for GenBank because it will
+    not parse the file twice to get a denominator. The requirement is that
+    this does not break and does not draw a bar filling at a rate no one can
+    interpret: the value stays 0 and the count rides in the message.
+    """
+    seen: list[tuple[int, str]] = []
+    import sidecar_kuro.handlers.codon as handler_mod
+
+    monkeypatch.setattr(
+        handler_mod, "_progress", lambda v, m="": seen.append((v, m))
+    )
+    gbff = _build_synthetic(tmp_path)[0]
+    result = handle_compute_codon_table(_params(gbff))
+    assert result["ok"], result["errors"]
+    assert seen, "the scan reported no progress at all"
+    assert all(value == 0 for value, _ in seen)
     assert "8" in seen[-1][1]
 
 
@@ -375,4 +397,29 @@ def test_a_large_fasta_reports_progress_more_than_once(tmp_path, user_dir, monke
     assert len(seen) >= 3
     values = [v for v, _ in seen]
     assert values == sorted(values)
-    assert max(values) > 0, "a FASTA has a denominator, so the bar must move"
+    assert max(values) == 100, "a FASTA has a denominator, so the bar must fill"
+
+
+def test_the_accepted_suffixes_are_the_ones_codon_compute_can_classify():
+    """The set in core.py against what _format actually routes.
+
+    The suffix list now exists in three places -- this set, the two branches of
+    ``codon_compute._format``, and the browse filter in the dialog. Only the
+    first two can be compared by a program, and they are the pair that matters:
+    a suffix accepted here that ``_format`` cannot classify would be refused
+    one layer deeper with a worse sentence, and one ``_format`` accepts but
+    this set does not is a file the user cannot choose at all.
+    """
+    from sidecar_kuro.core import _ALLOWED_GENOME_EXTENSIONS
+
+    classified = {}
+    for suffix in _ALLOWED_GENOME_EXTENSIONS:
+        classified[suffix] = cc._format(Path(f"genome{suffix}"), None)
+    assert set(classified.values()) == {"fasta", "genbank"}
+
+    # And the other direction: a suffix _format reads but core refuses would be
+    # unreachable. .dna is deliberately in neither -- SnapGene is a design
+    # template format and _format has no branch for it.
+    with pytest.raises(cc.GenomeParseError):
+        cc._format(Path("template.dna"), None)
+
