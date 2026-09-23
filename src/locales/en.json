@@ -2666,13 +2666,17 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Consensus sequences write a dash where a base is missing, so a deletion no longer looks like a position the run could not call.",
-      "Barcode primers now pass the same hairpin, self-dimer and off-target checks that design primers already had to pass.",
-      "A barcode primer failing those checks is replaced, and when none passes, the advisory names the measurement that failed.",
-      "Reopening a saved analysis keeps the deletion length and the restored sequence that earlier builds dropped on the way in."
+      "Any organism's codon table can now be installed by dropping a file, importing CSV/cusp/Kazusa, or computing it from a genome.",
+      "A design records the codon table by key and digest, and a missing or changed table offers to install the project's own copy.",
+      "Documentation that still described the removed codon strategy toggle now describes the organism table it was replaced by."
     ],
-    "highlightsStamp": "0.16.69+60279e8e",
+    "highlightsStamp": "0.16.70+291b4798",
     "releases": {
+      "0.16.70": [
+        "Any organism's codon table can now be installed by dropping a file, importing CSV/cusp/Kazusa, or computing it from a genome.",
+        "A design records the codon table by key and digest, and a missing or changed table offers to install the project's own copy.",
+        "Documentation that still described the removed codon strategy toggle now describes the organism table it was replaced by."
+      ],
       "0.16.69": [
         "Consensus sequences write a dash where a base is missing, so a deletion no longer looks like a position the run could not call.",
         "Barcode primers now pass the same hairpin, self-dimer and off-target checks that design primers already had to pass.",
@@ -3166,6 +3170,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.70": "291b4798",
       "0.16.69": "60279e8e",
       "0.16.68": "33844e5d",
       "0.16.67": "a8a547ef",
