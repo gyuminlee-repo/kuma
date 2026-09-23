@@ -2612,12 +2612,11 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "As sequências consensus escrevem um traço onde falta uma base, de modo que uma deleção não parece mais uma posição que não pôde ser interpretada.",
-      "Os primers de barcode agora passam pelas mesmas verificações de hairpin, self-dimer e off-target que os primers de design.",
-      "Um primer de barcode que falha nessas verificações é substituído e, quando nenhum passa, o aviso indica a medida que falhou.",
-      "Reabrir uma análise salva preserva o comprimento da deleção e a sequência restaurada que versões anteriores perdiam."
+      "A tabela de codons de um organismo se instala ao colocar um arquivo, importar CSV/cusp/Kazusa, ou calcula-la a partir de um genoma.",
+      "Um design registra a tabela de codons por chave e digest, e oferece a copia do projeto se a tabela estiver ausente ou tiver mudado.",
+      "A documentacao que ainda descrevia o seletor de estrategia de codons removido agora descreve a tabela de organismo que o substituiu."
     ],
-    "highlightsStamp": "0.16.69+60279e8e",
+    "highlightsStamp": "0.16.70+291b4798",
     "releases": {
       "0.16.69": [
         "As sequências consensus escrevem um traço onde falta uma base, de modo que uma deleção não parece mais uma posição que não pôde ser interpretada.",
@@ -3109,6 +3108,11 @@
         "A ajuda do Variant list mapping agora diz em que ordem os wells são preenchidos: A1, B1, C1 até H1, depois A2.",
         "O hook post-commit de versão não falha mais em um caminho que foi removido.",
         "Uma nota de versão longa agora rola dentro da janela, em vez de ultrapassar a borda inferior."
+      ],
+      "0.16.70": [
+        "A tabela de codons de um organismo se instala ao colocar um arquivo, importar CSV/cusp/Kazusa, ou calcula-la a partir de um genoma.",
+        "Um design registra a tabela de codons por chave e digest, e oferece a copia do projeto se a tabela estiver ausente ou tiver mudado.",
+        "A documentacao que ainda descrevia o seletor de estrategia de codons removido agora descreve a tabela de organismo que o substituiu."
       ]
     },
     "releaseStamps": {
@@ -3190,7 +3194,8 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21"
+      "0.15.16": "fe8e6f21",
+      "0.16.70": "291b4798"
     }
   },
   "primerDisplay": {

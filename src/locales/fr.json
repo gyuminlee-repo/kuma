@@ -2612,12 +2612,11 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Les séquences consensus écrivent un tiret là où une base manque, si bien qu'une délétion ne ressemble plus à une position non interprétable.",
-      "Les amorces barcode passent désormais les mêmes contrôles hairpin, self-dimer et off-target que les amorces de conception.",
-      "Une amorce barcode qui échoue à ces contrôles est remplacée, et si aucune ne passe, l'avertissement nomme la mesure en cause.",
-      "La réouverture d'une analyse enregistrée conserve la longueur de délétion et la séquence restaurée que les versions précédentes perdaient."
+      "La table de codons d'un organisme s'installe en deposant un fichier, en important un CSV/cusp/Kazusa, ou en la calculant depuis un genome.",
+      "Une conception enregistre la table de codons par cle et empreinte, et propose la copie du projet si la table manque ou a change.",
+      "La documentation qui decrivait encore le selecteur de strategie de codons supprime decrit maintenant la table d'organisme qui l'a remplace."
     ],
-    "highlightsStamp": "0.16.69+60279e8e",
+    "highlightsStamp": "0.16.70+291b4798",
     "releases": {
       "0.16.69": [
         "Les séquences consensus écrivent un tiret là où une base manque, si bien qu'une délétion ne ressemble plus à une position non interprétable.",
@@ -3109,6 +3108,11 @@
         "L'aide du Variant list mapping indique désormais le sens de remplissage des wells : A1, B1, C1 jusqu'à H1, puis A2.",
         "Le hook post-commit de version n'échoue plus sur un chemin supprimé.",
         "Une note de version longue défile maintenant dans la boîte de dialogue au lieu de dépasser en bas."
+      ],
+      "0.16.70": [
+        "La table de codons d'un organisme s'installe en deposant un fichier, en important un CSV/cusp/Kazusa, ou en la calculant depuis un genome.",
+        "Une conception enregistre la table de codons par cle et empreinte, et propose la copie du projet si la table manque ou a change.",
+        "La documentation qui decrivait encore le selecteur de strategie de codons supprime decrit maintenant la table d'organisme qui l'a remplace."
       ]
     },
     "releaseStamps": {
@@ -3190,7 +3194,8 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21"
+      "0.15.16": "fe8e6f21",
+      "0.16.70": "291b4798"
     }
   },
   "primerDisplay": {
