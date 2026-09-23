@@ -142,9 +142,25 @@ def _assemble(p: ImportCodonTableParams) -> dict[str, Any]:
     document.setdefault("name", p.key)
     if p.taxid is not None or "taxid" not in document:
         document["taxid"] = p.taxid
-    if p.genetic_code is not None:
-        document["genetic_code"] = p.genetic_code
-    document.setdefault("genetic_code", 11)
+
+    # The genetic code of a kuma JSON file belongs to the file, never to the
+    # dialog. It is an input to canonical_digest, so overwriting a colleague's
+    # declared code with the dialog's default gives their table a different
+    # digest here than the one their machine recorded -- the section 8.1 hole
+    # this whole feature exists to close, reopened by the import path. V16
+    # cannot catch it: NCBI tables 1 and 11 have identical forward tables and
+    # identical stop codons (measured, Bio 1.85; they differ only in start
+    # codons), so a table declared as 1 and read as 11 passes every codon-to-
+    # amino-acid check there is. Left absent, the validator applies V14 and
+    # _document_from_report writes report.genetic_code into the stored file,
+    # which is what V14's sentence promises the user.
+    #
+    # The converted formats are the opposite case: CSV, cusp and a Kazusa
+    # paste carry no genetic code at all, so the dialog's value is the only
+    # one there is.
+    if p.format != "json":
+        document["genetic_code"] = p.genetic_code or 11
+
     if p.aliases:
         document["aliases"] = list(p.aliases)
     document.setdefault("aliases", [])
@@ -165,6 +181,13 @@ def handle_import_codon_table(params: dict) -> dict:
     """
     p = ImportCodonTableParams(**params)
     registry = _core.get_registry()
+    # Re-read the folder before judging. scan() is cached, and the cache is
+    # exactly as old as the last listing: a user who opened the folder, dropped
+    # a table in and then imported the same key would have V10 answered from a
+    # picture of the disk taken before their file existed, and os.replace would
+    # overwrite it without a word. A path that writes has to judge against the
+    # disk rather than against a cache of it.
+    registry.refresh()
 
     try:
         document = _assemble(p)
