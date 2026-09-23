@@ -3921,6 +3921,7 @@
       "V33": "No aliases. kuma will not auto-select this organism when you load a sequence annotated as '{{name}}'. Add the organism names your GenBank files use.",
       "V34": "{{n}} codon(s) have frequency 0 and will never be chosen: {{list}}.",
       "V35": "Ignoring unrecognised field(s): {{list}}.",
+      "V36": "This file could not be read as {{format}}: {{detail}}. Check that you picked the right format for the file you selected.",
       "N1": "RNA codons were converted to DNA (U to T), {{n}} codons.",
       "N2": "{{n}} codon(s) were lowercase and have been converted to uppercase.",
       "N4": "Frequencies were recomputed from the codon counts.",

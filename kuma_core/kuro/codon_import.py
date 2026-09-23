@@ -112,10 +112,18 @@ _KNOWN_TOP_LEVEL = frozenset({
     "assembly", "strain", "n_cds", "transl_table", "source_release",
 })
 
-# Every message code this module can emit, in rule order. The frontend keeps a
-# lookup object keyed by exactly these strings.
+# Every message code the codon-table pipeline can emit, in rule order. The
+# frontend keeps a lookup object keyed by exactly these strings.
+#
+# V36 is the one code in this tuple that no rule in this module raises. It
+# belongs to ``codon_formats.CodonFormatError``: a CSV, cusp or Kazusa file
+# whose columns cannot be located produces no ``codons`` block for any rule
+# here to judge, so the failure is unreachable from V1-V35 and still has to
+# reach the user as a localized sentence. It is declared here because this
+# tuple is what the locale coverage test reads; splitting the declaration
+# would leave V36 with ten untested translations.
 MESSAGE_CODES: tuple[str, ...] = tuple(
-    [f"V{i}" for i in range(1, 36)] + [f"N{i}" for i in range(1, 5)]
+    [f"V{i}" for i in range(1, 37)] + [f"N{i}" for i in range(1, 5)]
 )
 
 

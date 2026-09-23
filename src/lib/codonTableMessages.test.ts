@@ -181,7 +181,10 @@ describe("placeholder wiring", () => {
 });
 
 describe("unknown codes", () => {
-  it.each(["", "V0", "V36", "N5", "R1", "R6", "v1", "V1 ", "V1x", "1", "unknown", "ZZ"])(
+  // "V37" is the one past the end, where "V36" used to sit before the format
+  // parsers claimed it. The point of the entry is a code one above the last
+  // real one, so it moves up with the range rather than being deleted.
+  it.each(["", "V0", "V37", "N5", "R1", "R6", "v1", "V1 ", "V1x", "1", "unknown", "ZZ"])(
     "falls back to the unknown sentence for %j",
     (code) => {
       const { t, calls } = recordingT();

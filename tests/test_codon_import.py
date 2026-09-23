@@ -431,5 +431,9 @@ class TestDigest:
         assert canonical_digest(table, 11) != a.table_sha256
 
     def test_every_code_is_reachable_by_name(self):
-        assert len(MESSAGE_CODES) == 39
-        assert MESSAGE_CODES[-4:] == ("N1", "N2", "N3", "N4")
+        # 40 since V36 joined: the parse failure codon_formats raises for a
+        # CSV, cusp or Kazusa file whose columns cannot be found. It is
+        # declared in this tuple although no rule in codon_import raises it,
+        # because this tuple is what the locale coverage test reads.
+        assert len(MESSAGE_CODES) == 40
+        assert MESSAGE_CODES[-5:] == ("V36", "N1", "N2", "N3", "N4")
