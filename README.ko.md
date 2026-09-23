@@ -19,6 +19,7 @@ Kuro 탭에서 프라이머를 설계하고 실험·시퀀싱 후 Mame 탭으로
 
 - [탭 구성: Kuro & Mame](#탭-구성)
 - [선택 전략](#선택-전략-kuro-evolvepro-모드)
+- [사용자 코돈 표](#사용자-코돈-표)
 - [프로젝트 워크플로](#프로젝트-워크플로)
 - [설치](#설치)
 - [사용법](#사용법)
@@ -60,7 +61,7 @@ Kuro 탭에서 프라이머를 설계하고 실험·시퀀싱 후 Mame 탭으로
 
 #### 코돈 & 열역학 파라미터
 
-- **코돈 전략 선택**: Min. changes (WT 대비 최소 염기 변이) 또는 Optimal (선택한 organism codon table 의 최빈 코돈)
+- **코돈 표(organism) 선택**: 변이를 어느 코돈으로 쓸지는 타겟 유전자 옆에서 고른 organism 이 정한다. 따로 고를 전략 컨트롤은 없다. 타겟 아미노산의 동의 코돈 전부가 경쟁하되 WT 코돈과 해당 organism 이 그 아미노산의 10% 미만으로 쓰는 코돈은 빠진다. 설계 penalty 가 남은 후보를 WT 코돈 대비 염기 변경 수(1/2/3 변경에 0/2/4)와 host 사용빈도(4.0 x (1 - usage fraction))로 Tm·GC 와 함께 점수 매긴다. 내장 표는 5종(*E. coli*, *B. subtilis*, *H. sapiens*, *M. extorquens*, *S. cerevisiae*)이고 다른 균주는 직접 설치할 수 있다([사용자 코돈 표](#사용자-코돈-표) 참고)
 - **Polymerase 프로파일**: 7종 내장 (Taq, Phusion, Q5, Q5 SDM, KOD, DreamTaq, TAKARA_GXL). 각 프로파일은 제조사 매뉴얼 기준 Tm 방법·염 농도·DNA 농도·GC 범위 보정. 프로파일 선택은 권장 어닐링 온도(Ta) 규칙·GC 범위·overlap 모드를 정하며, 설계 시점 Tm 스케일은 고정이라 프로파일을 따르지 않음. Custom Polymerase 다이얼로그로 사용자 정의 프로파일을 만들면 `~/.kuma/kuro/custom_polymerases.json`에 영구 저장됨
 - **Tm 계산**: SantaLucia 1998 nearest-neighbor 모델. 염/DNA/divalent 농도는 선택한 polymerase 프로파일에 따라 달라짐. 기본 Tm 타겟 Fwd 62°C, Rev 58°C, Overlap 42°C
 - **점진적 Tm tolerance**: Fwd/Rev 각각 ±0.5°C부터 시작, ±0.5씩 독립 확장 (최대 ±3.0°C)
@@ -149,6 +150,25 @@ EVOLVEpro CSV 로드 시 어떤 mutation을 프라이머 설계 대상으로 선
 
 > **벤치마크 caveat (`benchmark/REPORT.md` §6).** in-silico active-learning 벤치에서 **structural 다양성**만 Top-N을 이겼고, 그것도 조건부(초기·저데이터, 진짜 epistatic)였다. **도메인**·**Pareto** 다양성은 Top-N을 못 이겼고, 도메인 다양성은 단일-활성부위 단백질엔 해로울 수 있다(기능 영역 밖으로 픽 낭비). 모든 다양성 필터는 Top-N의 범용 개선이 아니라 초기-라운드 헤지로 취급하라.
 
+## 사용자 코돈 표
+
+kuma 에 내장된 코돈 사용표는 5종(*E. coli*, *B. subtilis*, *H. sapiens*, *M. extorquens*, *S. cerevisiae*)이다. 다른 균주의 표는 사용자별로 `~/.kuma/kuro/codon_tables` 에 설치되고 타겟 유전자 옆 **Organism** 드롭다운에 나타난다. 들어가는 경로는 셋이다.
+
+**1. 폴더에 파일 떨어뜨리기.** `~/.kuma/kuro/codon_tables` 에 `<key>.json` 을 넣고 Settings → Codon tables 의 **Refresh** 를 누른다. `.json` 을 뗀 파일 이름이 organism key 가 된다. 그 폴더에는 참고용으로 `TEMPLATE.json.txt` 와 `README.txt` 가 함께 놓인다(원본은 `kuma_core/kuro/resources/codon_table_seeds/`). 템플릿을 `<key>.json` 으로 복사하고 숫자만 바꾸면 된다.
+
+**2. Add organism...** Organism 드롭다운 마지막 항목이 여는 대화상자의 *Import a table file* 탭이 네 가지 소스 포맷을 읽는다. kuma 표(JSON), 3열 CSV, EMBOSS `cusp` 출력, Kazusa 코돈 사용 페이지 붙여넣기다. 설치 전에 모든 규칙을 돌려 거부 사유, 경고, 정규화한 내용(RNA `U` 를 `T` 로, 소문자 코돈, counts 로 재계산한 빈도), 설치될 표의 digest 를 보여 준다. *Export* 탭은 설치된 표를 파일로 내보내 동료에게 보낼 때 쓴다.
+
+**3. Compute from a genome.** 같은 대화상자의 첫 탭이 GenBank 파일(`.gb`, `.gbk`, `.gbff`)이나 CDS FASTA 에서 코돈을 직접 센다. 외부 도구가 필요 없다. 설치 전에 읽은 CDS 중 몇 개를 셌는지, 나머지가 빠진 이유(pseudogene, 길이가 3의 배수가 아님, 내부 stop, 끝에 stop 없음, 모호 염기)를 보여 준다. 아미노산별 최빈 코돈과 내장 참조 표에서 가장 멀어진 아미노산도 함께 낸다.
+
+표가 만족해야 하는 규칙:
+
+- key: 소문자·숫자·밑줄, 2~32자, 첫 글자는 알파벳이며 `.json` 을 뗀 파일 이름과 같아야 한다
+- 아미노산 20종에 stop `*` 을 더한 21개 그룹, 64개 코돈이 정확히 한 번씩, 한 아미노산의 빈도 합이 약 1(퍼센트라면 100으로 나눈다)
+- NCBI genetic code 는 1 또는 11 만 지원한다. 비표준 코드는 선호 코돈만이 아니라 WT 코돈을 읽는 방식 자체를 바꾸므로 빈도표만으로는 가져올 수 없다
+- 내장 key(`ecoli`, `bsubtilis`, `hsapiens`, `mextorquens`, `scerevisiae`)는 덮을 수 없다. `ecoli_lab` 처럼 다른 key 로 넣는다. 런 기록에는 key 만 남으므로 두 컴퓨터가 같은 key 를 다르게 해석하면 안 된다
+
+거부된 파일은 Settings 의 폴더 경로 아래에 사유와 함께 나열된다. 부분 설치는 없고 파일 단위로 전부 받거나 전부 거부한다. 설계는 표의 이름·key·digest 를 기록하므로, 그 표가 없는 컴퓨터에서 프로젝트를 열면 프로젝트가 품고 있는 사본을 설치할지 묻는다. 로컬 표의 코돈이 다르면 정리되기 전까지 재설계를 막는다.
+
 ## 프로젝트 워크플로
 
 첫 실행 시 **프로젝트 루트** 폴더를 묻는다(기본 `~/Documents/kuma`). 이후 모든 프로젝트는 루트 하위에 폴더로 생성된다:
@@ -212,8 +232,8 @@ xattr -cr /Applications/kuma.app
 1. **Help → Load Sample Data** 메뉴로 예제 자동 로드. 또는:
 2. 시퀀스 파일 로드 (GenBank `.gb` / SnapGene `.dna`)
 3. Target Gene 드롭다운에서 타겟 CDS 확인(자동 선택)
-4. 변이 입력 (텍스트 / EVOLVEpro CSV)
-5. 코돈 전략 선택 (Min. changes / Optimal)
+4. 그 아래 **Organism** 확인. 코돈 사용표를 고르는 자리다. 서열 annotation 이 아는 균주를 적고 있으면 자동으로 맞춰진다. **Add organism...** 으로 내장되지 않은 균주를 설치한다
+5. 변이 입력 (텍스트 / EVOLVEpro CSV)
 6. *(선택)* Advanced Options에서 Tm, GC%, 길이 조정
 7. **Design Primers** 클릭
 8. File → Export Excel (현재 프로젝트의 `design/expected_mutations.xlsx`에 `__kuma_meta__` 포함하여 저장)

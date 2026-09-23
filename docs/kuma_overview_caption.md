@@ -12,15 +12,18 @@ Lane A (DESIGN) is the KURO primer engine. A GenBank template with CDS annotatio
 enters, together with a variant list in one-letter notation such as Q232A; plain
 FASTA is refused, because the engine needs the coding frame to place a codon.
 Accepted template formats are `.gb`, `.gbk`, `.gbff` and SnapGene `.dna`.
-Primer build runs under a polymerase profile, a codon strategy and an overlap
-mode. The shipped default profile is KOD (SantaLucia nearest-neighbour Tm with
+Primer build runs under a polymerase profile, an organism codon table and an
+overlap mode. The shipped default profile is KOD (SantaLucia nearest-neighbour Tm with
 SantaLucia salt correction, 50 mM monovalent salt, 1.5 mM Mg2+, 0.8 mM dNTP,
 250 nM primer, forward Tm target 62 C, reverse 58 C, overlap 42 C, overlap
 window 18 nt, forward length 18-39 nt, reverse 19-27 nt, mutation held at least
 4 nt from the 3' end of the overlap). Tm tolerance defaults to plus or minus
-4.0 C, GC to 40-60 percent, and the codon strategy defaults to `closest`
-(fewest nucleotide changes first) against the *E. coli* usage table, with
-`optimal` (highest organism usage first) as the alternative. Overlap mode is
+4.0 C, GC to 40-60 percent, and the codon table defaults to *E. coli*. Every
+synonymous codon of the target amino acid competes, less the wild-type codon
+and the ones the chosen organism uses for under 10 percent of that amino acid,
+and the penalty prices each survivor on nucleotide changes from the wild-type
+codon and on usage in that table. There is no strategy to choose: the
+`codon_strategy` request field survives for stored projects and is ignored. Overlap mode is
 `partial` (Gibson style) by default; `full` is the NEB Q5 SDM geometry.
 The canvas states the two rejection tiers as one bold phrase, advisory
 penalties and hard rejects; the split is here. Every candidate pair is first
@@ -136,8 +139,9 @@ repository root.
 | KOD Tm targets 62 / 58 / 42 C, 3-prime distance 4, overlap 18, lengths 18-39 and 19-27 | `kuma_core/kuro/resources/polymerase_profiles.json:156-164` |
 | KOD vendor specification 22-35 nt, GC 45-60, Tm above 63, Toyobo KMM-101/201 | `kuma_core/kuro/resources/polymerase_profiles.json:181-188` |
 | Tm tolerance default 4.0 C, GC default 40-60 percent | `python-core/sidecar_kuro/models.py:62`, `python-core/sidecar_kuro/models.py:66-67` |
-| Codon strategy default `closest`, organism default `ecoli` | `python-core/sidecar_kuro/models.py:55-56` |
-| `closest` is fewest nucleotide changes, `optimal` is highest organism usage | `kuma_core/kuro/codon_table.py:206-222` |
+| Organism default `ecoli`, `codon_strategy` still accepted on the request | `python-core/sidecar_kuro/models.py:55-56` |
+| Whole synonymous pool less the wild-type codon and the sub-floor codons, ordered by nucleotide changes then usage, `strategy` ignored | `kuma_core/kuro/codon_table.py:686-759`, `kuma_core/kuro/codon_table.py:579` |
+| Usage enters the design penalty directly, weight 4.0 | `kuma_core/kuro/sdm_engine.py:202-223`, `kuma_core/kuro/sdm_engine.py:1144-1145` |
 | Overlap mode default `partial` (Gibson), `full` is NEB Q5 SDM | `python-core/sidecar_kuro/models.py:75-76` |
 | Overlap window default 18 nt, upstream of the mutant codon | `kuma_core/kuro/overlap.py:21-31`, `kuma_core/kuro/sdm_engine.py:175` |
 | Synthesis score deductions (homopolymer 4, GC run 6, dinucleotide 8 bases, GC below 30 or above 70) | `kuma_core/kuro/sdm_engine.py:242-295` |
