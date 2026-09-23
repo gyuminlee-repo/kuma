@@ -53,6 +53,7 @@ from Bio.SeqRecord import SeqRecord
 from kuma_core.kuro import codon_compute as cc
 from kuma_core.kuro.codon_import import (
     DEFAULT_GENETIC_CODE,
+    canonical_digest,
     SUPPORTED_GENETIC_CODES,
     validate_codon_table_data,
 )
@@ -339,6 +340,31 @@ def test_stored_fractions_match_their_own_counts(stem):
     """V27 is the hand-edit detector; a computed file must never trip it."""
     report = validate_codon_table_data(_load(stem), stem=stem)
     assert "V27" not in report.error_codes
+
+
+@pytest.mark.parametrize("stem", ["mextorquens_am1", "ecoli_k12_mg1655"])
+def test_the_stored_fractions_are_the_ones_the_importer_will_digest(stem):
+    """The digest of the file as written equals the digest kuma computes on load.
+
+    ``_check_counts`` N4 treats counts as authoritative and replaces every
+    stored fraction with ``count / group total`` before ``canonical_digest``
+    runs, so a file whose fractions were rounded on the way out hashes to one
+    value on paper and another inside kuma. That is not hypothetical: the
+    design note's own section 3.2 file declares
+    ``07a30a7af3317e14bf4ca5e45054dc32f297d437fe8a73e0243036a1de522ce6``,
+    which is the digest of its three-decimal codons block, while the importer
+    returns ``511945235fcfb0507a11e497a7321e2ea1c21a4c646ecaba99a7923236495d84``
+    for the same file. Writing fractions unrounded is what closes that gap, and
+    the workspace digest comparison of section 8 depends on it being closed.
+    """
+    document = _load(stem)
+    stored = canonical_digest(
+        {aa: [tuple(pair) for pair in pairs]
+         for aa, pairs in document["codons"].items()},
+        document["genetic_code"],
+    )
+    report = validate_codon_table_data(document, stem=stem)
+    assert stored == report.table_sha256
 
 
 def test_computed_table_is_refused_when_it_declares_an_unsupported_code():
