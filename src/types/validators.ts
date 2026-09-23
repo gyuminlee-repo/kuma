@@ -305,6 +305,58 @@ function isImportCodonTableResult(value: unknown): boolean {
   );
 }
 
+function isCodonPreviewTopRow(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isString(value.aa) &&
+    isString(value.codon) &&
+    isNumber(value.fraction) &&
+    isNumber(value.count)
+  );
+}
+
+function isCodonPreviewDivergentRow(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isString(value.aa) &&
+    isString(value.codon) &&
+    isNumber(value.fraction) &&
+    isNumber(value.reference_fraction) &&
+    isNumber(value.delta)
+  );
+}
+
+// The counts are checked, the two record maps are not looked into beyond being
+// objects. `cds_excluded` is keyed by the sidecar's exclusion reasons and
+// `excluded_examples` by the same set; enumerating them here would pin a list
+// that lives in codon_compute.py and would reject a sidecar that added a sixth
+// reason, which is the opposite of what a guard at this boundary is for.
+function isCodonTablePreview(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isString(value.source_format) &&
+    isNumber(value.cds_total) &&
+    isNumber(value.cds_counted) &&
+    isRecord(value.cds_excluded) &&
+    isRecord(value.excluded_examples) &&
+    isNumber(value.codon_count) &&
+    isArrayOf(value.top_codons, isCodonPreviewTopRow) &&
+    (value.reference_key === null || isString(value.reference_key)) &&
+    isArrayOf(value.divergent_codons, isCodonPreviewDivergentRow)
+  );
+}
+
+// The import envelope plus the tally. Not optional: a compute reply without a
+// preview is a sidecar that ran the scan and threw the numbers away, and the
+// dialog would render a panel of blanks rather than an error.
+function isComputeCodonTableResult(value: unknown): boolean {
+  return (
+    isImportCodonTableResult(value) &&
+    isRecord(value) &&
+    isCodonTablePreview(value.preview)
+  );
+}
+
 function isExportCodonTableResult(value: unknown): boolean {
   return (
     isRecord(value) &&
@@ -1186,6 +1238,8 @@ const rpcResultValidators = {
     isSaveCustomPolymeraseResult(value),
   list_organisms: (value): value is RpcMethodResult<"list_organisms"> =>
     isListOrganismsResult(value),
+  compute_codon_table: (value): value is RpcMethodResult<"compute_codon_table"> =>
+    isComputeCodonTableResult(value),
   import_codon_table: (value): value is RpcMethodResult<"import_codon_table"> =>
     isImportCodonTableResult(value),
   export_codon_table: (value): value is RpcMethodResult<"export_codon_table"> =>

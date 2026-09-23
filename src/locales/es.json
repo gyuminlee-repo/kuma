@@ -3888,7 +3888,10 @@
       "N2": "{{n}} codón(es) estaban en minúsculas y se han pasado a mayúsculas.",
       "N4": "Las frecuencias se recalcularon a partir de los recuentos de codones.",
       "R5": "{{filename}} queda oculto por la tabla integrada '{{stem}}' y no se cargó. Cambie el nombre a {{stem}}_lab.json para usarlo.",
-      "unknown": "El verificador de tablas de codones informó {{code}}, para el que esta versión de kuma no tiene descripción."
+      "unknown": "El verificador de tablas de codones informó {{code}}, para el que esta versión de kuma no tiene descripción.",
+      "G1": "kuma no pudo leer este archivo como el formato de genoma que indica su nombre: {{detail}}",
+      "G2": "kuma no cuenta codones con el código genético {{code}}. Elija 1 u 11.",
+      "G3": "No se contó ninguna secuencia codificante en {{file}}. Se leyeron {{total}} y todas quedaron fuera, así que no hay con qué construir una tabla."
     },
     "restore": {
       "notInstalled": "Este proyecto usa la tabla de codones '{{name}}', que no está instalada aquí. ¿Instalarla desde el archivo del proyecto?",
@@ -3940,7 +3943,24 @@
       "installed": "Tabla de codones instalada: {{key}}",
       "importFailed": "Falló la importación de la tabla de codones: {{reason}}",
       "exported": "Tabla de codones escrita en {{path}}",
-      "exportFailed": "Falló la exportación de la tabla de codones: {{reason}}"
+      "exportFailed": "Falló la exportación de la tabla de codones: {{reason}}",
+      "computeTab": "Calcular a partir de un genoma",
+      "computeHint": "Elija un archivo GenBank o un FASTA de CDS. kuma cuenta los codones de cada secuencia codificante que puede leer y construye la tabla con ese recuento.",
+      "genomeLabel": "Genoma",
+      "genomePlaceholder": "Aún no se ha elegido un genoma",
+      "computing": "Contando codones…",
+      "computeCheck": "Contar codones",
+      "computeInstall": "Instalar",
+      "previewCounted": "{{counted}} de {{total}} secuencias codificantes contadas, {{codons}} codones en total.",
+      "excludedLabel": "Secuencias codificantes descartadas",
+      "excludedNone": "Ninguna. Se contaron todas las secuencias codificantes del archivo.",
+      "reasonPseudo": "Anotada como pseudogén",
+      "reasonNotMultipleOf3": "La longitud no es múltiplo de tres",
+      "reasonInternalStop": "Codón de parada antes del final",
+      "reasonNoTerminalStop": "Sin codón de parada al final",
+      "reasonAmbiguousBase": "Contiene una base distinta de A, C, G o T",
+      "topCodonsLabel": "Codón más frecuente por aminoácido",
+      "divergentLabel": "Mayor diferencia con la tabla incluida {{reference}}"
     }
   }
 }

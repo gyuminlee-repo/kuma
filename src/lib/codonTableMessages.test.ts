@@ -67,6 +67,30 @@ function runtimeCodes(): string[] {
   return [...new Set(found)];
 }
 
+/**
+ * The G-codes, read from the handler that raises them.
+ *
+ * They are not in `MESSAGE_CODES` and that is not an oversight: they are
+ * refusals of a genome file, raised before any codon table exists for a V-rule
+ * to judge. Read from the source the same way the other two families are, so a
+ * fourth G-code added to the handler fails this suite until it has a sentence
+ * rather than shipping as the `unknown` fallback.
+ */
+function genomeCodes(): string[] {
+  const source = readFileSync(
+    resolve(REPO, "python-core/sidecar_kuro/handlers/codon.py"),
+    "utf-8",
+  );
+  const found = [...source.matchAll(/_refused\(\s*"(G\d+)"/g)].map((m) => m[1]);
+  if (found.length === 0) {
+    throw new Error(
+      "No genome refusal code found in python-core/sidecar_kuro/handlers/"
+      + "codon.py. Update this reader rather than hardcoding the codes.",
+    );
+  }
+  return [...new Set(found)].sort();
+}
+
 /** `codonTable.messages` as English ships it. */
 function englishMessages(): Record<string, string> {
   const en = JSON.parse(readFileSync(resolve(REPO, "src/locales/en.json"), "utf-8"));
@@ -104,7 +128,7 @@ function tracingParams(): Record<string, unknown> {
   return new Proxy({}, { get: (_t, prop) => `PARAM:${String(prop)}` });
 }
 
-const CODES = [...messageCodes(), ...runtimeCodes()];
+const CODES = [...messageCodes(), ...runtimeCodes(), ...genomeCodes()];
 const MESSAGES = englishMessages();
 const SILENT_CODES = ["N3"];
 
@@ -115,6 +139,7 @@ describe("MESSAGE_CODES coverage", () => {
     expect(CODES).toContain("N1");
     expect(CODES).toContain("N3");
     expect(CODES).toContain("R5");
+    expect(CODES).toContain("G1");
   });
 
   it.each(CODES.filter((c) => !SILENT_CODES.includes(c)))(

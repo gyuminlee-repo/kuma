@@ -3888,7 +3888,10 @@
       "N2": "{{n}} códon(s) estavam em minúsculas e foram convertidos para maiúsculas.",
       "N4": "As frequências foram recalculadas a partir das contagens de códons.",
       "R5": "{{filename}} está encoberto pela tabela integrada '{{stem}}' e não foi carregado. Renomeie para {{stem}}_lab.json para usá-lo.",
-      "unknown": "O verificador de tabelas de códons relatou {{code}}, para o qual esta versão do kuma não tem descrição."
+      "unknown": "O verificador de tabelas de códons relatou {{code}}, para o qual esta versão do kuma não tem descrição.",
+      "G1": "O kuma não conseguiu ler este arquivo no formato de genoma que o nome indica: {{detail}}",
+      "G2": "O kuma não conta códons com o código genético {{code}}. Escolha 1 ou 11.",
+      "G3": "Nenhuma sequência codificante foi contada em {{file}}. {{total}} foram lidas e todas ficaram de fora, então não há com o que montar uma tabela."
     },
     "restore": {
       "notInstalled": "Este projeto usa a tabela de códons '{{name}}', que não está instalada aqui. Instalar a partir do arquivo do projeto?",
@@ -3940,7 +3943,24 @@
       "installed": "Tabela de códons instalada: {{key}}",
       "importFailed": "Falha ao importar a tabela de códons: {{reason}}",
       "exported": "Tabela de códons gravada em {{path}}",
-      "exportFailed": "Falha ao exportar a tabela de códons: {{reason}}"
+      "exportFailed": "Falha ao exportar a tabela de códons: {{reason}}",
+      "computeTab": "Calcular a partir de um genoma",
+      "computeHint": "Escolha um arquivo GenBank ou um FASTA de CDS. O kuma conta os códons de cada sequência codificante que consegue ler e monta a tabela com essa contagem.",
+      "genomeLabel": "Genoma",
+      "genomePlaceholder": "Nenhum genoma escolhido ainda",
+      "computing": "Contando códons…",
+      "computeCheck": "Contar códons",
+      "computeInstall": "Instalar",
+      "previewCounted": "{{counted}} de {{total}} sequências codificantes contadas, {{codons}} códons no total.",
+      "excludedLabel": "Sequências codificantes deixadas de fora",
+      "excludedNone": "Nenhuma. Todas as sequências codificantes do arquivo foram contadas.",
+      "reasonPseudo": "Anotada como pseudogene",
+      "reasonNotMultipleOf3": "O comprimento não é múltiplo de três",
+      "reasonInternalStop": "Códon de parada antes do fim",
+      "reasonNoTerminalStop": "Sem códon de parada no fim",
+      "reasonAmbiguousBase": "Contém uma base diferente de A, C, G ou T",
+      "topCodonsLabel": "Códon mais frequente por aminoácido",
+      "divergentLabel": "Maior diferença em relação à tabela incluída {{reference}}"
     }
   }
 }

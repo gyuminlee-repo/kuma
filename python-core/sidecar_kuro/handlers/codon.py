@@ -105,7 +105,6 @@ def _rejected(findings: list[dict], key: str) -> dict:
         "codons_examined": 0,
         "document": None,
         "path": None,
-        "preview": _empty_preview(),
     }
 
 
@@ -465,6 +464,19 @@ def _empty_preview() -> dict[str, Any]:
     }
 
 
+def _refused(code: str, params: dict, detail: str, key: str) -> dict[str, Any]:
+    """A compute rejection, carrying the empty preview the reply always has.
+
+    Compute replies with a ``preview`` block whatever happens, so the dialog
+    reads one shape rather than testing for the field and then for its
+    contents. ``_rejected`` stays without it: an import rejection has no tally
+    to report and a field that is always empty is a field that lies.
+    """
+    rejection = _rejected([_finding(code, params, detail)], key)
+    rejection["preview"] = _empty_preview()
+    return rejection
+
+
 def handle_compute_codon_table(params: dict) -> dict:
     """Count the codons of a genome file and install the table it yields.
 
@@ -493,9 +505,7 @@ def handle_compute_codon_table(params: dict) -> dict:
         # raised, so it lands in the dialog's localized list beside the
         # validator's own rejections instead of as a transport error in
         # English.
-        return _rejected(
-            [_finding("G1", {"detail": str(exc)}, str(exc))], p.key
-        )
+        return _refused("G1", {"detail": str(exc)}, str(exc), p.key)
     if not resolved.exists():
         raise FileNotFoundError(f"File does not exist: {p.filepath}")
 
@@ -521,14 +531,11 @@ def handle_compute_codon_table(params: dict) -> dict:
             on_progress=on_progress,
         )
     except _compute.UnsupportedGeneticCodeError as exc:
-        return _rejected(
-            [_finding("G2", {"code": exc.code, "detail": str(exc)}, str(exc))],
-            p.key,
+        return _refused(
+            "G2", {"code": exc.code, "detail": str(exc)}, str(exc), p.key
         )
     except _compute.GenomeParseError as exc:
-        return _rejected(
-            [_finding("G1", {"detail": str(exc)}, str(exc))], p.key
-        )
+        return _refused("G1", {"detail": str(exc)}, str(exc), p.key)
 
     if computed.cds_counted == 0:
         # Every amino acid group is zero, so the validator would reject this
@@ -544,13 +551,9 @@ def handle_compute_codon_table(params: dict) -> dict:
             f"{computed.cds_total} were read and "
             f"{sum(computed.cds_excluded.values())} were excluded."
         )
-        rejection = _rejected(
-            [_finding(
-                "G3",
-                {"file": resolved.name, "total": computed.cds_total},
-                detail,
-            )],
-            p.key,
+        rejection = _refused(
+            "G3", {"file": resolved.name, "total": computed.cds_total},
+            detail, p.key,
         )
         rejection["preview"] = _preview(computed, registry)
         return rejection

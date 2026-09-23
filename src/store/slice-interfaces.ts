@@ -15,6 +15,8 @@ import type { ExpectedCodonTable } from "../lib/codonTableRestore";
 import type { Round } from "../types/round";
 import type {
   BenchmarkResult,
+  ComputeCodonTableParams,
+  ComputeCodonTableResult,
   ComputeDispersionResult,
   DesignRunRecord,
   DistanceMode,
@@ -112,6 +114,26 @@ export interface SequenceSlice {
    * would look like it had failed.
    */
   importCodonTable: (params: ImportCodonTableParams) => Promise<ImportCodonTableResult>;
+  /**
+   * Count a genome into a codon table without installing it, for the preview.
+   *
+   * `dry_run` again, and again the same RPC the install uses. The scan runs
+   * either way -- there is no cheaper way to learn how many coding sequences a
+   * file holds than to read them -- so what the preview saves is the write,
+   * not the work.
+   */
+  previewComputedCodonTable: (
+    params: ComputeCodonTableParams,
+  ) => Promise<ComputeCodonTableResult>;
+  /**
+   * Count a genome into a codon table, install it and select it.
+   *
+   * Same send -> relist -> select as importCodonTable, because it is the same
+   * outcome: a key in the dropdown the user came here to design with.
+   */
+  computeCodonTable: (
+    params: ComputeCodonTableParams,
+  ) => Promise<ComputeCodonTableResult>;
   /** Write an installed table out as a file. Resolves to the path written. */
   exportCodonTable: (params: ExportCodonTableParams) => Promise<string>;
 }

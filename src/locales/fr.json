@@ -3888,7 +3888,10 @@
       "N2": "{{n}} codon(s) étaient en minuscules et ont été convertis en majuscules.",
       "N4": "Les fréquences ont été recalculées à partir des décomptes de codons.",
       "R5": "{{filename}} est masqué par la table intégrée '{{stem}}' et n'a pas été chargé. Renommez-le en {{stem}}_lab.json pour l'utiliser.",
-      "unknown": "Le vérificateur de tables de codons a signalé {{code}}, pour lequel cette version de kuma n'a pas de description."
+      "unknown": "Le vérificateur de tables de codons a signalé {{code}}, pour lequel cette version de kuma n'a pas de description.",
+      "G1": "kuma n'a pas pu lire ce fichier dans le format de génome que son nom annonce : {{detail}}",
+      "G2": "kuma ne compte pas les codons sous le code génétique {{code}}. Choisissez 1 ou 11.",
+      "G3": "Aucune séquence codante n'a été comptée dans {{file}}. {{total}} ont été lues et toutes écartées, il n'y a donc rien pour construire une table."
     },
     "restore": {
       "notInstalled": "Ce projet utilise la table de codons '{{name}}', qui n'est pas installée ici. L'installer depuis le fichier de projet ?",
@@ -3940,7 +3943,24 @@
       "installed": "Table de codons installée : {{key}}",
       "importFailed": "Échec de l'import de la table de codons : {{reason}}",
       "exported": "Table de codons écrite dans {{path}}",
-      "exportFailed": "Échec de l'export de la table de codons : {{reason}}"
+      "exportFailed": "Échec de l'export de la table de codons : {{reason}}",
+      "computeTab": "Calculer à partir d'un génome",
+      "computeHint": "Choisissez un fichier GenBank ou un FASTA de CDS. kuma compte les codons de chaque séquence codante qu'il sait lire et construit la table à partir de ce décompte.",
+      "genomeLabel": "Génome",
+      "genomePlaceholder": "Aucun génome choisi pour l'instant",
+      "computing": "Comptage des codons…",
+      "computeCheck": "Compter les codons",
+      "computeInstall": "Installer",
+      "previewCounted": "{{counted}} séquences codantes comptées sur {{total}}, {{codons}} codons au total.",
+      "excludedLabel": "Séquences codantes écartées",
+      "excludedNone": "Aucune. Toutes les séquences codantes du fichier ont été comptées.",
+      "reasonPseudo": "Annotée comme pseudogène",
+      "reasonNotMultipleOf3": "La longueur n'est pas un multiple de trois",
+      "reasonInternalStop": "Codon stop avant la fin",
+      "reasonNoTerminalStop": "Pas de codon stop à la fin",
+      "reasonAmbiguousBase": "Contient une base autre que A, C, G ou T",
+      "topCodonsLabel": "Codon le plus fréquent par acide aminé",
+      "divergentLabel": "Plus grand écart avec la table fournie {{reference}}"
     }
   }
 }

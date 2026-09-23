@@ -3888,7 +3888,10 @@
       "N2": "소문자였던 코돈 {{n}} 개를 대문자로 바꿨습니다.",
       "N4": "코돈 개수로부터 빈도를 다시 계산했습니다.",
       "R5": "{{filename}} 은(는) 내장 테이블 '{{stem}}' 에 가려져 로드되지 않았습니다. 사용하려면 {{stem}}_lab.json 으로 이름을 바꾸세요.",
-      "unknown": "코돈 테이블 검사기가 {{code}} 를 보고했으나 이 버전의 kuma 에는 해당 설명이 없습니다."
+      "unknown": "코돈 테이블 검사기가 {{code}} 를 보고했으나 이 버전의 kuma 에는 해당 설명이 없습니다.",
+      "G1": "이 파일을 이름이 말하는 게놈 형식으로 읽지 못했다: {{detail}}",
+      "G2": "kuma는 유전암호 {{code}}로는 코돈을 세지 않는다. 1 또는 11을 고른다.",
+      "G3": "{{file}}에서 센 코딩 서열이 하나도 없다. {{total}}건을 읽었고 전부 제외되어 표를 만들 근거가 없다."
     },
     "restore": {
       "notInstalled": "이 프로젝트는 코돈 테이블 '{{name}}' 을(를) 사용하지만 이 컴퓨터에는 설치되어 있지 않습니다. 프로젝트 파일에서 설치할까요?",
@@ -3940,7 +3943,24 @@
       "installed": "코돈 테이블을 설치했습니다: {{key}}",
       "importFailed": "코돈 테이블 가져오기에 실패했습니다: {{reason}}",
       "exported": "코돈 테이블을 {{path}} 에 썼습니다",
-      "exportFailed": "코돈 테이블 내보내기에 실패했습니다: {{reason}}"
+      "exportFailed": "코돈 테이블 내보내기에 실패했습니다: {{reason}}",
+      "computeTab": "게놈에서 계산",
+      "computeHint": "GenBank 파일 또는 CDS FASTA를 고른다. kuma가 읽을 수 있는 모든 코딩 서열의 코돈을 세어 그 집계로 표를 만든다.",
+      "genomeLabel": "게놈",
+      "genomePlaceholder": "아직 고른 게놈이 없음",
+      "computing": "코돈을 세는 중…",
+      "computeCheck": "코돈 세기",
+      "computeInstall": "설치",
+      "previewCounted": "코딩 서열 {{total}}건 중 {{counted}}건을 셌고 코돈은 모두 {{codons}}개다.",
+      "excludedLabel": "제외한 코딩 서열",
+      "excludedNone": "없음. 파일의 코딩 서열을 모두 셌다.",
+      "reasonPseudo": "위유전자로 표시됨",
+      "reasonNotMultipleOf3": "길이가 3의 배수가 아님",
+      "reasonInternalStop": "끝나기 전에 종결 코돈이 있음",
+      "reasonNoTerminalStop": "끝에 종결 코돈이 없음",
+      "reasonAmbiguousBase": "A, C, G, T 이외의 염기가 있음",
+      "topCodonsLabel": "아미노산별 최빈 코돈",
+      "divergentLabel": "내장 {{reference}} 표와 차이가 가장 큰 코돈"
     }
   }
 }
