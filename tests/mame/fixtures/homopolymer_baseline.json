@@ -3,26 +3,43 @@
   "arm_consensus_differing_wells": 0,
   "arms": {
     "no_quality": {
+      "deletion_call_rate_homopolymer": 0.043651,
+      "deletion_calls_by_region": {
+        "control": 0,
+        "flank": 0,
+        "homopolymer": 44
+      },
+      "deletion_calls_by_run_length": {
+        "6": 16,
+        "7": 15,
+        "8": 13
+      },
+      "deletion_calls_by_tier": {
+        "0.10": 0,
+        "0.30": 0,
+        "0.50": 8,
+        "0.70": 36
+      },
       "low_quality_bases_dropped": 0,
       "mean_max_indel_event_fraction": 0.465411,
       "no_call_rate_control": 0.0,
-      "no_call_rate_homopolymer": 0.046627,
-      "no_call_rate_overall": 0.008589,
+      "no_call_rate_homopolymer": 0.002976,
+      "no_call_rate_overall": 0.000548,
       "no_calls_by_region": {
         "control": 0,
         "flank": 0,
-        "homopolymer": 47
+        "homopolymer": 3
       },
       "no_calls_by_run_length": {
-        "6": 18,
-        "7": 16,
-        "8": 13
+        "6": 2,
+        "7": 1,
+        "8": 0
       },
       "no_calls_by_tier": {
         "0.10": 0,
         "0.30": 0,
-        "0.50": 11,
-        "0.70": 36
+        "0.50": 3,
+        "0.70": 0
       },
       "reads_passed_filter": 959,
       "verdicts_design_empty": {
@@ -47,26 +64,43 @@
       }
     },
     "with_quality": {
+      "deletion_call_rate_homopolymer": 0.043651,
+      "deletion_calls_by_region": {
+        "control": 0,
+        "flank": 0,
+        "homopolymer": 44
+      },
+      "deletion_calls_by_run_length": {
+        "6": 16,
+        "7": 15,
+        "8": 13
+      },
+      "deletion_calls_by_tier": {
+        "0.10": 0,
+        "0.30": 0,
+        "0.50": 8,
+        "0.70": 36
+      },
       "low_quality_bases_dropped": 3316,
       "mean_max_indel_event_fraction": 0.472051,
       "no_call_rate_control": 0.0,
-      "no_call_rate_homopolymer": 0.046627,
-      "no_call_rate_overall": 0.008589,
+      "no_call_rate_homopolymer": 0.002976,
+      "no_call_rate_overall": 0.000548,
       "no_calls_by_region": {
         "control": 0,
         "flank": 0,
-        "homopolymer": 47
+        "homopolymer": 3
       },
       "no_calls_by_run_length": {
-        "6": 18,
-        "7": 16,
-        "8": 13
+        "6": 2,
+        "7": 1,
+        "8": 0
       },
       "no_calls_by_tier": {
         "0.10": 0,
         "0.30": 0,
-        "0.50": 11,
-        "0.70": 36
+        "0.50": 3,
+        "0.70": 0
       },
       "reads_passed_filter": 959,
       "verdicts_design_empty": {

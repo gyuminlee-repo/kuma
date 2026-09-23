@@ -54,6 +54,14 @@ evidence within the range it inspects.
 * The baseline is bound to a minimap2 version, recorded alongside it. A version
   bump can move these numbers without anything in MAME changing.
 
+NO-CALLS AND DELETION CALLS
+---------------------------
+Since ``cd1ce8c6`` the consensus writes '-' at a deletion-majority position
+where it used to write 'N'. The two are counted apart: ``no_call*`` keys count
+'N' only, and ``deletion_call*`` keys count '-' with the same bins, denominators
+and rounding. The consensus stays reference-length (insertions are dropped), so
+index ``i`` of the consensus string is reference position ``i`` for both.
+
 REGENERATING THE BASELINE
 -------------------------
     KUMA_HP_BASELINE_UPDATE=1 python -m pytest tests/mame/test_homopolymer_regression.py
@@ -288,6 +296,9 @@ def _measure() -> dict:
         n_by_region = {k: 0 for k in bins}
         n_by_run_length = {"6": 0, "7": 0, "8": 0}
         n_by_tier = {f"{p:.2f}": 0 for p in HOMOPOLYMER_DEL_PROB_TIERS}
+        del_by_region = {k: 0 for k in bins}
+        del_by_run_length = {"6": 0, "7": 0, "8": 0}
+        del_by_tier = {f"{p:.2f}": 0 for p in HOMOPOLYMER_DEL_PROB_TIERS}
         verdicts_empty = _empty_verdict_table()
         verdicts_unconfirmed = _empty_verdict_table()
         reads_passed = 0
@@ -322,15 +333,23 @@ def _measure() -> dict:
 
             tier_key = f"{HOMOPOLYMER_DEL_PROB_TIERS[int(well[4])]:.2f}"
             for i, base in enumerate(call.consensus_seq):
-                if base != "N":
+                if base == "N":
+                    by_region, by_tier, by_run = n_by_region, n_by_tier, n_by_run_length
+                elif base == "-":
+                    by_region, by_tier, by_run = (
+                        del_by_region,
+                        del_by_tier,
+                        del_by_run_length,
+                    )
+                else:
                     continue
                 for region, positions in bins.items():
                     if i in positions:
-                        n_by_region[region] += 1
+                        by_region[region] += 1
                         break
-                n_by_tier[tier_key] += 1
+                by_tier[tier_key] += 1
                 if i in run_len_at:
-                    n_by_run_length[str(run_len_at[i])] += 1
+                    by_run[str(run_len_at[i])] += 1
 
             record = _barcode_record(well, call, read_count=len(reads))
             translated = translate_and_diff(
@@ -366,6 +385,13 @@ def _measure() -> dict:
             ),
             "no_call_rate_control": round(
                 n_by_region["control"] / (len(bins["control"]) * len(wells)), 6
+            ),
+            "deletion_calls_by_region": del_by_region,
+            "deletion_calls_by_run_length": del_by_run_length,
+            "deletion_calls_by_tier": del_by_tier,
+            "deletion_call_rate_homopolymer": round(
+                del_by_region["homopolymer"] / (len(bins["homopolymer"]) * len(wells)),
+                6,
             ),
             "verdicts_design_empty": verdicts_empty,
             "verdicts_design_unconfirmed": verdicts_unconfirmed,
