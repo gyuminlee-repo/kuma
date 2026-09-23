@@ -114,8 +114,21 @@ def _reverse_complement(seq: str) -> str:
 # ``WARN_STRUCTURE_TM`` and ``check_offtarget``'s tm thresholds), and a knob
 # nothing sets is a knob that only has to be threaded through the RPC models,
 # the TypeScript types and ten locale files.
-_QC_STRUCTURE_TM_MAX = 40.0   # sdm_engine.WARN_STRUCTURE_TM
-_QC_OFFTARGET_TM = 45.0       # sdm_engine.check_offtarget tm_threshold defaults
+#
+# The thresholds are MAME's own criterion, not KURO's. They start numerically
+# equal to the KURO defaults but are declared here as literals and never
+# imported, for the same reason ``kuma_core/mame/ingest/polymerase.py`` keeps its
+# profiles separate from ``kuma_core.kuro.polymerase``: tuning one app must not
+# move the other. Only the calculation is shared (``kuma_core.shared.thermo``,
+# the adapter KURO calls, and KURO's ``check_offtarget``). None of these numbers
+# has a literature basis as a cut-off; no published study fixes a hairpin or
+# dimer Tm limit, so they are an in-house starting point to be tuned against
+# observed PCR failures.
+_QC_STRUCTURE_TM_MAX = 40.0   # equal to sdm_engine.WARN_STRUCTURE_TM at start
+_QC_OFFTARGET_TM = 45.0       # equal to check_offtarget tm_threshold defaults
+# Fwd x rev heterodimer limit on the full ``seed + flanking`` oligos. KURO has
+# no heterodimer check to mirror, so this one starts at the structure limit.
+_QC_HETERODIMER_TM_MAX = 40.0
 
 # primer3's thermodynamic alignment refuses a pair where both sequences exceed
 # 60 nt ("At least one sequence must be equal to or shorter than 60bp"). A full
@@ -998,7 +1011,8 @@ def generate_mame_package(
        off-target binding.
     3. Call :func:`parse_barcode_seeds` to obtain 12 fwd + 8 rev seed sequences,
        then run an advisory hairpin/homodimer pass over the 20 full
-       ``seed + flanking`` oligos. That pass only appends warnings.
+       ``seed + flanking`` oligos and a fwd x rev heterodimer pass over their
+       96 pairs. Those passes only append warnings.
     4. Write ``barcodes_sequence.xlsx`` (20 data rows, 1 header row).
        Row format: name ``{sanitized_gene}_f_N`` / ``{sanitized_gene}_r_N``,
        sequence = SEED + flanking (all upper). The ``sanitized_gene`` prefix
@@ -1103,7 +1117,11 @@ def generate_mame_package(
     # Advisory QC on the full synthesised oligos. Runs after seed parsing
     # because the seeds are what makes an oligo whole, and it only appends
     # warnings: selection already happened in step 2 and is not revisited.
-    pkg_warnings = list(pkg_warnings) + _full_oligo_qc_warnings(rows)
+    pkg_warnings = (
+        list(pkg_warnings)
+        + _full_oligo_qc_warnings(rows)
+        + _heterodimer_qc_warnings(rows)
+    )
 
     barcodes_xlsx_path = output_dir / "barcodes_sequence.xlsx"
     _write_barcodes_xlsx(
@@ -1238,6 +1256,60 @@ def _full_oligo_qc_warnings(rows: list[tuple[str, str]]) -> list[str]:
             f"{len(unchecked)} of {len(rows)} full barcode oligos were not "
             f"checked for hairpin/homodimer because primer3 requires "
             f"{_PRIMER3_THAL_MAX_LEN} nt or fewer: " + "; ".join(unchecked) + "."
+        )
+    return out
+
+
+def _heterodimer_tm(seq1: str, seq2: str) -> float | None:
+    """Heterodimer Tm of two oligos, or None when primer3 cannot check.
+
+    Same rounding and 0.0-when-absent convention as :func:`_structure_tms`.
+    primer3 refuses a pair only when BOTH sequences exceed
+    ``_PRIMER3_THAL_MAX_LEN``; one long partner is fine.
+    """
+    if len(seq1) > _PRIMER3_THAL_MAX_LEN and len(seq2) > _PRIMER3_THAL_MAX_LEN:
+        return None
+    dimer = thermo.calc_heterodimer(seq1.upper(), seq2.upper(), **_QC_CONCS)
+    return round(dimer.tm if dimer.structure_found else 0.0, 1)
+
+
+def _heterodimer_qc_warnings(rows: list[tuple[str, str]]) -> list[str]:
+    """Advisory fwd x rev heterodimer pass over the full synthesised oligos.
+
+    ``rows`` is :func:`_barcode_rows` output: ``_N_FWD`` forward oligos then the
+    reverse ones. Combinatorial barcoding puts one forward and one reverse
+    oligo in each well, so the failure mode is every fwd_i x rev_j duplex
+    (12 x 8 = 96 pairs), not fwd x fwd or rev x rev. Advisory only for the same
+    reason as :func:`_full_oligo_qc_warnings`: the seeds are fixed inputs.
+    """
+    fwd_rows = rows[:_N_FWD]
+    rev_rows = rows[_N_FWD:]
+    total = len(fwd_rows) * len(rev_rows)
+    flagged: list[str] = []
+    unchecked: list[str] = []
+    for fwd_name, fwd_seq in fwd_rows:
+        for rev_name, rev_seq in rev_rows:
+            tm = _heterodimer_tm(fwd_seq, rev_seq)
+            if tm is None:
+                unchecked.append(f"{fwd_name} x {rev_name}")
+            elif tm > _QC_HETERODIMER_TM_MAX:
+                flagged.append(f"{fwd_name} x {rev_name}: heterodimer Tm={tm:.1f} C")
+
+    out: list[str] = []
+    if flagged:
+        out.append(
+            f"{len(flagged)} of {total} forward x reverse barcode oligo pairs "
+            f"(seed + flanking) exceed the {_QC_HETERODIMER_TM_MAX:.1f} C "
+            f"advisory heterodimer limit: " + "; ".join(flagged) + ". Advisory "
+            "only: the seeds are fixed inputs, so this did not change primer "
+            "selection."
+        )
+    if unchecked:
+        out.append(
+            f"{len(unchecked)} of {total} forward x reverse barcode oligo pairs "
+            f"were not checked for heterodimer because primer3 requires one "
+            f"partner of {_PRIMER3_THAL_MAX_LEN} nt or fewer: "
+            + "; ".join(unchecked) + "."
         )
     return out
 
