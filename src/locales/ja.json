@@ -3927,7 +3927,10 @@
       "N2": "小文字だったコドン {{n}} 個を大文字に変換しました。",
       "N4": "コドンの個数から頻度を再計算しました。",
       "R5": "{{filename}} は組み込みテーブル '{{stem}}' に隠されて読み込まれませんでした。使うには {{stem}}_lab.json に名前を変更してください。",
-      "unknown": "コドン表チェッカーが {{code}} を報告しましたが、このバージョンの kuma には該当する説明がありません。"
+      "unknown": "コドン表チェッカーが {{code}} を報告しましたが、このバージョンの kuma には該当する説明がありません。",
+      "G1": "このファイルを名前が示すゲノム形式として読み取れませんでした: {{detail}}",
+      "G2": "kuma は遺伝暗号 {{code}} ではコドンを数えません。1 か 11 を選んでください。",
+      "G3": "{{file}} では数えられたコード配列がありません。{{total}} 件を読み取りましたがすべて除外され、表を作る根拠がありません。"
     },
     "restore": {
       "notInstalled": "このプロジェクトはコドンテーブル '{{name}}' を使いますが、この環境には入っていません。プロジェクトファイルからインストールしますか。",
@@ -3979,7 +3982,24 @@
       "installed": "コドン表を導入しました: {{key}}",
       "importFailed": "コドン表の取り込みに失敗しました: {{reason}}",
       "exported": "コドン表を {{path}} に書き出しました",
-      "exportFailed": "コドン表の書き出しに失敗しました: {{reason}}"
+      "exportFailed": "コドン表の書き出しに失敗しました: {{reason}}",
+      "computeTab": "ゲノムから計算",
+      "computeHint": "GenBank ファイルまたは CDS FASTA を選ぶ。kuma が読み取れるすべてのコード配列のコドンを数え、その集計から表を作る。",
+      "genomeLabel": "ゲノム",
+      "genomePlaceholder": "ゲノムが未選択",
+      "computing": "コドンを数えています…",
+      "computeCheck": "コドンを数える",
+      "computeInstall": "インストール",
+      "previewCounted": "コード配列 {{total}} 件のうち {{counted}} 件を数え、コドンは合計 {{codons}} 個。",
+      "excludedLabel": "除外したコード配列",
+      "excludedNone": "なし。ファイル内のコード配列をすべて数えた。",
+      "reasonPseudo": "偽遺伝子として注釈されている",
+      "reasonNotMultipleOf3": "長さが 3 の倍数ではない",
+      "reasonInternalStop": "途中に終止コドンがある",
+      "reasonNoTerminalStop": "末尾に終止コドンがない",
+      "reasonAmbiguousBase": "A、C、G、T 以外の塩基を含む",
+      "topCodonsLabel": "アミノ酸ごとの最頻コドン",
+      "divergentLabel": "同梱の {{reference}} 表との差が最も大きいコドン"
     }
   }
 }

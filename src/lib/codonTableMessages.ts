@@ -17,7 +17,15 @@
  * the only shape the check can read, so each code gets its own line.
  *
  * SCOPE OF THE CODES HANDLED HERE.
- * V1-V36 and N1, N2, N4 come from `MESSAGE_CODES`. V36 is the odd one: no
+ * V1-V36 and N1, N2, N4 come from `MESSAGE_CODES`. G1, G2 and G3 come from
+ * somewhere else and that is worth stating: they are raised by
+ * `handlers/codon.py` on the compute path, before any V-rule has a table to
+ * judge, because a genome file can fail in ways a codon table cannot. G1 is a
+ * file kuma could not read as the genome format it claims to be, G2 a genetic
+ * code kuma will not count under, and G3 a file that parsed and held no coding
+ * sequences to count. G3 exists because the alternative was twenty-one V24s --
+ * "every codon for A is zero", once per amino acid group -- not one of which
+ * says that the file the user chose was empty. V36 is the odd one: no
  * rule in codon_import.py raises it. It is the parse failure
  * `codon_formats.CodonFormatError` reports when a CSV, cusp or Kazusa file
  * has no locatable columns, which produces no `codons` block for any V-rule
@@ -129,6 +137,12 @@ export function formatCodonTableMessage(
       return t("codonTable.messages.N4");
     case "R5":
       return t("codonTable.messages.R5", { filename: params.filename, stem: params.stem });
+    case "G1":
+      return t("codonTable.messages.G1", { detail: params.detail });
+    case "G2":
+      return t("codonTable.messages.G2", { code: params.code });
+    case "G3":
+      return t("codonTable.messages.G3", { file: params.file, total: params.total });
     default:
       return t("codonTable.messages.unknown", { code });
   }

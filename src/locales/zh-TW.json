@@ -3927,7 +3927,10 @@
       "N2": "已將 {{n}} 個小寫密碼子轉換為大寫。",
       "N4": "已依據密碼子計數重新計算頻率。",
       "R5": "{{filename}} 被內建表 '{{stem}}' 遮蔽，未載入。若要使用，請改名為 {{stem}}_lab.json。",
-      "unknown": "密碼子表檢查器回報了 {{code}}，但目前版本的 kuma 沒有對應說明。"
+      "unknown": "密碼子表檢查器回報了 {{code}}，但目前版本的 kuma 沒有對應說明。",
+      "G1": "kuma 無法依檔名宣稱的基因體格式讀取此檔案：{{detail}}",
+      "G2": "kuma 不依遺傳密碼 {{code}} 統計密碼子。請選擇 1 或 11。",
+      "G3": "{{file}} 中沒有統計到任何編碼序列。共讀取 {{total}} 條，全部被排除，因此無法建立表格。"
     },
     "restore": {
       "notInstalled": "本專案使用密碼子表 '{{name}}'，此處尚未安裝。是否從專案檔安裝？",
@@ -3979,7 +3982,24 @@
       "installed": "已安裝密碼子表：{{key}}",
       "importFailed": "密碼子表匯入失敗：{{reason}}",
       "exported": "密碼子表已寫入 {{path}}",
-      "exportFailed": "密碼子表匯出失敗：{{reason}}"
+      "exportFailed": "密碼子表匯出失敗：{{reason}}",
+      "computeTab": "從基因體計算",
+      "computeHint": "選擇 GenBank 檔案或 CDS FASTA。kuma 會統計每條可讀編碼序列的密碼子，並依此建立表格。",
+      "genomeLabel": "基因體",
+      "genomePlaceholder": "尚未選擇基因體",
+      "computing": "正在統計密碼子…",
+      "computeCheck": "統計密碼子",
+      "computeInstall": "安裝",
+      "previewCounted": "已統計 {{total}} 條編碼序列中的 {{counted}} 條，密碼子共 {{codons}} 個。",
+      "excludedLabel": "已排除的編碼序列",
+      "excludedNone": "無。檔案中的編碼序列全部已統計。",
+      "reasonPseudo": "標註為假基因",
+      "reasonNotMultipleOf3": "長度不是 3 的倍數",
+      "reasonInternalStop": "結尾之前出現終止密碼子",
+      "reasonNoTerminalStop": "結尾沒有終止密碼子",
+      "reasonAmbiguousBase": "含有 A、C、G、T 以外的鹼基",
+      "topCodonsLabel": "各胺基酸的最常用密碼子",
+      "divergentLabel": "與內建 {{reference}} 表差異最大的密碼子"
     }
   }
 }

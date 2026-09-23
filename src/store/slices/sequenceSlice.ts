@@ -5,6 +5,8 @@ import { buildKuroDesignInputPatch, buildKuroResultResetPatch } from "../../lib/
 import { formatError } from "../../lib/utils";
 import type { AppState } from "../types";
 import type {
+  ComputeCodonTableParams,
+  ComputeCodonTableResult,
   ImportCodonTableParams,
   ImportCodonTableResult,
 } from "../../types/models";
@@ -30,6 +32,13 @@ function withClearedNotice(message: string, cleared: boolean): string {
   return `${message} | ${i18next.t("sequenceSlice.resultsClearedOnTemplateChange")}`;
 }
 
+// Ten minutes. The default 60 s covers the measured cases (0.5 s on a Linux
+// filesystem, 4.2 s over drvfs, for 6,000 coding sequences) with room to
+// spare, and would still cut off a large eukaryotic genome on a network
+// drive -- where the user would read the timeout as a crash rather than as
+// a slow file. Nothing here polls, so a longer ceiling costs nothing.
+const COMPUTE_TIMEOUT_MS = 600_000;
+
 const UNIPROT_AUTO_SEARCH_SKIPPED_MESSAGE =
   "UniProt auto-search skipped (domain/pareto/structural diversity disabled), "
   + "use the Step 1 search button if you need it later.";
@@ -51,6 +60,18 @@ async function sendCodonImport(
   dryRun: boolean,
 ): Promise<ImportCodonTableResult> {
   return await sendRequest("import_codon_table", { ...params, dry_run: dryRun });
+}
+
+/** The compute counterpart of `sendCodonImport`. See that function's note. */
+async function sendCompute(
+  params: ComputeCodonTableParams,
+  dryRun: boolean,
+): Promise<ComputeCodonTableResult> {
+  return await sendRequest(
+    "compute_codon_table",
+    { ...params, dry_run: dryRun },
+    COMPUTE_TIMEOUT_MS,
+  );
 }
 
 export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> = (set, get) => ({
@@ -292,6 +313,49 @@ export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> 
   importCodonTable: async (params) => {
     try {
       const result = await sendCodonImport(params, false);
+      if (!result.installed) return result;
+      await get().loadOrganisms();
+      get().setOrganism(result.key);
+      set({
+        statusMessage: i18next.t("codonTable.manager.installed", {
+          key: result.key,
+        }),
+      });
+      return result;
+    } catch (err) {
+      set({
+        statusMessage: i18next.t("codonTable.manager.importFailed", {
+          reason: formatError(err),
+        }),
+      });
+      throw err;
+    }
+  },
+
+  /**
+   * The one place the compute payload is built, for the same reason
+   * sendCodonImport exists: preview and install must differ in `dry_run` and
+   * in nothing else.
+   *
+   * The timeout is raised from the 60 s default because the scan is the work.
+   * Measured on this branch, 6,000 coding sequences take 0.5 s on a Linux
+   * filesystem and 4.2 s over a Windows drvfs mount; a large eukaryotic
+   * genome on a network drive is the case the default would cut off mid-scan,
+   * and a timeout there reads as a crash rather than as a slow file.
+   */
+  previewComputedCodonTable: async (params) =>
+    await sendCompute(params, true),
+
+  /**
+   * Count a genome, install the table and select it.
+   *
+   * Same send -> relist -> select as importCodonTable, and it delegates the
+   * failure sentences to the same locale keys: from the user's side a table
+   * that would not install is one situation, not two.
+   */
+  computeCodonTable: async (params) => {
+    try {
+      const result = await sendCompute(params, false);
       if (!result.installed) return result;
       await get().loadOrganisms();
       get().setOrganism(result.key);

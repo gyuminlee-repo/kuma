@@ -3927,7 +3927,10 @@
       "N2": "{{n}} codon(s) were lowercase and have been converted to uppercase.",
       "N4": "Frequencies were recomputed from the codon counts.",
       "R5": "{{filename}} is shadowed by the built-in table '{{stem}}' and was not loaded. Rename it to {{stem}}_lab.json to use it.",
-      "unknown": "The codon table checker reported {{code}}, which this version of kuma has no description for."
+      "unknown": "The codon table checker reported {{code}}, which this version of kuma has no description for.",
+      "G1": "kuma could not read this file as the genome format its name claims: {{detail}}",
+      "G2": "kuma does not count codons under genetic code {{code}}. Choose 1 or 11.",
+      "G3": "No coding sequences were counted in {{file}}. {{total}} were read, and every one was left out, so there is nothing to build a table from."
     },
     "restore": {
       "notInstalled": "This project uses the codon table '{{name}}', which is not installed here. Install it from the project file?",
@@ -3979,7 +3982,24 @@
       "installed": "Codon table installed: {{key}}",
       "importFailed": "Codon table import failed: {{reason}}",
       "exported": "Codon table written to {{path}}",
-      "exportFailed": "Codon table export failed: {{reason}}"
+      "exportFailed": "Codon table export failed: {{reason}}",
+      "computeTab": "Compute from a genome",
+      "computeHint": "Choose a GenBank file or a CDS FASTA. kuma counts the codons of every coding sequence it can read and builds the table from that tally.",
+      "genomeLabel": "Genome",
+      "genomePlaceholder": "No genome chosen yet",
+      "computing": "Counting codons…",
+      "computeCheck": "Count codons",
+      "computeInstall": "Install",
+      "previewCounted": "{{counted}} of {{total}} coding sequences counted, {{codons}} codons in total.",
+      "excludedLabel": "Coding sequences left out",
+      "excludedNone": "None. Every coding sequence in the file was counted.",
+      "reasonPseudo": "Marked as a pseudogene",
+      "reasonNotMultipleOf3": "Length is not a multiple of three",
+      "reasonInternalStop": "Stop codon before the end",
+      "reasonNoTerminalStop": "No stop codon at the end",
+      "reasonAmbiguousBase": "Holds a base other than A, C, G or T",
+      "topCodonsLabel": "Most frequent codon per amino acid",
+      "divergentLabel": "Furthest from the bundled {{reference}} table"
     }
   }
 }

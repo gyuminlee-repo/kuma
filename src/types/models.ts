@@ -192,6 +192,84 @@ export interface ImportCodonTableParams {
   dry_run?: boolean;
 }
 
+export interface ComputeCodonTableParams {
+  filepath: string;
+  key: string;
+  name?: string;
+  taxid?: number | null;
+  /**
+   * The NCBI translation table the genome is counted under.
+   *
+   * Required and not optional, unlike its import counterpart. A genome file
+   * declares no genetic code, so the user's choice is the only one there is,
+   * and there is nothing for an `|| 11` fallback to fall back from. Codes 1
+   * and 11 assign codons identically and differ only in start codons, so no
+   * check downstream can notice a substituted value -- it surfaces only as
+   * two colleagues holding tables that disagree on paper.
+   */
+  genetic_code: number;
+  /** Only for a file whose suffix does not say which format it is. */
+  genome_format?: "fasta" | "genbank" | null;
+  aliases?: string[];
+  source?: string;
+  overwrite?: boolean;
+  dry_run?: boolean;
+}
+
+/** One amino acid's most frequent codon, as the preview lists it. */
+export interface CodonPreviewTopRow {
+  aa: string;
+  codon: string;
+  fraction: number;
+  count: number;
+}
+
+/** One codon where the computed table and the bundled reference disagree most. */
+export interface CodonPreviewDivergentRow {
+  aa: string;
+  codon: string;
+  fraction: number;
+  reference_fraction: number;
+  /** `fraction - reference_fraction`. Signed: the direction is the point. */
+  delta: number;
+}
+
+/**
+ * What the compute path counted, for the user to read before installing.
+ *
+ * Every number here is derived from the tally by the sidecar
+ * (`python-core/sidecar_kuro/handlers/codon.py`, `_preview`) rather than in
+ * this layer, so the arithmetic sits where pytest can reach it and this layer
+ * renders rows. Amino acid letters and codon strings are IUPAC symbols and are
+ * never translated.
+ */
+export interface CodonTablePreview {
+  source_format: string;
+  cds_total: number;
+  cds_counted: number;
+  /** Exclusion reason -> count. The reasons are `EXCLUSION_REASONS`. */
+  cds_excluded: Record<string, number>;
+  /** Exclusion reason -> up to five record identifiers, so a count can be checked. */
+  excluded_examples: Record<string, string[]>;
+  codon_count: number;
+  top_codons: CodonPreviewTopRow[];
+  /** The bundled table the comparison ran against, or null when none was found. */
+  reference_key: string | null;
+  divergent_codons: CodonPreviewDivergentRow[];
+}
+
+/**
+ * What `compute_codon_table` reports.
+ *
+ * The import result plus the tally. It is the same envelope because it is
+ * literally the same code: import, its preview and compute share one
+ * judge-and-install tail in the sidecar, which is what keeps a computed table
+ * held to the rules an imported one is held to.
+ */
+export interface ComputeCodonTableResult extends ImportCodonTableResult {
+  preview: CodonTablePreview;
+}
+
 /**
  * Parameters for `export_codon_table`.
  *
@@ -958,6 +1036,10 @@ export interface RpcMethodMap {
   list_organisms: {
     params: Record<string, never>;
     result: ListOrganismsResult;
+  };
+  compute_codon_table: {
+    params: ComputeCodonTableParams;
+    result: ComputeCodonTableResult;
   };
   import_codon_table: {
     params: ImportCodonTableParams;

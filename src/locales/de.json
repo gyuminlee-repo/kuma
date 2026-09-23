@@ -3927,7 +3927,10 @@
       "N2": "{{n}} Codon(s) lagen in Kleinbuchstaben vor und wurden in Großbuchstaben umgewandelt.",
       "N4": "Die Häufigkeiten wurden aus den Codon-Anzahlen neu berechnet.",
       "R5": "{{filename}} wird von der integrierten Tabelle '{{stem}}' verdeckt und wurde nicht geladen. Benennen Sie die Datei in {{stem}}_lab.json um, um sie zu verwenden.",
-      "unknown": "Die Codon-Tabellenprüfung meldete {{code}}; für diesen Code liegt in dieser kuma-Version keine Beschreibung vor."
+      "unknown": "Die Codon-Tabellenprüfung meldete {{code}}; für diesen Code liegt in dieser kuma-Version keine Beschreibung vor.",
+      "G1": "kuma konnte diese Datei nicht als das Genomformat lesen, das ihr Name angibt: {{detail}}",
+      "G2": "kuma zählt keine Codons unter dem genetischen Code {{code}}. Wählen Sie 1 oder 11.",
+      "G3": "In {{file}} wurde keine codierende Sequenz gezählt. {{total}} wurden gelesen und alle ausgelassen, es gibt also nichts, woraus eine Tabelle entstehen könnte."
     },
     "restore": {
       "notInstalled": "Dieses Projekt verwendet die Codon-Tabelle '{{name}}', die hier nicht installiert ist. Aus der Projektdatei installieren?",
@@ -3979,7 +3982,24 @@
       "installed": "Codon-Tabelle installiert: {{key}}",
       "importFailed": "Import der Codon-Tabelle fehlgeschlagen: {{reason}}",
       "exported": "Codon-Tabelle nach {{path}} geschrieben",
-      "exportFailed": "Export der Codon-Tabelle fehlgeschlagen: {{reason}}"
+      "exportFailed": "Export der Codon-Tabelle fehlgeschlagen: {{reason}}",
+      "computeTab": "Aus einem Genom berechnen",
+      "computeHint": "Wählen Sie eine GenBank-Datei oder eine CDS-FASTA. kuma zählt die Codons jeder lesbaren codierenden Sequenz und baut die Tabelle aus dieser Zählung.",
+      "genomeLabel": "Genom",
+      "genomePlaceholder": "Noch kein Genom gewählt",
+      "computing": "Codons werden gezählt…",
+      "computeCheck": "Codons zählen",
+      "computeInstall": "Installieren",
+      "previewCounted": "{{counted}} von {{total}} codierenden Sequenzen gezählt, insgesamt {{codons}} Codons.",
+      "excludedLabel": "Ausgelassene codierende Sequenzen",
+      "excludedNone": "Keine. Jede codierende Sequenz der Datei wurde gezählt.",
+      "reasonPseudo": "Als Pseudogen annotiert",
+      "reasonNotMultipleOf3": "Länge ist kein Vielfaches von drei",
+      "reasonInternalStop": "Stoppcodon vor dem Ende",
+      "reasonNoTerminalStop": "Kein Stoppcodon am Ende",
+      "reasonAmbiguousBase": "Enthält eine andere Base als A, C, G oder T",
+      "topCodonsLabel": "Häufigstes Codon je Aminosäure",
+      "divergentLabel": "Am weitesten von der mitgelieferten Tabelle {{reference}} entfernt"
     }
   }
 }

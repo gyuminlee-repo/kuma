@@ -19,6 +19,7 @@ export interface SidecarKuroModels {
   BenchmarkResultModel?: BenchmarkResultModel;
   CheckStructuresParams?: CheckStructuresParams;
   CommitDesignResultParams?: CommitDesignResultParams;
+  ComputeCodonTableParams?: ComputeCodonTableParams;
   ComputeDispersionParams?: ComputeDispersionParams;
   ComputeDispersionResult?: ComputeDispersionResult;
   DesignResultResponseModel?: DesignResultResponseModel;
@@ -358,6 +359,37 @@ export interface CheckStructuresParams {
 export interface CommitDesignResultParams {
   candidate_idx?: number;
   mutation?: string;
+  [k: string]: unknown;
+}
+/**
+ * Parameters for ``compute_codon_table``.
+ *
+ * ``genetic_code`` is a plain ``int`` with a default rather than an
+ * ``Optional[int]``. The import model had to make it optional because a kuma
+ * JSON file declares its own code and the dialog's value must not touch it;
+ * a genome file declares nothing, so here the caller's value is the only one
+ * there is and there is no second source for an ``or 11`` fallback to pick
+ * from. That fallback is exactly the overwrite Phase 3 found as a defect, so
+ * the type is the one shape in which it cannot be written by accident.
+ *
+ * ``genome_format`` is normally absent: ``codon_compute`` reads the suffix.
+ * It is here for the file whose name does not say, which is the one case the
+ * user can resolve and the program cannot.
+ *
+ * ``dry_run`` is the preview the dialog calls before it offers to install,
+ * and it is the same call with the write skipped, as on the import path.
+ */
+export interface ComputeCodonTableParams {
+  aliases?: string[];
+  dry_run?: boolean;
+  filepath: string;
+  genetic_code?: number;
+  genome_format?: ("fasta" | "genbank") | null;
+  key: string;
+  name?: string;
+  overwrite?: boolean;
+  source?: string;
+  taxid?: number | null;
   [k: string]: unknown;
 }
 /**
