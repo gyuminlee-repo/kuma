@@ -1,0 +1,72 @@
+{
+  "n_total": 95,
+  "n_concordant": 89,
+  "overall_pct": 93.68,
+  "by_class": [
+    {
+      "cls": "SNV",
+      "n": 62,
+      "concordant": 62,
+      "pct": 100.0,
+      "median_ed": 0.0
+    },
+    {
+      "cls": "WT",
+      "n": 19,
+      "concordant": 19,
+      "pct": 100.0,
+      "median_ed": 0.0
+    },
+    {
+      "cls": "indel",
+      "n": 14,
+      "concordant": 8,
+      "pct": 57.14,
+      "median_ed": 2.0
+    }
+  ],
+  "divergent_wells": [
+    {
+      "well": "bc20_1_9",
+      "ed": 3,
+      "cls": "indel",
+      "concordant": false,
+      "note": "discordant: medaka_ed_wt=0 vs mame_ed_wt=3"
+    },
+    {
+      "well": "bc20_2_9",
+      "ed": 6,
+      "cls": "indel",
+      "concordant": false,
+      "note": "discordant: medaka_ed_wt=0 vs mame_ed_wt=6"
+    },
+    {
+      "well": "bc20_3_9",
+      "ed": 4,
+      "cls": "indel",
+      "concordant": false,
+      "note": "discordant: medaka_ed_wt=0 vs mame_ed_wt=4"
+    },
+    {
+      "well": "bc20_4_9",
+      "ed": 103,
+      "cls": "indel",
+      "concordant": false,
+      "note": "discordant: large_ed=103 mame_ed_wt=103 medaka_ed_wt=0"
+    },
+    {
+      "well": "bc20_6_9",
+      "ed": 33,
+      "cls": "indel",
+      "concordant": false,
+      "note": "discordant: large_ed=33 mame_ed_wt=33 medaka_ed_wt=0"
+    },
+    {
+      "well": "bc20_8_9",
+      "ed": 59,
+      "cls": "indel",
+      "concordant": false,
+      "note": "discordant: large_ed=59 mame_ed_wt=59 medaka_ed_wt=0"
+    }
+  ]
+}
