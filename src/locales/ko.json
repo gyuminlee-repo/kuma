@@ -3465,7 +3465,9 @@
         "wellCount": "{{count}}개 웰",
         "echoVolLabel": "Echo 이송 부피",
         "janusVolLabel": "JANUS 이송 부피",
-        "ruleHint": "플레이트 이름은 선택 사항입니다. 비워두면 백엔드 기본값을 사용합니다."
+        "ruleHint": "플레이트 이름은 선택 사항입니다. 비워두면 백엔드 기본값을 사용합니다.",
+        "vectormapsLabel": "클론별 GenBank 벡터맵도 내보내기",
+        "vectormapsHint": "웰마다 .gb 파일 1개를 씁니다. 모벡터에 그 클론의 변이를 표시한 지도이며 내보내기 폴더 옆 {{folder}}로 끝나는 폴더에 저장됩니다. GenBank 또는 SnapGene 참조가 필요합니다."
       },
       "macrogen": {
         "title": "프라이머 주문 (Macrogen)",

@@ -3411,7 +3411,9 @@
         "wellCount": "{{count}} ウェル",
         "echoVolLabel": "Echo移送量",
         "janusVolLabel": "JANUS移送量",
-        "ruleHint": "プレート名は任意です。空欄の場合はバックエンドの既定値が使用されます。"
+        "ruleHint": "プレート名は任意です。空欄の場合はバックエンドの既定値が使用されます。",
+        "vectormapsLabel": "クローンごとの GenBank ベクターマップも出力する",
+        "vectormapsHint": "ウェルごとに .gb ファイルを1つ書き出します。親ベクターにそのクローンの変異を示したもので、出力フォルダの隣にある {{folder}} で終わるフォルダに保存されます。GenBank または SnapGene の参照配列が必要です。"
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",

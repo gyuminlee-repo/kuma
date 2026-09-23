@@ -3411,7 +3411,9 @@
         "wellCount": "{{count}} puits",
         "echoVolLabel": "Volume de transfert Echo",
         "janusVolLabel": "Volume de transfert JANUS",
-        "ruleHint": "Les noms de plaque sont facultatifs. Les noms vides utilisent les valeurs par défaut du backend."
+        "ruleHint": "Les noms de plaque sont facultatifs. Les noms vides utilisent les valeurs par défaut du backend.",
+        "vectormapsLabel": "Exporter aussi une carte de vecteur GenBank par clone",
+        "vectormapsHint": "Écrit un fichier .gb par puits, le vecteur parental avec la mutation de ce clone marquée, dans un dossier se terminant par {{folder}} à côté du dossier d'export. Nécessite une référence GenBank ou SnapGene."
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",

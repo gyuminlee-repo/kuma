@@ -3411,7 +3411,9 @@
         "wellCount": "{{count}} 孔",
         "echoVolLabel": "Echo 转移体积",
         "janusVolLabel": "JANUS 转移体积",
-        "ruleHint": "板名称为可选项。留空将使用后端默认值。"
+        "ruleHint": "板名称为可选项。留空将使用后端默认值。",
+        "vectormapsLabel": "同时导出每个克隆的 GenBank 载体图谱",
+        "vectormapsHint": "每个孔写出一个 .gb 文件，即标注了该克隆突变的亲本载体，保存在导出文件夹旁以 {{folder}} 结尾的文件夹中。需要 GenBank 或 SnapGene 参考序列。"
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",
