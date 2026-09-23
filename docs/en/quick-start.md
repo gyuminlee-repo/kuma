@@ -24,7 +24,7 @@ Type one per line (`Q232A`), or load an EVOLVEpro CSV via **Load CSV**.
 
 ### Step 3 — Check parameters
 
-Default polymerase Q5, codon strategy *Min. changes*, Mutations count 95. Adjust in the Parameter panel if needed.
+Default polymerase Q5, Mutations count 95. Adjust in the Parameter panel if needed. The codon table is not set here, it follows the **Organism** chosen in Step 1.
 
 ### Step 4 — Design
 

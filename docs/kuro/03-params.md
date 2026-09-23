@@ -1,6 +1,6 @@
 # Step 3. Parameters
 
-polymerase profile, codon strategy, Tm/GC 범위를 지정한다.
+polymerase profile, Tm/GC 범위, 프라이머 길이 제한을 지정한다. 코돈 표는 이 화면이 아니라 [Step 1](01-load.md) 의 Organism 에서 고른다.
 
 ## Polymerase profile
 
@@ -11,12 +11,11 @@ polymerase profile, codon strategy, Tm/GC 범위를 지정한다.
 
 profile 선택 시 설계에 반영되는 값은 GC 범위와 overlap 모드다. 설계 시점 Tm 은 SantaLucia 1998 (Benchling) 고정 스케일이라 profile 을 바꿔도 변하지 않는다. profile 의 Tm method · salt · DNA 값은 권장 annealing 온도(Ta) 계산에만 쓰인다.
 
-## Codon strategy
+## 코돈 선택
 
-| 값 | 의미 |
-|---|---|
-| Min. changes | WT 코돈에서 최소 염기 변경 |
-| Optimal | E. coli 최적 codon |
+고를 전략 값은 없다. 이 패널에 있던 Codon strategy select 는 v0.16.60 에서 빠졌다. 두 값이 같은 후보 집합을 순서만 바꿔 돌려주었고 엔진이 그 순서를 penalty 로 다시 정렬했기 때문이다.
+
+지금은 타겟 아미노산의 동의 코돈 전부가 후보다. WT 코돈과 선택한 organism 이 그 아미노산의 10% 미만(`codon_table.CODON_USAGE_FLOOR`)으로 쓰는 코돈이 빠진다. 남은 후보를 설계 penalty 가 WT 대비 염기 변경 수(1/2/3 변경에 0/2/4)와 사용빈도(`sdm_engine.USAGE_WEIGHT` 4.0 x (1 - usage fraction))로 Tm·GC 와 함께 점수 매긴다. 코돈에 영향을 주는 사용자 입력은 Step 1 의 Organism 하나다.
 
 ## Tm / GC
 

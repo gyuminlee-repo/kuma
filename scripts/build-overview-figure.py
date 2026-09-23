@@ -460,7 +460,7 @@ A_SPECS = [
     ], {}),
     ("Primer build", [
         T("polymerase profile"),
-        T("codon strategy"),
+        T("codon table"),
         T("Gibson or Q5 SDM"),
         T("primer3 Tm, dimer"),
         T("advisory penalties", True),

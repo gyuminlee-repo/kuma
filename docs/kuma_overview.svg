@@ -18,7 +18,7 @@
   <text x="338.881" y="132" font-size="26" font-weight="700" fill="#231815">Primer build</text>
   <line x1="338.881" y1="144" x2="550.338" y2="144" stroke="#231815" stroke-width="1.2"/>
   <text x="338.881" y="175" font-size="21" fill="#231815">polymerase profile</text>
-  <text x="338.881" y="203" font-size="21" fill="#231815">codon strategy</text>
+  <text x="338.881" y="203" font-size="21" fill="#231815">codon table</text>
   <text x="338.881" y="231" font-size="21" fill="#231815">Gibson or Q5 SDM</text>
   <text x="338.881" y="259" font-size="21" fill="#231815">primer3 Tm, dimer</text>
   <text x="338.881" y="287" font-size="21" font-weight="700" fill="#231815">advisory penalties</text>
