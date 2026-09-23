@@ -1094,3 +1094,51 @@ class SettingsSaveResponse(BaseModel):
 
     ok: bool
     path: str
+
+
+class ImportCodonTableParams(BaseModel):
+    """Parameters for ``import_codon_table``.
+
+    ``key`` is required and is the identity the table is installed under. It
+    is deliberately not derived from the file name: V9 tells a user whose file
+    collides with a bundled table to "import under a different key, for
+    example ecoli_lab", which is only an instruction the user can follow if
+    the key is a field they control. The same parameter is what makes V10
+    reachable, since a second import of one file can now claim the same key.
+
+    ``text`` carries a Kazusa page pasted into the dialog; ``filepath`` a file
+    the user browsed to. One of the two is required, and ``text`` wins when
+    both arrive, because a paste is the more recent thing the user did.
+
+    ``dry_run`` is the preview. It runs the identical validation and returns
+    the identical findings, so the sentences shown before importing are the
+    sentences the import itself would produce.
+    """
+
+    format: Literal["json", "csv", "cusp", "kazusa"]
+    key: str
+    filepath: Optional[str] = None
+    text: Optional[str] = None
+    name: str = ""
+    # Nullable rather than absent: an in-house strain has no NCBI id and V13
+    # accepts null for exactly that reason.
+    taxid: Optional[int] = None
+    genetic_code: Optional[int] = 11
+    aliases: list[str] = Field(default_factory=list)
+    source: str = ""
+    overwrite: bool = False
+    dry_run: bool = False
+
+
+class ExportCodonTableParams(BaseModel):
+    """Parameters for ``export_codon_table``.
+
+    Kazusa is absent from the format union on purpose. It is an input path
+    only: the canonical stored form is decided (design note section 3.3, one
+    storage canon), and writing a fourth spelling of a table kuma would then
+    have to read back is a second canon in all but name.
+    """
+
+    key: str
+    format: Literal["json", "csv", "cusp"]
+    filepath: str

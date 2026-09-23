@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 
 from Bio.Data import CodonTable as _BioCodonTable
@@ -290,6 +291,77 @@ class CodonTableRegistry:
             "user_dir": str(user_codon_dir()),
         }
         return self._scan
+
+    def import_context(
+        self, key: str, *, overwrite: bool = False
+    ) -> ValidationContext:
+        """The validation context an import of *key* is judged against.
+
+        Built from the same ``scan()`` the dropdown is built from, and built
+        here rather than in the handler on purpose: V9 (a built-in key cannot
+        be replaced), V10 (this key is already installed), V29 and V30 (this
+        alias already points somewhere) all read nothing but this object. A
+        second hand-assembled context in the RPC layer is how those four rules
+        stop firing without any test noticing, because a context with an empty
+        ``builtin_keys`` makes V9 vacuously pass.
+
+        This is also where those rules first become reachable. The drop-in
+        path of Phase 1 has no import step, so V9 had no site to fire at and
+        V10 was unreachable behind V8's key-equals-stem requirement (design
+        note section 4.1). The import RPC takes the key as a parameter rather
+        than from the file name, which is what V9's own message asks the user
+        to do -- "import under a different key, for example {{key}}_lab" -- and
+        that is what puts V10 in reach.
+        """
+        scan = self.scan()
+        builtin_keys: dict[str, str] = {}
+        existing_user_tables: dict[str, dict] = {}
+        existing_user_aliases: dict[str, str] = {}
+        directory = user_codon_dir()
+
+        for entry in scan["organisms"]:
+            if entry["source"] == "builtin":
+                builtin_keys[entry["key"]] = entry["name"]
+                continue
+            digest = entry.get("table_sha256") or ""
+            path = directory / f"{entry['key']}.json"
+            try:
+                stamp = datetime.fromtimestamp(
+                    path.stat().st_mtime, tz=timezone.utc
+                ).strftime("%Y-%m-%d")
+            except OSError:
+                # The listing came from a scan that has since been overtaken by
+                # the file system. V10's sentence degrades to naming the table
+                # without a date rather than the import failing on a stat.
+                stamp = ""
+            existing_user_tables[entry["key"]] = {
+                "name": entry["name"],
+                "date": stamp,
+                "sha8": digest[:8],
+            }
+            for alias in entry["aliases"]:
+                existing_user_aliases.setdefault(alias, entry["key"])
+
+        # The table being replaced is not its own prior art. Leaving it in
+        # would make an overwrite of a table fail V29 against its own aliases.
+        if overwrite:
+            existing_user_aliases = {
+                alias: owner
+                for alias, owner in existing_user_aliases.items()
+                if owner != key
+            }
+
+        return ValidationContext(
+            is_builtin=False,
+            builtin_keys=builtin_keys,
+            builtin_aliases=dict(_ORGANISM_ALIASES),
+            existing_user_tables=existing_user_tables,
+            existing_user_aliases=existing_user_aliases,
+            sibling_stems=tuple(
+                sorted(p.stem for p in directory.glob("*.json"))
+            ) if directory.exists() else (),
+            overwrite=overwrite,
+        )
 
     def alias_index(self) -> dict[str, str]:
         """Alias -> key, built-in aliases plus the aliases of loaded tables."""
