@@ -107,6 +107,35 @@ describe("hairpin column", () => {
     expect(badge.className).not.toContain("text-warning");
   });
 
+  it("falls back per-structure when only the hairpin flags are absent (reverse propagation)", () => {
+    const cell = hairpinCell();
+    // applyReversePropagation clears only hairpin_warn_fwd/rev to undefined
+    // (Ta-dependent, cannot be reused after re-pairing); it copies
+    // homodimer_warn_fwd/rev through unchanged. A row-level "any flag
+    // present -> trust the engine" check treats this row as fully judged
+    // and reads the absent hairpin flags as false, hiding a real hairpin
+    // warning. The fallback must be evaluated per structure.
+    render(
+      <>
+        {cell({
+          row: {
+            original: row({
+              hairpin_tm_fwd: 55,
+              hairpin_warn_fwd: undefined,
+              hairpin_warn_rev: undefined,
+              homodimer_warn_fwd: false,
+              homodimer_warn_rev: false,
+              homodimer_tm_fwd: 30,
+              homodimer_tm_rev: 30,
+            }),
+          },
+        })}
+      </>,
+    );
+    const badge = screen.getByText("55");
+    expect(badge.className).toContain("text-warning");
+  });
+
   it("renders the neutral placeholder when no structure was found", () => {
     const cell = hairpinCell();
     render(<>{cell({ row: { original: row() } })}</>);

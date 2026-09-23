@@ -2,7 +2,7 @@ import { useState, type MouseEvent } from "react";
 import type { TFunction } from "i18next";
 import { createColumnHelper } from "@tanstack/react-table";
 import type { RescuedMutation, SdmPrimerResult } from "../../types/models";
-import { ColoredFwdSeq, CopySeqButton, formatTolerance } from "./primerDisplay";
+import { ColoredFwdSeq, CopySeqButton, formatTolerance, structureWarn } from "./primerDisplay";
 
 const col = createColumnHelper<SdmPrimerResult>();
 
@@ -16,7 +16,9 @@ const GROUP_COLORS = [
 // verdict (theta) itself. Used only as a fallback when a row has none of
 // the four per-structure warn flags (e.g. rows serialized before the flags
 // existed), so those rows are not silently rendered as warning-free.
-const LEGACY_STRUCTURE_WARN_TM = 40;
+// LEGACY_STRUCTURE_WARN_TM and structureWarn live in primerDisplay.tsx
+// (shared with HairpinDetail.tsx's popover so the table badge and the
+// popover never disagree on a given row).
 
 export const HEADER_TOOLTIPS: Record<string, string> = {
   rank: "Input order (y_pred descending rank)",
@@ -399,23 +401,14 @@ export function makeResultTableColumns(opts: {
         if (worst <= 0) return "—";
         // The verdict comes from the engine (per-structure warn flags on the
         // row): hairpin by folded fraction at the pair's Ta, homodimer by the
-        // absolute design-scale Tm. Rows serialized before the flags existed
-        // (or rows whose pair Ta is unknown after a swap) carry none of the
-        // four flags; falling back to "no warning" made those rows look
-        // clean even when the raw Tm was high. Fall back to the pre-engine
-        // legacy threshold only in that no-flags case, since the frontend
-        // has no dH to recompute the engine's theta itself.
-        const hasAnyFlag =
-          row.hairpin_warn_fwd != null ||
-          row.hairpin_warn_rev != null ||
-          row.homodimer_warn_fwd != null ||
-          row.homodimer_warn_rev != null;
-        const warn = hasAnyFlag
-          ? row.hairpin_warn_fwd === true ||
-            row.hairpin_warn_rev === true ||
-            row.homodimer_warn_fwd === true ||
-            row.homodimer_warn_rev === true
-          : worst > LEGACY_STRUCTURE_WARN_TM;
+        // absolute design-scale Tm. A flag can be absent per structure (see
+        // structureWarn above), so each of the four is judged independently
+        // instead of treating "some flag present" as "row fully judged".
+        const warn =
+          structureWarn(row.hairpin_warn_fwd, row.hairpin_tm_fwd) ||
+          structureWarn(row.hairpin_warn_rev, row.hairpin_tm_rev) ||
+          structureWarn(row.homodimer_warn_fwd, row.homodimer_tm_fwd) ||
+          structureWarn(row.homodimer_warn_rev, row.homodimer_tm_rev);
         return (
           <span className={`inline-block px-1 py-0.5 rounded-control text-caption font-medium cursor-pointer ${warn ? "bg-warning/10 text-warning" : "bg-muted text-muted-foreground"}`}>
             {worst.toFixed(0)}
