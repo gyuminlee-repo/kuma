@@ -2612,12 +2612,11 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Consensus-Sequenzen schreiben einen Bindestrich, wo eine Base fehlt, sodass eine Deletion nicht mehr wie eine nicht auswertbare Position aussieht.",
-      "Barcode-Primer bestehen jetzt dieselben Hairpin-, Self-Dimer- und Off-Target-Prüfungen wie Design-Primer.",
-      "Ein Barcode-Primer, der diese Prüfungen nicht besteht, wird ersetzt; besteht kein Kandidat, nennt der Hinweis den Messwert, der versagt hat.",
-      "Beim erneuten Öffnen einer gespeicherten Analyse bleiben Deletionslänge und wiederhergestellte Sequenz erhalten, die frühere Builds verloren haben."
+      "Jede Codon-Tabelle eines Organismus laesst sich installieren: Datei ablegen, CSV/cusp/Kazusa importieren, oder aus einem Genom berechnen.",
+      "Ein Design speichert die Codon-Tabelle mit Schluessel und Digest und bietet bei fehlender oder geaenderter Tabelle die Projektkopie an.",
+      "Dokumentation, die noch den entfernten Codon-Strategie-Umschalter beschrieb, beschreibt jetzt die Organismus-Tabelle, die ihn ersetzt hat."
     ],
-    "highlightsStamp": "0.16.69+60279e8e",
+    "highlightsStamp": "0.16.70+291b4798",
     "releases": {
       "0.16.69": [
         "Consensus-Sequenzen schreiben einen Bindestrich, wo eine Base fehlt, sodass eine Deletion nicht mehr wie eine nicht auswertbare Position aussieht.",
@@ -3109,6 +3108,11 @@
         "Die Hilfe unter Variant list mapping nennt jetzt die Füllrichtung der Wells: A1, B1, C1 bis H1, dann A2.",
         "Der post-commit-Hook für die Versionsnummer bricht nicht mehr an einem entfernten Pfad ab.",
         "Eine lange Notiz lässt sich jetzt im Dialog scrollen, statt unten über den Rand hinauszulaufen."
+      ],
+      "0.16.70": [
+        "Jede Codon-Tabelle eines Organismus laesst sich installieren: Datei ablegen, CSV/cusp/Kazusa importieren, oder aus einem Genom berechnen.",
+        "Ein Design speichert die Codon-Tabelle mit Schluessel und Digest und bietet bei fehlender oder geaenderter Tabelle die Projektkopie an.",
+        "Dokumentation, die noch den entfernten Codon-Strategie-Umschalter beschrieb, beschreibt jetzt die Organismus-Tabelle, die ihn ersetzt hat."
       ]
     },
     "releaseStamps": {
@@ -3190,7 +3194,8 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21"
+      "0.15.16": "fe8e6f21",
+      "0.16.70": "291b4798"
     }
   },
   "primerDisplay": {
