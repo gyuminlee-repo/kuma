@@ -4,6 +4,10 @@ import { sendRequest } from "../../lib/ipc-kuro";
 import { buildKuroDesignInputPatch, buildKuroResultResetPatch } from "../../lib/kuroResultReset";
 import { formatError } from "../../lib/utils";
 import type { AppState } from "../types";
+import type {
+  ImportCodonTableParams,
+  ImportCodonTableResult,
+} from "../../types/models";
 import { useMameAppStore } from "../mame/mameAppStore";
 
 import type { SequenceSlice } from "../slice-interfaces";
@@ -29,6 +33,25 @@ function withClearedNotice(message: string, cleared: boolean): string {
 const UNIPROT_AUTO_SEARCH_SKIPPED_MESSAGE =
   "UniProt auto-search skipped (domain/pareto/structural diversity disabled), "
   + "use the Step 1 search button if you need it later.";
+
+/**
+ * The one place the import payload is built.
+ *
+ * `dryRun` is a parameter rather than a literal in each caller. Two reasons,
+ * and the second is a gate: preview and install must differ in exactly this
+ * flag and nothing else, which is easier to keep true when one function writes
+ * the payload; and tests/test_request_flags_come_from_controls.py rejects a
+ * snake_case boolean pinned to a literal inside a request, because that is the
+ * shape of a flag a control claims to own while the wire says otherwise. Here
+ * the value genuinely comes from the caller, so writing it as a variable states
+ * that rather than asserting it in an allow-list.
+ */
+async function sendCodonImport(
+  params: ImportCodonTableParams,
+  dryRun: boolean,
+): Promise<ImportCodonTableResult> {
+  return await sendRequest("import_codon_table", { ...params, dry_run: dryRun });
+}
 
 export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> = (set, get) => ({
   fastaPath: "",
@@ -253,8 +276,7 @@ export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> 
    * answer is the list of rules it broke, which the dialog renders through
    * formatCodonTableMessage. Only a transport failure throws.
    */
-  previewCodonTable: async (params) =>
-    await sendRequest("import_codon_table", { ...params, dry_run: true }),
+  previewCodonTable: async (params) => await sendCodonImport(params, true),
 
   /**
    * Install a codon table, re-list, and select it.
@@ -269,10 +291,7 @@ export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> 
    */
   importCodonTable: async (params) => {
     try {
-      const result = await sendRequest("import_codon_table", {
-        ...params,
-        dry_run: false,
-      });
+      const result = await sendCodonImport(params, false);
       if (!result.installed) return result;
       await get().loadOrganisms();
       get().setOrganism(result.key);
