@@ -2190,7 +2190,8 @@
     "ecoliTitle": "Tabela de codon usage de Escherichia coli K-12. Usar ao expressar em E. coli BL21, DH5α ou derivados de K-12.",
     "bsubtilisTitle": "Tabela de codon usage de Bacillus subtilis 168. Usar ao expressar em B. subtilis ou hospedeiros Gram-positivos relacionados.",
     "scerevisiaeTitle": "Tabela de codon usage de Saccharomyces cerevisiae. Usar ao expressar em hospedeiros de levedura budding.",
-    "sequenceFileHelp": "Reference sequence file (.fasta/.gb) used as template for primer design."
+    "sequenceFileHelp": "Reference sequence file (.fasta/.gb) used as template for primer design.",
+    "addOrganism": "Adicionar organismo..."
   },
   "mutationInput": {
     "mutations": "Mutações",
@@ -3900,6 +3901,46 @@
       "overwriteWarning": "Isto substitui a tabela local '{{key}}'.",
       "installFailed": "Não foi possível instalar a tabela: {{reason}}",
       "installUnavailable": "O projeto não guarda cópia desta tabela."
+    },
+    "manager": {
+      "title": "Adicionar organismo",
+      "description": "Instale uma tabela de códons para um organismo que o kuma não traz, ou exporte uma para enviar a um colega.",
+      "importTab": "Importar um arquivo de tabela",
+      "exportTab": "Exportar",
+      "formatLabel": "Formato",
+      "formatJson": "Tabela kuma (JSON)",
+      "formatCsv": "CSV de três colunas",
+      "formatCusp": "Saída cusp do EMBOSS",
+      "formatKazusa": "Página do Kazusa (colada)",
+      "pasteLabel": "Cole a tabela de uso de códons do Kazusa",
+      "fileLabel": "Arquivo",
+      "filePlaceholder": "Nenhum arquivo escolhido",
+      "browse": "Procurar",
+      "keyLabel": "Chave",
+      "nameLabel": "Nome exibido",
+      "taxidLabel": "taxid do NCBI",
+      "taxidPlaceholder": "Deixe vazio para uma cepa interna",
+      "geneticCodeLabel": "Código genético",
+      "geneticCode11": "11, bactérias e plastídios vegetais",
+      "geneticCode1": "1, padrão",
+      "aliasesLabel": "Apelidos",
+      "aliasesPlaceholder": "Separados por vírgula, como seus arquivos GenBank escrevem o organismo",
+      "overwriteLabel": "Substituir a tabela já instalada nesta chave",
+      "checksRun": "{{checks}} verificações feitas sobre {{codons}} códons.",
+      "errorsLabel": "Esta tabela não pode ser instalada",
+      "warningsLabel": "Vale saber",
+      "normalizationsLabel": "O que a importação mudou",
+      "readyToInstall": "Esta tabela cumpre todas as regras. Resumo {{digest}}.",
+      "check": "Verificar arquivo",
+      "import": "Importar",
+      "export": "Exportar",
+      "exportHint": "Grava uma tabela instalada em um arquivo. Ele traz os códons que o kuma leu, então importá-lo de volta dá a mesma tabela.",
+      "tableLabel": "Tabela",
+      "choose": "Escolha uma tabela",
+      "installed": "Tabela de códons instalada: {{key}}",
+      "importFailed": "Falha ao importar a tabela de códons: {{reason}}",
+      "exported": "Tabela de códons gravada em {{path}}",
+      "exportFailed": "Falha ao exportar a tabela de códons: {{reason}}"
     }
   }
 }

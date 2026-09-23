@@ -2190,7 +2190,8 @@
     "ecoliTitle": "Таблица codon usage Escherichia coli K-12. Используйте при экспрессии в E. coli BL21, DH5α, производных K-12.",
     "bsubtilisTitle": "Таблица codon usage Bacillus subtilis 168. Используйте при экспрессии в B. subtilis или родственных Gram-положительных хостах.",
     "scerevisiaeTitle": "Таблица codon usage Saccharomyces cerevisiae. Используйте при экспрессии в budding yeast хостах.",
-    "sequenceFileHelp": "Reference sequence file (.fasta/.gb) used as template for primer design."
+    "sequenceFileHelp": "Reference sequence file (.fasta/.gb) used as template for primer design.",
+    "addOrganism": "Добавить организм..."
   },
   "mutationInput": {
     "mutations": "Мутации",
@@ -3900,6 +3901,46 @@
       "overwriteWarning": "Локальная таблица '{{key}}' будет заменена.",
       "installFailed": "Не удалось установить таблицу: {{reason}}",
       "installUnavailable": "В проекте нет копии этой таблицы."
+    },
+    "manager": {
+      "title": "Добавить организм",
+      "description": "Установите таблицу кодонов для организма, которого нет в поставке kuma, или выгрузите установленную, чтобы отправить коллеге.",
+      "importTab": "Импорт файла таблицы",
+      "exportTab": "Экспорт",
+      "formatLabel": "Формат",
+      "formatJson": "Таблица kuma (JSON)",
+      "formatCsv": "CSV из трёх столбцов",
+      "formatCusp": "Вывод cusp из EMBOSS",
+      "formatKazusa": "Страница Kazusa (вставка)",
+      "pasteLabel": "Вставьте таблицу частот кодонов из Kazusa",
+      "fileLabel": "Файл",
+      "filePlaceholder": "Файл не выбран",
+      "browse": "Обзор",
+      "keyLabel": "Ключ",
+      "nameLabel": "Отображаемое имя",
+      "taxidLabel": "taxid NCBI",
+      "taxidPlaceholder": "Для собственного штамма оставьте пустым",
+      "geneticCodeLabel": "Генетический код",
+      "geneticCode11": "11, бактерии и пластиды растений",
+      "geneticCode1": "1, стандартный",
+      "aliasesLabel": "Синонимы",
+      "aliasesPlaceholder": "Через запятую, так же как организм записан в ваших файлах GenBank",
+      "overwriteLabel": "Заменить таблицу, уже установленную под этим ключом",
+      "checksRun": "Выполнено проверок: {{checks}}, кодонов рассмотрено: {{codons}}.",
+      "errorsLabel": "Эту таблицу установить нельзя",
+      "warningsLabel": "Стоит знать",
+      "normalizationsLabel": "Что изменил импорт",
+      "readyToInstall": "Таблица проходит все правила. Дайджест {{digest}}.",
+      "check": "Проверить файл",
+      "import": "Импорт",
+      "export": "Экспорт",
+      "exportHint": "Записывает установленную таблицу в файл. В нём те кодоны, которые прочитал kuma, поэтому обратный импорт даёт ту же таблицу.",
+      "tableLabel": "Таблица",
+      "choose": "Выберите таблицу",
+      "installed": "Таблица кодонов установлена: {{key}}",
+      "importFailed": "Не удалось импортировать таблицу кодонов: {{reason}}",
+      "exported": "Таблица кодонов записана в {{path}}",
+      "exportFailed": "Не удалось выгрузить таблицу кодонов: {{reason}}"
     }
   }
 }

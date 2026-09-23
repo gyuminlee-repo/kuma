@@ -7,6 +7,7 @@ import { browseFile } from "../../../lib/file-utils";
 import { Button } from "../../ui/button";
 import { InlineHelp } from "../../ui/InlineHelp";
 import { CodonTableRestoreNotice } from "../../widgets/CodonTableRestoreNotice";
+import { CodonTableManager } from "../../dialogs/CodonTableManager";
 
 const SEQUENCE_DROP_EXTENSIONS = new Set([".gb", ".gbk", ".gbff", ".dna"]);
 const FASTA_EXTENSIONS = new Set([".fa", ".fasta", ".fna"]);
@@ -14,6 +15,7 @@ const FASTA_EXTENSIONS = new Set([".fa", ".fasta", ".fna"]);
 export function SequenceInput() {
   const { t } = useTranslation();
   const [isDragOver, setIsDragOver] = useState(false);
+  const [codonManagerOpen, setCodonManagerOpen] = useState(false);
   const fastaPath = useAppStore((s) => s.fastaPath);
   const seqInfo = useAppStore((s) => s.seqInfo);
   const selectedGene = useAppStore((s) => s.selectedGene);
@@ -191,8 +193,24 @@ export function SequenceInput() {
             <option key={o.key} value={o.key}>{o.name}</option>
           ))}
         </select>
+        {/* Same place and same shape as ParameterPanel's Custom polymerase
+            button: the thing you add sits under the list you pick it from.
+            Not in SettingsDialog, which is app scope (theme, language,
+            network) and not a place for KURO domain content. */}
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-control rounded-control"
+            onClick={() => setCodonManagerOpen(true)}
+          >
+            {t("sequenceInput.addOrganism")}
+          </Button>
+        </div>
         <CodonTableRestoreNotice />
       </div>
+      <CodonTableManager open={codonManagerOpen} onOpenChange={setCodonManagerOpen} />
     </>
   );
 }

@@ -244,6 +244,73 @@ export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> 
     return null;
   },
 
+  /**
+   * Validate without installing. The dialog's preview.
+   *
+   * `dry_run` is the only difference from importCodonTable, so preview and
+   * import cannot disagree about what a file gets wrong. A rejection is a
+   * normal result here rather than a throw: the user picked a file and the
+   * answer is the list of rules it broke, which the dialog renders through
+   * formatCodonTableMessage. Only a transport failure throws.
+   */
+  previewCodonTable: async (params) =>
+    await sendRequest("import_codon_table", { ...params, dry_run: true }),
+
+  /**
+   * Install a codon table, re-list, and select it.
+   *
+   * The send -> relist -> select order is saveCustomPolymerase's, deliberately
+   * copied rather than reinvented (designSlice.ts). The relist is what puts the
+   * key in the dropdown and the select is what the user came for.
+   *
+   * A rejected import returns its result without touching the selection: the
+   * sidecar wrote nothing, so switching the organism would name a table that
+   * does not exist.
+   */
+  importCodonTable: async (params) => {
+    try {
+      const result = await sendRequest("import_codon_table", {
+        ...params,
+        dry_run: false,
+      });
+      if (!result.installed) return result;
+      await get().loadOrganisms();
+      get().setOrganism(result.key);
+      set({
+        statusMessage: i18next.t("codonTable.manager.installed", {
+          key: result.key,
+        }),
+      });
+      return result;
+    } catch (err) {
+      set({
+        statusMessage: i18next.t("codonTable.manager.importFailed", {
+          reason: formatError(err),
+        }),
+      });
+      throw err;
+    }
+  },
+
+  exportCodonTable: async (params) => {
+    try {
+      const result = await sendRequest("export_codon_table", { ...params });
+      set({
+        statusMessage: i18next.t("codonTable.manager.exported", {
+          path: result.path,
+        }),
+      });
+      return result.path;
+    } catch (err) {
+      set({
+        statusMessage: i18next.t("codonTable.manager.exportFailed", {
+          reason: formatError(err),
+        }),
+      });
+      throw err;
+    }
+  },
+
   loadOrganisms: async () => {
     try {
       // This call IS the refresh: the handler drops the registry caches, seeds

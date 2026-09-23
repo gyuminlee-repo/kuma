@@ -2190,7 +2190,8 @@
     "ecoliTitle": "Table de codon usage Escherichia coli K-12. À utiliser pour l'expression en E. coli BL21, DH5α, dérivés K-12.",
     "bsubtilisTitle": "Table de codon usage Bacillus subtilis 168. À utiliser pour l'expression en B. subtilis ou hôtes Gram-positifs apparentés.",
     "scerevisiaeTitle": "Table de codon usage Saccharomyces cerevisiae. À utiliser pour l'expression en levures bourgeonnantes.",
-    "sequenceFileHelp": "Reference sequence file (.fasta/.gb) used as template for primer design."
+    "sequenceFileHelp": "Reference sequence file (.fasta/.gb) used as template for primer design.",
+    "addOrganism": "Ajouter un organisme..."
   },
   "mutationInput": {
     "mutations": "Mutations",
@@ -3900,6 +3901,46 @@
       "overwriteWarning": "Cela remplace la table locale '{{key}}'.",
       "installFailed": "Impossible d'installer la table : {{reason}}",
       "installUnavailable": "Le projet ne contient aucune copie de cette table."
+    },
+    "manager": {
+      "title": "Ajouter un organisme",
+      "description": "Installez une table de codons pour un organisme que kuma ne fournit pas, ou exportez-en une pour l'envoyer à un collègue.",
+      "importTab": "Importer un fichier de table",
+      "exportTab": "Exporter",
+      "formatLabel": "Format",
+      "formatJson": "Table kuma (JSON)",
+      "formatCsv": "CSV à trois colonnes",
+      "formatCusp": "Sortie cusp d'EMBOSS",
+      "formatKazusa": "Page Kazusa (collée)",
+      "pasteLabel": "Collez la table d'usage des codons de Kazusa",
+      "fileLabel": "Fichier",
+      "filePlaceholder": "Aucun fichier choisi",
+      "browse": "Parcourir",
+      "keyLabel": "Clé",
+      "nameLabel": "Nom affiché",
+      "taxidLabel": "taxid NCBI",
+      "taxidPlaceholder": "Laissez vide pour une souche maison",
+      "geneticCodeLabel": "Code génétique",
+      "geneticCode11": "11, bactéries et plastes végétaux",
+      "geneticCode1": "1, code standard",
+      "aliasesLabel": "Alias",
+      "aliasesPlaceholder": "Séparés par des virgules, tels que vos fichiers GenBank écrivent l'organisme",
+      "overwriteLabel": "Remplacer la table déjà installée sous cette clé",
+      "checksRun": "{{checks}} vérifications effectuées sur {{codons}} codons.",
+      "errorsLabel": "Cette table ne peut pas être installée",
+      "warningsLabel": "Bon à savoir",
+      "normalizationsLabel": "Ce que l'import a modifié",
+      "readyToInstall": "Cette table satisfait toutes les règles. Empreinte {{digest}}.",
+      "check": "Vérifier le fichier",
+      "import": "Importer",
+      "export": "Exporter",
+      "exportHint": "Écrit une table installée dans un fichier. Il contient les codons que kuma a lus, un réimport redonne donc la même table.",
+      "tableLabel": "Table",
+      "choose": "Choisissez une table",
+      "installed": "Table de codons installée : {{key}}",
+      "importFailed": "Échec de l'import de la table de codons : {{reason}}",
+      "exported": "Table de codons écrite dans {{path}}",
+      "exportFailed": "Échec de l'export de la table de codons : {{reason}}"
     }
   }
 }

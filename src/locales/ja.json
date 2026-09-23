@@ -2190,7 +2190,8 @@
     "ecoliTitle": "Escherichia coli K-12 codon usage テーブル。E. coli BL21、DH5α、K-12 派生株で発現する際に使用。",
     "bsubtilisTitle": "Bacillus subtilis 168 codon usage テーブル。B. subtilis や関連グラム陽性宿主で発現する際に使用。",
     "scerevisiaeTitle": "Saccharomyces cerevisiae codon usage テーブル。出芽酵母宿主で発現する際に使用。",
-    "sequenceFileHelp": "Reference sequence file (.fasta/.gb) used as template for primer design."
+    "sequenceFileHelp": "Reference sequence file (.fasta/.gb) used as template for primer design.",
+    "addOrganism": "生物種を追加..."
   },
   "mutationInput": {
     "mutations": "Mutations",
@@ -3900,6 +3901,46 @@
       "overwriteWarning": "この環境のテーブル '{{key}}' を上書きします。",
       "installFailed": "テーブルをインストールできませんでした: {{reason}}",
       "installUnavailable": "このプロジェクトにはこのテーブルの複製がありません。"
+    },
+    "manager": {
+      "title": "生物種を追加",
+      "description": "kuma に同梱されていない生物種のコドン表を導入し、または導入済みの表を同僚へ送るファイルとして書き出します。",
+      "importTab": "表ファイルを取り込む",
+      "exportTab": "書き出し",
+      "formatLabel": "形式",
+      "formatJson": "kuma 表 (JSON)",
+      "formatCsv": "3 列 CSV",
+      "formatCusp": "EMBOSS cusp 出力",
+      "formatKazusa": "Kazusa ページの貼り付け",
+      "pasteLabel": "Kazusa のコドン使用頻度表を貼り付けてください",
+      "fileLabel": "ファイル",
+      "filePlaceholder": "ファイルが選択されていません",
+      "browse": "参照",
+      "keyLabel": "キー",
+      "nameLabel": "表示名",
+      "taxidLabel": "NCBI 分類 ID (taxid)",
+      "taxidPlaceholder": "自社株の場合は空欄のままにしてください",
+      "geneticCodeLabel": "遺伝暗号",
+      "geneticCode11": "11、細菌および植物色素体",
+      "geneticCode1": "1、標準",
+      "aliasesLabel": "別名",
+      "aliasesPlaceholder": "カンマ区切り。GenBank ファイルでの生物種の表記を入力します",
+      "overwriteLabel": "このキーで既に導入されている表を置き換えます",
+      "checksRun": "コドン {{codons}} 個に対して {{checks}} 件の検査を実行しました。",
+      "errorsLabel": "この表は導入できません",
+      "warningsLabel": "知っておくべき点",
+      "normalizationsLabel": "取り込みが変更した内容",
+      "readyToInstall": "すべての規則を満たしました。ダイジェスト {{digest}}。",
+      "check": "ファイルを検査",
+      "import": "取り込み",
+      "export": "書き出し",
+      "exportHint": "導入済みの表をファイルに書き出します。kuma が読んだコドンをそのまま含むため、取り込み直すと同じ表になります。",
+      "tableLabel": "表",
+      "choose": "表を選択してください",
+      "installed": "コドン表を導入しました: {{key}}",
+      "importFailed": "コドン表の取り込みに失敗しました: {{reason}}",
+      "exported": "コドン表を {{path}} に書き出しました",
+      "exportFailed": "コドン表の書き出しに失敗しました: {{reason}}"
     }
   }
 }

@@ -2190,7 +2190,8 @@
     "ecoliTitle": "Tabla de codon usage de Escherichia coli K-12. Usar al expresar en E. coli BL21, DH5α o derivados de K-12.",
     "bsubtilisTitle": "Tabla de codon usage de Bacillus subtilis 168. Usar al expresar en B. subtilis o huéspedes Gram-positivos relacionados.",
     "scerevisiaeTitle": "Tabla de codon usage de Saccharomyces cerevisiae. Usar al expresar en huéspedes de levadura budding.",
-    "sequenceFileHelp": "Reference sequence file (.fasta/.gb) used as template for primer design."
+    "sequenceFileHelp": "Reference sequence file (.fasta/.gb) used as template for primer design.",
+    "addOrganism": "Añadir organismo..."
   },
   "mutationInput": {
     "mutations": "Mutaciones",
@@ -3900,6 +3901,46 @@
       "overwriteWarning": "Esto reemplaza la tabla local '{{key}}'.",
       "installFailed": "No se pudo instalar la tabla: {{reason}}",
       "installUnavailable": "El proyecto no guarda copia de esta tabla."
+    },
+    "manager": {
+      "title": "Añadir organismo",
+      "description": "Instala una tabla de codones para un organismo que kuma no incluye, o exporta una para enviársela a un colega.",
+      "importTab": "Importar un archivo de tabla",
+      "exportTab": "Exportar",
+      "formatLabel": "Formato",
+      "formatJson": "Tabla kuma (JSON)",
+      "formatCsv": "CSV de tres columnas",
+      "formatCusp": "Salida cusp de EMBOSS",
+      "formatKazusa": "Página de Kazusa (pegada)",
+      "pasteLabel": "Pega la tabla de uso de codones de Kazusa",
+      "fileLabel": "Archivo",
+      "filePlaceholder": "Ningún archivo elegido",
+      "browse": "Examinar",
+      "keyLabel": "Clave",
+      "nameLabel": "Nombre visible",
+      "taxidLabel": "taxid de NCBI",
+      "taxidPlaceholder": "Déjalo vacío para una cepa propia",
+      "geneticCodeLabel": "Código genético",
+      "geneticCode11": "11, bacterias y plastos vegetales",
+      "geneticCode1": "1, estándar",
+      "aliasesLabel": "Alias",
+      "aliasesPlaceholder": "Separados por comas, tal como tus archivos GenBank escriben el organismo",
+      "overwriteLabel": "Reemplazar la tabla ya instalada con esta clave",
+      "checksRun": "{{checks}} comprobaciones realizadas sobre {{codons}} codones.",
+      "errorsLabel": "Esta tabla no se puede instalar",
+      "warningsLabel": "Conviene saberlo",
+      "normalizationsLabel": "Lo que cambió la importación",
+      "readyToInstall": "Esta tabla cumple todas las reglas. Resumen {{digest}}.",
+      "check": "Comprobar archivo",
+      "import": "Importar",
+      "export": "Exportar",
+      "exportHint": "Escribe una tabla instalada en un archivo. Contiene los codones que kuma leyó, así que volver a importarlo da la misma tabla.",
+      "tableLabel": "Tabla",
+      "choose": "Elige una tabla",
+      "installed": "Tabla de codones instalada: {{key}}",
+      "importFailed": "Falló la importación de la tabla de codones: {{reason}}",
+      "exported": "Tabla de codones escrita en {{path}}",
+      "exportFailed": "Falló la exportación de la tabla de codones: {{reason}}"
     }
   }
 }
