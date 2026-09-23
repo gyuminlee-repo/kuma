@@ -1130,6 +1130,37 @@ class ImportCodonTableParams(BaseModel):
     dry_run: bool = False
 
 
+class ComputeCodonTableParams(BaseModel):
+    """Parameters for ``compute_codon_table``.
+
+    ``genetic_code`` is a plain ``int`` with a default rather than an
+    ``Optional[int]``. The import model had to make it optional because a kuma
+    JSON file declares its own code and the dialog's value must not touch it;
+    a genome file declares nothing, so here the caller's value is the only one
+    there is and there is no second source for an ``or 11`` fallback to pick
+    from. That fallback is exactly the overwrite Phase 3 found as a defect, so
+    the type is the one shape in which it cannot be written by accident.
+
+    ``genome_format`` is normally absent: ``codon_compute`` reads the suffix.
+    It is here for the file whose name does not say, which is the one case the
+    user can resolve and the program cannot.
+
+    ``dry_run`` is the preview the dialog calls before it offers to install,
+    and it is the same call with the write skipped, as on the import path.
+    """
+
+    filepath: str
+    key: str
+    name: str = ""
+    taxid: Optional[int] = None
+    genetic_code: int = 11
+    genome_format: Optional[Literal["fasta", "genbank"]] = None
+    aliases: list[str] = Field(default_factory=list)
+    source: str = ""
+    overwrite: bool = False
+    dry_run: bool = False
+
+
 class ExportCodonTableParams(BaseModel):
     """Parameters for ``export_codon_table``.
 
