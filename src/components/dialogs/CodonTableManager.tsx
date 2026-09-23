@@ -344,22 +344,31 @@ export function CodonTableManager({ open, onOpenChange }: CodonTableManagerProps
                   placeholder={t("codonTable.manager.taxidPlaceholder")}
                 />
               </label>
-              <label className="space-y-1">
-                <span className="text-muted-foreground">
-                  {t("codonTable.manager.geneticCodeLabel")}
-                </span>
-                <select
-                  className="h-8 w-full rounded-control border border-border bg-card px-2 text-xs"
-                  value={geneticCode}
-                  onChange={(e) => {
-                    setGeneticCode(e.target.value);
-                    setReport(null);
-                  }}
-                >
-                  <option value="11">{t("codonTable.manager.geneticCode11")}</option>
-                  <option value="1">{t("codonTable.manager.geneticCode1")}</option>
-                </select>
-              </label>
+              {/* Hidden for kuma JSON, where the file's own genetic_code is
+                  authoritative and the handler ignores this field. The code is
+                  an input to the canonical digest, so letting the dialog
+                  override a colleague's declared value would give their table
+                  a different digest here than on the machine that made it. A
+                  control that cannot change the outcome should not be on
+                  screen claiming it can. */}
+              {format !== "json" && (
+                <label className="space-y-1">
+                  <span className="text-muted-foreground">
+                    {t("codonTable.manager.geneticCodeLabel")}
+                  </span>
+                  <select
+                    className="h-8 w-full rounded-control border border-border bg-card px-2 text-xs"
+                    value={geneticCode}
+                    onChange={(e) => {
+                      setGeneticCode(e.target.value);
+                      setReport(null);
+                    }}
+                  >
+                    <option value="11">{t("codonTable.manager.geneticCode11")}</option>
+                    <option value="1">{t("codonTable.manager.geneticCode1")}</option>
+                  </select>
+                </label>
+              )}
             </div>
 
             <label className="block space-y-1 text-xs">

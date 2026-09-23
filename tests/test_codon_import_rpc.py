@@ -295,3 +295,105 @@ class TestExport:
                 {"key": "ecoli", "format": "kazusa",
                  "filepath": str(tmp_path / "x.txt")}
             )
+
+
+class TestTheDigestSurvivesTheImport:
+    """The reproducibility guarantee, applied to the path that installs.
+
+    ``genetic_code`` is an input to ``canonical_digest``. If the dialog's
+    value overrode what a colleague's file declares, their table would carry
+    one digest on their machine and another here, which is the section 8.1
+    hole this whole feature exists to close -- reopened by the import path.
+
+    V16 cannot stand in for these tests. NCBI genetic codes 1 and 11 have
+    identical forward tables and identical stop codons (measured with
+    biopython: they differ only in their start codons), so a table declared as
+    1 and read as 11 passes every codon-to-amino-acid check there is. The
+    bundled tables are all code 11, so the round-trip controls cannot see it
+    either. These are the only tests that can.
+    """
+
+    def test_a_declared_genetic_code_survives_and_keeps_its_digest(self, user_dir):
+        from kuma_core.kuro.codon_import import canonical_digest
+
+        document = _ecoli_document()
+        document["genetic_code"] = 1
+        result = handle_import_codon_table(_params(text=json.dumps(document)))
+        assert result["ok"], result["errors"]
+
+        stored = json.loads((user_dir / "lab_strain.json").read_text())
+        assert stored["genetic_code"] == 1, "the file's declared code was overwritten"
+        expected = canonical_digest(
+            {aa: [tuple(p) for p in pairs]
+             for aa, pairs in stored["codons"].items()},
+            1,
+        )
+        assert result["table_sha256"] == expected
+
+    def test_discrimination_the_two_codes_give_different_digests(self, user_dir):
+        """The assertion above can fail: 1 and 11 must not agree by accident."""
+        from kuma_core.kuro.codon_import import canonical_digest
+
+        entry = next(
+            e for e in codon_table_mod.get_registry().scan()["organisms"]
+            if e["key"] == "ecoli"
+        )
+        codons = {
+            aa: [tuple(p) for p in pairs]
+            for aa, pairs in entry["document"]["codons"].items()
+        }
+        assert canonical_digest(codons, 1) != canonical_digest(codons, 11)
+
+    def test_v14_warns_when_a_json_file_declares_no_genetic_code(self, user_dir):
+        """V14 promises a warning and a written-in default. Both, or neither."""
+        document = _ecoli_document()
+        document.pop("genetic_code", None)
+        result = handle_import_codon_table(
+            _params(text=json.dumps(document), dry_run=True)
+        )
+        assert result["ok"], result["errors"]
+        assert "V14" in {f["code"] for f in result["warnings"]}
+        assert result["document"]["genetic_code"] == 11
+
+    def test_a_converted_format_still_takes_the_dialog_value(self, user_dir):
+        """CSV carries no genetic code, so the dialog is its only source."""
+        entry = next(
+            e for e in codon_table_mod.get_registry().scan()["organisms"]
+            if e["key"] == "ecoli"
+        )
+        result = handle_import_codon_table(
+            _params(
+                key="from_csv",
+                format="csv",
+                text=cf.format_table(entry["document"], "csv"),
+                genetic_code=1,
+                dry_run=True,
+            )
+        )
+        assert result["ok"], result["errors"]
+        assert result["document"]["genetic_code"] == 1
+
+
+class TestTheImportJudgesTheDiskNotACache:
+    def test_v10_fires_for_a_file_dropped_in_after_the_last_listing(self, user_dir):
+        """The Open folder path and the import path meet here.
+
+        A user lists the organisms, opens the folder, drops a table in, then
+        imports the same key. With the scan answered from cache, V10 would see
+        a disk that predates their file and os.replace would overwrite it
+        without a word -- which is the one thing V10 exists to prevent.
+        """
+        codon_table_mod.get_registry().scan()  # fill the cache
+        document = _ecoli_document()
+        document["key"] = "lab_strain"
+        document["name"] = "Dropped in by hand"
+        (user_dir / "lab_strain.json").write_text(
+            json.dumps(document), encoding="utf-8"
+        )
+
+        result = handle_import_codon_table(_params(name="Imported"))
+        assert result["ok"] is False
+        assert [f["code"] for f in result["errors"]] == ["V10"]
+        assert json.loads((user_dir / "lab_strain.json").read_text())["name"] == (
+            "Dropped in by hand"
+        ), "the hand-dropped table was overwritten"
