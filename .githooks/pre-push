@@ -73,6 +73,40 @@ if [ -z "$tsc" ]; then
   exit 1
 fi
 
+# The Python type gate. CI runs `basedpyright` over the rule set in
+# [tool.pyright] of pyproject.toml, and until now nothing ran it before a push,
+# so a plain type error in new Python cost a full push-to-CI round trip to
+# learn about. On 2026-09-20 that happened twice in one session, once on a test
+# helper whose builder returned `object` and once on a `**dict` expansion that
+# widened into primer3 int and bool parameters. Both reproduce locally in
+# seconds.
+#
+# Unlike node_modules, the virtualenv is optional: AGENTS.md has it as a setup
+# step and a checkout that only touches the frontend never needs one. A missing
+# venv therefore says so once and moves on rather than refusing the push. The
+# run costs about the same as the tsc step on this repo, 46 seconds against 40
+# measured on 2026-09-23, so it is not gated on which files changed; the other
+# steps read the working tree rather than the pushed range and this one keeps
+# that shape.
+#
+# CI stays authoritative when the two disagree. The checker version is pinned
+# but the analysed dependencies are not, so a local venv holding older
+# libraries can report a different set than the runner does.
+pyright=""
+pyright_python=""
+for candidate in "$repo_root" "$main_root"; do
+  if [ -x "$candidate/.venv/bin/basedpyright" ]; then
+    pyright="$candidate/.venv/bin/basedpyright"
+    pyright_python="$candidate/.venv/bin/python3"
+    break
+  fi
+  if [ -x "$candidate/.venv/Scripts/basedpyright.exe" ]; then
+    pyright="$candidate/.venv/Scripts/basedpyright.exe"
+    pyright_python="$candidate/.venv/Scripts/python.exe"
+    break
+  fi
+done
+
 # sync:check's generated-models stage shells out to `json2ts`. The vendored
 # scripts/gen-models.mjs looks for it at <cwd>/node_modules/.bin and otherwise
 # falls back to a bare `json2ts` on PATH. A worktree has no node_modules and
@@ -120,6 +154,18 @@ node scripts/sync-check-all.mjs
 
 echo "[pre-push] tsc --noEmit -> node $tsc"
 node "$tsc" --noEmit
+
+if [ -n "$pyright" ]; then
+  # --pythonpath pins the environment being analysed. Without it the checker
+  # picks one up next to its own working directory, so a worktree borrowing the
+  # main checkout's venv analysed a different set of library stubs than the
+  # main checkout did and reported two errors in scripts/gen-font-metrics.py
+  # that are not there (measured 2026-09-23, 0 errors either way once pinned).
+  echo "[pre-push] python typecheck -> $pyright"
+  "$pyright" --pythonpath "$pyright_python"
+else
+  echo "[pre-push] python typecheck skipped: no .venv found under $repo_root or $main_root"
+fi
 
 # sync:check reads en.json only, so a locale left on the previous release's
 # What's New wording is invisible to it. i18n:check (i18n-lint + i18n-parity)
