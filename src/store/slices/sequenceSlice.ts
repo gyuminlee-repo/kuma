@@ -343,8 +343,15 @@ export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> 
    * genome on a network drive is the case the default would cut off mid-scan,
    * and a timeout there reads as a crash rather than as a slow file.
    */
-  previewComputedCodonTable: async (params) =>
-    await sendCompute(params, true),
+  previewComputedCodonTable: async (params) => {
+    // Cleared before the scan starts. The dialog echoes statusMessage while it
+    // waits, and the first progress notification does not arrive until 500
+    // coding sequences have been read, so a stale line left over from an
+    // unrelated action would sit under a spinner claiming to describe this
+    // scan. Empty makes the dialog fall back to its own "counting" sentence.
+    set({ statusMessage: "" });
+    return await sendCompute(params, true);
+  },
 
   /**
    * Count a genome, install the table and select it.
@@ -354,6 +361,7 @@ export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> 
    * that would not install is one situation, not two.
    */
   computeCodonTable: async (params) => {
+    set({ statusMessage: "" });
     try {
       const result = await sendCompute(params, false);
       if (!result.installed) return result;
