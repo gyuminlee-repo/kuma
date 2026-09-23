@@ -1,12 +1,33 @@
-"""Handlers: import a codon table into the user folder, export one out of it.
+"""Handlers: compute a codon table from a genome, import one, export one out.
 
-WHY THESE TWO AND NOT THREE.
-The design note's Phase 3 listed a delete RPC alongside these. It is not here.
+WHY THERE IS STILL NO DELETE RPC.
+The design note's Phase 3 listed a delete RPC alongside import and export. It
+is not here, and Phase 4b adding a third RPC does not change that.
 Replacing a table is what a user actually does, and V10 plus ``overwrite``
 already covers that end to end; deleting is removing a file from a folder the
 app already offers an "Open folder" button for. A third RPC would add a
 destructive path, its confirmation dialog and ten locales for both, to do
 what the file manager does. Recorded as a deliberate narrowing of the note.
+
+WHY COMPUTE SHARES IMPORT'S JUDGE-AND-INSTALL TAIL RATHER THAN COPYING IT.
+``_judge_and_install`` is the one place a document is measured against the
+disk (``import_context``), validated, rebuilt from the validator's normalised
+form and written. Three entrants now reach it -- import, its ``dry_run``
+preview and compute -- and the reason it is one function is the reason the
+preview exists at all: a preview that runs different code from the install
+reports findings the install would not. A computed table is held to exactly
+the rules a JSON file dropped in the folder is held to, and there is no
+second assembly of the context for V9/V10 to pass vacuously against.
+
+WHY COMPUTE DOES NOT RUN ON A BACKGROUND THREAD.
+It is not in ``dispatcher._ASYNC_METHODS``. Measured on this branch, 6,000
+coding sequences take 0.5 s on a Linux filesystem and 4.2 s over a Windows
+drvfs mount, and ``_SYNC_DISPATCH`` turns threaded dispatch off on frozen
+Windows anyway, which is the shipping platform. Running on the main thread
+means ``_progress`` writes reach stdout as the tally advances rather than
+after it, so the notification arrives while the scan is still going. A
+background thread would buy nothing here and would put the registry refresh
+and the install write on a second thread.
 
 WHAT THE KEY PARAMETER IS FOR.
 The key comes from the caller, not from the file name. That is the whole
@@ -33,14 +54,21 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from kuma_core.kuro import codon_compute as _compute
 from kuma_core.kuro import codon_formats as _formats
 from kuma_core.kuro.codon_import import validate_codon_table_data
 from kuma_core.kuro.codon_table import _document_from_report
 
 import sidecar_kuro.core as _core
-from sidecar_kuro.core import _validate_filepath, _validate_output_path
+from sidecar_kuro.core import (
+    _ALLOWED_GENOME_EXTENSIONS,
+    _progress,
+    _validate_filepath,
+    _validate_output_path,
+)
 from sidecar_kuro.handlers.misc import ensure_user_codon_dir
 from sidecar_kuro.models import (
+    ComputeCodonTableParams,
     ExportCodonTableParams,
     ImportCodonTableParams,
 )
@@ -77,6 +105,7 @@ def _rejected(findings: list[dict], key: str) -> dict:
         "codons_examined": 0,
         "document": None,
         "path": None,
+        "preview": _empty_preview(),
     }
 
 
@@ -172,6 +201,78 @@ def _assemble(p: ImportCodonTableParams) -> dict[str, Any]:
     return document
 
 
+def _judge_and_install(
+    registry,
+    document: dict[str, Any],
+    *,
+    key: str,
+    overwrite: bool,
+    dry_run: bool,
+) -> dict[str, Any]:
+    """Validate *document* against the installed tables and, unless *dry_run*, write it.
+
+    The one tail three entrants share: import, its preview and compute. See the
+    module docstring for why it is one function rather than three copies.
+
+    The context is built by the registry, from the same scan the dropdown is
+    built from, so V9/V10/V29/V30 are judged against what is actually installed
+    rather than against a second hand-assembled picture of it.
+    """
+    context = registry.import_context(key, overwrite=overwrite)
+    report = validate_codon_table_data(document, stem=key, context=context)
+
+    result: dict[str, Any] = {
+        "ok": report.ok,
+        "installed": False,
+        "key": key,
+        "table_sha256": report.table_sha256,
+        "errors": [
+            {"code": f.code, "params": f.params, "detail": f.detail}
+            for f in report.errors
+        ],
+        "warnings": [
+            {"code": f.code, "params": f.params, "detail": f.detail}
+            for f in report.warnings
+        ],
+        "normalizations": [
+            {"code": f.code, "params": f.params, "detail": f.detail}
+            for f in report.normalizations
+        ],
+        "checks_performed": report.checks_performed,
+        "codons_examined": report.codons_examined,
+        "document": None,
+        "path": None,
+    }
+    if not report.ok:
+        return result
+
+    # Built from what the validator normalised, not from the bytes that came
+    # in. That is what makes the stored file, the document list_organisms
+    # reports and the workspace embed one object with one digest.
+    stored = _document_from_report(key, report, document)
+    result["document"] = stored
+
+    if dry_run:
+        return result
+
+    directory = ensure_user_codon_dir()
+    directory.mkdir(parents=True, exist_ok=True)
+    target = directory / f"{key}.json"
+    tmp = target.with_suffix(".json.tmp")
+    tmp.write_text(
+        json.dumps(stored, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    os.replace(tmp, target)
+
+    # Same send -> relist -> select order saveCustomPolymerase uses: the
+    # caches go before anything reads the folder again, so the frontend's
+    # loadOrganisms() after this call sees the new table.
+    registry.refresh()
+    result["installed"] = True
+    result["path"] = str(target)
+    return result
+
+
 def handle_import_codon_table(params: dict) -> dict:
     """Validate a table and, if it passes, install it as ``<key>.json``.
 
@@ -213,62 +314,9 @@ def handle_import_codon_table(params: dict) -> dict:
             p.key,
         )
 
-    # The context is built by the registry, from the same scan the dropdown is
-    # built from, so V9/V10/V29/V30 are judged against what is actually
-    # installed rather than against a second hand-assembled picture of it.
-    context = registry.import_context(p.key, overwrite=p.overwrite)
-    report = validate_codon_table_data(document, stem=p.key, context=context)
-
-    result = {
-        "ok": report.ok,
-        "installed": False,
-        "key": p.key,
-        "table_sha256": report.table_sha256,
-        "errors": [
-            {"code": f.code, "params": f.params, "detail": f.detail}
-            for f in report.errors
-        ],
-        "warnings": [
-            {"code": f.code, "params": f.params, "detail": f.detail}
-            for f in report.warnings
-        ],
-        "normalizations": [
-            {"code": f.code, "params": f.params, "detail": f.detail}
-            for f in report.normalizations
-        ],
-        "checks_performed": report.checks_performed,
-        "codons_examined": report.codons_examined,
-        "document": None,
-        "path": None,
-    }
-    if not report.ok:
-        return result
-
-    # Built from what the validator normalised, not from the bytes that came
-    # in. That is what makes the stored file, the document list_organisms
-    # reports and the workspace embed one object with one digest.
-    stored = _document_from_report(p.key, report, document)
-    result["document"] = stored
-
-    if p.dry_run:
-        return result
-
-    directory = ensure_user_codon_dir()
-    directory.mkdir(parents=True, exist_ok=True)
-    target = directory / f"{p.key}.json"
-    tmp = target.with_suffix(".json.tmp")
-    tmp.write_text(
-        json.dumps(stored, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    return _judge_and_install(
+        registry, document, key=p.key, overwrite=p.overwrite, dry_run=p.dry_run
     )
-    os.replace(tmp, target)
-
-    # Same send -> relist -> select order saveCustomPolymerase uses: the
-    # caches go before anything reads the folder again, so the frontend's
-    # loadOrganisms() after this call sees the new table.
-    registry.refresh()
-    result["installed"] = True
-    result["path"] = str(target)
-    return result
 
 
 def handle_export_codon_table(params: dict) -> dict:
@@ -300,3 +348,219 @@ def handle_export_codon_table(params: dict) -> dict:
         text = _formats.format_table(document, p.format)
     resolved.write_text(text, encoding="utf-8")
     return {"path": str(resolved), "format": p.format, "bytes": len(text.encode())}
+
+# How many codons the preview names as diverging from the reference table. Ten
+# rows is what fits beside the 21-row most-frequent block without the dialog
+# scrolling; it is a display choice and nothing downstream reads it.
+_DIVERGENT_ROWS = 10
+
+# The bundled table a computed one is shown against. E. coli because it is the
+# organism a user already has a feel for, which is what makes "your genome uses
+# GCC where E. coli uses GCG" a sentence they can check against what they know.
+# The comparison is presentational: nothing is rejected or adjusted by it.
+_REFERENCE_KEY = "ecoli"
+
+
+def _reference_fractions(registry) -> dict[str, float]:
+    """codon -> fraction within its amino acid group, for the bundled reference.
+
+    Read through the registry rather than from the resource file, so the
+    preview compares against the same document ``list_organisms`` reports and
+    the design engine looks codons up in. An absent or document-less reference
+    yields an empty mapping and the preview simply omits the comparison, which
+    is why the return is a plain dict and not an exception.
+    """
+    entry = next(
+        (o for o in registry.scan()["organisms"] if o["key"] == _REFERENCE_KEY),
+        None,
+    )
+    document = (entry or {}).get("document") or {}
+    out: dict[str, float] = {}
+    for pairs in (document.get("codons") or {}).values():
+        for codon, fraction in pairs:
+            out[str(codon)] = float(fraction)
+    return out
+
+
+def _preview(result: "_compute.ComputeResult", registry) -> dict[str, Any]:
+    """The numbers the dialog shows before anything is written.
+
+    Built here rather than in the frontend for one reason: every value below is
+    derived from the tally, so deriving it in TypeScript would put a second
+    implementation of the same arithmetic where no pytest can reach it. The
+    frontend renders rows.
+
+    Amino acid letters and codon strings are not translated. They are the
+    IUPAC symbols, identical in every locale.
+    """
+    codons = result.document["codons"]
+    counts = result.document["counts"]
+    count_of = {
+        codon: value
+        for pairs in counts.values()
+        for codon, value in pairs
+    }
+
+    top: list[dict[str, Any]] = []
+    for aa in _compute.AMINO_ACID_ORDER:
+        pairs = codons.get(aa) or []
+        if not pairs:
+            continue
+        codon, fraction = pairs[0]
+        top.append({
+            "aa": aa,
+            "codon": codon,
+            "fraction": fraction,
+            "count": count_of.get(codon, 0),
+        })
+
+    reference = _reference_fractions(registry)
+    divergent: list[dict[str, Any]] = []
+    if reference:
+        rows = []
+        for aa, pairs in codons.items():
+            for codon, fraction in pairs:
+                if codon not in reference:
+                    continue
+                rows.append({
+                    "aa": aa,
+                    "codon": codon,
+                    "fraction": fraction,
+                    "reference_fraction": reference[codon],
+                    "delta": fraction - reference[codon],
+                })
+        rows.sort(key=lambda r: (-abs(r["delta"]), r["codon"]))
+        divergent = rows[:_DIVERGENT_ROWS]
+
+    return {
+        "source_format": result.document["provenance"]["source_format"],
+        "cds_total": result.cds_total,
+        "cds_counted": result.cds_counted,
+        "cds_excluded": dict(result.cds_excluded),
+        "excluded_examples": {k: list(v) for k, v in result.excluded_examples.items()},
+        "codon_count": result.codon_count,
+        "top_codons": top,
+        "reference_key": _REFERENCE_KEY if reference else None,
+        "divergent_codons": divergent,
+    }
+
+
+def _empty_preview() -> dict[str, Any]:
+    """The preview block of a rejection, so the field is never absent.
+
+    A frontend that has to test for the presence of ``preview`` as well as for
+    its contents grows two code paths where one would do, and the zeros here
+    say the same thing the rejection says: nothing was counted.
+    """
+    return {
+        "source_format": "",
+        "cds_total": 0,
+        "cds_counted": 0,
+        "cds_excluded": {},
+        "excluded_examples": {},
+        "codon_count": 0,
+        "top_codons": [],
+        "reference_key": None,
+        "divergent_codons": [],
+    }
+
+
+def handle_compute_codon_table(params: dict) -> dict:
+    """Count the codons of a genome file and install the table it yields.
+
+    ``dry_run`` is the dialog's preview and runs everything except the write,
+    so the findings shown before installing are the findings the install
+    produces. The scan itself runs either way: there is no cheaper way to know
+    how many coding sequences a file holds than to read them.
+
+    THE CALLER'S GENETIC CODE IS WRITTEN OUT UNCHANGED. No ``or 11`` and no
+    correction. ``compute_codon_table`` refuses a code it cannot count under
+    rather than substituting one, and that refusal arrives here as G2.
+    """
+    p = ComputeCodonTableParams(**params)
+    registry = _core.get_registry()
+    # Re-read the folder before judging, for the reason the import path does:
+    # scan() is cached, and a table dropped in after the last listing would
+    # otherwise be overwritten by os.replace without V10 ever firing.
+    registry.refresh()
+
+    try:
+        resolved = _validate_filepath(
+            p.filepath, allowed_extensions=_ALLOWED_GENOME_EXTENSIONS
+        )
+    except ValueError as exc:
+        # A suffix kuma does not read. Reported as a finding rather than
+        # raised, so it lands in the dialog's localized list beside the
+        # validator's own rejections instead of as a transport error in
+        # English.
+        return _rejected(
+            [_finding("G1", {"detail": str(exc)}, str(exc))], p.key
+        )
+    if not resolved.exists():
+        raise FileNotFoundError(f"File does not exist: {p.filepath}")
+
+    def on_progress(done: int, total: int | None) -> None:
+        # ``value`` is the 0-100 the shared progress bar reads. A GenBank scan
+        # has no denominator -- ``codon_compute`` passes total=None because it
+        # will not parse the file twice to get one -- so the bar stays at 0 and
+        # the count rides in the message. Deriving a percentage from ``done``
+        # alone would draw a bar that fills at a rate no one can interpret.
+        pct = int(done * 100 / total) if total else 0
+        _progress(min(pct, 99), f"Counting codons: {done} coding sequences read")
+
+    try:
+        computed = _compute.compute_codon_table(
+            resolved,
+            key=p.key,
+            name=p.name or p.key,
+            genetic_code=p.genetic_code,
+            genome_format=p.genome_format,
+            taxid=p.taxid,
+            aliases=tuple(p.aliases),
+            source=p.source,
+            on_progress=on_progress,
+        )
+    except _compute.UnsupportedGeneticCodeError as exc:
+        return _rejected(
+            [_finding("G2", {"code": exc.code, "detail": str(exc)}, str(exc))],
+            p.key,
+        )
+    except _compute.GenomeParseError as exc:
+        return _rejected(
+            [_finding("G1", {"detail": str(exc)}, str(exc))], p.key
+        )
+
+    if computed.cds_counted == 0:
+        # Every amino acid group is zero, so the validator would reject this
+        # under V24 -- twenty-one times, once per group, none of which names
+        # the actual problem. Two quite different files land here: one that is
+        # not the genome the suffix claims (Biopython's GenBank parser yields
+        # no records rather than raising on a malformed header, measured on
+        # this branch), and one whose coding sequences were all filtered out.
+        # G3 states which of the two it is by carrying the counts, and it is
+        # one sentence the user can act on instead of twenty-one they cannot.
+        detail = (
+            f"No coding sequences were counted in {resolved.name}. "
+            f"{computed.cds_total} were read and "
+            f"{sum(computed.cds_excluded.values())} were excluded."
+        )
+        rejection = _rejected(
+            [_finding(
+                "G3",
+                {"file": resolved.name, "total": computed.cds_total},
+                detail,
+            )],
+            p.key,
+        )
+        rejection["preview"] = _preview(computed, registry)
+        return rejection
+
+    result = _judge_and_install(
+        registry,
+        computed.document,
+        key=p.key,
+        overwrite=p.overwrite,
+        dry_run=p.dry_run,
+    )
+    result["preview"] = _preview(computed, registry)
+    return result

@@ -73,6 +73,24 @@ def _append_crash_log(method: str, params_summary: str, tb: str) -> None:
 
 # FASTA 미허용. annotated sequence formats only (CDS 메타데이터 필요).
 _ALLOWED_FASTA_EXTENSIONS = {".dna", ".gb", ".gbff", ".gbk"}
+
+# The genome a codon table is computed from. A separate set from
+# ``_ALLOWED_FASTA_EXTENSIONS`` on purpose, and that one is left alone: the
+# template a primer is designed against must be annotated, because the design
+# path needs CDS coordinates, which is why a bare FASTA is refused there. The
+# compute path is the opposite case -- a ``cds_from_genomic.fna`` is already
+# sliced into coding sequences and is the file RefSeq hands a user who clicks
+# "CDS (FASTA)", so refusing it would refuse the commonest input this feature
+# exists to accept. ``.dna`` (SnapGene) is absent because
+# ``codon_compute._format`` has no branch for it.
+#
+# The two suffix groups are the ones ``kuma_core.kuro.codon_compute._format``
+# maps to "genbank" and "fasta". A suffix accepted here that module cannot
+# classify would be rejected one layer deeper with a worse sentence.
+_ALLOWED_GENOME_EXTENSIONS = {
+    ".gbff", ".gb", ".gbk", ".genbank",
+    ".fna", ".fa", ".fasta", ".ffn",
+}
 _ALLOWED_CSV_EXTENSIONS = {".csv", ".tsv", ".txt"}
 _ALLOWED_EXCEL_EXTENSIONS = {".xlsx"}
 _VALID_DNA_BASES = re.compile(r"^[ATGC]+$")
