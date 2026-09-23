@@ -27,6 +27,11 @@ def test_onedir_build_keeps_loader_dependencies(
     monkeypatch.setattr(build, "SCRIPT_DIR", tmp_path)
     monkeypatch.setattr(build, "TAURI_BINARIES", tmp_path / "binaries")
     monkeypatch.setattr(build.platform, "system", lambda: "Linux")
+    # This test's bundle is a synthetic shell-script stand-in, not a real
+    # PyInstaller archive, so the LGPL packaging check (which parses the
+    # actual archive format) is out of scope here and is covered on its own
+    # below by test_check_no_excluded_license_payload_*.
+    monkeypatch.setattr(build, "check_no_excluded_license_payload", lambda *a, **k: None)
     with monkeypatch.context() as builder:
         builder.setattr(build.subprocess, "run", lambda *args, **kwargs: None)
         built = build.build_sidecar("kuro", onefile=False)
@@ -115,3 +120,106 @@ def test_smoke_rejects_abnormal_shutdown(
         else:
             module.run_smoke(peer)
     assert exit_info.value.code == (0 if mode == "clean" else 1)
+
+
+# --- LGPL-3.0 vendored-module packaging guard (PR #444 follow-up) ---
+#
+# setuptools >= 78 vendors ``autocommand`` (LGPL-3.0) under
+# ``setuptools._vendor``. ``--exclude-module`` alone cannot keep it out of a
+# frozen sidecar (collect_all's data-file walk still ships the raw sources
+# and dist-info), so build_sidecar.py inspects the built payload directly.
+# These tests inject fabricated entry-name corpora instead of running a real
+# PyInstaller build.
+
+
+@pytest.mark.parametrize(
+    "entry_names",
+    [
+        pytest.param(
+            ["setuptools._vendor.autocommand", "setuptools._vendor.autocommand.autocommand"],
+            id="onefile-pyz-dotted",
+        ),
+        pytest.param(
+            ["setuptools/_vendor/autocommand/__init__.py"],
+            id="onedir-loose-py-source",
+        ),
+        pytest.param(
+            ["setuptools/_vendor/autocommand-2.2.2.dist-info/METADATA"],
+            id="onedir-dist-info-versioned",
+        ),
+        pytest.param(
+            ["setuptools\\_vendor\\autocommand\\__init__.py"],
+            id="onedir-windows-backslash-py-source",
+        ),
+        pytest.param(
+            ["setuptools\\_vendor\\autocommand-2.2.2.dist-info\\METADATA"],
+            id="onedir-windows-backslash-dist-info",
+        ),
+    ],
+)
+def test_find_excluded_license_payload_catches_autocommand(entry_names: list[str]) -> None:
+    import build_sidecar as build
+
+    hits = build.find_excluded_license_payload(entry_names, build.LGPL_EXCLUDED_MODULE)
+    assert hits == sorted(entry_names)
+
+
+@pytest.mark.parametrize(
+    "entry_names",
+    [
+        pytest.param(
+            [
+                "setuptools._vendor.jaraco.context",
+                "setuptools._vendor.backports.tarfile",
+                "numpy.core._multiarray_umath",
+                "primer3",
+            ],
+            id="permissive-vendor-siblings",
+        ),
+        pytest.param(
+            ["setuptools/_vendor/jaraco/text/__init__.py"],
+            id="onedir-permissive-sibling-source",
+        ),
+        pytest.param(
+            ["setuptools\\_vendor\\jaraco\\text\\__init__.py"],
+            id="onedir-windows-backslash-permissive-sibling",
+        ),
+        pytest.param(
+            ["some_autocommand_helper", "setuptools._vendor.autocommandish"],
+            id="substring-trap-not-a-path-segment",
+        ),
+        pytest.param([], id="empty"),
+    ],
+)
+def test_find_excluded_license_payload_passes_clean_corpus(entry_names: list[str]) -> None:
+    import build_sidecar as build
+
+    assert build.find_excluded_license_payload(entry_names, build.LGPL_EXCLUDED_MODULE) == []
+
+
+def test_check_no_excluded_license_payload_fails_build_on_hit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import build_sidecar as build
+
+    monkeypatch.setattr(
+        build,
+        "_packaged_entry_names",
+        lambda built_path, onefile: {"setuptools._vendor.autocommand.autocommand"},
+    )
+    with pytest.raises(SystemExit) as exit_info:
+        build.check_no_excluded_license_payload(tmp_path / "kuro-sidecar", onefile=True)
+    assert exit_info.value.code == 1
+
+
+def test_check_no_excluded_license_payload_passes_clean_build(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import build_sidecar as build
+
+    monkeypatch.setattr(
+        build,
+        "_packaged_entry_names",
+        lambda built_path, onefile: {"setuptools._vendor.jaraco.context", "numpy"},
+    )
+    build.check_no_excluded_license_payload(tmp_path / "kuro-sidecar", onefile=False)
