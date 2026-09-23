@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useFocusTrap } from "../../../hooks/useFocusTrap";
 import type { SdmPrimerResult } from "../../../types/models";
+import { structureWarn } from "../primerDisplay";
 
 export function HairpinDetail({
   result,
@@ -12,11 +13,17 @@ export function HairpinDetail({
   const { t } = useTranslation();
   const focusTrapRef = useFocusTrap<HTMLDivElement>();
 
+  // The status column reads the engine's per-structure verdict: hairpin flags
+  // are computed from the folded fraction at the pair's recommended Ta,
+  // homodimer flags from the absolute design-scale Tm. A flag that is absent
+  // (older payload, or cleared by applyReversePropagation where the pair Ta
+  // is unknown) falls back to the legacy Tm threshold via structureWarn, so
+  // this popover agrees with the result-table badge on the same row.
   const rows = [
-    { label: t("hairpinDetail.rowHairpinFwd"), tm: result.hairpin_tm_fwd ?? 0, dg: result.hairpin_dg_fwd ?? 0 },
-    { label: t("hairpinDetail.rowHairpinRev"), tm: result.hairpin_tm_rev ?? 0, dg: result.hairpin_dg_rev ?? 0 },
-    { label: t("hairpinDetail.rowHomodimerFwd"), tm: result.homodimer_tm_fwd ?? 0, dg: result.homodimer_dg_fwd ?? 0 },
-    { label: t("hairpinDetail.rowHomodimerRev"), tm: result.homodimer_tm_rev ?? 0, dg: result.homodimer_dg_rev ?? 0 },
+    { label: t("hairpinDetail.rowHairpinFwd"), tm: result.hairpin_tm_fwd ?? 0, dg: result.hairpin_dg_fwd ?? 0, warn: structureWarn(result.hairpin_warn_fwd, result.hairpin_tm_fwd) },
+    { label: t("hairpinDetail.rowHairpinRev"), tm: result.hairpin_tm_rev ?? 0, dg: result.hairpin_dg_rev ?? 0, warn: structureWarn(result.hairpin_warn_rev, result.hairpin_tm_rev) },
+    { label: t("hairpinDetail.rowHomodimerFwd"), tm: result.homodimer_tm_fwd ?? 0, dg: result.homodimer_dg_fwd ?? 0, warn: structureWarn(result.homodimer_warn_fwd, result.homodimer_tm_fwd) },
+    { label: t("hairpinDetail.rowHomodimerRev"), tm: result.homodimer_tm_rev ?? 0, dg: result.homodimer_dg_rev ?? 0, warn: structureWarn(result.homodimer_warn_rev, result.homodimer_tm_rev) },
   ];
 
   return (
@@ -68,7 +75,7 @@ export function HairpinDetail({
                 <td className="px-3 py-1.5 text-center">
                   {r.tm <= 0 ? (
                     <span className="text-muted-foreground">—</span>
-                  ) : r.tm > 40 ? (
+                  ) : r.warn ? (
                     <span className="inline-block px-1.5 py-0.5 rounded text-caption font-medium bg-warning/10 text-warning">
                       {t("hairpinDetail.statusWarn")}
                     </span>

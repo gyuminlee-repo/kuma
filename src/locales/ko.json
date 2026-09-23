@@ -339,8 +339,8 @@
       "legacyOptionsToggle": "레거시 옵션 표시",
       "legacyOptionsDeprecationWarning": "이 옵션은 deprecated 상태이며 향후 버전에서 제거됩니다. Min Filtered Depth 사용을 권장합니다.",
       "tooltips": {
-        "flankMin": "유전자 경계 기준 primer 시작 위치 범위(nt)",
-        "flankMax": "유전자 경계 기준 primer 시작 위치 범위(nt)",
+        "overhangMin": "최소 overhang (nt): amplicon 이 유전자 경계 바깥으로 뻗는 거리",
+        "overhangMax": "유전자 경계 바깥으로 탐색하는 최대 overhang (nt)",
         "bindingMinLen": "후보 enumeration 단계에서 탐색할 primer 길이 범위(nt)",
         "bindingMaxLen": "후보 enumeration 단계에서 탐색할 primer 길이 범위(nt)",
         "tmMin": "primer binding 구간의 melting temperature 허용 범위(°C)",
@@ -367,7 +367,7 @@
       "inputFiles": "입력 파일",
       "geneCoordinates": "유전자 좌표",
       "projectMetadata": "프로젝트 메타데이터",
-      "flankParameters": "플랭크 파라미터",
+      "flankParameters": "Overhang 파라미터",
       "bindingParameters": "결합 파라미터",
       "advancedParameters": "고급 옵션",
       "outputLocation": "출력 위치",
@@ -376,7 +376,7 @@
       "generatedFiles": "생성된 파일",
       "cdsFasta": "CDS 서열",
       "cdsFastaPlaceholder": ".fa / .fasta / .gb / .gbk / .dna 파일 경로",
-      "cdsFastaHelper": "유전자 양쪽에 flanking 서열이 포함된 plasmid 또는 construct map(GenBank 또는 SnapGene .dna)이어야 합니다. MAME 프라이머는 유전자 바깥쪽에서 결합하므로 각 방향에 최소 flank_max(기본값 400 bp)만큼의 template이 필요합니다. CDS만 있는 FASTA는 작동하지 않습니다. gene_start / gene_end는 이 서열 내 0-based 인덱스입니다.",
+      "cdsFastaHelper": "유전자 양쪽에 flanking 서열이 포함된 plasmid 또는 construct map(GenBank 또는 SnapGene .dna)이어야 합니다. MAME 프라이머는 유전자 바깥쪽에서 결합하므로 각 방향에 사용 가능한 최소 overhang 만큼의 template 이 필요합니다. 그 값은 overhang_min 과 binding_min_len 중 큰 쪽입니다(기본값에서는 한쪽당 20 bp). circular template 은 원점을 넘어 이어지므로 이 요구는 linear template 에만 적용됩니다. CDS만 있는 FASTA는 작동하지 않습니다. gene_start / gene_end는 이 서열 내 0-based 인덱스입니다.",
       "cdsFastaLoadError": "이 파일에서 유전자 주석을 읽지 못했습니다: {{error}}",
       "barcodeSeedsXlsx": "바코드 시드 xlsx",
       "geneName": "유전자 이름",
@@ -415,12 +415,12 @@
       "polymeraseHelp": "바코드 PCR에 사용할 중합효소입니다. 염 농도 프로필이 프라이머 선택 중 Tm 계산에 사용됩니다.",
       "geneStartHelp": "CDS 시작 좌표 (0-based, inclusive).",
       "geneEndHelp": "CDS 종료 좌표 (0-based, exclusive).",
-      "flankMinHelp": "barcode primer 탐색용 CDS 양옆 flank 최소 길이(nt). 기본 100.",
-      "flankMaxHelp": "flank 최대 길이(nt). 클수록 후보는 많아지나 탐색이 느려짐.",
+      "overhangMinHelp": "유전자 경계 바깥으로 뻗는 최소 overhang (nt). 기본값 20. 프라이머는 유전자 안으로 들어가지 않으므로 binding_min_len 보다 작은 overhang 에는 binding site 가 들어가지 못하고 그 구간은 효과가 없습니다.",
+      "overhangMaxHelp": "유전자 경계 바깥으로 탐색하는 최대 overhang (nt). 기본값 60. 창이 클수록 후보는 많아지나 탐색이 느려지며 linear template 에서는 서열 끝으로 클램프됩니다.",
       "bindingMinLenHelp": "primer binding 최소 길이(nt). 안정적 PCR은 18-22 권장.",
       "bindingMaxLenHelp": "primer binding 최대 길이(nt). 35 초과 시 secondary structure 위험 증가.",
-      "flankWarningUpstream": "선형 template에서는 프라이머 설계가 실패할 수 있습니다: gene_start 앞쪽에 최소 {{needed}} bp가 필요하지만 {{available}} bp만 확보되어 있습니다 ({{shortfall}} bp 부족).",
-      "flankWarningDownstream": "선형 template에서는 프라이머 설계가 실패할 수 있습니다: gene_end 뒤쪽에 최소 {{needed}} bp가 필요하지만 {{available}} bp만 확보되어 있습니다 ({{shortfall}} bp 부족).",
+      "flankWarningUpstream": "선형 template에서는 프라이머 설계가 실패할 수 있습니다: gene_start 앞쪽에 최소 {{needed}} bp(overhang_min 과 binding_min_len 중 큰 값)가 필요하지만 {{available}} bp만 확보되어 있습니다 ({{shortfall}} bp 부족).",
+      "flankWarningDownstream": "선형 template에서는 프라이머 설계가 실패할 수 있습니다: gene_end 뒤쪽에 최소 {{needed}} bp(overhang_min 과 binding_min_len 중 큰 값)가 필요하지만 {{available}} bp만 확보되어 있습니다 ({{shortfall}} bp 부족).",
       "cdsTooltipLabel": "라벨: {{label}}",
       "cdsTooltipRange": "범위: {{start}}-{{end}}",
       "cdsTooltipLength": "길이: {{length}} aa",
@@ -1593,14 +1593,14 @@
     "errorTitle": "미리보기 실패",
     "echoSourcePlateLabel": "Echo 소스 플레이트 (384 well)",
     "destPlateLabel": "목적지 플레이트 (96 well)",
-    "quadrantBatch": "이번 배치는 플레이트의 {{half}} 절반, 즉 {{from}}~{{to}}열을 채웁니다. Forward 프라이머는 A, C, E ... 행에 놓이고 reverse 프라이머는 각각 한 행 아래에 놓입니다.",
-    "quadrantProgress": "이번 배치까지 마치면 이 플레이트의 절반 {{total}}개 중 {{filled}}개를 사용합니다.",
-    "quadrantHalfNote": "{{from}}~{{to}}열은 나머지 절반인 {{others}} 몫이고 다음 라운드를 위해 비워 둡니다.",
+    "quadrantBatch": "이번 배치는 round {{round}}, 즉 {{first}}열에서 시작해 한 칸 건너 열을 채웁니다. Forward 프라이머는 A, C, E ... 행에 놓이고 reverse 프라이머는 각각 한 행 아래에 놓입니다.",
+    "quadrantProgress": "이번 배치까지 마치면 이 플레이트의 round {{total}}개 중 {{filled}}개를 사용합니다.",
+    "quadrantInterleaveNote": "96-head 는 한 번에 한 칸 건너 열에만 닿습니다. 사이에 낀 열은 {{others}} 몫이고 다음 라운드를 위해 비워 둡니다.",
     "quadrantUsedNote": "이 플레이트에서 이미 사용한 절반: {{list}}",
-    "quadrantNoneNote": "절반을 고르지 않았습니다. 실행은 그대로 1-12열, 곧 절반 A1 과 같은 웰에 놓이고 이미 쓴 절반과의 대조만 건너뜁니다.",
+    "quadrantNoneNote": "round 를 고르지 않았습니다. 실행은 열을 건너뛰지 않고 1-12열에 놓이며 이는 round 선택이 생기기 전의 배치입니다. 이미 쓴 round 와의 대조만 건너뜁니다.",
     "quadrantLegendFree": "실선 테두리: 이번 배치가 쓰는 웰",
     "quadrantLegendReserved": "점선 테두리: {{others}} 몫으로 비워 둔 웰",
-    "echoReservedWellTitle": "{{well}}, {{quadrants}} 절반 몫"
+    "echoReservedWellTitle": "{{well}}, round {{quadrants}} 몫"
   },
   "globalAppBar": {
     "navAriaLabel": "앱 내비게이션",
@@ -2100,7 +2100,7 @@
     "chooseFolder": "폴더 선택",
     "done": "완료",
     "insideProject": "각 프로젝트 내부",
-    "kuroDesc": "Kernel for Upstream Recombination Oligodesign. Gibson Assembly 템플릿 기반 SDM primer 일괄 설계 도구.",
+    "kuroDesc": "Kit for Unified Ranking and Oligodesign. Gibson Assembly 템플릿 기반 SDM primer 일괄 설계 도구.",
     "mameDesc": "Mutagenesis Assessment & Measurement Export. Oxford Nanopore NGS 기반 변이 판정 도구.",
     "autosaveNote": "입력과 매개변수는 프로젝트별로 자동 저장됩니다. 절대 경로를 포함한 Barcode Setup 초안은 프로젝트 간에 공유됩니다.",
     "titleStart": "시작하기",
@@ -2394,7 +2394,7 @@
     "ncbiBlastServiceSuffix": " -- 서열 유사성 검색",
     "alphafoldServiceSuffix": " -- 구조 예측 조회",
     "interproServiceSuffix": " -- 단백질 도메인 주석",
-    "kuroSubtitle": "Kernel for Upstream Recombination Oligodesign",
+    "kuroSubtitle": "Kit for Unified Ranking and Oligodesign",
     "view": {
       "title": "보기",
       "logs": "로그 표시",
@@ -2666,14 +2666,45 @@
     "descriptionRange": "v{{from}} 이후 모든 업데이트의 주요 변경 사항입니다.",
     "gotItBtn": "확인",
     "highlights": [
-      "리드의 절반만 지지하는 결손은 더 이상 no-call 게이트를 면제받지 못하며 40% 나 50% 인 자리는 no call 로 읽힙니다.",
-      "활동도 데이터 단계는 행이 가리키는 변이가 아닌 다른 변이에 NGS 판정을 붙이지 않습니다.",
-      "행 범위를 줄이거나 여러 플레이트에 걸쳐 만든 Echo 와 JANUS 파일이 주문판이 정한 stock 위치를 그대로 지킵니다.",
-      "작업 공간을 다시 열면 선택이 유지되고 입력이 사라진 출력은 버립니다. 실행한 적 없는 benchmark 는 손상 경고를 내지 않습니다.",
-      "Linux 에서 숨김 앱 데이터 폴더 아래 임시 자동 저장이 동작하고 파일 > 종료가 창을 닫습니다."
+      "consensus 서열이 염기가 없는 자리에 대시를 쓴다. 결실이 더 이상 판정하지 못한 자리처럼 보이지 않는다.",
+      "barcode primer 도 설계 primer 가 받던 hairpin, self-dimer, off-target 검사를 똑같이 통과해야 한다.",
+      "검사를 통과하지 못한 barcode primer 는 교체되고, 통과하는 후보가 없으면 경고가 어떤 측정값이 걸렸는지 알려준다.",
+      "저장한 분석을 다시 열어도 결실 길이와 복원된 서열이 남는다. 이전 빌드는 불러오는 과정에서 그 값을 잃었다."
     ],
-    "highlightsStamp": "0.16.64+b5666e23",
+    "highlightsStamp": "0.16.69+60279e8e",
     "releases": {
+      "0.16.69": [
+        "consensus 서열이 염기가 없는 자리에 대시를 쓴다. 결실이 더 이상 판정하지 못한 자리처럼 보이지 않는다.",
+        "barcode primer 도 설계 primer 가 받던 hairpin, self-dimer, off-target 검사를 똑같이 통과해야 한다.",
+        "검사를 통과하지 못한 barcode primer 는 교체되고, 통과하는 후보가 없으면 경고가 어떤 측정값이 걸렸는지 알려준다.",
+        "저장한 분석을 다시 열어도 결실 길이와 복원된 서열이 남는다. 이전 빌드는 불러오는 과정에서 그 값을 잃었다."
+      ],
+      "0.16.68": [
+        "Echo 소스 플레이트가 교차 열 배치로 돌아간다. 96-head 가 한 번의 스탬프로 플레이트의 연속된 절반에 닿을 수 없기 때문이다.",
+        "한 라운드는 16개 행 전체에 걸친 하나의 열 패리티이고 192웰이며, 두 라운드가 소스 플레이트 한 장을 채운다.",
+        "선택지가 넷에서 둘로 줄어든다. 옛 행 축은 같은 두 라운드를 forward 와 reverse 만 바꿔 부른 이름이었다.",
+        "v0.16.61 이전에 저장한 프로젝트는 그대로 열린다. 저장된 이름이 이번 릴리스의 라운드를 가리키고 소스 웰이 이동하지 않는다.",
+        "half 배치로 저장한 프로젝트는 선택이 해제되고 두 라운드가 모두 소진으로 표시된다. half 는 어느 열 패리티와도 맞지 않는다."
+      ],
+      "0.16.67": [
+        "바코드 단계가 gap 과 overhang 이 이름을 공유하던 방식 대신 앰플리콘이 CDS 밖으로 뻗는 거리 하나만 받습니다.",
+        "기본값이 100 과 400 에서 20 과 60 으로 낮아졌고, 이 범위는 ispS 설계에서 실측한 16 bp overhang 을 담습니다.",
+        "짧은 선형 template 을 바깥 탐색 한계보다 짧다는 이유로 거부하지 않고 template 끝까지 탐색합니다.",
+        "양쪽 가닥이 바깥 방향으로 탐색하므로 앰플리콘이 대칭이 되고 마지막 코돈이 reference edge margin 밖에 놓입니다.",
+        "프라이머가 코딩 영역 안에 놓일 수 없고, 저장된 flank_max 는 overhang_max 로 이어집니다."
+      ],
+      "0.16.66": [
+        "이제 각 라운드가 자기 wild-type 반복값에서 assay noise 를 추정하므로 plateau 검정이 2라운드 연속 포화 규칙을 지탱할 수 있습니다.",
+        "hit rate 추세는 적합된 기울기가 자기 sampling error 보다 가파르게 떨어질 때만 감소로 셉니다.",
+        "활성이 정확히 0 인 변이는 판정을 멈추는 대신 점수에 들어가고 hit rate 분모에도 남습니다.",
+        "워크북 어디에 있든 wild-type 대조 행은 개수를 세고 변이 통계에서는 빼둡니다.",
+        "자문은 각 라운드가 담고 있던 활성 0 변이와 대조 행이 몇 건인지 보고합니다."
+      ],
+      "0.16.65": [
+        "indel event 분율이 정확히 0.50 인 웰이 이제 엄격 비교를 비껴가지 않고 검토 게이트에 도달합니다.",
+        "보정 구간 안의 웰, 즉 노이즈 0.21 이하와 진짜 결손 0.83 이상은 기존 판정을 그대로 유지합니다.",
+        "앞선 게이트가 여전히 먼저 판정하므로 이미 LOWDEPTH 나 MIXED 로 불린 웰은 그 판정을 유지합니다."
+      ],
       "0.16.64": [
         "리드의 절반만 지지하는 결손은 더 이상 no-call 게이트를 면제받지 못하며 40% 나 50% 인 자리는 no call 로 읽힙니다.",
         "활동도 데이터 단계는 행이 가리키는 변이가 아닌 다른 변이에 NGS 판정을 붙이지 않습니다.",
@@ -3135,6 +3166,11 @@
       ]
     },
     "releaseStamps": {
+      "0.16.69": "60279e8e",
+      "0.16.68": "33844e5d",
+      "0.16.67": "a8a547ef",
+      "0.16.66": "c8cb9c13",
+      "0.16.65": "2d61386f",
       "0.16.64": "b5666e23",
       "0.16.63": "27af3ec6",
       "0.16.62": "e46c1db9",
@@ -3425,16 +3461,17 @@
         },
         "bomLabel": "UTF-8 BOM 추가",
         "bomHint": "(Excel 호환)",
-        "quadrantLabel": "Echo 소스 플레이트 절반",
-        "quadrantNone": "지정 안 함 (1-12열, 소진 절반 검사 없음)",
-        "quadrantColumns": "{{from}}~{{to}}열",
-        "quadrantHelper": "한 라운드가 절반을 채웁니다. Forward 프라이머는 A, C, E ... 행에 놓이고 reverse 프라이머는 같은 열 한 행 아래에 놓입니다.",
-        "usedQuadrantsLabel": "이 플레이트에서 이미 사용된 절반",
-        "usedQuadrantsHelper": "선택한 절반이 이 중 하나면 export가 거부됩니다.",
-        "legacyPlacementNotice": "이 프로젝트는 v{{version}} 이전에 저장됐습니다. 그때는 한 round 가 절반이 아니라 source plate 전폭에 걸쳐 있었습니다. 저장된 배치({{values}})는 두 절반을 모두 덮으므로 양쪽이 사용됨으로 표시되고 어떤 절반도 선택되지 않습니다. 새 plate 를 쓰는 것이면 아래 사용됨 체크를 해제한 뒤 절반을 고르십시오.",
+        "quadrantLabel": "Echo 소스 플레이트 열",
+        "quadrantNone": "지정 안 함 (1-12열, 소진 round 검사 없음)",
+        "quadrantColumnsOdd": "홀수 열 1, 3 ... 23",
+        "quadrantColumnsEven": "짝수 열 2, 4 ... 24",
+        "quadrantHelper": "96-head 는 한 칸 건너 열에만 닿으므로 한 라운드가 둘 중 하나를 씁니다. forward 프라이머는 A, C, E ... 행에 놓이고 reverse 프라이머는 같은 열 한 행 아래에 놓입니다.",
+        "usedQuadrantsLabel": "이 플레이트에서 이미 사용된 round",
+        "usedQuadrantsHelper": "선택한 round 가 이 중 하나면 export 가 거부됩니다.",
+        "legacyPlacementNotice": "이 프로젝트는 v{{from}} 과 v{{to}} 사이에 저장됐습니다. 그때는 한 round 가 한 칸 건너 열이 아니라 연속한 12열을 채웠습니다. 저장된 배치({{values}})는 두 round 를 모두 일부씩 덮으므로 양쪽이 사용됨으로 표시되고 어느 쪽도 선택되지 않습니다. 새 plate 를 쓰는 것이면 아래 사용됨 체크를 해제한 뒤 고르십시오.",
         "placementBlocked": {
-          "noHalfSelected": "이 plate 에 사용됨으로 표시된 절반이 있는데 이번 round 의 절반이 선택되지 않았습니다. A1 또는 A13 을 고르거나, 새 plate 이면 사용됨 체크를 해제하십시오.",
-          "halfAlreadyUsed": "선택한 절반은 이 plate 에서 이미 사용됨으로 표시돼 있습니다. 그 위에 분주하면 이미 들어 있는 primer 가 사라집니다. 다른 절반을 고르거나 해당 사용됨 체크를 해제하십시오."
+          "noQuadrantSelected": "이 plate 에 사용됨으로 표시된 round 가 있는데 이번 실행의 round 가 선택되지 않았습니다. A1 또는 A2 를 고르거나, 새 plate 이면 사용됨 체크를 해제하십시오.",
+          "quadrantAlreadyUsed": "선택한 round 는 이 plate 에서 이미 사용됨으로 표시돼 있습니다. 그 위에 분주하면 이미 들어 있는 primer 가 사라집니다. 다른 round 를 고르거나 해당 사용됨 체크를 해제하십시오."
         },
         "plateNameFwd": "Forward 프라이머 플레이트 이름",
         "plateNameRev": "Reverse 프라이머 플레이트 이름",
@@ -3751,7 +3788,9 @@
     "missingInputs": {
       "wt_replicates": "wild-type 반복 측정값"
     },
-    "missingInputsNote": "{{missing}} 없이 판정했습니다. 포화 판단은 hit rate 추세에만 근거합니다.",
+    "missingInputsNote": "{{missing}}이 없는 라운드가 하나 이상이어서 그 라운드에서는 plateau 판정을 하지 못했고 포화 판단이 hit rate 추세에만 근거합니다. 그 추세는 전체 라운드의 least-squares 기울기이고 자체 표본오차보다 가파르게 음수일 때만 감소로 봅니다.",
+    "zeroActivityNote": "이번 라운드에서 activity 가 정확히 0 인 변이가 {{n}} 개입니다. 설계되고 측정된 변이이므로 hit rate 분모에는 그대로 남기고 log2 통계에서만 제외했습니다.",
+    "wtRowNote": "이번 라운드 워크북의 wild-type(WT) 대조 행이 {{n}} 개입니다. 대조군은 설계된 변이가 아니므로 hit rate 계산에서도 제외했습니다.",
     "notAssessableBadge": "판정 불가",
     "notAssessableSummary": "신호는 전환을 가리키지만, 확인하려면 {{missing}}이 필요하고 이 파일들에는 그 값이 없습니다. 이 입력으로는 {{blocked}}을 답할 수 없고, 단일 변이를 이어갈지 여부만 판정할 수 있습니다.",
     "notAssessableInsufficientSummary": "신호는 전환을 가리키지만, 확인하려면 {{missing}}이 최소 {{required}}개 필요한데 이 라운드에 기록된 것은 {{count}}개입니다. 그보다 적으면 대조할 노이즈 추정치가 없어 포화 판단이 hit rate 추세 하나에만 근거하게 되고, 그것으로는 {{blocked}}을 답할 수 없습니다.",
@@ -3762,7 +3801,7 @@
     "restoredUnverifiedNote": "{{files}} 은(는) 이 앱이 쓴 파일이 아니어서 그 뒤로 바뀌지 않았는지 확인할 수 없습니다.",
     "rebuiltNote": "{{when}} 의 이전 답변은 4.1 이 다시 만들기 전의 같은 파일({{files}})로 산출한 것입니다. 이전 산출물에 대한 답변이므로 이력으로만 남기며, 현재 내용은 분류를 다시 실행해 확인하십시오.",
     "supersededNote": "{{when}} 의 이전 답변은 다른 파일 목록({{files}})으로 산출한 것입니다. 지금 선택한 파일에 대해서는 아무 말도 하지 않으므로 표시하지 않습니다.",
-    "headingHelp": "여러 라운드의 EVOLVEpro 결과를 모아 라운드 간 포화 신호를 보고 단일 변이 계속, combinatorial 전환, 중단, 판정 보류 중 하나를 참고로 제시합니다. 읽기 전용이라 아무것도 확정·저장하지 않으며, 라운드가 3회 미만이면 아직 판정하지 않습니다.",
+    "headingHelp": "여러 라운드의 EVOLVEpro 결과를 모아 라운드 간 포화 신호를 보고 단일 변이 계속, combinatorial 전환, 중단, 판정 보류 중 하나를 참고로 제시합니다. hit rate 추세는 전체 라운드의 least-squares 기울기이고 자체 표본오차보다 가파르게 음수일 때만 감소로 봅니다. 각 라운드에 기록된 wild-type 반복값이 그 라운드의 plateau 판정에 쓰이므로 연속 2개 라운드로 포화를 확인할 수 있습니다. 읽기 전용이라 아무것도 확정·저장하지 않으며, 라운드가 3회 미만이면 아직 판정하지 않습니다.",
     "nextRoundCapacity": "다음 라운드 플레이트 용량",
     "nextRoundCapacityHelper": "다음 조합 라운드에서 사용할 수 있는 웰 수입니다. 처리량 권장값을 결정합니다."
   },

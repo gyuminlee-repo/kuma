@@ -465,6 +465,10 @@ function isSdmPrimerResult(value: unknown): value is SdmPrimerResult {
     isOptional(value.hairpin_dg_rev, isNumber) &&
     isOptional(value.homodimer_dg_fwd, isNumber) &&
     isOptional(value.homodimer_dg_rev, isNumber) &&
+    isOptional(value.hairpin_warn_fwd, isBoolean) &&
+    isOptional(value.hairpin_warn_rev, isBoolean) &&
+    isOptional(value.homodimer_warn_fwd, isBoolean) &&
+    isOptional(value.homodimer_warn_rev, isBoolean) &&
     isOptional(value.synthesis_score_fwd, isNumber) &&
     isOptional(value.synthesis_score_rev, isNumber) &&
     isOptionalNullable(value.recommended_ta, isNumber) &&
@@ -778,6 +782,9 @@ function isWorkspaceCache(value: unknown): boolean {
 }
 
 function isPersistedEchoQuadrant(value: unknown): boolean {
+  // 세 시대의 저장 이름을 전부 읽을 수 있어야 한다. A1/A2 는 현재 이름이고,
+  // B1/B2 는 교차 시절 이름이라 fold 로 접히며, A13 은 half 시절 이름이라
+  // foldPersistedPlacement 가 거부한다. 여기서 떨어뜨리면 거부 안내조차 못 낸다.
   return value === "A1" || value === "A13" || value === "A2" || value === "B1" || value === "B2";
 }
 

@@ -30,10 +30,11 @@ from __future__ import annotations
 import datetime
 import json
 import warnings
+from typing import TypedDict
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import primer3
+from kuma_core.shared import thermo
 
 from kuma_core.mame.ingest.polymerase import PolymeraseProfile, get_profile
 
@@ -99,16 +100,238 @@ def _reverse_complement(seq: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Primer QC (hairpin / homodimer / off-target)
+# ---------------------------------------------------------------------------
+#
+# A barcode primer is ordered, synthesised and put into a PCR exactly like a
+# KURO SDM primer, so it is held to the same three structural checks KURO
+# applies (``kuma_core/kuro/sdm_engine.py`` ``_check_secondary_structure`` and
+# ``check_offtarget``). Until v0.16 the barcode path checked only the Tm window
+# and the 3' GC clamp.
+#
+# Thresholds are internal constants rather than parameters. KURO exposes none
+# of them either (every call site uses the ``sdm_engine.py`` defaults:
+# ``WARN_STRUCTURE_TM`` and ``check_offtarget``'s tm thresholds), and a knob
+# nothing sets is a knob that only has to be threaded through the RPC models,
+# the TypeScript types and ten locale files.
+_QC_STRUCTURE_TM_MAX = 40.0   # sdm_engine.WARN_STRUCTURE_TM
+_QC_OFFTARGET_TM = 45.0       # sdm_engine.check_offtarget tm_threshold defaults
+
+# primer3's thermodynamic alignment refuses a pair where both sequences exceed
+# 60 nt ("At least one sequence must be equal to or shorter than 60bp"). A full
+# barcode oligo is seed (<= 30) + flanking (<= 35), so 65 nt is reachable and
+# the call would raise inside package generation on otherwise valid input.
+_PRIMER3_THAL_MAX_LEN = 60
+
+# Fixed design-scale concentrations for hairpin/homodimer, deliberately NOT the
+# polymerase profile this module uses for Tm. Same reasoning as
+# ``sdm_engine.py:130-150`` and ``:238-243``: these numbers decide which
+# candidate is *selected*, so taking them from the enzyme buffer would make the
+# choice of enzyme change which physical oligo gets ordered. The Tm window here
+# stays profile-dependent because that is the module's existing, deliberate
+# behaviour; the asymmetry is intentional. primer3.calc_hairpin/calc_homodimer
+# accept only these four values, no tm_method/salt_corrections_method.
+class _ThermoConcs(TypedDict):
+    """The four concentrations primer3 thermodynamics accepts.
+
+    Declared as a TypedDict rather than a plain dict so the ``**`` expansion
+    below names exactly these four parameters. A ``dict[str, float]`` widens to
+    every keyword the primer3 signatures take, including the ``int`` and
+    ``bool`` ones, and the type checker rejects the call.
+    """
+
+    mv_conc: float
+    dv_conc: float
+    dntp_conc: float
+    dna_conc: float
+
+
+_QC_CONCS: _ThermoConcs = {
+    "mv_conc": 50.0,
+    "dv_conc": 0.0,
+    "dntp_conc": 0.0,
+    "dna_conc": 250.0,
+}
+
+# The Tm scale the off-target threshold is measured on. ``check_offtarget``
+# rule 1 scores a full-length match with ``sdm_engine._calc_sdm_tm``, which is
+# the SantaLucia 1998 pair below, so the fast path in
+# ``_perfect_repeat_failure`` must use the same pair to reach the same verdict.
+# Named constants rather than call-site literals so the golden corpus in
+# ``python-core/scripts/gen_thermo_golden.py`` reads them instead of retyping
+# them.
+_QC_TM_METHOD = "santalucia"
+_QC_SALT_CORRECTION = "santalucia"
+
+
+def _structure_tms(seq: str) -> tuple[float, float] | None:
+    """Return ``(hairpin_tm, homodimer_tm)`` or None when primer3 cannot check.
+
+    Rounded to one decimal and reported as 0.0 when no structure is found, the
+    same convention as ``sdm_engine._check_secondary_structure``. None means the
+    oligo is longer than ``_PRIMER3_THAL_MAX_LEN``, which is "unknown" rather
+    than "clean" and callers must say so instead of treating it as a pass.
+    """
+    if len(seq) > _PRIMER3_THAL_MAX_LEN:
+        return None
+    upper = seq.upper()
+    hairpin = thermo.calc_hairpin(upper, **_QC_CONCS)
+    homodimer = thermo.calc_homodimer(upper, **_QC_CONCS)
+    return (
+        round(hairpin.tm if hairpin.structure_found else 0.0, 1),
+        round(homodimer.tm if homodimer.structure_found else 0.0, 1),
+    )
+
+
+def _structure_failures(seq: str) -> list[str]:
+    """Human-readable hairpin/homodimer failures for ``seq`` (empty = clean)."""
+    tms = _structure_tms(seq)
+    if tms is None:
+        return []
+    hairpin_tm, homodimer_tm = tms
+    failures: list[str] = []
+    if hairpin_tm > _QC_STRUCTURE_TM_MAX:
+        failures.append(
+            f"hairpin Tm={hairpin_tm:.1f} C exceeds {_QC_STRUCTURE_TM_MAX:.1f} C"
+        )
+    if homodimer_tm > _QC_STRUCTURE_TM_MAX:
+        failures.append(
+            f"homodimer Tm={homodimer_tm:.1f} C exceeds {_QC_STRUCTURE_TM_MAX:.1f} C"
+        )
+    return failures
+
+
+def _offtarget_frame(
+    template: str, start: int, length: int, seq_len: int
+) -> tuple[str, int, int]:
+    """Present the candidate's own binding site as a contiguous span.
+
+    ``check_offtarget`` reads the template as a flat string and excludes hits
+    that overlap ``[intended_start, intended_end)``. Under circular topology a
+    candidate may wrap the origin, where no such half-open interval exists and
+    the candidate's own two fragments would be reported as off-target hits of
+    itself. Rotating the template so the candidate starts at 0 restores a
+    contiguous intended span without changing which sites exist.
+    """
+    if start >= 0 and start + length <= seq_len:
+        return template, start, start + length
+    rotation = start % seq_len
+    return template[rotation:] + template[:rotation], 0, length
+
+
+def _perfect_repeat_failure(
+    primer_seq: str, template: str, intended_start: int, intended_end: int
+) -> list[str]:
+    """Fast path for a full-length perfect repeat of the primer.
+
+    ``check_offtarget`` rule 1 already catches these: a site where the whole
+    primer matches is anchored at its 3' end, extends to full length and is
+    scored with the perfect-complement Tm. That rule is reproduced here with one
+    string search and one Tm call, because finding it this way costs microseconds
+    while the full scan costs ~0.12 s on a repetitive template, and a repetitive
+    template is exactly where every candidate has such a site. The threshold and
+    the Tm scale are the same, so the verdict is the same; a repeat whose Tm is
+    below the threshold falls through to the full scan rather than being
+    accepted here.
+    """
+    upper = primer_seq.upper()
+    template_upper = template.upper()
+    rc_upper = _reverse_complement(upper)
+    # The intended site is excluded on BOTH searches. A forward primer is
+    # identical to its own site and a reverse primer is the reverse complement
+    # of it, so whichever of the two searches is skipped is the one that finds
+    # the candidate's own binding site and rejects every primer on that strand.
+    sites: list[tuple[str, int]] = []
+    for strand, needle in (("sense", upper), ("antisense", rc_upper)):
+        start = 0
+        while (pos := template_upper.find(needle, start)) >= 0:
+            start = pos + 1
+            if pos + len(needle) <= intended_start or pos >= intended_end:
+                sites.append((strand, pos))
+    if not sites:
+        return []
+    tm = thermo.calc_tm(
+        upper,
+        **_QC_CONCS,
+        tm_method=_QC_TM_METHOD,
+        salt_corrections_method=_QC_SALT_CORRECTION,
+    )
+    if tm < _QC_OFFTARGET_TM:
+        return []
+    strand, pos = sites[0]
+    return [
+        f"{len(sites)} full-length off-target repeat(s) of the primer on the "
+        f"template, Tm={tm:.1f} C exceeds {_QC_OFFTARGET_TM:.1f} C "
+        f"(first at position {pos}, {strand} strand)"
+    ]
+
+
+def _offtarget_failures(
+    primer_seq: str, template: str, intended_start: int, intended_end: int
+) -> list[str]:
+    """Off-target failures for ``primer_seq`` against ``template`` (empty = clean)."""
+    from kuma_core.kuro.sdm_engine import check_offtarget  # local: see module note
+
+    hits = check_offtarget(
+        primer_seq,
+        template,
+        intended_start,
+        intended_end,
+        tm_threshold=_QC_OFFTARGET_TM,
+        mismatch_tm_threshold=_QC_OFFTARGET_TM,
+        # overlap_arm_len stays 0: that argument is for a Gibson homology arm
+        # and a barcode seed is not one.
+    )
+    if not hits:
+        return []
+    worst = max(hits, key=lambda hit: hit.tm)
+    return [
+        f"{len(hits)} off-target site(s) above {_QC_OFFTARGET_TM:.1f} C, worst "
+        f"Tm={worst.tm:.1f} C at template position {worst.position} "
+        f"({worst.strand} strand)"
+    ]
+
+
+def _binding_qc_failures(
+    primer_seq: str,
+    template: str,
+    start: int,
+    length: int,
+    seq_len: int,
+) -> list[str]:
+    """All QC failures for one binding-site candidate (empty = accepted).
+
+    Structure first and off-target only on a structurally clean candidate: the
+    verdict is the same either way (any non-empty list rejects) and the
+    off-target scan is two orders of magnitude more expensive, measured at
+    ~0.12 s against a repetitive 6.5 kb template versus ~0.3 ms for the pair of
+    thermodynamic calls.
+    """
+    structure = _structure_failures(primer_seq)
+    if structure:
+        return structure
+    frame, intended_start, intended_end = _offtarget_frame(
+        template, start, length, seq_len
+    )
+    repeat = _perfect_repeat_failure(
+        primer_seq, frame, intended_start, intended_end
+    )
+    if repeat:
+        return repeat
+    return _offtarget_failures(primer_seq, frame, intended_start, intended_end)
+
+
+# ---------------------------------------------------------------------------
 # Tm calculation
 # ---------------------------------------------------------------------------
 
 def _calc_tm(seq: str, profile: PolymeraseProfile) -> float:
     """Calculate Tm using the given polymerase salt profile.
 
-    Uses primer3.calc_tm with SantaLucia 1998 nearest-neighbour parameters.
-    ``seq`` is converted to uppercase before passing to primer3.
+    Uses thermo.calc_tm with SantaLucia 1998 nearest-neighbour parameters.
+    ``seq`` is converted to uppercase before passing to the engine.
     """
-    return primer3.calc_tm(
+    return thermo.calc_tm(
         seq.upper(),
         mv_conc=profile.mv_conc,
         dv_conc=profile.dv_conc,
@@ -349,8 +572,8 @@ def design_flanking_primers(
     gene_start: int,
     gene_end: int,
     profile: PolymeraseProfile,
-    flank_min: int = 100,
-    flank_max: int = 400,
+    overhang_min: int = 20,
+    overhang_max: int = 60,
     binding_min_len: int = 18,
     binding_max_len: int = 35,
     tm_min: float = 55.0,
@@ -360,22 +583,67 @@ def design_flanking_primers(
 ) -> tuple[str, str, list[str]]:
     """Design Tm-guided flanking primers flanking a gene region.
 
-    Search strategy
-    ---------------
-    For the forward primer, the binding site is sought in the region
-    ``[gene_start - flank_max, gene_start - flank_min)``.
-    Outer loop: start position ascending from ``gene_start - flank_max``.
-    Inner loop: binding length ascending from ``binding_min_len`` to ``binding_max_len``.
-    First candidate satisfying both the Tm window and the GC-clamp (if requested)
-    is returned immediately.
-    If no candidate meets the criteria, the candidate whose Tm is closest to
-    ``(tm_min + tm_max) / 2`` (Tm midpoint) is returned instead, and a warning
-    is appended.
+    What the window measures
+    ------------------------
+    The single configured axis is the **overhang**: how far the outer end of
+    the amplicon reaches past the CDS boundary. For the forward primer the
+    binding site is ``[pos, pos + length)`` and the overhang is
+    ``gene_start - pos``. For the reverse primer the binding site is
+    ``[start, end)`` and the overhang is ``end - gene_end``. Both must satisfy
+    ``overhang_min <= overhang <= overhang_max``. This is the same quantity the
+    downstream steps already measure, so ``trim_flank_bp`` and the terminal
+    variant advisories speak of the same distance.
 
-    For the reverse primer, the binding site is sought in
-    ``[gene_end + flank_min, gene_end + flank_max)``.
-    The candidate sequence is ``reverse_complement(cds_sequence[end - length : end])``.
-    Same selection logic applies.
+    The gap between primer and gene is **not** a parameter. It is fixed at
+    ``>= 0``: a base a primer covers is read from the primer rather than from
+    the template, so a primer reaching into the CDS would hide the very
+    mutations this assay scores. The forward primer therefore ends no later
+    than ``gene_start`` and the reverse binding site starts no earlier than
+    ``gene_end``. Because ``overhang = gap + binding_length``, an
+    ``overhang_min`` below ``binding_min_len`` describes a sub-range no primer
+    can occupy; that is reported as a warning rather than refused, since larger
+    overhangs in the same range remain reachable.
+
+    Search order
+    ------------
+    Inner loop: binding length ascending from ``binding_min_len`` to
+    ``binding_max_len``. First candidate satisfying the Tm window, the GC-clamp
+    (if requested) and the structural QC below is returned immediately. If no
+    candidate meets the criteria, the candidate whose Tm is closest to
+    ``(tm_min + tm_max) / 2`` is returned instead and a warning is appended;
+    that warning states that the selected primer did not pass QC when it did
+    not, so a fallback pick is never silently presented as a clean one.
+
+    Structural QC
+    -------------
+    On top of Tm and the GC clamp every candidate must clear hairpin,
+    homodimer and off-target checks, the same three KURO applies to an SDM
+    primer. Thresholds are the KURO defaults and are internal constants
+    (``_QC_STRUCTURE_TM_MAX``, ``_QC_OFFTARGET_TM``); hairpin and homodimer use
+    the fixed design-scale concentrations rather than ``profile``, for the
+    reason given at ``_QC_CONCS``. Off-target is searched against
+    ``cds_sequence`` itself, which is the whole template this module was given,
+    so a plasmid input is searched like a KURO template and a bare-CDS input
+    has the same narrow search space it has in KURO.
+
+    The outer loop walks **outside-in on both strands**, from the largest
+    reachable overhang towards ``overhang_min``. Forward iterates ``pos``
+    ascending from ``gene_start - overhang_max``; reverse iterates ``end``
+    descending from ``gene_end + overhang_max``, which is the same direction
+    expressed in that strand's coordinates. The first accepted candidate
+    therefore lands at the reachable cap on either side.
+
+    That direction is the point of the default of 60, so do not turn either
+    loop towards the gene without re-measuring. Landing at the cap leaves
+    roughly ``60`` minus one binding length of template between the primer and
+    the CDS on **both** sides, which keeps the 30 bp
+    ``variants_near_reference_edge`` margin clear at both termini. Walking
+    reverse inwards instead seated it near ``max(overhang_min,
+    binding_min_len)``, about 22 bp at the defaults, which pulled the last few
+    codons of the CDS inside that margin while the forward side was unaffected.
+    Both directions are pinned by
+    ``tests/mame/test_overhang_window.py::test_both_strands_search_outward``
+    and its clamped counterpart.
 
     Parameters
     ----------
@@ -387,12 +655,12 @@ def design_flanking_primers(
         0-based exclusive end position of the gene within ``cds_sequence``.
     profile:
         PolymeraseProfile supplying salt concentrations for Tm calculation.
-    flank_min:
-        Minimum distance (bp) upstream/downstream of the gene boundary where the
-        primer binding site must end/start.
-    flank_max:
-        Maximum distance (bp) upstream/downstream of the gene boundary that is
-        searched for a binding site.
+    overhang_min:
+        Minimum overhang (bp): how far past the gene boundary the outer end of
+        the binding site must reach. Values below ``binding_min_len`` are
+        unreachable and produce a warning.
+    overhang_max:
+        Maximum overhang (bp) that is searched.
     binding_min_len:
         Minimum primer binding length to try.
     binding_max_len:
@@ -404,9 +672,10 @@ def design_flanking_primers(
     require_gc_clamp:
         If True, the 3' terminal base of every candidate must be G or C.
     topology:
-        Either "linear" (default) or "circular". When "linear", a search
-        window that falls outside ``cds_sequence`` boundaries raises
-        ValueError (unchanged behaviour). When "circular", the forward and
+        Either "linear" (default) or "circular". When "linear", an overhang
+        that would reach outside ``cds_sequence`` is clamped to the sequence,
+        and ValueError is raised only when the clamped reach is below
+        ``max(overhang_min, binding_min_len)``. When "circular", the forward and
         reverse search windows are allowed to wrap around the sequence
         origin, since the corresponding template region physically exists on
         a circular molecule.
@@ -419,8 +688,9 @@ def design_flanking_primers(
     Raises
     ------
     ValueError
-        If topology is not "linear" or "circular", if the flank search window
-        falls outside ``cds_sequence`` boundaries under linear topology, if
+        If topology is not "linear" or "circular", if the clamped overhang
+        reach under linear topology is below
+        ``max(overhang_min, binding_min_len)``, if
         wrapping under circular topology would require reading past a full
         revolution of the sequence, or if ``gene_start >= gene_end``, or if
         parameter ranges are invalid.
@@ -442,9 +712,10 @@ def design_flanking_primers(
         raise ValueError(
             f"gene_start ({gene_start}) must be < gene_end ({gene_end})."
         )
-    if flank_min < 0 or flank_max <= flank_min:
+    if overhang_min < 0 or overhang_max < overhang_min:
         raise ValueError(
-            f"flank_min ({flank_min}) must be >= 0 and < flank_max ({flank_max})."
+            f"overhang_min ({overhang_min}) must be >= 0 and "
+            f"<= overhang_max ({overhang_max})."
         )
     if binding_min_len < 1 or binding_max_len < binding_min_len:
         raise ValueError(
@@ -452,71 +723,103 @@ def design_flanking_primers(
             f"<= binding_max_len ({binding_max_len})."
         )
 
-    if binding_min_len > flank_max - flank_min:
-        raise ValueError(
-            f"binding_min_len ({binding_min_len}) exceeds the flank search "
-            f"window width ({flank_max - flank_min})."
-        )
-
     if topology == "circular" and (
-        (flank_max - flank_min) > seq_len or binding_max_len > seq_len
+        overhang_max > seq_len or binding_max_len > seq_len
     ):
         raise ValueError(
-            f"Circular wrap search window (flank_max - flank_min = "
-            f"{flank_max - flank_min}) or binding_max_len ({binding_max_len}) "
-            f"exceeds the sequence length (seq_len={seq_len}); wrapping would "
-            "read the same base more than once. Reduce flank_max/binding_max_len "
-            "or use a longer template."
-        )
-
-    # Forward primer search window: positions [fwd_window_start, fwd_window_end)
-    # The primer starts at `pos` and extends binding_len bases to the right.
-    # The primer must end no later than gene_start - flank_min,
-    # so pos + length <= gene_start - flank_min  =>  pos <= gene_start - flank_min - length.
-    # The primer starts no earlier than gene_start - flank_max.
-    fwd_region_start = gene_start - flank_max
-    fwd_region_end = gene_start - flank_min  # exclusive upper bound for pos
-
-    if topology == "linear" and fwd_region_start < 0:
-        raise ValueError(
-            f"Forward primer search window starts at {fwd_region_start} "
-            f"(gene_start={gene_start}, flank_max={flank_max}); "
-            "sequence is too short upstream of the gene."
-        )
-    if fwd_region_end <= fwd_region_start:
-        raise ValueError(
-            f"Forward primer search window [{fwd_region_start}, {fwd_region_end}) "
-            "is empty. Increase the gap between gene_start and flank_min/flank_max."
-        )
-
-    # Reverse primer search window: binding ends at `end`, starts at `end - length`.
-    # The whole binding site must fit inside the downstream search window.
-    rev_region_start = gene_end + flank_min
-    rev_region_end = gene_end + flank_max    # inclusive upper bound for `end`
-
-    if topology == "linear" and rev_region_end > seq_len:
-        raise ValueError(
-            f"Reverse primer search window ends at {rev_region_end} "
-            f"(gene_end={gene_end}, flank_max={flank_max}); "
-            "sequence is too short downstream of the gene."
-        )
-    if rev_region_start > rev_region_end:
-        raise ValueError(
-            f"Reverse primer search window [{rev_region_start}, {rev_region_end}] "
-            "is empty. Increase the gap between gene_end and flank_min/flank_max."
+            f"Circular wrap overhang (overhang_max = {overhang_max}) or "
+            f"binding_max_len ({binding_max_len}) exceeds the sequence length "
+            f"(seq_len={seq_len}); wrapping would read the same base more than "
+            "once. Reduce overhang_max/binding_max_len or use a longer template."
         )
 
     collected_warnings: list[str] = []
+
+    # overhang = gap + binding_length and gap >= 0, so no primer can occupy an
+    # overhang below binding_min_len. The sub-range is inert rather than fatal.
+    if overhang_min < binding_min_len:
+        collected_warnings.append(
+            f"overhang_min ({overhang_min}) is below binding_min_len "
+            f"({binding_min_len}); overhangs under {binding_min_len} bp cannot "
+            f"hold a binding site, so the effective minimum is {binding_min_len}."
+        )
+
+    # The gap between primer and gene is a fixed invariant, not a parameter:
+    # the forward primer ends no later than gene_start and the reverse binding
+    # site starts no earlier than gene_end, so no scored base is read from a
+    # primer. Only the overhang is configurable.
+    overhang_floor = max(overhang_min, binding_min_len)
+    fwd_overhang_cap = overhang_max
+    rev_overhang_cap = overhang_max
+
+    if topology == "linear":
+        # A linear template has no bases before position 0 or after the last
+        # one. Clamp the reach to what exists instead of refusing: what a
+        # primer physically needs is one binding site, not the full
+        # overhang_max.
+        fwd_overhang_cap = min(overhang_max, gene_start)
+        rev_overhang_cap = min(overhang_max, seq_len - gene_end)
+
+    # Two different causes land here and the remedy differs, so name the one
+    # that actually applies rather than always blaming the template.
+    if fwd_overhang_cap < overhang_floor:
+        cause = (
+            "sequence is too short upstream of the gene"
+            if fwd_overhang_cap < overhang_max
+            else "raise overhang_max or lower binding_min_len"
+        )
+        raise ValueError(
+            f"Forward primer overhang reaches at most {fwd_overhang_cap} bp, "
+            f"which leaves {fwd_overhang_cap} bp, but "
+            f"binding_min_len ({binding_min_len}) and overhang_min "
+            f"({overhang_min}) require {overhang_floor} bp "
+            f"(gene_start={gene_start}, overhang_max={overhang_max}); "
+            f"{cause}."
+        )
+    if rev_overhang_cap < overhang_floor:
+        cause = (
+            "sequence is too short downstream of the gene"
+            if rev_overhang_cap < overhang_max
+            else "raise overhang_max or lower binding_min_len"
+        )
+        raise ValueError(
+            f"Reverse primer overhang reaches at most {rev_overhang_cap} bp, "
+            f"which leaves {rev_overhang_cap} bp, but "
+            f"binding_min_len ({binding_min_len}) and overhang_min "
+            f"({overhang_min}) require {overhang_floor} bp "
+            f"(gene_end={gene_end}, seq_len={seq_len}, "
+            f"overhang_max={overhang_max}); "
+            f"{cause}."
+        )
+
+    # Both strands are walked outside-in: the first position tried is the one
+    # with the largest reachable overhang and the last is the one at
+    # overhang_min. `_first` and `_last` therefore name iteration order, not
+    # coordinate order, and the reverse loop counts down because on that strand
+    # the outermost coordinate is the largest one.
+    #
+    # Forward: the primer ends at gene_start at the latest, which caps its
+    # length at the overhang itself.
+    fwd_pos_first = gene_start - fwd_overhang_cap
+    fwd_pos_last = gene_start - overhang_min  # inclusive
+
+    # Reverse: the binding site starts at gene_end at the earliest, which
+    # likewise caps its length at the overhang.
+    rev_end_first = gene_end + rev_overhang_cap
+    rev_end_last = gene_end + overhang_min  # inclusive
+
     tm_target = (tm_min + tm_max) / 2.0
 
     # --- Forward primer -------------------------------------------------------
-    fwd_candidates: list[tuple[float, str]] = []  # (abs(Tm - target), seq)
+    # (abs(Tm - target), seq, binding start, binding length). The coordinates
+    # ride along because a fallback pick still has to be QC-reported, and that
+    # needs the site it came from.
+    fwd_candidates: list[tuple[float, str, int, int]] = []
     fwd_chosen: str | None = None
+    fwd_qc_rejected = 0
 
-    for pos in range(fwd_region_start, fwd_region_end):
-        for length in range(binding_min_len, binding_max_len + 1):
-            if pos + length > fwd_region_end:
-                break
+    for pos in range(fwd_pos_first, fwd_pos_last + 1):
+        for length in range(binding_min_len, min(binding_max_len, gene_start - pos) + 1):
             if topology == "circular":
                 candidate = _circular_slice(cds_sequence, pos, length, seq_len)
             else:
@@ -525,8 +828,15 @@ def design_flanking_primers(
                     break  # hit end of sequence
             tm = _calc_tm(candidate, profile)
             gc_ok = (not require_gc_clamp) or (candidate[-1].upper() in "GC")
-            fwd_candidates.append((abs(tm - tm_target), candidate))
+            fwd_candidates.append((abs(tm - tm_target), candidate, pos, length))
             if tm_min <= tm <= tm_max and gc_ok:
+                # QC runs only on Tm/GC survivors: it is the expensive check and
+                # a candidate outside the Tm window is rejected regardless.
+                if _binding_qc_failures(
+                    candidate, cds_sequence, pos, length, seq_len
+                ):
+                    fwd_qc_rejected += 1
+                    continue
                 fwd_chosen = candidate
                 break
         if fwd_chosen is not None:
@@ -540,13 +850,23 @@ def design_flanking_primers(
         )
         if fallback_candidates:
             fallback_candidates.sort(key=lambda x: x[0])
-            fwd_chosen = fallback_candidates[0][1]
+            _, fwd_chosen, fb_pos, fb_len = fallback_candidates[0]
             best_tm = _calc_tm(fwd_chosen, profile)
             collected_warnings.append(
-                f"No forward primer candidate met Tm [{tm_min}, {tm_max}] "
-                f"(require_gc_clamp={require_gc_clamp}). "
+                f"No forward primer candidate passed Tm [{tm_min}, {tm_max}] "
+                f"(require_gc_clamp={require_gc_clamp}) together with the "
+                f"hairpin/homodimer/off-target checks; {fwd_qc_rejected} "
+                f"candidate(s) met Tm and GC but failed QC. "
                 f"Using closest candidate (Tm={best_tm:.1f} C): {fwd_chosen.upper()}"
             )
+            fb_failures = _binding_qc_failures(
+                fwd_chosen, cds_sequence, fb_pos, fb_len, seq_len
+            )
+            if fb_failures:
+                collected_warnings.append(
+                    "Selected forward primer did not pass QC: "
+                    + "; ".join(fb_failures)
+                )
         elif require_gc_clamp:
             raise ValueError(
                 "Forward primer search produced no candidate satisfying the required "
@@ -555,19 +875,20 @@ def design_flanking_primers(
         else:
             raise ValueError(
                 "Forward primer search produced no candidates. "
-                f"Check flank_min={flank_min}, flank_max={flank_max}, "
+                f"Check overhang_min={overhang_min}, overhang_max={overhang_max}, "
                 f"binding_min_len={binding_min_len}, binding_max_len={binding_max_len}."
             )
 
     # --- Reverse primer -------------------------------------------------------
-    rev_candidates: list[tuple[float, str]] = []
+    # Same 4-tuple as the forward list; the coordinates are the sense-strand
+    # binding site, which is the frame check_offtarget is given.
+    rev_candidates: list[tuple[float, str, int, int]] = []
     rev_chosen: str | None = None
+    rev_qc_rejected = 0
 
-    for end in range(rev_region_start, rev_region_end + 1):
-        for length in range(binding_min_len, binding_max_len + 1):
+    for end in range(rev_end_first, rev_end_last - 1, -1):
+        for length in range(binding_min_len, min(binding_max_len, end - gene_end) + 1):
             start = end - length
-            if start < rev_region_start:
-                break
             if topology == "circular":
                 candidate_raw = _circular_slice(cds_sequence, start, length, seq_len)
             else:
@@ -579,8 +900,13 @@ def design_flanking_primers(
             candidate = _reverse_complement(candidate_raw)
             tm = _calc_tm(candidate, profile)
             gc_ok = (not require_gc_clamp) or (candidate[-1].upper() in "GC")
-            rev_candidates.append((abs(tm - tm_target), candidate))
+            rev_candidates.append((abs(tm - tm_target), candidate, start, length))
             if tm_min <= tm <= tm_max and gc_ok:
+                if _binding_qc_failures(
+                    candidate, cds_sequence, start, length, seq_len
+                ):
+                    rev_qc_rejected += 1
+                    continue
                 rev_chosen = candidate
                 break
         if rev_chosen is not None:
@@ -594,13 +920,23 @@ def design_flanking_primers(
         )
         if fallback_candidates:
             fallback_candidates.sort(key=lambda x: x[0])
-            rev_chosen = fallback_candidates[0][1]
+            _, rev_chosen, fb_start, fb_len = fallback_candidates[0]
             best_tm = _calc_tm(rev_chosen, profile)
             collected_warnings.append(
-                f"No reverse primer candidate met Tm [{tm_min}, {tm_max}] "
-                f"(require_gc_clamp={require_gc_clamp}). "
+                f"No reverse primer candidate passed Tm [{tm_min}, {tm_max}] "
+                f"(require_gc_clamp={require_gc_clamp}) together with the "
+                f"hairpin/homodimer/off-target checks; {rev_qc_rejected} "
+                f"candidate(s) met Tm and GC but failed QC. "
                 f"Using closest candidate (Tm={best_tm:.1f} C): {rev_chosen.upper()}"
             )
+            fb_failures = _binding_qc_failures(
+                rev_chosen, cds_sequence, fb_start, fb_len, seq_len
+            )
+            if fb_failures:
+                collected_warnings.append(
+                    "Selected reverse primer did not pass QC: "
+                    + "; ".join(fb_failures)
+                )
         elif require_gc_clamp:
             raise ValueError(
                 "Reverse primer search produced no candidate satisfying the required "
@@ -609,7 +945,7 @@ def design_flanking_primers(
         else:
             raise ValueError(
                 "Reverse primer search produced no candidates. "
-                f"Check flank_min={flank_min}, flank_max={flank_max}, "
+                f"Check overhang_min={overhang_min}, overhang_max={overhang_max}, "
                 f"binding_min_len={binding_min_len}, binding_max_len={binding_max_len}."
             )
 
@@ -643,8 +979,8 @@ def generate_mame_package(
     project_root: Path,
     gene_name: str,
     polymerase: str = "Q5",
-    flank_min: int = 100,
-    flank_max: int = 400,
+    overhang_min: int = 20,
+    overhang_max: int = 60,
     binding_min_len: int = 18,
     binding_max_len: int = 35,
     tm_min: float = 55.0,
@@ -658,7 +994,11 @@ def generate_mame_package(
     -----
     1. Read the first sequence from ``fasta_path`` (warn if multi-record).
     2. Call :func:`design_flanking_primers` to obtain fwd/rev flanking sequences.
-    3. Call :func:`parse_barcode_seeds` to obtain 12 fwd + 8 rev seed sequences.
+       Candidates are filtered on Tm, GC clamp, hairpin, homodimer and
+       off-target binding.
+    3. Call :func:`parse_barcode_seeds` to obtain 12 fwd + 8 rev seed sequences,
+       then run an advisory hairpin/homodimer pass over the 20 full
+       ``seed + flanking`` oligos. That pass only appends warnings.
     4. Write ``barcodes_sequence.xlsx`` (20 data rows, 1 header row).
        Row format: name ``{sanitized_gene}_f_N`` / ``{sanitized_gene}_r_N``,
        sequence = SEED + flanking (all upper). The ``sanitized_gene`` prefix
@@ -689,10 +1029,11 @@ def generate_mame_package(
     polymerase:
         Name of the polymerase profile to use for Tm calculation.
         Must be one of the keys in ``POLYMERASE_PROFILES`` (default "Q5").
-    flank_min:
-        Minimum distance (bp) from the gene boundary to the primer binding site.
-    flank_max:
-        Maximum distance (bp) from the gene boundary searched for a binding site.
+    overhang_min:
+        Minimum overhang (bp): how far past the gene boundary the outer end of
+        the primer binding site must reach.
+    overhang_max:
+        Maximum overhang (bp) searched.
     binding_min_len:
         Minimum primer binding length to try.
     binding_max_len:
@@ -741,8 +1082,8 @@ def generate_mame_package(
         gene_start=gene_start,
         gene_end=gene_end,
         profile=profile,
-        flank_min=flank_min,
-        flank_max=flank_max,
+        overhang_min=overhang_min,
+        overhang_max=overhang_max,
         binding_min_len=binding_min_len,
         binding_max_len=binding_max_len,
         tm_min=tm_min,
@@ -757,6 +1098,13 @@ def generate_mame_package(
     # Step 4: barcodes_sequence.xlsx
     # Derive sanitized prefix from gene_name (raises ValueError on empty).
     gene_prefix = _sanitize_gene_prefix(gene_name)
+    rows = _barcode_rows(seeds, fwd_flanking, rev_flanking, gene_prefix)
+
+    # Advisory QC on the full synthesised oligos. Runs after seed parsing
+    # because the seeds are what makes an oligo whole, and it only appends
+    # warnings: selection already happened in step 2 and is not revisited.
+    pkg_warnings = list(pkg_warnings) + _full_oligo_qc_warnings(rows)
+
     barcodes_xlsx_path = output_dir / "barcodes_sequence.xlsx"
     _write_barcodes_xlsx(
         path=barcodes_xlsx_path,
@@ -830,6 +1178,70 @@ def _compute_amplicon_length(
 # Private write helpers
 # ---------------------------------------------------------------------------
 
+def _barcode_rows(
+    seeds: dict[str, str],
+    fwd_flanking: str,
+    rev_flanking: str,
+    gene_prefix: str,
+) -> list[tuple[str, str]]:
+    """Return the 20 ``(row name, oligo sequence)`` pairs of the package.
+
+    Single source for the concatenation, used both by the writer and by the
+    full-oligo QC pass, so the molecule that is checked is provably the one
+    that is written.
+    """
+    rows = [
+        (f"{gene_prefix}{_FWD_SUFFIX}{i}", seeds[f"fwd_{i}"].upper() + fwd_flanking)
+        for i in range(1, _N_FWD + 1)
+    ]
+    rows += [
+        (f"{gene_prefix}{_REV_SUFFIX}{i}", seeds[f"rev_{i}"].upper() + rev_flanking)
+        for i in range(1, _N_REV + 1)
+    ]
+    return rows
+
+
+def _full_oligo_qc_warnings(rows: list[tuple[str, str]]) -> list[str]:
+    """Advisory hairpin/homodimer pass over the whole synthesised oligos.
+
+    The molecule an operator orders is ``seed + flanking``, not the binding site
+    alone, so it is checked here as well. This pass is ADVISORY ONLY and never
+    changes a selection: the seed is a fixed input the operator already ordered,
+    so a seed-driven structure has no alternative to fall back to and rejecting
+    the binding site for it would apply an undefined criterion.
+    """
+    flagged: list[str] = []
+    unchecked: list[str] = []
+    for name, seq in rows:
+        if _structure_tms(seq) is None:
+            unchecked.append(f"{name} ({len(seq)} nt)")
+            continue
+        failures = _structure_failures(seq)
+        if failures:
+            flagged.append(f"{name}: " + ", ".join(failures))
+
+    # One line per finding kind rather than one per oligo. Roughly half of a
+    # normal 20-oligo package is flagged (12 of 20 on the shipped EGFP sample),
+    # and twenty separate banner entries would train an operator to dismiss the
+    # banner without reading it.
+    out: list[str] = []
+    if flagged:
+        out.append(
+            f"{len(flagged)} of {len(rows)} full barcode oligos "
+            f"(seed + flanking) exceed the {_QC_STRUCTURE_TM_MAX:.1f} C "
+            f"advisory structure limit: " + "; ".join(flagged) + ". Advisory "
+            "only: the seed is a fixed input that was already ordered, so this "
+            "did not change primer selection."
+        )
+    if unchecked:
+        out.append(
+            f"{len(unchecked)} of {len(rows)} full barcode oligos were not "
+            f"checked for hairpin/homodimer because primer3 requires "
+            f"{_PRIMER3_THAL_MAX_LEN} nt or fewer: " + "; ".join(unchecked) + "."
+        )
+    return out
+
+
 def _write_barcodes_xlsx(
     path: Path,
     seeds: dict[str, str],
@@ -857,14 +1269,7 @@ def _write_barcodes_xlsx(
     ws.title = "Barcodes"
     ws.append(["name", "sequence"])
 
-    for i in range(1, _N_FWD + 1):
-        name = f"{gene_prefix}{_FWD_SUFFIX}{i}"
-        seq = seeds[f"fwd_{i}"].upper() + fwd_flanking
-        ws.append([name, seq])
-
-    for i in range(1, _N_REV + 1):
-        name = f"{gene_prefix}{_REV_SUFFIX}{i}"
-        seq = seeds[f"rev_{i}"].upper() + rev_flanking
+    for name, seq in _barcode_rows(seeds, fwd_flanking, rev_flanking, gene_prefix):
         ws.append([name, seq])
 
     wb.save(str(path))

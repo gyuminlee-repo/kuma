@@ -14,8 +14,16 @@ with "simple" as the other, non-default option:
   This is not the samtools default behaviour: ``samtools consensus``
   defaults to ``--show-ins yes``, so omitting insertions corresponds to
   running that tool with ``--show-ins no``.
-- Deletions: contribute a deletion token ('-') to the position vote;
-  if deletions are the majority base the output is 'N' (gap-free output).
+- Deletions: contribute a deletion token ('-') to the position vote; when
+  deletions clear a MAJORITY of the spanning depth the output is '-' at that
+  position, and the sequence stays at reference length.  A deletion that leads
+  the vote without reaching a majority is a no-call and stays 'N', so the two
+  characters carry different facts: '-' says the called molecule is missing
+  that reference base, 'N' says the well made no call there.  samtools marks
+  the same positions '*' under ``--show-del yes`` and omits them entirely under
+  the default ``--show-del no``; this module does neither, because the
+  reference-anchored coordinates are what the codon-level workbook comparison
+  needs.
 - Reverse-complement reads: bases are reverse-complemented before voting.
 
 Reference
@@ -326,7 +334,9 @@ class ConsensusCall:
     #   True deletion wells (G4 2bp del, G5 1bp HomoDel): >= 0.83
     #   Synthetic proof cases (100% INS/DEL reads): 1.00
     # A threshold of 0.50 provides a wide margin between noise (<=0.21)
-    # and true indel signal (>=0.83).
+    # and true indel signal (>=0.83). The bench_v2 inputs behind these numbers
+    # live outside this repository and are not recoverable from it; treat the
+    # bands as recorded observations, not as a reproducible fixture.
     n_indel_event_positions: int = 0
     max_indel_event_fraction: float = 0.0
     # Longest contiguous run of ref positions whose deletion fraction exceeds
@@ -336,12 +346,12 @@ class ConsensusCall:
     # Informational only; does not change the consensus or the verdict gate.
     max_del_run_length: int = 0
     # Reference positions (1-based, ascending) whose deletion fraction clears
-    # ``DEL_MAJORITY_FRACTION``. The consensus string still writes 'N' at each of
-    # them: the stored sequence stays in the ACGTN alphabet every existing
-    # project and every downstream reader was written against. This list is the
-    # separate channel that carries the same fact without rewriting the record,
-    # and ``translate/aa_translator.py`` uses it to build a gapped COPY at
-    # translation time. Empty when the well has no deletion majority and also
+    # ``DEL_MAJORITY_FRACTION``. The consensus string writes '-' at exactly
+    # these positions, so the two say the same thing and a reader can use
+    # either. The list is still carried because it survives the gap character
+    # being stripped and because ``translate/aa_translator.py`` needs the
+    # coordinates to rebuild the length-true molecule from a LEGACY file, whose
+    # sequence has 'N' there. Empty when the well has no deletion majority and also
     # when the run count exceeded ``DEL_RUN_REPORT_BUDGET``; the two are told
     # apart by ``n_del_majority_positions``.
     del_majority_positions: tuple[int, ...] = ()
@@ -519,12 +529,12 @@ def call_consensus(
     Returns
     -------
     Consensus sequence string of length ``len(reference_seq)``.  Each character
-    is one of A/C/G/T/N.  Indels (deletions) that achieve majority vote are
-    collapsed to 'N'.  The gap-free, reference-length output is this module's
-    design choice, which keeps positions reference-anchored for codon-level
-    comparison against the expected workbook; it is not the ``samtools
-    consensus`` default, which is ``--show-ins yes`` and can emit a sequence
-    whose length differs from the reference.
+    is one of A/C/G/T/N/-.  Deletions that achieve a majority vote are written
+    '-'; every other no-call is 'N'.  The reference-length output is this
+    module's design choice, which keeps positions reference-anchored for
+    codon-level comparison against the expected workbook; it is not the
+    ``samtools consensus`` default, which is ``--show-ins yes`` and can emit a
+    sequence whose length differs from the reference.
     """
     return call_consensus_with_metrics(
         alignments=alignments,
@@ -608,6 +618,9 @@ def call_consensus_with_metrics(
         # reaches 0.054, so the 0.20 gate sits about four times above the worst
         # position observed and roughly sixty times above a typical one.
         # Reporting it makes that margin auditable per run instead of assumed.
+        # The 0.20 gate has one direct measurement, an in-silico mixing sweep
+        # kept outside this repository; the pointer and its limits are written
+        # next to ``_MIXED_CONFIDENT_DEPTH_FACTOR`` in ``compare/verdict.py``.
         #
         # That worst position is NOT established as a sequencing artifact. It is
         # position 1248, and it is strand-BALANCED: weak-strand share 0.391 and
@@ -706,9 +719,32 @@ def call_consensus_with_metrics(
     n_no_call_ambiguous = int(ambiguous_nc.sum())
     n_no_call_no_majority = int(no_majority_nc.sum())
 
+    # Deletion majority, hoisted above the emitted characters because the
+    # alphabet depends on it. Same expression the reported
+    # ``del_majority_positions`` are built from further down, so the two can
+    # never name different sets; see ``DEL_MAJORITY_FRACTION``.
+    del_votes = counts[:, _TOK_DEL]
+    safe_depth = np.maximum(total, 1)
+    del_frac = np.where(total > 0, del_votes / safe_depth, 0.0)
+    del_major = del_frac > DEL_MAJORITY_FRACTION
+
     out_chars = np.where(
         covered & ~no_call, _CONSENSUS_CHARS[best_idx], np.uint8(ord("N"))
     ).astype(np.uint8)
+    # '-' where the called molecule is MISSING a reference base, 'N' where the
+    # well made no call. The split is the majority rule above and NOT the
+    # plurality ``best_idx == _TOK_DEL`` that ``no_call`` uses: a deletion that
+    # leads the vote without clearing half the spanning depth is a genuine
+    # no-call and stays 'N'. Two real ONT runs put PASS wells at 0.319-0.467,
+    # so that band is populated rather than theoretical.
+    #
+    # No counter moves. ``del_major`` is a subset of ``no_call`` by
+    # construction (more than half the depth deleted makes deletion the strict
+    # argmax), so ``consensus_n_fraction`` and the four-way decomposition below
+    # count exactly the positions they counted when every one of them was 'N'.
+    # ``compare/verdict.py`` already subtracts ``n_no_call_deletion_majority``
+    # from the N gate and must keep seeing them here.
+    out_chars = np.where(del_major, np.uint8(ord("-")), out_chars).astype(np.uint8)
     consensus_seq = out_chars.tobytes().decode("ascii")
     # Amplicon-scoped no-call rate. The denominator is the set of positions the
     # reads actually interrogate at usable depth, NOT the full reference length.
@@ -741,10 +777,7 @@ def call_consensus_with_metrics(
     # Using total depth as the denominator guarantees
     # ins_frac <= 1.0 whenever ins_ev <= depth (true by construction). del_frac
     # uses the same denominator; del_votes is a subset of depth so it is <= 1.0.
-    del_votes = counts[:, _TOK_DEL]
-    safe_depth = np.maximum(total, 1)
     ins_frac = np.where(total > 0, insertion_events / safe_depth, 0.0)
-    del_frac = np.where(total > 0, del_votes / safe_depth, 0.0)
     pos_max = np.maximum(ins_frac, del_frac)
     max_indel_event_fraction = float(pos_max.max()) if ref_len else 0.0
     n_indel_event_positions = int((pos_max >= 0.05).sum())
@@ -753,16 +786,15 @@ def call_consensus_with_metrics(
     # the shared ``DEL_MAJORITY_FRACTION``, which is the same majority rule the
     # base call uses; see that constant for the ONT deletion-error margin it has
     # to clear.
-    del_major = del_frac > DEL_MAJORITY_FRACTION
     del_run_lengths = _true_run_lengths(del_major)
     max_del_run = int(del_run_lengths.max()) if del_run_lengths.size else 0
 
     # Net indel of the CONSENSUS, from the same majority rule that calls bases.
     #
     # Deleted bp: every reference position whose deletion fraction wins the
-    # majority is absent from the called molecule; the gap-free consensus writes
-    # 'N' there, so the length stays at ref_len and the bp count has to be read
-    # off ``del_major`` rather than off ``len(consensus_seq)``.
+    # majority is absent from the called molecule; the consensus marks it '-'
+    # rather than dropping it, so the length stays at ref_len and the bp count
+    # has to be read off ``del_major`` rather than off ``len(consensus_seq)``.
     #
     # Inserted bp: an insertion anchored at a position carried by a majority of
     # the spanning reads is part of the called molecule even though the

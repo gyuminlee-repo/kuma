@@ -14,7 +14,7 @@ import {
   PLATE_FILL_REVERSE,
   PLATE_PREVIEW_FRAME,
 } from "@/lib/platePreviewStyles";
-import { isColumnInHalf, isForwardRow, otherHalves } from "@/lib/echoQuadrant";
+import { isColumnInQuadrant, isForwardRow, otherQuadrants } from "@/lib/echoQuadrant";
 import type { EchoQuadrant } from "@/types/models";
 
 const ROWS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P"] as const;
@@ -25,11 +25,11 @@ interface Props {
   /** Caption drawn above the grid, at the same level as JANUS rack labels. */
   title?: string;
   /**
-   * Half of the plate this run fills, or null for the no-half layout the
+   * Column parity this run fills, or null for the row-doubled layout the
    * mapper falls back to when nothing is selected (plate_mapper.py). Only a
-   * selected half splits the empty wells into "this run leaves it empty" and
-   * "the other round owns it"; with no half that is not a fact about the
-   * plate, so nothing is marked.
+   * selected round splits the empty wells into "this run leaves it empty" and
+   * "the other round owns it"; with nothing selected that is not a fact about
+   * the plate, so nothing is marked.
    */
   quadrant?: EchoQuadrant | null;
   className?: string;
@@ -39,9 +39,9 @@ export function EchoPlateView({ cells, title, quadrant = null, className }: Prop
   const { t } = useTranslation();
   const { plates, selected, setSelection } = usePreviewPlate(cells.map((c) => c.sourcePlate ?? ""));
   const byWell = new Map(cells.filter((c) => (c.sourcePlate ?? "") === selected).map((c) => [c.well, c]));
-  // Name of the half a run on `quadrant` does not touch, for the reserved
+  // Name of the round a run on `quadrant` does not touch, for the reserved
   // wells' native tooltip (the only text an empty well carries).
-  const otherPair = quadrant === null ? "" : otherHalves(quadrant).join(", ");
+  const otherPair = quadrant === null ? "" : otherQuadrants(quadrant).join(", ");
   return (
     // `plate-preview-grid` (container-type: inline-size) stays on the
     // scrolling frame, not on the inner min-w box: container-type implies
@@ -77,9 +77,9 @@ export function EchoPlateView({ cells, title, quadrant = null, className }: Prop
       >
         <PlateColumnHeaderRow cols={COLS} />
         {ROWS.map((r, idx) => {
-          // Row parity is direction under the half layout: a forward primer
-          // sits at 2r and its reverse at 2r+1 in either half, so the half
-          // shifts columns only. Only the empty stripe reads this: a filled
+          // Row parity is direction: a forward primer sits at 2r and its
+          // reverse at 2r+1 in either round, so the round shifts columns
+          // only. Only the empty stripe reads this: a filled
           // well takes its colour from `cell.isFwd`, the same field the
           // popover prints, so the two cannot disagree.
           const isFwdRow = isForwardRow(idx);
@@ -90,18 +90,18 @@ export function EchoPlateView({ cells, title, quadrant = null, className }: Prop
                 const well = `${r}${String(c).padStart(2, "0")}`;
                 const cell = byWell.get(well);
                 if (!cell) {
-                  // A half is a contiguous block of columns holding both the
-                  // forward wells and their reverses, so the column range
-                  // alone decides whether this well is one this run can reach.
-                  // Testing the row as well would mark every reverse-primer
-                  // well as belonging to the other round.
-                  const reserved = quadrant !== null && !isColumnInHalf(c, quadrant);
+                  // A round is one column parity holding both the forward
+                  // wells and their reverses, so the column alone decides
+                  // whether this well is one this run can reach. Testing the
+                  // row as well would mark every reverse-primer well as
+                  // belonging to the other round.
+                  const reserved = quadrant !== null && !isColumnInQuadrant(c, quadrant);
                   return (
                     <PlateWellCell
                       key={well}
                       testId="echo-cell"
                       row={r}
-                      // No half means the fallback layout, where "reserved"
+                      // No round means the fallback layout, where "reserved"
                       // would be a claim about a plate the export does not
                       // divide; the attribute stays off entirely.
                       state={

@@ -102,7 +102,10 @@ export const DEFAULT_EVOLVEPRO_EXTRA_EXPOSED = 10;
 //   - `tm_rev` is called `tm_no_rev` on the wire, renamed by _serialize_result.
 //
 // Pair Ta cannot follow one primer: clear it until the backend recomputes
-// the neighbour with its own forward primer.
+// the neighbour with its own forward primer. The hairpin warn flags ride on
+// that same pair Ta (the verdict is the folded fraction at Ta), so both are
+// cleared with it; the homodimer verdict is a function of the reverse
+// sequence alone, so it travels with the primer like homodimer_tm_rev does.
 const REVERSE_WARNING_PREFIXES = ["Rev", "Reverse"];
 
 function isReverseWarning(text: string): boolean {
@@ -138,6 +141,10 @@ export function applyReversePropagation(
     hairpin_dg_rev: source.hairpin_dg_rev,
     homodimer_tm_rev: source.homodimer_tm_rev,
     homodimer_dg_rev: source.homodimer_dg_rev,
+    homodimer_warn_rev: source.homodimer_warn_rev,
+    // Ta-dependent, not sequence-pure: stale under the neighbour's own pair.
+    hairpin_warn_fwd: undefined,
+    hairpin_warn_rev: undefined,
     offtarget_rev: offtargetRev,
     // Derived from the two per-direction hit lists, not copied.
     has_offtarget: Boolean(neighbour.offtarget_fwd?.length) || Boolean(offtargetRev?.length),

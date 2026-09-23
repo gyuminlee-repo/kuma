@@ -100,7 +100,11 @@ def test_indel_gate_does_not_report_detected_without_the_designed_mutation() -> 
     """A deletion-bearing well missing its designed mutation is not detected."""
     _call, translated = _well(CDS, _deletion_reads(CDS, 150), 0, len(CDS))
 
-    assert translated.observed_aa_changes == []
+    # The deletion itself is labelled now that the consensus writes '-' there,
+    # and that is the point of the assertion: no DESIGNED substitution is among
+    # the observed changes, so the gate must not report the well as detected.
+    assert translated.observed_aa_changes == ["N11del"]
+    assert not [c for c in translated.observed_aa_changes if not c.endswith("del")]
     verdict = classify_verdict(translated, ["I5F"], CompareParams())
 
     assert not is_detected(verdict.verdict)

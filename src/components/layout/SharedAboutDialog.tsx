@@ -51,7 +51,7 @@ interface SharedAboutDialogProps {
 }
 
 const KURO_BIBTEX = `@software{kuro_TBD,
-  title  = {KURO: Kernel for Upstream Recombination Oligodesign},
+  title  = {KURO: Kit for Unified Ranking and Oligodesign},
   author = {Lee, Gyu Min and Kang, Hyemin and KRIBB C1 Lab},
   year   = {2026},
   note   = {DOI/citation forthcoming},
@@ -59,7 +59,7 @@ const KURO_BIBTEX = `@software{kuro_TBD,
 }`;
 
 const MAME_BIBTEX = `@software{mame_TBD,
-  title  = {MAME: Multi-round Activity & Mutation Engine},
+  title  = {MAME: Mutagenesis Assessment and Measurement Export},
   author = {Lee, Gyu Min and Kang, Hyemin and KRIBB C1 Lab},
   year   = {2026},
   note   = {DOI/citation forthcoming},
@@ -339,7 +339,7 @@ export function SharedAboutDialog({
         {/* License */}
         <div className="flex flex-col gap-1">
           <p className="text-sm font-semibold text-foreground">{t("about.license")}</p>
-          <p className="text-xs text-muted-foreground">{t("about.licenseText")}</p>
+          <p className="text-xs text-muted-foreground">GNU GPL v2</p>
         </div>
 
         {/* §8 A11y: Keyboard shortcuts — kuro uses button, mame uses inline table */}

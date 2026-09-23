@@ -8,7 +8,12 @@ from pathlib import Path
 
 
 class VerdictClass(StrEnum):
-    """8-class verdict enum. Order reflects comparison priority (fail-first checks)."""
+    """Stable serialized/display labels, NOT verdict-gate priority.
+
+    Runtime precedence belongs to compare.verdict.classify_verdict and is
+    exercised by tests/mame/test_verdict_behavior_contract.py. Keep this enum
+    order stable; sorting it cannot express gates that share the same label.
+    """
 
     PASS = "PASS"
     AMBIGUOUS = "AMBIGUOUS"
@@ -161,11 +166,12 @@ class BarcodeRecord:
     max_del_run_length: int = 0
     # Reference positions (1-based) the called molecule is missing, i.e. the
     # positions whose deletion fraction won a majority. ``consensus_seq`` writes
-    # 'N' at each of them and KEEPS DOING SO: the stored record stays in the
-    # ACGTN alphabet, and this list is the separate channel that carries the same
-    # fact. ``translate/aa_translator.py`` reads it to build a gapped copy at
-    # translation time, which is what turns a deletion into a `{REF}{pos}del`
-    # marker instead of a spurious substitution to N.
+    # '-' at exactly these positions, so the two agree; 'N' in that string now
+    # means no call and nothing else. The list is still carried because a
+    # LEGACY consensus file has 'N' there instead, and
+    # ``translate/aa_translator.py`` reads it to build a gapped copy at
+    # translation time, which is what turns that deletion into a
+    # `{REF}{pos}del` marker instead of a spurious substitution to N.
     #
     # Empty for a well with no deletion majority, for a consensus file written
     # before the key existed, and for a well whose deletion runs exceeded the
@@ -187,7 +193,7 @@ class BarcodeRecord:
     # time to build the length-true sequence.
     #
     # Without it a block substitution is unreadable. minimap2 writes a swapped
-    # codon as an insertion beside a deletion, so the deletion becomes an 'N' and
+    # codon as an insertion beside a deletion, so the deletion becomes a gap and
     # the insertion vanishes: the LENGTH is right
     # (``consensus_net_indel_bp == 0``) and the BASES are absent. That is the one
     # case where a zero net indel does not mean "nothing happened", and the only
@@ -339,7 +345,9 @@ class CompareParams:
     # from an arbitrary constant and was read as one. A vendor default on
     # matching data beats that, and it is PROVISIONAL: the honest basis is a
     # subsample calibration on real runs, the way the indel gate was fixed from
-    # bench_v2, and until that exists this value carries the label above.
+    # bench_v2, and until that exists this value carries the label above. Note
+    # that bench_v2 itself is not in this repository, so it is a precedent for
+    # the method and not a dataset the next calibration can start from.
     #
     # The same document separately recommends aiming for >150X (about 1500 reads
     # per amplicon) in prose, which is a recommendation rather than a default and
@@ -351,10 +359,14 @@ class CompareParams:
     indel_window_codon: int = 5
     frameshift_window_bp: int = 10
     # Indel event gate threshold.  When max_indel_event_fraction
-    # (from ConsensusCall) exceeds this value the verdict is flagged as
-    # AMBIGUOUS with an indel note rather than proceeding to PASS.
+    # (from ConsensusCall) reaches or exceeds this value the verdict is flagged
+    # as AMBIGUOUS with an indel note rather than proceeding to PASS. The gate
+    # only awards AMBIGUOUS once every designed mutation is confirmed; see
+    # compare/verdict.py for the contract behind that.
     # Calibrated from bench_v2 depth_50: WT/SNV wells <= 0.21,
-    # true deletion wells >= 0.83 (see ConsensusCall docstring).
+    # true deletion wells >= 0.83 (see ConsensusCall docstring). The bench_v2
+    # reads and run conditions are not kept in this repository, so the two
+    # bands are recorded observations and cannot be regenerated here.
     # None disables the gate for backward compatibility.
     max_indel_event_fraction: float | None = 0.50
 

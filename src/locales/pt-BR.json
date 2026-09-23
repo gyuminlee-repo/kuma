@@ -256,8 +256,8 @@
       "ingestHelp": "Ingest layout: barcode (per-well demultiplexed) or amplicon (single bulk read set).",
       "inputSourceHelp": "Input source: consensus (pre-called), sorted_barcode (per-well FASTQ), or raw_run (MinKNOW run folder).",
       "tooltips": {
-        "flankMin": "Faixa externa (nt) para a posição inicial do primer em relação ao limite do gene",
-        "flankMax": "Faixa externa (nt) para a posição inicial do primer em relação ao limite do gene",
+        "overhangMin": "Overhang minimo (nt): o quanto o amplicon avanca alem do limite do gene",
+        "overhangMax": "Overhang maximo (nt) pesquisado alem do limite do gene",
         "bindingMinLen": "Faixa de comprimento do primer (nt) explorada durante a enumeração de candidatos",
         "bindingMaxLen": "Faixa de comprimento do primer (nt) explorada durante a enumeração de candidatos",
         "tmMin": "Faixa aceitável de melting temperature (°C) para a região de ligação do primer",
@@ -286,7 +286,7 @@
       "inputFiles": "Arquivos de entrada",
       "geneCoordinates": "Coordenadas do gene",
       "projectMetadata": "Metadados do projeto",
-      "flankParameters": "Parâmetros de flanco",
+      "flankParameters": "Parametros de overhang",
       "bindingParameters": "Parâmetros de binding",
       "advancedParameters": "Opções avançadas",
       "outputLocation": "Local de saída",
@@ -295,7 +295,7 @@
       "generatedFiles": "Arquivos gerados",
       "cdsFasta": "Sequência CDS",
       "cdsFastaPlaceholder": "Caminho do arquivo .fa / .fasta / .gb / .gbk / .dna",
-      "cdsFastaHelper": "Plasmid or construct map (GenBank or SnapGene .dna) containing the gene plus flanking template on both sides. MAME primers bind outside the gene, so at least flank_max (default 400 bp) of template is needed on each side. A CDS-only FASTA will not work. gene_start / gene_end are 0-based indices into this sequence.",
+      "cdsFastaHelper": "Mapa de plasmideo ou construcao (GenBank ou SnapGene .dna) contendo o gene mais template flanqueador dos dois lados. Os primers do MAME se ligam fora do gene, entao cada lado precisa de ao menos tanto template quanto o menor overhang utilizavel, isto e o maior entre overhang_min e binding_min_len (20 bp por lado nos valores padrao). Um template circular continua atraves da origem, portanto essa exigencia vale apenas para templates lineares. Um FASTA apenas com a CDS nao funciona. gene_start / gene_end sao indices 0-based nesta sequencia.",
       "cdsFastaLoadError": "Could not read gene annotations from this file: {{error}}",
       "barcodeSeedsXlsx": "xlsx de seeds de barcode",
       "geneName": "Nome do gene",
@@ -334,12 +334,12 @@
       "polymeraseHelp": "Polimerase usada na PCR de barcode. Seu perfil de sais participa do cálculo de Tm durante a seleção de primers.",
       "geneStartHelp": "CDS start coordinate (0-based, inclusive).",
       "geneEndHelp": "CDS end coordinate (0-based, exclusive).",
-      "flankMinHelp": "Minimum flank length (nt) around CDS for barcode primer search. Default 100.",
-      "flankMaxHelp": "Maximum flank length (nt). Larger windows give more primer candidates but slow search.",
+      "overhangMinHelp": "Overhang minimo (nt) alem do limite do gene. Padrao 20. Um primer nunca entra no gene, entao um overhang menor que binding_min_len nao comporta um binding site e essa parte da faixa nao tem efeito.",
+      "overhangMaxHelp": "Overhang maximo (nt) pesquisado alem do limite do gene. Padrao 60. Janelas maiores dao mais candidatos mas tornam a busca mais lenta; em template linear o alcance e limitado as extremidades da sequencia.",
       "bindingMinLenHelp": "Minimum primer binding length (nt). Typical 18-22 for stable PCR priming.",
       "bindingMaxLenHelp": "Maximum primer binding length (nt). Above 35 increases secondary structure risk.",
-      "flankWarningUpstream": "Primer design may fail on a linear template: needs at least {{needed}} bp upstream of gene_start, but only {{available}} bp is available (short by {{shortfall}} bp).",
-      "flankWarningDownstream": "Primer design may fail on a linear template: needs at least {{needed}} bp downstream of gene_end, but only {{available}} bp is available (short by {{shortfall}} bp).",
+      "flankWarningUpstream": "O design de primers pode falhar em um template linear: sao necessarios ao menos {{needed}} bp (o maior entre overhang_min e binding_min_len) antes de gene_start, mas apenas {{available}} bp estao disponiveis (faltam {{shortfall}} bp).",
+      "flankWarningDownstream": "O design de primers pode falhar em um template linear: sao necessarios ao menos {{needed}} bp (o maior entre overhang_min e binding_min_len) depois de gene_end, mas apenas {{available}} bp estao disponiveis (faltam {{shortfall}} bp).",
       "cdsTooltipLabel": "Rótulo: {{label}}",
       "cdsTooltipRange": "Intervalo: {{start}}-{{end}}",
       "cdsTooltipLength": "Comprimento: {{length}} aa",
@@ -2058,7 +2058,7 @@
     "chooseFolder": "Escolher pasta",
     "done": "Concluído",
     "insideProject": "Dentro de cada projeto",
-    "kuroDesc": "Kernel for Upstream Recombination Oligodesign. Design em lote de primers SDM a partir de templates Gibson Assembly.",
+    "kuroDesc": "Kit for Unified Ranking and Oligodesign. Design em lote de primers SDM a partir de templates Gibson Assembly.",
     "mameDesc": "Mutagenesis Assessment & Measurement Export. Verdict de NGS Oxford Nanopore.",
     "autosaveNote": "As entradas e parâmetros são salvos automaticamente por projeto. Rascunhos do Barcode Setup, incluindo caminhos absolutos, são compartilhados entre projetos.",
     "titleStart": "Começar",
@@ -2351,7 +2351,7 @@
     "ncbiBlastServiceSuffix": " -- busca de similaridade de sequência",
     "alphafoldServiceSuffix": " -- consulta de previsão de estrutura",
     "interproServiceSuffix": " -- anotação de domínios proteicos",
-    "kuroSubtitle": "Kernel for Upstream Recombination Oligodesign",
+    "kuroSubtitle": "Kit for Unified Ranking and Oligodesign",
     "view": {
       "title": "Ver",
       "logs": "Mostrar logs",
@@ -2612,14 +2612,45 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Uma deleção que apenas metade das leituras sustenta não isenta mais um poço do controle de no call, então um sítio com 40 ou 50 por cento é lido como no call.",
-      "A etapa de dados de atividade recusa atribuir um veredito de NGS a uma variante diferente da que a linha nomeia.",
-      "Arquivos do Echo e do JANUS vindos de uma faixa de linhas reduzida ou de várias placas mantêm as posições de stock dadas pela folha de pedido.",
-      "Reabrir um espaço de trabalho mantém a seleção e descarta a saída cujas entradas sumiram, e um benchmark que nunca rodou deixa de relatar dano.",
-      "No Linux o autossalvamento temporário funciona na pasta oculta de dados do aplicativo e Arquivo > Sair fecha a janela."
+      "As sequências consensus escrevem um traço onde falta uma base, de modo que uma deleção não parece mais uma posição que não pôde ser interpretada.",
+      "Os primers de barcode agora passam pelas mesmas verificações de hairpin, self-dimer e off-target que os primers de design.",
+      "Um primer de barcode que falha nessas verificações é substituído e, quando nenhum passa, o aviso indica a medida que falhou.",
+      "Reabrir uma análise salva preserva o comprimento da deleção e a sequência restaurada que versões anteriores perdiam."
     ],
-    "highlightsStamp": "0.16.64+b5666e23",
+    "highlightsStamp": "0.16.69+60279e8e",
     "releases": {
+      "0.16.69": [
+        "As sequências consensus escrevem um traço onde falta uma base, de modo que uma deleção não parece mais uma posição que não pôde ser interpretada.",
+        "Os primers de barcode agora passam pelas mesmas verificações de hairpin, self-dimer e off-target que os primers de design.",
+        "Um primer de barcode que falha nessas verificações é substituído e, quando nenhum passa, o aviso indica a medida que falhou.",
+        "Reabrir uma análise salva preserva o comprimento da deleção e a sequência restaurada que versões anteriores perdiam."
+      ],
+      "0.16.68": [
+        "A placa fonte Echo volta a colunas intercaladas, porque um 96-head não alcança uma metade contígua da placa em uma única estampagem.",
+        "Uma rodada é uma paridade de colunas sobre as dezesseis linhas, 192 poços, e duas rodadas preenchem uma placa fonte.",
+        "O seletor oferece duas rodadas em vez de quatro, pois o antigo eixo de linhas nomeava as mesmas duas rodadas com forward e reverse trocados.",
+        "Um projeto salvo antes da v0.16.61 abre inalterado, porque os nomes salvos designam rodadas desta versão e nenhum poço fonte se move.",
+        "Um projeto salvo com o layout half perde a seleção e marca ambas as rodadas como usadas, porque uma metade não corresponde a nenhuma paridade de colunas."
+      ],
+      "0.16.67": [
+        "A etapa de codigo de barras agora recebe um unico numero, o quanto o amplicon se estende alem do CDS, em vez de gap e overhang dividirem um nome.",
+        "Os padroes caem de 100 e 400 para 20 e 60, uma faixa que contem o overhang de 16 bp medido no design de ispS.",
+        "Um template linear curto e pesquisado ate a propria borda em vez de ser recusado por ser menor que o limite externo de busca.",
+        "As duas fitas buscam para fora, portanto o amplicon fica simetrico e os ultimos codons permanecem fora da margem de borda da referencia.",
+        "Um primer nao pode mais ficar dentro da regiao codificante, e um flank_max salvo passa a valer como overhang_max."
+      ],
+      "0.16.66": [
+        "Cada rodada estima agora o assay noise a partir das próprias réplicas wild-type, de modo que o teste de plateau sustenta a regra de saturação de duas rodadas.",
+        "A tendência do hit rate só conta como queda quando a inclinação ajustada cai mais do que o próprio sampling error.",
+        "Uma variante com atividade exatamente zero passa a ser pontuada em vez de interromper o veredito e permanece no denominador do hit rate.",
+        "Uma linha de controle wild-type em qualquer parte da planilha é contada e mantida fora das estatísticas de variantes.",
+        "O aviso informa quantas variantes com atividade zero e quantas linhas de controle cada rodada continha."
+      ],
+      "0.16.65": [
+        "Um poço com fração de indel event exatamente 0,50 agora alcança o portão de revisão em vez de escapar pela comparação estrita.",
+        "Poços dentro das faixas calibradas, ruído até 0,21 e deleções reais a partir de 0,83, mantêm o verdict que tinham.",
+        "Portões anteriores ainda decidem primeiro, então um poço já classificado como LOWDEPTH ou MIXED mantém esse verdict."
+      ],
       "0.16.64": [
         "Uma deleção que apenas metade das leituras sustenta não isenta mais um poço do controle de no call, então um sítio com 40 ou 50 por cento é lido como no call.",
         "A etapa de dados de atividade recusa atribuir um veredito de NGS a uma variante diferente da que a linha nomeia.",
@@ -3081,6 +3112,11 @@
       ]
     },
     "releaseStamps": {
+      "0.16.69": "60279e8e",
+      "0.16.68": "33844e5d",
+      "0.16.67": "a8a547ef",
+      "0.16.66": "c8cb9c13",
+      "0.16.65": "2d61386f",
       "0.16.64": "b5666e23",
       "0.16.63": "27af3ec6",
       "0.16.62": "e46c1db9",
@@ -3371,16 +3407,17 @@
         },
         "bomLabel": "Adicionar BOM UTF-8",
         "bomHint": "(compatibilidade com Excel)",
-        "quadrantLabel": "Metade da placa de origem Echo",
-        "quadrantNone": "Não especificada (colunas 1-12, sem verificar metades usadas)",
-        "quadrantColumns": "colunas {{from}}-{{to}}",
-        "quadrantHelper": "Uma rodada preenche uma metade: os primers forward nas linhas A, C, E ... e cada reverse uma linha abaixo, na mesma coluna.",
-        "usedQuadrantsLabel": "Metades já usadas nesta placa",
-        "usedQuadrantsHelper": "A exportação é recusada se a metade selecionada for uma destas.",
-        "legacyPlacementNotice": "Este projeto foi salvo antes da v{{version}}, quando uma rodada se espalhava por toda a source plate em vez de uma metade. A disposição salva ({{values}}) cobre as duas metades, então ambas ficam marcadas como usadas e nenhuma metade fica selecionada. Em uma placa nova, desmarque abaixo as metades usadas antes de escolher uma metade.",
+        "quadrantLabel": "Colunas da placa fonte Echo",
+        "quadrantNone": "Não especificado (colunas 1-12, sem checagem de rodadas usadas)",
+        "quadrantColumnsOdd": "colunas ímpares 1, 3 ... 23",
+        "quadrantColumnsEven": "colunas pares 2, 4 ... 24",
+        "quadrantHelper": "Uma estampagem do 96-head alcança apenas uma coluna a cada duas, então uma rodada toma uma das duas. Os forward primers ficam nas linhas A, C, E ... e cada reverse primer uma linha abaixo, na mesma coluna.",
+        "usedQuadrantsLabel": "Rodadas já usadas nesta placa",
+        "usedQuadrantsHelper": "A exportação é recusada se a rodada selecionada for uma destas.",
+        "legacyPlacementNotice": "Este projeto foi salvo entre v{{from}} e v{{to}}, quando uma rodada preenchia doze colunas consecutivas em vez de uma a cada duas. O layout salvo ({{values}}) cobre parte de ambas as rodadas, então as duas ficam marcadas como usadas e nenhuma é selecionada. Em uma placa nova, desmarque abaixo as caixas de uso antes de escolher uma.",
         "placementBlocked": {
-          "noHalfSelected": "Há metades marcadas como usadas nesta placa, mas nenhuma metade foi selecionada para esta rodada. Escolha A1 ou A13, ou desmarque as metades usadas se a placa for nova.",
-          "halfAlreadyUsed": "A metade selecionada já está marcada como usada nesta placa. Dispensar nela destruiria os primers que já estão lá. Escolha a outra metade ou desmarque a caixa dela."
+          "noQuadrantSelected": "Há rodadas marcadas como usadas nesta placa, mas nenhuma foi selecionada para esta execução. Escolha A1 ou A2, ou desmarque as caixas se a placa for nova.",
+          "quadrantAlreadyUsed": "A rodada selecionada já está marcada como usada nesta placa. Dispensar ali destruiria os primers já presentes. Escolha a outra rodada, ou desmarque sua caixa de uso."
         },
         "plateNameFwd": "Nome da placa de primers forward",
         "plateNameRev": "Nome da placa de primers reverse",
@@ -3671,14 +3708,14 @@
     "errorTitle": "Falha na prévia",
     "echoSourcePlateLabel": "Placa de origem Echo (384 poços)",
     "destPlateLabel": "Placa de destino (96 poços)",
-    "quadrantBatch": "Esta rodada preenche a metade {{half}} da placa, colunas {{from}}-{{to}}. Os primers forward ficam nas linhas A, C, E ... e cada reverse uma linha abaixo.",
-    "quadrantProgress": "Após esta rodada, {{filled}} de {{total}} metades desta placa estão ocupadas.",
-    "quadrantHalfNote": "As colunas {{from}}-{{to}} são a outra metade, {{others}}, e ficam livres para a próxima rodada.",
+    "quadrantBatch": "Esta execução preenche a rodada {{round}}: uma coluna a cada duas, a partir da coluna {{first}}. Os forward primers ficam nas linhas A, C, E ... e cada reverse primer uma linha abaixo.",
+    "quadrantProgress": "Após esta execução, {{filled}} de {{total}} rodadas desta placa estarão ocupadas.",
+    "quadrantInterleaveNote": "Uma estampagem do 96-head alcança apenas uma coluna a cada duas. As colunas intermediárias pertencem a {{others}} e ficam livres para a próxima rodada.",
     "quadrantUsedNote": "Já ocupadas nesta placa: {{list}}",
-    "quadrantNoneNote": "Nenhuma metade selecionada. A execução continua nas colunas 1-12, os mesmos poços da metade A1, e apenas a verificação das metades já usadas é ignorada.",
+    "quadrantNoneNote": "Nenhuma rodada selecionada. A execução continua caindo nas colunas 1-12 sem pular nenhuma, que é o layout anterior à escolha de rodada, e apenas a verificação contra rodadas já usadas é ignorada.",
     "quadrantLegendFree": "Borda contínua: poço usado por esta rodada",
     "quadrantLegendReserved": "Borda tracejada: reservado para {{others}}",
-    "echoReservedWellTitle": "{{well}}, reservado à metade {{quadrants}}"
+    "echoReservedWellTitle": "{{well}}, reservado para a rodada {{quadrants}}"
   },
   "errors": {
     "sequence": {
@@ -3730,7 +3767,9 @@
     "missingInputs": {
       "wt_replicates": "medições de réplicas do tipo selvagem"
     },
-    "missingInputsNote": "Avaliado sem {{missing}}, de modo que a saturação se apoia apenas na tendência da hit rate.",
+    "missingInputsNote": "Faltam {{missing}} em ao menos uma rodada, então ali a verificação de platô não pôde ser feita e a saturação dessas rodadas se apoia apenas na tendência da hit rate. Essa tendência é uma inclinação por mínimos quadrados sobre todas as rodadas e só conta como queda quando é mais negativa que o próprio erro amostral.",
+    "zeroActivityNote": "{{n}} variante(s) desta rodada mediram atividade exatamente igual a 0. Elas foram projetadas e medidas do mesmo jeito, então permanecem no denominador da hit rate e ficam de fora apenas da estatística log2.",
+    "wtRowNote": "{{n}} linha(s) de controle selvagem (WT) na planilha desta rodada. Um controle não é uma variante projetada, por isso também sai do cálculo da hit rate.",
     "notAssessableBadge": "Não avaliável",
     "notAssessableSummary": "Os sinais apontam para uma transição, mas confirmá-la exige {{missing}}, que estes arquivos não trazem. Com esta entrada não é possível responder {{blocked}}; só cabe verificar se vale continuar com o mutante único.",
     "notAssessableInsufficientSummary": "Os sinais apontam para uma transição, mas confirmá-la exige ao menos {{required}} {{missing}} e esta rodada tem {{count}} registradas. Abaixo disso não há estimativa de ruído para servir de referência, então a saturação se apoia apenas na tendência da hit rate e {{blocked}} não pode ser respondido a partir dela.",
@@ -3741,7 +3780,7 @@
     "restoredUnverifiedNote": "Este aplicativo nao gravou {{files}}, portanto nao pode confirmar que continuam inalterados desde entao.",
     "rebuiltNote": "Uma resposta anterior de {{when}} foi calculada a partir destes mesmos arquivos ({{files}}) antes de a etapa 4.1 os regerar. Ela descreve a versao anterior e fica como historico. Execute a classificacao novamente para a versao atual.",
     "supersededNote": "Uma resposta anterior de {{when}} foi calculada a partir de outra lista ({{files}}). Ela nao diz nada sobre os arquivos selecionados agora, por isso nao e exibida.",
-    "headingHelp": "Combina os resultados do EVOLVEpro de várias rodadas para procurar um sinal de saturação e sugerir continuar com o mutante único, mudar para combinatorial, parar ou adiar. Somente leitura: nada aqui é confirmado ou salvo, e com menos de 3 rodadas ainda não há veredito.",
+    "headingHelp": "Combina os resultados do EVOLVEpro de várias rodadas para procurar um sinal de saturação e sugerir continuar com o mutante único, mudar para combinatorial, parar ou adiar. A tendência da hit rate é uma inclinação por mínimos quadrados sobre todas as rodadas e só conta como queda quando é mais negativa que o próprio erro amostral. As réplicas selvagens registradas em cada rodada alimentam a verificação de platô daquela rodada, de modo que um platô pode ser confirmado em duas rodadas consecutivas. Somente leitura: nada aqui é confirmado ou salvo, e com menos de 3 rodadas ainda não há veredito.",
     "nextRoundCapacity": "Capacidade da placa da próxima rodada",
     "nextRoundCapacityHelper": "Número de poços disponíveis na próxima rodada combinatória. Determina a recomendação de capacidade."
   },

@@ -256,8 +256,8 @@
       "ingestHelp": "Ingest layout: barcode (per-well demultiplexed) or amplicon (single bulk read set).",
       "inputSourceHelp": "Input source: consensus (pre-called), sorted_barcode (per-well FASTQ), or raw_run (MinKNOW run folder).",
       "tooltips": {
-        "flankMin": "Äußerer Bereich (nt) für Primer-Startposition relativ zur Gengrenze",
-        "flankMax": "Äußerer Bereich (nt) für Primer-Startposition relativ zur Gengrenze",
+        "overhangMin": "Minimaler Overhang (nt): wie weit das Amplicon ueber die Gengrenze hinausreicht",
+        "overhangMax": "Maximaler Overhang (nt), der ueber die Gengrenze hinaus durchsucht wird",
         "bindingMinLen": "Primerlängenbereich (nt), der bei der Kandidatenenumeration untersucht wird",
         "bindingMaxLen": "Primerlängenbereich (nt), der bei der Kandidatenenumeration untersucht wird",
         "tmMin": "Akzeptabler melting temperature-Bereich (°C) für Primer-Bindungsregion",
@@ -286,7 +286,7 @@
       "inputFiles": "Eingabe Dateien",
       "geneCoordinates": "Gen coordinates",
       "projectMetadata": "Projekt metadata",
-      "flankParameters": "Flank-Parameter",
+      "flankParameters": "Overhang-Parameter",
       "bindingParameters": "Binding-Parameter",
       "advancedParameters": "Erweiterte Optionen",
       "outputLocation": "Ausgabeort",
@@ -295,7 +295,7 @@
       "generatedFiles": "Generated Dateien",
       "cdsFasta": "CDS-Sequenz",
       "cdsFastaPlaceholder": ".fa / .fasta / .gb / .gbk / .dna Datei Pfad",
-      "cdsFastaHelper": "Plasmid or construct map (GenBank or SnapGene .dna) containing the gene plus flanking template on both sides. MAME primers bind outside the gene, so at least flank_max (default 400 bp) of template is needed on each side. A CDS-only FASTA will not work. gene_start / gene_end are 0-based indices into this sequence.",
+      "cdsFastaHelper": "Plasmid- oder Construct-Map (GenBank oder SnapGene .dna) mit dem Gen und flankierendem Template auf beiden Seiten. MAME-Primer binden ausserhalb des Gens, daher braucht jede Seite mindestens so viel Template wie der kleinste nutzbare Overhang, also das Groessere von overhang_min und binding_min_len (bei den Standardwerten 20 bp pro Seite). Ein circular Template laeuft ueber den Ursprung hinweg, diese Anforderung gilt also nur fuer lineare Templates. Eine FASTA nur mit CDS funktioniert nicht. gene_start / gene_end sind 0-basierte Indizes in dieser Sequenz.",
       "cdsFastaLoadError": "Could not read gene annotations from this file: {{error}}",
       "barcodeSeedsXlsx": "Barcode Seeds xlsx",
       "geneName": "Gen name",
@@ -334,12 +334,12 @@
       "polymeraseHelp": "Für die Barcode-PCR verwendete Polymerase. Ihr Salzprofil steuert die Tm-Berechnung bei der Primerauswahl.",
       "geneStartHelp": "CDS start coordinate (0-based, inclusive).",
       "geneEndHelp": "CDS end coordinate (0-based, exclusive).",
-      "flankMinHelp": "Minimum flank length (nt) around CDS for barcode primer search. Default 100.",
-      "flankMaxHelp": "Maximum flank length (nt). Larger windows give more primer candidates but slow search.",
+      "overhangMinHelp": "Minimaler Overhang (nt) ueber die Gengrenze hinaus. Standard 20. Ein Primer dringt nie in das Gen ein, daher kann ein Overhang unter binding_min_len keine binding site aufnehmen und dieser Teil des Bereichs bleibt wirkungslos.",
+      "overhangMaxHelp": "Maximaler Overhang (nt), der ueber die Gengrenze hinaus durchsucht wird. Standard 60. Groessere Fenster liefern mehr Kandidaten, verlangsamen aber die Suche; bei linearen Templates wird die Reichweite auf die Sequenzenden begrenzt.",
       "bindingMinLenHelp": "Minimum primer binding length (nt). Typical 18-22 for stable PCR priming.",
       "bindingMaxLenHelp": "Maximum primer binding length (nt). Above 35 increases secondary structure risk.",
-      "flankWarningUpstream": "Primer design may fail on a linear template: needs at least {{needed}} bp upstream of gene_start, but only {{available}} bp is available (short by {{shortfall}} bp).",
-      "flankWarningDownstream": "Primer design may fail on a linear template: needs at least {{needed}} bp downstream of gene_end, but only {{available}} bp is available (short by {{shortfall}} bp).",
+      "flankWarningUpstream": "Primerdesign kann bei einem linearen Template fehlschlagen: Es werden mindestens {{needed}} bp (das Groessere von overhang_min und binding_min_len) vor gene_start benoetigt, verfuegbar sind aber nur {{available}} bp (es fehlen {{shortfall}} bp).",
+      "flankWarningDownstream": "Primerdesign kann bei einem linearen Template fehlschlagen: Es werden mindestens {{needed}} bp (das Groessere von overhang_min und binding_min_len) nach gene_end benoetigt, verfuegbar sind aber nur {{available}} bp (es fehlen {{shortfall}} bp).",
       "cdsTooltipLabel": "Bezeichnung: {{label}}",
       "cdsTooltipRange": "Bereich: {{start}}-{{end}}",
       "cdsTooltipLength": "Länge: {{length}} aa",
@@ -2058,7 +2058,7 @@
     "chooseFolder": "Wählen Ordner",
     "done": "Fertig",
     "insideProject": "Inside jeder Projekt",
-    "kuroDesc": "Kernel für Upstream Recombination Oligodesign. Batch SDM Primer design von Gibson Assembly templates.",
+    "kuroDesc": "Kit for Unified Ranking and Oligodesign. Batch SDM Primer design von Gibson Assembly templates.",
     "mameDesc": "Mutagenesis Assessment & Measurement Export. Oxford-Nanopore-NGS-Verdict.",
     "autosaveNote": "Eingaben und Parameter werden pro Projekt automatisch gespeichert. Barcode-Setup-Entwürfe einschließlich absoluter Pfade werden projektübergreifend geteilt.",
     "titleStart": "Loslegen",
@@ -2351,7 +2351,7 @@
     "ncbiBlastServiceSuffix": " -- sequence similarity Suchen",
     "alphafoldServiceSuffix": " -- Strukturvorhersage-Lookup",
     "interproServiceSuffix": " -- Proteindomänen-Annotation",
-    "kuroSubtitle": "Kernel for Upstream Recombination Oligodesign",
+    "kuroSubtitle": "Kit for Unified Ranking and Oligodesign",
     "view": {
       "title": "Anzeigen",
       "logs": "Anzeigen Logs",
@@ -2612,14 +2612,45 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Eine Deletion, die nur die Hälfte der Reads stützt, befreit ein Well nicht mehr vom No-Call-Gate, daher liest sich eine Stelle mit 40 oder 50 Prozent als No Call.",
-      "Der Schritt für Aktivitätsdaten hängt ein NGS-Urteil nicht mehr an eine andere Variante als die, welche die Zeile nennt.",
-      "Echo- und JANUS-Dateien aus einem verkleinerten Zeilenbereich oder über mehrere Platten behalten die Stock-Positionen aus dem Bestellbogen.",
-      "Beim erneuten Öffnen bleibt die Auswahl erhalten und Ausgaben ohne ihre Eingaben entfallen; ein nie gelaufener Benchmark meldet keinen Schaden mehr.",
-      "Unter Linux funktioniert das Scratch-Autospeichern im versteckten App-Datenordner und Datei > Beenden schließt das Fenster."
+      "Consensus-Sequenzen schreiben einen Bindestrich, wo eine Base fehlt, sodass eine Deletion nicht mehr wie eine nicht auswertbare Position aussieht.",
+      "Barcode-Primer bestehen jetzt dieselben Hairpin-, Self-Dimer- und Off-Target-Prüfungen wie Design-Primer.",
+      "Ein Barcode-Primer, der diese Prüfungen nicht besteht, wird ersetzt; besteht kein Kandidat, nennt der Hinweis den Messwert, der versagt hat.",
+      "Beim erneuten Öffnen einer gespeicherten Analyse bleiben Deletionslänge und wiederhergestellte Sequenz erhalten, die frühere Builds verloren haben."
     ],
-    "highlightsStamp": "0.16.64+b5666e23",
+    "highlightsStamp": "0.16.69+60279e8e",
     "releases": {
+      "0.16.69": [
+        "Consensus-Sequenzen schreiben einen Bindestrich, wo eine Base fehlt, sodass eine Deletion nicht mehr wie eine nicht auswertbare Position aussieht.",
+        "Barcode-Primer bestehen jetzt dieselben Hairpin-, Self-Dimer- und Off-Target-Prüfungen wie Design-Primer.",
+        "Ein Barcode-Primer, der diese Prüfungen nicht besteht, wird ersetzt; besteht kein Kandidat, nennt der Hinweis den Messwert, der versagt hat.",
+        "Beim erneuten Öffnen einer gespeicherten Analyse bleiben Deletionslänge und wiederhergestellte Sequenz erhalten, die frühere Builds verloren haben."
+      ],
+      "0.16.68": [
+        "Die Echo-Quellplatte kehrt zu verschachtelten Spalten zurück, weil ein 96-head in einem Stempelgang keine zusammenhängende Plattenhälfte erreicht.",
+        "Eine Runde ist eine Spaltenparität über alle sechzehn Zeilen mit 192 Wells, und zwei Runden füllen eine Quellplatte.",
+        "Die Auswahl bietet zwei Runden statt vier, denn die alte Zeilenachse benannte dieselben zwei Runden mit vertauschtem forward und reverse.",
+        "Ein vor v0.16.61 gespeichertes Projekt lädt unverändert, da die gespeicherten Namen Runden dieser Version bezeichnen und kein Quell-Well wandert.",
+        "Ein unter dem half-Layout gespeichertes Projekt verliert seine Auswahl und markiert beide Runden als verbraucht, da eine Hälfte keiner Spaltenparität entspricht."
+      ],
+      "0.16.67": [
+        "Der Barcode-Schritt nimmt jetzt nur eine Zahl entgegen, wie weit das Amplikon über die CDS hinausreicht, statt Gap und Overhang unter einem Namen zu führen.",
+        "Die Standardwerte sinken von 100 und 400 auf 20 und 60, ein Bereich, der den auf dem ispS-Design gemessenen Overhang von 16 bp enthaelt.",
+        "Ein kurzes lineares Template wird bis zu seinem eigenen Rand durchsucht, statt wegen Unterschreitung der aeusseren Suchgrenze abgelehnt zu werden.",
+        "Beide Straenge suchen nach aussen, das Amplikon ist dadurch symmetrisch und die letzten Codons bleiben ausserhalb der Reference Edge Margin.",
+        "Ein Primer kann nicht mehr innerhalb der kodierenden Region liegen, und ein gespeichertes flank_max wird als overhang_max uebernommen."
+      ],
+      "0.16.66": [
+        "Eine Runde schätzt das assay noise jetzt aus ihren eigenen wild-type Replikaten, sodass der plateau-Test die Sättigungsregel über zwei Runden tragen kann.",
+        "Der hit-rate-Trend gilt nur dann als Rückgang, wenn die angepasste Steigung stärker fällt als ihr eigener sampling error.",
+        "Eine Variante mit exakt null Aktivität wird bewertet, statt die Auswertung zu stoppen, und bleibt im Nenner der hit rate.",
+        "Eine wild-type-Kontrollzeile wird überall in der Arbeitsmappe gezählt und aus der Variantenstatistik herausgehalten.",
+        "Die Empfehlung meldet, wie viele Varianten mit Aktivität null und wie viele Kontrollzeilen eine Runde enthielt."
+      ],
+      "0.16.65": [
+        "Ein Well mit einem indel-event-Anteil von genau 0,50 erreicht jetzt das Review-Gate, statt am strikten Vergleich vorbeizulaufen.",
+        "Wells innerhalb der kalibrierten Bereiche, Rauschen bis 0,21 und echte Deletionen ab 0,83, behalten ihr bisheriges Verdict.",
+        "Frühere Gates entscheiden weiterhin zuerst, daher behält ein bereits als LOWDEPTH oder MIXED eingestuftes Well dieses Verdict."
+      ],
       "0.16.64": [
         "Eine Deletion, die nur die Hälfte der Reads stützt, befreit ein Well nicht mehr vom No-Call-Gate, daher liest sich eine Stelle mit 40 oder 50 Prozent als No Call.",
         "Der Schritt für Aktivitätsdaten hängt ein NGS-Urteil nicht mehr an eine andere Variante als die, welche die Zeile nennt.",
@@ -3081,6 +3112,11 @@
       ]
     },
     "releaseStamps": {
+      "0.16.69": "60279e8e",
+      "0.16.68": "33844e5d",
+      "0.16.67": "a8a547ef",
+      "0.16.66": "c8cb9c13",
+      "0.16.65": "2d61386f",
       "0.16.64": "b5666e23",
       "0.16.63": "27af3ec6",
       "0.16.62": "e46c1db9",
@@ -3371,16 +3407,17 @@
         },
         "bomLabel": "Hinzufügen UTF-8 BOM",
         "bomHint": "(Excel-Kompatibilität)",
-        "quadrantLabel": "Hälfte der Echo-Quellplatte",
-        "quadrantNone": "Nicht angegeben (Spalten 1-12, keine Prüfung verbrauchter Hälften)",
-        "quadrantColumns": "Spalten {{from}}-{{to}}",
-        "quadrantHelper": "Eine Runde füllt eine Hälfte: Forward-Primer auf den Zeilen A, C, E ... und jeder Reverse-Primer eine Zeile darunter in derselben Spalte.",
-        "usedQuadrantsLabel": "Auf dieser Platte bereits belegte Hälften",
-        "usedQuadrantsHelper": "Der Export wird abgelehnt, wenn die gewählte Hälfte eine davon ist.",
-        "legacyPlacementNotice": "Dieses Projekt wurde vor v{{version}} gespeichert. Damals verteilte sich eine Runde über die gesamte Source Plate statt über eine Hälfte. Die gespeicherte Belegung ({{values}}) deckt beide Hälften ab, daher gelten beide als belegt und keine Hälfte ist ausgewählt. Bei einer neuen Platte zuerst die Häkchen für belegte Hälften unten entfernen und dann eine Hälfte wählen.",
+        "quadrantLabel": "Spalten der Echo-Quellplatte",
+        "quadrantNone": "Nicht angegeben (Spalten 1-12, keine Prüfung belegter Runden)",
+        "quadrantColumnsOdd": "ungerade Spalten 1, 3 ... 23",
+        "quadrantColumnsEven": "gerade Spalten 2, 4 ... 24",
+        "quadrantHelper": "Ein 96-Head-Stempel erreicht nur jede zweite Spalte, daher nimmt eine Runde eine der beiden. Forward-Primer sitzen in den Zeilen A, C, E ... und jeder Reverse-Primer eine Zeile darunter, in derselben Spalte.",
+        "usedQuadrantsLabel": "Auf dieser Platte bereits belegte Runden",
+        "usedQuadrantsHelper": "Der Export wird abgelehnt, wenn die gewählte Runde eine davon ist.",
+        "legacyPlacementNotice": "Dieses Projekt wurde zwischen v{{from}} und v{{to}} gespeichert. Damals füllte eine Runde zwölf aufeinanderfolgende Spalten statt jeder zweiten. Die gespeicherte Belegung ({{values}}) überdeckt einen Teil beider Runden, daher gelten beide als belegt und keine ist ausgewählt. Auf einer frischen Platte zuerst die Häkchen unten entfernen und dann eine Runde wählen.",
         "placementBlocked": {
-          "noHalfSelected": "Auf dieser Platte sind Hälften als belegt markiert, für diese Runde ist aber keine Hälfte ausgewählt. Wählen Sie A1 oder A13, oder entfernen Sie die Häkchen, wenn die Platte neu ist.",
-          "halfAlreadyUsed": "Die gewählte Hälfte ist auf dieser Platte bereits als belegt markiert. Ein Dispensieren dort zerstört die vorhandenen Primer. Wählen Sie die andere Hälfte oder entfernen Sie deren Häkchen."
+          "noQuadrantSelected": "Auf dieser Platte sind Runden als belegt markiert, für diesen Lauf ist jedoch keine ausgewählt. Wählen Sie A1 oder A2, oder entfernen Sie die Häkchen, wenn die Platte frisch ist.",
+          "quadrantAlreadyUsed": "Die gewählte Runde ist auf dieser Platte bereits als belegt markiert. Ein Dispensieren darauf zerstört die dort vorhandenen Primer. Wählen Sie die andere Runde, oder entfernen Sie das betreffende Häkchen."
         },
         "plateNameFwd": "Forward-Primer-Plattenname",
         "plateNameRev": "Reverse-Primer-Plattenname",
@@ -3671,14 +3708,14 @@
     "errorTitle": "Vorschau fehlgeschlagen",
     "echoSourcePlateLabel": "Echo-Quellplatte (384 Wells)",
     "destPlateLabel": "Zielplatte (96 Wells)",
-    "quadrantBatch": "Dieser Lauf füllt die Plattenhälfte {{half}}, Spalten {{from}}-{{to}}. Vorwärtsprimer liegen auf den Zeilen A, C, E ... und jeder Rückwärtsprimer eine Zeile darunter.",
-    "quadrantProgress": "Nach diesem Lauf sind {{filled}} von {{total}} Hälften dieser Platte belegt.",
-    "quadrantHalfNote": "Die Spalten {{from}}-{{to}} sind die andere Hälfte, {{others}}, und bleiben für die nächste Runde frei.",
+    "quadrantBatch": "Dieser Lauf füllt Runde {{round}}: jede zweite Spalte, beginnend bei Spalte {{first}}. Forward-Primer sitzen in den Zeilen A, C, E ... und jeder Reverse-Primer eine Zeile darunter.",
+    "quadrantProgress": "Nach diesem Lauf sind {{filled}} von {{total}} Runden dieser Platte belegt.",
+    "quadrantInterleaveNote": "Ein 96-Head-Stempel erreicht nur jede zweite Spalte. Die Spalten dazwischen gehören zu {{others}} und bleiben für die nächste Runde frei.",
     "quadrantUsedNote": "Auf dieser Platte bereits belegt: {{list}}",
-    "quadrantNoneNote": "Keine Hälfte gewählt. Der Lauf landet weiterhin in den Spalten 1-12, denselben Wells wie Hälfte A1, nur der Abgleich mit bereits verbrauchten Hälften entfällt.",
+    "quadrantNoneNote": "Keine Runde ausgewählt. Der Lauf landet weiterhin ohne Spaltensprung auf den Spalten 1-12, dem Layout von vor der Rundenauswahl, und nur die Prüfung gegen bereits belegte Runden entfällt.",
     "quadrantLegendFree": "Durchgezogener Rahmen: Well, das dieser Lauf nutzt",
     "quadrantLegendReserved": "Gestrichelter Rahmen: freigehalten für {{others}}",
-    "echoReservedWellTitle": "{{well}}, freigehalten für Hälfte {{quadrants}}"
+    "echoReservedWellTitle": "{{well}}, reserviert für Runde {{quadrants}}"
   },
   "errors": {
     "sequence": {
@@ -3730,7 +3767,9 @@
     "missingInputs": {
       "wt_replicates": "Wildtyp-Replikatmessungen"
     },
-    "missingInputsNote": "Beurteilt ohne {{missing}}, die Sättigung stützt sich daher allein auf den Verlauf der Hit-Rate.",
+    "missingInputsNote": "In mindestens einer Runde fehlen {{missing}}, dort war die Plateau-Prüfung nicht möglich und die Sättigung dieser Runden stützt sich allein auf den Verlauf der Hit-Rate. Dieser Verlauf ist eine Least-Squares-Steigung über alle Runden und gilt nur dann als Rückgang, wenn sie stärker negativ ausfällt als ihr eigener Stichprobenfehler.",
+    "zeroActivityNote": "{{n}} Variante(n) dieser Runde wurden mit einer Aktivität von genau 0 gemessen. Sie waren entworfen und gemessen, bleiben deshalb im Nenner der Hit-Rate und werden allein aus der log2-Statistik herausgenommen.",
+    "wtRowNote": "{{n}} Wildtyp-Kontrollzeile(n) (WT) in der Arbeitsmappe dieser Runde. Eine Kontrolle ist keine entworfene Variante und wird daher auch aus der Berechnung der Hit-Rate herausgenommen.",
     "notAssessableBadge": "Nicht beurteilbar",
     "notAssessableSummary": "Die Signale deuten auf einen Übergang hin, doch dessen Bestätigung erfordert {{missing}}, die in diesen Dateien nicht enthalten sind. {{blocked}} lässt sich mit dieser Eingabe nicht beantworten; möglich ist nur die Prüfung, ob die Einzelmutante fortgesetzt werden soll.",
     "notAssessableInsufficientSummary": "Die Signale deuten auf einen Übergang hin, doch dessen Bestätigung erfordert mindestens {{required}} {{missing}}, und für diese Runde sind {{count}} erfasst. Darunter gibt es keine Rauschschätzung als Prüfgröße, die Sättigung stützt sich damit allein auf den Verlauf der Hit-Rate, und {{blocked}} lässt sich daraus nicht beantworten.",
@@ -3741,7 +3780,7 @@
     "restoredUnverifiedNote": "Diese Anwendung hat {{files}} nicht geschrieben und kann daher nicht bestaetigen, dass diese Dateien seitdem unveraendert sind.",
     "rebuiltNote": "Eine fruehere Antwort vom {{when}} wurde aus genau diesen Dateien ({{files}}) berechnet, bevor Schritt 4.1 sie neu erzeugt hat. Sie beschreibt den vorherigen Stand und bleibt als Verlauf erhalten. Fuer den aktuellen Stand die Klassifikation erneut ausfuehren.",
     "supersededNote": "Eine fruehere Antwort vom {{when}} wurde aus einer anderen Liste berechnet ({{files}}). Sie sagt nichts ueber die jetzt gewaehlten Dateien und wird deshalb nicht angezeigt.",
-    "headingHelp": "Bündelt EVOLVEpro-Ergebnisse über mehrere Runden, um ein Sättigungssignal zu erkennen, und schlägt Fortsetzen der Einzelmutante, Umstellung auf combinatorial, Stopp oder Zurückstellung vor. Schreibgeschützt: Hier wird nichts bestätigt oder gespeichert, und bei weniger als 3 Runden gibt es noch keine Einschätzung.",
+    "headingHelp": "Bündelt EVOLVEpro-Ergebnisse über mehrere Runden, um ein Sättigungssignal zu erkennen, und schlägt Fortsetzen der Einzelmutante, Umstellung auf combinatorial, Stopp oder Zurückstellung vor. Der Verlauf der Hit-Rate ist eine Least-Squares-Steigung über alle Runden und gilt nur dann als Rückgang, wenn sie stärker negativ ausfällt als ihr eigener Stichprobenfehler. Die je Runde erfassten Wildtyp-Replikate speisen die Plateau-Prüfung derselben Runde, sodass ein Plateau über zwei aufeinanderfolgende Runden bestätigt werden kann. Schreibgeschützt: Hier wird nichts bestätigt oder gespeichert, und bei weniger als 3 Runden gibt es noch keine Einschätzung.",
     "nextRoundCapacity": "Plattenkapazität der nächsten Runde",
     "nextRoundCapacityHelper": "Anzahl verfügbarer Wells in der nächsten kombinatorischen Runde. Sie bestimmt die Durchsatzempfehlung."
   },

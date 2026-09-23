@@ -7,13 +7,14 @@ with Tm-guided non-overlap extension and polymerase-aware parameters.
 from __future__ import annotations
 
 import logging
+import math
 import re
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Literal
 
-import primer3
+from kuma_core.shared import thermo
 
 from .polymerase import PolymeraseProfile, PolymeraseRegistry
 
@@ -165,7 +166,7 @@ def _calc_sdm_tm(seq: str) -> float:
     neither the profile buffer nor the NEB calibration table participates here.
     NEB calibration is Ta-only and lives in kuro/annealing.py.
     """
-    return primer3.calc_tm(
+    return thermo.calc_tm(
         seq,
         **_thermo_concs(),
         tm_method=_DESIGN_TM_METHOD,
@@ -230,22 +231,63 @@ def _tm_score(tm: float, target: float) -> float:
     return -dev
 
 
+# Absolute Tm (degrees Celsius) above which a hairpin or homodimer feeds the
+# ranking penalty in _check_secondary_structure. It is also the homodimer
+# warning verdict in secondary_structure_warn_flags(), so both read this one
+# constant. Fixed on the design Tm scale by the same enzyme-independence
+# argument as _DESIGN_CONCS.
+WARN_STRUCTURE_TM = 40.0
+
+# Hairpin warning axis for the result table. A hairpin warns when its
+# two-state folded fraction at the pair's annealing temperature exceeds
+# HAIRPIN_WARN_FRACTION, replacing the absolute WARN_STRUCTURE_TM read the UI
+# used to make on its own. A fixed Tm cut means a different physical verdict
+# per polymerase (a Tm-40 hairpin is ~16% folded at Ta 54 and ~3% at Ta 72),
+# while the folded fraction is the quantity that competes with template
+# binding. theta* = 0.10 at the 60 C fallback reproduces the legacy Tm > 40
+# verdict at the median hairpin dH (theta(60 C, Tm 40.8) ~= 0.10), so the
+# reference condition carries over unchanged. Display-only: the penalty path
+# keeps warn_tm on the absolute scale, so design output stays
+# polymerase-invariant (TestDesignIsEnzymeIndependent).
+HAIRPIN_WARN_FRACTION = 0.10
+HAIRPIN_WARN_TA_FALLBACK = 60.0
+
+# Gas constant in cal/(mol*K), matching thermo.calc_hairpin's caloric dh/dg.
+_R_CAL_PER_MOL_K = 1.9872
+
+
+def hairpin_fraction_folded(dh_cal: float, tm_c: float, ta_c: float) -> float:
+    """Two-state folded fraction of a unimolecular hairpin at Ta.
+
+    theta(Ta) = 1 / (1 + exp[dH (1 - Ta/Tm) / (R Ta)]), SantaLucia two-state
+    with temperatures in kelvin and dH in cal/mol (the units
+    ``thermo.calc_hairpin`` returns). theta(T = Tm) = 0.5 by construction.
+    Written as a tanh so extreme dH/Ta cannot overflow exp().
+    """
+    tm_k = tm_c + 273.15
+    ta_k = ta_c + 273.15
+    if tm_k <= 0.0 or ta_k <= 0.0:
+        return 0.0
+    x = dh_cal * (1.0 - ta_k / tm_k) / (_R_CAL_PER_MOL_K * ta_k)
+    return 0.5 * (1.0 - math.tanh(0.5 * x))
+
+
 def _check_secondary_structure(
     result: SdmPrimerResult,
-    warn_tm: float = 40.0,
+    warn_tm: float = WARN_STRUCTURE_TM,
 ) -> None:
-    """Check hairpin and homodimer for both fwd/rev primers using primer3.
+    """Check hairpin and homodimer for both fwd/rev primers.
 
     Concentrations are the fixed design scale, not the profile buffer: this
     routine adds to result.penalty, and candidates are ranked by penalty, so a
     per-profile buffer here would change which primer is selected per enzyme.
-    primer3.calc_hairpin/calc_homodimer accept only the four concentrations,
+    calc_hairpin/calc_homodimer accept only the four concentrations,
     not tm_method/salt_corrections_method.
     """
     concs = _thermo_concs()
     for label, seq, is_fwd in [("Fwd", result.forward_seq, True), ("Rev", result.reverse_seq, False)]:
-        hp = primer3.calc_hairpin(seq, **concs)
-        hd = primer3.calc_homodimer(seq, **concs)
+        hp = thermo.calc_hairpin(seq, **concs)
+        hd = thermo.calc_homodimer(seq, **concs)
         hp_tm = round(hp.tm if hp.structure_found else 0.0, 1)
         hd_tm = round(hd.tm if hd.structure_found else 0.0, 1)
         hp_dg = round(hp.dg / 1000.0 if hp.structure_found else 0.0, 2)
@@ -266,6 +308,48 @@ def _check_secondary_structure(
         if hd_tm > warn_tm:
             result.warnings.append(f"{label} homodimer Tm={hd_tm:.1f}°C (dG={hd_dg:.1f} kcal/mol)")
             result.penalty += (hd_tm - warn_tm) * 0.5
+
+
+def secondary_structure_warn_flags(
+    result: SdmPrimerResult,
+    ta_c: float | None,
+) -> dict[str, bool]:
+    """Per-structure warning verdicts for the result table and popover.
+
+    Returns keys ``hairpin_warn_fwd`` / ``hairpin_warn_rev`` /
+    ``homodimer_warn_fwd`` / ``homodimer_warn_rev`` matching the
+    SdmPrimerResultModel fields of the same name.
+
+    A hairpin warns when its folded fraction at the pair's annealing
+    temperature exceeds HAIRPIN_WARN_FRACTION; ``ta_c=None`` (no profile, or a
+    profile without a ta_rule) falls back to HAIRPIN_WARN_TA_FALLBACK, the
+    anchor where the fraction rule reproduces the legacy Tm > 40 verdict. The
+    hairpin thermo is recomputed on the fixed design scale so the verdict reads
+    the same dH/Tm pair the stored hairpin_tm/hairpin_dg came from.
+
+    Homodimer keeps the absolute WARN_STRUCTURE_TM verdict: it is bimolecular,
+    so its folded fraction is concentration-dependent and the unimolecular
+    theta above does not apply.
+
+    Reads the result and returns verdicts only; it never touches penalty or
+    warnings, so the polymerase-invariant design path is unaffected.
+    """
+    ta = HAIRPIN_WARN_TA_FALLBACK if ta_c is None else float(ta_c)
+    concs = _thermo_concs()
+    flags: dict[str, bool] = {}
+    for direction, seq, hd_tm in (
+        ("fwd", result.forward_seq, result.homodimer_tm_fwd),
+        ("rev", result.reverse_seq, result.homodimer_tm_rev),
+    ):
+        hp = thermo.calc_hairpin(seq, **concs)
+        theta = (
+            hairpin_fraction_folded(hp.dh, hp.tm, ta)
+            if hp.structure_found
+            else 0.0
+        )
+        flags[f"hairpin_warn_{direction}"] = theta > HAIRPIN_WARN_FRACTION
+        flags[f"homodimer_warn_{direction}"] = hd_tm > WARN_STRUCTURE_TM
+    return flags
 
 
 def _synthesis_score(seq: str) -> float:
@@ -749,7 +833,7 @@ def check_offtarget(
 
     2. Mismatch-tolerant duplex rule (``mismatch_tm_threshold``): every
        candidate alignment window of full primer length is scored with
-       ``primer3.calc_heterodimer``, which -- unlike ``_calc_sdm_tm`` --
+       ``thermo.calc_heterodimer``, which -- unlike ``_calc_sdm_tm`` --
        evaluates the actual (possibly mismatched) pairing instead of
        assuming perfect complementarity. The Tm comparison is the verdict;
        everything before it is only a prefilter that decides which windows
@@ -941,7 +1025,7 @@ def check_offtarget(
                     continue
 
                 rc_site = reverse_complement(site)
-                result = primer3.calc_heterodimer(p_upper, rc_site, **concs)
+                result = thermo.calc_heterodimer(p_upper, rc_site, **concs)
                 tm = result.tm if result.structure_found else 0.0
 
                 if tm >= mismatch_tm_threshold:

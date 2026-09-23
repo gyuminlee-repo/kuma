@@ -80,8 +80,8 @@ function seedSetupForm(): void {
       geneEnd: "534",
       geneName: "target_gene",
       polymerase: "Q5",
-      flankMin: "100",
-      flankMax: "400",
+      overhangMin: "20",
+      overhangMax: "60",
       bindingMinLen: "18",
       bindingMaxLen: "35",
       tmMin: "55.0",
@@ -171,6 +171,110 @@ describe("BarcodeSetupPanel project artifacts", () => {
     );
   });
 });
+// ─── Component: legacy localStorage key migration ────────────────────────────
+
+describe("BarcodeSetupPanel legacy flank keys", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.clearAllMocks();
+    useMameAppStore.getState().resetInput();
+    mockRpc.mockImplementation((_app: string, method: string) => {
+      if (method === "load_fasta") {
+        return Promise.resolve({ header: "cds", seq_length: 900, genes: [] });
+      }
+      return Promise.resolve(RESULT);
+    });
+    mockRegisterArtifacts.mockResolvedValue(undefined);
+  });
+
+  it("carries a stored flankMax over to overhang_max and drops flankMin", async () => {
+    // flankMax measured the same quantity overhang_max does, so it transfers.
+    // flankMin was the GAP between primer and gene, which the overhang axis
+    // has no counterpart for, so it is dropped for the new default of 20.
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        fastaPath: "/proj/input/cds.fa",
+        geneStart: "0",
+        geneEnd: "534",
+        geneName: "target_gene",
+        polymerase: "Q5",
+        flankMin: "100",
+        flankMax: "90",
+        bindingMinLen: "18",
+        bindingMaxLen: "35",
+        tmMin: "55.0",
+        tmMax: "68.0",
+        requireGcClamp: true,
+        barcodeSeedsPath: "/proj/input/barcode_seeds.xlsx",
+        outputDir: "",
+      }),
+    );
+
+    render(
+      <ProjectProvider value={{ path: "/proj", name: "Demo", scratch: false }}>
+        <BarcodeSetupPanel group="design" />
+      </ProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Generate Barcode Package" }));
+
+    await waitFor(() => {
+      expect(mockRpc).toHaveBeenCalledWith(
+        "mame",
+        "generate_mame_package",
+        expect.objectContaining({ overhang_min: 20, overhang_max: 90 }),
+        60_000,
+      );
+    });
+    const sent = mockRpc.mock.calls.find(
+      (c) => c[1] === "generate_mame_package",
+    )?.[2] as Record<string, unknown>;
+    expect(sent).not.toHaveProperty("flank_min");
+    expect(sent).not.toHaveProperty("flank_max");
+  });
+
+  it("prefers a stored overhangMax over a stale flankMax", async () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        fastaPath: "/proj/input/cds.fa",
+        geneStart: "0",
+        geneEnd: "534",
+        geneName: "target_gene",
+        polymerase: "Q5",
+        flankMax: "400",
+        overhangMin: "25",
+        overhangMax: "80",
+        bindingMinLen: "18",
+        bindingMaxLen: "35",
+        tmMin: "55.0",
+        tmMax: "68.0",
+        requireGcClamp: true,
+        barcodeSeedsPath: "/proj/input/barcode_seeds.xlsx",
+        outputDir: "",
+      }),
+    );
+
+    render(
+      <ProjectProvider value={{ path: "/proj", name: "Demo", scratch: false }}>
+        <BarcodeSetupPanel group="design" />
+      </ProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Generate Barcode Package" }));
+
+    await waitFor(() => {
+      expect(mockRpc).toHaveBeenCalledWith(
+        "mame",
+        "generate_mame_package",
+        expect.objectContaining({ overhang_min: 25, overhang_max: 80 }),
+        60_000,
+      );
+    });
+  });
+});
+
 // ─── Unit: validateGenerateBarcodePackage geneName guard ─────────────────────
 
 describe("validateGenerateBarcodePackage – geneName", () => {
@@ -221,8 +325,8 @@ describe("BarcodeSetupPanel annotation autofill", () => {
         geneEnd: "",
         geneName: "",
         polymerase: "Q5",
-        flankMin: "100",
-        flankMax: "400",
+        overhangMin: "20",
+        overhangMax: "60",
         bindingMinLen: "18",
         bindingMaxLen: "35",
         tmMin: "55.0",
@@ -272,8 +376,8 @@ describe("BarcodeSetupPanel annotation autofill", () => {
         geneEnd: "",
         geneName: "",
         polymerase: "Q5",
-        flankMin: "100",
-        flankMax: "400",
+        overhangMin: "20",
+        overhangMax: "60",
         bindingMinLen: "18",
         bindingMaxLen: "35",
         tmMin: "55.0",
@@ -340,8 +444,8 @@ describe("BarcodeSetupPanel annotation autofill", () => {
         geneEnd: "720",
         geneName: "",
         polymerase: "Q5",
-        flankMin: "100",
-        flankMax: "400",
+        overhangMin: "20",
+        overhangMax: "60",
         bindingMinLen: "18",
         bindingMaxLen: "35",
         tmMin: "55.0",
@@ -383,8 +487,8 @@ describe("BarcodeSetupPanel annotation autofill", () => {
         geneEnd: "",
         geneName: "my_custom_gene",
         polymerase: "Q5",
-        flankMin: "100",
-        flankMax: "400",
+        overhangMin: "20",
+        overhangMax: "60",
         bindingMinLen: "18",
         bindingMaxLen: "35",
         tmMin: "55.0",
@@ -476,8 +580,8 @@ describe("BarcodeSetupPanel sample-data output-location notice", () => {
         geneEnd: "534",
         geneName: "target_gene",
         polymerase: "Q5",
-        flankMin: "100",
-        flankMax: "400",
+        overhangMin: "20",
+        overhangMax: "60",
         bindingMinLen: "18",
         bindingMaxLen: "35",
         tmMin: "55.0",

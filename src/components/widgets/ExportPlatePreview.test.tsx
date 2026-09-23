@@ -366,9 +366,9 @@ describe("ExportPlatePreview", () => {
     }
   });
 
-  // The grid draws one half of the plate, which reads as "half the plate is
+  // The grid draws every other column, which reads as "most of the plate is
   // missing" unless the view says what it is showing.
-  describe("Echo half caption", () => {
+  describe("Echo round caption", () => {
     function mockEchoRow() {
       const echoRows = {
         rows: [
@@ -394,27 +394,27 @@ describe("ExportPlatePreview", () => {
       });
     }
 
-    it("names the columns the selected half fills", async () => {
+    it("names the round and the column it starts at", async () => {
       useAppStore.setState({ echoQuadrant: "A1" });
       mockEchoRow();
       render(<ExportPlatePreview />);
       const note = await screen.findByTestId("echo-quadrant-note");
-      // The half name alone does not say where it is; the caption states the
-      // contiguous column range so the grid can be read against it.
+      // The round name alone does not say where it is; the caption states the
+      // starting column so the grid can be read against it.
       expect(note.textContent).toContain("A1");
-      expect(note.textContent).toContain("1-12");
+      expect(note.textContent).toMatch(/column 1\b/);
     });
 
-    it("points at the other half's columns as the ones left empty", async () => {
+    it("points at the other round as the columns left empty", async () => {
       useAppStore.setState({ echoQuadrant: "A1" });
       mockEchoRow();
       render(<ExportPlatePreview />);
       const note = await screen.findByTestId("echo-quadrant-note");
-      expect(note.textContent).toContain("13-24");
-      expect(note.textContent).toContain("A13");
+      expect(note.textContent).toContain("A2");
+      expect(note.textContent).toMatch(/every other column/);
     });
 
-    it("counts the halves this run leaves spent", async () => {
+    it("counts the rounds this run leaves spent", async () => {
       useAppStore.setState({ echoQuadrant: "A1" });
       mockEchoRow();
       render(<ExportPlatePreview />);
@@ -422,51 +422,51 @@ describe("ExportPlatePreview", () => {
       expect(progress.textContent).toMatch(/1 of 2/);
     });
 
-    it("adds the operator's spent halves to that count", async () => {
-      useAppStore.setState({ echoQuadrant: "A1", echoUsedQuadrants: ["A13"] });
+    it("adds the operator's spent rounds to that count", async () => {
+      useAppStore.setState({ echoQuadrant: "A1", echoUsedQuadrants: ["A2"] });
       mockEchoRow();
       render(<ExportPlatePreview />);
       const progress = await screen.findByTestId("echo-quadrant-progress");
       expect(progress.textContent).toMatch(/2 of 2/);
     });
 
-    it("lists the spent halves only when the operator named some", async () => {
-      useAppStore.setState({ echoQuadrant: "A1", echoUsedQuadrants: ["A13"] });
+    it("lists the spent rounds only when the operator named some", async () => {
+      useAppStore.setState({ echoQuadrant: "A1", echoUsedQuadrants: ["A2"] });
       mockEchoRow();
       render(<ExportPlatePreview />);
       const used = await screen.findByTestId("echo-quadrant-used");
-      expect(used.textContent).toContain("A13");
+      expect(used.textContent).toContain("A2");
     });
 
-    // A project saved before the half layout reopens as exactly this state:
-    // no half selected and both marked spent. The mapper raises on it rather
-    // than quietly drawing the left half, so the request is not made at all.
+    // A project saved under the half layout reopens as exactly this state: no
+    // round selected and both marked spent. The mapper raises on it rather
+    // than quietly drawing columns 1-12, so the request is not made at all.
     // Before this guard the raw sidecar sentence became the preview's error.
     it("does not ask the sidecar for a placement it refuses", async () => {
-      useAppStore.setState({ echoQuadrant: null, echoUsedQuadrants: ["A1", "A13"] });
+      useAppStore.setState({ echoQuadrant: null, echoUsedQuadrants: ["A1", "A2"] });
       mockEchoRow();
       render(<ExportPlatePreview />);
       const blocked = await screen.findByTestId("echo-placement-blocked");
       // Assert the text, not just the node: a missing locale key renders the
       // key itself and an existence check would pass on it.
-      expect(blocked.textContent).toMatch(/no half is selected/);
+      expect(blocked.textContent).toMatch(/none is selected/);
       const methods = (invoke as ReturnType<typeof vi.fn>).mock.calls.map(
         (c) => (c[1] as { method?: string })?.method,
       );
       expect(methods).not.toContain("export_echo_mapping_dry_run");
-      // JANUS is a separate rack layout and is unaffected by the Echo half.
+      // JANUS is a separate rack layout and is unaffected by the Echo round.
       expect(methods).toContain("export_janus_mapping_dry_run");
     });
 
-    it("says which half is spent instead of dispensing on top of it", async () => {
-      useAppStore.setState({ echoQuadrant: "A13", echoUsedQuadrants: ["A13"] });
+    it("says which round is spent instead of dispensing on top of it", async () => {
+      useAppStore.setState({ echoQuadrant: "A2", echoUsedQuadrants: ["A2"] });
       mockEchoRow();
       render(<ExportPlatePreview />);
       const blocked = await screen.findByTestId("echo-placement-blocked");
       expect(blocked.textContent).toMatch(/already marked as used/);
     });
 
-    it("shows no spent-half line when none were named", async () => {
+    it("shows no spent-round line when none were named", async () => {
       useAppStore.setState({ echoQuadrant: "A1", echoUsedQuadrants: [] });
       mockEchoRow();
       render(<ExportPlatePreview />);
@@ -474,20 +474,21 @@ describe("ExportPlatePreview", () => {
       expect(screen.queryByTestId("echo-quadrant-used")).toBeNull();
     });
 
-    it("says so instead when no half is selected", async () => {
+    it("says so instead when no round is selected", async () => {
       mockEchoRow();
       render(<ExportPlatePreview />);
       const note = await screen.findByTestId("echo-quadrant-note");
-      expect(note.textContent).toMatch(/no half selected/i);
+      expect(note.textContent).toMatch(/no round selected/i);
       expect(screen.queryByTestId("echo-quadrant-progress")).toBeNull();
     });
   });
 
-  // Direction is row parity in either half, so the selected half must not move
+  // Direction is row parity in either round, so the selected round must not
+  // move
   // the forward/reverse colouring. These two render the whole component under
   // both halves and pin that the stripe stays put, which is the claim the old
   // interleaved geometry violated.
-  describe("Echo grid colour is row parity in either half", () => {
+  describe("Echo grid colour is row parity in either round", () => {
     /** Two transfers of one mutation: 384 row B forward, row A reverse. */
     function mockPairedEchoRows() {
       const echoRows = {
@@ -531,14 +532,14 @@ describe("ExportPlatePreview", () => {
       return container.querySelectorAll("[data-testid='echo-cell']")[idx] as HTMLElement;
     }
 
-    it("paints the even-row primer forward when the run takes half A13", async () => {
-      useAppStore.setState({ echoQuadrant: "A13" });
+    it("paints the even-row primer forward when the run takes round A2", async () => {
+      useAppStore.setState({ echoQuadrant: "A2" });
       mockPairedEchoRows();
       const { container } = render(<ExportPlatePreview />);
       await screen.findByTestId("echo-quadrant-note");
       await waitFor(() => {
-        // The half shifts columns only, so A01 stays forward and B01 stays
-        // reverse whichever half is selected.
+        // The round shifts columns only, so A01 stays forward and B01 stays
+        // reverse whichever round is selected.
         expect(echoCell(container, "A01").className).toContain(PLATE_FILL_FORWARD);
         expect(echoCell(container, "B01").className).toContain(PLATE_FILL_REVERSE);
       });

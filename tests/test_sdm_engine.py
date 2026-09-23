@@ -12,18 +12,24 @@ from Bio.SeqFeature import FeatureLocation, SeqFeature
 from Bio.SeqRecord import SeqRecord
 
 from kuma_core.kuro.sdm_engine import (
+    HAIRPIN_WARN_FRACTION,
+    HAIRPIN_WARN_TA_FALLBACK,
+    WARN_STRUCTURE_TM,
     OffTargetHit,
     SdmPrimerResult,
     _check_gc_clamp,
     _check_vendor_spec,
     _design_full_overlap,
     _synthesis_score,
+    _thermo_concs,
     check_offtarget,
     design_sdm_primers,
     design_single_sdm,
     export_results_tsv,
+    hairpin_fraction_folded,
     load_fasta,
     load_sequence,
+    secondary_structure_warn_flags,
 )
 from kuma_core.kuro.mutation import Mutation
 from kuma_core.kuro.overlap import OverlapWindow
@@ -1159,3 +1165,160 @@ class TestOfftargetRejectionAndDiagnosis:
             assert reason.startswith("No valid primer pair - "), raw
             if raw in previously_succeeding:
                 assert "off-target:" in reason, f"{raw}: {reason}"
+
+
+class TestSecondaryStructureWarnFlags:
+    """The UI warning axis: hairpin folded fraction at Ta, homodimer abs Tm.
+
+    `_check_secondary_structure` still hinges `penalty` on the absolute
+    `warn_tm` (40 C on the fixed design scale). `secondary_structure_warn_flags`
+    is the display-side verdict the result table reads instead of redoing
+    `tm > 40` itself; it returns booleans and never touches ranking inputs.
+    """
+
+    # --- hairpin_fraction_folded: the closed form ---
+
+    def test_theta_is_half_at_tm(self):
+        assert hairpin_fraction_folded(dh_cal=-23800.0, tm_c=40.0, ta_c=40.0) == pytest.approx(0.5)
+
+    def test_theta_anchor_at_fallback_ta(self):
+        """theta* = 0.10 at Ta 60 sits at Tm ~= 40.8 for the median hairpin dH.
+
+        The 260917 sweep note measured a median hairpin dH of -23.8 kcal/mol
+        across the fixture winners; at the 60 C fallback the folded fraction
+        at Tm 40.0 is ~0.09, so the fraction rule reproduces the legacy
+        `Tm > 40` verdict at the reference condition (boundary ~40.8 C).
+        """
+        theta_at_40 = hairpin_fraction_folded(-23800.0, 40.0, HAIRPIN_WARN_TA_FALLBACK)
+        assert theta_at_40 == pytest.approx(0.0915, abs=0.005)
+        assert theta_at_40 < HAIRPIN_WARN_FRACTION
+        theta_at_boundary = hairpin_fraction_folded(-23800.0, 40.8, HAIRPIN_WARN_TA_FALLBACK)
+        assert theta_at_boundary == pytest.approx(HAIRPIN_WARN_FRACTION, abs=0.005)
+
+    def test_theta_decreases_as_ta_rises(self):
+        """The same Tm-40 hairpin is ~16% folded at Ta 54 and ~3% at Ta 72."""
+        low_ta = hairpin_fraction_folded(-23800.0, 40.0, 54.0)
+        high_ta = hairpin_fraction_folded(-23800.0, 40.0, 72.0)
+        assert low_ta == pytest.approx(0.163, abs=0.01)
+        assert high_ta == pytest.approx(0.028, abs=0.005)
+        assert low_ta > HAIRPIN_WARN_FRACTION > high_ta
+
+    def test_theta_degenerate_and_extreme(self):
+        # Non-physical temperatures are clamped to 0; dh=0 is the degenerate
+        # midpoint (guarded upstream by structure_found); huge dH cannot
+        # overflow the exp() thanks to the tanh form.
+        assert hairpin_fraction_folded(-23800.0, -300.0, 60.0) == 0.0
+        assert hairpin_fraction_folded(-23800.0, 40.0, -300.0) == 0.0
+        assert hairpin_fraction_folded(0.0, 40.0, 60.0) == pytest.approx(0.5)
+        assert hairpin_fraction_folded(-10_000_000.0, 80.0, 20.0) == pytest.approx(1.0)
+        assert hairpin_fraction_folded(-10_000_000.0, 20.0, 80.0) == pytest.approx(0.0)
+
+    # --- secondary_structure_warn_flags on the pinned fixture ---
+
+    def _fixture_results(self, genbank_path, mutations_csv):
+        results, _cands, _failed = design_sdm_primers(
+            fasta_path=genbank_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            polymerase="Q5",
+            overlap_len=18,
+            overlap_mode="partial",
+        )
+        assert results, "fixture must yield designs"
+        return results
+
+    def test_flag_keys_match_wire_fields(self, genbank_path, mutations_csv):
+        flags = secondary_structure_warn_flags(self._fixture_results(genbank_path, mutations_csv)[0], 60.0)
+        assert set(flags) == {
+            "hairpin_warn_fwd",
+            "hairpin_warn_rev",
+            "homodimer_warn_fwd",
+            "homodimer_warn_rev",
+        }
+        assert all(isinstance(v, bool) for v in flags.values())
+
+    def test_flag_is_theta_at_given_ta(self, genbank_path, mutations_csv):
+        """Each hairpin flag equals theta(dh, tm, ta) > fraction, recomputed
+        independently at the engine boundary; no structure never warns."""
+        from kuma_core.shared import thermo
+
+        results = self._fixture_results(genbank_path, mutations_csv)
+        for r in results:
+            for ta in (54.0, None, 72.0):  # None -> 60 C fallback
+                flags = secondary_structure_warn_flags(r, ta)
+                eff_ta = HAIRPIN_WARN_TA_FALLBACK if ta is None else ta
+                for direction, seq in (("fwd", r.forward_seq), ("rev", r.reverse_seq)):
+                    hp = thermo.calc_hairpin(seq, **_thermo_concs())
+                    expected = (
+                        hairpin_fraction_folded(hp.dh, hp.tm, eff_ta) > HAIRPIN_WARN_FRACTION
+                        if hp.structure_found
+                        else False
+                    )
+                    assert flags[f"hairpin_warn_{direction}"] is expected, (
+                        r.mutation.raw, direction, ta,
+                    )
+
+    def test_fallback_ta60_is_near_legacy_verdict_at_boundary(self, genbank_path, mutations_csv):
+        """At the 60 C fallback the fraction verdict agrees with the legacy
+        `Tm > 40` read wherever |Tm - 40| is comfortably off the boundary, and
+        any disagreement stays inside the dH-dependent transition band.
+
+        The band is not symmetric: a weak-dH hairpin can stay >10% folded
+        below Tm 40 (broad two-state transition), and a very strong-dH one
+        can clear it above ~47 C. Exact agreement is only expected at the
+        median dH anchor (test_theta_anchor_at_fallback_ta).
+        """
+        results = self._fixture_results(genbank_path, mutations_csv)
+        n_disagree = 0
+        for r in results:
+            flags = secondary_structure_warn_flags(r, None)  # -> 60 C fallback
+            for direction, tm in (
+                ("fwd", r.hairpin_tm_fwd),
+                ("rev", r.hairpin_tm_rev),
+            ):
+                flag = flags[f"hairpin_warn_{direction}"]
+                legacy = tm > WARN_STRUCTURE_TM
+                if tm <= 25.0 or tm >= 55.0:
+                    # Far from every plausible transition boundary.
+                    assert flag == (tm > 0.0 and legacy), (r.mutation.raw, direction, tm)
+                elif flag != legacy:
+                    n_disagree += 1
+        # The fixture does contain band cases (that is the point of the fix);
+        # keep this loose so upstream thermo changes only need a re-count.
+        assert n_disagree >= 1
+
+    def test_profile_ta_moves_warning_verdict(self, genbank_path, mutations_csv):
+        """A lower annealing temperature warns weakly more (theta is monotone
+        decreasing in Ta for a folding hairpin); a higher Ta clears flags."""
+        results = self._fixture_results(genbank_path, mutations_csv)
+        saw_flip = False
+        for r in results:
+            low = secondary_structure_warn_flags(r, 54.0)
+            high = secondary_structure_warn_flags(r, 72.0)
+            for direction in ("fwd", "rev"):
+                lo, hi = low[f"hairpin_warn_{direction}"], high[f"hairpin_warn_{direction}"]
+                # theta(ta) is non-increasing in ta -> flags can only clear.
+                assert not (hi and not lo), (r.mutation.raw, direction)
+                if lo and not hi:
+                    saw_flip = True
+        assert saw_flip, "expected at least one hairpin flag to differ between Ta 54 and Ta 72"
+
+    def test_homodimer_flag_is_absolute_tm_at_any_ta(self, genbank_path, mutations_csv):
+        """Homodimers are bimolecular: no concentration was added to the
+        verdict, so the flag stays the absolute WARN_STRUCTURE_TM read."""
+        results = self._fixture_results(genbank_path, mutations_csv)
+        for r in results:
+            for ta in (54.0, 60.0, 72.0):
+                flags = secondary_structure_warn_flags(r, ta)
+                assert flags["homodimer_warn_fwd"] == (r.homodimer_tm_fwd > WARN_STRUCTURE_TM)
+                assert flags["homodimer_warn_rev"] == (r.homodimer_tm_rev > WARN_STRUCTURE_TM)
+
+    def test_flags_do_not_touch_ranking_inputs(self, genbank_path, mutations_csv):
+        results = self._fixture_results(genbank_path, mutations_csv)
+        for r in results:
+            penalty_before = r.penalty
+            warnings_before = list(r.warnings)
+            secondary_structure_warn_flags(r, 54.0)
+            secondary_structure_warn_flags(r, 72.0)
+            assert r.penalty == penalty_before
+            assert r.warnings == warnings_before

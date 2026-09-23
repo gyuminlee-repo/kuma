@@ -172,6 +172,21 @@ def _dump_verdicts(
                 "n_span_failed": vr.translated.barcode.n_span_failed,
                 "source_path": str(vr.translated.barcode.source_path),
                 "consensus_seq": vr.translated.barcode.consensus_seq,
+                # The consensus indel evidence. Same fields the sidecar
+                # serializer lost across a session boundary, missing here for
+                # the same reason: this dump is written field by field. The two
+                # net-indel values carry their ``None`` through JSON null
+                # because None is NOT MEASURED and skips the FRAMESHIFT gate,
+                # while 0 is a measured indel-free consensus
+                # (kuma_core/mame/models.py:227-235).
+                "max_del_run_length": vr.translated.barcode.max_del_run_length,
+                "consensus_net_indel_bp": (
+                    vr.translated.barcode.consensus_net_indel_bp
+                ),
+                "median_read_net_indel_bp": (
+                    vr.translated.barcode.median_read_net_indel_bp
+                ),
+                "length_true_nt": vr.translated.length_true_nt,
                 "aa_sequence": vr.translated.aa_sequence,
                 "observed_nt_changes": vr.translated.observed_nt_changes,
                 "observed_aa_changes": vr.translated.observed_aa_changes,
@@ -200,6 +215,12 @@ def _dump_verdicts(
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
+def _opt_int(item: dict, key: str) -> int | None:
+    """``None`` when the key is absent, so unmeasured never becomes 0."""
+    value = item.get(key)
+    return None if value is None else int(value)
+
+
 def _load_verdicts(path: Path) -> tuple[list[VerdictRecord], list[ReplicateResult]]:
     data = json.loads(path.read_text(encoding="utf-8"))
     verdicts: list[VerdictRecord] = []
@@ -223,13 +244,24 @@ def _load_verdicts(path: Path) -> tuple[list[VerdictRecord], list[ReplicateResul
             n_aligned_reads=item.get("n_aligned_reads"),
             n_mapq_failed=int(item.get("n_mapq_failed", 0)),
             n_span_failed=int(item.get("n_span_failed", 0)),
+            # Absent in a dump written before these keys existed, in which case
+            # BarcodeRecord's own defaults stand and the record restores exactly
+            # as it did. ``None`` is passed through rather than coerced, so an
+            # unmeasured net indel never reads as a measured zero.
+            max_del_run_length=int(item.get("max_del_run_length", 0)),
+            consensus_net_indel_bp=_opt_int(item, "consensus_net_indel_bp"),
+            median_read_net_indel_bp=_opt_int(item, "median_read_net_indel_bp"),
         )
+        length_true_nt = item.get("length_true_nt")
         translated = TranslatedRecord(
             barcode=barcode,
             aa_sequence=item["aa_sequence"],
             observed_nt_changes=list(item["observed_nt_changes"]),
             observed_aa_changes=list(item["observed_aa_changes"]),
             n_no_call_aa=int(item.get("n_no_call_aa", 0)),
+            length_true_nt=(
+                None if length_true_nt is None else str(length_true_nt)
+            ),
         )
         vr = VerdictRecord(
             translated=translated,

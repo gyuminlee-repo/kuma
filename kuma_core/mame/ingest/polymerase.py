@@ -1,8 +1,8 @@
 """polymerase -- Polymerase salt/concentration profiles for Tm-based primer design.
 
 Used by :mod:`kuma_core.mame.ingest.barcode_package` to supply salt concentrations
-to ``primer3.calc_tm``.  Intentionally separate from ``kuma_core.kuro.polymerase``
-to avoid cross-layer coupling.
+to ``kuma_core.shared.thermo.calc_tm``.  Intentionally separate from
+``kuma_core.kuro.polymerase`` to avoid cross-layer coupling.
 """
 
 from __future__ import annotations

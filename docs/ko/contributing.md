@@ -57,45 +57,79 @@ cd src-tauri && cargo check
 3. UI 변경 시 스크린샷 재생성 (`pnpm run capture-guide`)
 4. 신규 기능은 Wiki 업데이트 (이 repo의 `.wiki.git`)
 
+## Developer Certificate of Origin
+
+모든 커밋에 `Signed-off-by` 트레일러가 있어야 한다. 이 트레일러는 저장소 루트의
+[`DCO`](../../DCO)에 원문 그대로 담긴 Developer Certificate of Origin 1.1 에
+동의한다는 표시다. 기여물을 이 프로젝트의 라이선스로 제출할 권리가 본인에게
+있거나 그렇게 제출할 수 있는 작업에서 비롯했다는 것과 기여 기록이 공개로
+남는다는 것을 확인하는 내용이다.
+
+커밋할 때 함께 서명한다:
+
+```bash
+git commit -s -m "summary in English"
+```
+
+트레일러는 커밋 author 와 일치해야 하므로 `git config user.name` 과
+`git config user.email` 에 실제로 커밋하는 신원을 넣어야 한다.
+
+트레일러 없이 쌓인 브랜치는 리베이스로 한꺼번에 붙인다:
+
+```bash
+git rebase --signoff main   # 브랜치가 갈라져 나온 sha 를 써도 된다
+git push --force-with-lease
+```
+
+이미 열려 있는 PR 도 같다. `--signoff` 로 리베이스해 브랜치를 다시 올려야 하고
+그러지 않으면 DCO 워크플로가 계속 막는다.
+
+DCO 워크플로는 해당 PR 이 추가한 커밋만 검사한다. 트레일러가 없거나 커밋
+author 와 어긋난 커밋을 전부 이름으로 지목한다. 머지 커밋은 자체 내용이 없을
+때만 면제된다. 부모 커밋은 각자의 PR 에서 검사되기 때문이다. 충돌을 해소한
+머지는 어느 부모에도 없는 줄을 담으므로 다른 커밋과 똑같이 sign-off 가
+필요하다. 워크플로는 건너뛴 머지 개수를 함께 출력한다.
+
 ## 서드파티 라이선스 수집
 
-kuma 배포 패키지에는 Rust·Node·Python 의존성의 라이선스 본문을 담은 `NOTICE.md`
-파일이 포함된다.
-
-이 파일은 태그 기반 빌드(`.github/workflows/build.yml`)에서 자동 생성되며
-저장소에 커밋되지 않는다. 사용 도구는 다음과 같다:
+배포 빌드는 변경하지 않은 프로젝트 LICENSE, Rust 본문, 실제 설치된 Node
+production 의존성, Python 런타임 전이 의존성과 별도 표시한 패키징 의존성,
+바이너리용 `NOTICE-bundled.md`를 합쳐 `NOTICE.md`를 생성한다.
+자동 생성한 고지문은 저장소에 커밋하지 않는다.
 
 | 레이어 | 도구 | 출력 |
 |---|---|---|
-| Rust | `cargo-about` (`src-tauri/about.hbs` 템플릿) | `NOTICE-rust.md` |
-| Node | `pnpm licenses list --json --prod` + `scripts/collect-node-licenses.mjs` | `NOTICE-node.md` |
-| Python | `pip-licenses --format=markdown` | `NOTICE-python.md` |
+| Rust | `cargo-about`와 `src-tauri/about.hbs` | `NOTICE-rust.md` |
+| Node | pnpm production 목록 + `scripts/collect-node-licenses.mjs` | `NOTICE-node.md`와 `.json` |
+| Python | `scripts/collect-python-licenses.py --include-build` | `NOTICE-python.md`와 `.json` |
 
-`scripts/build-notice.mjs`가 세 파일을 `NOTICE.md`로 합치고
-`src-tauri/resources/NOTICE.md`로 복사해 Tauri 번들에 포함시킨다.
+Node 수집기는 SPDX 이름뿐 아니라 패키지의 실제 고지 본문을 읽는다.
+Python 수집기는 pyproject.toml의 선언에서 시작해 설치된 전이 의존성,
+플랫폼 조건과 요청된 extra를 따라간다. 별도의 패키지 이름 목록 때문에
+certifi나 새 전이 의존성이 조용히 빠지지 않도록 한다.
 
-로컬에서 재생성하려면 (Python + Node 설치 완료 후):
+Python build 의존성과 Node 의존성을 설치한 뒤 실행한다:
 
 ```bash
 # Rust
 cd src-tauri && cargo about generate -m Cargo.toml about.hbs > ../NOTICE-rust.md && cd ..
-
 # Node
 pnpm licenses list --json --prod > pnpm-licenses.json
 node scripts/collect-node-licenses.mjs pnpm-licenses.json NOTICE-node.md
-
-# Python (kuma venv 내)
-pip install pip-licenses
-pip-licenses --format=markdown --output-file NOTICE-python.md \
-  --packages primer3-py biopython openpyxl pydantic pandas python-calamine pyinstaller
-
-# 병합
+# Python
+python scripts/collect-python-licenses.py --include-build
+# 병합하고 src-tauri/resources/NOTICE.md에 복사
 node scripts/build-notice.mjs
+# 회귀 테스트
+python -m pytest tests/scripts/test_license_notices.py -q
 ```
 
-세 파일 중 하나라도 없으면 `build-notice.mjs`가 exit 1로 종료된다
-(silent skip 비활성화).
+근거 누락이나 빈 내용은 수집·병합 실패로 처리한다. License evidence CI는
+세 운영체제에 설치한 Node·Python 패키지에서 실제 수집을 실행한다.
+수집 성공은 호환성·상용화 승인이 아니다. 소스 제공, 네이티브 런타임, 자산,
+데이터, 외부 약관과 권리자 허가는 [배포 검토표](license-compliance.md)를 따른다.
 
 ## 라이선스
 
-MIT — [LICENSE](https://github.com/gyuminlee-repo/kuma/blob/main/LICENSE) 참고.
+GNU GPL version 2 — [LICENSE](../../LICENSE) 참고. 기존 MIT 오표기를
+바로잡는 것이며 루트 라이선스의 허락 범위나 서드파티 조건은 바꾸지 않는다.

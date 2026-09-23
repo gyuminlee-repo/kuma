@@ -144,10 +144,11 @@ describe("adaptEchoRows", () => {
       expect(adaptEchoRows([echoRow("B01")])[0].isFwd).toBe(false);
     });
 
-    it("reads the A13 half by the same parity", () => {
-      // Columns 13-24 are the second round's half. The old interleaved rule
-      // made direction depend on which set was selected, which would have put
-      // A13 on the reverse side here.
+    it("reads a high column by the same row parity", () => {
+      // Column 13 belongs to the odd-column round, and direction does not
+      // depend on which round was selected: the row axis is not a choice. The
+      // v0.14.0 picker made it one, which would have put A13 on the reverse
+      // side under a B-named selection.
       expect(adaptEchoRows([echoRow("A13")])[0].isFwd).toBe(true);
       expect(adaptEchoRows([echoRow("B13")])[0].isFwd).toBe(false);
     });

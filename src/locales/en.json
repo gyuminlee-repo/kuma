@@ -339,8 +339,8 @@
       "legacyOptionsToggle": "Show legacy options",
       "legacyOptionsDeprecationWarning": "These options are deprecated and will be removed in a future version. Prefer Min Filtered Depth.",
       "tooltips": {
-        "flankMin": "Outer range (nt) for primer start position relative to gene boundary",
-        "flankMax": "Outer range (nt) for primer start position relative to gene boundary",
+        "overhangMin": "Minimum overhang (nt): how far the amplicon reaches past the gene boundary",
+        "overhangMax": "Maximum overhang (nt) searched past the gene boundary",
         "bindingMinLen": "Primer length range (nt) explored during candidate enumeration",
         "bindingMaxLen": "Primer length range (nt) explored during candidate enumeration",
         "tmMin": "Acceptable melting temperature range (degree C) for primer binding region",
@@ -367,7 +367,7 @@
       "inputFiles": "Input files",
       "geneCoordinates": "Gene coordinates",
       "projectMetadata": "Project metadata",
-      "flankParameters": "Flank parameters",
+      "flankParameters": "Overhang parameters",
       "bindingParameters": "Binding parameters",
       "advancedParameters": "Advanced options",
       "outputLocation": "Output location",
@@ -376,7 +376,7 @@
       "generatedFiles": "Generated files",
       "cdsFasta": "CDS sequence",
       "cdsFastaPlaceholder": ".fa / .fasta / .gb / .gbk / .dna file path",
-      "cdsFastaHelper": "Plasmid or construct map (GenBank or SnapGene .dna) containing the gene plus flanking template on both sides. MAME primers bind outside the gene, so at least flank_max (default 400 bp) of template is needed on each side. A CDS-only FASTA will not work. gene_start / gene_end are 0-based indices into this sequence.",
+      "cdsFastaHelper": "Plasmid or construct map (GenBank or SnapGene .dna) containing the gene plus flanking template on both sides. MAME primers bind outside the gene, so each side needs at least as much template as the smallest usable overhang, which is the larger of overhang_min and binding_min_len (20 bp per side at the defaults). A circular template wraps around the origin, so this applies to linear templates only. A CDS-only FASTA will not work. gene_start / gene_end are 0-based indices into this sequence.",
       "cdsFastaLoadError": "Could not read gene annotations from this file: {{error}}",
       "barcodeSeedsXlsx": "Barcode Seeds xlsx",
       "geneName": "Gene name",
@@ -415,12 +415,12 @@
       "polymeraseHelp": "Polymerase used for the barcode PCR protocol. Its salt profile drives Tm calculation during primer selection.",
       "geneStartHelp": "CDS start coordinate (0-based, inclusive).",
       "geneEndHelp": "CDS end coordinate (0-based, exclusive).",
-      "flankMinHelp": "Minimum flank length (nt) around CDS for barcode primer search. Default 100.",
-      "flankMaxHelp": "Maximum flank length (nt). Larger windows give more primer candidates but slow search.",
+      "overhangMinHelp": "Minimum overhang (nt) past the gene boundary. Default 20. A primer never enters the gene, so an overhang below binding_min_len cannot hold a binding site and that part of the range has no effect.",
+      "overhangMaxHelp": "Maximum overhang (nt) searched past the gene boundary. Default 60. Larger windows give more candidates but slow the search; on a linear template the reach is clamped to the sequence ends.",
       "bindingMinLenHelp": "Minimum primer binding length (nt). Typical 18-22 for stable PCR priming.",
       "bindingMaxLenHelp": "Maximum primer binding length (nt). Above 35 increases secondary structure risk.",
-      "flankWarningUpstream": "Primer design may fail on a linear template: needs at least {{needed}} bp upstream of gene_start, but only {{available}} bp is available (short by {{shortfall}} bp).",
-      "flankWarningDownstream": "Primer design may fail on a linear template: needs at least {{needed}} bp downstream of gene_end, but only {{available}} bp is available (short by {{shortfall}} bp).",
+      "flankWarningUpstream": "Primer design may fail on a linear template: needs at least {{needed}} bp (the larger of overhang_min and binding_min_len) upstream of gene_start, but only {{available}} bp is available (short by {{shortfall}} bp).",
+      "flankWarningDownstream": "Primer design may fail on a linear template: needs at least {{needed}} bp (the larger of overhang_min and binding_min_len) downstream of gene_end, but only {{available}} bp is available (short by {{shortfall}} bp).",
       "cdsTooltipLabel": "Label: {{label}}",
       "cdsTooltipRange": "Range: {{start}}-{{end}}",
       "cdsTooltipLength": "Length: {{length}} aa",
@@ -1593,14 +1593,14 @@
     "errorTitle": "Preview failed",
     "echoSourcePlateLabel": "Echo source plate (384 wells)",
     "destPlateLabel": "Destination plate (96 wells)",
-    "quadrantBatch": "This run fills half {{half}} of the plate, columns {{from}}-{{to}}. Forward primers sit on rows A, C, E ... and each reverse primer one row below.",
-    "quadrantProgress": "{{filled}} of {{total}} halves on this plate are spent once this run lands.",
-    "quadrantHalfNote": "Columns {{from}}-{{to}} are the other half, {{others}}, and stay empty for the next round.",
+    "quadrantBatch": "This run fills round {{round}}: every other column, starting at column {{first}}. Forward primers sit on rows A, C, E ... and each reverse primer one row below.",
+    "quadrantProgress": "{{filled}} of {{total}} rounds on this plate are spent once this run lands.",
+    "quadrantInterleaveNote": "One 96-head stamp reaches every other column, so the columns in between belong to {{others}} and stay empty for the next round.",
     "quadrantUsedNote": "Already used on this plate: {{list}}",
-    "quadrantNoneNote": "No half selected. The run still lands on columns 1-12, the same wells as half A1, and only the check against halves already spent is skipped.",
+    "quadrantNoneNote": "No round selected. The run still lands on columns 1-12 without skipping any, which is the layout used before rounds were a choice, and only the check against rounds already spent is skipped.",
     "quadrantLegendFree": "Solid outline: well this run can reach",
     "quadrantLegendReserved": "Dashed outline: held for {{others}}",
-    "echoReservedWellTitle": "{{well}}, held for half {{quadrants}}"
+    "echoReservedWellTitle": "{{well}}, held for round {{quadrants}}"
   },
   "globalAppBar": {
     "navAriaLabel": "Application navigation",
@@ -2100,7 +2100,7 @@
     "chooseFolder": "Choose folder",
     "done": "Done",
     "insideProject": "Inside each project",
-    "kuroDesc": "Kernel for Upstream Recombination Oligodesign. Batch SDM primer design from Gibson Assembly templates.",
+    "kuroDesc": "Kit for Unified Ranking and Oligodesign. Batch SDM primer design from Gibson Assembly templates.",
     "mameDesc": "Mutagenesis Assessment & Measurement Export. Oxford Nanopore NGS verdict.",
     "autosaveNote": "Inputs and parameters autosave per project. Barcode Setup drafts, including absolute paths, are shared across projects.",
     "titleStart": "Get started",
@@ -2394,7 +2394,7 @@
     "ncbiBlastServiceSuffix": " -- sequence similarity search",
     "alphafoldServiceSuffix": " -- structure prediction lookup",
     "interproServiceSuffix": " -- protein domain annotation",
-    "kuroSubtitle": "Kernel for Upstream Recombination Oligodesign",
+    "kuroSubtitle": "Kit for Unified Ranking and Oligodesign",
     "view": {
       "title": "View",
       "logs": "Show Logs",
@@ -2666,14 +2666,45 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "A deletion only half the reads support no longer exempts a well from the no-call gate, so a site at 40 or 50 percent reads as a no call.",
-      "The activity data step refuses to attach an NGS verdict to a variant other than the one its row names.",
-      "Echo and JANUS files from a reduced row range or several plates keep the stock positions the order workbook gives them.",
-      "Reopening a workspace keeps its selection and drops output whose inputs are gone, and a benchmark that never ran stops reporting damage.",
-      "On Linux the scratch autosave works under the hidden app data folder and File > Quit closes the window."
+      "Consensus sequences write a dash where a base is missing, so a deletion no longer looks like a position the run could not call.",
+      "Barcode primers now pass the same hairpin, self-dimer and off-target checks that design primers already had to pass.",
+      "A barcode primer failing those checks is replaced, and when none passes, the advisory names the measurement that failed.",
+      "Reopening a saved analysis keeps the deletion length and the restored sequence that earlier builds dropped on the way in."
     ],
-    "highlightsStamp": "0.16.64+b5666e23",
+    "highlightsStamp": "0.16.69+60279e8e",
     "releases": {
+      "0.16.69": [
+        "Consensus sequences write a dash where a base is missing, so a deletion no longer looks like a position the run could not call.",
+        "Barcode primers now pass the same hairpin, self-dimer and off-target checks that design primers already had to pass.",
+        "A barcode primer failing those checks is replaced, and when none passes, the advisory names the measurement that failed.",
+        "Reopening a saved analysis keeps the deletion length and the restored sequence that earlier builds dropped on the way in."
+      ],
+      "0.16.68": [
+        "The Echo source plate returns to interleaved columns, because a 96-head cannot reach a contiguous half of the plate in one stamp.",
+        "A round is one column parity over all sixteen rows, 192 wells, and the two rounds tile a single source plate.",
+        "The picker offers two rounds instead of four, since the old row axis named the same two rounds with forward and reverse swapped.",
+        "A project saved before v0.16.61 loads unchanged, because the names it stored denote rounds this release has and no source well moves.",
+        "A project saved under the half layout loses its selection and has both rounds marked spent, because a half matches no column parity."
+      ],
+      "0.16.67": [
+        "The barcode step now states one number, how far the amplicon may reach past the CDS, instead of a gap and an overhang sharing a name.",
+        "Defaults drop from 100 and 400 to 20 and 60, a range that holds the 16 bp overhang measured on the shipped ispS design.",
+        "A short linear template is searched to its own edge instead of being refused for being shorter than the outer search bound.",
+        "Both strands search outward, so the amplicon is symmetric and the last codons stay clear of the reference edge margin.",
+        "A primer can no longer sit inside the coding region, and a saved flank_max carries over as overhang_max."
+      ],
+      "0.16.66": [
+        "A round now estimates assay noise from its own wild-type replicates, so the plateau test can carry the two-round saturation rule.",
+        "The hit-rate trend counts as a decline only when the fitted slope falls further than its own sampling error.",
+        "A variant measured at exactly zero activity is scored instead of stopping the call, and stays in the hit-rate denominator.",
+        "A wild-type control row anywhere in the workbook is counted and kept out of the variant statistics.",
+        "The advisory reports how many zero-activity variants and control rows a round carried."
+      ],
+      "0.16.65": [
+        "A well whose indel event fraction lands exactly on 0.50 now reaches the review gate instead of slipping past a strict comparison.",
+        "Wells inside the calibrated bands, noise at or below 0.21 and true deletions at or above 0.83, keep the verdict they had.",
+        "Earlier gates still decide first, so a well already called LOWDEPTH or MIXED keeps that verdict."
+      ],
       "0.16.64": [
         "A deletion only half the reads support no longer exempts a well from the no-call gate, so a site at 40 or 50 percent reads as a no call.",
         "The activity data step refuses to attach an NGS verdict to a variant other than the one its row names.",
@@ -3135,6 +3166,11 @@
       ]
     },
     "releaseStamps": {
+      "0.16.69": "60279e8e",
+      "0.16.68": "33844e5d",
+      "0.16.67": "a8a547ef",
+      "0.16.66": "c8cb9c13",
+      "0.16.65": "2d61386f",
       "0.16.64": "b5666e23",
       "0.16.63": "27af3ec6",
       "0.16.62": "e46c1db9",
@@ -3425,16 +3461,17 @@
         },
         "bomLabel": "Add UTF-8 BOM",
         "bomHint": "(Excel compatibility)",
-        "quadrantLabel": "Echo source plate half",
-        "quadrantNone": "Not specified (columns 1-12, no spent-half check)",
-        "quadrantColumns": "columns {{from}}-{{to}}",
-        "quadrantHelper": "A round fills one half: forward primers on rows A, C, E ... and each reverse primer one row below, in the same column.",
-        "usedQuadrantsLabel": "Halves already used on this plate",
-        "usedQuadrantsHelper": "Export is refused if the selected half is one of these.",
-        "legacyPlacementNotice": "This project was saved before v{{version}}, when a round was spread across the whole source plate instead of one half. The stored placement ({{values}}) covers both halves, so both are marked as used and no half is selected. On a fresh plate, clear the used-half checkboxes below before choosing a half.",
+        "quadrantLabel": "Echo source plate columns",
+        "quadrantNone": "Not specified (columns 1-12, no spent-round check)",
+        "quadrantColumnsOdd": "odd columns 1, 3 ... 23",
+        "quadrantColumnsEven": "even columns 2, 4 ... 24",
+        "quadrantHelper": "A 96-head stamp reaches every other column, so a round takes one of the two: forward primers on rows A, C, E ... and each reverse primer one row below, in the same column.",
+        "usedQuadrantsLabel": "Rounds already used on this plate",
+        "usedQuadrantsHelper": "Export is refused if the selected round is one of these.",
+        "legacyPlacementNotice": "This project was saved between v{{from}} and v{{to}}, when a round filled twelve consecutive columns instead of every other column. The stored placement ({{values}}) covers part of both rounds, so both are marked as used and neither is selected. On a fresh plate, clear the used-round checkboxes below before choosing one.",
         "placementBlocked": {
-          "noHalfSelected": "Halves are marked as used on this plate but no half is selected for this round. Choose A1 or A13, or clear the used-half checkboxes if this is a fresh plate.",
-          "halfAlreadyUsed": "The selected half is already marked as used on this plate. Dispensing into it would destroy the primers already there. Choose the other half, or clear its used-half checkbox."
+          "noQuadrantSelected": "Rounds are marked as used on this plate but none is selected for this run. Choose A1 or A2, or clear the used-round checkboxes if this is a fresh plate.",
+          "quadrantAlreadyUsed": "The selected round is already marked as used on this plate. Dispensing into it would destroy the primers already there. Choose the other round, or clear its used-round checkbox."
         },
         "plateNameFwd": "Forward primer plate name",
         "plateNameRev": "Reverse primer plate name",
@@ -3751,7 +3788,9 @@
     "missingInputs": {
       "wt_replicates": "wild-type replicate measurements"
     },
-    "missingInputsNote": "Judged without {{missing}}, so saturation rests on the hit-rate trend alone.",
+    "missingInputsNote": "Judged with {{missing}} absent on at least one round, so the plateau check could not run there and saturation on those rounds rests on the hit-rate trend alone. That trend is a least-squares slope over every round and counts as a decline only when it falls further than its own sampling error.",
+    "zeroActivityNote": "{{n}} variant(s) in this round measured exactly 0 activity. A dead variant was still designed and measured, so it stays in the hit-rate denominator and is left out of the log2 statistics alone.",
+    "wtRowNote": "{{n}} wild-type (WT) control row(s) in this round's workbook. A control is not a designed variant, so it is taken out of the hit-rate calculation as well.",
     "notAssessableBadge": "Cannot be assessed",
     "notAssessableSummary": "The signals point at a transition, but confirming one needs {{missing}}, which these files do not carry. {{blocked}} cannot be answered from this input; only the keep-walking check can.",
     "notAssessableInsufficientSummary": "The signals point at a transition, but confirming one needs at least {{required}} {{missing}} and this round has {{count}} on record. Below that there is no noise estimate to test against, so saturation rests on the hit-rate trend alone and {{blocked}} cannot be answered from it.",
@@ -3762,7 +3801,7 @@
     "restoredUnverifiedNote": "This app did not write {{files}}, so it cannot confirm they are unchanged since then.",
     "rebuiltNote": "An earlier answer from {{when}} was computed from these same files ({{files}}) before step 4.1 rebuilt them, so it describes the previous build and is kept as history. Run the classification again for the current one.",
     "supersededNote": "An earlier answer from {{when}} was computed from a different list ({{files}}). It says nothing about the files selected now, so it is not shown.",
-    "headingHelp": "Pools EVOLVEpro results across rounds to look for a saturation signal and suggest continue walking, switch to combinatorial, stop, or defer. Read-only: nothing here is confirmed or saved, and fewer than 3 rounds means no verdict yet.",
+    "headingHelp": "Pools EVOLVEpro results across rounds to look for a saturation signal and suggest continue walking, switch to combinatorial, stop, or defer. The hit-rate trend is a least-squares slope over every round and counts as a decline only when it falls further than its own sampling error. The wild-type replicates recorded on each round feed that round's plateau check, so a plateau can be confirmed over two consecutive rounds. Read-only: nothing here is confirmed or saved, and fewer than 3 rounds means no verdict yet.",
     "nextRoundCapacity": "Next-round plate capacity",
     "nextRoundCapacityHelper": "Number of wells available for the next combinatorial round. It determines the throughput recommendation."
   },

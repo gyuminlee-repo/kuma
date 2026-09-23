@@ -2,7 +2,7 @@ import { useState, type MouseEvent } from "react";
 import type { TFunction } from "i18next";
 import { createColumnHelper } from "@tanstack/react-table";
 import type { RescuedMutation, SdmPrimerResult } from "../../types/models";
-import { ColoredFwdSeq, CopySeqButton, formatTolerance } from "./primerDisplay";
+import { ColoredFwdSeq, CopySeqButton, formatTolerance, structureWarn } from "./primerDisplay";
 
 const col = createColumnHelper<SdmPrimerResult>();
 
@@ -10,6 +10,15 @@ const GROUP_COLORS = [
   "#3b82f6", "#ef4444", "#f59e0b", "#10b981",
   "#8b5cf6", "#ec4899", "#06b6d4", "#f97316",
 ];
+
+// Legacy hairpin/homodimer warn threshold (pre-engine-flag behavior). The
+// frontend has no dH, so it cannot recompute the engine's folded-fraction
+// verdict (theta) itself. Used only as a fallback when a row has none of
+// the four per-structure warn flags (e.g. rows serialized before the flags
+// existed), so those rows are not silently rendered as warning-free.
+// LEGACY_STRUCTURE_WARN_TM and structureWarn live in primerDisplay.tsx
+// (shared with HairpinDetail.tsx's popover so the table badge and the
+// popover never disagree on a given row).
 
 export const HEADER_TOOLTIPS: Record<string, string> = {
   rank: "Input order (y_pred descending rank)",
@@ -32,7 +41,7 @@ export const HEADER_TOOLTIPS: Record<string, string> = {
   // carries real signal for user-added custom primer rows (Evaluate tab),
   // which are not filtered the same way.
   has_offtarget: "Off-target binding detected on template strand (custom-evaluated primers only; design-search results are always OK by construction)",
-  hairpin: "Hairpin/Homodimer worst Tm (>40°C = warning)",
+  hairpin: "Hairpin/Homodimer worst Tm (amber = warning; hairpin judged by folded fraction at the recommended Ta)",
   gc_fwd: "Forward primer GC content (40-60% recommended)",
   gc_rev: "Reverse primer GC content (40-60% recommended)",
   synth: "Synthesis quality score (100=ideal). Penalizes: homopolymer runs, GC-rich stretches, dinucleotide repeats, extreme GC%. Hover cell for Fwd/Rev breakdown",
@@ -390,7 +399,16 @@ export function makeResultTableColumns(opts: {
         const maxHd = Math.max(row.homodimer_tm_fwd ?? 0, row.homodimer_tm_rev ?? 0);
         const worst = Math.max(maxHp, maxHd);
         if (worst <= 0) return "—";
-        const warn = worst > 40;
+        // The verdict comes from the engine (per-structure warn flags on the
+        // row): hairpin by folded fraction at the pair's Ta, homodimer by the
+        // absolute design-scale Tm. A flag can be absent per structure (see
+        // structureWarn above), so each of the four is judged independently
+        // instead of treating "some flag present" as "row fully judged".
+        const warn =
+          structureWarn(row.hairpin_warn_fwd, row.hairpin_tm_fwd) ||
+          structureWarn(row.hairpin_warn_rev, row.hairpin_tm_rev) ||
+          structureWarn(row.homodimer_warn_fwd, row.homodimer_tm_fwd) ||
+          structureWarn(row.homodimer_warn_rev, row.homodimer_tm_rev);
         return (
           <span className={`inline-block px-1 py-0.5 rounded-control text-caption font-medium cursor-pointer ${warn ? "bg-warning/10 text-warning" : "bg-muted text-muted-foreground"}`}>
             {worst.toFixed(0)}

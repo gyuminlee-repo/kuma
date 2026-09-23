@@ -160,6 +160,30 @@ describe("applyReversePropagation", () => {
     expect(merged.warnings).not.toContain("Fwd hairpin Tm=71.5C");
   });
 
+  it("carries the sequence-pure homodimer verdict but clears Ta-dependent hairpin verdicts", () => {
+    // The hairpin warn flag is the folded fraction at the pair's recommended
+    // Ta; after the reverse primer changes, the neighbour's old pair Ta no
+    // longer applies, so both hairpin flags are cleared until the backend
+    // reserializes the row. The homodimer verdict is an absolute Tm read on
+    // the reverse sequence alone, so it travels with the primer.
+    const neighbour = primer({
+      hairpin_warn_fwd: true,
+      hairpin_warn_rev: false,
+      homodimer_warn_fwd: true,
+      homodimer_warn_rev: true,
+    });
+    const merged = applyReversePropagation(
+      neighbour,
+      primer({ ...incoming, homodimer_warn_rev: false }),
+    );
+
+    expect(merged.homodimer_warn_rev).toBe(false);
+    expect(merged.hairpin_warn_fwd).toBeUndefined();
+    expect(merged.hairpin_warn_rev).toBeUndefined();
+    // The forward homodimer verdict belongs to the unchanged forward primer.
+    expect(merged.homodimer_warn_fwd).toBe(true);
+  });
+
   it("does not mutate the row it was given", () => {
     const neighbour = primer();
     const before = JSON.stringify(neighbour);

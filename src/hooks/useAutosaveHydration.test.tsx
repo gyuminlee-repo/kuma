@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { HALF_LAYOUT_VERSION } from "@/lib/echoQuadrant";
+import { HALF_LAYOUT_VERSION, QUADRANT_RESTORE_VERSION } from "@/lib/echoQuadrant";
 import { buildKuroSnapshot, readKuroBenchmarkResults } from "@/lib/kuroSnapshot";
 import { ProjectProvider } from "@/state/projectContext";
 import { useAppStore } from "@/store/appStore";
@@ -1861,55 +1861,85 @@ describe("applyKuroSnapshot: 지문 기반 재도출 건너뛰기 (schema 5)", (
     expect(useAppStore.getState().maxPrimers).toBe(96);
   });
 
-  // 저장값 판정을 하드코딩 목록으로 되돌리는 회귀와, 옛 전폭 배치를 한쪽
-  // 절반으로 접던 회귀를 함께 잡는다. 옛 목록은 A1/A2/B1/B2 였고 A13 이 없어서
-  // 절반 배치로 저장한 프로젝트를 다시 열면 배치가 조용히 버려졌다. 그 뒤
-  // 도입한 fold 는 반대로 옛 값을 한쪽 절반으로 접어, 프라이머가 실재하는
-  // 절반을 비어 있다고 선언했다.
-  it("절반 이름으로 저장한 echo_quadrant 를 그대로 복원한다", async () => {
+  // 저장값 판정을 하드코딩 목록으로 되돌리는 회귀와, half 저장본을 한쪽 열
+  // 패리티로 접던 회귀를 함께 잡는다. half 하나는 연속 12열을 16행 전부에 걸쳐
+  // 채우므로 홀수 열 6개와 짝수 열 6개, 곧 두 라운드 각각의 192 웰 중 96 웰
+  // 위에 앉는다. 어느 쪽도 깨끗하지 않다.
+  it("열 패리티 이름으로 저장한 echo_quadrant 를 그대로 복원한다", async () => {
     await applyKuroSnapshot(
       fastPathSnapshot({
-        kuma_version: HALF_LAYOUT_VERSION,
-        parameters: { echo_quadrant: "A13", echo_used_quadrants: ["A1"] },
+        kuma_version: QUADRANT_RESTORE_VERSION,
+        parameters: { echo_quadrant: "A2", echo_used_quadrants: ["A1"] },
       }),
     );
 
-    expect(useAppStore.getState().echoQuadrant).toBe("A13");
+    expect(useAppStore.getState().echoQuadrant).toBe("A2");
     expect(useAppStore.getState().echoUsedQuadrants).toEqual(["A1"]);
     expect(useAppStore.getState().echoLegacyPlacement).toBeNull();
   });
 
-  it("옛 사분면 이름 4종은 어느 절반으로도 접지 않고 양쪽 소진으로 읽는다", async () => {
-    // 옛 A1/B1 은 홀수 열 1~23, 옛 A2/B2 는 짝수 열 2~24 로 네 값 모두 플레이트
-    // 전폭에 걸쳤다. 그 192 웰은 새 좌측 절반에 96, 우측 절반에 96 으로 갈리므로
-    // 어느 절반도 비어 있지 않다. 단독 "A1" 은 새 어휘와 글자가 같아 저장
-    // 버전으로만 갈린다.
-    for (const stored of ["A1", "B1", "A2", "B2"] as const) {
+  it("(a) 0.16.61 이전 저장본은 B 이름까지 접어 그대로 통과시킨다", async () => {
+    // 그 시절 어휘가 이미 열 패리티였고 B1/B2 는 같은 라운드를 reverse 쪽에서
+    // 부른 이름이다. 접어도 좌표가 하나도 움직이지 않으므로 거부할 이유가 없다.
+    for (const [stored, expected] of [
+      ["A1", "A1"],
+      ["B1", "A1"],
+      ["A2", "A2"],
+      ["B2", "A2"],
+    ] as const) {
       await applyKuroSnapshot(
         fastPathSnapshot({
-          kuma_version: "0.16.58",
+          kuma_version: "0.16.60",
           parameters: { echo_quadrant: stored },
         }),
       );
-      expect(useAppStore.getState().echoQuadrant).toBeNull();
-      expect(useAppStore.getState().echoUsedQuadrants).toEqual(["A1", "A13"]);
-      expect(useAppStore.getState().echoLegacyPlacement).toEqual([stored]);
+      expect(useAppStore.getState().echoQuadrant).toBe(expected);
+      expect(useAppStore.getState().echoLegacyPlacement).toBeNull();
     }
   });
 
-  it("옛 값이 used 목록에만 있어도 placement 전체를 옛 것으로 읽는다", async () => {
-    // quadrant 만 보고 판정하면 이 조합이 통과한다. 두 필드를 함께 읽어야
-    // 옆에 적힌 "A1" 도 좌측 절반이 아니라 옛 이름이라는 사실이 드러난다.
+  it("(b) half 이름 A13 은 어느 라운드로도 접지 않고 양쪽 소진으로 읽는다", async () => {
     await applyKuroSnapshot(
       fastPathSnapshot({
         kuma_version: HALF_LAYOUT_VERSION,
-        parameters: { echo_quadrant: "A13", echo_used_quadrants: ["A1", "B1", "C9"] },
+        parameters: { echo_quadrant: "A13" },
       }),
     );
 
     expect(useAppStore.getState().echoQuadrant).toBeNull();
-    expect(useAppStore.getState().echoUsedQuadrants).toEqual(["A1", "A13"]);
-    expect(useAppStore.getState().echoLegacyPlacement).toEqual(["A13", "A1", "B1", "C9"]);
+    expect(useAppStore.getState().echoUsedQuadrants).toEqual(["A1", "A2"]);
+    expect(useAppStore.getState().echoLegacyPlacement).toEqual(["A13"]);
+  });
+
+  it("(c) half 시절 저장본의 단독 A1 은 저장 버전으로만 갈린다", async () => {
+    // 두 어휘가 "A1" 을 같은 글자로 쓴다. 버전 판별이 없으면 half 시절의 1~12 열
+    // 블록이 홀수 열로 읽히고, 프라이머가 든 짝수 열 라운드가 비어 있다고
+    // 선언된다.
+    await applyKuroSnapshot(
+      fastPathSnapshot({
+        kuma_version: HALF_LAYOUT_VERSION,
+        parameters: { echo_quadrant: "A1" },
+      }),
+    );
+
+    expect(useAppStore.getState().echoQuadrant).toBeNull();
+    expect(useAppStore.getState().echoUsedQuadrants).toEqual(["A1", "A2"]);
+    expect(useAppStore.getState().echoLegacyPlacement).toEqual(["A1"]);
+  });
+
+  it("half 이름이 used 목록에만 있어도 placement 전체를 half 로 읽는다", async () => {
+    // quadrant 만 보고 판정하면 이 조합이 통과한다. 두 필드를 함께 읽어야 옆에
+    // 적힌 "A1" 도 홀수 열이 아니라 1~12 열 블록이라는 사실이 드러난다.
+    await applyKuroSnapshot(
+      fastPathSnapshot({
+        kuma_version: QUADRANT_RESTORE_VERSION,
+        parameters: { echo_quadrant: "A1", echo_used_quadrants: ["A13", "C9"] },
+      }),
+    );
+
+    expect(useAppStore.getState().echoQuadrant).toBeNull();
+    expect(useAppStore.getState().echoUsedQuadrants).toEqual(["A1", "A2"]);
+    expect(useAppStore.getState().echoLegacyPlacement).toEqual(["A1", "A13", "C9"]);
   });
 
   it("범위 밖 entropy_weight를 담은 스냅샷은 1로 클램프되어 복원된다", async () => {

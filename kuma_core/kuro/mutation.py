@@ -43,7 +43,12 @@ def parse_mutation_notation(notation: str) -> tuple[str, int, str]:
     m = _MUTATION_RE.match(notation)
     if not m:
         raise ValueError(f"Invalid mutation notation: '{notation}'. Expected format: Q232A")
-    return m.group(1), int(m.group(2)), m.group(3)
+    position = int(m.group(2))
+    if position < 1:
+        raise ValueError(
+            f"Invalid mutation notation: '{notation}'. Amino acid positions are 1-based."
+        )
+    return m.group(1), position, m.group(3)
 
 
 def split_multi_notation(notation: str) -> list[str]:
@@ -55,8 +60,9 @@ def split_multi_notation(notation: str) -> list[str]:
     - Multi-chain:   "A40P/E61Y:WT" -> ["A40P", "E61Y"]  (WT chain ignored)
     - Chain w/ muts: "A40P:E61Y"   -> ["A40P", "E61Y"]   (each chain's mutations merged)
 
-    Only tokens matching the single-mutation regex are returned; "WT" and
-    other non-mutation tokens are silently dropped.
+    Explicit "WT" and empty separators carry no substitutions. Every other
+    token must be a valid, 1-based mutation; a malformed component rejects the
+    whole row rather than silently changing the requested genotype.
 
     Args:
         notation: Raw mutation string from CSV.
@@ -73,9 +79,10 @@ def split_multi_notation(notation: str) -> list[str]:
     result: list[str] = []
     for token in tokens:
         token = token.strip()
-        if _MUTATION_RE.match(token):
-            result.append(token)
-        # Silently skip "WT", empty strings, or other non-mutation tokens
+        if not token or token == "WT":
+            continue
+        parse_mutation_notation(token)
+        result.append(token)
 
     return result
 

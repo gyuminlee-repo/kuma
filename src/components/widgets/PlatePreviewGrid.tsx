@@ -86,7 +86,7 @@ interface PlateWellCellProps {
   /**
    * `data-state`: what the view says this well is. Dest uses
    * "empty" | "partial" | "complete"; Echo marks an empty well "free" (this
-   * run's half leaves it empty) or "reserved" (the other half owns it).
+   * run's round leaves it empty) or "reserved" (the other round owns it).
    * Views that make no such statement leave it off.
    */
   state?: string;

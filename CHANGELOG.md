@@ -1,5 +1,96 @@
 # Changelog
 
+## v0.16.69 (A missing base and an uncalled base stop sharing a letter)
+
+A stored consensus used one letter for two different facts. An N meant the run could not call the position, and an N also meant the molecule has no base there. The two are opposite kinds of statement, one an absence of knowledge and the other a confident observation, and no reader of the output could tell them apart. Deletion positions now carry a dash. An N means a no-call and nothing else.
+
+The rule that writes the dash is the majority rule the reported deletion positions already use, not the plurality that decides a no-call. A deletion that leads the vote without clearing half the spanning depth is a genuine no-call and keeps its N, which matters because real runs put passing wells in that band. Because the two rules now name one set, the stored string and the reported coordinates cannot disagree. No counter moves: the no-call fraction and its four-way split count exactly the positions they counted before, and the gate that subtracts confident deletions still sees them. Across 288 wells of a real run, no verdict, amino-acid change, identity or fraction changed.
+
+Barcode primers are held to the checks KURO applies to design primers. Until now a barcode primer passed on melting temperature and a 3-prime GC clamp alone, while hairpin, self-dimer and off-target were applied to design primers only. The question of whether both paths share a standard was answered as though they did, and they did not. A candidate binding region now has to clear hairpin and self-dimer thresholds and carry no off-target site, at the same thresholds and the same fixed design concentrations KURO uses, so changing the enzyme cannot change which physical primer is chosen. On the bundled sample the previous reverse primer folded at 64.9 degrees, and it no longer ships.
+
+The full ordered oligo, seed plus binding region, is checked separately and reported as an advisory. Rejecting a binding region because a seed folds against it has no defined rule, since the seed is a fixed input the operator already ordered, so that finding is stated rather than acted on. When nothing clears the checks the previous fallback still runs, and the advisory now names the failing measurement instead of letting an unchecked primer leave without comment.
+
+Saving an analysis and opening it again no longer drops what the run measured. The serializer copied fields by hand, so a field added to the model did not reach the payload until somebody remembered to add it, and four had been left behind, among them the consensus deletion length and the length-restored sequence. A test now builds every field from the declared type and fails by name when one does not survive the round trip, so the next omission is caught when it is made rather than months later. Fields left out on purpose have to be named with a reason.
+
+### Highlights
+
+- Consensus sequences write a dash where a base is missing, so a deletion no longer looks like a position the run could not call.
+- Barcode primers now pass the same hairpin, self-dimer and off-target checks that design primers already had to pass.
+- A barcode primer failing those checks is replaced, and when none passes, the advisory names the measurement that failed.
+- Reopening a saved analysis keeps the deletion length and the restored sequence that earlier builds dropped on the way in.
+
+## v0.16.68 (One stamp reaches every other column)
+
+The Echo 384 source plate is built by a 96-head Zephyr. The head sits on a 9 mm pitch and the plate is on 4.5 mm, so one stamp reaches every other column and every other row. v0.16.61 replaced that interleaved geometry with two contiguous halves, columns 1 to 12 and columns 13 to 24, on the strength of a real worklist whose occupied columns run 1 to 12 with no gap. The operator confirmed on 2026-09-20 that the instrument itself cannot reach a contiguous half, and that statement governs the geometry.
+
+A round is therefore one column parity. A1 is the odd columns 1, 3 up to 23 and A2 is the even columns 2, 4 up to 24, each spanning all sixteen rows for 192 wells, 96 forward primers on rows A, C, E and so on with 96 reverse primers on the rows between them. The two rounds tile one plate, which is the two-round primer set per source plate the campaign runs on.
+
+The picker offers two rounds and not the four of v0.14.0. That version listed A1, A2, B1 and B2 and then derived the reverse placement from the forward one, so A1 and B1 named the same round with the axes swapped, as did A2 and B2. The row axis was a duplicate and the helper that paired them existed only to undo it.
+
+Everything else about plate placement is unchanged. The saved app version still dates a stored selection, the exhaustion check still covers the path where no round is selected, the layout sheet of the exported workbook still honours the selection, and the plate view still shades the wells a run does not touch.
+
+A stored selection is read by its saved version. A project written before v0.16.61 used this same geometry, so B1 and B2 fold onto A1 and A2 without moving a single source well and the project loads as it was. A project written under the half layout is refused instead: a block of twelve consecutive columns holds six odd columns and six even ones, so it matches no parity and sits on 48 of the 192 wells of each round. Such a project loses its selection and has both rounds marked spent, and the operator states the plate again.
+
+Why the worklist holds contiguous columns is not established. It may record a different dispensing method or a different instrument. The geometry module carries that open question along with the two prior flips, so changing it a third time needs more than another reading of that file.
+
+### Highlights
+
+- The Echo source plate returns to interleaved columns, because a 96-head cannot reach a contiguous half of the plate in one stamp.
+- A round is one column parity over all sixteen rows, 192 wells, and the two rounds tile a single source plate.
+- The picker offers two rounds instead of four, since the old row axis named the same two rounds with forward and reverse swapped.
+- A project saved before v0.16.61 loads unchanged, because the names it stored denote rounds this release has and no source well moves.
+- A project saved under the half layout loses its selection and has both rounds marked spent, because a half matches no column parity.
+
+## v0.16.67 (The window is what reaches past the gene)
+
+The MAME barcode step asked for two numbers that measured different things under one name. flank_min was a gap, the empty distance between the primer end nearest the gene and the gene boundary. flank_max was an overhang, how far the outer end of the primer sat from that same boundary. Nothing said so, and the help text explained the pair as though both were the second kind, which is why it claimed a template needed at least 400 bp on each side.
+
+Measured against the run the workflow was built on, that claim was wrong by a factor of twenty-five. The forward primer of the shipped ispS design binds at 251 and the reverse at 1951 on a 6494 bp construct whose CDS runs from 267 to 1950, so the amplicon reaches 16 bp past the coding region at each end. The archived amplicon for that construct records the same span. The default window of 100 to 400 could not hold either site, and the 400 was never a requirement at all: the linear path refused any template shorter than flank_max upstream rather than searching the part of it that existed.
+
+The window is now a single axis. overhang_min and overhang_max state how far the amplicon may reach past the CDS, defaulting to 20 and 60. A primer never enters the coding region, which is a fixed property rather than a setting, because bases a primer supplies cannot be read as variants. A linear template is searched to its own edge and refused only when what remains cannot hold the shortest binding site, and the refusal says which of the two causes applies.
+
+Both strands now search outward from the gene. The reverse strand used to walk inward and land about 22 bp past the CDS while the forward strand landed at 60, so the last codons of a gene fell inside the edge margin that flags variants near the end of a reference. Both strands reach the same distance now and the amplicon is symmetric.
+
+A project saved before this release carries flank_min and flank_max. flank_max is the same quantity as overhang_max and is kept. flank_min measured a gap that no longer has a setting, so it is dropped and the new default applies.
+
+### Highlights
+
+- The barcode step now states one number, how far the amplicon may reach past the CDS, instead of a gap and an overhang sharing a name.
+- Defaults drop from 100 and 400 to 20 and 60, a range that holds the 16 bp overhang measured on the shipped ispS design.
+- A short linear template is searched to its own edge instead of being refused for being shorter than the outer search bound.
+- Both strands search outward, so the amplicon is symmetric and the last codons stay clear of the reference edge margin.
+- A primer can no longer sit inside the coding region, and a saved flank_max carries over as overhang_max.
+
+## v0.16.66 (The last step reads its own signals)
+
+The transition advisory on the last MAME step recommends what to do in the next round. It was reaching those recommendations on a signal that could not tell an improving campaign from an exhausted one, while the signal that could was structurally excluded.
+
+Saturation is confirmed over two consecutive rounds. The handler read wild-type replicates from the last round alone and left every earlier round without a noise estimate, so the plateau test could only ever speak for the current round and the two-round rule rested on the hit-rate trend by itself. Measured against known answers, a campaign improving fourfold per round still drew a switch recommendation 13 percent of the time, and the hit-rate trend answered true in half of every scenario put to it, because a two-point slope was accepted with no margin at all. Each round now estimates noise from the replicates recorded for it, and the trend is a least-squares slope over every round that counts as a decline only when it falls further than its own sampling error.
+
+Real EVOLVEpro workbooks were refused before any of that was reached. A variant measured at exactly zero activity stopped the whole call, though a dead variant is an ordinary outcome. It is scored now and left out of the log2 statistics alone, staying in the hit-rate denominator because it was designed and measured. A wild-type control row anywhere in the sheet stopped the call as well. It is counted and taken out of the variant statistics, the denominator included, because a control was never a designed variant.
+
+The plateau threshold now uses the order-statistic null that the handler and the assay noise model were both written around, rather than the placeholder left in place when the advisory was first wired.
+
+### Highlights
+
+- A round now estimates assay noise from its own wild-type replicates, so the plateau test can carry the two-round saturation rule.
+- The hit-rate trend counts as a decline only when the fitted slope falls further than its own sampling error.
+- A variant measured at exactly zero activity is scored instead of stopping the call, and stays in the hit-rate denominator.
+- A wild-type control row anywhere in the workbook is counted and kept out of the variant statistics.
+- The advisory reports how many zero-activity variants and control rows a round carried.
+
+## v0.16.65 (A well on the line goes to review)
+
+The indel event gate decides whether a well whose designed mutations are all confirmed still goes to human review because too many of its reads carry an insertion or deletion. That gate compared the observed indel event fraction against its threshold with a strict greater-than, so a well sitting exactly on the 0.50 threshold was not sent to review by it. The fraction is a ratio of read counts, so that boundary is reached in practice: one well in a 288-well review sat at 0.500, though it carried 8 reads and the read-count gate had already called it LOWDEPTH. The comparison is inclusive now, and a well on the threshold reads AMBIGUOUS with the indel note, the same as a well above it, provided no earlier gate has already decided it.
+
+No threshold value moved. The calibration that fixed the gate placed noise at or below 0.21 and true deletions at or above 0.83, so every well inside those bands keeps the verdict it had. Analysing an existing project again changes only a well that sits exactly on the line and that no earlier gate has already decided. In the 288-well review that prompted this, no well met both conditions, so nothing in it changes.
+
+### Highlights
+
+- A well whose indel event fraction lands exactly on 0.50 now reaches the review gate instead of slipping past a strict comparison.
+- Wells inside the calibrated bands, noise at or below 0.21 and true deletions at or above 0.83, keep the verdict they had.
+- Earlier gates still decide first, so a well already called LOWDEPTH or MIXED keeps that verdict.
+
 ## v0.16.64 (What the reads support, and what the order sheet says)
 
 A deletion that only half the reads agreed on was being treated as a decision the caller had already made. The no-call gate exempts a position whose call is a deletion, and that exemption was applied to every deletion-bearing position no matter how much of the read stack stood behind it. A well whose designed site carried 40 or 50 percent deletion support therefore walked past the gate and could reach PASS on evidence that was never there. Only a deletion carried by more than half of the covering reads is exempt now, and a well at 40 or 50 percent reads as NO_CALL again. The same evidence is written into the saved analysis and read back from it.

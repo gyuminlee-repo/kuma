@@ -2,7 +2,7 @@
 
 Tests cover:
 - Simple majority vote (ref base wins when 3 vs 1).
-- Deletion majority → 'N' (gap-free output).
+- Deletion majority -> '-' (the called molecule is missing that base).
 - No-coverage positions → 'N'.
 - min_depth = 2: positions with only 1 read → 'N'.
 - Reverse-complement reads: bases are RC'd before voting.
@@ -130,8 +130,8 @@ class TestCallConsensus:
         assert result.n_low_depth_positions == len(ref)
         assert result.consensus_n_fraction == 1.0
 
-    def test_deletion_majority_yields_n(self) -> None:
-        """Majority deletion at a position → 'N' (gap-free output)."""
+    def test_deletion_majority_yields_gap(self) -> None:
+        """Majority deletion at a position -> '-', reserving 'N' for no-calls."""
         ref = "ATGCATGC"
         ref_len = len(ref)
         # 3 reads with deletion at pos 3-4; 1 read without.
@@ -146,9 +146,11 @@ class TestCallConsensus:
         ]
         full_read = _make_aln(ref, ref_len)
         result = call_consensus(del_reads + [full_read], ref)
-        # Positions 3 and 4: 3 deletion votes vs 1 base vote → deletion majority → 'N'.
-        assert result[3] == "N"
-        assert result[4] == "N"
+        # Positions 3 and 4: 3 deletion votes vs 1 base vote -> deletion
+        # majority (0.75 > 0.5) -> '-'.
+        assert result[3] == "-"
+        assert result[4] == "-"
+        assert "N" not in result
 
     def test_reverse_complement_read_voted_correctly(self) -> None:
         """A reverse-strand read must be RC'd before voting."""

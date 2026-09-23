@@ -174,6 +174,26 @@ def test_all_n_consensus_is_unknown_not_zero():
     assert consensus_identity("", ref) is None
 
 
+def test_all_gap_consensus_is_unknown_not_zero():
+    """A fully deleted well called no base either; a gap is not a mismatch."""
+    ref = "ACGTACGTAC"
+
+    assert consensus_identity("-" * 10, ref) is None
+
+
+def test_gaps_are_excluded_from_the_denominator():
+    """Deletion-majority positions leave identity where 'N' left it.
+
+    Five called bases all match; the other five are gaps the molecule does not
+    carry.  Scoring gaps as mismatches would report 0.5 for a well that read
+    every base it has correctly.
+    """
+    ref = "ACGTACGTAC"
+
+    assert consensus_identity("ACGTA-----", ref) == pytest.approx(1.0)
+    assert consensus_identity("ACGTANNNNN", ref) == pytest.approx(1.0)
+
+
 def test_total_mismatch_is_a_real_zero():
     """0.0 is the opposite of None: bases were called and none matched."""
     assert consensus_identity("AAAA", "TTTT") == pytest.approx(0.0)

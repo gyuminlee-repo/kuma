@@ -229,6 +229,7 @@ def _scalar_consensus(
     max_del_run = 0
     cur_del_run = 0
     n_del_majority = 0
+    del_major_positions: list[int] = []
     inserted_bp = 0
     for pos in range(ref_len):
         counts = per_position[pos]
@@ -247,10 +248,21 @@ def _scalar_consensus(
             inserted_bp += round(ins_bp / ins_ev)
         if del_frac > 0.5:
             n_del_majority += 1
+            del_major_positions.append(pos)
             cur_del_run += 1
             max_del_run = max(max_del_run, cur_del_run)
         else:
             cur_del_run = 0
+
+    # The gap overlay, applied here because the scalar transcription computes
+    # ``del_frac`` in this second pass while the characters were chosen in the
+    # first. Same majority rule, same positions: 'N' means no call and '-'
+    # means the called molecule is missing that base.
+    if del_major_positions:
+        chars = list(consensus_seq)
+        for pos in del_major_positions:
+            chars[pos] = "-"
+        consensus_seq = "".join(chars)
 
     expected: dict[str, object] = {
         "consensus_seq": consensus_seq,

@@ -64,6 +64,26 @@ _NT_INDEL_RE = re.compile(r"^(\d+)_INDEL$")
 # the gate is the change that would need subsampled real runs (the way the indel
 # gate was calibrated from bench_v2) plus Moller-scale depth, and it would
 # reclassify wells in every existing project and move the result contract.
+# The bench_v2 data and run conditions are not in this repository, so that
+# calibration can be cited but not re-run from here.
+#
+# The 0.20 value itself has been measured once, outside this repository. An
+# in-silico read-mixing sweep in the lab seminar checkout,
+# ``$WORKSPACE_ROOT/010.lab/seminar_preparation/260911_생명연_랩세미나/analysis/lod/``
+# (``dev_runA_mix.csv`` 4,096 rows and ``test_runB_mix.csv`` 2,304 rows;
+# ``candidate_compare.py`` writes ``out/candidate_summary.csv``), compared the
+# fixed 0.20 against a local-noise multiple, an exact binomial test and a
+# strand-balance combination. On the dev split the fixed 0.20 gave FPR 0.0000
+# on 512 unmixed controls and detected 512 of 512 planted 50% mixtures, and no
+# candidate beat it on either of those two axes; the test split is a transfer
+# check where the binomial candidate ties it. On the intermediate mixtures the
+# summary table does not carry, the binomial candidate detects more (0.56 vs
+# 0.01 at 10%, 0.80 vs 0.73 at 20%) and pays FPR 0.0156 on the unmixed
+# controls, so it is a trade the fixed gate declines rather than a tie. Two limits travel with that pointer. That checkout
+# is a local git repository with no remote, so the path is not reachable from
+# another machine. And mixing reads in silico produces neither chimeras nor
+# index hopping: the sweep bounds sampling noise, it does not reproduce
+# experimental contamination, so the question above stays open.
 #
 # A third caveat, and the one this module cannot see for itself: THE DERIVATION
 # ABOVE IS TIED TO AN AMPLICON LENGTH. The "per well" column is the per-position
@@ -456,10 +476,16 @@ def classify_verdict(
     # (NO_CALL / FRAMESHIFT / MANY / MIXED / WRONG_AA) decide the verdict.
     # An empty expected list is vacuously confirmed, preserving the gate for
     # wells analyzed without a design (e.g. WT controls).
+    #
+    # The comparison is inclusive. The fraction is a ratio of read counts, so a
+    # well can land exactly on the threshold (NB07 F3 in a 288-well review sat
+    # at 0.500), and the calibration bands (noise <= 0.21, true deletion
+    # >= 0.83) say nothing about that point. A well the calibration did not
+    # cover goes to human review rather than through to PASS.
     if (
         params.max_indel_event_fraction is not None
         and translated.barcode.max_indel_event_fraction
-        > params.max_indel_event_fraction
+        >= params.max_indel_event_fraction
     ):
         unconfirmed = [
             f"{wt}{pos}{mt}"
@@ -483,7 +509,7 @@ def classify_verdict(
         indel_note = (
             "indel event signal: "
             f"max_indel_event_fraction="
-            f"{translated.barcode.max_indel_event_fraction:.3f} > "
+            f"{translated.barcode.max_indel_event_fraction:.3f} >= "
             f"threshold={params.max_indel_event_fraction:.3f}; "
             f"n_indel_event_positions="
             f"{translated.barcode.n_indel_event_positions}"

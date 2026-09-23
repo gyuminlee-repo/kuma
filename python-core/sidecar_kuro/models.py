@@ -281,6 +281,14 @@ class SdmPrimerResultModel(WorkspaceModel):
     hairpin_dg_rev: Optional[float] = None
     homodimer_dg_fwd: Optional[float] = None
     homodimer_dg_rev: Optional[float] = None
+    # Per-structure warning verdicts computed at serialize time by
+    # kuma_core.kuro.sdm_engine.secondary_structure_warn_flags: hairpin warns
+    # on folded fraction at the pair's annealing temperature, homodimer on the
+    # absolute design-scale Tm. Display-only; ranking is unaffected.
+    hairpin_warn_fwd: Optional[bool] = None
+    hairpin_warn_rev: Optional[bool] = None
+    homodimer_warn_fwd: Optional[bool] = None
+    homodimer_warn_rev: Optional[bool] = None
     synthesis_score_fwd: Optional[float] = None
     synthesis_score_rev: Optional[float] = None
     warnings: list[str] = Field(default_factory=list)
@@ -590,16 +598,19 @@ class ExportMappingParams(BaseModel):
     mappings: Optional[list[PlateMappingItem]] = None
     dedup_info: Optional[dict[str, list[str]]] = None
     mapping_range: Optional[MappingRange] = None
-    #: Which half of the 384 source plate this round occupies: "A1" for columns
-    #: 1-12 and "A13" for columns 13-24. Reverse primers sit one row below their
-    #: forward primer in the same half. Takes precedence over ``mapping_range``,
-    #: which cannot express a column offset. Echo only. "A2"/"B1"/"B2" are
-    #: values from projects saved before the half layout. They stay in this
-    #: Literal so an old project still loads, but they name no half: each of
-    #: them spanned the full plate width (``plate_quadrant`` docstring), so the
-    #: core refuses one sent here and the operator picks a half again.
+    #: Which column parity of the 384 source plate this round occupies: "A1"
+    #: for the odd columns 1, 3 .. 23 and "A2" for the even ones. Reverse
+    #: primers sit one row below their forward primer in the same column. Takes
+    #: precedence over ``mapping_range``, which cannot express a column offset.
+    #: Echo only. "B1"/"B2" are interleaved-era names for these same rounds and
+    #: the core folds them onto "A1"/"A2" without moving a well. "A13" is the
+    #: right-half name from v0.16.61 and folds onto neither, because a block of
+    #: twelve consecutive columns covers part of both rounds
+    #: (``plate_quadrant`` docstring), so the core refuses one sent here and
+    #: the operator picks again. All of them stay in this Literal so a saved
+    #: project still loads.
     quadrant: Optional[Literal["A1", "A13", "A2", "B1", "B2"]] = None
-    #: Halves already spent on a part-used plate, stated by the operator.
+    #: Rounds already spent on a part-used plate, stated by the operator.
     #: Dispensing onto one is refused rather than warned about.
     used_quadrants: Optional[list[Literal["A1", "A13", "A2", "B1", "B2"]]] = None
     bom: bool = False
@@ -1007,12 +1018,12 @@ class ExportAllParams(BaseModel):
     bom: bool = False
     mappings: Optional[list[PlateMappingItem]] = None
     dedup_info: Optional[dict[str, list[str]]] = None
-    #: Half of the 384 Echo source plate this round occupies. See
+    #: Column parity of the 384 Echo source plate this round occupies. See
     #: ``ExportMappingParams.quadrant``. Reaches the Echo csv, the xlsx
-    #: worklist sheet and the xlsx layout grid, which draws the half the
+    #: worklist sheet and the xlsx layout grid, which draws the columns the
     #: worklist beside it aspirates from.
     quadrant: Optional[Literal["A1", "A13", "A2", "B1", "B2"]] = None
-    #: Halves already spent on a part-used plate, stated by the operator.
+    #: Rounds already spent on a part-used plate, stated by the operator.
     used_quadrants: Optional[list[Literal["A1", "A13", "A2", "B1", "B2"]]] = None
 
     @field_validator("fwd_plate_name", "rev_plate_name")

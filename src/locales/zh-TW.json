@@ -256,8 +256,8 @@
       "ingestHelp": "Ingest layout: barcode (per-well demultiplexed) or amplicon (single bulk read set).",
       "inputSourceHelp": "Input source: consensus (pre-called), sorted_barcode (per-well FASTQ), or raw_run (MinKNOW run folder).",
       "tooltips": {
-        "flankMin": "primer 起始位置相對於基因邊界的外側範圍 (nt)",
-        "flankMax": "primer 起始位置相對於基因邊界的外側範圍 (nt)",
+        "overhangMin": "最小 overhang (nt)：amplicon 伸出基因邊界的距離",
+        "overhangMax": "在基因邊界之外搜尋的最大 overhang (nt)",
         "bindingMinLen": "候選列舉過程中探索的 primer 長度範圍 (nt)",
         "bindingMaxLen": "候選列舉過程中探索的 primer 長度範圍 (nt)",
         "tmMin": "primer binding 區域可接受的 melting temperature 範圍 (°C)",
@@ -286,7 +286,7 @@
       "inputFiles": "輸入檔案",
       "geneCoordinates": "基因座標",
       "projectMetadata": "專案後設資料",
-      "flankParameters": "Flank 引數",
+      "flankParameters": "Overhang 參數",
       "bindingParameters": "Binding 引數",
       "advancedParameters": "進階選項",
       "outputLocation": "輸出位置",
@@ -295,7 +295,7 @@
       "generatedFiles": "已生成檔案",
       "cdsFasta": "CDS 序列",
       "cdsFastaPlaceholder": ".fa / .fasta / .gb / .gbk / .dna 檔案路徑",
-      "cdsFastaHelper": "Plasmid or construct map (GenBank or SnapGene .dna) containing the gene plus flanking template on both sides. MAME primers bind outside the gene, so at least flank_max (default 400 bp) of template is needed on each side. A CDS-only FASTA will not work. gene_start / gene_end are 0-based indices into this sequence.",
+      "cdsFastaHelper": "需要在基因兩側包含 flanking 序列的 plasmid 或 construct map (GenBank 或 SnapGene .dna)。MAME 引子結合在基因外側，因此每側至少需要與最小可用 overhang 等長的 template，該值為 overhang_min 與 binding_min_len 中較大者 (預設值下每側 20 bp)。circular template 可跨越起點，因此此要求僅適用於 linear template。僅含 CDS 的 FASTA 無法使用。gene_start / gene_end 是該序列中的 0-based 索引。",
       "cdsFastaLoadError": "Could not read gene annotations from this file: {{error}}",
       "barcodeSeedsXlsx": "Barcode Seeds xlsx",
       "geneName": "基因名",
@@ -334,12 +334,12 @@
       "polymeraseHelp": "用於條碼 PCR 的聚合酶。其鹽濃度設定會參與引子篩選時的 Tm 計算。",
       "geneStartHelp": "CDS start coordinate (0-based, inclusive).",
       "geneEndHelp": "CDS end coordinate (0-based, exclusive).",
-      "flankMinHelp": "Minimum flank length (nt) around CDS for barcode primer search. Default 100.",
-      "flankMaxHelp": "Maximum flank length (nt). Larger windows give more primer candidates but slow search.",
+      "overhangMinHelp": "伸出基因邊界的最小 overhang (nt)。預設 20。引子不會進入基因內部，因此小於 binding_min_len 的 overhang 容納不下 binding site，該區間不起作用。",
+      "overhangMaxHelp": "在基因邊界之外搜尋的最大 overhang (nt)。預設 60。視窗越大候選越多但搜尋越慢；在 linear template 上範圍會被裁切到序列末端。",
       "bindingMinLenHelp": "Minimum primer binding length (nt). Typical 18-22 for stable PCR priming.",
       "bindingMaxLenHelp": "Maximum primer binding length (nt). Above 35 increases secondary structure risk.",
-      "flankWarningUpstream": "Primer design may fail on a linear template: needs at least {{needed}} bp upstream of gene_start, but only {{available}} bp is available (short by {{shortfall}} bp).",
-      "flankWarningDownstream": "Primer design may fail on a linear template: needs at least {{needed}} bp downstream of gene_end, but only {{available}} bp is available (short by {{shortfall}} bp).",
+      "flankWarningUpstream": "在 linear template 上引子設計可能失敗：gene_start 上游至少需要 {{needed}} bp (overhang_min 與 binding_min_len 中較大者)，但只有 {{available}} bp 可用 (缺少 {{shortfall}} bp)。",
+      "flankWarningDownstream": "在 linear template 上引子設計可能失敗：gene_end 下游至少需要 {{needed}} bp (overhang_min 與 binding_min_len 中較大者)，但只有 {{available}} bp 可用 (缺少 {{shortfall}} bp)。",
       "cdsTooltipLabel": "標籤: {{label}}",
       "cdsTooltipRange": "範圍: {{start}}-{{end}}",
       "cdsTooltipLength": "長度: {{length}} aa",
@@ -2058,7 +2058,7 @@
     "chooseFolder": "選擇資料夾",
     "done": "完成",
     "insideProject": "每個專案內部",
-    "kuroDesc": "Kernel for Upstream Recombination Oligodesign. 基於 Gibson Assembly 模板的批次 SDM primer 設計。",
+    "kuroDesc": "Kit for Unified Ranking and Oligodesign. 基於 Gibson Assembly 模板的批次 SDM primer 設計。",
     "mameDesc": "Mutagenesis Assessment & Measurement Export. Oxford Nanopore NGS verdict。",
     "autosaveNote": "輸入和參數會依專案自動儲存。包含絕對路徑的 Barcode Setup 草稿會在專案之間共用。",
     "titleStart": "開始使用",
@@ -2351,7 +2351,7 @@
     "ncbiBlastServiceSuffix": " -- 序列相似性搜尋",
     "alphafoldServiceSuffix": " -- 結構預測查詢",
     "interproServiceSuffix": " -- 蛋白質 domain 註釋",
-    "kuroSubtitle": "Kernel for Upstream Recombination Oligodesign",
+    "kuroSubtitle": "Kit for Unified Ranking and Oligodesign",
     "view": {
       "title": "檢視",
       "logs": "顯示日誌",
@@ -2612,14 +2612,45 @@
     "descriptionRange": "自 v{{from}} 以來每次更新的主要變更。",
     "gotItBtn": "知道了",
     "highlights": [
-      "只有一半讀段支持的缺失不再豁免 no-call 判定，40% 或 50% 的位點會讀作 no call。",
-      "活動資料步驟不會再把 NGS 判定掛到該列所指變異以外的變異上。",
-      "縮小列範圍或跨多塊板產生的 Echo 與 JANUS 檔案，會保留訂單表給出的 stock 位置。",
-      "重新開啟工作區會保留選擇並捨棄輸入已不存在的輸出，從未執行過的 benchmark 不再回報損壞。",
-      "在 Linux 上，隱藏應用程式資料資料夾下的暫存自動儲存可以運作，檔案 > 結束會關閉視窗。"
+      "consensus 序列在缺失鹼基的位置寫入短橫線，缺失不再看起來像無法判讀的位置。",
+      "barcode 引子現在必須通過與設計引子相同的 hairpin、self-dimer 與 off-target 檢查。",
+      "未通過檢查的 barcode 引子會被替換；若沒有候選通過，提示會指出未達標的測量值。",
+      "重新開啟已儲存的分析時，缺失長度與復原序列會保留，舊版本在載入時會遺失這些值。"
     ],
-    "highlightsStamp": "0.16.64+b5666e23",
+    "highlightsStamp": "0.16.69+60279e8e",
     "releases": {
+      "0.16.69": [
+        "consensus 序列在缺失鹼基的位置寫入短橫線，缺失不再看起來像無法判讀的位置。",
+        "barcode 引子現在必須通過與設計引子相同的 hairpin、self-dimer 與 off-target 檢查。",
+        "未通過檢查的 barcode 引子會被替換；若沒有候選通過，提示會指出未達標的測量值。",
+        "重新開啟已儲存的分析時，缺失長度與復原序列會保留，舊版本在載入時會遺失這些值。"
+      ],
+      "0.16.68": [
+        "Echo 來源盤恢復為交錯欄配置，因為 96-head 無法一次壓印涵蓋盤上連續的一半。",
+        "一輪是橫跨全部 16 列的一個欄奇偶性，共 192 孔，兩輪正好鋪滿一塊來源盤。",
+        "選項從四個減為兩個，舊的列軸只是把同樣的兩輪按 forward 與 reverse 互換命名。",
+        "v0.16.61 之前儲存的專案照常開啟，其儲存的名稱指向本次發布的輪次，來源孔不會移動。",
+        "以 half 配置儲存的專案會失去選擇並將兩輪都標記為已用，因為 half 與任何欄奇偶性都不相符。"
+      ],
+      "0.16.67": [
+        "條碼步驟現在只接收擴增子伸出 CDS 的距離這一個數值，不再讓 gap 與 overhang 共用一個名稱。",
+        "預設值從 100 與 400 降至 20 與 60，該範圍可容納在 ispS 設計中實測到的 16 bp overhang。",
+        "短的線性模板不再因短於外側搜尋上限而被拒絕，而是搜尋到模板本身的邊緣。",
+        "兩條股都向外搜尋，因此擴增子是對稱的，最後幾個密碼子位於 reference edge margin 之外。",
+        "引子不會再落在編碼區內，已儲存的 flank_max 會延續為 overhang_max。"
+      ],
+      "0.16.66": [
+        "每一輪現在用自己的 wild-type 重複測量估計 assay noise，因此 plateau 檢定能夠支撐連續兩輪的飽和判定規則。",
+        "hit rate 趨勢只有在擬合斜率的下降幅度超過其自身 sampling error 時才算作下降。",
+        "活性恰好為 0 的變體現在照常計分，不再中斷判定，並仍保留在 hit rate 的分母中。",
+        "活頁簿中任何位置的 wild-type 對照列都會被計數，並排除在變體統計之外。",
+        "該建議會報告每一輪包含多少個零活性變體與多少列對照資料。"
+      ],
+      "0.16.65": [
+        "indel event 比例恰好為 0.50 的孔現在會進入複核關卡，而不再從嚴格比較中漏過。",
+        "位於校準區間內的孔，即雜訊不超過 0.21 與真實缺失不低於 0.83，保持原有 verdict。",
+        "在先的關卡仍然優先判定，因此已被判為 LOWDEPTH 或 MIXED 的孔保持該 verdict。"
+      ],
       "0.16.64": [
         "只有一半讀段支持的缺失不再豁免 no-call 判定，40% 或 50% 的位點會讀作 no call。",
         "活動資料步驟不會再把 NGS 判定掛到該列所指變異以外的變異上。",
@@ -3081,6 +3112,11 @@
       ]
     },
     "releaseStamps": {
+      "0.16.69": "60279e8e",
+      "0.16.68": "33844e5d",
+      "0.16.67": "a8a547ef",
+      "0.16.66": "c8cb9c13",
+      "0.16.65": "2d61386f",
       "0.16.64": "b5666e23",
       "0.16.63": "27af3ec6",
       "0.16.62": "e46c1db9",
@@ -3371,16 +3407,17 @@
         },
         "bomLabel": "新增 UTF-8 BOM",
         "bomHint": "(Excel 相容)",
-        "quadrantLabel": "Echo 來源盤半區",
-        "quadrantNone": "未指定(第 1-12 欄，不檢查已用半區)",
-        "quadrantColumns": "第 {{from}}-{{to}} 列",
-        "quadrantHelper": "一輪填充一個半區：forward 引子在 A、C、E ... 行，reverse 引子在同一列的下一行。",
-        "usedQuadrantsLabel": "此盤上已使用的半區",
-        "usedQuadrantsHelper": "若所選半區是其中之一，匯出將被拒絕。",
-        "legacyPlacementNotice": "此專案儲存於 v{{version}} 之前。當時一個 round 分布在整塊 source plate 上，而非其中一半。已儲存的排佈（{{values}}）涵蓋兩個半區，因此兩者都標記為已使用，且未選取任何半區。若使用新盤，請先清除下方的已使用勾選，再選擇半區。",
+        "quadrantLabel": "Echo 來源盤欄",
+        "quadrantNone": "未指定（1-12 欄，不檢查已用 round）",
+        "quadrantColumnsOdd": "奇數欄 1、3 ... 23",
+        "quadrantColumnsEven": "偶數欄 2、4 ... 24",
+        "quadrantHelper": "96-head 只能觸及每隔一欄的孔位，因此一輪使用其中之一。forward primer 位於 A、C、E ... 列，reverse primer 在同一欄的下一列。",
+        "usedQuadrantsLabel": "此盤上已使用的 round",
+        "usedQuadrantsHelper": "若所選 round 為其中之一，將拒絕 export。",
+        "legacyPlacementNotice": "此專案儲存於 v{{from}} 與 v{{to}} 之間。當時一輪填充的是連續的 12 欄，而非每隔一欄。儲存的配置（{{values}}）與兩個 round 各有部分重疊，因此兩者都標記為已使用且均未選取。若使用新盤，請先清除下方的已使用勾選再進行選擇。",
         "placementBlocked": {
-          "noHalfSelected": "此盤上已有標記為已使用的半區，但本輪尚未選取半區。請選擇 A1 或 A13；若為新盤，請清除已使用勾選。",
-          "halfAlreadyUsed": "所選半區在此盤上已標記為已使用。在其上分注會破壞既有的 primer。請選擇另一半區，或清除該半區的已使用勾選。"
+          "noQuadrantSelected": "此盤上有標記為已使用的 round，但本次執行未選擇 round。請選擇 A1 或 A2；若為新盤，請清除已使用勾選。",
+          "quadrantAlreadyUsed": "所選 round 在此盤上已標記為已使用。向其分液會破壞其中已有的 primer。請選擇另一個 round，或清除相應的已使用勾選。"
         },
         "plateNameFwd": "Forward 引子盤名稱",
         "plateNameRev": "Reverse 引子盤名稱",
@@ -3671,14 +3708,14 @@
     "errorTitle": "預覽失敗",
     "echoSourcePlateLabel": "Echo 來源盤 (384 孔)",
     "destPlateLabel": "目的地盤 (96 孔)",
-    "quadrantBatch": "本次分配填充盤的 {{half}} 半區，即第 {{from}}-{{to}} 列。Forward 引子位於 A、C、E ... 行，reverse 引子各在下一行。",
-    "quadrantProgress": "本次分配完成後，本盤 {{total}} 個半區中已使用 {{filled}} 個。",
-    "quadrantHalfNote": "第 {{from}}-{{to}} 列屬於另一半區 {{others}}，留給下一輪。",
+    "quadrantBatch": "本次執行填充 round {{round}}，即從第 {{first}} 欄開始每隔一欄的孔位。forward primer 位於 A、C、E ... 列，reverse primer 各在其下一列。",
+    "quadrantProgress": "本次執行完成後，此盤的 {{total}} 個 round 中將佔用 {{filled}} 個。",
+    "quadrantInterleaveNote": "96-head 一次只能觸及每隔一欄的孔位，中間的欄屬於 {{others}}，為下一輪保留空置。",
     "quadrantUsedNote": "本盤已使用的半區：{{list}}",
-    "quadrantNoneNote": "未選擇半區。執行仍落在第 1-12 欄，與半區 A1 的孔位相同，只是略過與已用半區的核對。",
+    "quadrantNoneNote": "未選擇 round。執行仍將不跳欄地落在 1-12 欄，這是可選擇 round 之前的配置，僅略過與已用 round 的比對。",
     "quadrantLegendFree": "實線邊框：本次分配使用的孔",
     "quadrantLegendReserved": "虛線邊框：為 {{others}} 保留的孔",
-    "echoReservedWellTitle": "{{well}}，屬於半區 {{quadrants}}"
+    "echoReservedWellTitle": "{{well}}，為 round {{quadrants}} 保留"
   },
   "errors": {
     "sequence": {
@@ -3730,7 +3767,9 @@
     "missingInputs": {
       "wt_replicates": "野生型重複測量值"
     },
-    "missingInputsNote": "在缺少{{missing}}的情況下作出判定，因此飽和判斷僅依據 hit rate 趨勢。",
+    "missingInputsNote": "至少有一輪缺少{{missing}}，該輪無法進行 plateau 判定，其飽和判斷只能依據 hit rate 趨勢。該趨勢取全部輪次的 least-squares 斜率，只有當其負值超過自身抽樣誤差時才算下降。",
+    "zeroActivityNote": "本輪有 {{n}} 個變體的 activity 恰好為 0。它們同樣經過設計並被測定，因此仍計入 hit rate 的分母，僅從 log2 統計中剔除。",
+    "wtRowNote": "本輪活頁簿中有 {{n}} 列 wild-type（WT）對照。對照不是設計的變體，因此也從 hit rate 的計算中剔除。",
     "notAssessableBadge": "無法判定",
     "notAssessableSummary": "訊號指向一次轉變，但確認它需要{{missing}}，而這些檔案並不包含。基於此輸入無法回答{{blocked}}，只能判斷是否繼續 walking。",
     "notAssessableInsufficientSummary": "訊號指向一次轉變，但確認它至少需要 {{required}} 個{{missing}}，而本輪僅記錄了 {{count}} 個。少於該數量就得不到雜訊估計，飽和判斷只能依據 hit rate 趨勢，因此無法回答{{blocked}}。",
@@ -3741,7 +3780,7 @@
     "restoredUnverifiedNote": "{{files}} 並非本應用程式寫入，因此無法確認其後是否有變動。",
     "rebuiltNote": "{{when}} 的先前結論是在步驟 4.1 重新產生之前，由這些相同檔案（{{files}}）算出的。它描述的是上一次產生的結果，因此僅作為歷史保留；若需目前結果，請重新執行分類。",
     "supersededNote": "{{when}} 的先前結論是由另一組檔案（{{files}}）算出的。它並未說明目前所選檔案，因此不予顯示。",
-    "headingHelp": "匯整多輪 EVOLVEpro 結果以尋找跨輪次的飽和訊號，並給出繼續 walking、轉入 combinatorial、停止或暫緩的參考判定。唯讀：這裡不確認也不儲存任何內容，輪次不足 3 輪時尚不給出判定。",
+    "headingHelp": "匯整多輪 EVOLVEpro 結果以尋找跨輪次的飽和訊號，並給出繼續 walking、轉入 combinatorial、停止或暫緩的參考判定。hit rate 趨勢取全部輪次的 least-squares 斜率，只有負值超過自身抽樣誤差時才算下降。各輪記錄的 wild-type 重複值用於該輪的 plateau 判定，因此可用連續兩輪確認飽和。唯讀：這裡不確認也不儲存任何內容，輪次不足 3 輪時尚不給出判定。",
     "nextRoundCapacity": "下一輪板容量",
     "nextRoundCapacityHelper": "下一輪組合實驗可用的孔數。它決定通量建議。"
   },

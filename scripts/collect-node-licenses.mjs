@@ -1,69 +1,159 @@
 #!/usr/bin/env node
-/**
- * collect-node-licenses.mjs
- *
- * Reads pnpm-licenses.json (produced by `pnpm licenses list --json --prod`)
- * and writes NOTICE-node.md.
- *
- * pnpm v10 output shape:
- *   { "<SPDX-ID>": [{ name, versions: string[], paths, license, author, homepage, description }] }
- *
- * Usage (called from build-notice.mjs, not directly):
- *   node scripts/collect-node-licenses.mjs <input-json> <output-md>
- *
- * Exit 1 if the input file is missing or unparsable (silent skip disabled).
+/** Collect installed production packages and their actual legal texts.
+ * Input: pnpm licenses list --json --prod
+ * Usage: node scripts/collect-node-licenses.mjs input.json NOTICE-node.md
+ * <output.md> is the destination notice; the JSON inventory uses the same stem.
+ * Also writes NOTICE-node.json. No license is inferred from an SPDX name.
  */
+import { readFileSync, writeFileSync, readdirSync, realpathSync } from "node:fs";
+import { resolve, relative, isAbsolute, dirname, basename } from "node:path";
+import { pathToFileURL } from "node:url";
+import { createHash } from "node:crypto";
 
-import { readFileSync, writeFileSync } from "fs";
-import { resolve } from "path";
+const LEGAL = /^(licen[cs]e|copying|notice|copyright)([._-].*)?$/i;
+const legalDir = /^(licen[cs]es|legal)$/i;
+const sha256 = (data) => createHash("sha256").update(data).digest("hex");
+const compare = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
-const [, , inputPath, outputPath] = process.argv;
-
-if (!inputPath || !outputPath) {
-  console.error("Usage: collect-node-licenses.mjs <input.json> <output.md>");
-  process.exit(1);
+function readLegalFiles(root) {
+  const found = [];
+  function walk(dir, inLegal = false) {
+    for (const ent of readdirSync(dir, { withFileTypes: true }).sort((a, b) => compare(a.name, b.name))) {
+      if (["node_modules", ".git"].includes(ent.name)) continue;
+      const path = resolve(dir, ent.name);
+      if (ent.isDirectory()) {
+        walk(path, inLegal || legalDir.test(ent.name));
+      } else if (LEGAL.test(ent.name) || inLegal) {
+        const rel = relative(root, realpathSync(path));
+        if (rel === ".." || rel.startsWith("../") || rel.startsWith("..\\") || isAbsolute(rel)) {
+          throw new Error(`Legal file escapes package directory: ${path}`);
+        }
+        const bytes = readFileSync(path);
+        const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+        if (!text.trim()) throw new Error(`Empty legal file: ${path}`);
+        found.push({ path: relative(root, path).replaceAll("\\", "/"), sha256: sha256(bytes), text });
+      }
+    }
+  }
+  walk(root);
+  return found;
 }
 
-const absInput = resolve(inputPath);
-const absOutput = resolve(outputPath);
-
-let raw;
-try {
-  raw = readFileSync(absInput, "utf-8");
-} catch (err) {
-  console.error(`[collect-node-licenses] Cannot read ${absInput}: ${err.message}`);
-  process.exit(1);
+// esbuild publishes its binary as an exact-version optional companion. Some
+// platform tarballs omit their license file; retain the same-version parent package's
+// real text, with its source named, rather than substituting a generic MIT text.
+function companionLegalFiles(meta, data, baseDir) {
+  if (!meta.name.startsWith("@esbuild/")) return [];
+  for (const group of Object.values(data)) {
+    if (!Array.isArray(group)) continue;
+    for (const pkg of group) {
+      if (pkg?.name !== "esbuild" || !Array.isArray(pkg.paths)) continue;
+      for (const item of pkg.paths) {
+        const root = realpathSync(resolve(baseDir, item));
+        const parent = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
+        if (parent.name !== "esbuild" || parent.version !== meta.version ||
+            parent.optionalDependencies?.[meta.name] !== meta.version ||
+            parent.license !== "MIT" || meta.license !== "MIT") continue;
+        return readLegalFiles(root).map((file) => ({
+          ...file, path: `esbuild@${parent.version}/${file.path}`,
+          source_package: `esbuild@${parent.version}`,
+        }));
+      }
+    }
+  }
+  return [];
 }
 
-let data;
-try {
-  data = JSON.parse(raw);
-} catch (err) {
-  console.error(`[collect-node-licenses] JSON parse error in ${absInput}: ${err.message}`);
-  process.exit(1);
+const supplementData = JSON.parse(readFileSync(new URL("./license-supplements.json", import.meta.url), "utf8"));
+
+export function supplementFor(name, version, declaredLicense, data = supplementData) {
+  const id = data.node[`${name}@${version}`];
+  if (!id) return [];
+  const entry = data.sources[id];
+  if (!entry || declaredLicense !== entry.license || sha256(Buffer.from(entry.text, "utf8")) !== entry.sha256) {
+    throw new Error(`Invalid version-bound license supplement: ${name}@${version}`);
+  }
+  return [{ path: `supplement:${id}`, ...entry }];
 }
 
-// pnpm licenses list --json (v10) produces an object keyed by SPDX identifier.
-// Each value is an array of { name, versions: string[], paths, license, author, homepage, description }.
-const lines = ["# Node / pnpm dependency licenses\n"];
+export function collectNodeLicenses(data, baseDir = process.cwd()) {
+  if (!data || Array.isArray(data) || typeof data !== "object" || !Object.keys(data).length) {
+    throw new Error("Expected a non-empty pnpm license-group object");
+  }
+  const records = new Map();
+  const missing = [];
+  for (const [license, packages] of Object.entries(data)) {
+    if (!license.trim() || !Array.isArray(packages) || !packages.length) {
+      throw new Error(`Invalid or empty license group: ${license}`);
+    }
+    for (const pkg of packages) {
+      if (!pkg || typeof pkg.name !== "string" || !pkg.name.trim() || !Array.isArray(pkg.paths) || !pkg.paths.length) {
+        throw new Error("Each pnpm package needs a name and installed paths");
+      }
+      const versions = Array.isArray(pkg.versions) ? pkg.versions : [pkg.version];
+      if (!versions.length || versions.some((v) => typeof v !== "string" || !v)) {
+        throw new Error(`Missing version for ${pkg.name}`);
+      }
+      const seenVersions = new Set();
+      for (const item of pkg.paths) {
+        if (typeof item !== "string" || !item) throw new Error(`Invalid package path for ${pkg.name}`);
+        const root = realpathSync(resolve(baseDir, item));
+        const meta = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
+        if (meta.name !== pkg.name || !versions.includes(meta.version)) {
+          throw new Error(`Package identity mismatch at ${root}`);
+        }
+        let files = readLegalFiles(root);
+        if (!files.length) files = companionLegalFiles(meta, data, baseDir);
+        if (!files.length) files = supplementFor(meta.name, meta.version, meta.license);
+        if (!files.length) missing.push(`${meta.name}@${meta.version} (${root})`);
+        const record = { name: meta.name, version: meta.version, license, files };
+        const key = `${meta.name}@${meta.version}`;
+        const previous = records.get(key);
+        if (previous && JSON.stringify(previous) !== JSON.stringify(record)) {
+          throw new Error(`Conflicting legal evidence for ${key}`);
+        }
+        records.set(key, record);
+        seenVersions.add(meta.version);
+      }
+      if (versions.some((v) => !seenVersions.has(v))) {
+        throw new Error(`Missing installed path for a version of ${pkg.name}`);
+      }
+    }
+  }
+  if (missing.length) throw new Error(`No LICENSE text for:\n${missing.join("\n")}`);
+  return [...records.values()].sort((a, b) => compare(`${a.name}@${a.version}`, `${b.name}@${b.version}`));
+}
 
-for (const [spdxId, packages] of Object.entries(data)) {
-  lines.push(`## ${spdxId}\n`);
-  for (const pkg of packages) {
-    const name = pkg.name ?? "(unknown)";
-    // pnpm v10 uses `versions` (array); older pnpm used `version` (string)
-    const version = Array.isArray(pkg.versions)
-      ? pkg.versions.join(", ")
-      : (pkg.version ?? "");
-    const homepage = pkg.homepage ?? pkg.url ?? "";
-    lines.push(`### ${name} ${version}`);
-    lines.push(`- **License**: ${spdxId}`);
-    if (homepage) lines.push(`- **Homepage**: ${homepage}`);
-    lines.push("");
-    lines.push("---");
-    lines.push("");
+export function renderNodeNotice(records) {
+  const lines = ["# Node / pnpm dependency licenses", "", "Installed production dependency inventory. Texts come from installed packages or explicitly identified, version-bounded supplements.",
+    "This is license evidence, not a legal compatibility or commercial-use approval.", ""];
+  for (const pkg of records) {
+    lines.push(`## ${pkg.name} ${pkg.version}`, `Declared license: ${pkg.license}`, "");
+    for (const file of pkg.files) {
+      const fence = "`".repeat(Math.max(3, ...[...file.text.matchAll(/`+/g)].map((m) => m[0].length + 1)));
+      if (file.source) lines.push(`Source: ${file.source}`, `Provenance: ${file.provenance}`, "");
+      lines.push(`### ${file.path}`, `SHA256: ${file.sha256}`, "", fence, file.text, fence, "");
+    }
+  }
+  return `${lines.join("\n")}\n`;
+}
+
+export function main(args = process.argv.slice(2)) {
+  if (args.length !== 2) throw new Error("Usage: collect-node-licenses.mjs input.json NOTICE-node.md");
+  const input = resolve(args[0]);
+  const output = resolve(args[1]);
+  const records = collectNodeLicenses(JSON.parse(readFileSync(input, "utf8")), dirname(input));
+  // Validate everything before writing either output. A failure must stop the build.
+  const notice = renderNodeNotice(records);
+  const inventory = { schema_version: 1, scope: "installed-production-packages", legal_clearance: false, packages: records };
+  writeFileSync(output, notice, "utf8");
+  writeFileSync(resolve(dirname(output), basename(output, ".md") + ".json"), JSON.stringify(inventory, null, 2) + "\n");
+  console.log(`[collect-node-licenses] ${records.length} packages -> ${output}`);
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  try { main(); } catch (error) {
+    console.error(`[collect-node-licenses] ${error.message}`);
+    process.exitCode = 1;
   }
 }
-
-writeFileSync(absOutput, lines.join("\n"), "utf-8");
-console.log(`[collect-node-licenses] Wrote ${absOutput}`);

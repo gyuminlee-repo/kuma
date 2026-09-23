@@ -35,6 +35,15 @@ are removed explicitly:
 3. **Mode.**  ``-m simple --show-ins no --show-del no`` is the samtools mode
    that corresponds to the MAME design.  The default mode is bayesian and the
    ``--show-ins`` default is yes, neither of which MAME implements.
+   ``--show-del`` is asked for in its DEFAULT state here, which the manual
+   describes as "Whether to show deletions as "*" (yes) or to omit from the
+   output (no). Defaults to no."  MAME does neither: it marks a
+   deletion-majority position with ``-`` and keeps the reference length, so the
+   two outputs differ in length by the deletion and the comparison below
+   removes the marked positions rather than expecting them to match.  ``-`` was
+   chosen over samtools' ``*`` because the translator's gap handling and
+   ``extract_nt_changes`` already read ``-``; the character differs, the
+   information does not.
 
 Two differences remain and cannot be removed by flags:
 
@@ -247,28 +256,40 @@ def test_majority_well_matches_samtools(ref_fasta: Path, tmp_path: Path) -> None
 def test_deletion_well_difference_is_representation_not_signal_loss(
     ref_fasta: Path, tmp_path: Path
 ) -> None:
-    """MAME keeps reference length and writes ``N``; samtools gets shorter.
+    """MAME keeps reference length and writes ``-``; samtools gets shorter.
 
     This is a MAME design choice (codon-wise comparison against the expected
     workbook needs reference-fixed coordinates), not an accident, so it is
     asserted rather than tolerated: should MAME ever start emitting a
     variable-length consensus, this test says so.
 
-    The second half is the point.  The deleted bases are absent from the MAME
-    string, yet ``consensus_net_indel_bp`` carries the same number samtools
-    expresses by shortening, and removing the ``N`` runs reproduces the
-    samtools sequence exactly.  The representation limit costs no signal.
+    The second half is the point.  The deleted bases are marked rather than
+    removed in the MAME string, yet ``consensus_net_indel_bp`` carries the same
+    number samtools expresses by shortening, and removing the ``-`` runs
+    reproduces the samtools sequence exactly.  The representation limit costs
+    no signal.
+
+    The marker is ``-`` and not samtools' ``*`` (``--show-del yes``), and the
+    oracle is still run with ``--show-del no``, so the length difference is
+    what is asserted rather than a character-for-character match at those
+    positions.
     """
     call, samtools_seq, _ = _oracle(_well_reads(_DEL_SEQ), ref_fasta, tmp_path)
 
     assert len(call.consensus_seq) == len(_REF)
     assert len(samtools_seq) == len(_REF) - _DEL_LEN
-    assert call.consensus_seq.count("N") == _DEL_LEN
-    # The N run may sit a base or two off _DEL_POS: minimap2 left-aligns a
+    assert call.consensus_seq.count("-") == _DEL_LEN
+    assert "N" not in call.consensus_seq
+    # The gap run may sit a base or two off _DEL_POS: minimap2 left-aligns a
     # deletion inside a repeat, so the position is asserted as a window.
-    n_start = call.consensus_seq.index("N")
-    assert abs(n_start - _DEL_POS) <= _DEL_LEN
-    assert call.consensus_seq[n_start : n_start + _DEL_LEN] == "N" * _DEL_LEN
+    gap_start = call.consensus_seq.index("-")
+    assert abs(gap_start - _DEL_POS) <= _DEL_LEN
+    assert call.consensus_seq[gap_start : gap_start + _DEL_LEN] == "-" * _DEL_LEN
+    # The gapped set is the reported set, so nothing has to be inferred from
+    # the string.
+    assert set(call.del_majority_positions) == {
+        gap_start + 1 + i for i in range(_DEL_LEN)
+    }
 
     assert call.consensus_net_indel_bp == len(samtools_seq) - len(_REF)
-    assert call.consensus_seq.replace("N", "") == samtools_seq
+    assert call.consensus_seq.replace("-", "") == samtools_seq

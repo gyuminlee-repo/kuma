@@ -34,7 +34,7 @@ import { AdvisoryDecisionCard } from "./AdvisoryDecisionCard";
 
 describe("AdvisoryDecisionCard", () => {
   it("forwards the disclosed next-round capacity instead of omitting it for the handler default", async () => {
-    classifyRound.mockResolvedValue({ advisory: "decision", label: "continue_walking", reason: "calibration_period", confidence: null, missing_inputs: [] });
+    classifyRound.mockResolvedValue({ advisory: "decision", label: "continue_walking", reason: "calibration_period", confidence: null, missing_inputs: [], zero_activity_count: 0, wt_row_count: 0 });
     render(<AdvisoryDecisionCard />);
 
     await waitFor(() => expect(screen.getByRole("button", { name: "advisoryDecision.classifyAriaLabel" })).not.toBeDisabled());
@@ -45,6 +45,54 @@ describe("AdvisoryDecisionCard", () => {
       [{ n: 1, path: "/project/round-1.xlsx" }],
       384,
     ));
+  });
+});
+
+/**
+ * The two round counts the handler reports.
+ *
+ * Each line is drawn only when its own count is non-zero: a zero says nothing
+ * an operator has to act on, and a verdict stored before these fields existed
+ * replays without them. `missing_inputs` is empty here, which is now the
+ * ordinary case, so the "judged without" note must stay off the screen too.
+ */
+describe("AdvisoryDecisionCard round counts", () => {
+  async function runWith(result: Record<string, unknown>) {
+    classifyRound.mockResolvedValue(result);
+    render(<AdvisoryDecisionCard />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "advisoryDecision.classifyAriaLabel" })).not.toBeDisabled());
+    fireEvent.click(screen.getByRole("button", { name: "advisoryDecision.classifyAriaLabel" }));
+    await waitFor(() => expect(screen.getByText("advisoryDecision.labels.continue_walking")).toBeTruthy());
+  }
+
+  const base = {
+    advisory: "decision",
+    label: "continue_walking",
+    reason: "calibration_period",
+    confidence: null,
+    missing_inputs: [] as string[],
+  };
+
+  it("states both counts when the round carried dead variants and a wild-type row", async () => {
+    await runWith({ ...base, zero_activity_count: 2, wt_row_count: 1 });
+
+    expect(screen.getByText("advisoryDecision.zeroActivityNote")).toBeTruthy();
+    expect(screen.getByText("advisoryDecision.wtRowNote")).toBeTruthy();
+  });
+
+  it("says nothing about a count of zero, nor about an empty missing_inputs", async () => {
+    await runWith({ ...base, zero_activity_count: 0, wt_row_count: 0 });
+
+    expect(screen.queryByText("advisoryDecision.zeroActivityNote")).toBeNull();
+    expect(screen.queryByText("advisoryDecision.wtRowNote")).toBeNull();
+    expect(screen.queryByText("advisoryDecision.missingInputsNote")).toBeNull();
+  });
+
+  it("says nothing when a replayed answer carries neither count", async () => {
+    await runWith({ ...base });
+
+    expect(screen.queryByText("advisoryDecision.zeroActivityNote")).toBeNull();
+    expect(screen.queryByText("advisoryDecision.wtRowNote")).toBeNull();
   });
 });
 
