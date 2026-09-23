@@ -517,6 +517,7 @@ export interface ExportAllParams {
   quadrant?: ("A1" | "A13" | "A2" | "B1" | "B2") | null;
   rev_plate_name?: string;
   used_quadrants?: ("A1" | "A13" | "A2" | "B1" | "B2")[] | null;
+  vectormaps?: boolean;
   [k: string]: unknown;
 }
 export interface PlateMappingItem {

@@ -1,4 +1,4 @@
-import type { EchoQuadrant } from "@/types/models";
+import type { EchoQuadrant, RpcMethodResult } from "@/types/models";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { mkdir } from "@tauri-apps/plugin-fs";
 import { sendRequest } from "../../lib/ipc-kuro";
@@ -210,7 +210,15 @@ export interface ExportAllUiParams {
   quadrant?: EchoQuadrant | null;
   /** Rounds already spent on a part-used plate, stated by the operator. */
   usedQuadrants?: EchoQuadrant[];
+  /**
+   * Also write one GenBank map per clone into the sibling
+   * `<prefix>_vectormaps/` folder. Those files are not bundle artefacts: they
+   * come back under `vectormaps`, not in `success`.
+   */
+  vectormaps?: boolean;
 }
+
+type ExportAllResult = RpcMethodResult<"export_all">;
 
 /**
  * Prompt user for an output directory and invoke the kuro sidecar `export_all`
@@ -218,7 +226,7 @@ export interface ExportAllUiParams {
  */
 export async function handleExportAll(
   params: ExportAllUiParams,
-): Promise<{ success: string[]; failed: { path: string; reason: string }[]; output_dir: string } | null> {
+): Promise<ExportAllResult | null> {
   // Default the picker to the project folder so exports land inside the
   // project by default, the way MAME routes its artifacts. The folder is
   // created first, otherwise the dialog silently ignores a missing defaultPath.
@@ -283,7 +291,8 @@ export async function handleExportAll(
       bom: params.bom,
       mappings: enriched,
       dedup_info: dedupInfo,
-    })) as { success: string[]; failed: { path: string; reason: string }[]; output_dir: string };
+      vectormaps: params.vectormaps ?? false,
+    })) as ExportAllResult;
 
     const successCount = result.success?.length ?? 0;
     const failedCount = result.failed?.length ?? 0;
@@ -352,6 +361,32 @@ export async function handleExportAll(
         description: `No files were generated in ${outputDir}.`,
         duration: 6000,
       });
+    }
+
+    const vm = result.vectormaps;
+    if (vm) {
+      const vmFailed = vm.failed?.length ?? 0;
+      const vmOk = vm.success?.length ?? 0;
+      if (vm.skipped_reason) {
+        toast.warning("Vector maps skipped", {
+          description: vm.skipped_reason,
+          duration: 8000,
+        });
+      } else if (vmFailed > 0) {
+        toast.warning("Vector maps: partial success", {
+          description: `${vmOk} of ${vmOk + vmFailed} clones written to ${vm.output_dir}. Failed: ${vm.failed
+            .slice(0, 3)
+            .map((f) => `${f.path}: ${f.reason}`)
+            .join("; ")}${vmFailed > 3 ? ` (+${vmFailed - 3} more)` : ""}`,
+          duration: 8000,
+        });
+      } else if (vmOk > 0) {
+        toast.success("Vector maps written", {
+          description: `${vmOk} GenBank files in ${vm.output_dir}`,
+          duration: 6000,
+          action: { label: "Open folder", onClick: () => void revealInOSFolder(vm.output_dir) },
+        });
+      }
     }
 
     return result;
