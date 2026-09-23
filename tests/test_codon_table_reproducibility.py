@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -53,8 +54,22 @@ def _user_table(key: str, **overrides) -> dict:
     return data
 
 
+def _codon_table_extra(extra: dict[str, object]) -> dict:
+    """The ``extra.design.codon_table`` block, narrowed for the checker.
+
+    ``_design_provenance_for_manifest`` types ``extra`` as ``dict[str, object]``
+    because it carries unrelated blocks too. These tests only ever read the one
+    the codon table wrote.
+    """
+    design = extra["design"]
+    assert isinstance(design, dict), type(design)
+    table = design["codon_table"]
+    assert isinstance(table, dict), type(table)
+    return table
+
+
 @pytest.fixture
-def user_dir(tmp_path, monkeypatch) -> Path:
+def user_dir(tmp_path, monkeypatch) -> Iterator[Path]:
     monkeypatch.setenv("HOME", str(tmp_path))
     directory = tmp_path / ".kuma" / "kuro" / "codon_tables"
     directory.mkdir(parents=True)
@@ -160,7 +175,9 @@ class TestManifestKnownAnswer:
     def _provenance(self, organism: str) -> dict:
         from sidecar_kuro.handlers.design import _codon_table_provenance
 
-        return _codon_table_provenance(organism)
+        provenance = _codon_table_provenance(organism)
+        assert provenance is not None, organism
+        return provenance
 
     def test_same_key_different_codons_separate(self, user_dir):
         _write(user_dir, "mylab")
@@ -196,7 +213,7 @@ class TestManifestKnownAnswer:
         )
         inputs, extra = export_mod._design_provenance_for_manifest("state")
         assert inputs["design_codon_table"] == path
-        assert extra["design"]["codon_table"]["table_sha256"]
+        assert _codon_table_extra(extra)["table_sha256"]
 
     def test_builtin_table_is_named_only_in_extra(self, user_dir, monkeypatch):
         import sidecar_kuro.core as core
@@ -208,8 +225,8 @@ class TestManifestKnownAnswer:
         )
         inputs, extra = export_mod._design_provenance_for_manifest("state")
         assert "design_codon_table" not in inputs
-        assert extra["design"]["codon_table"]["key"] == "ecoli"
-        assert extra["design"]["codon_table"]["source"] == "builtin"
+        assert _codon_table_extra(extra)["key"] == "ecoli"
+        assert _codon_table_extra(extra)["source"] == "builtin"
 
 
 class TestEndToEndManifest:

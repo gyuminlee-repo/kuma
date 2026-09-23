@@ -57,6 +57,7 @@ def _revalidate(document: dict, key: str) -> str:
     assert report.ok, (key, report.error_codes,
                        [f.detail for f in report.errors])
     assert report.codons_examined or report.checks_performed, key
+    assert report.table_sha256 is not None, key
     return report.table_sha256
 
 
