@@ -2190,7 +2190,8 @@
     "ecoliTitle": "Escherichia coli K-12 codon usage 表。在 E. coli BL21、DH5α、K-12 衍生株中表达时使用。",
     "bsubtilisTitle": "Bacillus subtilis 168 codon usage 表。在 B. subtilis 或相关革兰氏阳性宿主中表达时使用。",
     "scerevisiaeTitle": "Saccharomyces cerevisiae codon usage 表。在 budding yeast 宿主中表达时使用。",
-    "sequenceFileHelp": "Reference sequence file (.fasta/.gb) used as template for primer design."
+    "sequenceFileHelp": "Reference sequence file (.fasta/.gb) used as template for primer design.",
+    "addOrganism": "添加物种..."
   },
   "mutationInput": {
     "mutations": "Mutations",
@@ -3939,6 +3940,46 @@
       "overwriteWarning": "这会覆盖本机的表 '{{key}}'。",
       "installFailed": "无法安装该表：{{reason}}",
       "installUnavailable": "项目中没有该表的副本。"
+    },
+    "manager": {
+      "title": "添加物种",
+      "description": "为 kuma 未内置的物种安装密码子表，或将已安装的表导出为文件发给同事。",
+      "importTab": "导入表文件",
+      "exportTab": "导出",
+      "formatLabel": "格式",
+      "formatJson": "kuma 表（JSON）",
+      "formatCsv": "三列 CSV",
+      "formatCusp": "EMBOSS cusp 输出",
+      "formatKazusa": "粘贴 Kazusa 页面",
+      "pasteLabel": "请粘贴 Kazusa 密码子使用频率表",
+      "fileLabel": "文件",
+      "filePlaceholder": "尚未选择文件",
+      "browse": "浏览",
+      "keyLabel": "键",
+      "nameLabel": "显示名称",
+      "taxidLabel": "NCBI 分类号（taxid）",
+      "taxidPlaceholder": "自有菌株可留空",
+      "geneticCodeLabel": "遗传密码",
+      "geneticCode11": "11，细菌与植物质体",
+      "geneticCode1": "1，标准",
+      "aliasesLabel": "别名",
+      "aliasesPlaceholder": "以逗号分隔，填写 GenBank 文件中的物种写法",
+      "overwriteLabel": "替换该键下已安装的表",
+      "checksRun": "已对 {{codons}} 个密码子执行 {{checks}} 项检查。",
+      "errorsLabel": "该表无法安装",
+      "warningsLabel": "值得注意",
+      "normalizationsLabel": "导入所做的改动",
+      "readyToInstall": "该表通过全部规则。摘要 {{digest}}。",
+      "check": "检查文件",
+      "import": "导入",
+      "export": "导出",
+      "exportHint": "将已安装的表写入文件。其中是 kuma 读取到的密码子，因此重新导入会得到同一张表。",
+      "tableLabel": "表",
+      "choose": "请选择一张表",
+      "installed": "已安装密码子表：{{key}}",
+      "importFailed": "密码子表导入失败：{{reason}}",
+      "exported": "密码子表已写入 {{path}}",
+      "exportFailed": "密码子表导出失败：{{reason}}"
     }
   }
 }

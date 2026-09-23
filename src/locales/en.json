@@ -2232,7 +2232,8 @@
     "ecoliTitle": "Escherichia coli K-12 codon usage table. Use when expressing in E. coli BL21, DH5α, K-12 derivatives.",
     "bsubtilisTitle": "Bacillus subtilis 168 codon usage table. Use when expressing in B. subtilis or related Gram-positive hosts.",
     "scerevisiaeTitle": "Saccharomyces cerevisiae codon usage table. Use when expressing in budding yeast hosts.",
-    "sequenceFileHelp": "Reference sequence file (.fasta/.gb) used as template for primer design."
+    "sequenceFileHelp": "Reference sequence file (.fasta/.gb) used as template for primer design.",
+    "addOrganism": "Add organism..."
   },
   "mutationInput": {
     "mutations": "Mutations",
@@ -3939,6 +3940,46 @@
       "overwriteWarning": "This replaces the local table '{{key}}'.",
       "installFailed": "Could not install the table: {{reason}}",
       "installUnavailable": "The project carries no copy of this table."
+    },
+    "manager": {
+      "title": "Add organism",
+      "description": "Install a codon table for an organism kuma does not ship, or export one to send a colleague.",
+      "importTab": "Import a table file",
+      "exportTab": "Export",
+      "formatLabel": "Format",
+      "formatJson": "kuma table (JSON)",
+      "formatCsv": "Three-column CSV",
+      "formatCusp": "EMBOSS cusp output",
+      "formatKazusa": "Kazusa page (pasted)",
+      "pasteLabel": "Paste the Kazusa codon usage table",
+      "fileLabel": "File",
+      "filePlaceholder": "No file chosen yet",
+      "browse": "Browse",
+      "keyLabel": "Key",
+      "nameLabel": "Display name",
+      "taxidLabel": "NCBI taxid",
+      "taxidPlaceholder": "Leave empty for an in-house strain",
+      "geneticCodeLabel": "Genetic code",
+      "geneticCode11": "11, bacterial and plant plastid",
+      "geneticCode1": "1, standard",
+      "aliasesLabel": "Aliases",
+      "aliasesPlaceholder": "Comma separated, as your GenBank files spell the organism",
+      "overwriteLabel": "Replace the table already installed under this key",
+      "checksRun": "{{checks}} checks run over {{codons}} codons.",
+      "errorsLabel": "This table cannot be installed",
+      "warningsLabel": "Worth knowing",
+      "normalizationsLabel": "What the import changed",
+      "readyToInstall": "This table passes every rule. Digest {{digest}}.",
+      "check": "Check file",
+      "import": "Import",
+      "export": "Export",
+      "exportHint": "Write an installed table to a file. The codons are the ones kuma read, so importing the file back gives the same table.",
+      "tableLabel": "Table",
+      "choose": "Choose a table",
+      "installed": "Codon table installed: {{key}}",
+      "importFailed": "Codon table import failed: {{reason}}",
+      "exported": "Codon table written to {{path}}",
+      "exportFailed": "Codon table export failed: {{reason}}"
     }
   }
 }

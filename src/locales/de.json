@@ -2190,7 +2190,8 @@
     "ecoliTitle": "Escherichia coli K-12 Codon usage table. Verwenden wenn expressing in E. coli BL21, DH5α, K-12 derivatives.",
     "bsubtilisTitle": "Bacillus subtilis 168 Codon usage table. Verwenden wenn expressing in B. subtilis oder related Gram-positive hosts.",
     "scerevisiaeTitle": "Saccharomyces cerevisiae Codon usage table. Verwenden wenn expressing in budding yeast hosts.",
-    "sequenceFileHelp": "Reference sequence file (.fasta/.gb) used as template for primer design."
+    "sequenceFileHelp": "Reference sequence file (.fasta/.gb) used as template for primer design.",
+    "addOrganism": "Organismus hinzufügen ..."
   },
   "mutationInput": {
     "mutations": "Mutationen",
@@ -3939,6 +3940,46 @@
       "overwriteWarning": "Dies ersetzt die lokale Tabelle '{{key}}'.",
       "installFailed": "Tabelle konnte nicht installiert werden: {{reason}}",
       "installUnavailable": "Das Projekt enthält keine Kopie dieser Tabelle."
+    },
+    "manager": {
+      "title": "Organismus hinzufügen",
+      "description": "Installieren Sie eine Codon-Tabelle für einen Organismus, den kuma nicht mitliefert, oder exportieren Sie eine, um sie einer Kollegin zu schicken.",
+      "importTab": "Tabellendatei importieren",
+      "exportTab": "Exportieren",
+      "formatLabel": "Format",
+      "formatJson": "kuma-Tabelle (JSON)",
+      "formatCsv": "Dreispaltige CSV",
+      "formatCusp": "EMBOSS-cusp-Ausgabe",
+      "formatKazusa": "Kazusa-Seite (eingefügt)",
+      "pasteLabel": "Fügen Sie die Kazusa-Codon-Nutzungstabelle ein",
+      "fileLabel": "Datei",
+      "filePlaceholder": "Noch keine Datei gewählt",
+      "browse": "Durchsuchen",
+      "keyLabel": "Schlüssel",
+      "nameLabel": "Anzeigename",
+      "taxidLabel": "NCBI-taxid",
+      "taxidPlaceholder": "Für einen hauseigenen Stamm leer lassen",
+      "geneticCodeLabel": "Genetischer Code",
+      "geneticCode11": "11, Bakterien und Plastiden",
+      "geneticCode1": "1, Standard",
+      "aliasesLabel": "Aliasnamen",
+      "aliasesPlaceholder": "Durch Komma getrennt, wie Ihre GenBank-Dateien den Organismus schreiben",
+      "overwriteLabel": "Die unter diesem Schlüssel installierte Tabelle ersetzen",
+      "checksRun": "{{checks}} Prüfungen über {{codons}} Codons ausgeführt.",
+      "errorsLabel": "Diese Tabelle lässt sich nicht installieren",
+      "warningsLabel": "Wissenswert",
+      "normalizationsLabel": "Was der Import geändert hat",
+      "readyToInstall": "Diese Tabelle erfüllt jede Regel. Prüfsumme {{digest}}.",
+      "check": "Datei prüfen",
+      "import": "Importieren",
+      "export": "Exportieren",
+      "exportHint": "Schreibt eine installierte Tabelle in eine Datei. Sie enthält die Codons, die kuma gelesen hat, ein erneuter Import ergibt also dieselbe Tabelle.",
+      "tableLabel": "Tabelle",
+      "choose": "Wählen Sie eine Tabelle",
+      "installed": "Codon-Tabelle installiert: {{key}}",
+      "importFailed": "Import der Codon-Tabelle fehlgeschlagen: {{reason}}",
+      "exported": "Codon-Tabelle nach {{path}} geschrieben",
+      "exportFailed": "Export der Codon-Tabelle fehlgeschlagen: {{reason}}"
     }
   }
 }

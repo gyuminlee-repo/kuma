@@ -1462,15 +1462,23 @@
         "src/types/models.ts",
         "src/types/validators.ts",
         "src/lib/ipc.ts",
-        "src/components/panels/InputPanel/SequenceInput.tsx"
+        "src/components/panels/InputPanel/SequenceInput.tsx",
+        "kuma_core/kuro/codon_formats.py",
+        "python-core/sidecar_kuro/handlers/codon.py",
+        "python-core/sidecar_kuro/dispatcher.py",
+        "src/store/slices/sequenceSlice.ts",
+        "src/components/dialogs/CodonTableManager.tsx"
       ],
       "symbols": [
         "get_registry",
         "user_codon_dir",
         "validate_codon_table_data",
-        "handle_list_organisms"
+        "handle_list_organisms",
+        "handle_import_codon_table",
+        "import_context",
+        "parse_table_text"
       ],
-      "note": "User-installed codon tables: the search path and scan live in codon_table.py, the rules in codon_import.py, the single registry in core.get_registry() and the list_organisms envelope in misc.py. The TypeScript consumers of that envelope join the group now that the frontend side has landed: models.ts declares ListOrganismsResult, validators.ts guards it, SequenceInput.tsx renders the organisms it carries, and ipc.ts is listed because a Phase 3 import/export RPC lands there and must not be added without the rest.",
+      "note": "User-installed codon tables: the search path and scan live in codon_table.py, the rules in codon_import.py, the single registry in core.get_registry() and the list_organisms envelope in misc.py. The TypeScript consumers of that envelope join the group now that the frontend side has landed: models.ts declares ListOrganismsResult, validators.ts guards it, SequenceInput.tsx renders the organisms it carries, and ipc.ts is listed because a Phase 3 import/export RPC lands there and must not be added without the rest. Phase 3 joins the import and export path: codon_formats.py converts CSV, cusp and Kazusa into the document codon_import judges, handlers/codon.py owns the two RPCs and is registered in dispatcher.py, sequenceSlice.ts carries the send/relist/select actions and CodonTableManager.tsx is the dialog. The import context is built by CodonTableRegistry.import_context rather than in the handler, because a second hand-assembled context makes V9 pass vacuously and nothing downstream notices.",
       "severity": "blocking"
     }
   ]

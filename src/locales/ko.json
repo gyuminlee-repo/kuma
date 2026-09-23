@@ -2281,7 +2281,8 @@
     "ecoliTitle": "Escherichia coli K-12 코돈 사용 빈도표. E. coli BL21, DH5α, K-12 계열에서 발현 시 사용.",
     "bsubtilisTitle": "Bacillus subtilis 168 코돈 사용 빈도표. B. subtilis 또는 관련 그람 양성 숙주에서 발현 시 사용.",
     "scerevisiaeTitle": "Saccharomyces cerevisiae 코돈 사용 빈도표. 출아 효모 숙주에서 발현 시 사용.",
-    "sequenceFileHelp": "primer design template으로 사용되는 참조 서열 파일(.fasta/.gb)."
+    "sequenceFileHelp": "primer design template으로 사용되는 참조 서열 파일(.fasta/.gb).",
+    "addOrganism": "균주 추가..."
   },
   "uniprotSearch": {
     "autoSearchBtn": "자동 검색",
@@ -3939,6 +3940,46 @@
       "overwriteWarning": "이 컴퓨터의 테이블 '{{key}}' 을(를) 덮어씁니다.",
       "installFailed": "테이블을 설치하지 못했습니다: {{reason}}",
       "installUnavailable": "이 프로젝트에는 이 테이블의 사본이 없습니다."
+    },
+    "manager": {
+      "title": "균주 추가",
+      "description": "kuma 가 기본 제공하지 않는 균주의 코돈 테이블을 설치하거나, 설치된 테이블을 동료에게 보낼 파일로 내보냅니다.",
+      "importTab": "테이블 파일 가져오기",
+      "exportTab": "내보내기",
+      "formatLabel": "형식",
+      "formatJson": "kuma 테이블 (JSON)",
+      "formatCsv": "3열 CSV",
+      "formatCusp": "EMBOSS cusp 출력",
+      "formatKazusa": "Kazusa 페이지 붙여넣기",
+      "pasteLabel": "Kazusa 코돈 사용 빈도표를 붙여넣으십시오",
+      "fileLabel": "파일",
+      "filePlaceholder": "선택한 파일이 없습니다",
+      "browse": "찾아보기",
+      "keyLabel": "키",
+      "nameLabel": "표시 이름",
+      "taxidLabel": "NCBI 분류 번호(taxid)",
+      "taxidPlaceholder": "사내 균주면 비워 두십시오",
+      "geneticCodeLabel": "유전암호",
+      "geneticCode11": "11, 세균과 식물 색소체",
+      "geneticCode1": "1, 표준",
+      "aliasesLabel": "별칭",
+      "aliasesPlaceholder": "쉼표로 구분하며, GenBank 파일에 적힌 균주명을 씁니다",
+      "overwriteLabel": "이 키로 이미 설치된 테이블을 교체합니다",
+      "checksRun": "코돈 {{codons}} 개에 대해 검사 {{checks}} 건을 수행했습니다.",
+      "errorsLabel": "이 테이블은 설치할 수 없습니다",
+      "warningsLabel": "알아 둘 사항",
+      "normalizationsLabel": "가져오기가 바꾼 내용",
+      "readyToInstall": "모든 규칙을 통과했습니다. 다이제스트 {{digest}}.",
+      "check": "파일 검사",
+      "import": "가져오기",
+      "export": "내보내기",
+      "exportHint": "설치된 테이블을 파일로 씁니다. kuma 가 읽은 코돈을 그대로 담으므로 그 파일을 다시 가져오면 같은 테이블이 됩니다.",
+      "tableLabel": "테이블",
+      "choose": "테이블을 고르십시오",
+      "installed": "코돈 테이블을 설치했습니다: {{key}}",
+      "importFailed": "코돈 테이블 가져오기에 실패했습니다: {{reason}}",
+      "exported": "코돈 테이블을 {{path}} 에 썼습니다",
+      "exportFailed": "코돈 테이블 내보내기에 실패했습니다: {{reason}}"
     }
   }
 }

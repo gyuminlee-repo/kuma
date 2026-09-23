@@ -30,6 +30,9 @@ import type {
   LinkerHandling,
   MutationInputMode,
   CodonTableFailure,
+  ExportCodonTableParams,
+  ImportCodonTableParams,
+  ImportCodonTableResult,
   OrganismSummary,
   OverlapMode,
   ParsedMutation,
@@ -90,6 +93,27 @@ export interface SequenceSlice {
    * needs saying so out loud (design note section 8.3, last row).
    */
   installRestoredCodonTable: () => Promise<string | null>;
+  /**
+   * Validate a table file without installing it, for the import preview.
+   *
+   * The same RPC the install uses with `dry_run` set, so the findings the
+   * dialog shows before importing are the findings the import produces rather
+   * than a second implementation of the same rules. Rejections come back as a
+   * result with `ok: false`, not as a throw: they are the expected answer for
+   * a file the user picked, and the dialog renders every rule that fired.
+   */
+  previewCodonTable: (params: ImportCodonTableParams) => Promise<ImportCodonTableResult>;
+  /**
+   * Install a codon table and select it.
+   *
+   * Follows saveCustomPolymerase exactly: send, re-list, select. The re-list
+   * is what makes the new key selectable, and selecting it is what the user
+   * came to do -- an import that left the dropdown on the previous organism
+   * would look like it had failed.
+   */
+  importCodonTable: (params: ImportCodonTableParams) => Promise<ImportCodonTableResult>;
+  /** Write an installed table out as a file. Resolves to the path written. */
+  exportCodonTable: (params: ExportCodonTableParams) => Promise<string>;
 }
 
 // ---------------------------------------------------------------------------
