@@ -2,7 +2,7 @@ import { useState, type MouseEvent } from "react";
 import type { TFunction } from "i18next";
 import { createColumnHelper } from "@tanstack/react-table";
 import type { RescuedMutation, SdmPrimerResult } from "../../types/models";
-import { ColoredFwdSeq, CopySeqButton, formatTolerance } from "./primerDisplay";
+import { ColoredFwdSeq, CopySeqButton, formatTolerance, structureWarn } from "./primerDisplay";
 
 const col = createColumnHelper<SdmPrimerResult>();
 
@@ -10,6 +10,15 @@ const GROUP_COLORS = [
   "#3b82f6", "#ef4444", "#f59e0b", "#10b981",
   "#8b5cf6", "#ec4899", "#06b6d4", "#f97316",
 ];
+
+// Legacy hairpin/homodimer warn threshold (pre-engine-flag behavior). The
+// frontend has no dH, so it cannot recompute the engine's folded-fraction
+// verdict (theta) itself. Used only as a fallback when a row has none of
+// the four per-structure warn flags (e.g. rows serialized before the flags
+// existed), so those rows are not silently rendered as warning-free.
+// LEGACY_STRUCTURE_WARN_TM and structureWarn live in primerDisplay.tsx
+// (shared with HairpinDetail.tsx's popover so the table badge and the
+// popover never disagree on a given row).
 
 export const HEADER_TOOLTIPS: Record<string, string> = {
   rank: "Input order (y_pred descending rank)",
@@ -392,13 +401,14 @@ export function makeResultTableColumns(opts: {
         if (worst <= 0) return "—";
         // The verdict comes from the engine (per-structure warn flags on the
         // row): hairpin by folded fraction at the pair's Ta, homodimer by the
-        // absolute design-scale Tm. Rows serialized before the flags existed
-        // show the bare number with no warn tint.
+        // absolute design-scale Tm. A flag can be absent per structure (see
+        // structureWarn above), so each of the four is judged independently
+        // instead of treating "some flag present" as "row fully judged".
         const warn =
-          row.hairpin_warn_fwd === true ||
-          row.hairpin_warn_rev === true ||
-          row.homodimer_warn_fwd === true ||
-          row.homodimer_warn_rev === true;
+          structureWarn(row.hairpin_warn_fwd, row.hairpin_tm_fwd) ||
+          structureWarn(row.hairpin_warn_rev, row.hairpin_tm_rev) ||
+          structureWarn(row.homodimer_warn_fwd, row.homodimer_tm_fwd) ||
+          structureWarn(row.homodimer_warn_rev, row.homodimer_tm_rev);
         return (
           <span className={`inline-block px-1 py-0.5 rounded-control text-caption font-medium cursor-pointer ${warn ? "bg-warning/10 text-warning" : "bg-muted text-muted-foreground"}`}>
             {worst.toFixed(0)}

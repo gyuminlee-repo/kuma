@@ -86,13 +86,54 @@ describe("hairpin column", () => {
     expect(badge.className).not.toContain("text-warning");
   });
 
-  it("does not guess a verdict when the flags are absent", () => {
+  it("falls back to the legacy Tm threshold when all warn flags are absent", () => {
     const cell = hairpinCell();
     // Rows serialized before the flags existed, or rows whose pair Ta is
-    // unknown after a swap, show the bare number with no warn tint.
+    // unknown after a swap, carry none of the four warn flags. The
+    // frontend cannot recompute the engine's theta (no dH available), so
+    // it falls back to the pre-engine legacy threshold rather than
+    // silently rendering these rows as warning-free.
     render(<>{cell({ row: { original: row({ hairpin_tm_fwd: 55 }) } })}</>);
     const badge = screen.getByText("55");
+    expect(badge.className).toContain("text-warning");
+  });
+
+  it("does not warn via the legacy fallback below the legacy threshold", () => {
+    const cell = hairpinCell();
+    // Same no-flags case, but the worst Tm (30) is below the legacy 40
+    // threshold, so no warning is shown.
+    render(<>{cell({ row: { original: row({ hairpin_tm_fwd: 30 }) } })}</>);
+    const badge = screen.getByText("30");
     expect(badge.className).not.toContain("text-warning");
+  });
+
+  it("falls back per-structure when only the hairpin flags are absent (reverse propagation)", () => {
+    const cell = hairpinCell();
+    // applyReversePropagation clears only hairpin_warn_fwd/rev to undefined
+    // (Ta-dependent, cannot be reused after re-pairing); it copies
+    // homodimer_warn_fwd/rev through unchanged. A row-level "any flag
+    // present -> trust the engine" check treats this row as fully judged
+    // and reads the absent hairpin flags as false, hiding a real hairpin
+    // warning. The fallback must be evaluated per structure.
+    render(
+      <>
+        {cell({
+          row: {
+            original: row({
+              hairpin_tm_fwd: 55,
+              hairpin_warn_fwd: undefined,
+              hairpin_warn_rev: undefined,
+              homodimer_warn_fwd: false,
+              homodimer_warn_rev: false,
+              homodimer_tm_fwd: 30,
+              homodimer_tm_rev: 30,
+            }),
+          },
+        })}
+      </>,
+    );
+    const badge = screen.getByText("55");
+    expect(badge.className).toContain("text-warning");
   });
 
   it("renders the neutral placeholder when no structure was found", () => {
