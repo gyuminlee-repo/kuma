@@ -15,6 +15,8 @@ from pathlib import Path
 
 import pytest
 
+from collections.abc import Iterator
+
 sys.path.insert(0, str(Path(__file__).parent.parent / "python-core"))
 
 from kuma_core.kuro import codon_table as codon_table_mod  # noqa: E402
@@ -46,7 +48,7 @@ def _valid_user_table(key: str, source_stem: str = "ecoli", **overrides) -> dict
 
 
 @pytest.fixture
-def user_dir(tmp_path, monkeypatch) -> Path:
+def user_dir(tmp_path, monkeypatch) -> Iterator[Path]:
     """Point HOME at a fresh directory and hand back the codon-table folder."""
     monkeypatch.setenv("HOME", str(tmp_path))
     directory = tmp_path / ".kuma" / "kuro" / "codon_tables"
@@ -100,14 +102,25 @@ class TestUserDirectoryResolution:
         assert failed["broken.json"]["code"] == "V3"
 
     def test_case_only_collision_keeps_the_lowercase_file(self, user_dir):
-        # Linux lets both names coexist. The lowercase one is the one kuma can
-        # actually key on, so it loads and the other is reported.
+        # Two names that differ only in case, which is a state the filesystem
+        # has to allow before the registry can be asked what it does with it.
+        # A case-insensitive filesystem folds the second write onto the first,
+        # so the collision never exists and there is nothing to assert. macOS
+        # and Windows are case-insensitive by default, which is why this test
+        # failed there while passing on Linux.
         (user_dir / "lab_strain.json").write_text(
             json.dumps(_valid_user_table("lab_strain")), encoding="utf-8"
         )
         (user_dir / "Lab_Strain.json").write_text(
             json.dumps(_valid_user_table("lab_strain")), encoding="utf-8"
         )
+        if not (user_dir / "lab_strain.json").exists() or len(
+            list(user_dir.glob("*.json"))
+        ) < 2:
+            pytest.skip(
+                "case-insensitive filesystem: the two names collapse to one "
+                "file, so the registry never sees the collision this asserts"
+            )
         registry = codon_table_mod.get_registry()
         registry.refresh()
         scan = registry.scan()

@@ -8,11 +8,13 @@ from pathlib import Path
 
 import pytest
 
+from collections.abc import Iterator
+
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures"
 
 
 @pytest.fixture(scope="session", autouse=True)
-def isolated_home(tmp_path_factory) -> Path:
+def isolated_home(tmp_path_factory) -> Iterator[Path]:
     """Point ``HOME`` at an empty directory for the whole session.
 
     ``kuma_core.kuro.codon_table`` scans ``$HOME/.kuma/kuro/codon_tables`` for
