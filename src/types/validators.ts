@@ -273,6 +273,47 @@ function isListOrganismsResult(value: unknown): boolean {
   );
 }
 
+// `detail` is optional: the backend's English sentence, kept as the fallback
+// for a code a build does not know. The localized sentence is rebuilt from
+// `code` and `params`, so a guard that required `detail` would reject a
+// perfectly renderable finding.
+function isCodonTableImportFinding(value: unknown): boolean {
+  return (
+    isCodonTableFinding(value) &&
+    (!isRecord(value) || value.detail === undefined || isString(value.detail))
+  );
+}
+
+// `table_sha256`, `document` and `path` are all nullable rather than absent,
+// because all three are "known not to exist" rather than "not reported": a
+// rejected import has no digest, a dry run has no path. Making them optional
+// would let a sidecar that forgot to send them pass as a successful install.
+function isImportCodonTableResult(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isBoolean(value.ok) &&
+    isBoolean(value.installed) &&
+    isString(value.key) &&
+    (value.table_sha256 === null || isString(value.table_sha256)) &&
+    isArrayOf(value.errors, isCodonTableImportFinding) &&
+    isArrayOf(value.warnings, isCodonTableImportFinding) &&
+    isArrayOf(value.normalizations, isCodonTableImportFinding) &&
+    isNumber(value.checks_performed) &&
+    isNumber(value.codons_examined) &&
+    (value.document === null || isCodonTableDocument(value.document)) &&
+    (value.path === null || isString(value.path))
+  );
+}
+
+function isExportCodonTableResult(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isString(value.path) &&
+    isString(value.format) &&
+    isNumber(value.bytes)
+  );
+}
+
 function isGeneInfo(value: unknown): boolean {
   return (
     isRecord(value) &&
@@ -1145,6 +1186,10 @@ const rpcResultValidators = {
     isSaveCustomPolymeraseResult(value),
   list_organisms: (value): value is RpcMethodResult<"list_organisms"> =>
     isListOrganismsResult(value),
+  import_codon_table: (value): value is RpcMethodResult<"import_codon_table"> =>
+    isImportCodonTableResult(value),
+  export_codon_table: (value): value is RpcMethodResult<"export_codon_table"> =>
+    isExportCodonTableResult(value),
   load_fasta: (value): value is RpcMethodResult<"load_fasta"> =>
     isSequenceInfo(value),
   parse_mutations_text: (value): value is RpcMethodResult<"parse_mutations_text"> =>

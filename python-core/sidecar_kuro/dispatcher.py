@@ -61,6 +61,10 @@ from sidecar_kuro.handlers.misc import (
     handle_preview_evolvepro_source,
     handle_run_benchmark,
 )
+from sidecar_kuro.handlers.codon import (
+    handle_import_codon_table,
+    handle_export_codon_table,
+)
 from sidecar_kuro.handlers.settings import (
     handle_load as handle_settings_load,
     handle_save as handle_settings_save,
@@ -95,6 +99,8 @@ _METHODS = {
     "get_polymerase_details": handle_get_polymerase_details,
     "save_custom_polymerase": handle_save_custom_polymerase,
     "list_organisms": handle_list_organisms,
+    "import_codon_table": handle_import_codon_table,
+    "export_codon_table": handle_export_codon_table,
     "load_fasta": handle_load_fasta,
     "parse_mutations_text": handle_parse_mutations_text,
     "design_sdm_primers": handle_design_sdm_primers,

@@ -30,6 +30,7 @@ export interface SidecarKuroModels {
   ExcludedRange?: ExcludedRange;
   ExportAllParams?: ExportAllParams;
   ExportBenchmarkCsvParams?: ExportBenchmarkCsvParams;
+  ExportCodonTableParams?: ExportCodonTableParams;
   ExportExcelParams?: ExportExcelParams;
   ExportMacrogenParams?: ExportMacrogenParams;
   ExportMappingDryRunParams?: ExportMappingDryRunParams;
@@ -48,6 +49,7 @@ export interface SidecarKuroModels {
   FetchStructureParams?: FetchStructureParams;
   FileExportResultModel?: FileExportResultModel;
   GetAlternativesParams?: GetAlternativesParams;
+  ImportCodonTableParams?: ImportCodonTableParams;
   LandscapeEntry?: LandscapeEntry;
   LoadEvolveproParams?: LoadEvolveproParams;
   LoadFastaParams?: LoadFastaParams;
@@ -535,6 +537,20 @@ export interface ExportBenchmarkCsvParams {
   };
   [k: string]: unknown;
 }
+/**
+ * Parameters for ``export_codon_table``.
+ *
+ * Kazusa is absent from the format union on purpose. It is an input path
+ * only: the canonical stored form is decided (design note section 3.3, one
+ * storage canon), and writing a fourth spelling of a table kuma would then
+ * have to read back is a second canon in all but name.
+ */
+export interface ExportCodonTableParams {
+  filepath: string;
+  format: "json" | "csv" | "cusp";
+  key: string;
+  [k: string]: unknown;
+}
 export interface ExportExcelParams {
   benchmark_raw?: unknown;
   dedup_info?: {
@@ -700,6 +716,38 @@ export interface FileExportResultModel {
 }
 export interface GetAlternativesParams {
   mutation?: string;
+  [k: string]: unknown;
+}
+/**
+ * Parameters for ``import_codon_table``.
+ *
+ * ``key`` is required and is the identity the table is installed under. It
+ * is deliberately not derived from the file name: V9 tells a user whose file
+ * collides with a bundled table to "import under a different key, for
+ * example ecoli_lab", which is only an instruction the user can follow if
+ * the key is a field they control. The same parameter is what makes V10
+ * reachable, since a second import of one file can now claim the same key.
+ *
+ * ``text`` carries a Kazusa page pasted into the dialog; ``filepath`` a file
+ * the user browsed to. One of the two is required, and ``text`` wins when
+ * both arrive, because a paste is the more recent thing the user did.
+ *
+ * ``dry_run`` is the preview. It runs the identical validation and returns
+ * the identical findings, so the sentences shown before importing are the
+ * sentences the import itself would produce.
+ */
+export interface ImportCodonTableParams {
+  aliases?: string[];
+  dry_run?: boolean;
+  filepath?: string | null;
+  format: "json" | "csv" | "cusp" | "kazusa";
+  genetic_code?: number | null;
+  key: string;
+  name?: string;
+  overwrite?: boolean;
+  source?: string;
+  taxid?: number | null;
+  text?: string | null;
   [k: string]: unknown;
 }
 export interface LandscapeEntry {

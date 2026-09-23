@@ -133,6 +133,83 @@ export interface ListOrganismsResult {
   user_dir: string;
 }
 
+/**
+ * One finding as the import RPC reports it.
+ *
+ * `CodonTableFinding` plus the backend's English `detail`. The import path
+ * carries the detail because it can fail before any rule runs -- a CSV whose
+ * columns cannot be located (V36) has its specifics only in that string --
+ * whereas `list_organisms` already joins its details into `reason`.
+ */
+export interface CodonTableImportFinding extends CodonTableFinding {
+  detail?: string;
+}
+
+/**
+ * What `import_codon_table` reports.
+ *
+ * `ok` and `installed` are two different facts. A `dry_run` that passes every
+ * rule is `ok` and not `installed`, and that is the preview: the dialog shows
+ * exactly the findings the real import would produce, from the same call with
+ * one flag flipped, so preview and import cannot drift apart.
+ *
+ * `checks_performed` and `codons_examined` are surfaced rather than kept in
+ * the backend because "no problems found" from zero checks and "no problems
+ * found" from two hundred checks must not read the same on screen.
+ *
+ * `normalizations` is what the import silently changed (N1 U-to-T, N2 case,
+ * N4 fractions recomputed from counts). Phase 2 made these reachable in the
+ * listing; the preview is where they are actually useful, because this is the
+ * one moment the user can still decide not to install the table.
+ */
+export interface ImportCodonTableResult {
+  ok: boolean;
+  installed: boolean;
+  key: string;
+  table_sha256: string | null;
+  errors: CodonTableImportFinding[];
+  warnings: CodonTableImportFinding[];
+  normalizations: CodonTableImportFinding[];
+  checks_performed: number;
+  codons_examined: number;
+  /** The document as it was or would be written. Null when the table was rejected. */
+  document: CodonTableDocument | null;
+  /** Where it was written. Null for a dry run and for a rejection. */
+  path: string | null;
+}
+
+export interface ImportCodonTableParams {
+  format: "json" | "csv" | "cusp" | "kazusa";
+  key: string;
+  filepath?: string;
+  text?: string;
+  name?: string;
+  taxid?: number | null;
+  genetic_code?: number;
+  aliases?: string[];
+  source?: string;
+  overwrite?: boolean;
+  dry_run?: boolean;
+}
+
+/**
+ * Parameters for `export_codon_table`.
+ *
+ * No Kazusa. It is an input format only: the stored canonical form is decided
+ * and a fourth spelling kuma would have to read back is a second canon.
+ */
+export interface ExportCodonTableParams {
+  key: string;
+  format: "json" | "csv" | "cusp";
+  filepath: string;
+}
+
+export interface ExportCodonTableResult {
+  path: string;
+  format: string;
+  bytes: number;
+}
+
 export interface PolymeraseProfile {
   name: string;
   tm_method: string;
@@ -871,6 +948,14 @@ export interface RpcMethodMap {
   list_organisms: {
     params: Record<string, never>;
     result: ListOrganismsResult;
+  };
+  import_codon_table: {
+    params: ImportCodonTableParams;
+    result: ImportCodonTableResult;
+  };
+  export_codon_table: {
+    params: ExportCodonTableParams;
+    result: ExportCodonTableResult;
   };
   load_fasta: {
     params: { filepath: string };
