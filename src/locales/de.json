@@ -3882,6 +3882,7 @@
       "V33": "Keine Aliase vorhanden. kuma wählt diesen Organismus nicht automatisch, wenn Sie eine mit '{{name}}' annotierte Sequenz laden. Ergänzen Sie die Organismusnamen, die Ihre GenBank-Dateien verwenden.",
       "V34": "{{n}} Codon(s) haben die Häufigkeit 0 und werden nie gewählt: {{list}}.",
       "V35": "Nicht erkannte Felder werden ignoriert: {{list}}.",
+      "V36": "Diese Datei konnte nicht als {{format}} gelesen werden: {{detail}}. Prüfen Sie, ob das gewählte Format zur ausgewählten Datei passt.",
       "N1": "RNA-Codons wurden in DNA umgewandelt (U zu T), insgesamt {{n}} Codons.",
       "N2": "{{n}} Codon(s) lagen in Kleinbuchstaben vor und wurden in Großbuchstaben umgewandelt.",
       "N4": "Die Häufigkeiten wurden aus den Codon-Anzahlen neu berechnet.",

@@ -3882,6 +3882,7 @@
       "V33": "Sem aliases. O kuma não vai selecionar este organismo automaticamente ao carregar uma sequência anotada como '{{name}}'. Acrescente os nomes de organismo usados nos seus arquivos GenBank.",
       "V34": "{{n}} códon(s) têm frequência 0 e nunca serão escolhidos: {{list}}.",
       "V35": "Campos não reconhecidos foram ignorados: {{list}}.",
+      "V36": "Não foi possível ler este arquivo como {{format}}: {{detail}}. Verifique se o formato escolhido corresponde ao arquivo selecionado.",
       "N1": "Os códons de RNA foram convertidos para DNA (U para T): {{n}} códons.",
       "N2": "{{n}} códon(s) estavam em minúsculas e foram convertidos para maiúsculas.",
       "N4": "As frequências foram recalculadas a partir das contagens de códons.",

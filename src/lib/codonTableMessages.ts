@@ -17,7 +17,13 @@
  * the only shape the check can read, so each code gets its own line.
  *
  * SCOPE OF THE CODES HANDLED HERE.
- * V1-V35 and N1, N2, N4 come from `MESSAGE_CODES`. N3 (leading and trailing
+ * V1-V36 and N1, N2, N4 come from `MESSAGE_CODES`. V36 is the odd one: no
+ * rule in codon_import.py raises it. It is the parse failure
+ * `codon_formats.CodonFormatError` reports when a CSV, cusp or Kazusa file
+ * has no locatable columns, which produces no `codons` block for any V-rule
+ * to judge. Its line number rides inside `detail` rather than as a third
+ * placeholder, because a whole-file failure has no line to name and the
+ * parity gate would still demand the placeholder be filled. N3 (leading and trailing
  * whitespace trimmed) is in that tuple but is never emitted - codon_import.py
  * calls it "silent by design" - so it has no string and falls to `unknown`.
  * The runtime rule R5 is handled too. `failed[]` now carries a `findings` list
@@ -113,6 +119,8 @@ export function formatCodonTableMessage(
       return t("codonTable.messages.V34", { n: params.n, list: params.list });
     case "V35":
       return t("codonTable.messages.V35", { list: params.list });
+    case "V36":
+      return t("codonTable.messages.V36", { format: params.format, detail: params.detail });
     case "N1":
       return t("codonTable.messages.N1", { n: params.n });
     case "N2":

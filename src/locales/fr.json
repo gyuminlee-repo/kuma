@@ -3882,6 +3882,7 @@
       "V33": "Aucun alias. kuma ne sélectionnera pas automatiquement cet organisme lors du chargement d'une séquence annotée '{{name}}'. Ajoutez les noms d'organismes employés par vos fichiers GenBank.",
       "V34": "{{n}} codon(s) ont une fréquence nulle et ne seront jamais retenus : {{list}}.",
       "V35": "Champs non reconnus ignorés : {{list}}.",
+      "V36": "Ce fichier n'a pas pu être lu au format {{format}} : {{detail}}. Vérifiez que le format choisi correspond au fichier sélectionné.",
       "N1": "Les codons ARN ont été convertis en ADN (U en T), soit {{n}} codons.",
       "N2": "{{n}} codon(s) étaient en minuscules et ont été convertis en majuscules.",
       "N4": "Les fréquences ont été recalculées à partir des décomptes de codons.",
