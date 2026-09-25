@@ -60,6 +60,13 @@ export default defineConfig(({ }) => {
                 __dirname,
                 "scripts/stubs/webview.ts",
               ),
+              // SettingsDialog stays mounted and asks for notification
+              // permission on mount, so without this alias every workspace
+              // screen logs "no stub for plugin:notification|is_permission_granted".
+              "@tauri-apps/plugin-notification": resolve(
+                __dirname,
+                "scripts/stubs/notification.ts",
+              ),
             }
           : {}),
       },
