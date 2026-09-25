@@ -35,7 +35,10 @@ src-tauri/gen/
 benchmark/data/
 
 # Dev tooling & internal notes
-.claude/
+# .claude/* rather than .claude/: git cannot re-include a path whose parent
+# directory is excluded, and .claude/skills/ holds tracked project skills.
+.claude/*
+!.claude/skills/
 .gjc/
 .worktrees/
 notes/
