@@ -11,9 +11,12 @@ import type { EchoQuadrant } from "@/types/models";
  */
 
 import type { SortingState, Updater } from "@tanstack/react-table";
+import type { ExpectedCodonTable } from "../lib/codonTableRestore";
 import type { Round } from "../types/round";
 import type {
   BenchmarkResult,
+  ComputeCodonTableParams,
+  ComputeCodonTableResult,
   ComputeDispersionResult,
   DesignRunRecord,
   DistanceMode,
@@ -28,6 +31,10 @@ import type {
   PredictStructureEsmfoldResult,
   LinkerHandling,
   MutationInputMode,
+  CodonTableFailure,
+  ExportCodonTableParams,
+  ImportCodonTableParams,
+  ImportCodonTableResult,
   OrganismSummary,
   OverlapMode,
   ParsedMutation,
@@ -60,12 +67,75 @@ export interface SequenceSlice {
   // reports ready, and empty again if the list call fails, so every consumer
   // has to tolerate a selection that is not in it.
   organisms: OrganismSummary[];
+  // Files in the user codon-table folder that did not load. Shown in Settings
+  // rather than swallowed: a table that is silently ignored is worse than one
+  // that is rejected out loud, because the user goes on believing it is in use.
+  codonTableFailures: CodonTableFailure[];
+  // The folder path the sidecar resolved, or null before the first listing.
+  // Never reconstructed in the frontend; see ListOrganismsResult.
+  codonTableDir: string | null;
+  // What a restored project says its codon table was, or null when nothing has
+  // been restored. Held as an expectation rather than resolved once at restore
+  // time because hydration can run before the first listing lands, where every
+  // key would read as "not installed here" (lib/codonTableRestore.ts).
+  restoredCodonTable: ExpectedCodonTable | null;
 
   // Actions
   loadSequence: (filepath: string) => Promise<void>;
   setSelectedGene: (gene: string) => void;
   setOrganism: (organism: string) => void;
   loadOrganisms: () => Promise<void>;
+  setRestoredCodonTable: (expected: ExpectedCodonTable | null) => void;
+  /**
+   * Write the project's copy of the codon table into the user folder and
+   * re-list. Resolves to the failure reason, or null on success.
+   *
+   * Only ever called from an explicit user action: the project's copy is the
+   * authoritative one, and overwriting a local table of the same key still
+   * needs saying so out loud (design note section 8.3, last row).
+   */
+  installRestoredCodonTable: () => Promise<string | null>;
+  /**
+   * Validate a table file without installing it, for the import preview.
+   *
+   * The same RPC the install uses with `dry_run` set, so the findings the
+   * dialog shows before importing are the findings the import produces rather
+   * than a second implementation of the same rules. Rejections come back as a
+   * result with `ok: false`, not as a throw: they are the expected answer for
+   * a file the user picked, and the dialog renders every rule that fired.
+   */
+  previewCodonTable: (params: ImportCodonTableParams) => Promise<ImportCodonTableResult>;
+  /**
+   * Install a codon table and select it.
+   *
+   * Follows saveCustomPolymerase exactly: send, re-list, select. The re-list
+   * is what makes the new key selectable, and selecting it is what the user
+   * came to do -- an import that left the dropdown on the previous organism
+   * would look like it had failed.
+   */
+  importCodonTable: (params: ImportCodonTableParams) => Promise<ImportCodonTableResult>;
+  /**
+   * Count a genome into a codon table without installing it, for the preview.
+   *
+   * `dry_run` again, and again the same RPC the install uses. The scan runs
+   * either way -- there is no cheaper way to learn how many coding sequences a
+   * file holds than to read them -- so what the preview saves is the write,
+   * not the work.
+   */
+  previewComputedCodonTable: (
+    params: ComputeCodonTableParams,
+  ) => Promise<ComputeCodonTableResult>;
+  /**
+   * Count a genome into a codon table, install it and select it.
+   *
+   * Same send -> relist -> select as importCodonTable, because it is the same
+   * outcome: a key in the dropdown the user came here to design with.
+   */
+  computeCodonTable: (
+    params: ComputeCodonTableParams,
+  ) => Promise<ComputeCodonTableResult>;
+  /** Write an installed table out as a file. Resolves to the path written. */
+  exportCodonTable: (params: ExportCodonTableParams) => Promise<string>;
 }
 
 // ---------------------------------------------------------------------------

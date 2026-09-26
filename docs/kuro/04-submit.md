@@ -13,7 +13,6 @@ Submit step 상단에 표시되는 read-only 요약 카드. zustand store 를 me
 | Selection mode | `Pipeline (failover)` / `Top-N only` |
 | Variant count | `evolveproTotalCount` 또는 mutation row 개수 |
 | Polymerase | 선택된 profile 이름 |
-| Codon strategy | `Min. changes` / `Optimal` |
 
 이 카드의 Selection mode 텍스트는 Step 2 의 라디오 선택과 항상 일치한다 (회귀 방지 E2E test 대상).
 

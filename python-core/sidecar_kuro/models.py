@@ -1094,3 +1094,82 @@ class SettingsSaveResponse(BaseModel):
 
     ok: bool
     path: str
+
+
+class ImportCodonTableParams(BaseModel):
+    """Parameters for ``import_codon_table``.
+
+    ``key`` is required and is the identity the table is installed under. It
+    is deliberately not derived from the file name: V9 tells a user whose file
+    collides with a bundled table to "import under a different key, for
+    example ecoli_lab", which is only an instruction the user can follow if
+    the key is a field they control. The same parameter is what makes V10
+    reachable, since a second import of one file can now claim the same key.
+
+    ``text`` carries a Kazusa page pasted into the dialog; ``filepath`` a file
+    the user browsed to. One of the two is required, and ``text`` wins when
+    both arrive, because a paste is the more recent thing the user did.
+
+    ``dry_run`` is the preview. It runs the identical validation and returns
+    the identical findings, so the sentences shown before importing are the
+    sentences the import itself would produce.
+    """
+
+    format: Literal["json", "csv", "cusp", "kazusa"]
+    key: str
+    filepath: Optional[str] = None
+    text: Optional[str] = None
+    name: str = ""
+    # Nullable rather than absent: an in-house strain has no NCBI id and V13
+    # accepts null for exactly that reason.
+    taxid: Optional[int] = None
+    genetic_code: Optional[int] = 11
+    aliases: list[str] = Field(default_factory=list)
+    source: str = ""
+    overwrite: bool = False
+    dry_run: bool = False
+
+
+class ComputeCodonTableParams(BaseModel):
+    """Parameters for ``compute_codon_table``.
+
+    ``genetic_code`` is a plain ``int`` with a default rather than an
+    ``Optional[int]``. The import model had to make it optional because a kuma
+    JSON file declares its own code and the dialog's value must not touch it;
+    a genome file declares nothing, so here the caller's value is the only one
+    there is and there is no second source for an ``or 11`` fallback to pick
+    from. That fallback is exactly the overwrite Phase 3 found as a defect, so
+    the type is the one shape in which it cannot be written by accident.
+
+    ``genome_format`` is normally absent: ``codon_compute`` reads the suffix.
+    It is here for the file whose name does not say, which is the one case the
+    user can resolve and the program cannot.
+
+    ``dry_run`` is the preview the dialog calls before it offers to install,
+    and it is the same call with the write skipped, as on the import path.
+    """
+
+    filepath: str
+    key: str
+    name: str = ""
+    taxid: Optional[int] = None
+    genetic_code: int = 11
+    genome_format: Optional[Literal["fasta", "genbank"]] = None
+    aliases: list[str] = Field(default_factory=list)
+    source: str = ""
+    overwrite: bool = False
+    dry_run: bool = False
+
+
+class ExportCodonTableParams(BaseModel):
+    """Parameters for ``export_codon_table``.
+
+    Kazusa is absent from the format union on purpose. It is an input path
+    only: the canonical stored form is decided (design note section 3.3, one
+    storage canon), and writing a fourth spelling of a table kuma would then
+    have to read back is a second canon in all but name.
+    """
+
+    key: str
+    format: Literal["json", "csv", "cusp"]
+    filepath: str

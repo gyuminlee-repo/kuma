@@ -163,7 +163,18 @@
         "interpro": "InterPro / Pfam via EBI (annotation de domaines)"
       }
     },
-    "savedAt": "Enregistré à {{time}}"
+    "savedAt": "Enregistré à {{time}}",
+    "codonTables": {
+      "title": "Tables de codons",
+      "hint": "Placez dans ce dossier un fichier .json contenant la table de codons de l'organisme, puis cliquez sur Actualiser. Le nom du fichier sans .json devient la clé de l'organisme.",
+      "counts": "{{builtin}} intégrées, {{user}} depuis ce dossier.",
+      "openFolder": "Ouvrir le dossier",
+      "refresh": "Actualiser",
+      "openFolderFailed": "Le dossier n'a pas pu être ouvert. Copiez le chemin ci-dessus dans votre gestionnaire de fichiers.",
+      "notLoaded": "Non chargés",
+      "notLoadedEntry": "{{filename}} n'a pas été chargé ({{code}}) : {{reason}}",
+      "advisories": "Chargées avec avertissements"
+    }
   },
   "mame": {
     "plateOrder": {
@@ -1643,6 +1654,7 @@
     "sectionTmDistribution": "Distribution de Tm",
     "sectionDomainAllocation": "Allocation par domaine",
     "sectionFailedMutations": "Mutations échouées",
+    "statOrganism": "Organisme",
     "statStep1Filter": "Filtre étape 1",
     "statStep2Domains": "Domaines étape 2",
     "statStep2Overlap": "Overlap étape 2",
@@ -2178,7 +2190,8 @@
     "ecoliTitle": "Table de codon usage Escherichia coli K-12. À utiliser pour l'expression en E. coli BL21, DH5α, dérivés K-12.",
     "bsubtilisTitle": "Table de codon usage Bacillus subtilis 168. À utiliser pour l'expression en B. subtilis ou hôtes Gram-positifs apparentés.",
     "scerevisiaeTitle": "Table de codon usage Saccharomyces cerevisiae. À utiliser pour l'expression en levures bourgeonnantes.",
-    "sequenceFileHelp": "Reference sequence file (.fasta/.gb) used as template for primer design."
+    "sequenceFileHelp": "Reference sequence file (.fasta/.gb) used as template for primer design.",
+    "addOrganism": "Ajouter un organisme..."
   },
   "mutationInput": {
     "mutations": "Mutations",
@@ -2599,12 +2612,11 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Les séquences consensus écrivent un tiret là où une base manque, si bien qu'une délétion ne ressemble plus à une position non interprétable.",
-      "Les amorces barcode passent désormais les mêmes contrôles hairpin, self-dimer et off-target que les amorces de conception.",
-      "Une amorce barcode qui échoue à ces contrôles est remplacée, et si aucune ne passe, l'avertissement nomme la mesure en cause.",
-      "La réouverture d'une analyse enregistrée conserve la longueur de délétion et la séquence restaurée que les versions précédentes perdaient."
+      "La table de codons d'un organisme s'installe en deposant un fichier, en important un CSV/cusp/Kazusa, ou en la calculant depuis un genome.",
+      "Une conception enregistre la table de codons par cle et empreinte, et propose la copie du projet si la table manque ou a change.",
+      "La documentation qui decrivait encore le selecteur de strategie de codons supprime decrit maintenant la table d'organisme qui l'a remplace."
     ],
-    "highlightsStamp": "0.16.69+60279e8e",
+    "highlightsStamp": "0.16.70+291b4798",
     "releases": {
       "0.16.69": [
         "Les séquences consensus écrivent un tiret là où une base manque, si bien qu'une délétion ne ressemble plus à une position non interprétable.",
@@ -3096,6 +3108,11 @@
         "L'aide du Variant list mapping indique désormais le sens de remplissage des wells : A1, B1, C1 jusqu'à H1, puis A2.",
         "Le hook post-commit de version n'échoue plus sur un chemin supprimé.",
         "Une note de version longue défile maintenant dans la boîte de dialogue au lieu de dépasser en bas."
+      ],
+      "0.16.70": [
+        "La table de codons d'un organisme s'installe en deposant un fichier, en important un CSV/cusp/Kazusa, ou en la calculant depuis un genome.",
+        "Une conception enregistre la table de codons par cle et empreinte, et propose la copie du projet si la table manque ou a change.",
+        "La documentation qui decrivait encore le selecteur de strategie de codons supprime decrit maintenant la table d'organisme qui l'a remplace."
       ]
     },
     "releaseStamps": {
@@ -3177,7 +3194,8 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21"
+      "0.15.16": "fe8e6f21",
+      "0.16.70": "291b4798"
     }
   },
   "primerDisplay": {
@@ -3787,7 +3805,8 @@
       "geneRangeInvalid": "Gene end must be greater than gene start",
       "projectPath": "Open or create a project first",
       "activeRound": "Select a round first",
-      "activityData": "Upload activity data first"
+      "activityData": "Upload activity data first",
+      "codonTableUnresolved": "Table de codons (traitez l'avis sous la liste des organismes)"
     },
     "actionBlockedTitle": "Cannot proceed — missing required input"
   },
@@ -3869,6 +3888,123 @@
     "badge": {
       "staleHint": "Plus ancien que les entrées dont il provient. Relancez l'étape pour le mettre à jour.",
       "detected": "Sortie de {{step}} détectée"
+    }
+  },
+  "codonTable": {
+    "messages": {
+      "V1": "Une table de codons doit être un fichier .json. Vous avez sélectionné {{ext}}.",
+      "V2": "Ce fichier fait {{size}} ; une table de codons ne pèse que quelques kilo-octets. Avez-vous sélectionné un fichier de génome par erreur ?",
+      "V3": "Ce fichier n'est pas du JSON valide (ligne {{line}}, colonne {{col}}) : {{detail}}. Vérifiez s'il reste une virgule en trop ou un crochet non fermé.",
+      "V4": "Une table de codons doit être un objet JSON, et non un {{type}}.",
+      "V5": "Cette table exige une version plus récente de kuma (schema_version {{n}} ; cette version gère au plus {{max}}).",
+      "V6": "Impossible de lire le fichier ({{reason}}). Enregistrez-le en UTF-8 et vérifiez ses permissions.",
+      "V7": "La clé de table '{{key}}' est inutilisable. Utilisez des minuscules, des chiffres et des tirets bas, de 2 à 32 caractères, en commençant par une lettre.",
+      "V8": "Le fichier s'appelle {{stem}}.json mais déclare la clé '{{key}}'. Les deux doivent correspondre, car kuma recherche la table par son nom de fichier.",
+      "V9": "'{{key}}' est une table intégrée ({{name}}) et ne peut pas être remplacée. Importez-la sous une autre clé, par exemple {{key}}_lab. Les exécutions n'enregistrent que la clé : deux postes ne doivent jamais lui donner un sens différent.",
+      "V10": "'{{key}}' existe déjà ({{name}}, importée le {{date}}, empreinte {{sha8}}). Remplacez-la ou importez-la sous une autre clé.",
+      "V11": "Deux noms de fichiers ne diffèrent que par la casse et produisent la même clé sur les systèmes de fichiers insensibles à la casse. Seul {{kept}} a été chargé. Renommez l'un des deux.",
+      "V12": "Cette table n'a pas de nom d'affichage. Ajoutez un nom tel que 'Methylorubrum extorquens AM1'.",
+      "V13": "taxid doit être un identifiant taxonomique NCBI ou rester vide, et non {{value}}.",
+      "V14": "Aucun code génétique n'est déclaré. La table NCBI {{n}} (bactérienne) est retenue par défaut.",
+      "V15": "kuma ne prend en charge que les codes génétiques NCBI 1 et 11 ; cette table déclare {{n}}. Un code non standard modifie la lecture des codons sauvages, et pas seulement la préférence de codons : il ne peut donc pas être importé sous la forme d'une simple table de fréquences.",
+      "V16": "Le codon {{codon}} est classé sous {{declared}}, alors que le code génétique {{n}} le traduit en {{expected}}. Cela signale généralement une inversion des colonnes acide aminé et codon.",
+      "V17": "21 entrées d'acides aminés sont attendues, dont le stop '*'. Manquantes : {{missing}}. Inattendues : {{extra}}.",
+      "V18": "Les 64 codons doivent figurer exactement une fois chacun. Manquants : {{missing}}. En double : {{dup}}.",
+      "V19": "'{{codon}}' n'est pas une entrée de codon exploitable. Un codon compte exactement trois lettres parmi A, C, G, T ou U, et les lettres d'ambiguïté comme N, R ou Y sont interdites.",
+      "V20": "'{{codon}}' compte {{n}} lettres. Un codon en compte exactement 3.",
+      "V21": "La fréquence de {{codon}} vaut {{value}}. Elle doit être un nombre compris entre 0 et 1. Si votre source donne des pourcentages, divisez par 100.",
+      "V22": "Les fréquences de {{aa}} totalisent {{sum}} au lieu de 1. Les codons synonymes d'un acide aminé doivent être des fractions de l'usage de cet acide aminé.",
+      "V23": "Les fréquences de {{aa}} totalisent {{sum}}. La valeur reste dans la tolérance mais suggère une source arrondie ou incomplète.",
+      "V24": "Tous les codons de {{aa}} ont une fréquence nulle : kuma ne peut en choisir aucun.",
+      "V25": "Le décompte de {{codon}} vaut {{value}}. Les décomptes doivent être des entiers positifs ou nuls.",
+      "V26": "counts et codons ne listent pas les mêmes codons : {{diff}}.",
+      "V27": "La fréquence enregistrée pour {{codon}} est {{stored}}, alors que son décompte donne {{computed}}. L'une des deux valeurs a été modifiée à la main. Corrigez le fichier ou supprimez le bloc counts.",
+      "V28": "'{{alias}}' n'est pas un alias exploitable. aliases doit être une liste de noms non vides.",
+      "V29": "L'alias '{{alias}}' est déjà la clé de {{other}}. Une annotation ne doit jamais renvoyer à deux tables différentes.",
+      "V30": "L'alias '{{alias}}' pointe déjà vers {{other}}. Supprimez-le ou choisissez un nom plus précis.",
+      "V31": "Cette table repose sur {{cds}} séquences codantes ({{codons}} codons). L'échantillon est réduit et les fréquences ne sont peut-être pas représentatives de l'organisme.",
+      "V32": "Cette table n'indique aucune provenance. kuma l'enregistrera, mais une exécution qui s'en sert ne pourra pas dire d'où viennent les chiffres.",
+      "V33": "Aucun alias. kuma ne sélectionnera pas automatiquement cet organisme lors du chargement d'une séquence annotée '{{name}}'. Ajoutez les noms d'organismes employés par vos fichiers GenBank.",
+      "V34": "{{n}} codon(s) ont une fréquence nulle et ne seront jamais retenus : {{list}}.",
+      "V35": "Champs non reconnus ignorés : {{list}}.",
+      "V36": "Ce fichier n'a pas pu être lu au format {{format}} : {{detail}}. Vérifiez que le format choisi correspond au fichier sélectionné.",
+      "N1": "Les codons ARN ont été convertis en ADN (U en T), soit {{n}} codons.",
+      "N2": "{{n}} codon(s) étaient en minuscules et ont été convertis en majuscules.",
+      "N4": "Les fréquences ont été recalculées à partir des décomptes de codons.",
+      "R5": "{{filename}} est masqué par la table intégrée '{{stem}}' et n'a pas été chargé. Renommez-le en {{stem}}_lab.json pour l'utiliser.",
+      "unknown": "Le vérificateur de tables de codons a signalé {{code}}, pour lequel cette version de kuma n'a pas de description.",
+      "G1": "kuma n'a pas pu lire ce fichier dans le format de génome que son nom annonce : {{detail}}",
+      "G2": "kuma ne compte pas les codons sous le code génétique {{code}}. Choisissez 1 ou 11.",
+      "G3": "Aucune séquence codante n'a été comptée dans {{file}}. {{total}} ont été lues et toutes écartées, il n'y a donc rien pour construire une table."
+    },
+    "restore": {
+      "notInstalled": "Ce projet utilise la table de codons '{{name}}', qui n'est pas installée ici. L'installer depuis le fichier de projet ?",
+      "absent": "Ce projet a utilisé la table de codons '{{key}}', absente de cette machine et dont le projet ne contient aucune copie. Placez le fichier dans le dossier des tables de codons avant de concevoir.",
+      "mismatch": "Ce projet a été conçu avec une autre version de la table de codons '{{key}}'. Acides aminés différents : {{list}}. Utilisez la copie enregistrée dans le projet, ou gardez la table locale et relancez la conception.",
+      "mismatchUnexplained": "La table de codons '{{key}}' de cette machine a changé depuis l'enregistrement de cette session. Ouvrez le fichier de projet pour comparer les deux versions, ou relancez la conception avec la table installée ici.",
+      "install": "Installer depuis le projet",
+      "useProjectCopy": "Utiliser la copie du projet",
+      "installing": "Installation...",
+      "overwriteWarning": "Cela remplace la table locale '{{key}}'.",
+      "installFailed": "Impossible d'installer la table : {{reason}}",
+      "installUnavailable": "Le projet ne contient aucune copie de cette table."
+    },
+    "manager": {
+      "title": "Ajouter un organisme",
+      "description": "Installez une table de codons pour un organisme que kuma ne fournit pas, ou exportez-en une pour l'envoyer à un collègue.",
+      "importTab": "Importer un fichier de table",
+      "exportTab": "Exporter",
+      "formatLabel": "Format",
+      "formatJson": "Table kuma (JSON)",
+      "formatCsv": "CSV à trois colonnes",
+      "formatCusp": "Sortie cusp d'EMBOSS",
+      "formatKazusa": "Page Kazusa (collée)",
+      "pasteLabel": "Collez la table d'usage des codons de Kazusa",
+      "fileLabel": "Fichier",
+      "filePlaceholder": "Aucun fichier choisi",
+      "browse": "Parcourir",
+      "keyLabel": "Clé",
+      "nameLabel": "Nom affiché",
+      "taxidLabel": "taxid NCBI",
+      "taxidPlaceholder": "Laissez vide pour une souche maison",
+      "geneticCodeLabel": "Code génétique",
+      "geneticCode11": "11, bactéries et plastes végétaux",
+      "geneticCode1": "1, code standard",
+      "aliasesLabel": "Alias",
+      "aliasesPlaceholder": "Séparés par des virgules, tels que vos fichiers GenBank écrivent l'organisme",
+      "overwriteLabel": "Remplacer la table déjà installée sous cette clé",
+      "checksRun": "{{checks}} vérifications effectuées sur {{codons}} codons.",
+      "errorsLabel": "Cette table ne peut pas être installée",
+      "warningsLabel": "Bon à savoir",
+      "normalizationsLabel": "Ce que l'import a modifié",
+      "readyToInstall": "Cette table satisfait toutes les règles. Empreinte {{digest}}.",
+      "check": "Vérifier le fichier",
+      "import": "Importer",
+      "export": "Exporter",
+      "exportHint": "Écrit une table installée dans un fichier. Il contient les codons que kuma a lus, un réimport redonne donc la même table.",
+      "tableLabel": "Table",
+      "choose": "Choisissez une table",
+      "installed": "Table de codons installée : {{key}}",
+      "importFailed": "Échec de l'import de la table de codons : {{reason}}",
+      "exported": "Table de codons écrite dans {{path}}",
+      "exportFailed": "Échec de l'export de la table de codons : {{reason}}",
+      "computeTab": "Calculer à partir d'un génome",
+      "computeHint": "Choisissez un fichier GenBank ou un FASTA de CDS. kuma compte les codons de chaque séquence codante qu'il sait lire et construit la table à partir de ce décompte.",
+      "genomeLabel": "Génome",
+      "genomePlaceholder": "Aucun génome choisi pour l'instant",
+      "computing": "Comptage des codons…",
+      "computeCheck": "Compter les codons",
+      "computeInstall": "Installer",
+      "previewCounted": "{{counted}} séquences codantes comptées sur {{total}}, {{codons}} codons au total.",
+      "excludedLabel": "Séquences codantes écartées",
+      "excludedNone": "Aucune. Toutes les séquences codantes du fichier ont été comptées.",
+      "reasonPseudo": "Annotée comme pseudogène",
+      "reasonNotMultipleOf3": "La longueur n'est pas un multiple de trois",
+      "reasonInternalStop": "Codon stop avant la fin",
+      "reasonNoTerminalStop": "Pas de codon stop à la fin",
+      "reasonAmbiguousBase": "Contient une base autre que A, C, G ou T",
+      "topCodonsLabel": "Codon le plus fréquent par acide aminé",
+      "divergentLabel": "Plus grand écart avec la table fournie {{reference}}"
     }
   }
 }

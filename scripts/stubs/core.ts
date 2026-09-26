@@ -64,7 +64,17 @@ const KURO_REPLIES: Record<string, (params?: unknown) => unknown> = {
   check_structures_available: () => realBundle.structures ?? {},
   fetch_active_site_residues: () =>
     realBundle.active_site ?? { accession: "", active_site_positions: [], binding_positions: [] },
-  list_organisms: () => realBundle.organisms ?? [],
+  // `list_organisms` answers with an envelope since the user codon-table work.
+  // A capture bundle recorded before that still holds a bare array here, and
+  // regenerating one costs a sidecar build, so accept both shapes: a bare array
+  // is lifted into the envelope the validator now demands.
+  list_organisms: () => {
+    const recorded = realBundle.organisms;
+    if (Array.isArray(recorded)) {
+      return { organisms: recorded, failed: [], user_dir: "" };
+    }
+    return recorded ?? { organisms: [], failed: [], user_dir: "" };
+  },
   export_echo_mapping_dry_run: () => realBundle.echo_dry_run ?? {},
   export_janus_mapping_dry_run: () => realBundle.janus_dry_run ?? {},
   health_info: () => realBundle.health ?? {},

@@ -48,8 +48,9 @@ import type {
  *
  * Tightening here is safe for the top-level `isRecord(value)` calls that open
  * most validators in this file: no KURO or MAME handler returns a bare array for
- * a result those guards cover (the two that do return lists,
- * `list_polymerases` and `list_organisms`, go through `isArrayOf` instead).
+ * a result those guards cover (`list_polymerases`, the one that still returns a
+ * bare list, goes through `isArrayOf` instead; `list_organisms` returns an
+ * envelope and is checked by `isListOrganismsResult`).
  */
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -191,19 +192,177 @@ function isPolymeraseProfile(value: unknown): value is PolymeraseProfile {
   );
 }
 
-// `taxid` is nullable on purpose: the backend emits `data.get("taxid")` and a
-// codon table JSON need not carry the field (an in-house strain has none).
-// This guard runs per element through `isArrayOf`, so requiring a number here
-// made one taxid-less table reject the entire `list_organisms` payload and
-// render an empty organism dropdown.
-function isOrganismSummary(
-  value: unknown,
-): value is { key: string; name: string; taxid: number | null } {
+function isCodonTableFinding(value: unknown): boolean {
+  return isRecord(value) && isString(value.code) && isRecord(value.params);
+}
+
+// `taxid` and `cds_count` are nullable on purpose: the backend emits
+// `data.get("taxid")` and a codon table JSON need not carry either field (an
+// in-house strain has no NCBI id and a hand-written table declares no CDS
+// count). This guard runs per element, so requiring a number here made one
+// taxid-less table reject the entire `list_organisms` payload and render an
+// empty organism dropdown.
+function isOrganismSummary(value: unknown): boolean {
   return (
     isRecord(value) &&
     isString(value.key) &&
     isString(value.name) &&
-    (value.taxid === null || isNumber(value.taxid))
+    (value.taxid === null || isNumber(value.taxid)) &&
+    (value.source === "builtin" || value.source === "user") &&
+    isStringArray(value.aliases) &&
+    (value.cds_count === null || isNumber(value.cds_count)) &&
+    isString(value.table_sha256) &&
+    isArrayOf(value.warnings, isCodonTableFinding) &&
+    // Both optional so a sidecar built before Phase 2 still lists its
+    // organisms instead of rendering an empty dropdown. The consumers treat an
+    // absent document as "cannot embed, cannot diff", which is the same answer
+    // they give for a table that has none.
+    (value.normalizations === undefined ||
+      isArrayOf(value.normalizations, isCodonTableFinding)) &&
+    (value.document === undefined || isCodonTableDocument(value.document))
+  );
+}
+
+function isCodonPairList(value: unknown): boolean {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (pair) =>
+        Array.isArray(pair) &&
+        pair.length === 2 &&
+        isString(pair[0]) &&
+        isNumber(pair[1]),
+    )
+  );
+}
+
+export function isCodonTableDocument(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isString(value.key) &&
+    isString(value.name) &&
+    (value.taxid === null || isNumber(value.taxid)) &&
+    isString(value.source) &&
+    isNumber(value.genetic_code) &&
+    isStringArray(value.aliases) &&
+    isRecord(value.codons) &&
+    Object.values(value.codons).every(isCodonPairList)
+  );
+}
+
+function isCodonTableFailure(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isString(value.filename) &&
+    isString(value.code) &&
+    isString(value.reason) &&
+    (value.findings === undefined ||
+      isArrayOf(value.findings, isCodonTableFinding))
+  );
+}
+
+// The envelope, not a bare array. `failed` and `user_dir` are properties of the
+// listing as a whole and have no place inside an element, so widening the
+// result meant changing its top-level shape rather than adding fields.
+function isListOrganismsResult(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isArrayOf(value.organisms, isOrganismSummary) &&
+    isArrayOf(value.failed, isCodonTableFailure) &&
+    isString(value.user_dir)
+  );
+}
+
+// `detail` is optional: the backend's English sentence, kept as the fallback
+// for a code a build does not know. The localized sentence is rebuilt from
+// `code` and `params`, so a guard that required `detail` would reject a
+// perfectly renderable finding.
+function isCodonTableImportFinding(value: unknown): boolean {
+  return (
+    isCodonTableFinding(value) &&
+    (!isRecord(value) || value.detail === undefined || isString(value.detail))
+  );
+}
+
+// `table_sha256`, `document` and `path` are all nullable rather than absent,
+// because all three are "known not to exist" rather than "not reported": a
+// rejected import has no digest, a dry run has no path. Making them optional
+// would let a sidecar that forgot to send them pass as a successful install.
+function isImportCodonTableResult(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isBoolean(value.ok) &&
+    isBoolean(value.installed) &&
+    isString(value.key) &&
+    (value.table_sha256 === null || isString(value.table_sha256)) &&
+    isArrayOf(value.errors, isCodonTableImportFinding) &&
+    isArrayOf(value.warnings, isCodonTableImportFinding) &&
+    isArrayOf(value.normalizations, isCodonTableImportFinding) &&
+    isNumber(value.checks_performed) &&
+    isNumber(value.codons_examined) &&
+    (value.document === null || isCodonTableDocument(value.document)) &&
+    (value.path === null || isString(value.path))
+  );
+}
+
+function isCodonPreviewTopRow(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isString(value.aa) &&
+    isString(value.codon) &&
+    isNumber(value.fraction) &&
+    isNumber(value.count)
+  );
+}
+
+function isCodonPreviewDivergentRow(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isString(value.aa) &&
+    isString(value.codon) &&
+    isNumber(value.fraction) &&
+    isNumber(value.reference_fraction) &&
+    isNumber(value.delta)
+  );
+}
+
+// The counts are checked, the two record maps are not looked into beyond being
+// objects. `cds_excluded` is keyed by the sidecar's exclusion reasons and
+// `excluded_examples` by the same set; enumerating them here would pin a list
+// that lives in codon_compute.py and would reject a sidecar that added a sixth
+// reason, which is the opposite of what a guard at this boundary is for.
+function isCodonTablePreview(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isString(value.source_format) &&
+    isNumber(value.cds_total) &&
+    isNumber(value.cds_counted) &&
+    isRecord(value.cds_excluded) &&
+    isRecord(value.excluded_examples) &&
+    isNumber(value.codon_count) &&
+    isArrayOf(value.top_codons, isCodonPreviewTopRow) &&
+    (value.reference_key === null || isString(value.reference_key)) &&
+    isArrayOf(value.divergent_codons, isCodonPreviewDivergentRow)
+  );
+}
+
+// The import envelope plus the tally. Not optional: a compute reply without a
+// preview is a sidecar that ran the scan and threw the numbers away, and the
+// dialog would render a panel of blanks rather than an error.
+function isComputeCodonTableResult(value: unknown): boolean {
+  return (
+    isImportCodonTableResult(value) &&
+    isRecord(value) &&
+    isCodonTablePreview(value.preview)
+  );
+}
+
+function isExportCodonTableResult(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isString(value.path) &&
+    isString(value.format) &&
+    isNumber(value.bytes)
   );
 }
 
@@ -1085,7 +1244,13 @@ const rpcResultValidators = {
   save_custom_polymerase: (value): value is RpcMethodResult<"save_custom_polymerase"> =>
     isSaveCustomPolymeraseResult(value),
   list_organisms: (value): value is RpcMethodResult<"list_organisms"> =>
-    isArrayOf(value, isOrganismSummary),
+    isListOrganismsResult(value),
+  compute_codon_table: (value): value is RpcMethodResult<"compute_codon_table"> =>
+    isComputeCodonTableResult(value),
+  import_codon_table: (value): value is RpcMethodResult<"import_codon_table"> =>
+    isImportCodonTableResult(value),
+  export_codon_table: (value): value is RpcMethodResult<"export_codon_table"> =>
+    isExportCodonTableResult(value),
   load_fasta: (value): value is RpcMethodResult<"load_fasta"> =>
     isSequenceInfo(value),
   parse_mutations_text: (value): value is RpcMethodResult<"parse_mutations_text"> =>

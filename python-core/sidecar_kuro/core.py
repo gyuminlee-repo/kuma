@@ -18,7 +18,7 @@ if str(_PROJECT_ROOT) not in sys.path:
 from kuma_core.kuro.sdm_engine import SdmPrimerResult  # noqa: E402
 from kuma_core.kuro.plate_mapper import PlateMapping  # noqa: E402
 from kuma_core.kuro.polymerase import PolymeraseRegistry  # noqa: E402
-from kuma_core.kuro.codon_table import CodonTableRegistry  # noqa: E402
+from kuma_core.kuro import codon_table as _codon_table  # noqa: E402
 from kuma_core.shared.config_paths import kuma_home  # noqa: E402
 from kuma_core.shared.logging import get_logger  # noqa: E402
 from kuma_core.shared.sidecar import (  # noqa: E402
@@ -35,8 +35,32 @@ _KURO_DIR = kuma_home() / "kuro"
 _CUSTOM_POLYMERASE_PATH = _KURO_DIR / "custom_polymerases.json"
 _CONFIG_PATH = _KURO_DIR / "config.json"
 _poly_registry = PolymeraseRegistry(custom_path=_CUSTOM_POLYMERASE_PATH)
-_codon_registry = CodonTableRegistry()
 _config_cache: dict | None = None
+
+# Codon tables the user drops in. The path is resolved by
+# ``kuma_core.kuro.codon_table.user_codon_dir()`` at scan time rather than being
+# frozen here, because ``kuma_home()`` reads HOME and this module is imported
+# before any test fixture can set it.
+_ALLOWED_CODON_TABLE_EXTENSIONS = {".json"}
+
+
+def get_registry() -> "_codon_table.CodonTableRegistry":
+    """Return the one codon-table registry this process uses.
+
+    There used to be two: a ``CodonTableRegistry()`` built here, which answered
+    the organism dropdown and the design gate, and the module singleton in
+    ``kuma_core.kuro.codon_table``, which answered every codon lookup inside the
+    design engine (D1). They could disagree about which organisms exist. Callers
+    must go through this function at call time; a module-level
+    ``from ... import _codon_registry`` would rebind the old object and split
+    them again.
+    """
+    return _codon_table.get_registry()
+
+
+def user_codon_dir():
+    """Absolute path of the user codon-table directory, resolved now."""
+    return _codon_table.user_codon_dir()
 
 def _get_crash_log_path() -> Path:
     return ensure_private_dir(kuma_home() / "kuro") / "crash.log"
@@ -49,6 +73,24 @@ def _append_crash_log(method: str, params_summary: str, tb: str) -> None:
 
 # FASTA 미허용. annotated sequence formats only (CDS 메타데이터 필요).
 _ALLOWED_FASTA_EXTENSIONS = {".dna", ".gb", ".gbff", ".gbk"}
+
+# The genome a codon table is computed from. A separate set from
+# ``_ALLOWED_FASTA_EXTENSIONS`` on purpose, and that one is left alone: the
+# template a primer is designed against must be annotated, because the design
+# path needs CDS coordinates, which is why a bare FASTA is refused there. The
+# compute path is the opposite case -- a ``cds_from_genomic.fna`` is already
+# sliced into coding sequences and is the file RefSeq hands a user who clicks
+# "CDS (FASTA)", so refusing it would refuse the commonest input this feature
+# exists to accept. ``.dna`` (SnapGene) is absent because
+# ``codon_compute._format`` has no branch for it.
+#
+# The two suffix groups are the ones ``kuma_core.kuro.codon_compute._format``
+# maps to "genbank" and "fasta". A suffix accepted here that module cannot
+# classify would be rejected one layer deeper with a worse sentence.
+_ALLOWED_GENOME_EXTENSIONS = {
+    ".gbff", ".gb", ".gbk", ".genbank",
+    ".fna", ".fa", ".fasta", ".ffn",
+}
 _ALLOWED_CSV_EXTENSIONS = {".csv", ".tsv", ".txt"}
 _ALLOWED_EXCEL_EXTENSIONS = {".xlsx"}
 _VALID_DNA_BASES = re.compile(r"^[ATGC]+$")

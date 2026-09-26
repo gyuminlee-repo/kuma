@@ -145,6 +145,11 @@ def main() -> int:
             for entry in polymerases
             if isinstance(entry, dict) and entry.get("name")
         }
+        # Recorded verbatim. Since the user codon-table work, list_organisms
+        # answers with {"organisms": [...], "failed": [...], "user_dir": "..."}
+        # rather than a bare array, so scripts/stubs/core.ts has to read
+        # realBundle.organisms.organisms and the capture bundle has to be
+        # regenerated before that stub is trusted.
         organisms = sidecar.call("list_organisms", {})
         # The mutation step previews the source table before column mapping.
         evolvepro_preview = sidecar.call(

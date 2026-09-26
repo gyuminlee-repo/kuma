@@ -923,7 +923,9 @@
       "files": [
         "kuma_core/kuro/codon_table.py",
         "python-core/sidecar_kuro/handlers/sequence.py",
+        "python-core/sidecar_kuro/handlers/misc.py",
         "src/types/models.ts",
+        "src/types/validators.ts",
         "src/store/slices/sequenceSlice.ts",
         "src/components/panels/InputPanel/SequenceInput.tsx"
       ],
@@ -931,7 +933,7 @@
         "resolve_organism_key",
         "organism_key"
       ],
-      "note": "Input organism annotation resolves to a backend-owned supported codon-table key; unsupported annotations preserve the user's explicit selection.",
+      "note": "Input organism annotation resolves to a backend-owned supported codon-table key; unsupported annotations preserve the user's explicit selection. handle_list_organisms owns the key set the dropdown renders and validators.ts guards the payload, so both move with resolve_organism_key. The group only flags co-change; it does not compare the option list itself, which is how the hsapiens drift went unnoticed.",
       "severity": "blocking"
     },
     {
@@ -1428,6 +1430,62 @@
       ],
       "note": "In-app help is the user-facing digest of the published step guide next to it: same screen, same steps, same warnings, with the version history, module paths and design rationale left out. The two are not identical by design, so this group is a warning rather than a gate. When a step changes behaviour, both sides have to say the new behaviour or the app and the site disagree about what the app does.",
       "severity": "warning"
+    },
+    {
+      "id": "kuro-codon-table-reproducibility",
+      "files": [
+        "kuma_core/kuro/codon_table.py",
+        "python-core/sidecar_kuro/handlers/design.py",
+        "python-core/sidecar_kuro/handlers/export.py",
+        "src/lib/codonTableRestore.ts",
+        "src/lib/kuroSnapshot.ts",
+        "src/hooks/useAutosaveHydration.ts",
+        "src/store/slices/exportSlice.ts",
+        "src/types/models.ts"
+      ],
+      "symbols": [
+        "describe",
+        "_codon_table_provenance",
+        "_design_provenance_for_manifest",
+        "resolveCodonTableRestore"
+      ],
+      "note": "What a run made with a given codon table records, and what a restored project is entitled to. The digest is minted in codon_table.py (describe), carried by design.py into the session provenance, turned into inputs[design_codon_table] by export.py, and stored by two frontend paths that deliberately store different things: kuroSnapshot.ts writes key plus digest, exportSlice.ts writes the whole document, and codonTableRestore.ts is the only place that reconciles them. models.ts declares both shapes. Changing what one path stores without the other reopens the section 8.1 hole, where two manifests read identically and the primers differ.",
+      "severity": "blocking"
+    },
+    {
+      "id": "kuro-custom-codon-tables",
+      "files": [
+        "kuma_core/kuro/codon_table.py",
+        "kuma_core/kuro/codon_import.py",
+        "python-core/sidecar_kuro/core.py",
+        "python-core/sidecar_kuro/handlers/misc.py",
+        "src/types/models.ts",
+        "src/types/validators.ts",
+        "src/lib/ipc.ts",
+        "src/components/panels/InputPanel/SequenceInput.tsx",
+        "kuma_core/kuro/codon_formats.py",
+        "python-core/sidecar_kuro/handlers/codon.py",
+        "python-core/sidecar_kuro/dispatcher.py",
+        "src/store/slices/sequenceSlice.ts",
+        "src/components/dialogs/CodonTableManager.tsx",
+        "kuma_core/kuro/codon_compute.py",
+        "src/lib/codonTableMessages.ts"
+      ],
+      "symbols": [
+        "get_registry",
+        "user_codon_dir",
+        "validate_codon_table_data",
+        "handle_list_organisms",
+        "handle_import_codon_table",
+        "handle_compute_codon_table",
+        "_judge_and_install",
+        "compute_codon_table",
+        "_ALLOWED_GENOME_EXTENSIONS",
+        "import_context",
+        "parse_table_text"
+      ],
+      "note": "User-installed codon tables: the search path and scan live in codon_table.py, the rules in codon_import.py, the single registry in core.get_registry() and the list_organisms envelope in misc.py. The TypeScript consumers of that envelope join the group now that the frontend side has landed: models.ts declares ListOrganismsResult, validators.ts guards it, SequenceInput.tsx renders the organisms it carries, and ipc.ts is listed because a Phase 3 import/export RPC lands there and must not be added without the rest. Phase 3 joins the import and export path: codon_formats.py converts CSV, cusp and Kazusa into the document codon_import judges, handlers/codon.py owns the two RPCs and is registered in dispatcher.py, sequenceSlice.ts carries the send/relist/select actions and CodonTableManager.tsx is the dialog. The import context is built by CodonTableRegistry.import_context rather than in the handler, because a second hand-assembled context makes V9 pass vacuously and nothing downstream notices. Phase 4b joins the compute path: codon_compute.py counts a genome, core.py declares _ALLOWED_GENOME_EXTENSIONS beside the untouched _ALLOWED_FASTA_EXTENSIONS (the design template must be annotated, a cds_from_genomic.fna need not be), handlers/codon.py owns the third RPC and shares _judge_and_install with import so a computed table meets the rules an imported one meets, and codonTableMessages.ts joins because the compute path raises G1, G2 and G3, which come from the handler rather than from MESSAGE_CODES and would otherwise ship as the unknown fallback in ten locales.",
+      "severity": "blocking"
     }
   ]
 }

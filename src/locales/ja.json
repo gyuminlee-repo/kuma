@@ -163,7 +163,18 @@
         "interpro": "InterPro / Pfam via EBI（ドメインアノテーション）"
       }
     },
-    "savedAt": "{{time}} に保存済み"
+    "savedAt": "{{time}} に保存済み",
+    "codonTables": {
+      "title": "コドン表",
+      "hint": "生物ごとのコドン表 .json ファイルをこのフォルダに置き、再読み込みを押してください。.json を除いたファイル名がそのまま生物キーになります。",
+      "counts": "組み込み {{builtin}} 件、このフォルダから {{user}} 件。",
+      "openFolder": "フォルダを開く",
+      "refresh": "再読み込み",
+      "openFolderFailed": "フォルダを開けませんでした。上記のパスをコピーしてファイルマネージャーに貼り付けてください。",
+      "notLoaded": "読み込めなかったファイル",
+      "notLoadedEntry": "{{filename}} を読み込めませんでした（{{code}}）: {{reason}}",
+      "advisories": "注意付きで読み込んだ表"
+    }
   },
   "mame": {
     "plateOrder": {
@@ -1643,6 +1654,7 @@
     "sectionTmDistribution": "Tm 分布",
     "sectionDomainAllocation": "Domain 割当",
     "sectionFailedMutations": "失敗 mutations",
+    "statOrganism": "生物種",
     "statStep1Filter": "Step 1 filter",
     "statStep2Domains": "Step 2 domains",
     "statStep2Overlap": "Step 2 overlap",
@@ -2178,7 +2190,8 @@
     "ecoliTitle": "Escherichia coli K-12 codon usage テーブル。E. coli BL21、DH5α、K-12 派生株で発現する際に使用。",
     "bsubtilisTitle": "Bacillus subtilis 168 codon usage テーブル。B. subtilis や関連グラム陽性宿主で発現する際に使用。",
     "scerevisiaeTitle": "Saccharomyces cerevisiae codon usage テーブル。出芽酵母宿主で発現する際に使用。",
-    "sequenceFileHelp": "Reference sequence file (.fasta/.gb) used as template for primer design."
+    "sequenceFileHelp": "Reference sequence file (.fasta/.gb) used as template for primer design.",
+    "addOrganism": "生物種を追加..."
   },
   "mutationInput": {
     "mutations": "Mutations",
@@ -2599,12 +2612,11 @@
     "descriptionRange": "v{{from}} 以降のすべてのアップデートの主な変更点です。",
     "gotItBtn": "了解",
     "highlights": [
-      "consensus 配列は塩基が欠けた位置にダッシュを書く。欠失がコールできなかった位置と同じに見えることはなくなった。",
-      "barcode primer も設計 primer と同じ hairpin、self-dimer、off-target の検査を通過する必要がある。",
-      "検査に通らない barcode primer は差し替えられ、通る候補がない場合は警告がどの測定値で外れたかを示す。",
-      "保存した解析を開き直しても欠失長と復元配列が残る。以前のビルドは読み込み時にそれらを失っていた。"
+      "どの生物種のコドン表も、ファイルを置く、CSV/cusp/Kazusa を取り込む、ゲノムから計算するのいずれかで今はインストールできる。",
+      "設計はコドン表を key と digest で記録する。表がない、または変わっていればプロジェクトが持つコピーのインストールを提案する。",
+      "削除されたコドン戦略トグルをまだ説明していたドキュメントは、それを置き換えた生物種の表を説明するようになった。"
     ],
-    "highlightsStamp": "0.16.69+60279e8e",
+    "highlightsStamp": "0.16.70+291b4798",
     "releases": {
       "0.16.69": [
         "consensus 配列は塩基が欠けた位置にダッシュを書く。欠失がコールできなかった位置と同じに見えることはなくなった。",
@@ -3096,6 +3108,11 @@
         "「Variant list mapping」の説明に、well を埋める順序を明記しました。縦方向に進み、A1, B1, C1 から H1 まで、その次が A2 です。",
         "post-commit のバージョン更新フックが、削除されたパスを参照して失敗することはなくなりました。",
         "長いリリースノートは、下にはみ出さずダイアログ内でスクロールするようになりました。"
+      ],
+      "0.16.70": [
+        "どの生物種のコドン表も、ファイルを置く、CSV/cusp/Kazusa を取り込む、ゲノムから計算するのいずれかで今はインストールできる。",
+        "設計はコドン表を key と digest で記録する。表がない、または変わっていればプロジェクトが持つコピーのインストールを提案する。",
+        "削除されたコドン戦略トグルをまだ説明していたドキュメントは、それを置き換えた生物種の表を説明するようになった。"
       ]
     },
     "releaseStamps": {
@@ -3177,7 +3194,8 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21"
+      "0.15.16": "fe8e6f21",
+      "0.16.70": "291b4798"
     }
   },
   "primerDisplay": {
@@ -3787,7 +3805,8 @@
       "geneRangeInvalid": "Gene end must be greater than gene start",
       "projectPath": "Open or create a project first",
       "activeRound": "Select a round first",
-      "activityData": "Upload activity data first"
+      "activityData": "Upload activity data first",
+      "codonTableUnresolved": "コドンテーブル (生物種リスト下の通知を解消してください)"
     },
     "actionBlockedTitle": "Cannot proceed — missing required input"
   },
@@ -3869,6 +3888,123 @@
     "badge": {
       "staleHint": "生成元の入力より古い状態です。ステップを再実行すると更新されます。",
       "detected": "{{step}} の出力を検出"
+    }
+  },
+  "codonTable": {
+    "messages": {
+      "V1": "コドン表は .json ファイルである必要があります。選択されたのは {{ext}} です。",
+      "V2": "このファイルは {{size}} です。コドン表は数キロバイト程度です。ゲノムファイルを選んでいないか確認してください。",
+      "V3": "このファイルは正しい JSON ではありません（{{line}} 行 {{col}} 列）: {{detail}}。余分なカンマや閉じ忘れの括弧がないか確認してください。",
+      "V4": "コドン表は JSON オブジェクトである必要があり、{{type}} は使えません。",
+      "V5": "この表にはより新しい kuma が必要です（schema_version {{n}}、このビルドの対応上限は {{max}}）。",
+      "V6": "ファイルを読み取れませんでした（{{reason}}）。UTF-8 で保存し、ファイルの権限を確認してください。",
+      "V7": "テーブルキー '{{key}}' は使用できません。英小文字・数字・アンダースコアのみを用い、英字で始まる 2〜32 文字にしてください。",
+      "V8": "ファイル名は {{stem}}.json ですが、宣言されたキーは '{{key}}' です。kuma はファイル名で表を探すため、両者は一致している必要があります。",
+      "V9": "'{{key}}' は組み込みの表（{{name}}）であり置き換えられません。{{key}}_lab のように別のキーで取り込んでください。実行記録にはキーだけが残るため、二台の環境で同じキーの意味が食い違ってはなりません。",
+      "V10": "'{{key}}' はすでに存在します（{{name}}、取り込み日 {{date}}、ダイジェスト {{sha8}}）。置き換えるか、別のキーで取り込んでください。",
+      "V11": "大文字と小文字だけが異なる二つのファイル名が、大文字小文字を区別しないファイルシステムでは同じキーになります。読み込まれたのは {{kept}} だけです。どちらか一方の名前を変更してください。",
+      "V12": "この表には表示名がありません。'Methylorubrum extorquens AM1' のような名称を記入してください。",
+      "V13": "taxid は NCBI タクソノミー ID か空欄である必要があり、{{value}} は使えません。",
+      "V14": "遺伝暗号が宣言されていません。NCBI の {{n}} 番表（細菌）とみなします。",
+      "V15": "kuma が対応する遺伝暗号は NCBI の 1 番と 11 番だけですが、この表は {{n}} 番を宣言しています。非標準の遺伝暗号はコドン選好だけでなく野生型コドンの読み方そのものを変えるため、頻度表だけでは取り込めません。",
+      "V16": "コドン {{codon}} は {{declared}} の下に置かれていますが、遺伝暗号 {{n}} 番ではこれを {{expected}} と翻訳します。多くの場合、アミノ酸の列とコドンの列が入れ替わっています。",
+      "V17": "終止 '*' を含めてアミノ酸の項目が 21 個必要です。不足: {{missing}}。不明: {{extra}}。",
+      "V18": "64 種類のコドンがちょうど一度ずつ必要です。不足: {{missing}}。重複: {{dup}}。",
+      "V19": "'{{codon}}' はコドンの項目として使えません。コドンは A, C, G, T または U のちょうど三文字であり、N, R, Y のような曖昧塩基は使えません。",
+      "V20": "'{{codon}}' は {{n}} 文字です。コドンはちょうど三文字です。",
+      "V21": "{{codon}} の頻度は {{value}} です。頻度は 0 から 1 の数値である必要があります。出典が百分率なら 100 で割ってください。",
+      "V22": "{{aa}} の頻度の合計が 1 ではなく {{sum}} です。一つのアミノ酸の同義コドンの頻度は、そのアミノ酸の使用量に対する割合でなければなりません。",
+      "V23": "{{aa}} の頻度の合計は {{sum}} です。許容範囲内ですが、出典が丸められているか不完全である可能性があります。",
+      "V24": "{{aa}} のすべてのコドンの頻度が 0 のため、kuma はコドンを選べません。",
+      "V25": "{{codon}} の個数は {{value}} です。個数は 0 以上の整数である必要があります。",
+      "V26": "counts と codons が異なるコドンを並べています: {{diff}}。",
+      "V27": "{{codon}} に記録された頻度は {{stored}} ですが、個数から計算すると {{computed}} になります。どちらかが手作業で書き換えられています。ファイルを修正するか counts ブロックを削除してください。",
+      "V28": "'{{alias}}' は別名として使えません。aliases は空でない名称の配列である必要があります。",
+      "V29": "別名 '{{alias}}' はすでに {{other}} のキーです。一つのアノテーションが二つの異なる表に解決してはなりません。",
+      "V30": "別名 '{{alias}}' はすでに {{other}} を指しています。この別名を削除するか、より具体的な名称にしてください。",
+      "V31": "この表はコード配列 {{cds}} 件（コドン {{codons}} 個）から作られています。標本が小さく、頻度がその生物を代表していない可能性があります。",
+      "V32": "この表には由来情報がありません。kuma は保存しますが、この表を使った実行は数値の出どころを示せません。",
+      "V33": "別名がありません。'{{name}}' と注釈された配列を読み込んでも、kuma はこの生物を自動選択しません。GenBank ファイルで使われている生物名を追加してください。",
+      "V34": "頻度が 0 のため決して選ばれないコドンが {{n}} 個あります: {{list}}。",
+      "V35": "認識できない項目は無視します: {{list}}。",
+      "V36": "このファイルを {{format}} 形式として読み取れませんでした: {{detail}}。選択したファイルに合う形式を選んでいるか確認してください。",
+      "N1": "RNA のコドンを DNA に変換しました（U を T に）。対象は {{n}} 個です。",
+      "N2": "小文字だったコドン {{n}} 個を大文字に変換しました。",
+      "N4": "コドンの個数から頻度を再計算しました。",
+      "R5": "{{filename}} は組み込みテーブル '{{stem}}' に隠されて読み込まれませんでした。使うには {{stem}}_lab.json に名前を変更してください。",
+      "unknown": "コドン表チェッカーが {{code}} を報告しましたが、このバージョンの kuma には該当する説明がありません。",
+      "G1": "このファイルを名前が示すゲノム形式として読み取れませんでした: {{detail}}",
+      "G2": "kuma は遺伝暗号 {{code}} ではコドンを数えません。1 か 11 を選んでください。",
+      "G3": "{{file}} では数えられたコード配列がありません。{{total}} 件を読み取りましたがすべて除外され、表を作る根拠がありません。"
+    },
+    "restore": {
+      "notInstalled": "このプロジェクトはコドンテーブル '{{name}}' を使いますが、この環境には入っていません。プロジェクトファイルからインストールしますか。",
+      "absent": "このプロジェクトが使ったコドンテーブル '{{key}}' はこの環境になく、プロジェクトにも複製がありません。設計の前にコドンテーブルフォルダへファイルを置いてください。",
+      "mismatch": "このプロジェクトはコドンテーブル '{{key}}' の別の版で設計されています。異なるアミノ酸: {{list}}。プロジェクトに保存された複製を使うか、この環境のテーブルのまま設計し直してください。",
+      "mismatchUnexplained": "このセッションを保存したあと、この環境のコドンテーブル '{{key}}' が変わりました。2 つの版を比べるにはプロジェクトファイルを開き、そうでなければここにあるテーブルで設計し直してください。",
+      "install": "プロジェクトからインストール",
+      "useProjectCopy": "プロジェクトの複製を使う",
+      "installing": "インストール中...",
+      "overwriteWarning": "この環境のテーブル '{{key}}' を上書きします。",
+      "installFailed": "テーブルをインストールできませんでした: {{reason}}",
+      "installUnavailable": "このプロジェクトにはこのテーブルの複製がありません。"
+    },
+    "manager": {
+      "title": "生物種を追加",
+      "description": "kuma に同梱されていない生物種のコドン表を導入し、または導入済みの表を同僚へ送るファイルとして書き出します。",
+      "importTab": "表ファイルを取り込む",
+      "exportTab": "書き出し",
+      "formatLabel": "形式",
+      "formatJson": "kuma 表 (JSON)",
+      "formatCsv": "3 列 CSV",
+      "formatCusp": "EMBOSS cusp 出力",
+      "formatKazusa": "Kazusa ページの貼り付け",
+      "pasteLabel": "Kazusa のコドン使用頻度表を貼り付けてください",
+      "fileLabel": "ファイル",
+      "filePlaceholder": "ファイルが選択されていません",
+      "browse": "参照",
+      "keyLabel": "キー",
+      "nameLabel": "表示名",
+      "taxidLabel": "NCBI 分類 ID (taxid)",
+      "taxidPlaceholder": "自社株の場合は空欄のままにしてください",
+      "geneticCodeLabel": "遺伝暗号",
+      "geneticCode11": "11、細菌および植物色素体",
+      "geneticCode1": "1、標準",
+      "aliasesLabel": "別名",
+      "aliasesPlaceholder": "カンマ区切り。GenBank ファイルでの生物種の表記を入力します",
+      "overwriteLabel": "このキーで既に導入されている表を置き換えます",
+      "checksRun": "コドン {{codons}} 個に対して {{checks}} 件の検査を実行しました。",
+      "errorsLabel": "この表は導入できません",
+      "warningsLabel": "知っておくべき点",
+      "normalizationsLabel": "取り込みが変更した内容",
+      "readyToInstall": "すべての規則を満たしました。ダイジェスト {{digest}}。",
+      "check": "ファイルを検査",
+      "import": "取り込み",
+      "export": "書き出し",
+      "exportHint": "導入済みの表をファイルに書き出します。kuma が読んだコドンをそのまま含むため、取り込み直すと同じ表になります。",
+      "tableLabel": "表",
+      "choose": "表を選択してください",
+      "installed": "コドン表を導入しました: {{key}}",
+      "importFailed": "コドン表の取り込みに失敗しました: {{reason}}",
+      "exported": "コドン表を {{path}} に書き出しました",
+      "exportFailed": "コドン表の書き出しに失敗しました: {{reason}}",
+      "computeTab": "ゲノムから計算",
+      "computeHint": "GenBank ファイルまたは CDS FASTA を選ぶ。kuma が読み取れるすべてのコード配列のコドンを数え、その集計から表を作る。",
+      "genomeLabel": "ゲノム",
+      "genomePlaceholder": "ゲノムが未選択",
+      "computing": "コドンを数えています…",
+      "computeCheck": "コドンを数える",
+      "computeInstall": "インストール",
+      "previewCounted": "コード配列 {{total}} 件のうち {{counted}} 件を数え、コドンは合計 {{codons}} 個。",
+      "excludedLabel": "除外したコード配列",
+      "excludedNone": "なし。ファイル内のコード配列をすべて数えた。",
+      "reasonPseudo": "偽遺伝子として注釈されている",
+      "reasonNotMultipleOf3": "長さが 3 の倍数ではない",
+      "reasonInternalStop": "途中に終止コドンがある",
+      "reasonNoTerminalStop": "末尾に終止コドンがない",
+      "reasonAmbiguousBase": "A、C、G、T 以外の塩基を含む",
+      "topCodonsLabel": "アミノ酸ごとの最頻コドン",
+      "divergentLabel": "同梱の {{reference}} 表との差が最も大きいコドン"
     }
   }
 }

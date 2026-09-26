@@ -10,6 +10,7 @@ import { readKuroDesignOutcome } from "../../lib/kuroSnapshot";
 import { notifyJobDone, notifyJobError } from "../../lib/toast";
 import { registerArtifacts, ensureWorkspaceFromExportPath, getActiveWorkspace } from "../../lib/workspace";
 import type { AppState } from "../types";
+import type { ExpectedCodonTable } from "../../lib/codonTableRestore";
 import type {
   BenchmarkResult,
   SequenceInfo,
@@ -389,6 +390,19 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       kuma_version: __APP_VERSION__,
       rounds: roundState.rounds,
       active_round_id: roundState.active_round_id,
+      // A workspace travels. Opened on a machine that never had the file, a key
+      // alone would name a table nobody there can produce, so the whole block
+      // rides along (design note section 8.2). Only for a user-installed table:
+      // a bundled one is identified by its key, which every build ships.
+      codon_table: (() => {
+        const selected = s.organisms.find((o) => o.key === s.organism);
+        return selected?.source === "user" ? selected.document ?? null : null;
+      })(),
+      // Recorded for a bundled table too, where no document is embedded: a
+      // later build may ship different numbers under the same key, and the
+      // digest is the only thing that notices.
+      codon_table_sha256:
+        s.organisms.find((o) => o.key === s.organism)?.table_sha256 ?? null,
       inputs: {
         fastaPath: s.fastaPath,
         mutationInputMode: s.mutationInputMode,
@@ -607,6 +621,24 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         notice: retiredPolymeraseNotice(retiredFrom, name, settings.gcMin ?? 40, settings.gcMax ?? 60),
       };
     })();
+    // The expectation, not a decision. Which of section 8.3's branches this is
+    // depends on the organism listing, which may not have arrived yet, so the
+    // question is answered by a selector over both (lib/codonTableRestore.ts).
+    const restoredCodonTable = ((): ExpectedCodonTable | null => {
+      const key = typeof settings.organism === "string" ? settings.organism : "";
+      const saved = ws as WorkspaceV3;
+      const digest = saved.codon_table_sha256;
+      // No digest means the file predates Phase 2, and a project that recorded
+      // nothing must restore exactly as it did before rather than be reported
+      // as disagreeing with a digest nobody wrote.
+      if (!key || typeof digest !== "string" || !digest) return null;
+      const embedded = saved.codon_table ?? null;
+      return {
+        key,
+        tableSha256: digest,
+        document: embedded && embedded.key === key ? embedded : null,
+      };
+    })();
     const restoredEchoPlacement = foldPersistedPlacement(
       settings.echoQuadrant,
       settings.echoUsedQuadrants ?? [],
@@ -686,6 +718,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       autoRedesignOnLoad: settings.autoRedesignOnLoad ?? true,
       saveCache: settings.saveCache ?? true,
       ...(settings.organism && { organism: settings.organism }),
+      restoredCodonTable,
       // Prefer the saved evolveproMode when present. Legacy "others" value
       // (pre-merge workspaces) coerces to "pipeline", the "Others" source
       // file is now loaded through the single evolveproCsvPath field with
@@ -875,6 +908,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       evolveproStepStats: null,
       showReport: false,
       organism: "ecoli",
+      restoredCodonTable: null,
       plateMappings: [],
       dedupInfo: {},
       progress: 0,

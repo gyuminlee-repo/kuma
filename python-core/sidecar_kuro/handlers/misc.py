@@ -4,14 +4,15 @@ import csv
 from dataclasses import asdict
 from pathlib import Path
 
+from kuma_core.kuro import codon_table as _codon_table
 from kuma_core.kuro.evolvepro import load_evolvepro_csv
 from kuma_core.kuro.polymerase import _dict_to_profile
+from kuma_core.shared.resource_path import resource_path as _resource_path
 
 import sidecar_kuro.core as _core
 from sidecar_kuro.core import (
     _validate_filepath,
     _poly_registry,
-    _codon_registry,
     _CUSTOM_POLYMERASE_PATH,
     _get_cached_ca_coords,
     _get_cached_ca_seq,
@@ -73,9 +74,75 @@ def handle_save_custom_polymerase(params: dict) -> dict:
     return SaveCustomPolymeraseResultModel(name=profile.name).to_rpc_dict()
 
 
-def handle_list_organisms(_params: dict) -> list[dict]:
-    """Return available organism codon tables for the UI dropdown."""
-    return _codon_registry.list_organisms_detailed()
+_CODON_SEED_DIR = _resource_path(
+    "kuma_core.kuro", "resources/codon_table_seeds", module_file=_codon_table.__file__
+)
+# Seed file names are kept verbatim. TEMPLATE keeps a .json.txt suffix so the
+# *.json glob that finds real tables never picks the template up.
+_CODON_SEED_FILES = ("README.txt", "TEMPLATE.json.txt")
+
+
+def ensure_user_codon_dir() -> Path:
+    """Create the user codon-table folder and seed it, then return the path.
+
+    "Open folder" has to land somewhere that exists even before the user has
+    installed anything, so the folder and its two seed files are written on the
+    first listing. An existing seed is never overwritten; the user may have
+    edited it.
+    """
+    directory = _core.user_codon_dir()
+    try:
+        directory.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        # A read-only home must not take the organism list down with it, and
+        # the mkdir is the first thing that fails there. The path is still
+        # returned so "Open folder" has something to show; the registry treats
+        # a directory that does not exist the same as an empty one and the
+        # bundled tables still list.
+        return directory
+    for name in _CODON_SEED_FILES:
+        source = _CODON_SEED_DIR / name
+        target = directory / name
+        if source.exists() and not target.exists():
+            try:
+                target.write_text(
+                    source.read_text(encoding="utf-8"), encoding="utf-8"
+                )
+            except OSError:
+                # Same reason: a seed that cannot be written is not fatal.
+                pass
+    return directory
+
+
+def handle_list_organisms(_params: dict) -> dict:
+    """Return the organism codon tables, the ones that failed, and the folder.
+
+    Phase 1 ships no separate refresh RPC, so this call *is* the refresh: it
+    drops the registry caches first and re-reads both directories. The seed
+    files are written on the way so that "Open folder" never lands the user in a
+    folder that does not exist.
+
+    Shape::
+
+        {"organisms": [{key, name, taxid, source, aliases, cds_count,
+                        table_sha256, warnings: [{code, params}],
+                        normalizations: [{code, params}], document: {...}}],
+         "failed":    [{filename, code, reason, findings: [{code, params}]}],
+         "user_dir":  "<absolute path>"}
+
+    ``taxid`` is nullable: an in-house strain may have no NCBI id.
+
+    ``document`` is the whole table as a self-contained JSON object. The
+    workspace embeds it so a project stays readable on a machine that never had
+    the file (design note section 8.2), and the restore branches diff it
+    amino acid by amino acid when the digests disagree. ``normalizations``
+    reports what the import silently changed; it used to be computed and
+    dropped here, which left N1/N2/N4 unreachable in every locale.
+    """
+    ensure_user_codon_dir()
+    registry = _core.get_registry()
+    registry.refresh()
+    return registry.scan()
 
 
 def _preview_csv(filepath: str, max_rows: int) -> dict:

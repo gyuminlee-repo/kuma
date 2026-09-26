@@ -21,6 +21,7 @@ Project folders keep Kuro design output and Mame verification linked across the 
 
 - [Tabs: Kuro & Mame](#tabs)
 - [Selection Strategies](#selection-strategies-kuro-evolvepro-mode)
+- [User codon tables](#user-codon-tables)
 - [Project workflow](#project-workflow)
 - [Installation](#installation)
 - [Usage](#usage)
@@ -62,7 +63,7 @@ Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenB
 
 #### Codon & thermodynamic parameters
 
-- **Codon strategy selection**: Choose between Min. changes (fewest base changes from WT) or Optimal (highest-usage codon in the selected organism codon table)
+- **Codon table (organism)**: The organism chosen beside the target gene decides which codon a mutation is written with. There is no strategy control to set. Every synonymous codon for the target amino acid competes: the wild-type codon is dropped, so are the codons the chosen organism uses for less than 10% of that amino acid, and the design penalty prices every survivor on base changes from the wild-type codon (0 / 2 / 4 for 1 / 2 / 3 changes) and on host usage (4.0 x (1 - usage fraction)) alongside Tm and GC. Five tables ship (*E. coli*, *B. subtilis*, *H. sapiens*, *M. extorquens*, *S. cerevisiae*) and any other organism can be installed, see [User codon tables](#user-codon-tables)
 - **Polymerase profile selector**: Seven built-in profiles (Taq, Phusion, Q5, Q5 SDM, KOD, DreamTaq, TAKARA_GXL), each with Tm method, salt concentration, DNA concentration, and GC range calibrated to the manufacturer manual. Custom profiles can be created via the Custom Polymerase dialog and are persisted at `~/.kuma/kuro/custom_polymerases.json`. Selecting a profile sets the recommended annealing temperature (Ta) rule, the GC range, and the overlap mode; the design-time Tm scale is fixed and does not follow the profile
 - **Tm calculation**: SantaLucia 1998 nearest-neighbor model; salt/DNA/divalent conditions vary per polymerase profile (e.g. Phusion HF 222 mM monovalent, Q5 150 mM monovalent + 2000 nM DNA). Default Tm targets: Fwd 62°C, Rev 58°C, Overlap 42°C — adjustable in Advanced Options
 - **Progressive Tm tolerance**: Starts at ±0.5°C for Fwd/Rev independently, expanding by ±0.5°C per step (up to ±3.0°C)
@@ -152,6 +153,27 @@ When loading an EVOLVEpro scored CSV, Kuro applies the configured selection stra
 
 > **Benchmark caveat (`benchmark/REPORT.md` §6).** In the in-silico active-learning benchmark, only **structural diversity** beat Top-N, and only conditionally (early/low-data rounds, genuinely epistatic targets). **Domain** and **Pareto** diversity did **not** beat Top-N, and domain diversity can *hurt* on single-active-site proteins (it scatters picks off the functional region). Treat every diversity filter as an early-round hedge, not a general improvement over Top-N.
 
+## User codon tables
+
+kuma ships five codon usage tables (*E. coli*, *B. subtilis*, *H. sapiens*, *M. extorquens*, *S. cerevisiae*). A table for any other organism is installed per user under `~/.kuma/kuro/codon_tables` and appears in the **Organism** dropdown beside the target gene. Three routes lead there.
+
+**1. Drop a file in the folder.** Put `<key>.json` in `~/.kuma/kuro/codon_tables`, then press **Refresh** under Settings → Codon tables. The file name without `.json` becomes the organism key. `TEMPLATE.json.txt` and `README.txt` are placed in that folder for reference (sources: `kuma_core/kuro/resources/codon_table_seeds/`); copy the template to `<key>.json` and replace the numbers.
+
+**2. Add organism...** The last entry of the Organism dropdown opens a dialog whose *Import a table file* tab reads four source formats: a kuma table (JSON), a three-column CSV, EMBOSS `cusp` output, and a Kazusa codon usage page pasted as text. Every rule runs before anything is installed, and the dialog lists what it rejected, what it warns about, what it normalized (RNA `U` to `T`, lowercase codons, frequencies recomputed from counts) and the digest the table will carry. The *Export* tab writes an installed table back to a file to send to a colleague.
+
+**3. Compute from a genome.** The first tab of that dialog counts codons directly from a GenBank file (`.gb`, `.gbk`, `.gbff`) or a CDS FASTA, so no external tool is needed. Before installing, it reports how many coding sequences were counted out of how many were read and why the rest were left out (pseudogene, length not a multiple of three, internal stop, no terminal stop, ambiguous base), the most frequent codon per amino acid, and the amino acids furthest from the bundled reference table.
+
+Rules every table has to satisfy:
+
+- Key: lowercase letters, digits and underscore, 2 to 32 characters, starting with a letter, identical to the file name without `.json`
+- All 20 amino acids plus the stop `*`, all 64 codons exactly once, and the frequencies of one amino acid adding up to about 1 (percentages divided by 100)
+- NCBI genetic code 1 or 11 only. A non-standard code changes how kuma reads wild-type codons rather than only which codon it prefers, so it cannot be imported as a frequency table
+- A built-in key (`ecoli`, `bsubtilis`, `hsapiens`, `mextorquens`, `scerevisiae`) cannot be replaced. Import under a different key such as `ecoli_lab`. A run records only the key, so two machines must never disagree about what a key means
+
+A file that fails is listed with its reason under the folder path in Settings, and nothing is installed partially: a file is accepted whole or not at all. A design records the table name, key and digest, so a project opened where that table is missing offers to install the copy the project carries, and a project whose local table has different codons is held back from re-designing until that is resolved.
+
+---
+
 ## Project workflow
 
 On first launch kuma asks for a **projects root** folder (default `~/Documents/kuma`). All projects live inside as folders:
@@ -215,8 +237,8 @@ A newly created project runs a skippable spotlight tour: a short project overvie
 1. **Help → Load Sample Data** to load examples, or:
 2. Load a sequence file (GenBank `.gb` / SnapGene `.dna`)
 3. Verify the target CDS in the Target Gene dropdown (auto-selected)
-4. Enter mutations (text / EVOLVEpro CSV)
-5. Select codon strategy (Min. changes / Optimal)
+4. Verify **Organism** below it, which picks the codon usage table. It is set from the sequence annotation when that names a known organism, and **Add organism...** installs one kuma does not ship
+5. Enter mutations (text / EVOLVEpro CSV)
 6. *(Optional)* Adjust Tm, GC%, length in Advanced Options
 7. Click **Design Primers**
 8. File → Export Excel (writes `design/expected_mutations.xlsx` with `__kuma_meta__` embedded)

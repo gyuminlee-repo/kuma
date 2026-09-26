@@ -163,7 +163,18 @@
         "interpro": "InterPro / Pfam via EBI（域注释）"
       }
     },
-    "savedAt": "已于 {{time}} 保存"
+    "savedAt": "已于 {{time}} 保存",
+    "codonTables": {
+      "title": "密码子表",
+      "hint": "请将物种密码子表的 .json 文件放入此文件夹，然后点击刷新。去掉 .json 的文件名即为该物种的键。",
+      "counts": "内置 {{builtin}} 张，来自此文件夹 {{user}} 张。",
+      "openFolder": "打开文件夹",
+      "refresh": "刷新",
+      "openFolderFailed": "无法打开该文件夹。请复制上方路径并粘贴到文件管理器中。",
+      "notLoaded": "未能载入",
+      "notLoadedEntry": "{{filename}} 未能载入（{{code}}）：{{reason}}",
+      "advisories": "载入时附带提示"
+    }
   },
   "mame": {
     "plateOrder": {
@@ -1643,6 +1654,7 @@
     "sectionTmDistribution": "Tm 分布",
     "sectionDomainAllocation": "Domain 分配",
     "sectionFailedMutations": "失败的 Mutation",
+    "statOrganism": "物种",
     "statStep1Filter": "Step 1 filter",
     "statStep2Domains": "Step 2 domains",
     "statStep2Overlap": "Step 2 overlap",
@@ -2178,7 +2190,8 @@
     "ecoliTitle": "Escherichia coli K-12 codon usage 表。在 E. coli BL21、DH5α、K-12 衍生株中表达时使用。",
     "bsubtilisTitle": "Bacillus subtilis 168 codon usage 表。在 B. subtilis 或相关革兰氏阳性宿主中表达时使用。",
     "scerevisiaeTitle": "Saccharomyces cerevisiae codon usage 表。在 budding yeast 宿主中表达时使用。",
-    "sequenceFileHelp": "Reference sequence file (.fasta/.gb) used as template for primer design."
+    "sequenceFileHelp": "Reference sequence file (.fasta/.gb) used as template for primer design.",
+    "addOrganism": "添加物种..."
   },
   "mutationInput": {
     "mutations": "Mutations",
@@ -2599,12 +2612,11 @@
     "descriptionRange": "自 v{{from}} 以来每次更新的主要变化。",
     "gotItBtn": "知道了",
     "highlights": [
-      "consensus 序列在缺失碱基的位置写入短横线，缺失不再看起来像无法判读的位置。",
-      "barcode 引物现在必须通过与设计引物相同的 hairpin、self-dimer 和 off-target 检查。",
-      "未通过检查的 barcode 引物会被替换；若没有候选通过，提示会指出未达标的测量值。",
-      "重新打开已保存的分析时，缺失长度和复原序列会保留，旧版本在载入时会丢失这些值。"
+      "现在可以通过放入文件、导入 CSV/cusp/Kazusa，或从基因组计算来安装任意物种的密码子表。",
+      "设计会用 key 和 digest 记录使用的密码子表；若表缺失或已变化，会提示安装项目自带的副本。",
+      "曾经描述已移除的密码子策略开关的文档，现在改为描述取代它的物种表。"
     ],
-    "highlightsStamp": "0.16.69+60279e8e",
+    "highlightsStamp": "0.16.70+291b4798",
     "releases": {
       "0.16.69": [
         "consensus 序列在缺失碱基的位置写入短横线，缺失不再看起来像无法判读的位置。",
@@ -3096,6 +3108,11 @@
         "Variant list mapping 的说明现在写明 well 的填充方向：A1、B1、C1 直到 H1，然后是 A2。",
         "post-commit 版本同步钩子不再因引用已删除的路径而中断。",
         "较长的版本说明现在可在对话框内滚动，不会再溢出到底部之外。"
+      ],
+      "0.16.70": [
+        "现在可以通过放入文件、导入 CSV/cusp/Kazusa，或从基因组计算来安装任意物种的密码子表。",
+        "设计会用 key 和 digest 记录使用的密码子表；若表缺失或已变化，会提示安装项目自带的副本。",
+        "曾经描述已移除的密码子策略开关的文档，现在改为描述取代它的物种表。"
       ]
     },
     "releaseStamps": {
@@ -3177,7 +3194,8 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21"
+      "0.15.16": "fe8e6f21",
+      "0.16.70": "291b4798"
     }
   },
   "primerDisplay": {
@@ -3787,7 +3805,8 @@
       "geneRangeInvalid": "Gene end must be greater than gene start",
       "projectPath": "Open or create a project first",
       "activeRound": "Select a round first",
-      "activityData": "Upload activity data first"
+      "activityData": "Upload activity data first",
+      "codonTableUnresolved": "密码子表 (请处理物种列表下方的提示)"
     },
     "actionBlockedTitle": "Cannot proceed — missing required input"
   },
@@ -3869,6 +3888,123 @@
     "badge": {
       "staleHint": "比其来源输入更旧。重新运行该步骤即可刷新。",
       "detected": "检测到 {{step}} 输出"
+    }
+  },
+  "codonTable": {
+    "messages": {
+      "V1": "密码子表必须是 .json 文件，而所选文件的扩展名为 {{ext}}。",
+      "V2": "该文件大小为 {{size}}，而密码子表通常只有几千字节。请确认是否误选了基因组文件。",
+      "V3": "该文件不是有效的 JSON（第 {{line}} 行，第 {{col}} 列）：{{detail}}。请检查是否有多余的逗号或未闭合的括号。",
+      "V4": "密码子表必须是 JSON 对象，而不是 {{type}}。",
+      "V5": "该表需要更新版本的 kuma（schema_version 为 {{n}}，当前版本最高支持 {{max}}）。",
+      "V6": "无法读取该文件（{{reason}}）。请以 UTF-8 编码保存并检查文件权限。",
+      "V7": "表键 '{{key}}' 不可用。请使用小写字母、数字和下划线，长度 2 至 32 个字符，并以字母开头。",
+      "V8": "文件名为 {{stem}}.json，但声明的键是 '{{key}}'。kuma 按文件名查找密码子表，两者必须一致。",
+      "V9": "'{{key}}' 是内置密码子表（{{name}}），不能被替换。请改用其他键导入，例如 {{key}}_lab。运行记录只保存键名，因此两台机器对同一键的含义绝不能出现分歧。",
+      "V10": "'{{key}}' 已存在（{{name}}，导入于 {{date}}，摘要 {{sha8}}）。请替换它，或改用其他键导入。",
+      "V11": "两个文件名仅大小写不同，在不区分大小写的文件系统上会得到同一个键。只加载了 {{kept}}。请重命名其中一个。",
+      "V12": "该表没有显示名称。请补充名称，例如 'Methylorubrum extorquens AM1'。",
+      "V13": "taxid 必须是 NCBI 分类编号或留空，不能是 {{value}}。",
+      "V14": "未声明遗传密码，按 NCBI 第 {{n}} 号密码表（细菌）处理。",
+      "V15": "kuma 仅支持 NCBI 遗传密码 1 与 11，而该表声明的是 {{n}}。非标准遗传密码改变的不只是密码子偏好，还包括 kuma 读取野生型密码子的方式，因此仅凭频率表无法导入。",
+      "V16": "密码子 {{codon}} 被列在 {{declared}} 之下，但第 {{n}} 号遗传密码将其翻译为 {{expected}}。这通常意味着氨基酸列与密码子列被调换了。",
+      "V17": "应包含 21 个氨基酸条目（含终止符 '*'）。缺少：{{missing}}。多余：{{extra}}。",
+      "V18": "全部 64 个密码子须各出现一次。缺少：{{missing}}。重复：{{dup}}。",
+      "V19": "'{{codon}}' 不是可用的密码子条目。密码子恰为 A、C、G、T 或 U 中的三个字母，且不允许 N、R、Y 等简并字母。",
+      "V20": "'{{codon}}' 有 {{n}} 个字母，而密码子恰为 3 个。",
+      "V21": "{{codon}} 的频率为 {{value}}，而频率必须是 0 到 1 之间的数值。若数据源给出的是百分比，请除以 100。",
+      "V22": "{{aa}} 的频率之和为 {{sum}}，而非 1。同一氨基酸的同义密码子频率应是该氨基酸使用量的占比。",
+      "V23": "{{aa}} 的频率之和为 {{sum}}，尚在容差范围内，但提示数据源可能经过四舍五入或并不完整。",
+      "V24": "{{aa}} 的所有密码子频率均为 0，kuma 无法从中做出选择。",
+      "V25": "{{codon}} 的计数为 {{value}}，而计数必须是非负整数。",
+      "V26": "counts 与 codons 列出的密码子不一致：{{diff}}。",
+      "V27": "{{codon}} 记录的频率为 {{stored}}，但依其计数应为 {{computed}}。两者之一被手工改动过。请修正文件，或删除 counts 部分。",
+      "V28": "'{{alias}}' 不能用作别名。aliases 必须是一组非空名称。",
+      "V29": "别名 '{{alias}}' 已经是 {{other}} 的键。同一条注释绝不能解析到两张不同的表。",
+      "V30": "别名 '{{alias}}' 已指向 {{other}}。请删除该别名，或改用更具体的名称。",
+      "V31": "该表基于 {{cds}} 条编码序列（{{codons}} 个密码子）构建。样本偏小，频率未必能代表该物种。",
+      "V32": "该表未记录来源信息。kuma 仍会保存，但使用它的运行无法说明这些数值从何而来。",
+      "V33": "没有别名。载入注释为 '{{name}}' 的序列时，kuma 不会自动选中该物种。请补充 GenBank 文件中实际使用的物种名称。",
+      "V34": "有 {{n}} 个密码子频率为 0，将永远不会被选中：{{list}}。",
+      "V35": "已忽略无法识别的字段：{{list}}。",
+      "V36": "无法按 {{format}} 格式读取该文件：{{detail}}。请确认所选文件与所选格式相符。",
+      "N1": "已将 RNA 密码子转换为 DNA（U 转 T），共 {{n}} 个。",
+      "N2": "已将 {{n}} 个小写密码子转换为大写。",
+      "N4": "已根据密码子计数重新计算频率。",
+      "R5": "{{filename}} 被内置表 '{{stem}}' 遮蔽，未加载。若要使用，请改名为 {{stem}}_lab.json。",
+      "unknown": "密码子表校验器报告了 {{code}}，但当前版本的 kuma 没有对应说明。",
+      "G1": "kuma 无法按文件名声称的基因组格式读取该文件：{{detail}}",
+      "G2": "kuma 不按遗传密码 {{code}} 统计密码子。请选择 1 或 11。",
+      "G3": "{{file}} 中没有统计到任何编码序列。共读取 {{total}} 条，全部被排除，因此无法生成表格。"
+    },
+    "restore": {
+      "notInstalled": "本项目使用密码子表 '{{name}}'，此处尚未安装。是否从项目文件安装？",
+      "absent": "本项目使用的密码子表 '{{key}}' 在此处未安装，项目中也没有副本。请在设计前把文件放入密码子表文件夹。",
+      "mismatch": "本项目由密码子表 '{{key}}' 的另一版本设计。差异氨基酸：{{list}}。可使用项目中保存的副本，或保留本机表并重新设计。",
+      "mismatchUnexplained": "自本会话保存以来，本机的密码子表 '{{key}}' 已更改。请打开项目文件比较两个版本，或用此处安装的表重新设计。",
+      "install": "从项目安装",
+      "useProjectCopy": "使用项目副本",
+      "installing": "正在安装...",
+      "overwriteWarning": "这会覆盖本机的表 '{{key}}'。",
+      "installFailed": "无法安装该表：{{reason}}",
+      "installUnavailable": "项目中没有该表的副本。"
+    },
+    "manager": {
+      "title": "添加物种",
+      "description": "为 kuma 未内置的物种安装密码子表，或将已安装的表导出为文件发给同事。",
+      "importTab": "导入表文件",
+      "exportTab": "导出",
+      "formatLabel": "格式",
+      "formatJson": "kuma 表（JSON）",
+      "formatCsv": "三列 CSV",
+      "formatCusp": "EMBOSS cusp 输出",
+      "formatKazusa": "粘贴 Kazusa 页面",
+      "pasteLabel": "请粘贴 Kazusa 密码子使用频率表",
+      "fileLabel": "文件",
+      "filePlaceholder": "尚未选择文件",
+      "browse": "浏览",
+      "keyLabel": "键",
+      "nameLabel": "显示名称",
+      "taxidLabel": "NCBI 分类号（taxid）",
+      "taxidPlaceholder": "自有菌株可留空",
+      "geneticCodeLabel": "遗传密码",
+      "geneticCode11": "11，细菌与植物质体",
+      "geneticCode1": "1，标准",
+      "aliasesLabel": "别名",
+      "aliasesPlaceholder": "以逗号分隔，填写 GenBank 文件中的物种写法",
+      "overwriteLabel": "替换该键下已安装的表",
+      "checksRun": "已对 {{codons}} 个密码子执行 {{checks}} 项检查。",
+      "errorsLabel": "该表无法安装",
+      "warningsLabel": "值得注意",
+      "normalizationsLabel": "导入所做的改动",
+      "readyToInstall": "该表通过全部规则。摘要 {{digest}}。",
+      "check": "检查文件",
+      "import": "导入",
+      "export": "导出",
+      "exportHint": "将已安装的表写入文件。其中是 kuma 读取到的密码子，因此重新导入会得到同一张表。",
+      "tableLabel": "表",
+      "choose": "请选择一张表",
+      "installed": "已安装密码子表：{{key}}",
+      "importFailed": "密码子表导入失败：{{reason}}",
+      "exported": "密码子表已写入 {{path}}",
+      "exportFailed": "密码子表导出失败：{{reason}}",
+      "computeTab": "从基因组计算",
+      "computeHint": "选择 GenBank 文件或 CDS FASTA。kuma 会统计每条可读编码序列的密码子，并据此生成表格。",
+      "genomeLabel": "基因组",
+      "genomePlaceholder": "尚未选择基因组",
+      "computing": "正在统计密码子…",
+      "computeCheck": "统计密码子",
+      "computeInstall": "安装",
+      "previewCounted": "已统计 {{total}} 条编码序列中的 {{counted}} 条，密码子共 {{codons}} 个。",
+      "excludedLabel": "已排除的编码序列",
+      "excludedNone": "无。文件中的编码序列全部已统计。",
+      "reasonPseudo": "标注为假基因",
+      "reasonNotMultipleOf3": "长度不是 3 的倍数",
+      "reasonInternalStop": "末尾之前出现终止密码子",
+      "reasonNoTerminalStop": "末尾没有终止密码子",
+      "reasonAmbiguousBase": "含有 A、C、G、T 以外的碱基",
+      "topCodonsLabel": "各氨基酸的最常用密码子",
+      "divergentLabel": "与内置 {{reference}} 表差异最大的密码子"
     }
   }
 }

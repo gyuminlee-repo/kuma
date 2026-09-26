@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.16.70 (A codon table is now something you can bring)
+
+KURO shipped five codon usage tables and no way to add a sixth. A lab working on a strain outside that list had to accept the closest bundled table's preference or hand-edit primers afterward. Any organism can now be installed under `~/.kuma/kuro/codon_tables`: drop a `.json` file built from the bundled template and press Refresh, use `Add organism...` to import a kuma table, a three-column CSV, EMBOSS `cusp` output or a pasted Kazusa page, or use its `Compute from a genome` tab to count codons straight from a GenBank file or a CDS FASTA. Every route runs the same checks before installing anything: all 20 amino acids and the stop, all 64 codons exactly once, genetic code 1 or 11 only, and a key that cannot shadow a built-in table. A design records which table it used by key and digest, and opening a project whose table is missing or has since changed offers to install the copy the project carries rather than silently switching tables.
+
+The parameter panel had described a codon strategy choice that stopped existing at v0.16.60, when the two options were found to return the same candidate pool in a different order that the engine re-sorts by penalty anyway. The documentation kept describing the removed control across both READMEs, the in-app help topics, the design report and the overview figure. Every one of those now says what actually decides a codon: the organism table chosen beside the target gene, with the wild-type codon and any codon the host uses below 10 percent of that amino acid dropped from the pool, and the engine penalty pricing the remainder on nucleotide changes and usage.
+
+### Highlights
+
+- Any organism's codon table can now be installed by dropping a file, importing CSV/cusp/Kazusa, or computing it from a genome.
+- A design records the codon table by key and digest, and a missing or changed table offers to install the project's own copy.
+- Documentation that still described the removed codon strategy toggle now describes the organism table it was replaced by.
+
 ## v0.16.69 (A missing base and an uncalled base stop sharing a letter)
 
 A stored consensus used one letter for two different facts. An N meant the run could not call the position, and an N also meant the molecule has no base there. The two are opposite kinds of statement, one an absence of knowledge and the other a confident observation, and no reader of the output could tell them apart. Deletion positions now carry a dash. An N means a no-call and nothing else.

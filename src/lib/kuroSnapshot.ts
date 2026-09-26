@@ -72,13 +72,13 @@ import type { AppState } from "@/store/types";
 import type { SourceFingerprint } from "./sourceFingerprint";
 import { toPortablePath } from "./projectPath";
 
-export const KURO_SCHEMA = 6;
+export const KURO_SCHEMA = 7;
 
 /** buildKuroSnapshot에 전달하는 store 상태 부분집합 */
 export interface KuroSnapshotState
   extends Pick<
     AppState,
-    | "fastaPath" | "selectedGene" | "organism" | "seqInfo"
+    | "fastaPath" | "selectedGene" | "organism" | "organisms" | "seqInfo"
     | "mutationText" | "mutationInputMode" | "evolveproCsvPath"
     | "evolveproMode" | "evolveproVariantColumn" | "evolveproScoreColumn"
     | "evolveproScoreOrder" | "evolveproSheetName"
@@ -160,6 +160,13 @@ export function buildKuroSnapshot(
       evolvepro_sheet_name: state.evolveproSheetName,
       uniprot_accession: state.uniprotAccession || null,
       organism: state.organism,
+      // schema 7+. The digest only, never the table: this file is rewritten on
+      // every organism change and never leaves the machine that wrote it, so
+      // the 3.5 KB the workspace embeds would buy nothing here. It is enough to
+      // notice that the table under this key moved, which is the one thing the
+      // key alone cannot say (design note section 8.2).
+      codon_table_sha256:
+        state.organisms.find((o) => o.key === state.organism)?.table_sha256 ?? null,
       // schema 5+. load_fasta 응답 원본. 지문(sources)이 일치하면 복원 측이
       // loadSequence 재호출 없이 이 값을 그대로 seqInfo로 쓴다(핵심 헤더 참조).
       sequence_info: state.seqInfo,

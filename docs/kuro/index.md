@@ -5,7 +5,7 @@ KURO 는 6개 step 으로 구성된 linear wizard 이다. 왼쪽 Workflow Rail �
 ```
 1. Load        →  서열 + 유전자 + organism 선택
 2. Mutation    →  text / EVOLVEpro 입력
-3. Parameters  →  polymerase · codon strategy · Tm 범위
+3. Parameters  →  polymerase · Tm/GC 범위 · 길이 제한
 4. Submit      →  Design summary 카드 + Run Design
 5. Output      →  per-mutation 결과 표 + 우측 DesignReportInspector
 6. Export      →  xlsx / Echo / JANUS / plate map

@@ -199,7 +199,22 @@ const TAURI_STUB_SOURCE = `
     ping: { ok: true },
     list_polymerases: list,
     get_polymerase_details: profile,
-    list_organisms: [{ key: "ecoli", name: "E. coli K-12", taxid: 83333 }],
+    list_organisms: {
+      organisms: [
+        {
+          key: "ecoli",
+          name: "E. coli K-12",
+          taxid: 83333,
+          source: "builtin",
+          aliases: ["escherichia coli"],
+          cds_count: null,
+          table_sha256: "",
+          warnings: [],
+        },
+      ],
+      failed: [],
+      user_dir: "~/.kuma/kuro/codon_tables",
+    },
     // The export step previews the Echo worklist as soon as it renders.
     export_echo_mapping_dry_run: {
       rows: [

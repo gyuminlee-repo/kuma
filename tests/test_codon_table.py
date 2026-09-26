@@ -292,8 +292,12 @@ class TestCodonTableRegistry:
         t1 = registry.get_codon_table("ecoli")
         t2 = registry.get_codon_table("E. coli")
         t3 = registry.get_codon_table("Escherichia coli")
-        assert t1 is t2  # same cached object
-        assert t1 is t3
+        # Equal, deliberately not identical: get_codon_table hands out a fresh
+        # dict of fresh lists so an in-place edit at one call site cannot
+        # rewrite the table for the whole process.
+        assert t1 == t2
+        assert t1 == t3
+        assert t1 is not t2
 
     def test_unknown_organism_raises(self):
         registry = CodonTableRegistry()
@@ -422,7 +426,7 @@ class TestMextorquensTable:
         registry = CodonTableRegistry()
         methylorubrum = registry.get_codon_table("Methylorubrum extorquens")
         methylobacterium = registry.get_codon_table("Methylobacterium extorquens AM1")
-        assert methylorubrum is methylobacterium
+        assert methylorubrum == methylobacterium
 
     def test_table_is_not_the_ecoli_fallback(self):
         # AM1 is GC-rich and E. coli is not, so Lys and Glu separate them:
@@ -531,3 +535,127 @@ class TestHsapiensSerine:
         # TCT rising from 0.15 to 0.19 leaves AGC 0.24 on top, which is why
         # repairing Ser alone moved no design decision.
         assert best_codon("S", "hsapiens") == "AGC"
+
+
+class TestGeneticCodeConstant:
+    """CODON_TO_AA is NCBI genetic code 11, not a projection of ecoli.json.
+
+    The mapping used to be built by walking ECOLI_CODON_USAGE, so editing one
+    frequency file redefined the genetic code for the whole app. These tests
+    pin the new source and, at the same time, prove the swap changed nothing:
+    the explicit constant has to reproduce the old derived dict exactly.
+    """
+
+    @staticmethod
+    def _derived_from_ecoli() -> dict[str, str]:
+        """Rebuild the pre-change mapping the way codon_table.py used to."""
+        derived: dict[str, str] = {}
+        for aa, codons in ECOLI_CODON_USAGE.items():
+            for codon, _ in codons:
+                derived[codon] = aa
+        return derived
+
+    def test_covers_all_64_codons(self):
+        assert len(CODON_TO_AA) == 64
+
+    def test_matches_the_ecoli_derived_mapping_exactly(self):
+        # Not just the length: every codon has to land on the same amino acid.
+        assert CODON_TO_AA == self._derived_from_ecoli()
+
+    def test_stop_codons_are_merged_in(self):
+        # Bio's forward_table holds 61 sense codons and keeps the stops in a
+        # separate list. Forgetting the merge would hand mutation.py a None for
+        # a stop codon and it would reject the wild type instead.
+        from Bio.Data import CodonTable as _bio
+
+        table = _bio.unambiguous_dna_by_id[11]
+        assert len(table.forward_table) == 61
+        assert set(table.stop_codons) == {"TAA", "TAG", "TGA"}
+        for stop in table.stop_codons:
+            assert CODON_TO_AA[stop] == "*"
+
+    def test_codes_1_and_11_assign_codons_identically(self):
+        # The import validator accepts genetic_code 1 and 11 on the grounds
+        # that they differ only in start codons. This is that claim as a test.
+        from Bio.Data import CodonTable as _bio
+
+        standard = _bio.unambiguous_dna_by_id[1]
+        bacterial = _bio.unambiguous_dna_by_id[11]
+        assert standard.forward_table == bacterial.forward_table
+        assert set(standard.stop_codons) == set(bacterial.stop_codons)
+
+
+class TestResolveKeyGuard:
+    """V7: a lookup key is ^[a-z][a-z0-9_]{1,31}$.
+
+    Applied after the alias lookup so that an organism string matching no
+    alias cannot reach the filename built in ``_load``.
+    """
+
+    ACCEPTED = [
+        ("ecoli", "ecoli"),
+        ("bsubtilis", "bsubtilis"),
+        ("  ECOLI  ", "ecoli"),
+        ("E. coli", "ecoli"),
+        ("Methylobacterium extorquens AM1", "mextorquens"),
+        ("yeast", "scerevisiae"),
+    ]
+
+    REJECTED = [
+        "",              # blank
+        "   ",           # whitespace only
+        "e coli",        # space, matches no alias
+        "9ecoli",        # leading digit
+        "x",             # one character
+        "a" * 33,        # 33 characters
+        "../ecoli",      # path traversal
+        "ecoli.json",    # dot
+        "Ecoli-K12",     # hyphen
+    ]
+
+    @pytest.mark.parametrize("organism,expected", ACCEPTED)
+    def test_valid_keys_and_aliases_resolve(self, organism, expected):
+        assert CodonTableRegistry()._resolve_key(organism) == expected
+
+    @pytest.mark.parametrize("organism", REJECTED)
+    def test_invalid_keys_are_rejected(self, organism):
+        with pytest.raises(ValueError, match="Unknown organism"):
+            CodonTableRegistry()._resolve_key(organism)
+
+    def test_every_shipped_stem_passes_the_guard(self):
+        # Known-answer control: the guard must not exclude anything we ship.
+        registry = CodonTableRegistry()
+        shipped = registry.list_organisms()
+        assert set(shipped) == SHIPPED_ORGANISMS
+        for key in shipped:
+            assert registry._resolve_key(key) == key
+
+    def test_guard_rejects_before_touching_the_filesystem(self):
+        with pytest.raises(ValueError, match="Unknown organism"):
+            CodonTableRegistry().get_codon_table("../../etc/passwd")
+
+
+class TestResourceDirResolution:
+    def test_resources_dir_resolves_through_the_shared_helper(self):
+        from kuma_core.kuro import codon_table as codon_table_mod
+        from kuma_core.shared.resource_path import resource_path
+
+        expected = resource_path(
+            "kuma_core.kuro",
+            "resources/codon_tables",
+            module_file=codon_table_mod.__file__,
+        )
+        assert codon_table_mod._RESOURCES_DIR == expected
+        assert codon_table_mod._RESOURCES_DIR.is_dir()
+
+    def test_polymerase_helper_delegates_to_the_shared_one(self):
+        from kuma_core.kuro import polymerase as polymerase_mod
+        from kuma_core.shared.resource_path import resource_path
+
+        expected = resource_path(
+            "kuma_core.kuro",
+            "resources/polymerase_profiles.json",
+            module_file=polymerase_mod.__file__,
+        )
+        assert polymerase_mod.BUILTIN_PATH == expected
+        assert polymerase_mod.BUILTIN_PATH.is_file()

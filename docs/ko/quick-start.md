@@ -24,7 +24,7 @@ Sidecar 기동 후 상태 표시줄에 **Ready** 표시.
 
 ### Step 3 — 파라미터 확인
 
-기본 Q5 폴리머레이즈, 코돈 전략 *Min. changes*, Mutations 95. 필요 시 Parameter 패널에서 조정.
+기본 Q5 폴리머레이즈, Mutations 95. 필요 시 Parameter 패널에서 조정. 코돈 표는 여기서 정하지 않고 Step 1 에서 고른 **Organism** 을 따른다.
 
 ### Step 4 — 설계
 

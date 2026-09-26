@@ -7,10 +7,11 @@ from __future__ import annotations
 
 import json
 import logging
-import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Literal
+
+from kuma_core.shared.resource_path import resource_path as _shared_resource_path
 
 logger = logging.getLogger(__name__)
 
@@ -63,16 +64,15 @@ class PolymeraseProfile:
 
 
 def _resource_path(relative_path: str) -> Path:
-    """Get absolute path to a resource file.
+    """Get absolute path to a resource file under ``kuma_core/kuro``.
 
-    Works both in development and when frozen by PyInstaller.
+    Works both in development and when frozen by PyInstaller. Kept as a
+    module-level name because ``neb_tm`` imports it; the frozen/unfrozen
+    branching itself lives in ``kuma_core.shared.resource_path``.
     """
-    meipass = getattr(sys, "_MEIPASS", None)
-    if getattr(sys, "frozen", False) and meipass is not None:
-        base = Path(meipass) / "kuma_core" / "kuro"
-    else:
-        base = Path(__file__).parent
-    return base / relative_path
+    return _shared_resource_path(
+        "kuma_core.kuro", relative_path, module_file=__file__
+    )
 
 
 def _dict_to_profile(data: dict) -> PolymeraseProfile:

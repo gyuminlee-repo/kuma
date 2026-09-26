@@ -163,7 +163,18 @@
         "interpro": "InterPro / Pfam via EBI（域註釋）"
       }
     },
-    "savedAt": "已於 {{time}} 儲存"
+    "savedAt": "已於 {{time}} 儲存",
+    "codonTables": {
+      "title": "密碼子表",
+      "hint": "請將物種密碼子表的 .json 檔案放入此資料夾，然後按重新整理。去掉 .json 的檔名即為該物種的鍵。",
+      "counts": "內建 {{builtin}} 張，來自此資料夾 {{user}} 張。",
+      "openFolder": "開啟資料夾",
+      "refresh": "重新整理",
+      "openFolderFailed": "無法開啟該資料夾。請複製上方路徑並貼到檔案總管中。",
+      "notLoaded": "未能載入",
+      "notLoadedEntry": "{{filename}} 未能載入（{{code}}）：{{reason}}",
+      "advisories": "載入時附帶提示"
+    }
   },
   "mame": {
     "plateOrder": {
@@ -1643,6 +1654,7 @@
     "sectionTmDistribution": "Tm 分佈",
     "sectionDomainAllocation": "Domain 分配",
     "sectionFailedMutations": "失敗的 Mutation",
+    "statOrganism": "物種",
     "statStep1Filter": "Step 1 filter",
     "statStep2Domains": "Step 2 domains",
     "statStep2Overlap": "Step 2 overlap",
@@ -2178,7 +2190,8 @@
     "ecoliTitle": "Escherichia coli K-12 codon usage 表。在 E. coli BL21、DH5α、K-12 衍生株中表達時使用。",
     "bsubtilisTitle": "Bacillus subtilis 168 codon usage 表。在 B. subtilis 或相關革蘭氏陽性宿主中表達時使用。",
     "scerevisiaeTitle": "Saccharomyces cerevisiae codon usage 表。在 budding yeast 宿主中表達時使用。",
-    "sequenceFileHelp": "Reference sequence file (.fasta/.gb) used as template for primer design."
+    "sequenceFileHelp": "Reference sequence file (.fasta/.gb) used as template for primer design.",
+    "addOrganism": "新增物種..."
   },
   "mutationInput": {
     "mutations": "Mutations",
@@ -2599,12 +2612,11 @@
     "descriptionRange": "自 v{{from}} 以來每次更新的主要變更。",
     "gotItBtn": "知道了",
     "highlights": [
-      "consensus 序列在缺失鹼基的位置寫入短橫線，缺失不再看起來像無法判讀的位置。",
-      "barcode 引子現在必須通過與設計引子相同的 hairpin、self-dimer 與 off-target 檢查。",
-      "未通過檢查的 barcode 引子會被替換；若沒有候選通過，提示會指出未達標的測量值。",
-      "重新開啟已儲存的分析時，缺失長度與復原序列會保留，舊版本在載入時會遺失這些值。"
+      "現在可以透過放入檔案、匯入 CSV/cusp/Kazusa，或從基因組計算來安裝任意物種的密碼子表。",
+      "設計會用 key 和 digest 記錄使用的密碼子表；若表缺失或已變化，會提示安裝專案自帶的副本。",
+      "曾經描述已移除的密碼子策略開關的文件，現在改為描述取代它的物種表。"
     ],
-    "highlightsStamp": "0.16.69+60279e8e",
+    "highlightsStamp": "0.16.70+291b4798",
     "releases": {
       "0.16.69": [
         "consensus 序列在缺失鹼基的位置寫入短橫線，缺失不再看起來像無法判讀的位置。",
@@ -3096,6 +3108,11 @@
         "變異清單對應的說明現在會標明 well 的填入方向：A1、B1、C1 到 H1，接著 A2。",
         "post-commit 版本 hook 不再因已移除的路徑而中斷。",
         "較長的發行說明現在會在對話框內滾動，不會超出底部。"
+      ],
+      "0.16.70": [
+        "現在可以透過放入檔案、匯入 CSV/cusp/Kazusa，或從基因組計算來安裝任意物種的密碼子表。",
+        "設計會用 key 和 digest 記錄使用的密碼子表；若表缺失或已變化，會提示安裝專案自帶的副本。",
+        "曾經描述已移除的密碼子策略開關的文件，現在改為描述取代它的物種表。"
       ]
     },
     "releaseStamps": {
@@ -3177,7 +3194,8 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21"
+      "0.15.16": "fe8e6f21",
+      "0.16.70": "291b4798"
     }
   },
   "primerDisplay": {
@@ -3787,7 +3805,8 @@
       "geneRangeInvalid": "Gene end must be greater than gene start",
       "projectPath": "Open or create a project first",
       "activeRound": "Select a round first",
-      "activityData": "Upload activity data first"
+      "activityData": "Upload activity data first",
+      "codonTableUnresolved": "密碼子表 (請處理物種清單下方的提示)"
     },
     "actionBlockedTitle": "Cannot proceed — missing required input"
   },
@@ -3869,6 +3888,123 @@
     "badge": {
       "staleHint": "比其來源輸入更舊。重新執行該步驟即可更新。",
       "detected": "偵測到 {{step}} 輸出"
+    }
+  },
+  "codonTable": {
+    "messages": {
+      "V1": "密碼子表必須是 .json 檔案，而所選檔案的副檔名為 {{ext}}。",
+      "V2": "此檔案大小為 {{size}}，而密碼子表通常只有幾 KB。請確認是否誤選了基因體檔案。",
+      "V3": "此檔案不是有效的 JSON（第 {{line}} 行，第 {{col}} 欄）：{{detail}}。請檢查是否有多餘的逗號或未閉合的括號。",
+      "V4": "密碼子表必須是 JSON 物件，而不是 {{type}}。",
+      "V5": "此表需要更新版本的 kuma（schema_version 為 {{n}}，目前版本最高支援 {{max}}）。",
+      "V6": "無法讀取此檔案（{{reason}}）。請以 UTF-8 編碼儲存並檢查檔案權限。",
+      "V7": "表鍵 '{{key}}' 不可用。請使用小寫字母、數字與底線，長度 2 至 32 個字元，並以字母開頭。",
+      "V8": "檔名為 {{stem}}.json，但宣告的鍵是 '{{key}}'。kuma 依檔名尋找密碼子表，兩者必須一致。",
+      "V9": "'{{key}}' 是內建密碼子表（{{name}}），無法取代。請改用其他鍵匯入，例如 {{key}}_lab。執行紀錄只保存鍵名，因此兩台機器對同一鍵的含意絕不能有分歧。",
+      "V10": "'{{key}}' 已存在（{{name}}，匯入於 {{date}}，摘要 {{sha8}}）。請取代它，或改用其他鍵匯入。",
+      "V11": "兩個檔名僅大小寫不同，在不區分大小寫的檔案系統上會得到同一個鍵。只載入了 {{kept}}。請重新命名其中一個。",
+      "V12": "此表沒有顯示名稱。請補上名稱，例如 'Methylorubrum extorquens AM1'。",
+      "V13": "taxid 必須是 NCBI 分類編號或留空，不能是 {{value}}。",
+      "V14": "未宣告遺傳密碼，以 NCBI 第 {{n}} 號密碼表（細菌）處理。",
+      "V15": "kuma 僅支援 NCBI 遺傳密碼 1 與 11，而此表宣告的是 {{n}}。非標準遺傳密碼改變的不只是密碼子偏好，還包括 kuma 讀取野生型密碼子的方式，因此僅憑頻率表無法匯入。",
+      "V16": "密碼子 {{codon}} 被列在 {{declared}} 之下，但第 {{n}} 號遺傳密碼將其轉譯為 {{expected}}。這通常表示胺基酸欄與密碼子欄被對調了。",
+      "V17": "應包含 21 個胺基酸項目（含終止符 '*'）。缺少：{{missing}}。多餘：{{extra}}。",
+      "V18": "全部 64 個密碼子須各出現一次。缺少：{{missing}}。重複：{{dup}}。",
+      "V19": "'{{codon}}' 不是可用的密碼子項目。密碼子恰為 A、C、G、T 或 U 中的三個字母，且不允許 N、R、Y 等簡併字母。",
+      "V20": "'{{codon}}' 有 {{n}} 個字母，而密碼子恰為 3 個。",
+      "V21": "{{codon}} 的頻率為 {{value}}，而頻率必須是 0 到 1 之間的數值。若資料來源給出的是百分比，請除以 100。",
+      "V22": "{{aa}} 的頻率總和為 {{sum}}，而非 1。同一胺基酸的同義密碼子頻率應是該胺基酸使用量的占比。",
+      "V23": "{{aa}} 的頻率總和為 {{sum}}，尚在容差範圍內，但顯示資料來源可能經過四捨五入或並不完整。",
+      "V24": "{{aa}} 的所有密碼子頻率皆為 0，kuma 無法從中做出選擇。",
+      "V25": "{{codon}} 的計數為 {{value}}，而計數必須是非負整數。",
+      "V26": "counts 與 codons 列出的密碼子不一致：{{diff}}。",
+      "V27": "{{codon}} 記錄的頻率為 {{stored}}，但依其計數應為 {{computed}}。兩者之一曾被手動改動。請修正檔案，或刪除 counts 區塊。",
+      "V28": "'{{alias}}' 不能作為別名。aliases 必須是一組非空名稱。",
+      "V29": "別名 '{{alias}}' 已經是 {{other}} 的鍵。同一條註解絕不能解析到兩張不同的表。",
+      "V30": "別名 '{{alias}}' 已指向 {{other}}。請刪除該別名，或改用更具體的名稱。",
+      "V31": "此表基於 {{cds}} 條編碼序列（{{codons}} 個密碼子）建立。樣本偏小，頻率未必能代表該物種。",
+      "V32": "此表未記錄來源資訊。kuma 仍會保存，但使用它的執行無法說明這些數值從何而來。",
+      "V33": "沒有別名。載入註解為 '{{name}}' 的序列時，kuma 不會自動選取該物種。請補上 GenBank 檔案中實際使用的物種名稱。",
+      "V34": "有 {{n}} 個密碼子頻率為 0，將永遠不會被選中：{{list}}。",
+      "V35": "已忽略無法辨識的欄位：{{list}}。",
+      "V36": "無法以 {{format}} 格式讀取此檔案：{{detail}}。請確認所選檔案與所選格式相符。",
+      "N1": "已將 RNA 密碼子轉換為 DNA（U 轉 T），共 {{n}} 個。",
+      "N2": "已將 {{n}} 個小寫密碼子轉換為大寫。",
+      "N4": "已依據密碼子計數重新計算頻率。",
+      "R5": "{{filename}} 被內建表 '{{stem}}' 遮蔽，未載入。若要使用，請改名為 {{stem}}_lab.json。",
+      "unknown": "密碼子表檢查器回報了 {{code}}，但目前版本的 kuma 沒有對應說明。",
+      "G1": "kuma 無法依檔名宣稱的基因體格式讀取此檔案：{{detail}}",
+      "G2": "kuma 不依遺傳密碼 {{code}} 統計密碼子。請選擇 1 或 11。",
+      "G3": "{{file}} 中沒有統計到任何編碼序列。共讀取 {{total}} 條，全部被排除，因此無法建立表格。"
+    },
+    "restore": {
+      "notInstalled": "本專案使用密碼子表 '{{name}}'，此處尚未安裝。是否從專案檔安裝？",
+      "absent": "本專案使用的密碼子表 '{{key}}' 在此處未安裝，專案中也沒有副本。請在設計前把檔案放入密碼子表資料夾。",
+      "mismatch": "本專案由密碼子表 '{{key}}' 的另一版本設計。差異胺基酸：{{list}}。可使用專案中儲存的副本，或保留本機表並重新設計。",
+      "mismatchUnexplained": "自本工作階段儲存以來，本機的密碼子表 '{{key}}' 已變更。請開啟專案檔比較兩個版本，或用此處安裝的表重新設計。",
+      "install": "從專案安裝",
+      "useProjectCopy": "使用專案副本",
+      "installing": "正在安裝...",
+      "overwriteWarning": "這會覆寫本機的表 '{{key}}'。",
+      "installFailed": "無法安裝該表：{{reason}}",
+      "installUnavailable": "專案中沒有該表的副本。"
+    },
+    "manager": {
+      "title": "新增物種",
+      "description": "為 kuma 未內建的物種安裝密碼子表，或將已安裝的表匯出成檔案寄給同事。",
+      "importTab": "匯入表檔案",
+      "exportTab": "匯出",
+      "formatLabel": "格式",
+      "formatJson": "kuma 表（JSON）",
+      "formatCsv": "三欄 CSV",
+      "formatCusp": "EMBOSS cusp 輸出",
+      "formatKazusa": "貼上 Kazusa 頁面",
+      "pasteLabel": "請貼上 Kazusa 密碼子使用頻率表",
+      "fileLabel": "檔案",
+      "filePlaceholder": "尚未選擇檔案",
+      "browse": "瀏覽",
+      "keyLabel": "鍵",
+      "nameLabel": "顯示名稱",
+      "taxidLabel": "NCBI 分類號（taxid）",
+      "taxidPlaceholder": "自有菌株可留空",
+      "geneticCodeLabel": "遺傳密碼",
+      "geneticCode11": "11，細菌與植物質體",
+      "geneticCode1": "1，標準",
+      "aliasesLabel": "別名",
+      "aliasesPlaceholder": "以逗號分隔，填寫 GenBank 檔案中的物種寫法",
+      "overwriteLabel": "取代此鍵下已安裝的表",
+      "checksRun": "已對 {{codons}} 個密碼子執行 {{checks}} 項檢查。",
+      "errorsLabel": "此表無法安裝",
+      "warningsLabel": "值得注意",
+      "normalizationsLabel": "匯入所做的變更",
+      "readyToInstall": "此表通過所有規則。摘要 {{digest}}。",
+      "check": "檢查檔案",
+      "import": "匯入",
+      "export": "匯出",
+      "exportHint": "將已安裝的表寫入檔案。其中是 kuma 讀到的密碼子，因此重新匯入會得到同一張表。",
+      "tableLabel": "表",
+      "choose": "請選擇一張表",
+      "installed": "已安裝密碼子表：{{key}}",
+      "importFailed": "密碼子表匯入失敗：{{reason}}",
+      "exported": "密碼子表已寫入 {{path}}",
+      "exportFailed": "密碼子表匯出失敗：{{reason}}",
+      "computeTab": "從基因體計算",
+      "computeHint": "選擇 GenBank 檔案或 CDS FASTA。kuma 會統計每條可讀編碼序列的密碼子，並依此建立表格。",
+      "genomeLabel": "基因體",
+      "genomePlaceholder": "尚未選擇基因體",
+      "computing": "正在統計密碼子…",
+      "computeCheck": "統計密碼子",
+      "computeInstall": "安裝",
+      "previewCounted": "已統計 {{total}} 條編碼序列中的 {{counted}} 條，密碼子共 {{codons}} 個。",
+      "excludedLabel": "已排除的編碼序列",
+      "excludedNone": "無。檔案中的編碼序列全部已統計。",
+      "reasonPseudo": "標註為假基因",
+      "reasonNotMultipleOf3": "長度不是 3 的倍數",
+      "reasonInternalStop": "結尾之前出現終止密碼子",
+      "reasonNoTerminalStop": "結尾沒有終止密碼子",
+      "reasonAmbiguousBase": "含有 A、C、G、T 以外的鹼基",
+      "topCodonsLabel": "各胺基酸的最常用密碼子",
+      "divergentLabel": "與內建 {{reference}} 表差異最大的密碼子"
     }
   }
 }

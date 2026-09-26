@@ -9,6 +9,7 @@
  * `validateAction()`이 담당하며, 호출부는 toast.warning으로 missing[]을 안내한다.
  */
 import type { AppState } from "@/store/types";
+import { blocksDesign, resolveCodonTableRestore } from "@/lib/codonTableRestore";
 
 export type KuroSubStepId =
   | "design.load"
@@ -60,6 +61,15 @@ export function validateForRun(state: AppState): ValidationResult {
   if (!hasTypedMutations(state)) missing.push("appLayout.missingMutations");
   if (state.seqInfo && state.seqInfo.genes.length > 1 && !state.selectedGene) {
     missing.push("appLayout.missingTargetGene");
+  }
+  // A restored project whose codon table this machine cannot reproduce. The
+  // backend refuses a key it does not have, but it cannot see a key it *does*
+  // have whose numbers moved, and that case produces different primers from an
+  // identical-looking request. Named here so the one gate covers it; the notice
+  // that says which amino acids moved is the UI's job, because this contract
+  // returns keys with no placeholders.
+  if (blocksDesign(resolveCodonTableRestore(state.restoredCodonTable, state.organisms))) {
+    missing.push("validation.missing.codonTableUnresolved");
   }
   return { ok: missing.length === 0, missing };
 }

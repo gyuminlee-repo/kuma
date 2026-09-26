@@ -15,19 +15,277 @@ export interface PolymeraseInfo {
 }
 
 /**
+ * One rule outcome the codon-table validator reports about a table it accepted.
+ *
+ * `code` is one of the strings in `MESSAGE_CODES`
+ * (kuma_core/kuro/codon_import.py); `params` carries exactly the
+ * `{{placeholder}}` names the locale string for that code interpolates.
+ * `src/lib/codonTableMessages.ts` owns the code -> locale-key mapping, so
+ * nothing here needs to know what a code means.
+ */
+export interface CodonTableFinding {
+  code: string;
+  params: Record<string, unknown>;
+}
+
+/**
  * One codon table as `list_organisms` reports it.
  *
  * `taxid` is nullable because the backend emits `data.get("taxid")`
  * (kuma_core/kuro/codon_table.py) and a table JSON is not required to carry
  * the field. An in-house strain legitimately has none. The result is
- * validated element-by-element through `isArrayOf`, so declaring `taxid` as a
- * plain number would make a single taxid-less table reject the WHOLE payload
- * and leave the organism dropdown empty.
+ * validated element-by-element, so declaring `taxid` as a plain number would
+ * make a single taxid-less table reject the WHOLE payload and leave the
+ * organism dropdown empty.
+ *
+ * `cds_count` is nullable for the same reason: a hand-written table declares no
+ * `n_cds` and the backend cannot invent one.
  */
 export interface OrganismSummary {
   key: string;
   name: string;
   taxid: number | null;
+  source: "builtin" | "user";
+  aliases: string[];
+  cds_count: number | null;
+  table_sha256: string;
+  warnings: CodonTableFinding[];
+  /**
+   * What the import silently changed (N1, N2, N4).
+   *
+   * The backend built these findings and then dropped them, so their thirty
+   * locale strings were unreachable from any production path. They are
+   * advisories, not defects: the table loaded, and this says what it looked
+   * like before it did.
+   */
+  normalizations: CodonTableFinding[];
+  /**
+   * The whole table as a self-contained JSON object.
+   *
+   * Optional so a sidecar built before Phase 2 still parses. When absent the
+   * workspace cannot embed this table and a digest disagreement cannot be
+   * explained amino acid by amino acid; both degrade to the digest-only path
+   * rather than to a wrong answer.
+   */
+  document?: CodonTableDocument;
+}
+
+/**
+ * A codon table in the shape its file on disk has.
+ *
+ * Built by the backend from what the validator normalised rather than from the
+ * bytes it read, so writing this object to `<key>.json` and validating it again
+ * yields the same `table_sha256` (kuma_core/kuro/codon_table.py,
+ * `_document_from_report`). That property is what makes the workspace embed
+ * installable: a restore that produced a table with a different digest than the
+ * project recorded would hit the mismatch branch it was meant to resolve.
+ *
+ * The traceability fields (`provenance`, `counts`, the assembly labels) ride
+ * along under the index signature. None of them enters the canonical digest.
+ */
+export interface CodonTableDocument {
+  key: string;
+  name: string;
+  taxid: number | null;
+  source: string;
+  genetic_code: number;
+  aliases: string[];
+  codons: Record<string, [string, number][]>;
+  [field: string]: unknown;
+}
+
+/**
+ * One file in the user codon-table folder that did not become an organism.
+ *
+ * `code` is the FIRST error code the validator raised (V1-V35), or the runtime
+ * rule `R5` when a user file is shadowed by a bundled table of the same stem.
+ * `reason` is the backend's English detail text, joined with `; ` when several
+ * rules fired, and stays as the fallback for a sidecar older than `findings`.
+ *
+ * `findings` carries every error with its `params`, which is what
+ * `formatCodonTableMessage` needs to rebuild the sentence in the active locale.
+ * Every error and not only the first: `reason` already joins them all, so
+ * localizing one code would drop the rest of what the file got wrong.
+ */
+export interface CodonTableFailure {
+  filename: string;
+  code: string;
+  reason: string;
+  findings?: CodonTableFinding[];
+}
+
+/**
+ * The `list_organisms` envelope.
+ *
+ * Calling `list_organisms` IS the refresh action: the handler drops the
+ * registry caches, seeds the user folder and re-reads both directories
+ * (python-core/sidecar_kuro/handlers/misc.py, `handle_list_organisms`). There
+ * is no separate refresh RPC in Phase 1.
+ *
+ * `user_dir` is the absolute path the sidecar actually resolved, not one the
+ * frontend reconstructs: `kuma_home()` reads `HOME` before `Path.home()`, so a
+ * guess would be wrong for any Windows process that inherited an MSYS
+ * environment.
+ */
+export interface ListOrganismsResult {
+  organisms: OrganismSummary[];
+  failed: CodonTableFailure[];
+  user_dir: string;
+}
+
+/**
+ * One finding as the import RPC reports it.
+ *
+ * `CodonTableFinding` plus the backend's English `detail`. The import path
+ * carries the detail because it can fail before any rule runs -- a CSV whose
+ * columns cannot be located (V36) has its specifics only in that string --
+ * whereas `list_organisms` already joins its details into `reason`.
+ */
+export interface CodonTableImportFinding extends CodonTableFinding {
+  detail?: string;
+}
+
+/**
+ * What `import_codon_table` reports.
+ *
+ * `ok` and `installed` are two different facts. A `dry_run` that passes every
+ * rule is `ok` and not `installed`, and that is the preview: the dialog shows
+ * exactly the findings the real import would produce, from the same call with
+ * one flag flipped, so preview and import cannot drift apart.
+ *
+ * `checks_performed` and `codons_examined` are surfaced rather than kept in
+ * the backend because "no problems found" from zero checks and "no problems
+ * found" from two hundred checks must not read the same on screen.
+ *
+ * `normalizations` is what the import silently changed (N1 U-to-T, N2 case,
+ * N4 fractions recomputed from counts). Phase 2 made these reachable in the
+ * listing; the preview is where they are actually useful, because this is the
+ * one moment the user can still decide not to install the table.
+ */
+export interface ImportCodonTableResult {
+  ok: boolean;
+  installed: boolean;
+  key: string;
+  table_sha256: string | null;
+  errors: CodonTableImportFinding[];
+  warnings: CodonTableImportFinding[];
+  normalizations: CodonTableImportFinding[];
+  checks_performed: number;
+  codons_examined: number;
+  /** The document as it was or would be written. Null when the table was rejected. */
+  document: CodonTableDocument | null;
+  /** Where it was written. Null for a dry run and for a rejection. */
+  path: string | null;
+}
+
+export interface ImportCodonTableParams {
+  format: "json" | "csv" | "cusp" | "kazusa";
+  key: string;
+  filepath?: string;
+  text?: string;
+  name?: string;
+  taxid?: number | null;
+  genetic_code?: number;
+  aliases?: string[];
+  source?: string;
+  overwrite?: boolean;
+  dry_run?: boolean;
+}
+
+export interface ComputeCodonTableParams {
+  filepath: string;
+  key: string;
+  name?: string;
+  taxid?: number | null;
+  /**
+   * The NCBI translation table the genome is counted under.
+   *
+   * Required and not optional, unlike its import counterpart. A genome file
+   * declares no genetic code, so the user's choice is the only one there is,
+   * and there is nothing for an `|| 11` fallback to fall back from. Codes 1
+   * and 11 assign codons identically and differ only in start codons, so no
+   * check downstream can notice a substituted value -- it surfaces only as
+   * two colleagues holding tables that disagree on paper.
+   */
+  genetic_code: number;
+  /** Only for a file whose suffix does not say which format it is. */
+  genome_format?: "fasta" | "genbank" | null;
+  aliases?: string[];
+  source?: string;
+  overwrite?: boolean;
+  dry_run?: boolean;
+}
+
+/** One amino acid's most frequent codon, as the preview lists it. */
+export interface CodonPreviewTopRow {
+  aa: string;
+  codon: string;
+  fraction: number;
+  count: number;
+}
+
+/** One codon where the computed table and the bundled reference disagree most. */
+export interface CodonPreviewDivergentRow {
+  aa: string;
+  codon: string;
+  fraction: number;
+  reference_fraction: number;
+  /** `fraction - reference_fraction`. Signed: the direction is the point. */
+  delta: number;
+}
+
+/**
+ * What the compute path counted, for the user to read before installing.
+ *
+ * Every number here is derived from the tally by the sidecar
+ * (`python-core/sidecar_kuro/handlers/codon.py`, `_preview`) rather than in
+ * this layer, so the arithmetic sits where pytest can reach it and this layer
+ * renders rows. Amino acid letters and codon strings are IUPAC symbols and are
+ * never translated.
+ */
+export interface CodonTablePreview {
+  source_format: string;
+  cds_total: number;
+  cds_counted: number;
+  /** Exclusion reason -> count. The reasons are `EXCLUSION_REASONS`. */
+  cds_excluded: Record<string, number>;
+  /** Exclusion reason -> up to five record identifiers, so a count can be checked. */
+  excluded_examples: Record<string, string[]>;
+  codon_count: number;
+  top_codons: CodonPreviewTopRow[];
+  /** The bundled table the comparison ran against, or null when none was found. */
+  reference_key: string | null;
+  divergent_codons: CodonPreviewDivergentRow[];
+}
+
+/**
+ * What `compute_codon_table` reports.
+ *
+ * The import result plus the tally. It is the same envelope because it is
+ * literally the same code: import, its preview and compute share one
+ * judge-and-install tail in the sidecar, which is what keeps a computed table
+ * held to the rules an imported one is held to.
+ */
+export interface ComputeCodonTableResult extends ImportCodonTableResult {
+  preview: CodonTablePreview;
+}
+
+/**
+ * Parameters for `export_codon_table`.
+ *
+ * No Kazusa. It is an input format only: the stored canonical form is decided
+ * and a fourth spelling kuma would have to read back is a second canon.
+ */
+export interface ExportCodonTableParams {
+  key: string;
+  format: "json" | "csv" | "cusp";
+  filepath: string;
+}
+
+export interface ExportCodonTableResult {
+  path: string;
+  format: string;
+  bytes: number;
 }
 
 export interface PolymeraseProfile {
@@ -601,6 +859,28 @@ export interface WorkspaceV3 {
   cache?: WorkspaceCache;
   rounds: import("./round").Round[];
   active_round_id: string | null;
+  /**
+   * The codon table this project designed with, in full.
+   *
+   * About 3.5 KB, and the whole table rather than a key, because a workspace is
+   * the artifact that travels: opened on a machine that never had the file, a
+   * key alone would name something nobody can produce. Written only for a
+   * user-installed table; a bundled one is identified by its key, which the app
+   * ships (design note section 8.2).
+   *
+   * Optional, and its absence is not a defect: every workspace saved before
+   * Phase 2 lacks it, and those restore exactly as they did before.
+   */
+  codon_table?: CodonTableDocument | null;
+  /**
+   * The canonical digest of that table, recorded for a bundled table too.
+   *
+   * Separate from `codon_table` because it is a property of the backend's
+   * normalisation, not of the document text, and because a bundled table needs
+   * the digest without the body: a later build can ship different numbers under
+   * a key this file names, and nothing but the digest would notice.
+   */
+  codon_table_sha256?: string | null;
 }
 
 export type WorkspaceData = WorkspaceV1 | WorkspaceV2 | WorkspaceV3;
@@ -755,7 +1035,19 @@ export interface RpcMethodMap {
   };
   list_organisms: {
     params: Record<string, never>;
-    result: OrganismSummary[];
+    result: ListOrganismsResult;
+  };
+  compute_codon_table: {
+    params: ComputeCodonTableParams;
+    result: ComputeCodonTableResult;
+  };
+  import_codon_table: {
+    params: ImportCodonTableParams;
+    result: ImportCodonTableResult;
+  };
+  export_codon_table: {
+    params: ExportCodonTableParams;
+    result: ExportCodonTableResult;
   };
   load_fasta: {
     params: { filepath: string };
