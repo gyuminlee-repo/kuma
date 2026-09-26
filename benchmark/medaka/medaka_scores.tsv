@@ -1,0 +1,11 @@
+tag	well	depth	medaka_ed	truth_alen	consensus_len	len_match
+g1	G1	100x	0	177	177	Y
+g2	G2	100x	0	177	177	Y
+g3	G3	100x	0	177	177	Y
+g4	G4	100x	0	175	175	Y
+g5	G5	100x	1	176	176	Y
+d30_g1	G1	30x	0	177	177	Y
+d30_g2	G2	30x	0	177	177	Y
+d30_g3	G3	30x	0	177	177	Y
+d30_g4	G4	30x	0	175	175	Y
+d30_g5	G5	30x	1	176	176	Y
