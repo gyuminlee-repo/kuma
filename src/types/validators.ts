@@ -1134,7 +1134,14 @@ const rpcResultValidators = {
     isRecord(value) &&
     isStringArray(value.success) &&
     isArrayOf(value.failed, (v) => isRecord(v) && isString(v.path) && isString(v.reason)) &&
-    isString(value.output_dir),
+    isString(value.output_dir) &&
+    (value.vectormaps === undefined ||
+      (isRecord(value.vectormaps) &&
+        isString(value.vectormaps.output_dir) &&
+        isStringArray(value.vectormaps.success) &&
+        isArrayOf(value.vectormaps.failed, (v) => isRecord(v) && isString(v.path) && isString(v.reason)) &&
+        (value.vectormaps.skipped_reason === null || isString(value.vectormaps.skipped_reason)) &&
+        typeof value.vectormaps.sha_checked === "boolean")),
   export_benchmark_csv: (value): value is RpcMethodResult<"export_benchmark_csv"> =>
     isExportResult(value),
   evaluate_primer: (value): value is RpcMethodResult<"evaluate_primer"> =>

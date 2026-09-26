@@ -3411,7 +3411,9 @@
         "wellCount": "{{count}} Wells",
         "echoVolLabel": "Echo-Transfervolumen",
         "janusVolLabel": "JANUS-Transfervolumen",
-        "ruleHint": "Plattennamen sind optional. Leere Namen verwenden die Backend-Standardwerte."
+        "ruleHint": "Plattennamen sind optional. Leere Namen verwenden die Backend-Standardwerte.",
+        "vectormapsLabel": "Zusätzlich eine GenBank-Vektorkarte pro Klon exportieren",
+        "vectormapsHint": "Schreibt pro Well eine .gb-Datei, den Ausgangsvektor mit der markierten Mutation dieses Klons, in einen Ordner mit der Endung {{folder}} neben dem Exportordner. Erfordert eine GenBank- oder SnapGene-Referenz."
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",

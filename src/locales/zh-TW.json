@@ -3411,7 +3411,9 @@
         "wellCount": "{{count}} 孔",
         "echoVolLabel": "Echo 轉移體積",
         "janusVolLabel": "JANUS 轉移體積",
-        "ruleHint": "盤名稱為選填項目。留空將使用後端預設值。"
+        "ruleHint": "盤名稱為選填項目。留空將使用後端預設值。",
+        "vectormapsLabel": "同時匯出每個選殖株的 GenBank 載體圖譜",
+        "vectormapsHint": "每個孔寫出一個 .gb 檔案，即標註該選殖株突變的親本載體，儲存在匯出資料夾旁以 {{folder}} 結尾的資料夾中。需要 GenBank 或 SnapGene 參考序列。"
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",

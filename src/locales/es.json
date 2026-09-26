@@ -3411,7 +3411,9 @@
         "wellCount": "{{count}} pocillos",
         "echoVolLabel": "Volumen de transferencia Echo",
         "janusVolLabel": "Volumen de transferencia JANUS",
-        "ruleHint": "Los nombres de placa son opcionales. Los nombres vacíos usan los valores predeterminados del backend."
+        "ruleHint": "Los nombres de placa son opcionales. Los nombres vacíos usan los valores predeterminados del backend.",
+        "vectormapsLabel": "Exportar también un mapa de vector GenBank por clon",
+        "vectormapsHint": "Escribe un archivo .gb por pocillo, el vector parental con la mutación de ese clon marcada, en una carpeta terminada en {{folder}} junto a la carpeta de exportación. Requiere una referencia GenBank o SnapGene."
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",

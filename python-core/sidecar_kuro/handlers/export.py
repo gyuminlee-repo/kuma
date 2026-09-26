@@ -22,6 +22,11 @@ from kuma_core.kuro.plate_mapper import (
     export_twist_csv,
     generate_plate_map,
 )
+from kuma_core.kuro.vectormap import (
+    VectormapClone,
+    vectormaps_dir_for,
+    write_vectormaps,
+)
 from kuma_core.shared.version import KUMA_VERSION, KURO_MODULE_VERSION
 from kuma_core.shared.run_manifest import (
     build_run_manifest,
@@ -1007,6 +1012,70 @@ EXPORT_ALL_FILE_SUFFIXES: tuple[str, ...] = tuple(
 )
 
 
+def _export_vectormaps_for_all(
+    mappings: list[PlateMapping],
+    results: list,
+    target_dir: Path,
+) -> dict:
+    """Write the per-clone GenBank maps next to the bundle, never inside it.
+
+    Independent of the bundle loop: whatever happens here is reported under
+    its own key and cannot turn a bundle file into a failure. The reference is
+    the file the design read (``design_provenance.fasta_path``) and its
+    design-time digest is re-checked, so a vector edited since the design is
+    refused instead of carrying codon coordinates that no longer point at it.
+    """
+    out_dir = vectormaps_dir_for(target_dir)
+    with _core._state_lock:
+        template_path, template_seq = _core._state.template
+        provenance = (
+            dict(_core._state.design_provenance)
+            if _core._state.design_provenance else None
+        )
+
+    expected_sha: str | None = None
+    if provenance and provenance.get("fasta_path"):
+        reference = Path(str(provenance["fasta_path"]))
+        expected_sha = provenance.get("fasta_sha256")
+    elif template_path:
+        reference = Path(template_path)
+    else:
+        return {
+            "output_dir": str(out_dir), "success": [], "failed": [],
+            "skipped_reason": "no reference sequence loaded in this session",
+            "sha_checked": False,
+        }
+    expected_seq = (
+        template_seq
+        if template_seq and template_path and Path(template_path) == reference
+        else None
+    )
+
+    by_mutation = {r.mutation.raw: r.mutation for r in results}
+    clones: list[VectormapClone] = []
+    missing: list[dict] = []
+    seen: set[str] = set()
+    for m in mappings:
+        if m.primer_type != "forward" or m.mutation in seen:
+            continue
+        seen.add(m.mutation)
+        mut = by_mutation.get(m.mutation)
+        if mut is None:
+            missing.append({
+                "path": f"{m.well}_{m.mutation}",
+                "reason": "no design result for this mutation in the session",
+            })
+            continue
+        clones.append(VectormapClone(well=m.well, mutation=mut))
+
+    out = write_vectormaps(
+        reference, clones, out_dir, target_dir.name,
+        expected_sha256=expected_sha, expected_sequence=expected_seq,
+    )
+    out["failed"] = missing + out["failed"]
+    return out
+
+
 def handle_export_all(params: dict) -> dict:
     """Run the batch export pipeline: six artefact kinds written as eight files.
 
@@ -1019,6 +1088,12 @@ def handle_export_all(params: dict) -> dict:
     error is reported as a failed run.json alongside the files that did land,
     rather than raising past the seven successes as it did before the bundle
     became a single declaration.
+
+    With ``vectormaps=True`` the response also carries a ``"vectormaps"`` key
+    (``output_dir``, ``success``, ``failed``, ``skipped_reason``,
+    ``sha_checked``) for the per-clone GenBank maps written to the sibling
+    folder ``<prefix>_vectormaps/``. Those files are not bundle artefacts and
+    never appear in ``success`` or ``failed`` above.
     """
     started_at = datetime.now(timezone.utc)
 
@@ -1178,8 +1253,21 @@ def handle_export_all(params: dict) -> dict:
         except Exception as exc:  # noqa: BLE001 -- intentionally aggregating per-file
             failed.append({"path": name, "reason": str(exc)})
 
-    return {
+    response: dict = {
         "success": success,
         "failed": failed,
         "output_dir": str(target_dir),
     }
+    if p.vectormaps:
+        try:
+            response["vectormaps"] = _export_vectormaps_for_all(
+                mappings, results, target_dir,
+            )
+        except Exception as exc:  # noqa: BLE001 -- never fails the bundle
+            response["vectormaps"] = {
+                "output_dir": str(vectormaps_dir_for(target_dir)),
+                "success": [], "failed": [],
+                "skipped_reason": f"vector map export failed: {exc}",
+                "sha_checked": False,
+            }
+    return response

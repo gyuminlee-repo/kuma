@@ -731,6 +731,18 @@ export interface HealthInfo {
   py_version: string;
 }
 
+
+/** Outcome of the optional per-clone GenBank maps written beside `export_all`. */
+export interface ExportAllVectormapsResult {
+  output_dir: string;
+  success: string[];
+  failed: { path: string; reason: string }[];
+  /** Why nothing was written (reference changed after design, unreadable, ...). */
+  skipped_reason: string | null;
+  /** Whether the reference was checked against its design-time SHA-256. */
+  sha_checked: boolean;
+}
+
 export interface RpcMethodMap {
   /**
    * Status-bar and crash-report probe. Present on both dispatchers under the
@@ -912,11 +924,15 @@ export interface RpcMethodMap {
       bom?: boolean;
       mappings?: PlateMapping[];
       dedup_info?: Record<string, string[]>;
+      /** Also write one GenBank map per clone into `<prefix>_vectormaps/`. */
+      vectormaps?: boolean;
     };
     result: {
       success: string[];
       failed: { path: string; reason: string }[];
       output_dir: string;
+      /** Present only when `vectormaps` was requested. Not bundle files. */
+      vectormaps?: ExportAllVectormapsResult;
     };
   };
   export_benchmark_csv: {

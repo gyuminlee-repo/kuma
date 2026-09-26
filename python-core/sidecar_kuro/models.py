@@ -1025,6 +1025,10 @@ class ExportAllParams(BaseModel):
     quadrant: Optional[Literal["A1", "A13", "A2", "B1", "B2"]] = None
     #: Rounds already spent on a part-used plate, stated by the operator.
     used_quadrants: Optional[list[Literal["A1", "A13", "A2", "B1", "B2"]]] = None
+    #: Also write one GenBank vector map per clone into the sibling folder
+    #: ``<prefix>_vectormaps/``. Outside the bundle, so the six kinds and eight
+    #: files above are unchanged. Off by default.
+    vectormaps: bool = False
 
     @field_validator("fwd_plate_name", "rev_plate_name")
     @classmethod

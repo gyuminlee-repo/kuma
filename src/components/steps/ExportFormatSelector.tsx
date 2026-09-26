@@ -59,6 +59,7 @@ export function ExportFormatSelector() {
   const [fwdPlate, setFwdPlate] = useState("");
   const [rvsPlate, setRvsPlate] = useState("");
   const [amount, setAmount] = useState<"0.05" | "0.2">("0.05");
+  const [vectormaps, setVectormaps] = useState(false);
   const bom = useMemo(() => localeIsKorean(), [i18n.language]);
   const [running, setRunning] = useState(false);
 
@@ -109,6 +110,7 @@ export function ExportFormatSelector() {
         bom,
         quadrant: echoQuadrant,
         usedQuadrants: echoUsedQuadrants,
+        vectormaps,
       });
       // toast surfacing handled inside handleExportAll
     } finally {
@@ -358,6 +360,33 @@ export function ExportFormatSelector() {
       <p className="text-caption text-muted-foreground">
         {tx("phaseC.export.all.ruleHint", "Plate names are optional. Empty names use backend defaults.")}
       </p>
+
+      {/* Per-clone GenBank maps, written to a sibling <prefix>_vectormaps/ folder. */}
+      <div className="flex flex-col gap-1">
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input
+            type="checkbox"
+            id="export-vectormaps"
+            checked={vectormaps}
+            onChange={(e) => setVectormaps(e.target.checked)}
+            className="h-3.5 w-3.5 accent-primary"
+            aria-describedby="export-vectormaps-help"
+          />
+          <span className="text-foreground">
+            {tx("phaseC.export.all.vectormapsLabel", "Also export a GenBank vector map per clone")}
+          </span>
+        </label>
+        <span
+          id="export-vectormaps-help"
+          className="text-caption text-muted-foreground pl-5"
+        >
+          {tx(
+            "phaseC.export.all.vectormapsHint",
+            "Writes one .gb file per well, the parent vector with that clone's mutation marked, into a folder ending in {{folder}} next to the export folder. Needs a GenBank or SnapGene reference.",
+            { folder: "_vectormaps" },
+          )}
+        </span>
+      </div>
 
       <Button
         className="w-fit"
