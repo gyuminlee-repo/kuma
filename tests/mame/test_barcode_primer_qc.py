@@ -203,14 +203,18 @@ def _write_seeds(path: Path, fwd: dict[int, str], rev: dict[int, str]) -> None:
     wb.save(str(path))
 
 
-def _run_package(tmp_path: Path, fwd_seeds: dict[int, str]) -> tuple[list[str], str]:
+def _run_package(
+    tmp_path: Path,
+    fwd_seeds: dict[int, str],
+    rev_seeds: dict[int, str] | None = None,
+) -> tuple[list[str], str]:
     """Generate a package and return (warnings, the forward flanking part)."""
     root = tmp_path
     root.mkdir(parents=True, exist_ok=True)
     fasta = root / "cds.fa"
     fasta.write_text(">cds\n" + _clean_template(1007, 900) + "\n", encoding="utf-8")
     seeds = root / "seeds.xlsx"
-    _write_seeds(seeds, fwd_seeds, _REV_SEEDS)
+    _write_seeds(seeds, fwd_seeds, _REV_SEEDS if rev_seeds is None else rev_seeds)
 
     result = generate_mame_package(
         fasta_path=fasta,
@@ -270,3 +274,117 @@ def test_full_oligo_longer_than_primer3_limit_is_reported_not_crashed() -> None:
     assert bp._structure_tms(long_oligo) is None
     warnings = bp._full_oligo_qc_warnings([("egfp_f_1", long_oligo)])
     assert warnings and "were not" in warnings[0] and "egfp_f_1" in warnings[0]
+
+
+# ---------------------------------------------------------------------------
+# Fwd x rev heterodimer advisory pass
+# ---------------------------------------------------------------------------
+
+def _heterodimer_lines(warnings: list[str]) -> list[str]:
+    return [w for w in warnings if "advisory heterodimer limit" in w]
+
+
+def test_complementary_seed_pair_is_flagged_as_heterodimer(tmp_path: Path) -> None:
+    """A rev seed that pairs with a fwd seed is reported; the clean set is not.
+
+    fwd_1 and rev_1 share a well in combinatorial barcoding, so a duplex
+    between their full oligos is the failure the pass exists to catch. The
+    clean seed set is the negative control: without it a pass that flags
+    every pair would satisfy the positive half.
+    """
+    clean_warns, clean_flank = _run_package(tmp_path / "clean", dict(_FWD_SEEDS))
+    assert _heterodimer_lines(clean_warns) == []
+
+    fwd = dict(_FWD_SEEDS)
+    rev = dict(_REV_SEEDS)
+    fwd[1] = "GGCGCTTCAGGCGACCTG"
+    rev[1] = fwd[1].translate(_COMPLEMENT)[::-1]
+    warns, flank = _run_package(tmp_path / "paired", fwd, rev)
+
+    # Advisory only: the forward flanking primer is chosen before the seeds
+    # are read and does not move.
+    assert flank == clean_flank
+
+    lines = _heterodimer_lines(warns)
+    assert len(lines) == 1
+    assert "egfp_f_1 x egfp_r_1: heterodimer Tm=" in lines[0]
+    tm = float(lines[0].split("egfp_f_1 x egfp_r_1: heterodimer Tm=")[1].split(" ")[0])
+    assert tm > bp._QC_HETERODIMER_TM_MAX
+
+
+def test_heterodimer_pass_covers_exactly_the_96_fwd_rev_pairs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Every fwd_i x rev_j pair goes through the shared thermo adapter once.
+
+    Spied on ``kuma_core.shared.thermo``, the adapter KURO's
+    ``_check_secondary_structure`` calls, so a local reimplementation of the
+    dimer maths would leave the counters at zero and fail here.
+    """
+    from kuma_core.shared import thermo
+
+    calls: dict[str, list[tuple[Any, ...]]] = {
+        "calc_hairpin": [], "calc_homodimer": [], "calc_heterodimer": [],
+    }
+    for name in calls:
+        real = getattr(thermo, name)
+
+        def spy(*args: Any, _real: Any = real, _name: str = name, **kwargs: Any) -> Any:
+            calls[_name].append(tuple(args))
+            return _real(*args, **kwargs)
+
+        monkeypatch.setattr(thermo, name, spy)
+
+    _run_package(tmp_path, dict(_FWD_SEEDS))
+
+    # check_offtarget also calls calc_heterodimer (primer against a template
+    # site), so keep only the calls whose partners are two full barcode oligos.
+    fwd_len = len(_FWD_SEEDS[1])
+    rev_len = len(_REV_SEEDS[1])
+    fwd_set = set(_FWD_SEEDS.values())
+    rev_set = set(_REV_SEEDS.values())
+    oligo_pairs = [
+        (a[:fwd_len], b[:rev_len])
+        for a, b in calls["calc_heterodimer"]
+        if a[:fwd_len] in fwd_set and b[:rev_len] in rev_set
+    ]
+    assert len(oligo_pairs) == 12 * 8
+    assert set(oligo_pairs) == {(f, r) for f in fwd_set for r in rev_set}
+    # Flanking candidates plus the 20 full oligos.
+    assert len(calls["calc_hairpin"]) >= 20
+    assert len(calls["calc_homodimer"]) >= 20
+
+
+def test_flanking_search_calls_kuro_check_offtarget(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The off-target verdict comes from KURO's function, not a MAME copy."""
+    from kuma_core.kuro import sdm_engine
+
+    seen: list[str] = []
+    real = sdm_engine.check_offtarget
+
+    def spy(primer_seq: str, *args: Any, **kwargs: Any) -> Any:
+        seen.append(primer_seq.upper())
+        return real(primer_seq, *args, **kwargs)
+
+    monkeypatch.setattr(sdm_engine, "check_offtarget", spy)
+    fwd, rev, _warns = _design(_clean_template(1008, 900))
+
+    assert fwd.upper() in seen
+    assert rev.upper() in seen
+
+
+def test_heterodimer_length_guard_needs_both_partners_over_the_limit() -> None:
+    """primer3 refuses a pair only when both exceed 60 nt; one long is fine."""
+    long_a = "ACGT" * 16  # 64 nt
+    long_b = "TGCA" * 16
+    short = "ACGTACGTACGTACGTAC"
+    assert bp._heterodimer_tm(long_a, short) is not None
+    assert bp._heterodimer_tm(long_a, long_b) is None
+
+    rows = [(f"egfp_f_{i}", long_a) for i in range(1, 13)]
+    rows += [("egfp_r_1", long_b)] + [(f"egfp_r_{i}", short) for i in range(2, 9)]
+    warnings = bp._heterodimer_qc_warnings(rows)
+    unchecked = [w for w in warnings if "were not checked for heterodimer" in w]
+    assert len(unchecked) == 1 and unchecked[0].startswith("12 of 96 ")
