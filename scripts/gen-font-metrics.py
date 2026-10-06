@@ -27,19 +27,23 @@ def locate(pattern):
     return out.stdout.strip()
 
 
-def table(path):
-    font = TTFont(path, fontNumber=0)
-    upem = font["head"].unitsPerEm
-    cmap = font.getBestCmap()
-    hmtx = font["hmtx"]
-    widths = {}
-    for ch in CHARS:
-        glyph = cmap.get(ord(ch))
-        if glyph is None:
-            continue
-        widths[ch] = round(hmtx[glyph][0] * 1000.0 / upem)
-    version = font["name"].getDebugName(5)
-    return widths, version
+def table(path: str) -> tuple[dict[str, int], str | None]:
+    with TTFont(path, fontNumber=0) as font:
+        upem = getattr(font["head"], "unitsPerEm", None)
+        if not isinstance(upem, int) or isinstance(upem, bool) or upem <= 0:
+            raise ValueError("Font has invalid units per em")
+        cmap = font.getBestCmap()
+        if cmap is None:
+            raise ValueError("Font has no Unicode character map")
+        hmtx = font["hmtx"]
+        widths: dict[str, int] = {}
+        for ch in CHARS:
+            glyph = cmap.get(ord(ch))
+            if glyph is None:
+                continue
+            widths[ch] = round(hmtx[glyph][0] * 1000.0 / upem)
+        version = font["name"].getDebugName(5)
+        return widths, version
 
 
 def emit(name, widths):
