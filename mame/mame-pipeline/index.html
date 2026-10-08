@@ -1,0 +1,1938 @@
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://gyuminlee-repo.github.io/kuma/mame/mame-pipeline/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>MAME 파이프라인 - KUMA — KURO & MAME User Guide</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#mame" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../.." title="KUMA — KURO &amp; MAME User Guide" class="md-header__button md-logo" aria-label="KUMA — KURO & MAME User Guide" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            KUMA — KURO & MAME User Guide
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              MAME 파이프라인
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="다크 모드"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="라이트 모드"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyuminlee-repo/kuma" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyuminlee-repo/kuma
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="탭" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  
+  시작하기
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../kuro/" class="md-tabs__link">
+          
+  
+  
+  KURO
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+  MAME
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../inputs/sequence/" class="md-tabs__link">
+          
+  
+  
+  입력 파일
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../troubleshooting/" class="md-tabs__link">
+          
+  
+  
+  트러블슈팅
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/keybindings/" class="md-tabs__link">
+          
+  
+  
+  참고
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="KUMA — KURO &amp; MAME User Guide" class="md-nav__button md-logo" aria-label="KUMA — KURO & MAME User Guide" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    KUMA — KURO & MAME User Guide
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyuminlee-repo/kuma" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyuminlee-repo/kuma
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    시작하기
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    시작하기
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    KUMA User Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    설치
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/project-structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    프로젝트 구조
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/sidecar-binaries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    사이드카 바이너리
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    KURO
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    KURO
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kuro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    개요
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kuro/01-load/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    1. Sequence Load
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kuro/02-mutation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2. Mutation Input
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kuro/03-params/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    3. Parameters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kuro/04-submit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4. Submit Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kuro/05-output/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    5. Output Summary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kuro/06-export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    6. Export
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MAME
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    MAME
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    개요
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    1. Run Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2. Sequencing Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03-janus/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    3. Janus 장비 설정
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04-activity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4. Activity Data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    입력 파일
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    입력 파일
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../inputs/sequence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    서열
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../inputs/mutations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    변이 입력
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../inputs/expected-mutations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Expected mutations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../inputs/barcodes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Barcodes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    트러블슈팅
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    트러블슈팅
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    개요
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/sidecar-method-not-found/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sidecar Method not found
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/build-version/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    빌드 버전 표기
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/sidebar-navigation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sidebar Navigation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/windows-smartscreen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Windows SmartScreen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    참고
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    참고
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/keybindings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    단축키
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    설정
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/workspace-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace 포맷
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="mame">MAME 파이프라인<a class="headerlink" href="#mame" title="Permanent link">&para;</a></h1>
+<p>MinKNOW raw run -&gt; MAME 자체 96-well per-mutant consensus FASTA -&gt; verdict 생성 흐름.</p>
+<p>이 문서는 외부 TFP-SEQ/FASTQ consensus 산출물을 MAME 입력으로 받아들이는
+상호운용 문서가 아니다. MAME의 기본 경쟁력은 raw FASTQ에서 read ID와 Phred
+quality를 보존한 뒤, 자체 demux/consensus/verdict 레이어에서 품질 근거를 남기는
+것이다.</p>
+<h2 id="_1">파이프라인 흐름<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>MinKNOW run dir (fastq_pass/)
+        │
+        ▼
+[1] minimap2 alignment
+    minimap2 CLI, map-ont preset
+    barcodes.xlsx + reference.fasta 입력
+        │
+        ▼
+[2] MAPQ filter  (mapq_threshold, 기본 25)
+        │
+        ▼
+[3] Coverage filter  (coverage_fraction, 기본 0.98)
+    각 alignment이 reference의 98% 이상을 커버해야 통과
+        │
+        ▼
+[4] R/F barcode demux  (edit_dist_ratio, 기본 0.25)
+    alignment anchor 기반 edlib HW fuzzy 매칭
+    chimera_split=True: 한 read의 복수 hit 독립 demux
+    ambiguity(동점) -&gt; 제거
+        │
+        ▼
+[5] Per-well consensus
+    Phred-aware majority vote
+    - FASTQ quality가 있으면 Q10 미만 base vote 제외
+    - FASTA-only legacy input은 기존 unweighted majority 유지
+    - N if depth &lt; min_depth
+    - '-' if deletion 이 spanning depth 의 과반을 넘김 (과반 미만은 N 유지)
+    - mixed allele, low-depth, low-quality base 지표 기록
+    출력: {unit_dir}/{r_idx}_{f_idx}.fasta
+</code></pre></div>
+<h2 id="reference-amplicon">Reference amplicon 추출<a class="headerlink" href="#reference-amplicon" title="Permanent link">&para;</a></h2>
+<p><code>raw_run</code> 은 정렬 전에 reference FASTA 에서 amplicon 구간만 잘라낸다(<code>kuma_core/mame/ingest/amplicon_reference.py</code>). 바코드 워크북의 forward/reverse 프라이머가 공유하는 tail 을 reference 에서 찾아 그 사이를 span 으로 삼고 <code>{stem}.amplicon.fa</code> 로 쓴다. 잘라내지 못하면 reference 를 그대로 쓴다.</p>
+<p>v0.15.14 부터 실패 사유를 세 가지로 나눠 보고한다. 예전에는 어느 경우든 "primer boundaries were not unique" 한 문장이었고 이 문구는 사용자를 중복 프라이머 자리 찾기로 보냈다.</p>
+<table>
+<thead>
+<tr>
+<th>사유</th>
+<th>뜻</th>
+<th>대응</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>미발견</td>
+<td>tail 이 reference 에 없다</td>
+<td>CDS 만 담긴 reference 에서는 정상이다. 프라이머 tail 이 벡터 백본에 있어 CDS 밖에 놓인다</td>
+</tr>
+<tr>
+<td>중복</td>
+<td>tail 이 reference 의 여러 위치에 맞는다</td>
+<td>reference 가 모호하다. 반복 구간을 확인한다</td>
+</tr>
+<tr>
+<td>순서역전</td>
+<td>forward 자리가 reverse 자리보다 뒤에 있다</td>
+<td>reference 방향 또는 프라이머 지정을 확인한다</td>
+</tr>
+</tbody>
+</table>
+<p>잘라내기를 건너뛴 경우 남은 reference 길이로 coverage gate 를 통과할 수 있는지 먼저 확인한다. 가장 긴 read 가 <code>coverage_fraction</code> x reference 길이보다 짧으면 어떤 read 도 통과할 수 없으므로 실행을 시작하지 않고 거절한다.</p>
+<h2 id="_2">파라미터 가이드<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>파라미터</th>
+<th>기본값</th>
+<th>범위</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mapq_threshold</code></td>
+<td>25</td>
+<td>0-60</td>
+<td>minimap2 MAPQ 하한</td>
+</tr>
+<tr>
+<td><code>coverage_fraction</code></td>
+<td>0.98</td>
+<td>0.0-1.0</td>
+<td>reference 커버리지 최소 비율</td>
+</tr>
+<tr>
+<td><code>edit_dist_ratio</code></td>
+<td>0.25</td>
+<td>0.0-1.0</td>
+<td>바코드 길이 대비 최대 edit distance 비율</td>
+</tr>
+<tr>
+<td><code>chimera_split</code></td>
+<td>true</td>
+<td>bool</td>
+<td>concatemer/chimera read의 복수 hit 분리 demux</td>
+</tr>
+<tr>
+<td><code>trim_flank_bp</code></td>
+<td>30</td>
+<td>0-200</td>
+<td>alignment 양끝 추가 포함 bp (FASTA 슬라이스)</td>
+</tr>
+<tr>
+<td><code>min_depth</code></td>
+<td>3</td>
+<td>&gt;=1</td>
+<td>position별 base call 최소 depth</td>
+</tr>
+<tr>
+<td><code>min_base_quality</code></td>
+<td>10</td>
+<td>0-60</td>
+<td>FASTQ quality가 있을 때 base vote 최소 Phred Q</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_3">출력 구조<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
+<p>native barcode 하나가 unit 하나다. <code>{output_dir}/{unit}/</code> 아래 구조는 다음과 같다.</p>
+<div class="highlight"><pre><span></span><code>{output_dir}/
+└── sort_barcodeNN/                     # unit_dir (native barcode 단위)
+    ├── {r_idx}_{f_idx}.fasta           # per-well consensus sequence
+    ├── final/
+    │   └── consensus_all_dna.fasta     # 전체 well 병합 consensus
+    ├── reads/                          # KUMA_MAME_KEEP_WELL_READS=1 일 때만 생성 (아래 참조)
+    └── .demux_consensus_complete.json  # 완료 marker (resume 판정)
+</code></pre></div>
+<p>per-well raw reads FASTA(<code>reads/{r_idx}_{f_idx}.fasta</code>)는 기본으로 쓰지 않는다.
+consensus 단계가 메모리에 있는 read를 그대로 쓰기 때문에 이 파일을 읽는 코드가
+없고, well 하나당 파일 하나를 쓰는 비용이 네트워크·9p 마운트 출력 경로에서
+전체 시간의 상당 부분을 차지했다. 사후 확인이 필요하면 환경변수
+<code>KUMA_MAME_KEEP_WELL_READS=1</code>로 예전 동작을 되살린다. <code>reads/</code> 디렉터리도 이
+환경변수가 켜졌을 때만 생성되므로 기본 실행의 출력에는 <code>reads/</code>가 없다.</p>
+<ul>
+<li>well 이름 형식: <code>{R_index}_{F_index}</code> (예: <code>1_1</code>, <code>8_12</code>)</li>
+<li>consensus header 예:</li>
+</ul>
+<div class="highlight"><pre><span></span><code>&gt;{well_name} depth={passed_reads} input_reads={raw_well_reads} aligned_reads={aligned_reads} mapq_failed={n} span_failed={n} mixed_positions={n} max_minor_allele_fraction={f} low_depth_positions={n} consensus_n_fraction={f} low_quality_bases={n} indel_event_positions={n} max_indel_event_fraction={f} max_del_run_length={n} consensus_n_fraction_basis=covered
+</code></pre></div>
+<h2 id="qc">판정에 쓰이는 QC 근거<a class="headerlink" href="#qc" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Header field</th>
+<th>의미</th>
+<th>verdict 영향</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>depth</code></td>
+<td>consensus에 실제로 기여한 passing read 수</td>
+<td>optional <code>min_read_count</code> LOWDEPTH gate</td>
+</tr>
+<tr>
+<td><code>consensus_n_fraction</code></td>
+<td><code>min_depth</code>에 도달한 position 중 no-call 비율. 문자로는 <code>N</code> 과 <code>-</code> 를 모두 센다. 값 자체는 문자가 아니라 mask 로 계산한다</td>
+<td>기본값 0 초과 시 LOWDEPTH</td>
+</tr>
+<tr>
+<td><code>consensus_n_fraction_basis</code></td>
+<td>위 비율의 분모 정의. 현재 값은 <code>covered</code></td>
+<td>표식이 없으면 아래 참조</td>
+</tr>
+<tr>
+<td><code>low_depth_positions</code></td>
+<td><code>min_depth</code> 미만 position 수</td>
+<td>LOWDEPTH note에 기록</td>
+</tr>
+<tr>
+<td><code>low_quality_bases</code></td>
+<td>Phred gate로 vote 제외된 base 수</td>
+<td>LOWDEPTH note / Excel QC 근거</td>
+</tr>
+<tr>
+<td><code>mixed_positions</code></td>
+<td>minor allele 비율 threshold를 넘은 position 수</td>
+<td>clean PASS 대신 AMBIGUOUS</td>
+</tr>
+<tr>
+<td><code>max_minor_allele_fraction</code></td>
+<td>관측된 최대 second-base 비율</td>
+<td>AMBIGUOUS note / Excel QC 근거</td>
+</tr>
+<tr>
+<td><code>mapq_failed</code></td>
+<td>MAPQ filter 탈락 read 수</td>
+<td>UI/Excel 실패 원인</td>
+</tr>
+<tr>
+<td><code>span_failed</code></td>
+<td>reference span filter 탈락 read 수</td>
+<td>UI/Excel 실패 원인</td>
+</tr>
+<tr>
+<td><code>indel_event_positions</code></td>
+<td>indel-event 분율이 0.05를 넘은 position 수</td>
+<td>INDEL EVENT gate note</td>
+</tr>
+<tr>
+<td><code>max_indel_event_fraction</code></td>
+<td>position별 최대 insertion/deletion 이벤트 분율</td>
+<td>임계(기본 0.50) 이상이면 INDEL EVENT gate 발동. 설계 변이가 전부 확인된 웰만 AMBIGUOUS (indel event) 를 받고 그 외 웰은 note 만 남긴다(아래 「indel event gate 가 AMBIGUOUS 를 주는 조건」). reference-pinned consensus가 숨기는 in-frame indel을 surface</td>
+</tr>
+</tbody>
+</table>
+<h3 id="v01619">임계값의 출처 (v0.16.19)<a class="headerlink" href="#v01619" title="Permanent link">&para;</a></h3>
+<p>판정 임계값이 어디서 왔는지가 코드 주석과 실행 산출물(<code>run_quality.thresholds</code>)에 함께 기록된다. 성격이 다른 값을 같은 말로 부르지 않기 위해서다.</p>
+<table>
+<thead>
+<tr>
+<th>값</th>
+<th>성격</th>
+<th>출처</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>min_read_count</code> 기본 30</td>
+<td>벤더 워크플로 <strong>기본값</strong> (규격 아님, 잠정)</td>
+<td>ONT <code>wf-amplicon</code> 의 <code>minimum_mean_depth</code> 기본값</td>
+</tr>
+<tr>
+<td>권장 깊이 1,500 read/amplicon</td>
+<td>벤더 <strong>권고문</strong></td>
+<td>ONT <code>wf-amplicon</code> 본문의 &gt;150X 권장 서술</td>
+</tr>
+<tr>
+<td>변이 보고 하한 20</td>
+<td>벤더 기본값 (미적용, 참고용)</td>
+<td>ONT <code>wf-amplicon</code> 의 <code>min_coverage</code> 기본값</td>
+</tr>
+<tr>
+<td>MIXED 신뢰 하한 <code>min_read_count × 3</code></td>
+<td><strong>자체 기준</strong> (독립 보정 필요)</td>
+<td>소수 대립 게이트와 함께 사용하는 read-depth 조건</td>
+</tr>
+<tr>
+<td>소수 대립 게이트 0.20</td>
+<td><strong>자체 기준</strong> (독립 보정 필요)</td>
+<td>벤더 규격이 아니다. 현재 설정과 관측 노이즈를 함께 확인해야 한다</td>
+</tr>
+<tr>
+<td>공극 800</td>
+<td>벤더 <strong>워런티</strong> (임계값으로 미적용)</td>
+<td>ONT flow cell warranty, MinION/GridION</td>
+</tr>
+<tr>
+<td>레퍼런스 말단 여유 30 bp</td>
+<td><strong>자체 기준</strong> (권고용, 잠정)</td>
+<td><code>trim_flank_bp</code> 에서 가져옴. 아래 절 참조</td>
+</tr>
+<tr>
+<td>indel event gate 0.50</td>
+<td><strong>자체 기준</strong> (독립 보정 필요)</td>
+<td><code>max_indel_event_fraction</code> 기본값은 0.50 이고 비교는 <code>&gt;=</code>다. 실험 보정 자료는 공개 스냅샷에 포함하지 않는다</td>
+</tr>
+</tbody>
+</table>
+<p><code>min_read_count = 30</code> 은 ONT 워크플로 기본값에서 가져온 잠정값이며 규격이 아니다. 이 앱은 자체 consensus와 판정을 사용하므로 별도 보정이 필요하다. 정답 서열이 확인된 입력에서 depth별 판정을 검증해야 한다.</p>
+<h4 id="30-bp-v01621">레퍼런스 말단 여유 30 bp (v0.16.21)<a class="headerlink" href="#30-bp-v01621" title="Permanent link">&para;</a></h4>
+<p>amplicon 추출이 <strong>미발견</strong>으로 건너뛰어져 주어진 레퍼런스를 그대로 정렬에 쓴 런에서, 기대 변이의 코돈이 레퍼런스 양 끝 중 어느 쪽에서든 30 bp 이내에 있으면 판정표 위에 그 변이 이름을 띄운다. 정렬기는 붙이지 못한 불일치 지점에서 read 를 잘라내므로, 그 위치는 웰이 보고하는 depth 보다 얕게 읽힐 수 있다.</p>
+<p>CDS만 담긴 레퍼런스에서는 말단 변이를 포함한 read의 정렬이 잘릴 수 있다. 프라이머 결합 영역을 포함한 amplicon 레퍼런스를 준비하고 변이 위치의 depth를 확인한다.</p>
+<p>이 값은 권고이며 판정 게이트가 아니다. 웰 전체의 커버리지와 변이 위치의 depth는 서로 다른 값이다. 권고가 표시되면 입력 레퍼런스와 말단 위치의 read 지지를 확인한다.</p>
+<p>30 이라는 값은 <code>trim_flank_bp</code> 에서 가져왔다. 이 파이프라인이 이미 정렬 주변의 작업 여유로 쓰는 값이라는 것이 근거의 전부이고, 위험이 어디서 끝나는지를 잰 값이 아니다. 그래서 잠정으로 표시한다.</p>
+<h4 id="mixed-90">MIXED 하한 90 이 지키는 것<a class="headerlink" href="#mixed-90" title="Permanent link">&para;</a></h4>
+<p>MIXED 판정에는 소수 대립 비율과 depth 조건이 함께 적용된다. <code>mix_minor_fraction_threshold</code> 기본값은 0.20 이고 신뢰 하한은 <code>min_read_count × 3</code>이다. 기본 <code>min_read_count</code> 30에서는 하한이 90이 된다.</p>
+<p>이 값들은 소수 변이의 검출 성능을 보증하지 않는다. 문맥 의존 오류와 strand bias는 depth만 늘려도 해소되지 않을 수 있다. 게이트를 조정하려면 정답이 알려진 입력으로 위양성과 검출률을 함께 확인해야 한다. 비공개 런의 측정값과 파생 계산은 공개 스냅샷에 포함하지 않는다.</p>
+<p>MAME 판정표와 Excel export는 read-depth·base-quality·alignment drop 근거를 노출한다. 판정 라벨과 함께 확인한다.</p>
+<h4 id="indel-event-gate-ambiguous">indel event gate 가 AMBIGUOUS 를 주는 조건<a class="headerlink" href="#indel-event-gate-ambiguous" title="Permanent link">&para;</a></h4>
+<p><code>max_indel_event_fraction</code> 이 임계값 0.50 이상이라고 해서 웰이 반드시 사람 검토로 가지는 않는다. 게이트는 <strong>설계 변이가 전부 올바른 MT 로 확인된 웰</strong>에만 AMBIGUOUS 를 돌려준다. 확인되지 않은 웰에서는 indel 신호가 <code>verdict_notes</code> 에만 남고 나머지 검사(NO_CALL / FRAMESHIFT / MANY / MIXED / WRONG_AA)가 판정을 정한다. 기대 변이 목록이 비어 있으면(WT 대조 등) 확인된 것으로 본다.</p>
+<p>의도된 설계다. AMBIGUOUS 는 <code>detected</code> 로 집계되고 <code>select/best_pick.py</code> 에서 1 순위로 정렬되며 그 둘은 「기대 변이가 전부 일치했다」는 계약 위에 있다. 설계 변이를 보기 전에 AMBIGUOUS 를 돌려주던 이전 판은 그 계약을 깨 설계 변이가 없는 웰로 <code>recovery_rate</code> 를 부풀렸다.</p>
+<p>비교는 경계를 포함한다(<code>&gt;=</code>). 관측 분율이 설정된 임계값과 같으면 이 게이트의 대상이며 앞선 게이트가 이미 판정을 정했다면 그 판정이 우선한다.</p>
+<h4 id="_4">상단 구간이 뜻하는 것<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h4>
+<p><code>max_indel_event_fraction</code> 이 높다고 분자가 염기를 잃은 것은 아니다. 이 카운터는 read 안의 indel <strong>이벤트</strong>를 세지 무엇이 남았는지를 세지 않는다. 설계된 코돈 치환을 정렬기가 인접한 삽입과 결손으로 표현하면 이벤트 비율이 1.0 근처로 올라가면서 net 은 0 이 된다. 잃은 염기와 다시 쓴 코돈을 가르는 것은 <code>consensus_net_indel_bp</code> 다. <code>ingest/consensus.py</code> 의 <code>DEL_MAJORITY_FRACTION</code> 주석이 같은 내용을 적고 AA 쪽은 <code>translate/aa_translator.py</code> 의 <code>build_length_true_nt</code> 가 결손과 삽입을 다시 붙여 길이가 맞는 분자를 복원해 읽는다.</p>
+<p>높은 이벤트 비율만으로 결손을 확정하지 않는다. 설계 코돈과 정렬 표현을 함께 검토하고 <code>consensus_net_indel_bp</code>로 순 길이 변화를 확인한다.</p>
+<h4 id="indel">임계값 아래의 indel 신호<a class="headerlink" href="#indel" title="Permanent link">&para;</a></h4>
+<p>indel 이벤트 비율이 임계값 아래인 웰에도 검토할 신호가 남을 수 있다. 앞선 LOWDEPTH 등 다른 게이트의 판정을 먼저 확인한다. 정렬 artifact와 실제 저빈도 indel을 구분하려면 설계 위치·주변 서열·read 지지를 확인하고 독립 검증을 수행해야 한다.</p>
+<h4 id="_5">열린 항목 (임계값 미변경)<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h4>
+<p>아래 셋은 실험 없이는 닫히지 않는다. 지금 값(<code>0.50</code>, <code>0.20</code>, <code>30</code>)을 바꾸면 기존 프로젝트의 웰이 전부 재분류되고 결과 계약이 움직이므로 재는 일이 끝나기 전에는 값을 옮기지 않는다.</p>
+<ul>
+<li><strong>indel 게이트 아래의 신호</strong>. 임계값 아래의 저빈도 indel은 이 게이트만으로 검출을 보장하지 않는다. <code>review</code> 열과 정렬 근거를 확인하고 독립 방법으로 검증해야 한다.</li>
+<li><strong>in-frame 삽입만 있는 클론</strong>. reference-length consensus 를 쓰므로 in-frame 삽입만 가진 클론은 WT 와 같은 consensus 를 내고 통과한다. 좌표를 레퍼런스에 고정해 코돈 단위 대조를 가능하게 한 설계의 대가다. <code>n_indel_event_positions</code> 와 <code>max_indel_event_fraction</code> 카운터가 신호를 내보내지만 그것을 판정으로 옮기는 것은 위 indel 게이트라 첫 항목과 뿌리가 같다. 같은 실험이 둘을 함께 닫는다.</li>
+<li><strong><code>min_read_count = 30</code> 의 보정</strong>. 값은 ONT <code>wf-amplicon</code> 의 <code>minimum_mean_depth</code> 와 같지만 세는 대상이 다르다. 벤더 값은 de novo consensus QC 의 <strong>평균 depth</strong> 기준이고 kuma 는 웰 하나의 <code>read_count</code> 정수를 직접 비교하며 평균을 계산하지 않는다. 코드는 이미 PROVISIONAL 로 표시했으므로 남은 일은 표시가 아니라 보정이다. 정답 서열이 확인된 깊게 읽힌 웰에서 read 를 줄여 가며 판정이 깨지는 depth 를 재야 한다. 그때 read 가 많은 상태의 MAME 결과를 정답으로 삼으면 자기 결과의 안정성만 재게 되므로 정답은 밖에서 와야 한다. ONT 문서 원문은 이 항목을 쓰면서 대조하지 않았다(미확인).</li>
+</ul>
+<h3 id="v01323-consensus">v0.13.23 이전에 기록된 consensus 파일<a class="headerlink" href="#v01323-consensus" title="Permanent link">&para;</a></h3>
+<p><code>consensus_n_fraction</code>의 분모가 v0.13.23에서 바뀌었다. 이전에는 정렬 reference 전체였고 지금은 <code>min_depth</code>에 도달한 position만 센다. amplicon이 덮지 않는 위치는 구조상 전부 <code>N</code>이라, 플라스미드 맵을 reference로 쓰면 예전 정의에서는 모든 well이 NO_CALL로 떨어졌다.</p>
+<p><code>consensus_n_fraction_basis</code> 표식은 두 정의를 구분하려고 도입했다. 표식이 없는 파일을 다시 읽을 때는 다음 순서로 처리한다.</p>
+<ol>
+<li><code>low_depth_positions</code>가 있으면 새 정의 값을 정확히 복원한다. <code>min_depth</code> 미만 position은 항상 <code>N</code>으로 불리므로 복원이 성립한다.</li>
+<li>그 키도 없으면 값을 지어내지 않는다. 해당 well은 평가 불가로 표시하고 N-fraction gate를 건너뛴 뒤 사유를 <code>verdict_notes</code>에 남긴다. 정확한 값이 필요하면 consensus를 다시 만들어야 한다.</li>
+</ol>
+<p>평가 불가인 well은 <code>consensus_n_fraction</code>이 0.000으로 직렬화된다. Excel과 화면에서 깨끗한 값처럼 보이므로 같은 행의 <code>verdict_notes</code>를 함께 읽어야 한다.</p>
+<h2 id="rpc">RPC 메서드<a class="headerlink" href="#rpc" title="Permanent link">&para;</a></h2>
+<p><code>mame.run_combinatorial_demux</code></p>
+<p>파라미터 스키마: <code>python-core/sidecar_mame/models.py::CombinatorialDemuxParams</code></p>
+<h2 id="_6">코어 모듈<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
+<p><code>kuma_core.mame.ingest.combinatorial_demux.run_combinatorial_demux</code></p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

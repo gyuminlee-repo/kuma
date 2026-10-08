@@ -1,0 +1,2017 @@
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://gyuminlee-repo.github.io/kuma/mame/02-review/">
+      
+      
+        <link rel="prev" href="../01-setup/">
+      
+      
+        <link rel="next" href="../03-janus/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>2. Sequencing Review - KUMA — KURO & MAME User Guide</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#step-2-sequencing-review" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../.." title="KUMA — KURO &amp; MAME User Guide" class="md-header__button md-logo" aria-label="KUMA — KURO & MAME User Guide" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            KUMA — KURO & MAME User Guide
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              2. Sequencing Review
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="다크 모드"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="라이트 모드"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyuminlee-repo/kuma" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyuminlee-repo/kuma
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="탭" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  
+  시작하기
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../kuro/" class="md-tabs__link">
+          
+  
+  
+  KURO
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+  MAME
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../inputs/sequence/" class="md-tabs__link">
+          
+  
+  
+  입력 파일
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../troubleshooting/" class="md-tabs__link">
+          
+  
+  
+  트러블슈팅
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/keybindings/" class="md-tabs__link">
+          
+  
+  
+  참고
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="KUMA — KURO &amp; MAME User Guide" class="md-nav__button md-logo" aria-label="KUMA — KURO & MAME User Guide" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    KUMA — KURO & MAME User Guide
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyuminlee-repo/kuma" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyuminlee-repo/kuma
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    시작하기
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    시작하기
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    KUMA User Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    설치
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/project-structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    프로젝트 구조
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/sidecar-binaries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    사이드카 바이너리
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    KURO
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    KURO
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kuro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    개요
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kuro/01-load/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    1. Sequence Load
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kuro/02-mutation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2. Mutation Input
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kuro/03-params/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    3. Parameters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kuro/04-submit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4. Submit Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kuro/05-output/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    5. Output Summary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kuro/06-export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    6. Export
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MAME
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    MAME
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    개요
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    1. Run Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2. Sequencing Review
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2. Sequencing Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#8-class-verdict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8-class verdict
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#21-inputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Inputs
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2.1 Inputs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#v01611-v01616" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        웰 선택은 배치를 좁힐 뿐 옮기지 않는다 (v0.16.11, v0.16.16)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#v01613" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        바코드 작업목록 (v0.16.13)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#v01514" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        입력을 바꾸면 이전 결과가 지워진다 (v0.15.14)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#22-review" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 Review
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2.2 Review">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#v01619" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        판정표 위의 런 품질 (v0.16.19)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#v01612" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        이번 플레이트에 없는 샘플 (v0.16.12)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#per-plate-verdict-bar-ngs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-plate verdict bar (NGS 효율 그래프)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#v0161" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        판정 근거를 화면에서 여는 법 (v0.16.1)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#v01662" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        설계 위치를 어떻게 읽었는지 (v0.16.62)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#v01514_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        매핑 정합성 경고 (v0.15.14)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#v01514_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        레이아웃 출처 (v0.15.14)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layout
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03-janus/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    3. Janus 장비 설정
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04-activity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4. Activity Data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    입력 파일
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    입력 파일
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../inputs/sequence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    서열
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../inputs/mutations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    변이 입력
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../inputs/expected-mutations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Expected mutations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../inputs/barcodes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Barcodes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    트러블슈팅
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    트러블슈팅
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    개요
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/sidecar-method-not-found/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sidecar Method not found
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/build-version/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    빌드 버전 표기
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/sidebar-navigation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sidebar Navigation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/windows-smartscreen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Windows SmartScreen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    참고
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    참고
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/keybindings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    단축키
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    설정
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/workspace-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace 포맷
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="step-2-sequencing-review">Step 2. Sequencing Review<a class="headerlink" href="#step-2-sequencing-review" title="Permanent link">&para;</a></h1>
+<p>per-barcode mutation verdict 와 96-well plate view 를 나란히 본다.</p>
+<h2 id="8-class-verdict">8-class verdict<a class="headerlink" href="#8-class-verdict" title="Permanent link">&para;</a></h2>
+<p>코드 <code>VerdictClass</code> enum (kuma_core/mame/models.py) 기준. 분류는 fail-first 우선순위로 동작한다 (kuma_core/mame/compare/verdict.py).</p>
+<table>
+<thead>
+<tr>
+<th>Verdict</th>
+<th>의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PASS</code></td>
+<td>관찰 AA 변이가 설계(기대) 변이와 정확히 일치</td>
+</tr>
+<tr>
+<td><code>WRONG_AA</code></td>
+<td>기대 위치 변이 불일치, 기대 변이 누락, 또는 window 밖 예상외 변이</td>
+</tr>
+<tr>
+<td><code>AMBIGUOUS</code></td>
+<td>기대 변이는 모두 일치하나 인접(±codon window) 추가 변이 또는 indel 이벤트 신호</td>
+</tr>
+<tr>
+<td><code>MIXED</code></td>
+<td>well 내 혼합 (유의한 2nd allele)</td>
+</tr>
+<tr>
+<td><code>FRAMESHIFT</code></td>
+<td>consensus 의 순 삽입·결실 길이가 3 의 배수가 아니어서 reading frame 이 어긋남</td>
+</tr>
+<tr>
+<td><code>MANY</code></td>
+<td>cutoff·설계를 모두 초과한 과다 AA 변이</td>
+</tr>
+<tr>
+<td><code>LOWDEPTH</code></td>
+<td>read depth 미달 (또는 depth 헤더 부재 시 file-size fallback)</td>
+</tr>
+<tr>
+<td><code>NO_CALL</code></td>
+<td>consensus N(no-call) 과다로 AA call 신뢰 불가</td>
+</tr>
+</tbody>
+</table>
+<h2 id="21-inputs">2.1 Inputs<a class="headerlink" href="#21-inputs" title="Permanent link">&para;</a></h2>
+<p>실행 입력(run 폴더, expected 워크북, reference FASTA, 그리고 이 run 이 점유한다고 선언하는 웰)을 고르고 Run 또는 Validate 를 누른다. 웰 선택은 "사용할 웰" 패널에서 하고, 손대지 않으면 앞쪽 웰을 쓴다. sample map 은 v0.16.0 에 입력에서 빠졌다. Janus 장비 설정은 이 화면에 없다. step 3 소관이다.</p>
+<h3 id="v01611-v01616">웰 선택은 배치를 좁힐 뿐 옮기지 않는다 (v0.16.11, v0.16.16)<a class="headerlink" href="#v01611-v01616" title="Permanent link">&para;</a></h3>
+<p>각 변이는 플레이트 순서(A1, B1, ... H1, A2)가 정해준 웰에 고정된다. 웰을 눌러도 자리가 움직이지 않고, 선택은 이 캠페인이 실제로 채운 웰이 어디인지를 말할 뿐이다. v0.16.11 이전에는 "변이 i 가 i 번째 선택된 웰로 간다"는 규칙이라 웰 하나를 해제하면 뒤 변이가 전부 한 칸씩 당겨졌다.</p>
+<p>선택하지 않은 웰은 캠페인이 채우지 않은 웰이므로 <strong>판정하지 않는다</strong>(v0.16.16). 그 웰에 배치돼 있던 샘플은 결과의 <code>layout_provenance.excluded_occupants</code> 에 실리고 2.2 에서 이름으로 표시된다. v0.16.16 이전에는 판정 루프가 리드가 있는 모든 웰을 돌았고 레이아웃에 없는 웰은 기대 목록 <strong>전체</strong>와 대조돼, 96 웰 중 10 웰만 선언한 런이 통과 10 건과 거짓 WRONG_AA 86 건으로 돌아왔다. 선언하지 않은 웰에서 들어온 리드는 판정 대신 <code>off_layout_records</code> 로 집계된다.</p>
+<p>따라서 선언한 웰이 샘플 수보다 적은 것은 부분 충전 플레이트일 뿐 거부 사유가 아니다. 거부되는 유일한 선언은 빈 선언이다.</p>
+<h3 id="v01613">바코드 작업목록 (v0.16.13)<a class="headerlink" href="#v01613" title="Permanent link">&para;</a></h3>
+<p>"사용할 웰" 패널의 <strong>바코드 작업목록 (csv)</strong> 버튼이 이 캠페인이 쓰는 커스텀 바코드를 파일로 쓴다. 채운 웰마다 웰·샘플·<code>{R}_{F}</code> 토큰·reverse/forward 시드 프라이머 이름이 한 행씩 들어가고, 이번 캠페인이 실제로 필요한 시드 종류도 함께 보고한다. 부분 플레이트면 워크북의 20 개보다 적다. 배치는 실행이 쓰는 것과 같은 계산에서 나오므로 시트가 실행이 채점할 플레이트와 다른 플레이트를 적을 수 없다. 바코드 워크북이 없으면 프라이머 이름만 비고 토큰 배치는 그대로 나온다.</p>
+<h3 id="v01514">입력을 바꾸면 이전 결과가 지워진다 (v0.15.14)<a class="headerlink" href="#v01514" title="Permanent link">&para;</a></h3>
+<p>run 폴더, expected 워크북, reference FASTA, 선언한 웰 중 하나라도 바꾸면 이전 실행이 만든 것이 지워진다. verdict 와 플레이트 맵, 산출물 안내가 모두 사라지고 2.2 는 실행 전 상태로 돌아간다. 끝난 실행의 화면이 새 입력의 결과처럼 보이는 것을 막기 위한 동작이다. 같은 경로를 다시 골랐을 때는 아무 일도 일어나지 않는다. 백엔드로 보내는 분석 파라미터(mode, CDS 좌표, <code>minFilteredDepth</code>, raw run 파라미터 등)도 같은 규칙을 따른다. 출력 경로만 입력이 아니므로 무효화하지 않는다.</p>
+<h2 id="22-review">2.2 Review<a class="headerlink" href="#22-review" title="Permanent link">&para;</a></h2>
+<p>좌측: verdict table. 우측: 96-well plate map (colorblind-safe toggle).</p>
+<h3 id="v01619">판정표 위의 런 품질 (v0.16.19)<a class="headerlink" href="#v01619" title="Permanent link">&para;</a></h3>
+<p>판정 이전에 "이 런이 채점될 수 있는 런이었나"를 먼저 답한다. 판정표 <strong>위</strong>에 서고, 답이 아니오일 때만 뜬다.</p>
+<ul>
+<li><strong>웰당 read 중앙값이 하한 미달</strong>이면 경고로 뜬다. 아래 판정이 읽을 깊이가 없던 플레이트의 산물이라는 뜻이다. 실제 사례로 재사용 플로우셀에서 웰당 4 read 가 나온 런이 96 웰 판정표를 그렸고 통과 9 / WRONG_AA 69 로 보였다.</li>
+<li><strong>하한은 넘지만 제조사 권장치 미달</strong>이면 조용한 한 줄이다. 채점은 되지만 깊이가 부족하다는 별개의 진술이다.</li>
+<li><strong>레퍼런스 말단에 붙은 변이</strong>가 있으면 그 이름을 적는다 (v0.16.21). amplicon 추출이 건너뛰어져 주어진 레퍼런스를 그대로 쓴 런에서, 기대 변이의 코돈이 레퍼런스 끝에서 30 bp 이내에 있는 경우다. 정렬기가 붙이지 못한 불일치 지점에서 read 를 잘라내므로 그 자리는 웰이 보고하는 depth 보다 얕게 읽힐 수 있다. 프라이머가 붙는 구간까지 포함한 레퍼런스를 쓰면 해소된다. 개수가 아니라 <strong>이름</strong>을 적는 이유는 어느 변이인지가 곧 다음 행동이기 때문이다.</li>
+<li>둘 다 통과하면 <strong>아무것도 뜨지 않는다</strong>.</li>
+</ul>
+<p>깊이는 그 런이 <strong>실제로 판정한 웰</strong>에서 잰다. 일부 웰만 선언한 런이 얕은 런으로 오판되지 않는다.</p>
+<p>같은 자리에 플로우셀 정보도 함께 나온다. 시작·종료 공극 수와 플로우셀 id를 run 폴더의 <code>report_*.json</code>에서 읽는다. 이 프로젝트가 같은 셀을 사용했다면 이전 종료 공극 수도 적는다. <strong>공극 수에는 합격선을 걸지 않는다.</strong> 공극 수만으로 웰별 깊이를 판단할 수 없으므로 coverage와 함께 해석한다.</p>
+<p>임계값 옆에는 출처와 그 출처의 성격이 함께 표시된다. 깊이 하한 30 은 제조사 amplicon 워크플로의 <strong>파라미터 기본값</strong>이지 규격이 아니며, 그 워크플로는 haploid amplicon 대상이고 이 앱이 돌리는 것도 아니라서 <strong>잠정값</strong>으로 표시된다.</p>
+<h3 id="v01612">이번 플레이트에 없는 샘플 (v0.16.12)<a class="headerlink" href="#v01612" title="Permanent link">&para;</a></h3>
+<p>선택에서 빠진 웰에 배치돼 있던 샘플을 이름과 웰로 알려준다. 그 샘플들은 이번 런에서 판정이 없으므로, 이 안내가 없으면 화면에서는 "원래 없던 샘플"과 구분되지 않는다. 값은 끝난 런이 기록한 것을 읽으므로 프로젝트를 다시 열어도 남는다. 선언을 하지 않은 런, 배치한 웰을 전부 채운 런, 이 필드가 생기기 전에 저장된 결과에서는 뜨지 않는다.</p>
+<p>verdict table 위의 탭은 <code>FINAL</code>, <code>ALL</code>, 그리고 이번 실행에 실제로 있는 native barcode 다(<code>src/components/mame/widgets/VerdictTable.tsx</code>). barcode 탭은 실행이 낸 verdict 에서 만들어지므로 NB01/NB02/NB03 으로 고정돼 있지 않다. <code>FINAL</code> 은 변이마다 선정된 replicate 의 웰만 남긴다.</p>
+<h3 id="per-plate-verdict-bar-ngs">Per-plate verdict bar (NGS 효율 그래프)<a class="headerlink" href="#per-plate-verdict-bar-ngs" title="Permanent link">&para;</a></h3>
+<p>각 plate 별 verdict 비율 stacked bar chart. PPT slide 6 의 "NGS 효율" 그래프와 동일 표현.</p>
+<!-- TODO: insert screenshot of verdict bar chart -->
+
+<h3 id="v0161">판정 근거를 화면에서 여는 법 (v0.16.1)<a class="headerlink" href="#v0161" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>replicate 비교 행</strong>: verdict 상세의 replicate 목록이 버튼이다. 행을 누르면 그 플레이트 복제본이 선택되고, 상세와 플레이트 강조와 verdict table 이 함께 따라 움직인다. 다른 화면에서 같은 웰을 누른 것과 같은 동작이다.</li>
+<li><strong>confidence 지표 팝업</strong>: 지표 이름을 누르면 무엇을 센 값인지, 파이프라인 어느 단계에서 센 값인지, 판정을 움직일 수 있는 값인지가 나온다. 이번 실행이 대조한 임계값도 함께 적는다. 열 개 지표 중 일곱 개는 진단용이고 판정을 바꾸지 않으며, 팝업이 그렇게 적는다. 사이드카가 임계값을 보고하기 전에 저장된 결과를 복원했다면 숫자를 지어내지 않고 알 수 없다고 적는다.</li>
+<li><strong>verdict 범례 설명</strong>: 플레이트 맵 범례와 plate 별 verdict bar 양쪽에서 클래스에 hover 하면 그 클래스의 뜻이 나온다. 웰이 하나도 없는 클래스도 마찬가지다. 문구는 위 8-class 표와 같은 내용이며 10개 로케일로 번역돼 있다.</li>
+</ul>
+<h3 id="v01662">설계 위치를 어떻게 읽었는지 (v0.16.62)<a class="headerlink" href="#v01662" title="Permanent link">&para;</a></h3>
+<p>WRONG_AA 는 세 가지 이유로 나오고 그중 하나는 기대 위치가 그대로였던 경우다. 그 웰은 관측 변이 목록이 비어 있어 판정표 AA Changes 칸이 <code>-</code> 로, Excel <code>NGS Results</code> 시트의 detected 칸에는 판정명 <code>WRONG_AA</code> 로 찍혔다. 화면만 보고는 WT 로 읽힌 웰과 그 자리가 판독 불가였던 웰을 구분할 수 없었다.</p>
+<p>이제 판정 레코드마다 설계 위치별 판독이 실린다(<code>expected_site_reads</code>, <code>{label, position, read}</code>). <code>read</code> 는 그 자리의 관측 라벨이거나 <code>WT</code>, <code>no call</code>, <code>not covered</code> 셋 중 하나다.</p>
+<table>
+<thead>
+<tr>
+<th>자리</th>
+<th>표기</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>판정 노트</td>
+<td><code>expected L187G, observed WT (L187)</code> / <code>observed no call (X at 187)</code> / <code>observed not covered (187)</code></td>
+</tr>
+<tr>
+<td>판정표 AA Changes</td>
+<td><code>L187G: WT</code>, <code>L187G: no call</code>. 관측 변이가 따로 있으면 그 뒤에 이어 적고 정렬과 검색도 같은 문자열을 쓴다</td>
+</tr>
+<tr>
+<td>웰 상세 Observed</td>
+<td>설계 위치마다 <code>L187G → WT</code> 한 줄. 그 밖의 변이는 아래에 따로 적는다</td>
+</tr>
+<tr>
+<td>replicate 비교 행</td>
+<td>관측 변이가 없는 복제본도 자기 판독을 적는다</td>
+</tr>
+<tr>
+<td>플레이트 선택 웰 패널</td>
+<td>"설계 위치 판독" 행</td>
+</tr>
+<tr>
+<td>Excel <code>NGS Results</code> 의 detected</td>
+<td>모든 설계 위치를 참조 잔기로 읽은 WRONG_AA 웰만 <code>WT</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>관측 변이 목록이 비었다고 WT 인 것은 아니다.</strong> 번역기는 N 이 섞인 코돈을 <code>X</code> 로 번역해 관측 목록에서 빼고 <code>n_no_call_aa</code> 로만 세므로 목록이 비는 이유가 두 가지다. 판독은 <code>aa_sequence</code> 의 해당 위치 잔기를 직접 읽어 둘을 가른다.</p>
+<p>플레이트별 시트의 <code>observed_aa</code> 칸에는 <code>WT</code> 를 쓰지 않는다. step 4 의 label audit 이 그 칸을 변이 라벨로 되읽으므로 토큰 하나가 가짜 변이가 된다.</p>
+<p>판독은 직렬화 시점에 계산하고 저장하지 않으므로 다시 연 결과도 다시 계산된다. 다만 이 필드가 없던 버전에서 자동 저장된 결과는 예전 화면 그대로 보이고 Analyze 를 다시 돌려야 판독이 나온다.</p>
+<h3 id="v01514_1">매핑 정합성 경고 (v0.15.14)<a class="headerlink" href="#v01514_1" title="Permanent link">&para;</a></h3>
+<p>실행이 끝나면 각 well 의 관측 아미노산 변화를 그 well 자신의 expected 변이 및 다른 well 의 expected 변이와 대조한다(<code>kuma_core/mame/qc/mapping_integrity.py</code>). 자기 일치율이 낮고 교차 일치율이 높으면 well 과 변이의 대응이 어긋난 상태로 판정하고 2.2 상단에 경고를 띄운다. 변이가 관측된 well 수, 자기 일치율, 교차 일치율을 함께 표시한다.</p>
+<ul>
+<li>실행을 막지 않는다. 이미 끝난 결과에 대한 판단이므로 경고만 띄운다.</li>
+<li>변이가 관측된 well 이 24개 미만이면 판정하지 않는다. 표본이 작으면 우연한 라벨 겹침이 신호와 구분되지 않는다.</li>
+<li>개별 well 은 각자의 expected 집합에 대해 정상적으로 분류되므로 실행 전 입력 검사로는 이 실패를 잡을 수 없다. 플레이트 전체를 함께 봐야 드러난다.</li>
+</ul>
+<h3 id="v01514_2">레이아웃 출처 (v0.15.14)<a class="headerlink" href="#v01514_2" title="Permanent link">&para;</a></h3>
+<p>analyze 응답에 <code>layout_provenance</code> 가 항상 실린다. well 과 sample 의 대응을 무엇이 만들었는지 기록하는 필드이며 값은 두 가지다.</p>
+<table>
+<thead>
+<tr>
+<th><code>source</code></th>
+<th>의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>explicit_well_layout</code></td>
+<td>운용자가 준 well layout</td>
+</tr>
+<tr>
+<td><code>inferred_draft_layout</code></td>
+<td>실행 시점의 변이 목록에서 계산한 초안</td>
+</tr>
+</tbody>
+</table>
+<p>세 번째 값 <code>sample_map_xlsx</code> 는 v0.16.0 에 사라졌다. sample map 은 플레이트를 한 번 더 적는 파일이었고 변이 목록과 나란히 유지되지 못했다.</p>
+<p>읽은 워크북 경로(<code>expected_path</code>)와 이 run 이 점유한다고 선언한 웰(<code>selected_wells</code>)이 함께 실린다. <code>selected_wells</code> 가 null 이면 앞쪽 N+1 웰을 쓴 것이고, 이는 이 필드가 생기기 전 모든 run 의 동작과 같다. 추론된 레이아웃이 운용자가 지정한 레이아웃처럼 보이지 않게 하려는 필드다.</p>
+<p>선언한 웰이 점유자보다 많으면 남는 쪽은 <code>unused_wells</code> 로 함께 실린다. 거절이 아니다(선언이 캠페인보다 넓은 것 자체는 벤치에 대한 거짓말이 아니다). 다만 조용히 자르면 결과만 보고는 선언한 적 없는 웰과 구분할 수 없어서 이름을 적는다. 반대 방향, 즉 점유자보다 웰이 적은 선언은 거절이며 demux 앞에서 막힌다.</p>
+<p>레이아웃이 이름을 대지 않은 웰에서 온 레코드 수는 <code>off_layout_records</code> 로 함께 실린다. 거절이 아니라 보고다. 비었다고 선언한 웰에서 read 가 나오는 것과 바코드 crosstalk 는 같은 신호를 내고, 개수만으로는 둘을 가를 수 없다.</p>
+<h2 id="layout">Layout<a class="headerlink" href="#layout" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Verdicts table min-height 480 px, Plate plate view min-height 360 px.</li>
+<li>또는 resizable splitter 로 두 영역 자유 조절.</li>
+</ul>
+<p>→ <a href="../03-janus/">Step 3. Janus 장비 설정</a> 은 선택 단계다. 시퀀싱 판정만 필요하면 여기서 멈춰도 된다.</p>
+<p>→ <a href="../04-activity/">Step 4. Activity Data</a></p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

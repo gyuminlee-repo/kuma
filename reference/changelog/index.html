@@ -1,0 +1,2496 @@
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://gyuminlee-repo.github.io/kuma/reference/changelog/">
+      
+      
+        <link rel="prev" href="../workspace-format/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Changelog - KUMA — KURO & MAME User Guide</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#changelog" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../.." title="KUMA — KURO &amp; MAME User Guide" class="md-header__button md-logo" aria-label="KUMA — KURO & MAME User Guide" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            KUMA — KURO & MAME User Guide
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Changelog
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="다크 모드"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="라이트 모드"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyuminlee-repo/kuma" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyuminlee-repo/kuma
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="탭" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  
+  시작하기
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../kuro/" class="md-tabs__link">
+          
+  
+  
+  KURO
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../mame/" class="md-tabs__link">
+          
+  
+  
+  MAME
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../inputs/sequence/" class="md-tabs__link">
+          
+  
+  
+  입력 파일
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../troubleshooting/" class="md-tabs__link">
+          
+  
+  
+  트러블슈팅
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../keybindings/" class="md-tabs__link">
+          
+  
+  
+  참고
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="KUMA — KURO &amp; MAME User Guide" class="md-nav__button md-logo" aria-label="KUMA — KURO & MAME User Guide" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    KUMA — KURO & MAME User Guide
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyuminlee-repo/kuma" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyuminlee-repo/kuma
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    시작하기
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    시작하기
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    KUMA User Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    설치
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/project-structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    프로젝트 구조
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/sidecar-binaries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    사이드카 바이너리
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    KURO
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    KURO
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kuro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    개요
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kuro/01-load/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    1. Sequence Load
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kuro/02-mutation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2. Mutation Input
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kuro/03-params/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    3. Parameters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kuro/04-submit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4. Submit Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kuro/05-output/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    5. Output Summary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kuro/06-export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    6. Export
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MAME
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    MAME
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../mame/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    개요
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../mame/01-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    1. Run Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../mame/02-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2. Sequencing Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../mame/03-janus/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    3. Janus 장비 설정
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../mame/04-activity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4. Activity Data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    입력 파일
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    입력 파일
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../inputs/sequence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    서열
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../inputs/mutations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    변이 입력
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../inputs/expected-mutations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Expected mutations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../inputs/barcodes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Barcodes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    트러블슈팅
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    트러블슈팅
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    개요
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/sidecar-method-not-found/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sidecar Method not found
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/build-version/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    빌드 버전 표기
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/sidebar-navigation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sidebar Navigation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/windows-smartscreen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Windows SmartScreen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    참고
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    참고
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../keybindings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    단축키
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    설정
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../workspace-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace 포맷
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#v01312-reference-sequence-domains-guided-onboarding-update-recommendations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.13.12: reference-sequence domains, guided onboarding, update recommendations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kuro-3d-structure-analysis-2026-07-01" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        KURO 3D structure analysis (2026-07-01)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="KURO 3D structure analysis (2026-07-01)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#kuro" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kuro
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#releases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Releases
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mame-v013-update-2026-06-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MAME v0.13 update (2026-06-10)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="MAME v0.13 update (2026-06-10)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mame" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MAME
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mame-native-consensus-qc-update-2026-06-07" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MAME native consensus QC update (2026-06-07)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="MAME native consensus QC update (2026-06-07)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mame_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MAME
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        전략 메모
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-05-22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        주간 업데이트 (2026-05-22)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="주간 업데이트 (2026-05-22)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        신규 기능
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        업데이트
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        이번 주 출시된 버전
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-05-19" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        주간 업데이트 (2026-05-19)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="주간 업데이트 (2026-05-19)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        신규 기능
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        업데이트
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        버그 수정
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        문서
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        이번 주 출시된 버전
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-05-18" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        주간 업데이트 (2026-05-18)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="주간 업데이트 (2026-05-18)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        신규 기능
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        업데이트
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        버그 수정
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        이번 주 출시된 버전
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-05-15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        주간 업데이트 — 2026-05-15
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="주간 업데이트 — 2026-05-15">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        신규 기능
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        업데이트
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        버그 수정
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        이번 주 출시된 버전
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>주의 (2026-08-07)</strong>: 아래는 각 버전 시점의 기록이며 그대로 둔다. JANUS 관련 항목(v0.9.9.0 의 "JANUS (96-well, 2 rack) 매핑 미리보기", v0.9.9.3 의 "JANUS 어댑터 rack 할당")은 그 뒤 두 번 무너졌으므로 현재 동작으로 읽지 말 것. 어댑터는 <code>asp_rack</code> 을 되읽지 않고 <code>role</code> 로 분기하며(<code>src/lib/echoJanusAdapter.ts:79-101</code>), rack 값은 정수 deck 번호가 아니라 플레이트 이름 문자열이다. 현재 형식의 정본은 <code>kuma_core/shared/janus_deck.py:37-46</code> (8열 헤더) 과 <a href="../../mame/03-janus/">MAME step 3 문서</a> 다.</p>
+</blockquote>
+<h2 id="v01312-reference-sequence-domains-guided-onboarding-update-recommendations">v0.13.12: reference-sequence domains, guided onboarding, update recommendations<a class="headerlink" href="#v01312-reference-sequence-domains-guided-onboarding-update-recommendations" title="Permanent link">&para;</a></h2>
+<ul>
+<li>새 프로젝트 최초 진입 시 공통 내비게이션과 Kuro의 워크플로·작업 영역·인스펙터를 순서대로 강조하는 spotlight 투어가 표시됩니다. Mame은 처음 진입할 때 별도 투어를 제공합니다.</li>
+<li><strong>모든 투어 건너뛰기</strong>는 프로젝트별로 영속되며, <code>Esc</code>는 현재 투어만 닫습니다. 기존 프로젝트에는 자동 표시되지 않고, <strong>도움말 → 가이드 투어 보기</strong>에서 현재 도구의 투어를 재실행할 수 있습니다.</li>
+<li>앱 시작 시 GitHub 최신 공개 릴리스를 확인하여 설치 버전보다 새로운 경우에만 업데이트를 권장합니다. 네트워크 실패는 시작을 막지 않으며 <strong>도움말 → 업데이트 확인</strong>에서 수동 확인할 수 있습니다.</li>
+<li>Kuro domain allocation now supports direct reference-sequence InterProScan annotation with sequence-hash caching and keeps reference-frame selection domains separate from UniProt accession-frame 3D domains.</li>
+</ul>
+<hr />
+<h2 id="kuro-3d-structure-analysis-2026-07-01">KURO 3D structure analysis (2026-07-01)<a class="headerlink" href="#kuro-3d-structure-analysis-2026-07-01" title="Permanent link">&para;</a></h2>
+<p>v0.13.7 ~ v0.13.10 KURO 관련 변경 사항입니다.</p>
+<h3 id="kuro">Kuro<a class="headerlink" href="#kuro" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Output 단계에 <strong>Candidate 3D structure analysis</strong> 패널 추가: 3Dmol 뷰어, active/binding-site 강조, 공간 분산(무작위 matched-size null 대비, 백분위 <code>P1</code>/<code>P99</code>), Color legend(항목 클릭으로 3D 레이어 토글), surface, PNG export. dispersion·pLDDT·site 오버레이는 선정 필터가 아니라 해석·QC 보조이고, 무엇을 설계할지는 EVOLVEpro <code>y_pred</code> 랭킹이 결정. (v0.13.7~v0.13.8)</li>
+<li>매핑 서열을 로드된 구조에서 직접 파싱하도록 수정 — UniProt 서열 조회 실패 시 전부 dropped 되던 문제 해결. 패키지 앱의 <code>BLOSUM62</code> 데이터 부재 오류도 수정. (v0.13.8~v0.13.9)</li>
+<li>마젠타 오버레이 라벨을 "Interface" → <strong>"Binding site"</strong>(UniProt Binding site)로 정정, 히스토그램 백분위 <code>P1</code>/<code>P99</code> 표기, 3D 뷰어-우선 레이아웃. (v0.13.8)</li>
+<li>3D <strong>Surface</strong>(CSP blob worker 허용) 및 <strong>Export PNG</strong>(Tauri save 다이얼로그+fs) 동작 수정. (v0.13.10)</li>
+</ul>
+<h3 id="releases">Releases<a class="headerlink" href="#releases" title="Permanent link">&para;</a></h3>
+<ul>
+<li>GitHub 릴리즈에 <code>SHA256SUMS.txt</code> 첨부 + Windows SmartScreen/체크섬/ macOS Gatekeeper 안내. 코드 서명이 없어 SmartScreen 경고 자체는 계속 뜸(무결성은 체크섬으로 검증). (v0.13.9)</li>
+</ul>
+<hr />
+<h2 id="mame-v013-update-2026-06-10">MAME v0.13 update (2026-06-10)<a class="headerlink" href="#mame-v013-update-2026-06-10" title="Permanent link">&para;</a></h2>
+<p>2026-06-10 MAME v0.13.0.1 ~ v0.13.3.0 변경 사항입니다.</p>
+<h3 id="mame">MAME<a class="headerlink" href="#mame" title="Permanent link">&para;</a></h3>
+<ul>
+<li>verdict depth gate가 consensus header의 실제 read depth(<code>depth=N</code>, <code>min_read_count</code> 기본 30)로 LOWDEPTH를 판정합니다. file-size 검사는 depth header가 없을 때만 동작하는 fallback으로 강등되어, 동일 앰플리콘 well의 유전자 길이 consensus FASTA가 raw-read file-size 기준을 못 넘겨 모든 well이 LOWDEPTH로 잘못 분류되던 문제를 수정했습니다. (v0.13.0.1)</li>
+<li>analyze가 record 단위 sub-progress와 30초 keep-alive 신호를 보내, ETA가 60% 부근에서 멈추거나 정상적인 장시간 analyze에서 300초 "응답 없음" 창이 뜨던 문제를 수정했습니다. (v0.13.1.0)</li>
+<li>raw-run demux step 2.1 쓰기가 atomic이고 barcode group마다 완료 마커를 기록합니다. 재실행은 완료된 group을 건너뛰고, 존재하지만 무효한 마커는 fail-fast로 거부하되 마커가 없는 legacy·외부 정렬 디렉토리는 그대로 로드합니다. 중단 시 orphan 가드가 <code>.fa</code>/<code>.fas</code>도 감지하고, 재개 실행은 완료 마커에서 입력·미할당 read 수를 복원합니다. (v0.13.2.1, v0.13.2.4) 재실행 시 건너뛰기는 raw_run 경로(<code>run_combinatorial_demux</code>)에도 적용되어, 완료 마커가 있는 폴더를 다시 돌리면 끝난 native barcode를 건너뜁니다. (v0.13.2.6)</li>
+<li>Janus mapping, Run report, Barcode package export가 기존 출력을 덮어쓰기 전에 확인합니다(Barcode package는 <code>design/</code> 디렉토리 단위 확인). (v0.13.2.2)</li>
+<li>consensus N-fraction 허용치(<code>max_consensus_n_fraction</code>)를 MAME analyze 파라미터 패널에서 조절할 수 있습니다(기본 0.0, 엄격). (v0.13.3.0)</li>
+<li>macOS minimap2를 CI에서 소스로 컴파일해 macOS sidecar에 번들하므로(Windows MinGW 단계 대응) macOS 앱에서 raw-run 정렬이 동작합니다. (v0.13.2.5)</li>
+</ul>
+<hr />
+<h2 id="mame-native-consensus-qc-update-2026-06-07">MAME native consensus QC update (2026-06-07)<a class="headerlink" href="#mame-native-consensus-qc-update-2026-06-07" title="Permanent link">&para;</a></h2>
+<p>2026-06-07 MAME는 외부 TFP-SEQ/seq_cons 호환층을 추가하지 않고, 자체 raw FASTQ → demux → consensus → verdict 경로를 강화했습니다.</p>
+<h3 id="mame_1">MAME<a class="headerlink" href="#mame_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>raw FASTQ demux 경로에서 read ID와 Phred quality string을 보존하여, 저품질 base call이 consensus 투표를 이기지 못하게 했습니다.</li>
+<li>MAME가 생성하는 consensus FASTA header에 <code>depth=N</code>, <code>low_depth_positions</code>, <code>consensus_n_fraction</code>, <code>low_quality_bases</code>, <code>mixed_positions</code>, <code>max_minor_allele_fraction</code> 등의 QC metadata를 기록합니다.</li>
+<li>verdict의 <code>read_count</code>는 파일 크기 대리지표가 아니라 consensus header의 실제 depth를 우선 사용합니다.</li>
+<li>consensus N signal은 기본적으로 <code>LOWDEPTH</code>, within-well mixed-read evidence는 <code>AMBIGUOUS</code>로 분류되어 51:49 다수결 well이 조용히 PASS하지 않도록 했습니다.</li>
+<li>verdict table, JSON payload, 96-well Excel export에 read depth, N fraction, low-depth 위치, low-quality base 제외 수, MAPQ/span drop counter를 노출합니다.</li>
+</ul>
+<h3 id="_1">전략 메모<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>사용자 요구에 따라 TFP-SEQ 산출물을 받아 공존하는 interop 방향은 폐기했습니다. MAME는 KURO-linked directed-evolution decision layer를 유지하면서, 겹치는 sequencing consensus 층의 정확성 구멍을 자체 보강하는 방향으로 업데이트되었습니다.</li>
+</ul>
+<hr />
+<h2 id="2026-05-22">주간 업데이트 (2026-05-22)<a class="headerlink" href="#2026-05-22" title="Permanent link">&para;</a></h2>
+<p>2026-05-20 부터 2026-05-22 까지 출시된 KUMA v0.10.0.08 ~ v0.10.0.19 주요 변경 사항입니다.</p>
+<h3 id="_2">신규 기능<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>워크스페이스 경로 자동 저장 (v0.10.0.19)</strong>: 프로젝트 번들의 마지막 저장 위치가 기억되어 다음 실행 시 같은 경로로 다시 열 수 있습니다. 매번 폴더를 다시 찾아갈 필요 없이 작업을 이어갈 수 있습니다. → <a href="../workspace-format/"><code>workspace-format</code></a></li>
+<li><strong>Macrogen 발주처 툴팁 (v0.10.0.19)</strong>: KURO Export 탭의 <em>Order vendor</em> 항목에 발주 흐름과 Export All 결과물 (timestamp prefix Macrogen <code>.xls</code>) 을 설명하는 툴팁이 추가되어 처음 발주하는 사용자가 흐름을 즉시 파악할 수 있습니다. → <a href="../../kuro/06-export/"><code>kuro/06-export</code></a></li>
+</ul>
+<h3 id="_3">업데이트<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Mutation pool 자동 확장 (v0.10.0.19)</strong>: 선택한 top-N 이 현재 풀 크기를 초과할 때 mutation pool 이 자동으로 확장되어, 사용자가 풀 크기를 수동으로 조정하지 않아도 다양성 선택이 항상 요청한 만큼의 후보를 반환합니다. → <a href="../../kuro/02-mutation/"><code>kuro/02-mutation</code></a></li>
+</ul>
+<h3 id="_4">이번 주 출시된 버전<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>버전</th>
+<th>날짜</th>
+<th>요약</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>v0.10.0.19</td>
+<td>2026-05-22</td>
+<td>워크스페이스 경로 자동 저장, mutation pool 자동 확장, Macrogen 발주처 툴팁</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2026-05-19">주간 업데이트 (2026-05-19)<a class="headerlink" href="#2026-05-19" title="Permanent link">&para;</a></h2>
+<p>2026-05-18 부터 2026-05-19 까지 출시된 KUMA v0.9.9.4 ~ v0.10.0.07 주요 변경 사항입니다.</p>
+<h3 id="_5">신규 기능<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>EVOLVEpro Others 모드 (v0.9.10)</strong>: EVOLVEpro 결과 CSV/XLSX 의 컬럼 이름이 기본 스키마와 다른 경우를 위한 사용자 정의 컬럼 매핑 모드가 추가되었습니다. <code>EvolveproOthersPanel</code> 컴포넌트, <code>preview_evolvepro_source</code> 핸들러, <code>load_evolvepro_params</code> 확장으로 mutation/score/구분자 컬럼을 직접 지정할 수 있습니다.</li>
+<li><strong>Macrogen 발주 Card 와 Project name 입력 (v0.9.10)</strong>: Export 탭 상단에 Macrogen 주문 Card 가 추가되고, Export All 전에 <code>project_name</code> 을 직접 입력하면 해당 이름의 폴더 아래에 8개 파일 (Macrogen xls, FASTA, Echo CSV/XLSX, JANUS CSV/XLSX, plate map XLSX, run JSON) 이 평면 구조로 출력됩니다. <code>ExportAllParams.project_name</code> 필드와 validator 가 추가되었습니다.</li>
+<li><strong>Echo, Janus 플레이트 셀 mutation 정보 (v0.9.10)</strong>: Echo 384-well 미리보기 셀에 mutation code, Janus 96-well 셀에 <code>mutation + F/R</code> 가 표시되고, hover 시 Popover 로 상세 정보를 확인할 수 있습니다. shadcn <code>Popover</code> primitive 가 신규 도입되었습니다.</li>
+<li><strong>MAME parse_reference 핸들러 (v0.9.12)</strong>: FASTA / GenBank / SnapGene <code>.dna</code> 파일에서 CDS 후보를 자동으로 추출하여 사용자에게 선택지를 제시하는 핸들러가 추가되었습니다. <code>python-core/sidecar_mame/handlers/ingest.py</code> 의 <code>parse_reference</code> 가 multi-CDS 파일에서도 동작하며, 단일 CDS 검출 시 i18n 메시지로 안내합니다.</li>
+<li><strong>EGFP 중심 합성 plasmid 샘플 (v0.10.0)</strong>: 기존 <code>egfp.fa</code> 가 제거되고 EGFP 를 중심으로 한 합성 plasmid GenBank (<code>sample_plasmid.gb</code>) 로 단일화되었습니다. MAME 샘플 fixture 와 로케일 문자열도 IspS 에서 EGFP 로 일괄 이전되었습니다.</li>
+</ul>
+<h3 id="_6">업데이트<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Export All 평면 8-file 출력 (v0.9.10)</strong>: Export All 이 입력된 project name 폴더 아래 8개 파일을 평면으로 배치하도록 변경되었습니다. 기존 하위 폴더 분리 구조는 제거되었습니다.</li>
+<li><strong>MAME UI 라벨 및 WT 자동 제안 (v0.9.11)</strong>: MAME Step 의 UI 라벨이 정리되고, WT (wild-type) 위치 자동 제안이 도입되었습니다. <code>WtWellGrid</code>, <code>BarcodeSetupPanel</code>, <code>ParameterPanel</code> 이 갱신되었습니다.</li>
+<li><strong>ExportPlatePreview 색상 범례와 리프레시 (v0.9.9.5)</strong>: ExportPlatePreview 가 design 변경 시 자동 refetch 하고, Echo/Janus 셀 색상 범례를 위한 <code>PlateLegendsPanel</code> 이 추가되었습니다. WorkflowRail sideCard 의 <em>Tip</em> 라벨도 10개 로케일에 번역되었습니다.</li>
+<li><strong>Polymerase profile EVOLVEpro 가중치 정리 (v0.9.10 ~ v0.10.0)</strong>: <code>kuma_core/kuro/evolvepro.py</code> 와 <code>python-core/sidecar_kuro/handlers/export.py</code>, <code>models.py</code> 의 EVOLVEpro 핸들러가 정리되었습니다.</li>
+</ul>
+<h3 id="_7">버그 수정<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>6 건 MAME UX 회귀 (v0.9.9.8)</strong>: Clear All, kuro/mame cross-app 동기화, Length 입력, WellPlate 렌더, Sample Data 로드, Round 라벨의 6 가지 UX 회귀가 한 번에 수정되었습니다.</li>
+<li><strong>EVOLVEpro Load Sample 및 Export All maxPrimers cap (v0.9.9.6 ~ v0.9.9.7)</strong>: evolvepro 모드에서 Load Sample Data 가 EVOLVEpro CSV 까지 채우지 못하던 회귀와, Export All 의 maxPrimers cap 누락이 수정되었습니다.</li>
+</ul>
+<h3 id="_8">문서<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>build-version 와 sidecar-hash 구현 문서 (v0.9.9.4)</strong>: <code>docs/troubleshooting/build-version.md</code>, <code>docs/getting-started/sidecar-binaries.md</code> 가 추가/갱신되어 4-part 버전 추출과 sidecar hash 무결성 검증 흐름이 기술되었습니다.</li>
+<li><strong>design-report / export-orders 갱신 (v0.9.9.4)</strong>: Echo/Janus 매핑 미리보기가 Export 탭으로 이동한 사실을 design-report 에 반영하고, export-orders 에 legacy notice (Export All since v0.8.4) 가 추가되었습니다.</li>
+</ul>
+<h3 id="_9">이번 주 출시된 버전<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>버전</th>
+<th>날짜</th>
+<th>요약</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>v0.10.0.07</td>
+<td>2026-05-19</td>
+<td>CDS picker detected 메시지 i18n, report run_meta typing</td>
+</tr>
+<tr>
+<td>v0.10.0.06</td>
+<td>2026-05-19</td>
+<td>parse_reference 테스트 docstring 정리, 예외 타입 좁힘</td>
+</tr>
+<tr>
+<td>v0.10.0</td>
+<td>2026-05-19</td>
+<td>egfp.fa 제거, EGFP 중심 합성 plasmid GenBank 로 단일화</td>
+</tr>
+<tr>
+<td>v0.9.12</td>
+<td>2026-05-19</td>
+<td>MAME parse_reference 핸들러 (FASTA/GenBank/SnapGene CDS picker)</td>
+</tr>
+<tr>
+<td>v0.9.11</td>
+<td>2026-05-19</td>
+<td>MAME UI 라벨, 샘플 fixture, WT 자동 제안</td>
+</tr>
+<tr>
+<td>v0.9.10</td>
+<td>2026-05-19</td>
+<td>mapping-preview-excel, EVOLVEpro Others 모드, Macrogen Card, Project name 입력</td>
+</tr>
+<tr>
+<td>v0.9.9.9</td>
+<td>2026-05-18</td>
+<td>MAME 샘플 fixture / 로케일 IspS → EGFP 이전</td>
+</tr>
+<tr>
+<td>v0.9.9.8</td>
+<td>2026-05-18</td>
+<td>6 건 MAME UX 회귀 수정</td>
+</tr>
+<tr>
+<td>v0.9.9.7</td>
+<td>2026-05-18</td>
+<td>Load Sample 이 evolvepro 모드 EVOLVEpro CSV 채움</td>
+</tr>
+<tr>
+<td>v0.9.9.6</td>
+<td>2026-05-18</td>
+<td>EVOLVEpro Load Sample + Export All maxPrimers cap fix</td>
+</tr>
+<tr>
+<td>v0.9.9.5</td>
+<td>2026-05-18</td>
+<td>ExportPlatePreview 색상 범례 / refetch, Tip 라벨 i18n</td>
+</tr>
+<tr>
+<td>v0.9.9.4</td>
+<td>2026-05-18</td>
+<td>build-version, sidecar-hash 문서화, 주간 changelog 정리</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2026-05-18">주간 업데이트 (2026-05-18)<a class="headerlink" href="#2026-05-18" title="Permanent link">&para;</a></h2>
+<p>2026-05-16 부터 2026-05-18 까지 출시된 KUMA v0.9.8.1 ~ v0.9.9.3 주요 변경 사항입니다.</p>
+<h3 id="_10">신규 기능<a class="headerlink" href="#_10" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Home 프로젝트 카드 휴지통 삭제 (v0.9.8.5)</strong>: Home 화면의 최근 프로젝트 카드에서 휴지통 아이콘으로 항목을 제거할 수 있습니다. Rust 측 <code>remove_recent_project_cmd</code> 가 인덱스 항목만 지우고 디스크 파일은 보존합니다.</li>
+<li><strong>Echo, JANUS 플레이트 미리보기 (v0.9.9.0)</strong>: Design Report 다이얼로그 안에 있던 Echo (384-well) 및 JANUS (96-well, 2 rack) 매핑 미리보기를 KURO Export 탭 상단으로 이전했습니다. <code>EchoPlateView</code>, <code>JanusPlateView</code>, <code>ExportPlatePreview</code> (ToggleGroup) 컴포넌트가 신규 도입되었습니다. 9개 locale 의 Export tooltip 문구도 실제 Macrogen 발주 흐름에 맞춰 갱신되었습니다.</li>
+<li><strong>InlineHelp ? 아이콘 1차 도입 (v0.9.9.1)</strong>: KURO 와 MAME 파라미터 입력 약 40 곳에 <code>InlineHelp</code> ? 아이콘이 추가되어 각 옵션의 의미를 즉시 확인할 수 있습니다. en/ko 키가 신규 정의되었고, 나머지 8개 언어는 영문 fallback 으로 동작합니다.</li>
+</ul>
+<h3 id="_11">업데이트<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>MAME Well Grid 단일 선택 (v0.9.8.5)</strong>: <code>WtWellGrid</code> 가 다중 선택에서 단일 선택 모드로 변경되었습니다.</li>
+<li><strong>KURO 샘플 데이터 96-well 보장 (v0.9.8.5)</strong>: 샘플 데이터를 120개로 확장하고, 디폴트 파라미터로도 96-well 플레이트가 가득 차도록 조정되었습니다.</li>
+<li><strong>MAME Step 2.2 Review 정렬 (v0.9.9.2)</strong>: Step 2.2 Review 콘텐츠의 수직 정렬이 다른 단계와 통일되었습니다.</li>
+<li><strong>vite 4-part 버전 추출 (v0.9.9.2)</strong>: <code>vite.config.ts</code> 가 <code>git describe</code> 결과에서 4-part 버전 (예: 0.9.9.2) 을 추출하도록 보강되었습니다.</li>
+<li><strong>Polymerase profile 메타데이터 (v0.9.9.3)</strong>: TAKARA_GXL (Takara high) 과 Q5 SDM (NEB high) 두 항목이 polymerase profile 에 추가되었습니다.</li>
+</ul>
+<h3 id="_12">버그 수정<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Windows installer sidecar hash 무결성 (v0.9.8.1)</strong>: cross-platform 환경에서 sidecar hash 검증이 재발하던 회귀를 merge mode 및 fail-fast 정책으로 수정했습니다. 동시에 KURO <code>MajorSubnav</code> 와 MAME <code>MameAppLayout</code> subnav 의 outline <em>Clear All</em> 버튼이 복원되었습니다.</li>
+<li><strong>sidecar-hashes.json 3 플랫폼 hash 완전 포함 (v0.9.9.2)</strong>: macOS, Windows, Linux 세 플랫폼 hash 가 모두 포함되었습니다. 이전에 남아 있던 conflict marker 가 빌드에 번들되어 Windows installer 가 크래시하던 문제를 수정합니다. v0.9.8.1, 0.9.8.5, 0.9.9.0, 0.9.9.1, 0.9.9.2 git tag 가 새로 생성되었습니다.</li>
+<li><strong>JANUS 어댑터 rack 할당 (v0.9.9.3)</strong>: JANUS 어댑터가 <code>asp_rack</code> 값 기반으로 분기하도록 P0 수정을 적용하여 실험실 JANUS spec 과 일치시켰습니다.</li>
+</ul>
+<h3 id="_13">이번 주 출시된 버전<a class="headerlink" href="#_13" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>버전</th>
+<th>날짜</th>
+<th>요약</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>v0.9.9.3</td>
+<td>2026-05-18</td>
+<td>polymerase profile 메타데이터 추가, JANUS rack 할당 fix</td>
+</tr>
+<tr>
+<td>v0.9.9.2</td>
+<td>2026-05-18</td>
+<td>sidecar-hashes.json 3 플랫폼 완전 포함, 4-part 버전 추출, MAME Step 2.2 정렬</td>
+</tr>
+<tr>
+<td>v0.9.9.1</td>
+<td>2026-05-17</td>
+<td>InlineHelp ? 아이콘 약 40곳 도입 (Phase 1)</td>
+</tr>
+<tr>
+<td>v0.9.9.0</td>
+<td>2026-05-17</td>
+<td>Echo, JANUS 플레이트 미리보기를 Export 탭 상단으로 이전</td>
+</tr>
+<tr>
+<td>v0.9.8.5</td>
+<td>2026-05-16</td>
+<td>Home 카드 휴지통 삭제, MAME 단일 선택, 96-well 보장</td>
+</tr>
+<tr>
+<td>v0.9.8.1</td>
+<td>2026-05-16</td>
+<td>Windows installer sidecar hash 회귀 fix, Clear All 복원</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2026-05-15">주간 업데이트 — 2026-05-15<a class="headerlink" href="#2026-05-15" title="Permanent link">&para;</a></h2>
+<p>이번 주(2026-05-13 ~ 2026-05-15) 출시된 KUMA v0.8.4 → v0.9.6.0 주요 변경 사항입니다.</p>
+<h3 id="_14">신규 기능<a class="headerlink" href="#_14" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>EVOLVEpro 통합 (v0.9.6.0)</strong> — 사용자가 직접 설치한 EVOLVEpro conda 환경을 KUMA에서 별도 탭으로 호출할 수 있습니다. 단백질 변이 점수화 결과를 GUI에서 바로 확인하세요. → <a href="../../inputs/mutations/"><code>inputs/mutations</code></a></li>
+<li><strong>Settings 대화상자 (v0.9.0.0)</strong> — General · Network · Sidecar · Telemetry 네 개 탭에서 설정을 관리하고, 변경 사항은 0.5초 디바운스로 자동 저장됩니다. 테마 토글도 동일 화면에서 사용할 수 있습니다. → <a href="../settings/"><code>settings</code></a></li>
+<li><strong>KURO Inspector — 6개 서브스텝 전체 지원 (v0.9.1.0)</strong> — Source / Variant / Parameter / Current Mutation / Primer / Export 각 단계마다 전용 인스펙터 패널이 추가되어 우측 패널에서 컨텍스트 정보를 바로 볼 수 있습니다.</li>
+<li><strong>MAME 7-스크린 위젯 + Plate cluster 경고 (v0.9.0.0)</strong> — MAME 모든 서브스텝에 워크플로 레일·인스펙터·드로어가 채워지고, 인접 웰이 동시에 실패할 때 <code>B03-B04 may indicate a pipetting issue</code> 형식의 경고가 표시됩니다. JANUS export는 메인 패널의 <em>Open JANUS export…</em> CTA로 열립니다.</li>
+<li><strong>Export All 단일 버튼 + Macrogen 발주 (v0.8.4)</strong> — IDT / Twist 분기를 합친 단일 <em>Export All</em> 버튼으로 대체되었고, 신규 Macrogen xls 발주 양식이 추가되었습니다. → <a href="../../kuro/06-export/"><code>kuro/06-export</code></a></li>
+<li><strong>사이드바 리사이즈 (v0.8.4)</strong> — 사이드바 폭을 마우스 드래그 또는 키보드로 조절할 수 있고, 폭은 다음 실행에도 유지됩니다.</li>
+<li><strong>Keyboard Shortcuts 대화상자 (v0.8.5)</strong> — <code>Ctrl/Cmd + /</code> 로 검색·카테고리 그룹화가 지원되는 단축키 목록을 띄울 수 있습니다. → <a href="../keybindings/"><code>keybindings</code></a></li>
+<li><strong>Edit / Run 메뉴 (v0.8.5)</strong> — 메뉴바에 <em>Edit</em> (Preferences, <code>Ctrl/Cmd + ,</code>), <em>Run</em> (Sidecar diagnostics, Check sidecar status) 메뉴가 추가되었습니다. Help 메뉴에서는 <em>Report issue</em>, <em>Check for updates</em> 도 사용할 수 있습니다.</li>
+<li><strong>Workspace 아티팩트 핸드오프 (v0.8.3 → v0.8.4)</strong> — KURO/MAME 엑셀 export 결과가 워크스페이스 매니페스트에 자동 등록되어 다음 단계에서 곧바로 불러올 수 있습니다. → <a href="../workspace-format/"><code>workspace-format</code></a></li>
+</ul>
+<h3 id="_15">업데이트<a class="headerlink" href="#_15" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>메뉴바 첫 메뉴가 도구명 (v0.8.6)</strong> — 컨텍스트에 따라 첫 메뉴가 <strong><code>kuro</code></strong> 또는 <strong><code>mame</code></strong> 로 표시되고, <em>Close window</em> (<code>Ctrl/Cmd + W</code>) / <em>Quit kuma</em> (<code>Ctrl/Cmd + Q</code>) 항목이 포함됩니다.</li>
+<li><strong>Settings 의 단축키 표 제거 (v0.8.6)</strong> — 단축키 목록은 전용 <em>Keyboard Shortcuts</em> 대화상자로 일원화되었습니다.</li>
+<li><strong>PrimerInspector i18n 보강 (v0.9.1.1)</strong> — 하드코딩되어 있던 <em>Plate</em> 레이블이 로케일 키로 전환되었고, 결과가 준비되면 인스펙터가 첫 디자인 결과를 자동 선택합니다.</li>
+<li><strong>변이 입력 — multi-evolve 옵션 제거 (v0.9.4.0)</strong> — 휴면 상태였던 multi-evolve 옵션이 EVOLVEpro 워크플로로 통합되었습니다. CSV에서 top-N = 0 으로 두면 모든 변이가 로드됩니다.</li>
+<li><strong>EVOLVEpro CSV 상한 확대</strong> — 변이 후보 상한이 960 → 10,000 으로 늘어났고, 카운트 변경 시 자동 복구가 동작합니다.</li>
+<li><strong>자동 export 파일명</strong> — 날짜 / 유전자 / 변이 개수를 포함한 파일명이 기본값으로 적용됩니다.</li>
+<li><strong>로케일 톤 정리 (v0.8.4)</strong> — <code>The job may be stuck.</code> → <code>The job is stuck.</code> (한국어: <code>작업이 멈춘 것 같습니다.</code> → <code>작업이 멈췄습니다.</code>). <code>Require GC clamp (3-prime end)</code> → <code>Require GC clamp (3' end)</code>. 일부 한국어 라벨이 영문 용어로 통일되었습니다.</li>
+</ul>
+<h3 id="_16">버그 수정<a class="headerlink" href="#_16" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Workspace 매니페스트 런타임 오류 (v0.9.1.2)</strong> — 매니페스트가 브라우저 측 웹뷰에서 <code>readFile</code> / <code>randomUUID</code> 호출 시 실패하던 문제를 수정했습니다. 이제 export · 자동 prefill 이 실제 동작합니다.</li>
+<li><strong>테마 설정 초기화 회귀 (v0.9.0.0)</strong> — 업그레이드 후 첫 실행에서 <code>localStorage</code> 의 테마 선택이 초기화되던 문제를 수정했습니다.</li>
+<li><strong>Load Sample Data 무음 실패 (v0.8.4)</strong> — <code>loadSequence</code> 단계 오류가 조용히 삼켜져 이후 단계가 빈 상태로 남던 문제를 수정했습니다. 이제 오류가 그대로 전파됩니다.</li>
+<li><strong>Windows 빌드 / Python 3.11 사이드카</strong> — <code>plugin-dialog</code> 버전 불일치로 Windows 빌드가 실패하던 문제와 <code>typing_extensions.TypedDict</code> 관련 Python 3.11 호환성 문제가 해결되었습니다.</li>
+<li><strong>UniProt 고-동일성 매치 복원</strong> — 기본 BLAST 연락처 이메일이 복원되어 UniProt 가 다시 고-동일성 결과를 반환합니다.</li>
+</ul>
+<h3 id="_17">이번 주 출시된 버전<a class="headerlink" href="#_17" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>버전</th>
+<th>날짜</th>
+<th>요약</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>v0.9.6.0</td>
+<td>2026-05-15</td>
+<td>EVOLVEpro GUI 래퍼 추가</td>
+</tr>
+<tr>
+<td>v0.9.4.0</td>
+<td>2026-05-15</td>
+<td>multi-evolve 옵션 제거(EVOLVEpro 로 통합)</td>
+</tr>
+<tr>
+<td>v0.9.1.2</td>
+<td>2026-05-14</td>
+<td>Workspace 매니페스트 런타임 오류 수정</td>
+</tr>
+<tr>
+<td>v0.9.1.1</td>
+<td>2026-05-14</td>
+<td>PrimerInspector i18n / 결과 자동 선택</td>
+</tr>
+<tr>
+<td>v0.9.1.0</td>
+<td>2026-05-14</td>
+<td>KURO 6 서브스텝 인스펙터 내용 채움</td>
+</tr>
+<tr>
+<td>v0.9.0.1</td>
+<td>2026-05-14</td>
+<td>정리 작업</td>
+</tr>
+<tr>
+<td>v0.9.0.0</td>
+<td>2026-05-14</td>
+<td>Settings 대화상자 · KURO chrome · MAME 7-스크린</td>
+</tr>
+<tr>
+<td>v0.8.6</td>
+<td>2026-05-13</td>
+<td>메뉴바 첫 메뉴 도구명 · Settings 단축키 표 제거</td>
+</tr>
+<tr>
+<td>v0.8.5</td>
+<td>2026-05-13</td>
+<td>Edit / Run 메뉴 · Keyboard Shortcuts 대화상자</td>
+</tr>
+<tr>
+<td>v0.8.4</td>
+<td>2026-05-13</td>
+<td>Export All · Macrogen · 사이드바 리사이즈 · Load Sample Data 강화</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1 id="changelog-v092x-patch-series">Changelog — v0.9.2.x patch series<a class="headerlink" href="#changelog-v092x-patch-series" title="Permanent link">&para;</a></h1>
+<p>본 사용자 가이드 발행 시점 기준. 자세한 git log 는 <code>git log v0.9.1.6..HEAD</code> 참조.</p>
+<table>
+<thead>
+<tr>
+<th>버전</th>
+<th>요약</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>v0.9.2.01</td>
+<td>sidecar <code>-32601 Method not found</code> 친화 메시지 + i18n key <code>errors.sidecar.methodNotFound</code></td>
+</tr>
+<tr>
+<td>v0.9.2.02</td>
+<td>KURO <code>TOTAL_KURO_STEPS = 6</code> 상수 도입, <code>src/components/steps/constants.ts</code> 신설</td>
+</tr>
+<tr>
+<td>v0.9.2.03</td>
+<td>OutputStepView / ExportStepView step 번호 5/6 로 정정</td>
+</tr>
+<tr>
+<td>v0.9.2.04</td>
+<td>MAME Major.Sub label 표기 (<code>stepLabel</code> / <code>progressLabel</code> props)</td>
+</tr>
+<tr>
+<td>v0.9.2.05</td>
+<td>KURO sidebar prerequisite guard 제거 — 자유 navigate</td>
+</tr>
+<tr>
+<td>v0.9.2.06</td>
+<td>MAME sidebar guard 제거 + sub-step default empty state</td>
+</tr>
+<tr>
+<td>v0.9.2.07</td>
+<td>WizardContainer <code>validateBeforeNext</code> props 전 step 채움</td>
+</tr>
+<tr>
+<td>v0.9.2.08</td>
+<td>KURO 4 substep + MAME 3 step validation Dialog 표준화</td>
+</tr>
+<tr>
+<td>v0.9.2.09</td>
+<td>Sidebar/탭 disabled 시각 상태 제거 (lock → pending)</td>
+</tr>
+<tr>
+<td>v0.9.2.10</td>
+<td>DesignReportInspector 신설 (<code>src/components/inspectors/kuro/</code>)</td>
+</tr>
+<tr>
+<td>v0.9.2.11</td>
+<td>DesignReport 본문 → 재사용 <code>DesignReportContent</code> 분리</td>
+</tr>
+<tr>
+<td>v0.9.2.12</td>
+<td>AppLayout 에서 DesignReport popup mount 제거</td>
+</tr>
+<tr>
+<td>v0.9.2.13</td>
+<td>KuroChrome inspector switch <code>output.summary</code> → DesignReportInspector mount</td>
+</tr>
+<tr>
+<td>v0.9.2.14</td>
+<td>DesignSummaryCard 신설 (Submit step 상단 요약)</td>
+</tr>
+<tr>
+<td>v0.9.2.15</td>
+<td><code>useRunDesign</code> 성공 콜백에서 popup 제거 + <code>goToNextStep</code> auto-advance</td>
+</tr>
+<tr>
+<td>v0.9.2.16</td>
+<td>Submit footer button "Run Design" + 예외 시 "Next" fallback</td>
+</tr>
+<tr>
+<td>v0.9.2.17</td>
+<td>Wizard step 전역 store-flush 헬퍼 (local state → zustand)</td>
+</tr>
+<tr>
+<td>v0.9.2.18</td>
+<td>react-resizable-panels Output splitter + inspector toggle</td>
+</tr>
+<tr>
+<td>v0.9.2.19</td>
+<td>Plate plan <code>overflow-auto min-h-0</code> chain 가드</td>
+</tr>
+<tr>
+<td>v0.9.2.20</td>
+<td>MAME Sequencing Review grid min-height 480 / 360</td>
+</tr>
+<tr>
+<td>v0.9.2.21</td>
+<td>MkDocs user guide 추가 (본 문서)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="v091x">v0.9.1.x 와의 차이 요약<a class="headerlink" href="#v091x" title="Permanent link">&para;</a></h2>
+<ul>
+<li>KURO 6-step 명시화 (load·mutation·params·submit·output·export)</li>
+<li>MAME Major.Sub 계층 표기</li>
+<li>Sidebar 자유 navigate + Next validation Dialog 분리 정책</li>
+<li>Run Design popup 제거 → Output 우측 DesignReportInspector</li>
+<li>Output 영역 splitter + 우측 inspector toggle</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
