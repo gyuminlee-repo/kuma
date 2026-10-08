@@ -20,6 +20,7 @@ from openpyxl import Workbook
 
 from kuma_core.mame.activity.detect_measurement_source import (
     CONFIRMATION_NUMERIC_IDS,
+    CONFIRMATION_WELL_LABELS,
     CONFIRMATION_VARIANT_LABELS,
     GC_SHEET,
     LONG_FORMAT,
@@ -38,7 +39,7 @@ CORPUS: list[tuple[str, list[str]]] = [
     # 'sample name' is a label column and 'area' is a value column.  The two
     # readings disagree about the wild-type rows, so both are reported.
     ("10_mame_gc_prenormalised.xlsx", [GC_SHEET, LONG_FORMAT]),
-    ("11_mame_gc_fid_round1_raw.xlsx", [RAW_REPORT]),
+    ("11_mame_gc_fid_round1_raw.xlsx", [RAW_REPORT, CONFIRMATION_WELL_LABELS]),
     ("12_mame_agilent_numeric_index.xlsx", [NUMERIC_REPORT, CONFIRMATION_NUMERIC_IDS]),
     ("09_mame_agilent_rep_batch.xlsx", [CONFIRMATION_VARIANT_LABELS]),
 ]

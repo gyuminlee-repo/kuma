@@ -73,7 +73,8 @@
       "samples/mame/16_mame_agilent_numeric_confirmation.xlsx": "samples/mame/16_mame_agilent_numeric_confirmation.xlsx",
       "samples/mame/sample_analysis_result.json": "samples/mame/sample_analysis_result.json",
       "resources/NOTICE.md": "resources/NOTICE.md",
-      "sidecar-hashes.json": "sidecar-hashes.json"
+      "sidecar-hashes.json": "sidecar-hashes.json",
+      "samples/mame/17_mame_well_labeled_confirmation.xlsx": "samples/mame/17_mame_well_labeled_confirmation.xlsx"
     },
     "icon": [
       "icons/32x32.png",

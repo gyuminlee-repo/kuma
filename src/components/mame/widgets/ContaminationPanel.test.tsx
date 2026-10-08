@@ -6,6 +6,11 @@
  */
 import { render, screen, cleanup } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { createInstance } from "i18next";
+import { I18nextProvider } from "react-i18next";
+import en from "@/locales/en.json";
+import ko from "@/locales/ko.json";
+import { CONTAMINATION_REASON_CODES, CONTAMINATION_SIGNAL_NAMES } from "@/types/mame/models";
 
 vi.mock("@/lib/ipc-mame", () => ({
   sendRequest: vi.fn(),
@@ -152,5 +157,46 @@ describe("ContaminationPanel", () => {
     ]) {
       expect(screen.getByTestId(`contamination-signal-${name}`)).toBeTruthy();
     }
+  });
+});
+
+
+describe("ContaminationPanel localized reasons", () => {
+  it.each(["en", "ko"] as const)("localizes every unavailable condition in %s", async (lng) => {
+    const locale = lng === "ko" ? ko : en;
+    const i18n = createInstance();
+    await i18n.init({ lng, resources: { en: { translation: en }, ko: { translation: ko } }, interpolation: { escapeValue: false } });
+    for (const reason_code of CONTAMINATION_REASON_CODES) {
+      useMameAppStore.setState({ contamination: report(Object.fromEntries(
+        CONTAMINATION_SIGNAL_NAMES.map((name) => [name, { state: "unavailable", reason_code, reason: "raw server explanation" }]),
+      )) });
+      const { unmount } = render(<I18nextProvider i18n={i18n}><ContaminationPanel /></I18nextProvider>);
+      for (const name of CONTAMINATION_SIGNAL_NAMES) {
+        const row = screen.getByTestId(`contamination-signal-${name}`);
+        expect(row).toHaveTextContent(locale.mame.qc.contamination.reason[reason_code]);
+        expect(row).not.toHaveTextContent("raw server explanation");
+        expect(row).not.toHaveTextContent("mame.qc.");
+      }
+      unmount();
+    }
+  });
+
+  it("keeps raw explanations for unknown future reason codes", () => {
+    useMameAppStore.setState({ contamination: report({ unexpected_well_reads: {
+      state: "unavailable", reason_code: "future_condition", reason: "A future sidecar explains this condition.",
+    } }) });
+    render(<ContaminationPanel />);
+    expect(screen.getByTestId("contamination-signal-unexpected_well_reads"))
+      .toHaveTextContent("A future sidecar explains this condition.");
+    expect(screen.getByTestId("contamination-signal-unexpected_well_reads")).not.toHaveTextContent("future_condition");
+  });
+
+  it("falls back to the localized missing explanation when a future code has no raw reason", () => {
+    useMameAppStore.setState({ contamination: report({ unexpected_well_reads: {
+      state: "unavailable", reason_code: "future_condition",
+    } }) });
+    render(<ContaminationPanel />);
+    expect(screen.getByTestId("contamination-signal-unexpected_well_reads"))
+      .toHaveTextContent(en.mame.qc.contamination.signalAbsent);
   });
 });

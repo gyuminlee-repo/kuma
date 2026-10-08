@@ -380,6 +380,22 @@ export const CONTAMINATION_SIGNAL_NAMES = [
 
 export type ContaminationSignalName = (typeof CONTAMINATION_SIGNAL_NAMES)[number];
 
+/** Stable unavailable-reason codes from qc/contamination.py; legacy text stays on the wire. */
+export const CONTAMINATION_REASON_CODES = [
+  "no_demux_matrix",
+  "no_occupied_wells",
+  "all_indices_used",
+  "all_wells_occupied",
+  "no_coverage_reads",
+  "no_assigned_reads",
+  "pooled_leak_scope",
+  "single_replicate_leak_scope",
+  "no_leak_reads",
+  "pooled_yield_scope",
+  "single_replicate_yield_scope",
+  "no_plate_yield",
+] as const;
+
 /** One well that carried reads the layout did not ask for. */
 export interface ContaminationLeakWell {
   well: string;
@@ -405,6 +421,8 @@ export interface ContaminationSignal {
   value?: number;
   /** Present iff `state === "unavailable"`. A sentence, already phrased for display. */
   reason?: string;
+  /** Optional on legacy results; unknown future codes must fall back to `reason`. */
+  reason_code?: string;
   /** `unused_index_reads`, `unexpected_well_reads`, `leak_well_sharing`. */
   wells?: ContaminationLeakWell[];
   /** `leak_well_sharing`: where the stray reads sit relative to the copies. */

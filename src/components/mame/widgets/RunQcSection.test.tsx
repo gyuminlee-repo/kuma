@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import en from "@/locales/en.json";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
-import type { DemuxAndFilterResult, RunHealthData } from "@/types/mame/models";
+import type { ContaminationReport, DemuxAndFilterResult, RunHealthData } from "@/types/mame/models";
 import type {
   IndelRecurrence,
   PositionRecurrence,
@@ -165,7 +165,7 @@ function open() {
 }
 
 beforeEach(() => {
-  useMameAppStore.setState({ demuxResult: null, runQuality: null });
+  useMameAppStore.setState({ demuxResult: null, runQuality: null, contamination: null });
 });
 
 describe("RunQcSection, the disclosure itself", () => {
@@ -582,5 +582,34 @@ describe("RunQcSection, indel recurrence", () => {
     expect(block.textContent ?? "").toContain(en.mame.runQuality.indelRecurrence.noDeletions);
     expect(block.textContent ?? "").toContain(en.mame.runQuality.indelRecurrence.noInsertions);
     expect(screen.queryByTestId("indel-deletion-table")).not.toBeInTheDocument();
+  });
+});
+
+
+describe("RunQcSection contamination measurements", () => {
+  it("keeps all six signals in the collapsed drawer, reachable with repeated toggles", () => {
+    const contamination: ContaminationReport = {
+      occupancy_source: "explicit_well_layout", occupied_wells: 96, replicates: 1, plate_names: ["barcode01"],
+      signals: {
+        unused_index_reads: { state: "unavailable", reason_code: "all_indices_used", reason: "all indices used" },
+        unexpected_well_reads: { state: "unavailable", reason_code: "all_wells_occupied", reason: "all wells used" },
+        ambiguity_rate: { state: "ok", value: 0.02 },
+        chimera_rate: { state: "ok", value: 0 },
+        leak_well_sharing: { state: "unavailable", reason_code: "single_replicate_leak_scope", reason: "one copy" },
+        plate_yield_skew: { state: "unavailable", reason_code: "single_replicate_yield_scope", reason: "one copy" },
+      },
+    };
+    useMameAppStore.setState({ contamination });
+    render(<RunQcSection runHealth={null} />);
+    expect(screen.queryByTestId("contamination-panel")).toBeNull();
+    open();
+    expect(screen.getByTestId("run-qc-section")).toContainElement(screen.getByTestId("contamination-panel"));
+    expect(screen.getByTestId("contamination-signal-unexpected_well_reads"))
+      .toHaveTextContent(en.mame.qc.contamination.reason.all_wells_occupied);
+    expect(screen.getByTestId("contamination-signal-ambiguity_rate")).toHaveTextContent("2.00%");
+    open();
+    expect(screen.queryByTestId("contamination-panel")).toBeNull();
+    open();
+    expect(screen.getByTestId("contamination-panel")).toBeInTheDocument();
   });
 });

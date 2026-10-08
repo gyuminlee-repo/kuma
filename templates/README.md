@@ -122,3 +122,7 @@ Round 2 EVOLVEpro pred        ── 다음 라운드 (이 폴더 범위 밖)
   - `kuma_core/mame/io/kuro_reader.py:11-22` — expected_mutations 컬럼
   - `kuma_core/mame/ingest/sort_barcode.py:74-75, 135, 207-220` — barcode/sample map
   - `python-core/sidecar_kuro/handlers/misc.py:70` — KURO `load_evolvepro_csv`
+
+## Well-labeled confirmation example
+
+`17_mame_well_labeled_confirmation.xlsx` is a synthetic parsing example with WT, A1, A1-1 and B1-1 labels. Values are arbitrary placeholders. Use a matching layout or NGS verdict identity map. The same block shape can be primary or additional data; select its role explicitly. Only positive replicate suffixes on canonical labels are accepted. This example is bundled under `samples/mame/` and shown in the input-format help.

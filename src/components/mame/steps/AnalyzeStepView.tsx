@@ -48,7 +48,6 @@ import { DemuxResumeNotice } from "@/components/mame/widgets/DemuxResumeNotice";
 import { EmptyAnalysisNotice } from "@/components/mame/widgets/EmptyAnalysisNotice";
 import { CoverageLossNotice } from "@/components/mame/widgets/CoverageLossNotice";
 import { StaleUnitsNotice } from "@/components/mame/widgets/StaleUnitsNotice";
-import { ContaminationPanel } from "@/components/mame/widgets/ContaminationPanel";
 import { PlateOrderNotice } from "@/components/mame/widgets/PlateOrderNotice";
 import { ReplicateModeNotice } from "@/components/mame/widgets/ReplicateModeNotice";
 import { RestoredResultNotice } from "@/components/mame/widgets/RestoredResultNotice";
@@ -376,12 +375,9 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
                 so the one screen that can answer it must not be the one screen
                 that drops it. */}
             <ReferenceResolutionNotice />
-            {/* A run that produced no verdict is exactly where the stray-read
-                view earns its place: the reads went somewhere, and the matrix
-                is the only thing that can say whether it was a well nobody
-                pipetted. Mounted here as well as on the normal review because
-                this branch replaces the whole review, panels included. */}
-            <ContaminationPanel />
+            {/* Keep diagnostic measurements reachable on a zero-result run,
+                under the same collapsed disclosure as a populated review. */}
+            <RunQcSection runHealth={runHealth} />
           </div>
         );
         break;
@@ -419,11 +415,6 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
               be asked what was left out. */}
           <ExcludedOccupantsNotice />
           <OffLayoutRecordsNotice />
-          {/* Beside the off-layout notice because the two answer the same
-              question from opposite ends: that one counts SCORED records from
-              undeclared wells, this one counts READS on barcode combinations
-              nobody pipetted, including the ones that never became a record. */}
-          <ContaminationPanel />
           <PlateClusterAlert />
           <RestoredResultNotice onRunRequest={onRunRequest} />
           {/* Below the notices that judge the result, above the panels that

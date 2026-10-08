@@ -530,7 +530,10 @@
       "expand": "拡大",
       "collapse": "縮小",
       "expandAriaLabel": "プレートビューの拡大を切り替え",
-      "expandedRegionAriaLabel": "拡大したプレートビュー"
+      "expandedRegionAriaLabel": "拡大したプレートビュー",
+      "finalCompositePlate": "最終統合プレート",
+      "selectedWellSource": "選択したウェル {{well}} · 元のプレート: {{barcode}}",
+      "sourceUnknown": "不明"
     },
     "drawer": {
       "stat": {
@@ -978,9 +981,9 @@
         "inspectorReads": "Reads",
         "inspectorReason": "Reason",
         "inspectorNoWellSelected": "Click a well to inspect",
-        "clusterAlertTitle": "Cluster failure detected",
-        "clusterAlertDesc": "{{wells}} — adjacent wells failed simultaneously. This may indicate a pipetting issue.",
-        "clusterAlertAriaLabel": "Plate cluster failure alert"
+        "clusterAlertTitle": "隣接ウェルの低リード深度 / 判定不可",
+        "clusterAlertDesc": "{{barcode}} の {{wells}} はリード深度が低いか、判定できません。分注履歴を確認してください。このパターンだけでは原因を特定できません。",
+        "clusterAlertAriaLabel": "リード深度が低い、または判定不可の隣接ウェル"
       },
       "review": {
         "contextTitle": "Sequencing QC — Review",
@@ -1034,6 +1037,20 @@
         "sharing": {
           "shared_across_replicates": "想定外の read がプレート複製全体で繰り返されている。",
           "single_replicate": "想定外の read が 1 つのプレート複製にのみある。"
+        },
+        "reason": {
+          "no_demux_matrix": "デマルチプレックス行列が生成されていないため、リードをバーコードの組み合わせに割り当てられません。",
+          "no_occupied_wells": "この実行では使用ウェルが指定されていないため、未使用のバーコードの組み合わせを特定できません。",
+          "all_indices_used": "使用ウェルがすべてのリバースおよびフォワードのバーコードインデックスを使っているため、測定対象となる未使用インデックスがありません。",
+          "all_wells_occupied": "キャンペーンがすべてのウェルを使用しているため、想定外のリードを測定する未使用ウェルがありません。",
+          "no_coverage_reads": "カバレッジ基準を満たしてバーコード照合に到達したリードがないため、曖昧性を測定できませんでした。",
+          "no_assigned_reads": "ウェルに割り当てられたリードがないため、キメラ率を計算する分母がありません。",
+          "pooled_leak_scope": "リードを1枚のプレートに統合したため、反復プレート間での漏出の共通性を比較できません。",
+          "single_replicate_leak_scope": "プレートのコピーを1つしか評価していないため、反復プレート間での漏出の共通性を比較できません。",
+          "no_leak_reads": "このキャンペーンが使用するインデックスの未使用の組み合わせにリードがないため、比較対象となるウェル間の漏出がありません。",
+          "pooled_yield_scope": "リードを1枚のプレートに統合したため、収量を比較する2つ目のコピーがありません。",
+          "single_replicate_yield_scope": "プレートのコピーを1つしか評価していないため、収量を比較する2つ目のコピーがありません。",
+          "no_plate_yield": "どのプレートのコピーにもリードが割り当てられていないため、比較する収量がありません。"
         }
       },
       "legacySampleMap": {
@@ -1204,7 +1221,7 @@
       }
     },
     "buildEvolvepro": {
-      "title": "EVOLVEpro 入力の生成",
+      "title": "EVOLVEpro 入力ファイルの変換",
       "subtitle": "Convert this round's activity measurements into an NGS-qualified EVOLVEpro [Variant, activity] input.",
       "routeNote": "Every measurement format uses the same NGS verdict, normalization, replicate merge, and EVOLVEpro export pipeline.",
       "inputFiles": "入力ファイル",
@@ -1228,13 +1245,13 @@
       "gcDataXlsxHelper": "Pre-normalized relative activity per well (Sample Name, Area columns).",
       "round1ReportXlsx": "Raw Agilent report xlsx",
       "round1ReportXlsxHelper": "Raw Agilent FID1B report with well positions and WT blocks.",
-      "confirmationSourceLabel": "Optional confirmation",
+      "confirmationSourceLabel": "追加測定の形式",
       "confirmationSourceNone": "None",
       "confirmationSourceNoneHelper": "Use the primary measurement value for every NGS-qualified variant.",
-      "confirmationSourceVariantLabels": "Variant-labeled Agilent report",
-      "confirmationSourceVariantLabelsHelper": "Optional raw Agilent report whose sample names are variant labels. Its independently WT-normalized replicate means override matching primary values.",
-      "remeasureReportXlsx": "Confirmation report xlsx (variant-labeled)",
-      "remeasureReportXlsxHelper": "Raw Agilent report with variant-labeled samples and WT rows; numeric or rank-derived labels are not supported.",
+      "confirmationSourceVariantLabels": "ウェル / バリアントラベル",
+      "confirmationSourceVariantLabelsHelper": "ウェルラベル（A1, A1-1）またはバリアントラベル（S11I, S11I-1）と WT 行を含む Agilent の生レポートです。ウェルラベルはレイアウトまたは NGS 判定に基づいて対応付け、独立した WT 正規化後の反復平均で対応する一次測定値を置き換えます。",
+      "remeasureReportXlsx": "確認測定レポート xlsx（ウェル / バリアントラベル）",
+      "remeasureReportXlsxHelper": "ウェルまたはバリアントのサンプルラベルと WT 行を含む Agilent の生レポートです。数値の位置番号には、数値 ID 形式を明示的に選択する必要があります。",
       "verdictXlsx": "NGS verdict xlsx",
       "verdictXlsxHelper": "Required Analyze verdict evidence for this round. Only explicit PASS rows that are neither failed nor fallback are exported.",
       "outputXlsx": "出力 EVOLVEpro xlsx",
@@ -1248,7 +1265,7 @@
       "build": "EVOLVEpro 入力を生成",
       "building": "生成中…",
       "resultTitle": "生成結果",
-      "emptyState": "Select one measurement format, the required NGS verdict, and an output path.",
+      "emptyState": "実験データファイル、必須の NGS 判定、出力先を選択してください。確認測定ファイルがあれば追加してください。",
       "nVariants": "記録された variant",
       "nAuthoritative": "Confirmation overrides",
       "nFallbackOnly": "Primary values",
@@ -1285,7 +1302,7 @@
       "mismatchThreshold": "不一致しきい値",
       "mismatchThresholdHelper": "不一致として扱い、確認までエクスポートを阻止する絶対活性差です。0より大きい値にしてください。",
       "changeFile": "変更",
-      "measurementFile": "測定ファイル",
+      "measurementFile": "実験データファイル",
       "measurementFileHelper": "先にファイルを選んでください。形式はファイルの内容から読み取ります。csv、xlsx、xls に対応します。",
       "detectingFormat": "ファイルを読み込んで形式を判別しています...",
       "detectedFormat": "検出: {{format}}",
@@ -1308,7 +1325,22 @@
         "requiredColumnsNote": "このファイルのサンプルはアプリに同梱されていないため、行ではなく必須の列名を示す。名称は完全に一致する必要がある。"
       },
       "numericPrimaryNote": "ID i は、設計リストの順にプレート全体へ番号を振ったときの i 番目のバリアントである。",
-      "numericConfirmationNote": "ID j は一次スクリーンで野生型を上回ったバリアントだけを同じプレート順で番号付けしたもので、それぞれを再測定する。"
+      "numericConfirmationNote": "ID j は一次スクリーンで野生型を上回ったバリアントだけを同じプレート順で番号付けしたもので、それぞれを再測定する。",
+      "additionalMeasurementFile": "追加の実験データファイル（任意）",
+      "additionalMeasurementFileHelper": "確認測定を追加すると、独立した WT 正規化後に対応する一次測定値を置き換えます。形式はファイルから読み取ります。",
+      "ambiguityWellRound": "同じウェルラベル付きレポートでも、一次実験または追加の確認測定に使えます。役割を選択してください。確認測定値は対応する一次測定値を置き換えます。",
+      "primaryOnlyFile": "このファイルは一次実験の形式に一致します。実験データファイルとして使用するか、追加測定の形式を手動で選択してください。",
+      "useAsPrimary": "実験データとして使用: {{format}}",
+      "chooseFormatManually": "形式を手動で選択",
+      "clearAdditionalMeasurement": "追加ファイルを削除",
+      "detectionSummaryLabel": "ファイル判別の概要",
+      "detectedSampleRows": "サンプル行: {{value}}",
+      "detectedRecognizedRows": "認識したラベル: {{value}} 行",
+      "detectedSkippedRows": "スキップした行: {{value}}",
+      "detectedUniqueLabels": "一意のサンプルラベル: {{value}}",
+      "confirmationWellPreview": "ウェルラベル",
+      "confirmationVariantPreview": "バリアントラベル",
+      "detectedControlRows": "WT 対照行: {{value}}"
     },
     "verdictBadge": {
       "help": {
@@ -3247,7 +3279,9 @@
     "includeAriaLabel": "Include {{mutation}} in downstream outputs",
     "includeTitle": "Include this row in plate map and exports",
     "excludeTitle": "Exclude this row from plate map and exports",
-    "excludedRowAriaLabel": "{{mutation}} is excluded from downstream outputs"
+    "excludedRowAriaLabel": "{{mutation}} is excluded from downstream outputs",
+    "well": "ウェル",
+    "wellHint": "現在のエクスポート配置におけるフォワードプライマーのウェルです。並べ替えるとエクスポート順も変わります。R1、R2 などは別々のエクスポートラウンドを示します。"
   },
   "mameSidebar": {
     "runStateLabel": "Run state",
@@ -3429,9 +3463,9 @@
       },
       "all": {
         "heading": "Export Package",
-        "runExport": "Export all",
+        "runExport": "エクスポート",
         "orderVendor": "Order vendor",
-        "orderVendorHint": "Included in Export all as a timestamp-prefixed Macrogen .xls file.",
+        "orderVendorHint": "タイムスタンプを先頭に付けた Macrogen .xls ファイルとしてエクスポートに含まれます。",
         "amountLabel": "Amount",
         "purificationLabel": "Purification",
         "purificationTooltip": "MOPC (Macrogen Oligo Purification Cartridge): Macrogen's standard purification method, not changeable.",
@@ -3478,7 +3512,8 @@
         "janusVolLabel": "JANUS移送量",
         "ruleHint": "フォワードおよびリバースプライマーのプレート名は両方とも必須です。",
         "vectormapsLabel": "クローンごとの GenBank ベクターマップも出力する",
-        "vectormapsHint": "ウェルごとに .gb ファイルを1つ書き出します。親ベクターにそのクローンの変異を示したもので、出力フォルダの隣にある {{folder}} で終わるフォルダに保存されます。GenBank または SnapGene の参照配列が必要です。"
+        "vectormapsHint": "ウェルごとに .gb ファイルを1つ書き出します。親ベクターにそのクローンの変異を示したもので、出力フォルダの隣にある {{folder}} で終わるフォルダに保存されます。GenBank または SnapGene の参照配列が必要です。",
+        "exportError": "エクスポートに失敗しました"
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",

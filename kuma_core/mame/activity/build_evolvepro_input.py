@@ -15,6 +15,7 @@ from uuid import uuid4
 import pandas as pd
 
 from .evolvepro_xlsx import parse_agilent_standard, parse_relative_only, write_evolvepro_xlsx, write_relative_activity_xlsx
+from .constants import WT_PATTERN
 from .label_audit import LabelAudit, audit_labels
 from .merge import merge_replicates_priority
 from .numeric_id_decode import (
@@ -26,11 +27,12 @@ from .numeric_id_decode import (
     layout_variant_order,
 )
 from .models import MergeReplicatesStats, Variant
-from .plate_layout_xlsx import _normalise_well, parse_plate_layout_xlsx
+from .plate_layout_xlsx import _WELL_RE, _normalise_well, parse_plate_layout_xlsx
 from .variant_notation import _SHORT_RE, is_canonical_internal, to_evolvepro
 from .verdict_ngs import _PASS, parse_verdict_rows
 
-_WT_RE = re.compile(r"^WT_?\d+$", re.IGNORECASE)
+_WT_RE = WT_PATTERN
+_CONFIRMATION_REP_SUFFIX = re.compile(r"^(?P<label>.+)-[1-9]\d*$")
 _WELL_COLUMNS = {"well_id", "well", "well pos.", "sample name", "sample"}
 _VARIANT_COLUMNS = {"variant", "mutation", "mutant", "mutant_id"}
 _VALUE_COLUMNS = {"value", "area", "activity"}
@@ -100,6 +102,22 @@ def _short_variant(label: object) -> str | None:
     return text if _SHORT_RE.match(text) else None
 
 
+def _strip_confirmation_rep_suffix(label: str) -> str:
+    """Accept only an explicit positive replicate suffix on a canonical label.
+
+    A name such as S11I-1 is a replicate of S11I. Arbitrary hyphenated names,
+    zero/negative indices, extra suffixes, and multi-mutant labels stay intact
+    and are rejected by the consumer. No fuzzy matching or mutation inference.
+    """
+    match = _CONFIRMATION_REP_SUFFIX.fullmatch(label)
+    if match is None:
+        return label
+    base = match.group("label")
+    if _WELL_RE.fullmatch(base) or _short_variant(base) is not None:
+        return base
+    return label
+
+
 def _layout_maps(layout_xlsx: str | Path | None) -> tuple[dict[str, str], dict[str, str]]:
     if layout_xlsx is None:
         return {}, {}
@@ -113,6 +131,8 @@ def _layout_maps(layout_xlsx: str | Path | None) -> tuple[dict[str, str], dict[s
             continue
         if short in variant_to_well and variant_to_well[short] != entry.well_id:
             raise ValueError(f"layout maps variant {short!r} to multiple wells")
+        if entry.well_id in well_to_variant and well_to_variant[entry.well_id] != short:
+            raise ValueError(f"layout maps well {entry.well_id!r} to multiple variants")
         well_to_variant[entry.well_id] = short
         variant_to_well[short] = entry.well_id
     return well_to_variant, variant_to_well
@@ -226,7 +246,7 @@ def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str,
     if activity_scale == "raw":
         missing = sorted({cohort for _, _, cohort in rows if not wt_values.get(cohort)})
         if missing:
-            raise ValueError(f"activity_path raw data has no WT_1/WT1 rows for cohort(s): {', '.join(missing)}")
+            raise ValueError(f"activity_path raw data has no WT/WT_1/WT1 rows for cohort(s): {', '.join(missing)}")
     values: dict[str, list[float]] = {}
     well_by_variant = dict(variant_to_well)
     for variant, value, cohort in rows:
@@ -267,7 +287,7 @@ def _raw_report_primary(path: str | Path, well_to_variant: dict[str, str], varia
         if record.is_wt:
             continue
         try:
-            well = _normalise_well(record.sample_name)
+            well = _normalise_well(_strip_confirmation_rep_suffix(record.sample_name))
         except (ValueError, IndexError):
             raise ValueError(f"round1_report_xlsx sample {record.sample_name!r} is not a well") from None
         if well in wt_wells:
@@ -279,7 +299,7 @@ def _raw_report_primary(path: str | Path, well_to_variant: dict[str, str], varia
             continue
         relative = record.area / mean_wt
         values.setdefault(variant, []).append(relative)
-        export_rows.append((record.sample_name, relative))
+        export_rows.append((well, relative))
     return values, variant_to_well, export_rows, [area / mean_wt for area in wt]
 
 
@@ -372,20 +392,37 @@ def _numeric_confirmation(path: str | Path, order: DecodeOrder, well_values: dic
     return decode_confirmation_against(path, subset).by_variant()
 
 
-def _confirmation(path: str | Path) -> dict[str, list[float]]:
+def _confirmation(path: str | Path, well_to_variant: dict[str, str] | None = None, internal_identities: dict[str, str] | None = None) -> dict[str, list[float]]:
     records = parse_agilent_standard(path)
     wt = [record.area for record in records if record.is_wt]
     if not wt:
         raise ValueError("remeasure_report_xlsx has no WT block areas")
     mean_wt = sum(wt) / len(wt)
     values: dict[str, list[float]] = {}
+    namespaces: set[str] = set()
     for record in records:
         if record.is_wt:
             continue
-        variant = _short_variant(record.sample_name)
-        if variant is None:
-            raise ValueError(f"remeasure_report_xlsx sample {record.sample_name!r} is not a canonical variant label")
+        label = _strip_confirmation_rep_suffix(record.sample_name)
+        if _WELL_RE.fullmatch(label):
+            namespaces.add("well")
+            well = _normalise_well(label)
+            variant = (well_to_variant or {}).get(well)
+            if variant is None:
+                raise ValueError(f"remeasure_report_xlsx well {well!r} has no unambiguous variant mapping")
+        else:
+            namespaces.add("variant")
+            variant = _short_variant(label)
+            if variant is None:
+                raise ValueError(f"remeasure_report_xlsx sample {record.sample_name!r} is not a canonical well or variant label")
+        expected_identity = (internal_identities or {}).get(variant)
+        if is_canonical_internal(label) and expected_identity and label != expected_identity:
+            raise ValueError(f"remeasure_report_xlsx sample {label!r} conflicts with declared identity {expected_identity!r}")
         values.setdefault(variant, []).append(record.area / mean_wt)
+    if len(namespaces) > 1:
+        raise ValueError("remeasure_report_xlsx cannot mix well and variant label namespaces")
+    if not values:
+        raise ValueError("remeasure_report_xlsx has no measurement rows outside WT records")
     return values
 
 
@@ -539,7 +576,7 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
     if remeasure_report_xlsx is not None and remeasure_numeric_xlsx is not None:
         raise ValueError(
             "provide at most one confirmation source: remeasure_report_xlsx "
-            "(variant-labeled) or remeasure_numeric_xlsx (numeric IDs)"
+            "(well/variant-labeled) or remeasure_numeric_xlsx (numeric IDs)"
         )
     if verdict_xlsx is None:
         raise ValueError("verdict_xlsx is required")
@@ -600,7 +637,21 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
         warnings.extend(order_warnings)
         authoritative = _numeric_confirmation(remeasure_numeric_xlsx, order, well_values)
     elif remeasure_report_xlsx is not None:
-        authoritative = _confirmation(remeasure_report_xlsx)
+        # Retain any declared reference amino acid until after contradiction
+        # checks. Short notation intentionally omits it; a full label does not.
+        declared = [row.mutant_id for row in parse_verdict_rows(verdict_xlsx).values()]
+        if layout_xlsx is not None:
+            declared.extend(entry.mutant for entry in parse_plate_layout_xlsx(layout_xlsx))
+        internal_identities: dict[str, str] = {}
+        for label in declared:
+            if not is_canonical_internal(label):
+                continue
+            short = to_evolvepro(label)
+            existing = internal_identities.get(short)
+            if existing is not None and existing != label:
+                raise ValueError(f"confirmation mapping has conflicting full identities for {short!r}")
+            internal_identities[short] = label
+        authoritative = _confirmation(remeasure_report_xlsx, well_to_variant, internal_identities)
     else:
         authoritative = {}
     merged, stats = merge_replicates_priority({Variant(key): value for key, value in authoritative.items()}, {Variant(key): value for key, value in fallback.items()}, mismatch_threshold=mismatch_threshold)

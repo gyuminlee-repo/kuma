@@ -523,7 +523,7 @@
       "sectionExport": "Export EVOLVEpro input"
     },
     "buildEvolvepro": {
-      "title": "Build EVOLVEpro Input",
+      "title": "Convert EVOLVEpro input file",
       "subtitle": "Convert this round's activity measurements into an NGS-qualified EVOLVEpro [Variant, activity] input.",
       "routeNote": "Every measurement format uses the same NGS verdict, normalization, replicate merge, and EVOLVEpro export pipeline.",
       "inputFiles": "Input files",
@@ -547,13 +547,13 @@
       "gcDataXlsxHelper": "Pre-normalized relative activity per well (Sample Name, Area columns).",
       "round1ReportXlsx": "Raw Agilent report xlsx",
       "round1ReportXlsxHelper": "Raw Agilent FID1B report with well positions and WT blocks.",
-      "confirmationSourceLabel": "Optional confirmation",
+      "confirmationSourceLabel": "Additional measurement format",
       "confirmationSourceNone": "None",
       "confirmationSourceNoneHelper": "Use the primary measurement value for every NGS-qualified variant.",
-      "confirmationSourceVariantLabels": "Variant-labeled Agilent report",
-      "confirmationSourceVariantLabelsHelper": "Optional raw Agilent report whose sample names are variant labels. Its independently WT-normalized replicate means override matching primary values.",
-      "remeasureReportXlsx": "Confirmation report xlsx (variant-labeled)",
-      "remeasureReportXlsxHelper": "Raw Agilent report with variant-labeled samples and WT rows; numeric or rank-derived labels are not supported.",
+      "confirmationSourceVariantLabels": "Well / variant labels",
+      "confirmationSourceVariantLabelsHelper": "Raw Agilent report with well labels (A1, A1-1) or variant labels (S11I, S11I-1) and WT rows. Well labels use the layout or NGS verdict mapping; replicate means replace matching primary values after independent WT normalization.",
+      "remeasureReportXlsx": "Confirmation report xlsx (well / variant labels)",
+      "remeasureReportXlsxHelper": "Raw Agilent report with well or variant sample labels and WT rows. Numeric positions require the explicit numeric-ID format.",
       "verdictXlsx": "NGS verdict xlsx",
       "verdictXlsxHelper": "Required Analyze verdict evidence for this round. Only explicit PASS rows that are neither failed nor fallback are exported.",
       "outputXlsx": "Output EVOLVEpro xlsx",
@@ -567,7 +567,7 @@
       "build": "Build EVOLVEpro input",
       "building": "Building...",
       "resultTitle": "Build result",
-      "emptyState": "Select one measurement format, the required NGS verdict, and an output path.",
+      "emptyState": "Choose an experiment data file, the required NGS verdict, and an output path. Add a confirmation file if available.",
       "nVariants": "Variants written",
       "nAuthoritative": "Confirmation overrides",
       "nFallbackOnly": "Primary values",
@@ -604,7 +604,7 @@
       "mismatchThreshold": "Mismatch threshold",
       "mismatchThresholdHelper": "Absolute activity difference that marks a mismatch and blocks export until reviewed. Must be greater than zero.",
       "changeFile": "Change",
-      "measurementFile": "Measurement file",
+      "measurementFile": "Experiment data file",
       "measurementFileHelper": "Pick the file first. Its format is read from the file itself. Accepts csv, xlsx and xls.",
       "detectingFormat": "Reading the file to tell its format...",
       "detectedFormat": "Detected: {{format}}",
@@ -627,7 +627,22 @@
         "requiredColumnsNote": "No sample of this file ships with the app, so the columns it must carry are listed instead of rows. The names have to match exactly."
       },
       "numericPrimaryNote": "ID i is the i-th variant of the whole plate, numbered in the order the design list places them.",
-      "numericConfirmationNote": "ID j counts only the variants the primary screen measured above wild type, numbered in that same plate order, and each is measured again."
+      "numericConfirmationNote": "ID j counts only the variants the primary screen measured above wild type, numbered in that same plate order, and each is measured again.",
+      "additionalMeasurementFile": "Additional experiment data file (optional)",
+      "additionalMeasurementFileHelper": "Add a confirmation measurement to replace matching primary values after independent WT normalization. Its format is read from the file.",
+      "ambiguityWellRound": "The same well-labeled report can be the primary experiment or an additional confirmation. Choose its role; confirmation values replace matching primary values.",
+      "primaryOnlyFile": "This file matches a primary experiment format. Use it as the experiment data file, or select the additional format manually.",
+      "useAsPrimary": "Use as experiment data: {{format}}",
+      "chooseFormatManually": "Choose format manually",
+      "clearAdditionalMeasurement": "Remove additional file",
+      "detectionSummaryLabel": "File detection summary",
+      "detectedSampleRows": "Sample rows: {{value}}",
+      "detectedRecognizedRows": "Recognized labels: {{value}} rows",
+      "detectedSkippedRows": "Skipped rows: {{value}}",
+      "detectedUniqueLabels": "Unique sample labels: {{value}}",
+      "confirmationWellPreview": "Well labels",
+      "confirmationVariantPreview": "Variant labels",
+      "detectedControlRows": "WT control rows: {{value}}"
     },
     "runHealth": {
       "panelAriaLabel": "Run health panel",
@@ -718,7 +733,10 @@
       "expand": "Expand",
       "collapse": "Collapse",
       "expandAriaLabel": "Toggle expanded plate view",
-      "expandedRegionAriaLabel": "Expanded plate view"
+      "expandedRegionAriaLabel": "Expanded plate view",
+      "finalCompositePlate": "Final Composite Plate",
+      "selectedWellSource": "Selected well {{well}} · Source: {{barcode}}",
+      "sourceUnknown": "Unknown"
     },
     "drawer": {
       "stat": {
@@ -1131,9 +1149,9 @@
         "inspectorReads": "Reads",
         "inspectorReason": "Reason",
         "inspectorNoWellSelected": "Click a well to inspect",
-        "clusterAlertTitle": "Cluster failure detected",
-        "clusterAlertDesc": "{{wells}} — adjacent wells failed simultaneously. This may indicate a pipetting issue.",
-        "clusterAlertAriaLabel": "Plate cluster failure alert"
+        "clusterAlertTitle": "Adjacent low-depth / no-call wells",
+        "clusterAlertDesc": "On {{barcode}}, {{wells}} have low depth or no call. Review the pipetting history; this pattern alone does not establish the cause.",
+        "clusterAlertAriaLabel": "Adjacent low-depth or no-call wells"
       },
       "review": {
         "contextTitle": "Sequencing QC — Review",
@@ -1187,6 +1205,20 @@
         "sharing": {
           "shared_across_replicates": "The stray reads repeat across the plate copies.",
           "single_replicate": "The stray reads sit in a single plate copy."
+        },
+        "reason": {
+          "no_demux_matrix": "No demultiplexing matrix was produced, so reads cannot be placed on barcode combinations.",
+          "no_occupied_wells": "This run specifies no occupied wells, so unoccupied barcode combinations cannot be identified.",
+          "all_indices_used": "The occupied wells use every reverse and forward barcode index, leaving no unused index to measure.",
+          "all_wells_occupied": "The campaign occupies every well, leaving no unoccupied well to measure stray reads in.",
+          "no_coverage_reads": "No reads passed the coverage gate and reached barcode matching, so ambiguity could not be measured.",
+          "no_assigned_reads": "No reads were assigned to wells, so there is no denominator for the chimera rate.",
+          "pooled_leak_scope": "Reads were pooled into one plate, so leak sharing across replicates cannot be compared.",
+          "single_replicate_leak_scope": "Only one plate copy was scored, so leak sharing across replicates cannot be compared.",
+          "no_leak_reads": "No reads landed on unoccupied combinations of the indices this campaign uses, so there is no well-to-well leak to compare.",
+          "pooled_yield_scope": "Reads were pooled into one plate, so there is no second copy for a yield comparison.",
+          "single_replicate_yield_scope": "Only one plate copy was scored, so there is no second copy for a yield comparison.",
+          "no_plate_yield": "No plate copy was assigned any reads, so there is no yield to compare."
         }
       },
       "legacySampleMap": {
@@ -3301,7 +3333,9 @@
     "excludedRowAriaLabel": "{{mutation}} is excluded from downstream outputs",
     "pipelineFillHint": "Pipeline + Fill on failure already substituted these positions; retry is disabled.",
     "pipelineFillNote": "Pipeline + Fill on failure substituted these positions; retry is unnecessary.",
-    "removeCustomRescueTitle": "Remove custom rescue: restore to Failed"
+    "removeCustomRescueTitle": "Remove custom rescue: restore to Failed",
+    "well": "Well",
+    "wellHint": "Forward primer well in the current export layout. Sorting changes the export order; R1, R2, etc. identify separate export rounds."
   },
   "mameSidebar": {
     "runStateLabel": "Run state",
@@ -3483,9 +3517,9 @@
       },
       "all": {
         "heading": "Export Package",
-        "runExport": "Export all",
+        "runExport": "Export",
         "orderVendor": "Order vendor",
-        "orderVendorHint": "Included in Export all as a timestamp-prefixed Macrogen .xls file.",
+        "orderVendorHint": "Included in the export as a timestamp-prefixed Macrogen .xls file.",
         "amountLabel": "Amount",
         "purificationLabel": "Purification",
         "purificationTooltip": "MOPC (Macrogen Oligo Purification Cartridge): Macrogen's standard purification method, not changeable.",
@@ -3532,7 +3566,8 @@
         "janusVolLabel": "JANUS transfer volume",
         "ruleHint": "Forward and reverse plate names are required.",
         "vectormapsLabel": "Also export a GenBank vector map per clone",
-        "vectormapsHint": "Writes one .gb file per well, the parent vector with that clone's mutation marked, into a folder ending in {{folder}} next to the export folder. Needs a GenBank or SnapGene reference."
+        "vectormapsHint": "Writes one .gb file per well, the parent vector with that clone's mutation marked, into a folder ending in {{folder}} next to the export folder. Needs a GenBank or SnapGene reference.",
+        "exportError": "Export failed"
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",

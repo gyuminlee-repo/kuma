@@ -400,3 +400,67 @@ def test_the_occupancy_source_is_carried_verbatim() -> None:
     assert report["occupancy_source"] == "explicit_well_layout"
     assert report["occupied_wells"] == 48
     assert report["plate_names"] == ["sort_barcode01"]
+
+
+# ---------------------------------------------------------------------------
+# Localized reasons are additive: old consumers still receive the raw sentence.
+# ---------------------------------------------------------------------------
+
+
+def test_legacy_signal_serialization_stays_unchanged() -> None:
+    from kuma_core.mame.qc.contamination import Signal
+
+    assert Signal(state="unavailable", reason="legacy explanation").as_dict() == {
+        "state": "unavailable", "reason": "legacy explanation",
+    }
+    assert Signal(state="ok", value=0).as_dict() == {"state": "ok", "value": 0}
+
+
+def test_every_unavailable_condition_has_a_stable_reason_code() -> None:
+    full = [seq_to_well(seq) for seq in range(1, PLATE_CAPACITY + 1)]
+    scenarios = [
+        ([], ["A1"], {"no_demux_matrix"}),
+        ([_plate("sort_barcode01", {})], [], {"no_occupied_wells"}),
+        ([_plate("sort_barcode01", {})], full,
+         {"all_indices_used", "all_wells_occupied", "no_coverage_reads", "no_assigned_reads",
+          "single_replicate_leak_scope", "single_replicate_yield_scope"}),
+        ([_plate(POOLED_PLATE_NAME, {})], ["A1"],
+         {"pooled_leak_scope", "pooled_yield_scope"}),
+        ([_plate("sort_barcode01", {}), _plate("sort_barcode02", {})], ["A1"],
+         {"no_leak_reads", "no_plate_yield"}),
+    ]
+    seen: set[str] = set()
+    for plates, occupied, required in scenarios:
+        report = analyze_contamination(plates, occupied, occupancy_source="explicit_well_layout")
+        codes = set()
+        for signal in report["signals"].values():
+            if signal["state"] == "unavailable":
+                assert signal["reason"]
+                assert signal["reason_code"]
+                assert "value" not in signal
+                codes.add(signal["reason_code"])
+            else:
+                assert "reason" not in signal
+                assert "reason_code" not in signal
+        assert required <= codes
+        seen |= codes
+    assert len(seen) == 12
+    # The FE whitelist deliberately rejects unknown codes in favour of raw
+    # reason text. A renamed backend code must therefore update the contract.
+    import re
+    from pathlib import Path
+
+    types_source = (Path(__file__).parents[2] / "src/types/mame/models.ts").read_text(encoding="utf-8")
+    declaration = re.search(r"CONTAMINATION_REASON_CODES = \[([^]]+)\] as const", types_source)
+    assert declaration is not None
+    assert seen == set(re.findall(r'"([a-z_]+)"', declaration.group(1)))
+
+
+def test_all_six_signals_explain_a_missing_demux_matrix() -> None:
+    report = analyze_contamination([], ["A1"], occupancy_source="explicit_well_layout")
+    assert len(report["signals"]) == 6
+    for signal in report["signals"].values():
+        assert signal["state"] == "unavailable"
+        assert signal["reason_code"] == "no_demux_matrix"
+        assert "no demux matrix" in signal["reason"]
+        assert "value" not in signal

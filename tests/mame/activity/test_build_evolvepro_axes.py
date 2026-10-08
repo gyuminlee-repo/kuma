@@ -98,7 +98,7 @@ def test_raw_generic_data_requires_wt_in_every_plate_cohort(tmp_path: Path):
     ]).to_csv(activity, index=False)
     verdict = _verdict(tmp_path / "verdict.xlsx", [("A1", "V5F", "PASS")])
 
-    with pytest.raises(ValueError, match="no WT_1/WT1 rows for cohort.*P2"):
+    with pytest.raises(ValueError, match="no WT/WT_1/WT1 rows for cohort.*P2"):
         build_evolvepro_input(tmp_path / "out.xlsx", activity_path=activity, verdict_xlsx=verdict)
 
 
@@ -128,14 +128,15 @@ def test_variant_labeled_confirmation_overrides_primary_and_reports_mismatch(tmp
     assert _rows(out) == pytest.approx({"5F": 1.5})
 
 
-def test_confirmation_must_use_variant_labels(tmp_path: Path):
+def test_confirmation_well_labels_resolve_from_verdict(tmp_path: Path):
     activity = tmp_path / "activity.csv"
     pd.DataFrame([{"variant": "5F", "value": 1.0}]).to_csv(activity, index=False)
     remeasure = _agilent(tmp_path / "remeasure.xlsx", [("WT_1", 1), ("A1", 1)])
     verdict = _verdict(tmp_path / "verdict.xlsx", [("A1", "V5F", "PASS")])
 
-    with pytest.raises(ValueError, match="not a canonical variant label"):
-        build_evolvepro_input(tmp_path / "out.xlsx", activity_path=activity, activity_scale="relative_to_wt", remeasure_report_xlsx=remeasure, verdict_xlsx=verdict)
+    result = build_evolvepro_input(tmp_path / "out.xlsx", activity_path=activity, activity_scale="relative_to_wt", remeasure_report_xlsx=remeasure, verdict_xlsx=verdict)
+    assert result.n_authoritative == 1
+    assert _rows(result.output_path) == pytest.approx({"5F": 1.0})
 
 
 def test_well_labeled_multi_plate_input_fails_closed_when_evidence_is_unscoped(

@@ -192,7 +192,7 @@ def ingest_long_csv(
         # which forced the WT denominator to be back-computed from plate-designated
         # WT wells. Keep them in a separate collection so downstream never treats
         # them as mutant wells. well_raw is already upper-cased, so the
-        # case-sensitive WT_PATTERN suffices.
+        # shared WT_PATTERN applies. Bare WT has unspecified replicate index 0.
         wt_match = WT_PATTERN.match(well_raw)
         if wt_match:
             wt_records.append(
@@ -202,7 +202,7 @@ def ingest_long_csv(
                     value=value,
                     # Numeric suffix is the replicate index, matching the
                     # reports-mode convention (evolvepro_xlsx._replicate_n_from_wt).
-                    replicate_idx=int(_WT_SUFFIX_RE.sub("", well_raw)),
+                    replicate_idx=int(_WT_SUFFIX_RE.sub("", well_raw) or "0"),
                     source_file=path.name,
                 )
             )

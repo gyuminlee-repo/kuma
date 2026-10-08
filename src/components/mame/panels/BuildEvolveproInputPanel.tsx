@@ -5,7 +5,7 @@
  * into one NGS-qualified EVOLVEpro export. Plate layout is optional mapping
  * metadata (the verdict sheet carries the same well identities when it is
  * absent),
- * and optional variant-labeled confirmation is normalized independently before
+ * and optional well/variant-labeled confirmation is normalized independently before
  * it overrides the primary measurement.
  */
 
@@ -95,12 +95,6 @@ const PRIMARY_SOURCE_ORDER: FormState["primarySource"][] = [
   "numericReport",
 ];
 
-const CONFIRMATION_HELP: Record<FormState["confirmationSource"], string> = {
-  none: "mame.buildEvolvepro.confirmationSourceNoneHelper",
-  variantLabels: "mame.buildEvolvepro.confirmationSourceVariantLabelsHelper",
-  numericIds: "mame.buildEvolvepro.confirmationSourceNumericIdsHelper",
-};
-
 /** Display name of every source the detector can report. */
 const SOURCE_LABEL: Record<MeasurementSource, string> = {
   longFormat: "mame.buildEvolvepro.primarySourceLongFormat",
@@ -108,6 +102,7 @@ const SOURCE_LABEL: Record<MeasurementSource, string> = {
   rawReport: "mame.buildEvolvepro.primarySourceRawReport",
   numericReport: "mame.buildEvolvepro.primarySourceNumericReport",
   confirmationVariantLabels: "mame.buildEvolvepro.confirmationSourceVariantLabels",
+  confirmationWellLabels: "mame.buildEvolvepro.confirmationSourceVariantLabels",
   confirmationNumericIds: "mame.buildEvolvepro.confirmationSourceNumericIds",
 };
 
@@ -148,9 +143,16 @@ function primaryPathOf(form: FormState): string {
   }
 }
 
+/** The optional path remains in the established project-scoped storage fields. */
+function confirmationPathOf(form: FormState): string {
+  if (form.confirmationSource === "variantLabels") return form.remeasureReportXlsx;
+  if (form.confirmationSource === "numericIds") return form.remeasureNumericXlsx;
+  return "";
+}
+
 /**
  * One line saying what the operator is being asked to decide, for a pair the
- * file itself cannot settle. Both pairs are named in
+ * file itself cannot settle. The ambiguous pairs are named in
  * `kuma_core/mame/activity/detect_measurement_source.py`.
  */
 function ambiguityHelpKey(candidates: MeasurementSource[]): string {
@@ -160,6 +162,9 @@ function ambiguityHelpKey(candidates: MeasurementSource[]): string {
   }
   if (found.has("numericReport") && found.has("confirmationNumericIds")) {
     return "mame.buildEvolvepro.ambiguityNumericRound";
+  }
+  if (found.has("rawReport") && found.has("confirmationWellLabels")) {
+    return "mame.buildEvolvepro.ambiguityWellRound";
   }
   return "mame.buildEvolvepro.ambiguityGeneric";
 }
@@ -226,12 +231,37 @@ export function BuildEvolveproInputPanel() {
   // its generation has passed is describing a file the operator has moved on
   // from, so it is dropped. Same guard as `formGenerationRef` on the build.
   const detectGenerationRef = useRef(0);
+  const [additionalDetection, setAdditionalDetection] = useState<DetectionState>({ status: "idle" });
+  const [additionalPendingPath, setAdditionalPendingPath] = useState("");
+  const [additionalManualFormat, setAdditionalManualFormat] = useState(false);
+  const additionalDetectGenerationRef = useRef(0);
+  const primaryBrowseGenerationRef = useRef(0);
+  const additionalBrowseGenerationRef = useRef(0);
+  const detectionScopeRef = useRef(0);
   const resetDetection = useCallback(() => {
+    detectionScopeRef.current += 1;
     detectGenerationRef.current += 1;
     setDetection({ status: "idle" });
     setPendingPath("");
     setManualFormat(false);
+    additionalDetectGenerationRef.current += 1;
+    setAdditionalDetection({ status: "idle" });
+    setAdditionalPendingPath("");
+    setAdditionalManualFormat(false);
   }, []);
+  useEffect(() => () => {
+    detectionScopeRef.current += 1;
+    detectGenerationRef.current += 1;
+    additionalDetectGenerationRef.current += 1;
+  }, []);
+  useEffect(() => {
+    resetDetection();
+    formGenerationRef.current += 1;
+    setResult(null);
+    setBuildError(null);
+    setAllowLabelMismatch(false);
+    setBuildEvolveproCompletion(null);
+  }, [activeRoundId, resetDetection, setBuildEvolveproCompletion]);
   // Plate layout is optional in every branch, so it starts folded away. A
   // layout that is already selected (restored, seeded, or just browsed) is
   // never hidden from the operator.
@@ -242,11 +272,13 @@ export function BuildEvolveproInputPanel() {
 
   useEffect(() => {
     const loaded = loadFromStorage(project?.path);
+    formGenerationRef.current += 1;
     setFormRaw(loaded);
     setShowRestoredNotice(hasBuildEvolveproFormValues(loaded));
     setResult(null);
     setBuildEvolveproCompletion(null);
     resetDetection();
+    setBuildError(null);
   }, [project?.path, resetDetection, setBuildEvolveproCompletion]);
 
   useEffect(() => {
@@ -296,6 +328,7 @@ export function BuildEvolveproInputPanel() {
 
   useEffect(() => {
     setResult(null);
+    setBuildError(null);
     // Acknowledgement is evidence-specific: changing any source may change
     // the label audit, so never carry approval from an earlier set of files.
     setAllowLabelMismatch(false);
@@ -310,6 +343,7 @@ export function BuildEvolveproInputPanel() {
     setBuildEvolveproCompletion(null);
     setResult(null);
     resetDetection();
+    setBuildError(null);
   }, [project?.path, resetEpoch, resetDetection, setBuildEvolveproCompletion]);
 
   // loadSampleData bumps this once it has finished writing sample paths to
@@ -322,6 +356,7 @@ export function BuildEvolveproInputPanel() {
   useEffect(() => {
     if (seedEpoch === 0) return;
     const loaded = loadFromStorage(project?.path);
+    formGenerationRef.current += 1;
     setFormRaw(loaded);
     setShowRestoredNotice(hasBuildEvolveproFormValues(loaded));
     setResult(null);
@@ -370,13 +405,21 @@ export function BuildEvolveproInputPanel() {
    * confirmation source leaves the primary alone, because a confirmation file
    * does not replace the measurement it overrides.
    */
-  function applySelection(source: MeasurementSource, path: string) {
+  function applySelection(
+    source: MeasurementSource,
+    path: string,
+    slot: "primary" | "additional" = "primary",
+    observed?: DetectionState,
+  ) {
     if (!path) return;
-    if (source === "confirmationVariantLabels") {
-      setForm({ confirmationSource: "variantLabels", remeasureReportXlsx: path });
-    } else if (source === "confirmationNumericIds") {
-      setForm({ confirmationSource: "numericIds", remeasureNumericXlsx: path });
-    } else {
+    const sourceDetection = observed ?? (slot === "primary" ? detection : additionalDetection);
+    // Explicitly routing a file into either slot supersedes any outstanding
+    // request for that slot. The other slot's independent request stays live.
+    if (isPrimarySource(source)) {
+      detectGenerationRef.current += 1;
+      setDetection(sourceDetection);
+      setPendingPath("");
+      setManualFormat(false);
       const patch: Partial<FormState> = {
         ...CLEARED_PRIMARY_PATHS,
         primarySource: source,
@@ -386,51 +429,88 @@ export function BuildEvolveproInputPanel() {
       else if (source === "rawReport") patch.round1ReportXlsx = path;
       else patch.numericReportXlsx = path;
       setForm(patch);
+    } else {
+      additionalDetectGenerationRef.current += 1;
+      setAdditionalDetection(sourceDetection);
+      setAdditionalPendingPath("");
+      setAdditionalManualFormat(false);
+      setForm(source === "confirmationNumericIds"
+        ? { confirmationSource: "numericIds", remeasureNumericXlsx: path, remeasureReportXlsx: "" }
+        : { confirmationSource: "variantLabels", remeasureReportXlsx: path, remeasureNumericXlsx: "" });
     }
-    setPendingPath("");
-    setManualFormat(false);
+    if (slot === "primary" && !isPrimarySource(source)) {
+      detectGenerationRef.current += 1;
+      setDetection({ status: "idle" });
+      setPendingPath("");
+      setManualFormat(false);
+    } else if (slot === "additional" && isPrimarySource(source)) {
+      additionalDetectGenerationRef.current += 1;
+      setAdditionalDetection({ status: "idle" });
+      setAdditionalPendingPath("");
+      setAdditionalManualFormat(false);
+    }
   }
 
-  /**
-   * Pick the measurement file first and read its format from it. The detector
-   * runs once per selection, never on render, and its answer is a list: one
-   * candidate is applied, two are offered, none falls back to the manual
-   * choice. A detector that cannot answer must not stop the operator, so a
-   * rejected call opens the same manual choice.
-   */
-  async function handleMeasurementBrowse() {
+  /** Pick first, detect once, and retain every ambiguous candidate for review. */
+  async function handleMeasurementBrowse(slot: "primary" | "additional" = "primary") {
+    const generationRef = slot === "primary" ? detectGenerationRef : additionalDetectGenerationRef;
+    // A canceled picker must not strand a detection already in flight.
+    // Dialog tickets and detector generations therefore have separate lives.
+    const browseRef = slot === "primary" ? primaryBrowseGenerationRef : additionalBrowseGenerationRef;
+    const browseGeneration = ++browseRef.current;
+    const scope = detectionScopeRef.current;
     const selected = toSinglePath(
       await open({
         directory: false,
-        filters: [{ name: "Measurement", extensions: ["csv", "xlsx", "xls"] }],
-        title: t("mame.buildEvolvepro.measurementFile"),
+        filters: [{ name: "Measurement", extensions: slot === "primary" ? ["csv", "xlsx", "xls"] : ["xlsx"] }],
+        title: t(slot === "primary" ? "mame.buildEvolvepro.measurementFile" : "mame.buildEvolvepro.additionalMeasurementFile"),
       }),
     );
-    if (!selected) return;
-    detectGenerationRef.current += 1;
-    const generation = detectGenerationRef.current;
-    setPendingPath(selected);
-    setManualFormat(false);
-    setDetection({ status: "detecting", path: selected });
+    if (!selected || browseRef.current !== browseGeneration || detectionScopeRef.current !== scope) return;
+    const generation = ++generationRef.current;
+    const updateDetection = slot === "primary" ? setDetection : setAdditionalDetection;
+    const updatePendingPath = slot === "primary" ? setPendingPath : setAdditionalPendingPath;
+    const updateManualFormat = slot === "primary" ? setManualFormat : setAdditionalManualFormat;
+    updatePendingPath(selected);
+    updateManualFormat(false);
+    updateDetection({ status: "detecting", path: selected });
+    // A new displayed file invalidates the old result even before its format
+    // has been resolved; an in-flight old build must not restore that result.
+    formGenerationRef.current += 1;
+    setBuildEvolveproCompletion(null);
+    setResult(null);
+    setBuildError(null);
+    setAllowLabelMismatch(false);
     try {
       const res = await detectMeasurementSource({ measurement_path: selected });
-      if (detectGenerationRef.current !== generation) return;
-      setDetection({ status: "detected", path: selected, result: res });
+      if (generationRef.current !== generation) return;
+      const observed: DetectionState = { status: "detected", path: selected, result: res };
+      updateDetection(observed);
       const only = res.candidates.length === 1 ? res.candidates[0] : undefined;
-      if (only !== undefined && isPrimarySource(only)) {
-        applySelection(only, selected);
+      // Numeric confirmation is always explicit: its numbering refers only
+      // to the primary screen's above-WT subset, never all plate positions.
+      if (only !== undefined && (
+        (slot === "primary" && isPrimarySource(only)) ||
+        (slot === "additional" && (only === "confirmationVariantLabels" || only === "confirmationWellLabels"))
+      )) {
+        applySelection(only, selected, slot, observed);
       } else if (res.candidates.length === 0) {
-        setManualFormat(true);
+        updateManualFormat(true);
       }
     } catch (err) {
-      if (detectGenerationRef.current !== generation) return;
-      setDetection({
-        status: "failed",
-        path: selected,
-        message: describeRpcError(err, "mame"),
-      });
-      setManualFormat(true);
+      if (generationRef.current !== generation) return;
+      updateDetection({ status: "failed", path: selected, message: describeRpcError(err, "mame") });
+      updateManualFormat(true);
     }
+  }
+
+  function clearAdditionalMeasurement() {
+    additionalBrowseGenerationRef.current += 1;
+    additionalDetectGenerationRef.current += 1;
+    setAdditionalDetection({ status: "idle" });
+    setAdditionalPendingPath("");
+    setAdditionalManualFormat(false);
+    setForm({ confirmationSource: "none", remeasureReportXlsx: "", remeasureNumericXlsx: "" });
   }
 
   const browseOutput = useCallback(async () => {
@@ -476,7 +556,8 @@ export function BuildEvolveproInputPanel() {
     detectionResult !== null &&
     detectionResult.candidates.length === 1 &&
     detection.status === "detected" &&
-    detection.path === measurementPath;
+    detection.path === measurementPath &&
+    detectionResult.candidates[0] === form.primarySource;
 
   // What the "?" beside the measurement field shows. Before a format is
   // settled the field accepts any of the four, and which one the operator
@@ -503,6 +584,27 @@ export function BuildEvolveproInputPanel() {
         note: previewNote(source),
       }));
 
+  const additionalPath = additionalPendingPath || confirmationPathOf(form);
+  const additionalUnresolved = additionalPendingPath !== "";
+  const additionalResult = additionalDetection.status === "detected" ? additionalDetection.result : null;
+  const additionalCandidates = additionalResult?.candidates ?? [];
+  const additionalFormat = form.confirmationSource === "numericIds"
+    ? "confirmationNumericIds" : "confirmationVariantLabels";
+  const additionalAppliedDetection = additionalResult !== null &&
+    additionalDetection.status === "detected" && additionalDetection.path === additionalPath &&
+    additionalResult.candidates.length === 1 &&
+    (additionalResult.candidates[0] === additionalFormat ||
+      (form.confirmationSource === "variantLabels" && additionalResult.candidates[0] === "confirmationWellLabels"));
+  const additionalPreviews: FormatPreviewEntry[] = [
+    ...(form.confirmationSource !== "numericIds" || additionalUnresolved || additionalManualFormat ? [
+      { id: "confirmationWellLabels" as const, title: t("mame.buildEvolvepro.confirmationWellPreview") },
+      { id: "confirmationVariantLabels" as const, title: t("mame.buildEvolvepro.confirmationVariantPreview") },
+    ] : []),
+    ...(form.confirmationSource !== "variantLabels" || additionalUnresolved || additionalManualFormat ? [
+      { id: "confirmationNumericIds" as const, title: t(SOURCE_LABEL.confirmationNumericIds), note: t("mame.buildEvolvepro.numericConfirmationNote") },
+    ] : []),
+  ];
+
   const missing: { label: string; fieldId: string }[] = [];
   const need = (key: string, fieldId: string) =>
     missing.push({ label: t(`mame.buildEvolvepro.${key}`), fieldId });
@@ -513,10 +615,10 @@ export function BuildEvolveproInputPanel() {
   // the verdict sheet, which this form requires anyway.
   if (!primaryPathOf(form)) need("measurementFile", "bep-measurement");
   if (form.confirmationSource === "variantLabels" && !form.remeasureReportXlsx) {
-    need("remeasureReportXlsx", "bep-remeasure");
+    need("additionalMeasurementFile", "bep-additional-measurement");
   }
   if (form.confirmationSource === "numericIds" && !form.remeasureNumericXlsx) {
-    need("remeasureNumericXlsx", "bep-remeasure-numeric");
+    need("additionalMeasurementFile", "bep-additional-measurement");
   }
   // A numeric sample name is a position, so one order source has to say which
   // position holds which variant. Both at once leaves the answer ambiguous.
@@ -527,7 +629,7 @@ export function BuildEvolveproInputPanel() {
   if (!form.outputXlsx) need("outputXlsx", "bep-output-path");
   if (form.migrationNotice) missing.push({ label: "Unsupported saved mode", fieldId: "bep-input-files" });
 
-  const canBuild = missing.length === 0 && !isBuilding && !unresolved;
+  const canBuild = missing.length === 0 && !isBuilding && !unresolved && !additionalUnresolved;
 
   function buildParams(): BuildEvolveproInputParams {
     const layout = form.layoutXlsx || undefined;
@@ -616,6 +718,10 @@ export function BuildEvolveproInputPanel() {
         duration: 4000,
       });
     } catch (err) {
+      if (
+        formGenerationRef.current !== buildGeneration ||
+        buildEvolveproFormSignature(formRef.current) !== buildSignature
+      ) return;
       const descRaw = describeRpcError(err, "mame");
       const description = descRaw.startsWith("errors.")
         ? t(descRaw, {
@@ -660,6 +766,7 @@ export function BuildEvolveproInputPanel() {
     setBuildEvolveproCompletion(null);
     setResult(null);
     resetDetection();
+    setBuildError(null);
   }
 
   return (
@@ -722,7 +829,7 @@ export function BuildEvolveproInputPanel() {
               label={t("mame.buildEvolvepro.measurementFile")}
               filled={Boolean(measurementPath)}
               value={measurementPath}
-              onBrowse={handleMeasurementBrowse}
+              onBrowse={() => handleMeasurementBrowse()}
               helperText={t("mame.buildEvolvepro.measurementFileHelper")}
               help={
                 <FormatPreviewHelp
@@ -753,9 +860,13 @@ export function BuildEvolveproInputPanel() {
             </p>
           )}
 
+          {detection.status === "detected" && detection.path === measurementPath && (
+            <DetectionSummary evidence={detection.result.evidence} />
+          )}
+
           {/* Two candidates: the file reads as both and cannot settle which,
               so it is put to the operator rather than guessed at. */}
-          {unresolved && detectedCandidates.length > 1 && (
+          {unresolved && !manualFormat && detectedCandidates.length > 1 && (
             <div className="space-y-1.5 rounded-md border border-border bg-muted/20 px-3 py-2">
               <p role="status" className="text-xs text-muted-foreground">
                 {t("mame.buildEvolvepro.chooseBetweenFormats")}
@@ -780,7 +891,7 @@ export function BuildEvolveproInputPanel() {
           {/* A confirmation file in the measurement slot. The build used to
               refuse this at the end; it is named here instead, with the slot
               it belongs in offered. */}
-          {unresolved && confirmationOnly && (
+          {unresolved && !manualFormat && confirmationOnly && detectedCandidates.length === 1 && (
             <div
               role="status"
               className="space-y-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2"
@@ -833,6 +944,12 @@ export function BuildEvolveproInputPanel() {
             </p>
           )}
 
+          {unresolved && !manualFormat && detection.status !== "detecting" && (
+            <Button type="button" variant="outline" size="sm" onClick={() => setManualFormat(true)}>
+              {t("mame.buildEvolvepro.chooseFormatManually")}
+            </Button>
+          )}
+
           {/* The override. Reached by "Change", by an unmatched file, and by a
               detector that did not answer, so the operator can always win. */}
           {manualFormat && (
@@ -867,6 +984,106 @@ export function BuildEvolveproInputPanel() {
               onSelect={(v) => setForm({ activityScale: v as FormState["activityScale"] })}
             />
           )}
+
+          <section aria-label={t("mame.buildEvolvepro.additionalMeasurementFile")} className="space-y-2">
+            <FilePickerField
+              id="bep-additional-measurement"
+              label={t("mame.buildEvolvepro.additionalMeasurementFile")}
+              filled={Boolean(additionalPath)}
+              value={additionalPath}
+              onBrowse={() => handleMeasurementBrowse("additional")}
+              helperText={t("mame.buildEvolvepro.additionalMeasurementFileHelper")}
+              help={
+                <FormatPreviewHelp
+                  testId="format-preview-additional"
+                  fieldLabel={t("mame.buildEvolvepro.additionalMeasurementFile")}
+                  entries={additionalPreviews}
+                />
+              }
+              optional
+            />
+            {additionalDetection.status === "detecting" && (
+              <p role="status" className="text-xs text-muted-foreground">{t("mame.buildEvolvepro.detectingFormat")}</p>
+            )}
+            {additionalPath && !additionalUnresolved && (
+              <>
+                <p role="status" className="text-xs text-muted-foreground">
+                  {t(additionalAppliedDetection ? "mame.buildEvolvepro.detectedFormat" : "mame.buildEvolvepro.selectedFormat", {
+                    format: t(SOURCE_LABEL[additionalFormat]),
+                  })}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {t(form.confirmationSource === "numericIds"
+                    ? "mame.buildEvolvepro.confirmationSourceNumericIdsHelper"
+                    : "mame.buildEvolvepro.confirmationSourceVariantLabelsHelper")}
+                </p>
+              </>
+            )}
+            {additionalDetection.status === "detected" && additionalDetection.path === additionalPath && (
+              <DetectionSummary evidence={additionalDetection.result.evidence} />
+            )}
+            {additionalUnresolved && !additionalManualFormat && additionalCandidates.length > 1 && (
+              <div className="space-y-1.5 rounded-md border border-border bg-muted/20 px-3 py-2">
+                <p role="status" className="text-xs text-muted-foreground">{t("mame.buildEvolvepro.chooseBetweenFormats")}</p>
+                <p className="text-xs text-muted-foreground">{t(ambiguityHelpKey(additionalCandidates))}</p>
+                <ChoiceToggle
+                  label={t("mame.buildEvolvepro.confirmationSourceLabel")}
+                  options={additionalCandidates.map((candidate) => ({ value: candidate, label: t(SOURCE_LABEL[candidate]) }))}
+                  selected=""
+                  onSelect={(value) => applySelection(value as MeasurementSource, additionalPendingPath, "additional")}
+                />
+              </div>
+            )}
+            {additionalUnresolved && !additionalManualFormat && additionalCandidates.length === 1 && (
+              <div className="space-y-1.5">
+                <p role="status" className="text-xs text-muted-foreground">
+                  {t(isPrimarySource(additionalCandidates[0]) ? "mame.buildEvolvepro.primaryOnlyFile" : "mame.buildEvolvepro.numericConfirmationNote")}
+                </p>
+                <Button type="button" variant="outline" size="sm"
+                  onClick={() => applySelection(additionalCandidates[0], additionalPendingPath, "additional")}>
+                  {t(isPrimarySource(additionalCandidates[0]) ? "mame.buildEvolvepro.useAsPrimary" : "mame.buildEvolvepro.useAsConfirmation", {
+                    format: t(SOURCE_LABEL[additionalCandidates[0]]),
+                  })}
+                </Button>
+              </div>
+            )}
+            {additionalUnresolved && additionalDetection.status === "detected" && additionalCandidates.length === 0 && (
+              <p role="status" className="text-xs text-amber-700 dark:text-amber-400">
+                {t("mame.buildEvolvepro.detectionNoMatch")} {additionalDetection.result.reason}
+              </p>
+            )}
+            {additionalUnresolved && additionalDetection.status === "failed" && (
+              <p role="status" className="text-xs text-amber-700 dark:text-amber-400">
+                {t("mame.buildEvolvepro.detectionFailed")} {additionalDetection.message}
+              </p>
+            )}
+            {additionalManualFormat && (
+              <ChoiceToggle
+                label={t("mame.buildEvolvepro.confirmationSourceLabel")}
+                options={[
+                  { value: "confirmationVariantLabels", label: t(SOURCE_LABEL.confirmationVariantLabels) },
+                  { value: "confirmationNumericIds", label: t(SOURCE_LABEL.confirmationNumericIds) },
+                ]}
+                selected={additionalUnresolved ? "" : additionalFormat}
+                onSelect={(value) => applySelection(value as MeasurementSource, additionalPath, "additional")}
+              />
+            )}
+            {(additionalManualFormat || (additionalUnresolved && additionalCandidates.length > 1 && additionalCandidates.includes("confirmationNumericIds"))) && (
+              <p className="text-xs text-muted-foreground">{t("mame.buildEvolvepro.numericConfirmationNote")}</p>
+            )}
+            {(additionalPath || form.confirmationSource !== "none") && (
+              <div className="flex flex-wrap gap-2">
+                {!additionalManualFormat && additionalDetection.status !== "detecting" && additionalPath && (
+                  <Button type="button" variant="outline" size="sm" onClick={() => setAdditionalManualFormat(true)}>
+                    {t("mame.buildEvolvepro.chooseFormatManually")}
+                  </Button>
+                )}
+                <Button type="button" variant="outline" size="sm" onClick={clearAdditionalMeasurement}>
+                  {t("mame.buildEvolvepro.clearAdditionalMeasurement")}
+                </Button>
+              </div>
+            )}
+          </section>
 
           <LayoutDisclosure open={layoutOpen} onOpenChange={setLayoutOpen}>
             <FilePickerField
@@ -912,65 +1129,6 @@ export function BuildEvolveproInputPanel() {
                     {
                       id: "expectedMutations",
                       title: t("mame.buildEvolvepro.expectedXlsx"),
-                    },
-                  ]}
-                />
-              }
-            />
-          )}
-
-          <ChoiceToggle
-            label={t("mame.buildEvolvepro.confirmationSourceLabel")}
-            helperText={t(CONFIRMATION_HELP[form.confirmationSource])}
-            options={[
-              { value: "none", label: t("mame.buildEvolvepro.confirmationSourceNone") },
-              { value: "variantLabels", label: t("mame.buildEvolvepro.confirmationSourceVariantLabels") },
-              { value: "numericIds", label: t("mame.buildEvolvepro.confirmationSourceNumericIds") },
-            ]}
-            selected={form.confirmationSource}
-            onSelect={(v) => setForm({ confirmationSource: v as FormState["confirmationSource"] })}
-          />
-
-          {form.confirmationSource === "variantLabels" && (
-            <FilePickerField
-              id="bep-remeasure"
-              label={t("mame.buildEvolvepro.remeasureReportXlsx")}
-              filled={Boolean(form.remeasureReportXlsx)}
-              value={form.remeasureReportXlsx}
-              onBrowse={() => browseXlsx("remeasureReportXlsx", t("mame.buildEvolvepro.remeasureReportXlsx"))}
-              helperText={t("mame.buildEvolvepro.remeasureReportXlsxHelper")}
-              help={
-                <FormatPreviewHelp
-                  testId="format-preview-remeasure"
-                  fieldLabel={t("mame.buildEvolvepro.remeasureReportXlsx")}
-                  entries={[
-                    {
-                      id: "confirmationVariantLabels",
-                      title: t("mame.buildEvolvepro.confirmationSourceVariantLabels"),
-                    },
-                  ]}
-                />
-              }
-            />
-          )}
-
-          {form.confirmationSource === "numericIds" && (
-            <FilePickerField
-              id="bep-remeasure-numeric"
-              label={t("mame.buildEvolvepro.remeasureNumericXlsx")}
-              filled={Boolean(form.remeasureNumericXlsx)}
-              value={form.remeasureNumericXlsx}
-              onBrowse={() => browseXlsx("remeasureNumericXlsx", t("mame.buildEvolvepro.remeasureNumericXlsx"))}
-              helperText={t("mame.buildEvolvepro.remeasureNumericXlsxHelper")}
-              help={
-                <FormatPreviewHelp
-                  testId="format-preview-remeasure-numeric"
-                  fieldLabel={t("mame.buildEvolvepro.remeasureNumericXlsx")}
-                  entries={[
-                    {
-                      id: "confirmationNumericIds",
-                      title: t("mame.buildEvolvepro.confirmationSourceNumericIds"),
-                      note: t("mame.buildEvolvepro.numericConfirmationNote"),
                     },
                   ]}
                 />
@@ -1202,6 +1360,33 @@ export function BuildEvolveproInputPanel() {
         <BuildResult result={result} />
       )}
     </section>
+  );
+}
+
+/** Report only real, finite counts; absence is not an observed zero. */
+function DetectionSummary({ evidence }: { evidence: Record<string, unknown> }) {
+  const { t } = useTranslation();
+  const fields = [
+    ["n_sample_rows", "mame.buildEvolvepro.detectedSampleRows"],
+    ["n_recognized_rows", "mame.buildEvolvepro.detectedRecognizedRows"],
+    ["n_control_rows", "mame.buildEvolvepro.detectedControlRows"],
+    ["n_skipped_rows", "mame.buildEvolvepro.detectedSkippedRows"],
+    ["n_unique_labels", "mame.buildEvolvepro.detectedUniqueLabels"],
+  ] as const;
+  const counts = fields.flatMap(([key, label]) => {
+    const value = evidence[key];
+    return typeof value === "number" && Number.isFinite(value) && Number.isInteger(value) && value >= 0
+      ? [{ key, label, value }] : [];
+  });
+  if (counts.length === 0) return null;
+  return (
+    <ul aria-label={t("mame.buildEvolvepro.detectionSummaryLabel")} className="flex flex-wrap gap-1.5 text-xs text-muted-foreground">
+      {counts.map(({ key, label, value }) => (
+        <li key={key} className="rounded-full border border-border bg-muted/30 px-2 py-0.5">
+          {t(label, { value })}
+        </li>
+      ))}
+    </ul>
   );
 }
 

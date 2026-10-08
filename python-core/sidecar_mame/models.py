@@ -528,7 +528,7 @@ class BuildEvolveproInputParams(BaseModel):
         if self.remeasure_report_xlsx and self.remeasure_numeric_xlsx:
             raise ValueError(
                 "provide at most one confirmation source: remeasure_report_xlsx "
-                "(variant-labeled) or remeasure_numeric_xlsx (numeric IDs)"
+                "(well/variant-labeled) or remeasure_numeric_xlsx (numeric IDs)"
             )
         # A numeric sample name states a position, so decoding one needs the
         # order the plate was filled in. Either source answers it and supplying

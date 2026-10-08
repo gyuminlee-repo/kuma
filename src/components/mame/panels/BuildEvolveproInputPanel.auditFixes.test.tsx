@@ -55,10 +55,10 @@ describe("builder state audit", () => {
     seed("/project");
     mocks.open.mockResolvedValue("/project/new.xlsx");
     render(panel("/project"));
-    fireEvent.click(screen.getByRole("button", { name: "Change: Measurement file" }));
-    fireEvent.click(screen.getByRole("button", { name: "Browse Measurement file" }));
+    fireEvent.click(screen.getByRole("button", { name: "Change: Experiment data file" }));
+    fireEvent.click(screen.getByRole("button", { name: "Browse Experiment data file" }));
     await screen.findByText(/reads as two formats/i);
-    expect(screen.getByLabelText("Measurement file")).toHaveValue("new.xlsx");
+    expect(screen.getByLabelText("Experiment data file")).toHaveValue("new.xlsx");
     expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Build EVOLVEpro input" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeInTheDocument());

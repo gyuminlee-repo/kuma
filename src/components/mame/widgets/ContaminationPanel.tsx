@@ -15,8 +15,8 @@
  *   which is the failure mode the silent skip already had.
  * - It renders on a zero-read run too. That is the run where an operator most
  *   needs to know whether the reads went somewhere else, so
- *   `AnalyzeStepView` mounts it in the `zeroResult` branch as well as the
- *   normal review.
+ *   `RunQcSection` mounts it behind the same collapsed disclosure in both
+ *   the zero-result branch and the normal review.
  *
  * Nothing here judges. A stray count is a measurement; whether it means index
  * hopping, a splash, or an undeclared well is not decidable from the number,
@@ -27,6 +27,7 @@ import { FlaskConical } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import {
+  CONTAMINATION_REASON_CODES,
   CONTAMINATION_SIGNAL_NAMES,
   type ContaminationSignal,
   type ContaminationSignalName,
@@ -34,6 +35,7 @@ import {
 
 /** How many wells to name in a row before the count takes over. */
 const NAMED_WELL_LIMIT = 6;
+const KNOWN_REASON_CODES: ReadonlySet<string> = new Set(CONTAMINATION_REASON_CODES);
 
 /** Signals whose value is a 0..1 fraction rather than a read count. */
 const RATE_SIGNALS: ReadonlySet<string> = new Set(["ambiguity_rate", "chimera_rate"]);
@@ -68,6 +70,10 @@ function SignalRow({
   // branches below test, leaving no reading path that could substitute one.
   const value =
     signal?.state === "ok" && typeof signal.value === "number" ? signal.value : null;
+  const rawReason = signal?.reason ?? t("mame.qc.contamination.signalAbsent");
+  const reason = signal?.reason_code && KNOWN_REASON_CODES.has(signal.reason_code)
+    ? t(`mame.qc.contamination.reason.${signal.reason_code}`, { defaultValue: rawReason })
+    : rawReason;
   const named = (signal?.wells ?? []).slice(0, NAMED_WELL_LIMIT);
   const remaining = (signal?.wells ?? []).length - named.length;
 
@@ -94,7 +100,7 @@ function SignalRow({
       </div>
       {value === null ? (
         <p className="text-caption text-muted-foreground">
-          {signal?.reason ?? t("mame.qc.contamination.signalAbsent")}
+          {reason}
         </p>
       ) : null}
       {value !== null && signal?.label ? (

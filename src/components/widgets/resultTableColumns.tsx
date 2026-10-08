@@ -101,6 +101,8 @@ export function makeResultTableColumns(opts: {
    * single source of truth so ResultTable order matches Plate/Mapping views.
    */
   canonicalOrder?: Map<SdmPrimerResult, number>;
+  /** Actual forward well in the export layout, keyed by selected result. */
+  exportWells?: ReadonlyMap<SdmPrimerResult, string>;
   /** When true, adds a visible border to rescue badges so state is
    *  distinguishable without colour (WCAG 1.4.1 compliance). */
   colorblindMode?: boolean;
@@ -117,6 +119,7 @@ export function makeResultTableColumns(opts: {
     removeDesignResult,
     yPredMap,
     canonicalOrder,
+    exportWells,
     colorblindMode = false,
     t,
   } = opts;
@@ -128,6 +131,18 @@ export function makeResultTableColumns(opts: {
       size: 35,
       enableSorting: false,
       cell: (info) => <span className="text-muted-foreground">{info.row.index + 1}</span>,
+    }),
+    col.display({
+      id: "well",
+      header: t("resultTable.well"),
+      size: 85,
+      enableSorting: false,
+      meta: { tooltip: t("resultTable.wellHint") },
+      cell: (info) => (
+        <span className="font-mono text-muted-foreground">
+          {exportWells?.get(info.row.original) ?? "—"}
+        </span>
+      ),
     }),
     col.accessor("mutation", {
       header: "Mutation",
