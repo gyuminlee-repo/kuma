@@ -65,9 +65,9 @@ def test_wt_pattern_matches_wt_without_underscore():
 
 def test_wt_pattern_does_not_match_non_wt():
     assert not WT_PATTERN.match("F89W")
-    assert not WT_PATTERN.match("WT")     # bare WT without number
+    assert WT_PATTERN.match("WT")     # bare WT is a valid control
     assert not WT_PATTERN.match("WT_")    # no digit
-    assert not WT_PATTERN.match("wt_1")  # lowercase
+    assert WT_PATTERN.match("wt_1")  # case-insensitive
 
 
 # ---------------------------------------------------------------------------

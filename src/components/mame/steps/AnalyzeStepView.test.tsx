@@ -5,7 +5,8 @@
  */
 
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import en from "@/locales/en.json";
 
 vi.mock("@/lib/ipc", () => ({
   rpc: vi.fn(),
@@ -78,17 +79,22 @@ vi.mock("@/components/mame/widgets/PlateView", () => ({
     </div>
   ),
 }));
-vi.mock("@/components/mame/widgets/RunHealthPanel", () => ({
-  RunHealthPanel: () => <div data-testid="run-health-panel" />,
-}));
-// Stubbed to the one thing this step decides about it: whether it is mounted
-// and what health it was handed. The disclosure itself, its collapsed default
-// and its unavailable reasons are RunQcSection.test.tsx.
-vi.mock("@/components/mame/widgets/RunQcSection", () => ({
-  RunQcSection: ({ runHealth }: { runHealth: unknown }) => (
-    <div data-testid="run-qc-section" data-has-health={String(runHealth !== null)} />
-  ),
-}));
+vi.mock("@/components/mame/widgets/RunHealthPanel", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/components/mame/widgets/RunHealthPanel")>();
+  return { ...actual, RunHealthPanel: () => <div data-testid="run-health-panel" /> };
+});
+// Keep the disclosure real so review integration tests can catch measurements
+// accidentally mounted above it, or dropped from the zero-result branch.
+vi.mock("@/components/mame/widgets/RunQcSection", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/components/mame/widgets/RunQcSection")>();
+  return {
+    RunQcSection: ({ runHealth }: { runHealth: RunHealthData | null }) => (
+      <div data-testid="run-qc-mount" data-has-health={String(runHealth !== null)}>
+        <actual.RunQcSection runHealth={runHealth} />
+      </div>
+    ),
+  };
+});
 vi.mock("@/components/mame/panels/InputPanel", () => ({
   InputPanel: () => <div data-testid="input-panel" />,
 }));
@@ -273,7 +279,7 @@ describe("AnalyzeStepView (Task #12, analyze.review)", () => {
 
   it("mounts the QC disclosure on the review, with or without runHealth", () => {
     const withHealth = render(<AnalyzeStepView runHealth={fakeHealth} />);
-    expect(withHealth.getByTestId("run-qc-section")).toHaveAttribute(
+    expect(withHealth.getByTestId("run-qc-mount")).toHaveAttribute(
       "data-has-health",
       "true",
     );
@@ -282,7 +288,7 @@ describe("AnalyzeStepView (Task #12, analyze.review)", () => {
     // Unconditional: the blocks inside it read the store rather than this prop,
     // and the health part states its own absence instead of vanishing.
     const withoutHealth = render(<AnalyzeStepView />);
-    expect(withoutHealth.getByTestId("run-qc-section")).toHaveAttribute(
+    expect(withoutHealth.getByTestId("run-qc-mount")).toHaveAttribute(
       "data-has-health",
       "false",
     );
@@ -792,5 +798,60 @@ describe("AnalyzeStepView (no Janus controls on 2.1)", () => {
     render(<AnalyzeStepView />);
 
     expect(screen.getByRole("button", { name: "Run" })).toBeEnabled();
+  });
+});
+
+
+describe("AnalyzeStepView QC placement", () => {
+  beforeEach(() => {
+    useMameAppStore.setState({
+      currentMameSubStep: "analyze.review", isAnalyzing: false, summary: summaryOf(1), verdicts: [fakeVerdict],
+      runQuality: null, mappingIntegrity: null, demuxResult: null,
+      contamination: {
+        occupancy_source: "explicit_well_layout", occupied_wells: 96, replicates: 1, plate_names: ["barcode01"],
+        signals: {
+          unused_index_reads: { state: "unavailable", reason_code: "all_indices_used", reason: "all used" },
+          unexpected_well_reads: { state: "unavailable", reason_code: "all_wells_occupied", reason: "full plate" },
+          ambiguity_rate: { state: "ok", value: 0.05 }, chimera_rate: { state: "ok", value: 0 },
+          leak_well_sharing: { state: "unavailable", reason: "one copy" },
+          plate_yield_skew: { state: "unavailable", reason: "one copy" },
+        },
+      },
+    });
+  });
+  afterEach(() => useMameAppStore.setState({ contamination: null, runQuality: null, mappingIntegrity: null }));
+
+  it.each([false, true])("keeps contamination inside collapsed QC (zero result: %s)", (zero) => {
+    if (zero) useMameAppStore.setState({ summary: summaryOf(0), verdicts: [] });
+    render(<AnalyzeStepView />);
+    const disclosure = screen.getByRole("button", { name: en.mame.runHealth.qcSectionAriaLabel });
+    expect(disclosure).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByTestId("contamination-panel")).toBeNull();
+    fireEvent.click(disclosure);
+    expect(screen.getByTestId("run-qc-section")).toContainElement(screen.getByTestId("contamination-panel"));
+    expect(screen.getAllByTestId("contamination-panel")).toHaveLength(1);
+    fireEvent.click(disclosure);
+    expect(screen.queryByTestId("contamination-panel")).toBeNull();
+  });
+
+  it("keeps critical depth and mapping alerts visible before opening QC", () => {
+    useMameAppStore.setState({
+      runQuality: {
+        severity: "blocking", median_well_reads: 3, min_read_count: 100, depth_ok: false,
+        wells_under_floor: 96, wells_total: 96, recommended_reads: 1000, flow_cell_id: null,
+        pore_start: null, pore_end: null, pore_warranty_min: 800, reused_from: null, thresholds: {}, findings: [],
+      },
+      mappingIntegrity: { wells_considered: 96, self_match: 0, cross_match: 80, self_rate: 0, cross_rate: 80 / 96, suspect: true },
+    });
+    render(<AnalyzeStepView />);
+    expect(screen.getByRole("button", { name: en.mame.runHealth.qcSectionAriaLabel })).toHaveAttribute("aria-expanded", "false");
+    for (const id of ["run-quality-notice", "mapping-integrity-alert"]) {
+      const alert = screen.getByTestId(id);
+      expect(alert).toBeVisible();
+      expect(alert).toHaveAttribute("role", "alert");
+      expect(alert.compareDocumentPosition(screen.getByTestId("verdict-table")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(screen.getByTestId("run-qc-mount")).not.toContainElement(alert);
+    }
+    expect(screen.queryByTestId("contamination-panel")).toBeNull();
   });
 });

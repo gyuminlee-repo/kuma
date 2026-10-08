@@ -111,13 +111,14 @@ def test_ingest_keeps_dedicated_wt_replicate_rows(tmp_path: Path):
     assert all(r.plate_id == "P01" for r in result.wt_records)
 
 
-def test_ingest_wt_row_without_number_still_skipped(tmp_path: Path):
-    """Bare 'WT' has no replicate number; WT_PATTERN rejects it, so it drops."""
+def test_ingest_bare_wt_retained_with_unspecified_replicate(tmp_path: Path):
+    """Bare WT is retained as a control, with replicate index 0."""
     csv = tmp_path / "bare_wt.csv"
     csv.write_text("Sample Name,Area\nWT,10.0\nB03,20.0\n")
     result = ingest_long_csv(csv, plate_meta_wt_wells={"P01": []})
     assert [r.well_id for r in result.records] == ["B03"]
-    assert result.wt_records == []
+    assert [r.sample_name for r in result.wt_records] == ["WT"]
+    assert result.wt_records[0].replicate_idx == 0
 
 
 def test_ingest_wt_row_negative_value_skipped(tmp_path: Path):

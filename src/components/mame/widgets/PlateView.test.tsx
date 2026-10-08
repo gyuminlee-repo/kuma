@@ -2,6 +2,9 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "zustand";
 import en from "@/locales/en.json";
+import ko from "@/locales/ko.json";
+import { createInstance } from "i18next";
+import { I18nextProvider } from "react-i18next";
 import type { AppState as MameAppStore } from "@/store/mame/mameAppStore";
 import type { VerdictClass, VerdictRecord, WellEntry } from "@/types/mame/models";
 
@@ -288,5 +291,57 @@ describe("PlateView selected well read at designed site", () => {
     expect(screen.queryByText(LABEL)).toBeNull();
     // The rest of the aside still renders.
     expect(screen.getByText(en.mame.plateView.detailNotes)).toBeInTheDocument();
+  });
+});
+
+
+describe("PlateView composite plate identity", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("labels the final composite without implying a selected source plate", () => {
+    setup(WELLS);
+    expect(screen.getByTestId("composite-plate-label")).toHaveTextContent("Final Composite Plate");
+    expect(screen.queryByTestId("selected-well-source")).toBeNull();
+    expect(screen.queryByRole("combobox")).toBeNull();
+  });
+
+  it("keeps the badge stable while the selected well source changes", () => {
+    const first = { ...well("A1", "PASS"), native_barcode: "barcode01", selected: true };
+    const second = { ...well("A2", "PASS"), native_barcode: "barcode02", selected: true };
+    const setSelectedWell = vi.fn();
+    mockStore([first, second], { selectedWell: first, setSelectedWell });
+    const { rerender } = render(<PlateView />);
+    expect(screen.getByTestId("selected-well-source")).toHaveTextContent("Selected well A1 · Source: NB01");
+    fireEvent.click(wellButton("A2"));
+    expect(setSelectedWell).toHaveBeenCalledWith(second);
+    mockStore([first, second], { selectedWell: second, setSelectedWell });
+    rerender(<PlateView />);
+    expect(screen.getByTestId("composite-plate-label")).toHaveTextContent("Final Composite Plate");
+    expect(screen.getByTestId("selected-well-source")).toHaveTextContent("Selected well A2 · Source: NB02");
+    expect(screen.getByTestId("selected-well-source").closest("button, select")).toBeNull();
+    expect(screen.getByRole("group", { name: en.mame.plateView.nbFilterGroupAriaLabel })).toBeInTheDocument();
+  });
+
+  it("states a missing source without inventing a barcode", () => {
+    mockStore(WELLS, { selectedWell: { ...well("A1", "PASS"), native_barcode: "" } });
+    render(<PlateView />);
+    expect(screen.getByTestId("selected-well-source")).toHaveTextContent("Source: Unknown");
+  });
+
+  it("localizes the composite badge and selected-well subtext in Korean", async () => {
+    const i18n = createInstance();
+    await i18n.init({ lng: "ko", resources: { ko: { translation: ko } }, interpolation: { escapeValue: false } });
+    mockStore(WELLS, { selectedWell: well("A1", "PASS") });
+    render(<I18nextProvider i18n={i18n}><PlateView /></I18nextProvider>);
+    expect(screen.getByTestId("composite-plate-label")).toHaveTextContent("최종 합성 플레이트");
+    expect(screen.getByTestId("selected-well-source")).toHaveTextContent("선택한 웰 A1 · 원본: NB01");
+  });
+
+  it("preserves externally supplied wells and avoids loading plate data", () => {
+    const loadPlateData = vi.fn();
+    mockStore([], { loadPlateData });
+    render(<PlateView wells={WELLS} />);
+    expect(wellButton("A1")).toBeInTheDocument();
+    expect(loadPlateData).not.toHaveBeenCalled();
   });
 });

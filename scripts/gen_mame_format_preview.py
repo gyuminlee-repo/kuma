@@ -199,6 +199,9 @@ _PREVIEWS: dict[str, _Source] = {
     "gcSheet": _Source("templates/10_mame_gc_prenormalised.xlsx", "flat"),
     "rawReport": _Source("templates/11_mame_gc_fid_round1_raw.xlsx", "block"),
     "numericReport": _Source("templates/12_mame_agilent_numeric_index.xlsx", "block"),
+    "confirmationWellLabels": _Source(
+        "templates/17_mame_well_labeled_confirmation.xlsx", "block", sample_block=1
+    ),
     "confirmationVariantLabels": _Source(
         "templates/09_mame_agilent_rep_batch.xlsx", "block"
     ),

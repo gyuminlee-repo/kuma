@@ -1,5 +1,6 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { useRoundStore } from "@/store/round/roundSlice";
 import { ProjectProvider } from "@/state/projectContext";
 
 const mockSetBuildEvolveproCompletion = vi.hoisted(() => vi.fn());
@@ -123,7 +124,8 @@ async function build(): Promise<void> {
   await waitFor(() => expect(buildEvolveproInput).toHaveBeenCalledTimes(1));
 }
 
-const MEASUREMENT_LABEL = "Measurement file";
+const MEASUREMENT_LABEL = "Experiment data file";
+const ADDITIONAL_LABEL = "Additional experiment data file (optional)";
 const BROWSE_MEASUREMENT = `Browse ${MEASUREMENT_LABEL}`;
 const CHOSEN = "/project/activity/chosen.xlsx";
 
@@ -152,6 +154,7 @@ async function chooseMeasurement(path = CHOSEN): Promise<void> {
 
 beforeEach(() => {
   localStorage.clear();
+  useRoundStore.setState({ rounds: [], active_round_id: null });
   vi.clearAllMocks();
   mockMkdir.mockResolvedValue(undefined);
   vi.mocked(buildEvolveproInput).mockResolvedValue(RESULT);
@@ -641,7 +644,7 @@ describe("BuildEvolveproInputPanel measurement format detection", () => {
 
     // The confirmation slot took it; the primary measurement is untouched.
     expect(
-      screen.getByLabelText("Confirmation report xlsx (numeric IDs)"),
+      screen.getByRole("textbox", { name: ADDITIONAL_LABEL }),
     ).toHaveValue("chosen.xlsx");
     await build();
     expect(buildEvolveproInput).toHaveBeenCalledWith(
@@ -669,10 +672,10 @@ describe("BuildEvolveproInputPanel measurement format detection", () => {
     expect(buildEvolveproInput).not.toHaveBeenCalled();
 
     fireEvent.click(
-      screen.getByRole("button", { name: "File as Variant-labeled Agilent report" }),
+      screen.getByRole("button", { name: "File as Well / variant labels" }),
     );
     expect(
-      screen.getByLabelText("Confirmation report xlsx (variant-labeled)"),
+      screen.getByRole("textbox", { name: ADDITIONAL_LABEL }),
     ).toHaveValue("chosen.xlsx");
 
     await build();
@@ -907,7 +910,7 @@ describe("BuildEvolveproInputPanel file-shape previews", () => {
     seed(readyForm({ confirmationSource: "variantLabels" }));
     renderPanel();
 
-    openPreview("format-preview-remeasure");
+    openPreview("format-preview-additional");
     expect(renderedRows("confirmationVariantLabels")).toEqual(
       generatedRows("confirmationVariantLabels"),
     );
@@ -920,7 +923,7 @@ describe("BuildEvolveproInputPanel file-shape previews", () => {
     seed(readyForm({ confirmationSource: "numericIds" }));
     renderPanel();
 
-    openPreview("format-preview-remeasure-numeric");
+    openPreview("format-preview-additional");
     expect(renderedRows("confirmationNumericIds")).toEqual(
       generatedRows("confirmationNumericIds"),
     );
@@ -943,7 +946,7 @@ describe("BuildEvolveproInputPanel file-shape previews", () => {
     cleanup();
     seed(readyForm({ confirmationSource: "numericIds" }));
     renderPanel();
-    openPreview("format-preview-remeasure-numeric");
+    openPreview("format-preview-additional");
     const confirmation = renderedRows("confirmationNumericIds");
 
     expect(primary).not.toEqual(confirmation);
@@ -956,7 +959,7 @@ describe("BuildEvolveproInputPanel file-shape previews", () => {
     seed(readyForm({ confirmationSource: "numericIds" }));
     renderPanel();
 
-    openPreview("format-preview-remeasure-numeric");
+    openPreview("format-preview-additional");
     expect(
       screen.getByText(
         "ID j counts only the variants the primary screen measured above wild type, numbered in that same plate order, and each is measured again.",
@@ -1001,7 +1004,380 @@ describe("BuildEvolveproInputPanel file-shape previews", () => {
       screen.getAllByTestId(/^format-preview-.+-trigger$/).map((el) => el.dataset.testid),
     ).toEqual([
       "format-preview-measurement-trigger",
+      "format-preview-additional-trigger",
       "format-preview-layout-trigger",
     ]);
   });
+});
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason: Error) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
+async function chooseAdditional(path = CHOSEN): Promise<void> {
+  vi.mocked(open).mockResolvedValueOnce(path);
+  fireEvent.click(screen.getByRole("button", { name: `Browse ${ADDITIONAL_LABEL}` }));
+  await waitFor(() => expect(detectMeasurementSource).toHaveBeenCalledWith({ measurement_path: path }));
+}
+
+function additionalRegion() {
+  return within(screen.getByRole("region", { name: ADDITIONAL_LABEL }));
+}
+
+describe("BuildEvolveproInputPanel sibling additional experiment file", () => {
+  it("shows the optional file alongside the primary without a prerequisite format toggle", () => {
+    seed(readyForm({ activityPath: "" }));
+    renderPanel();
+    expect(screen.getByRole("heading", { name: "Convert EVOLVEpro input file" })).toBeInTheDocument();
+    expect(screen.getByLabelText(MEASUREMENT_LABEL)).toHaveValue("");
+    expect(screen.getByRole("textbox", { name: ADDITIONAL_LABEL })).toHaveValue("");
+    expect(screen.getByRole("button", { name: `Browse ${ADDITIONAL_LABEL}` })).toBeEnabled();
+    expect(screen.queryByRole("radiogroup", { name: "Additional measurement format" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: "None" })).not.toBeInTheDocument();
+  });
+
+  it("autodetects a variant confirmation, retains the primary, and persists the established shape", async () => {
+    seed(readyForm());
+    vi.mocked(detectMeasurementSource).mockResolvedValue(detection(["confirmationVariantLabels"]));
+    const view = renderPanel();
+    await chooseAdditional();
+    expect(await screen.findByText("Detected: Well / variant labels")).toBeInTheDocument();
+    expect(loadBuildEvolveproFromStorage(PROJECT)).toMatchObject({
+      confirmationSource: "variantLabels", remeasureReportXlsx: CHOSEN,
+      activityPath: "/project/activity/activity.csv", remeasureNumericXlsx: "",
+    });
+    await build();
+    expect(buildEvolveproInput).toHaveBeenCalledWith(expect.objectContaining({
+      activity_path: "/project/activity/activity.csv", remeasure_report_xlsx: CHOSEN,
+      remeasure_numeric_xlsx: undefined,
+    }));
+    view.unmount();
+    vi.mocked(detectMeasurementSource).mockClear();
+    renderPanel();
+    expect(screen.getByRole("textbox", { name: ADDITIONAL_LABEL })).toHaveValue("chosen.xlsx");
+    expect(screen.getByText("Format: Well / variant labels")).toBeInTheDocument();
+    expect(screen.queryByText("Detected: Well / variant labels")).not.toBeInTheDocument();
+    expect(detectMeasurementSource).not.toHaveBeenCalled();
+  });
+
+  it.each(["primary", "additional"] as const)("requires an explicit role for well labels browsed in the %s slot", async (slot) => {
+    seed(readyForm());
+    vi.mocked(detectMeasurementSource).mockResolvedValue(detection(["rawReport", "confirmationWellLabels"]));
+    renderPanel();
+    if (slot === "primary") {
+      fireEvent.click(screen.getByRole("button", { name: `Change: ${MEASUREMENT_LABEL}` }));
+      await chooseMeasurement();
+    } else await chooseAdditional();
+    expect(await screen.findByText(/same well-labeled report can be the primary experiment/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeDisabled();
+    expect(loadBuildEvolveproFromStorage(PROJECT).confirmationSource).toBe("none");
+    fireEvent.click(screen.getByRole("radio", { name: "Well / variant labels" }));
+    await build();
+    expect(buildEvolveproInput).toHaveBeenCalledWith(expect.objectContaining({
+      activity_path: "/project/activity/activity.csv", remeasure_report_xlsx: CHOSEN,
+    }));
+  });
+
+  it("can explicitly move a well report from the additional slot to the primary slot", async () => {
+    seed(readyForm());
+    vi.mocked(detectMeasurementSource).mockResolvedValue(detection(["rawReport", "confirmationWellLabels"]));
+    renderPanel();
+    await chooseAdditional();
+    fireEvent.click(await screen.findByRole("radio", { name: "Raw Agilent report" }));
+    expect(screen.getByRole("textbox", { name: ADDITIONAL_LABEL })).toHaveValue("");
+    await build();
+    expect(buildEvolveproInput).toHaveBeenCalledWith(expect.objectContaining({
+      round1_report_xlsx: CHOSEN, remeasure_report_xlsx: undefined,
+    }));
+  });
+
+  it("requires numeric above-WT confirmation even if the detector returns it alone", async () => {
+    seed(readyForm({ expectedXlsx: "/project/expected.xlsx" }));
+    vi.mocked(detectMeasurementSource).mockResolvedValue(detection(["confirmationNumericIds"]));
+    renderPanel();
+    await chooseAdditional();
+    expect(await screen.findByText(/ID j counts only the variants/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeDisabled();
+    expect(loadBuildEvolveproFromStorage(PROJECT).confirmationSource).toBe("none");
+    fireEvent.click(screen.getByRole("button", { name: "File as Numeric-ID replicate report" }));
+    await build();
+    expect(buildEvolveproInput).toHaveBeenCalledWith(expect.objectContaining({
+      remeasure_numeric_xlsx: CHOSEN, expected_xlsx: "/project/expected.xlsx",
+    }));
+  });
+
+  it("preserves the explicit numeric order-source gate after additional-file detection", async () => {
+    seed(readyForm());
+    vi.mocked(detectMeasurementSource).mockResolvedValue(detection(["numericReport", "confirmationNumericIds"]));
+    renderPanel();
+    await chooseAdditional();
+    fireEvent.click(await screen.findByRole("radio", { name: "Numeric-ID replicate report" }));
+    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeDisabled();
+    expect(screen.getByLabelText("Designed variant list")).toHaveValue("");
+  });
+
+  it.each(["no match", "failure"])("keeps manual additional-format selection available after %s", async (outcome) => {
+    seed(readyForm());
+    if (outcome === "failure") vi.mocked(detectMeasurementSource).mockRejectedValue(new Error("sidecar unavailable"));
+    else vi.mocked(detectMeasurementSource).mockResolvedValue(detection([], "No supported sample labels"));
+    renderPanel();
+    await chooseAdditional();
+    const format = await screen.findByRole("radio", { name: "Well / variant labels" });
+    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeDisabled();
+    expect(screen.queryByRole("list", { name: "File detection summary" })).not.toBeInTheDocument();
+    fireEvent.click(format);
+    await build();
+    expect(buildEvolveproInput).toHaveBeenCalledWith(expect.objectContaining({ remeasure_report_xlsx: CHOSEN }));
+  });
+
+  it("can manually override an ambiguous result without forcing its candidates", async () => {
+    seed(readyForm());
+    vi.mocked(detectMeasurementSource).mockResolvedValue(detection(["rawReport", "confirmationWellLabels"]));
+    renderPanel();
+    await chooseAdditional();
+    fireEvent.click(await additionalRegion().findByRole("button", { name: "Choose format manually" }));
+    expect(screen.queryByRole("radio", { name: "Raw Agilent report" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("radio", { name: "Well / variant labels" }));
+    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeEnabled();
+  });
+
+  it("does not overwrite the primary when a primary-only file is browsed as additional", async () => {
+    seed(readyForm());
+    vi.mocked(detectMeasurementSource).mockResolvedValue(detection(["longFormat"]));
+    renderPanel();
+    await chooseAdditional();
+    expect(await screen.findByText(/matches a primary experiment format/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeDisabled();
+    expect(loadBuildEvolveproFromStorage(PROJECT).activityPath).toBe("/project/activity/activity.csv");
+    fireEvent.click(screen.getByRole("button", { name: "Use as experiment data: Generic long-format" }));
+    expect(screen.getByRole("textbox", { name: ADDITIONAL_LABEL })).toHaveValue("");
+    expect(loadBuildEvolveproFromStorage(PROJECT).activityPath).toBe(CHOSEN);
+  });
+
+  it.each(["variantLabels", "numericIds"] as const)("restores and removes %s without resurrecting inactive paths", async (confirmationSource) => {
+    seed(readyForm({
+      confirmationSource, remeasureReportXlsx: "/project/wells.xlsx",
+      remeasureNumericXlsx: "/project/numeric.xlsx", expectedXlsx: "/project/expected.xlsx",
+    }));
+    renderPanel();
+    expect(detectMeasurementSource).not.toHaveBeenCalled();
+    expect(screen.getByRole("textbox", { name: ADDITIONAL_LABEL })).toHaveValue(
+      confirmationSource === "variantLabels" ? "wells.xlsx" : "numeric.xlsx",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Remove additional file" }));
+    expect(loadBuildEvolveproFromStorage(PROJECT)).toMatchObject({
+      confirmationSource: "none", remeasureReportXlsx: "", remeasureNumericXlsx: "",
+    });
+    expect(screen.queryByLabelText("Mismatch threshold")).not.toBeInTheDocument();
+    await build();
+    expect(buildEvolveproInput).toHaveBeenCalledWith(expect.objectContaining({
+      remeasure_report_xlsx: undefined, remeasure_numeric_xlsx: undefined,
+    }));
+  });
+
+  it("shows real summaries independently for each file without describing validated variants", async () => {
+    seed(readyForm({ activityPath: "" }));
+    vi.mocked(detectMeasurementSource)
+      .mockResolvedValueOnce({ ...detection(["rawReport"]), evidence: {
+        n_sample_rows: 23, n_recognized_rows: 21, n_control_rows: 4, n_unique_labels: 7,
+      } })
+      .mockResolvedValueOnce({ ...detection(["confirmationVariantLabels"]), evidence: {
+        n_sample_rows: 5, n_skipped_rows: 0,
+      } });
+    renderPanel();
+    await chooseMeasurement();
+    await chooseAdditional("/project/additional.xlsx");
+    expect(await screen.findByText("Sample rows: 5")).toBeInTheDocument();
+    expect(screen.getByText("Sample rows: 23")).toBeInTheDocument();
+    expect(screen.getByText("Recognized labels: 21 rows")).toBeInTheDocument();
+    expect(screen.getByText("Unique sample labels: 7")).toBeInTheDocument();
+    expect(screen.getByText("WT control rows: 4")).toBeInTheDocument();
+    expect(additionalRegion().getByText("Skipped rows: 0")).toBeInTheDocument();
+    expect(additionalRegion().queryByText(/Recognized labels|Unique sample labels/)).not.toBeInTheDocument();
+    expect(screen.getAllByRole("list", { name: "File detection summary" })).toHaveLength(2);
+    expect(screen.queryByText(/valid variants/i)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    {},
+    { n_sample_rows: "12", n_recognized_rows: null, n_skipped_rows: -1, n_unique_labels: NaN },
+    { n_sample_rows: Infinity, n_recognized_rows: 0.5 },
+  ])("omits absent or invalid count evidence rather than fabricating zeros: %j", async (evidence) => {
+    seed(readyForm());
+    vi.mocked(detectMeasurementSource).mockResolvedValue({ ...detection(["confirmationVariantLabels"]), evidence });
+    renderPanel();
+    await chooseAdditional();
+    await screen.findByText("Detected: Well / variant labels");
+    expect(screen.queryByRole("list", { name: "File detection summary" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Sample rows: 0|Unique sample labels: 0/)).not.toBeInTheDocument();
+  });
+
+  it("previews actual well, variant, and numeric confirmation shapes from the optional field", () => {
+    seed(readyForm());
+    renderPanel();
+    fireEvent.click(screen.getByTestId("format-preview-additional-trigger"));
+    for (const id of ["confirmationWellLabels", "confirmationVariantLabels", "confirmationNumericIds"] as const) {
+      const rows = within(screen.getByTestId(`format-preview-table-${id}`)).getAllByRole("row")
+        .map((row) => within(row).queryAllByRole("cell").map((cell) => cell.textContent ?? ""))
+        .filter((cells) => cells.length > 1);
+      const preview = getFormatPreview(id);
+      expect(rows).toEqual(preview.windows.flatMap((window, index) => preview.headerRow && index === 0 ? window.rows.slice(1) : window.rows));
+    }
+  });
+});
+
+describe("BuildEvolveproInputPanel independent detection lifetimes", () => {
+  it("does not let a delayed additional result replace a newer choice", async () => {
+    const old = deferred<DetectMeasurementSourceResult>();
+    seed(readyForm());
+    vi.mocked(detectMeasurementSource).mockReturnValueOnce(old.promise)
+      .mockResolvedValueOnce(detection(["confirmationVariantLabels"], "", "/project/new.xlsx"));
+    renderPanel();
+    await chooseAdditional("/project/old.xlsx");
+    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeDisabled();
+    await chooseAdditional("/project/new.xlsx");
+    await screen.findByText("Detected: Well / variant labels");
+    await act(async () => old.resolve(detection(["confirmationNumericIds"], "", "/project/old.xlsx")));
+    expect(screen.getByRole("textbox", { name: ADDITIONAL_LABEL })).toHaveValue("new.xlsx");
+    expect(loadBuildEvolveproFromStorage(PROJECT).remeasureReportXlsx).toBe("/project/new.xlsx");
+  });
+
+  it("keeps primary and additional requests independent when they resolve in reverse order", async () => {
+    const primary = deferred<DetectMeasurementSourceResult>();
+    const additional = deferred<DetectMeasurementSourceResult>();
+    seed(readyForm({ activityPath: "" }));
+    vi.mocked(detectMeasurementSource).mockReturnValueOnce(primary.promise).mockReturnValueOnce(additional.promise);
+    renderPanel();
+    await chooseMeasurement("/project/primary.csv");
+    await chooseAdditional("/project/additional.xlsx");
+    await act(async () => additional.resolve(detection(["confirmationVariantLabels"], "", "/project/additional.xlsx")));
+    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeDisabled();
+    await act(async () => primary.resolve(detection(["longFormat"], "", "/project/primary.csv")));
+    await build();
+    expect(buildEvolveproInput).toHaveBeenCalledWith(expect.objectContaining({
+      activity_path: "/project/primary.csv", remeasure_report_xlsx: "/project/additional.xlsx",
+    }));
+  });
+
+  it("ignores an additional detector rejection after the optional file is removed", async () => {
+    const request = deferred<DetectMeasurementSourceResult>();
+    seed(readyForm());
+    vi.mocked(detectMeasurementSource).mockReturnValueOnce(request.promise);
+    renderPanel();
+    await chooseAdditional();
+    fireEvent.click(screen.getByRole("button", { name: "Remove additional file" }));
+    await act(async () => request.reject(new Error("Old error must stay hidden")));
+    expect(screen.getByRole("textbox", { name: ADDITIONAL_LABEL })).toHaveValue("");
+    expect(screen.queryByText(/Old error must stay hidden/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("radiogroup", { name: "Additional measurement format" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeEnabled();
+  });
+
+  it("ignores pending detection after clearing restored inputs", async () => {
+    const request = deferred<DetectMeasurementSourceResult>();
+    seed(readyForm());
+    vi.mocked(detectMeasurementSource).mockReturnValueOnce(request.promise);
+    renderPanel();
+    await chooseAdditional();
+    fireEvent.click(screen.getByRole("button", { name: "Clear restored EVOLVEpro inputs" }));
+    await act(async () => request.resolve(detection(["confirmationVariantLabels"])));
+    expect(screen.getByRole("textbox", { name: ADDITIONAL_LABEL })).toHaveValue("");
+    expect(loadBuildEvolveproFromStorage(PROJECT).confirmationSource).toBe("none");
+    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeDisabled();
+  });
+
+  it("ignores both detectors after a global reset", async () => {
+    const primary = deferred<DetectMeasurementSourceResult>();
+    const additional = deferred<DetectMeasurementSourceResult>();
+    seed(readyForm({ activityPath: "" }));
+    vi.mocked(detectMeasurementSource).mockReturnValueOnce(primary.promise).mockReturnValueOnce(additional.promise);
+    const view = renderPanel();
+    await chooseMeasurement();
+    await chooseAdditional("/project/additional.xlsx");
+    mockMameState.resetEpoch = 1;
+    view.rerender(<ProjectProvider value={{ path: PROJECT, name: "Demo", scratch: false }}><BuildEvolveproInputPanel /></ProjectProvider>);
+    await act(async () => {
+      primary.resolve(detection(["rawReport"]));
+      additional.resolve(detection(["confirmationVariantLabels"], "", "/project/additional.xlsx"));
+    });
+    expect(screen.getByLabelText(MEASUREMENT_LABEL)).toHaveValue("");
+    expect(screen.getByRole("textbox", { name: ADDITIONAL_LABEL })).toHaveValue("");
+    expect(loadBuildEvolveproFromStorage(PROJECT).confirmationSource).toBe("none");
+  });
+
+  it("ignores an additional result from the previous project", async () => {
+    const request = deferred<DetectMeasurementSourceResult>();
+    seed(readyForm());
+    saveBuildEvolveproToStorage({ ...readyForm(), activityPath: "/other/kept.csv", remeasureReportXlsx: "/other/kept.xlsx", confirmationSource: "variantLabels" }, "/other");
+    vi.mocked(detectMeasurementSource).mockReturnValueOnce(request.promise);
+    const view = renderPanel();
+    await chooseAdditional();
+    view.rerender(<ProjectProvider value={{ path: "/other", name: "Other", scratch: false }}><BuildEvolveproInputPanel /></ProjectProvider>);
+    await act(async () => request.resolve(detection(["confirmationVariantLabels"])));
+    expect(screen.getByRole("textbox", { name: ADDITIONAL_LABEL })).toHaveValue("kept.xlsx");
+    expect(loadBuildEvolveproFromStorage("/other").remeasureReportXlsx).toBe("/other/kept.xlsx");
+  });
+
+  it("keeps an in-flight detection alive when a second browse is canceled", async () => {
+    const request = deferred<DetectMeasurementSourceResult>();
+    seed(readyForm());
+    vi.mocked(detectMeasurementSource).mockReturnValueOnce(request.promise);
+    renderPanel();
+    await chooseAdditional();
+    vi.mocked(open).mockResolvedValueOnce(null);
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: `Browse ${ADDITIONAL_LABEL}` })));
+    await act(async () => request.resolve(detection(["confirmationVariantLabels"])));
+    expect(screen.getByText("Detected: Well / variant labels")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeEnabled();
+  });
+
+  it("does not apply a native picker result returned after reset", async () => {
+    const dialog = deferred<string | null>();
+    seed(readyForm());
+    vi.mocked(open).mockReturnValueOnce(dialog.promise);
+    const view = renderPanel();
+    fireEvent.click(screen.getByRole("button", { name: `Browse ${ADDITIONAL_LABEL}` }));
+    mockMameState.resetEpoch = 1;
+    view.rerender(<ProjectProvider value={{ path: PROJECT, name: "Demo", scratch: false }}><BuildEvolveproInputPanel /></ProjectProvider>);
+    await act(async () => dialog.resolve(CHOSEN));
+    expect(detectMeasurementSource).not.toHaveBeenCalled();
+    expect(screen.getByRole("textbox", { name: ADDITIONAL_LABEL })).toHaveValue("");
+  });
+
+  it.each(["success", "failure"])("does not surface a stale build %s after an additional file is chosen", async (outcome) => {
+    const request = deferred<BuildEvolveproInputResult>();
+    seed(readyForm());
+    vi.mocked(buildEvolveproInput).mockReturnValueOnce(request.promise);
+    vi.mocked(detectMeasurementSource).mockResolvedValue(detection(["confirmationVariantLabels"]));
+    renderPanel();
+    await build();
+    await chooseAdditional();
+    await screen.findByText("Detected: Well / variant labels");
+    await act(async () => {
+      if (outcome === "success") request.resolve(RESULT);
+      else request.reject(new Error(LABEL_SWAP_MESSAGE));
+    });
+    expect(screen.queryByRole("heading", { name: "Build result" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: "Allow reviewed label mismatch" })).not.toBeInTheDocument();
+    expect(mockSetBuildEvolveproCompletion.mock.calls.every(([completion]) => completion === null)).toBe(true);
+  });
+});
+
+it("ignores an additional detection when the active round changes", async () => {
+  const request = deferred<DetectMeasurementSourceResult>();
+  seed(readyForm());
+  vi.mocked(detectMeasurementSource).mockReturnValueOnce(request.promise);
+  renderPanel();
+  await chooseAdditional();
+  await act(async () => useRoundStore.setState({ active_round_id: "next-round" }));
+  await act(async () => request.resolve(detection(["confirmationVariantLabels"])));
+  expect(screen.getByRole("textbox", { name: ADDITIONAL_LABEL })).toHaveValue("");
+  expect(loadBuildEvolveproFromStorage(PROJECT).confirmationSource).toBe("none");
 });

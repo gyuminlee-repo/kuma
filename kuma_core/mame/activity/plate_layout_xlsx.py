@@ -15,6 +15,8 @@ from pathlib import Path
 
 import python_calamine
 
+from .constants import WT_PATTERN
+
 logger = logging.getLogger(__name__)
 
 # Regex for valid well position on a 96-well plate: row A-H, column 1-12.
@@ -23,7 +25,7 @@ logger = logging.getLogger(__name__)
 # everything up to A99. Those are not wells, and _normalise_well turned A0 into
 # A00, so a typo became a plate address that no plate has and that nothing
 # downstream could match back to a sample.
-_WELL_RE = re.compile(r"^[A-H](?:0?[1-9]|1[0-2])$")
+_WELL_RE = re.compile(r"^[A-H](?:0?[1-9]|1[0-2])$", re.IGNORECASE)
 
 _WT_LITERAL = "WT"
 
@@ -65,9 +67,11 @@ def _normalise_well(raw: str) -> str:
     """Normalise well position to letter + zero-padded 2-digit column.
 
     'H9' → 'H09', 'A12' stays 'A12'.
-    Caller must validate raw before calling.
+    Validate before conversion, including callers outside the layout reader.
     """
-    return f"{raw[0]}{int(raw[1:]):02d}"
+    if _WELL_RE.fullmatch(raw) is None:
+        raise ValueError(f"invalid 96-well coordinate: {raw!r}")
+    return f"{raw[0].upper()}{int(raw[1:]):02d}"
 
 
 def parse_plate_layout_xlsx(
@@ -105,7 +109,7 @@ def parse_plate_layout_xlsx(
         both formats.
 
     Well position validation:
-        Each well value must match [A-H][0-9]{1,2}. Non-matching
+        Each well value must have row A-H and column 1-12 (case-insensitive). Non-matching
         values raise ValueError with the offending row information.
 
     Args:
@@ -177,6 +181,7 @@ def parse_plate_layout_xlsx(
 
     # --- Data rows ---
     entries: list[PlateLayoutEntry] = []
+    identity_by_well: dict[str, str] = {}
     for row_idx, row in enumerate(rows[1:], start=2):  # 1-based for error msg
         # Extend row if shorter than expected (calamine may omit trailing empty).
         while len(row) <= max(label_col, position_col):
@@ -194,17 +199,23 @@ def parse_plate_layout_xlsx(
             raise ValueError(
                 f"parse_plate_layout_xlsx: invalid Well Pos. {raw_well!r} "
                 f"at row {row_idx} in {resolved}. "
-                "Expected pattern [A-H][0-9]{1,2} (e.g. 'H12')."
+                "Expected row A-H and column 1-12 (e.g. 'H12')."
             )
 
         well_id = _normalise_well(raw_well)
         sample_name = _strip_replicate_suffix(raw_mutant)
+        is_wt = WT_PATTERN.fullmatch(sample_name) is not None
+        identity = "WT" if is_wt else sample_name
+        # Validate occupancy before dropping controls, blanks or labels a later
+        # consumer cannot decode. Otherwise a later mutant silently occupies a
+        # well the same sheet also declares as WT/empty/a different mutation.
+        if well_id in identity_by_well and identity_by_well[well_id] != identity:
+            raise ValueError(f"plate layout well {well_id!r} has conflicting sample identities")
+        identity_by_well[well_id] = identity
 
         if sample_name.lower() == _BLANK_LITERAL:
             # Empty well marker; carries no mutant.
             continue
-
-        is_wt = sample_name.upper() == _WT_LITERAL
 
         entries.append(
             PlateLayoutEntry(

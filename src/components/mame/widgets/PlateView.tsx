@@ -114,14 +114,23 @@ export function PlateView({ wellColorOf, wells: externalWells, expanded, onToggl
 
   return (
     <div className={autoHeight ? "flex flex-col" : "flex h-full min-h-0 flex-col overflow-hidden"}>
-      <div className="flex items-center justify-between border-b border-border px-3 py-1.5">
-        <div className="flex items-center gap-2 text-caption text-muted-foreground">
-          <span>
-            {t("mame.plateView.plate")}:{" "}
-            <span className="font-medium text-foreground">
-              {getSelectedPlateLabel(selectedWell?.native_barcode ?? null)}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-1.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-2 text-caption text-muted-foreground">
+          <div className="min-w-0">
+            <span data-testid="composite-plate-label" className="inline-block rounded-full border border-border/70 bg-muted px-2 py-0.5 font-medium text-foreground">
+              {t("mame.plateView.finalCompositePlate")}
             </span>
-          </span>
+            {selectedWell && (
+              <p data-testid="selected-well-source" className="mt-0.5 break-words text-caption text-muted-foreground">
+                {t("mame.plateView.selectedWellSource", {
+                  well: selectedWell.well,
+                  barcode: selectedWell.native_barcode?.trim()
+                    ? nbLabel(selectedWell.native_barcode)
+                    : t("mame.plateView.sourceUnknown"),
+                })}
+              </p>
+            )}
+          </div>
           <span className="rounded-full border border-border/70 bg-muted px-2 py-0.5 text-caption font-medium text-muted-foreground">
             {t("mame.plateView.wells", { count: filledCount })}
           </span>

@@ -92,7 +92,7 @@ def test_an_even_distribution_is_clean_rather_than_unjudgeable() -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("well", ["A1", "A01", "A12", "H12", "H1", "B09"])
+@pytest.mark.parametrize("well", ["A1", "A01", "A12", "H12", "H1", "B09", "a1", "h12"])
 def test_real_wells_are_accepted(well: str) -> None:
     assert _WELL_RE.match(well)
 
@@ -108,10 +108,10 @@ def test_addresses_no_plate_has_are_refused(well: str) -> None:
     assert not _WELL_RE.match(well)
 
 
-@pytest.mark.parametrize("well", ["I1", "Z5", "a1", "1A", "", "A", "AA1"])
+@pytest.mark.parametrize("well", ["I1", "Z5", "1A", "", "A", "AA1"])
 def test_malformed_addresses_are_still_refused(well: str) -> None:
     """The row and shape checks the old pattern already made, kept.
 
-    Narrowing the column range must not have widened anything else.
+    Rows remain A-H; case-insensitive spelling is explicitly supported.
     """
     assert not _WELL_RE.match(well)

@@ -16,7 +16,7 @@ export interface BuildEvolveproInputParams {
    * it needs an order source: expected_xlsx or layout_xlsx.
    */
   numeric_report_xlsx?: string | null
-  /** Optional variant-labeled raw Agilent confirmation report. */
+  /** Optional well- or variant-labeled raw Agilent confirmation report (A1, A1-1, S11I-1). Wells use layout_xlsx or verdict_xlsx mapping. */
   remeasure_report_xlsx?: string | null
   /**
    * Optional replicated confirmation whose sample names are numeric positions

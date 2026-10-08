@@ -16,6 +16,7 @@ import {
   HEADER_TOOLTIPS,
   makeResultTableColumns,
 } from "./resultTableColumns";
+import { buildResultWellMap } from "./resultTableWells";
 import { sortPrimersCanonical } from "../../lib/plate-utils";
 import { StateView } from "../ui/StateView";
 import { useColorblindMode } from "../../hooks/useColorblindMode";
@@ -30,6 +31,8 @@ const LazyFailedMutationPopover = lazy(async () => import("./popovers/FailedMuta
 export function ResultTable() {
   const {
     designResults,
+    plateMappings,
+    dedupInfo,
     failedMutations,
     successCount,
     totalCount,
@@ -47,6 +50,8 @@ export function ResultTable() {
   } = useAppStore(
     useShallow((s) => ({
       designResults: s.designResults,
+      plateMappings: s.plateMappings,
+      dedupInfo: s.dedupInfo,
       failedMutations: s.failedMutations,
       successCount: s.successCount,
       totalCount: s.totalCount,
@@ -106,6 +111,14 @@ export function ResultTable() {
     return new Map<SdmPrimerResult, number>(sorted.map((r, i) => [r, i]));
   }, [designResults, sorting, yPredMap, customCandidatesAll]);
 
+  const exportWells = useMemo(
+    () => buildResultWellMap(designResults, plateMappings, dedupInfo, sorting, {
+      yPredMap,
+      customCandidates: customCandidatesAll,
+    }),
+    [designResults, plateMappings, dedupInfo, sorting, yPredMap, customCandidatesAll],
+  );
+
   const columns = useMemo(
     () =>
       makeResultTableColumns({
@@ -118,6 +131,7 @@ export function ResultTable() {
         removeDesignResult,
         yPredMap,
         canonicalOrder,
+        exportWells,
         colorblindMode,
         t,
       }),
@@ -131,6 +145,7 @@ export function ResultTable() {
       removeDesignResult,
       yPredMap,
       canonicalOrder,
+      exportWells,
       colorblindMode,
       t,
     ],

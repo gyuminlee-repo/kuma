@@ -18,6 +18,12 @@ vi.mock("@/lib/ipc-kuro", () => ({
 vi.mock("./ExportFormatSelector", () => ({
   ExportFormatSelector: () => <div data-testid="export-format-selector" />,
 }));
+vi.mock("./ExportAction", () => ({
+  ExportAction: () => <div data-testid="export-action" />,
+}));
+vi.mock("@/components/widgets/ExportPlatePreview", () => ({
+  ExportPlatePreview: () => <div data-testid="export-plate-preview" />,
+}));
 vi.mock("./OrderSummary", () => ({
   OrderSummary: () => <div data-testid="order-summary" />,
 }));
@@ -39,6 +45,15 @@ describe("ExportStepView", () => {
     render(<ExportStepView />);
     expect(screen.getByTestId("export-format-selector")).toBeTruthy();
     expect(screen.getByTestId("order-summary")).toBeTruthy();
+  });
+
+  it("places the export action after options, plate preview, and order summary", () => {
+    render(<ExportStepView />);
+    const ids = ["export-format-selector", "export-plate-preview", "order-summary", "export-action"];
+    for (let index = 0; index < ids.length - 1; index++) {
+      expect(screen.getByTestId(ids[index]).compareDocumentPosition(screen.getByTestId(ids[index + 1])))
+        .toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    }
   });
 
   it("Back 버튼 클릭 시 goToPrevStep이 호출된다", async () => {

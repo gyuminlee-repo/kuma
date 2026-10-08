@@ -33,6 +33,7 @@ EXPECTED_IDS = {
     "numericReport",
     "confirmationVariantLabels",
     "confirmationNumericIds",
+    "confirmationWellLabels",
     "plateLayout",
     "expectedMutations",
     "customBarcodes",
@@ -49,6 +50,7 @@ EXPECTED_HIGHLIGHTS = {
     "numericReport": "1",
     "confirmationVariantLabels": "65A",
     "confirmationNumericIds": "1-2",
+    "confirmationWellLabels": "A1-1",
 }
 
 #: Previews shown as the top of a flat sheet, header row included.
@@ -133,8 +135,11 @@ def test_block_formats_are_told_apart_by_the_highlighted_cell(
     wt_windows = {
         json.dumps(checked_in[preview_id]["windows"][0])
         for preview_id in EXPECTED_HIGHLIGHTS
+        if preview_id != "confirmationWellLabels"
     }
     assert len(wt_windows) == 1
+    # The new well-label example deliberately demonstrates a bare WT control.
+    assert checked_in["confirmationWellLabels"]["windows"][0]["rows"][2][1] == "WT"
 
 
 def test_flat_formats_have_one_window_and_no_highlight(checked_in: dict[str, Any]) -> None:

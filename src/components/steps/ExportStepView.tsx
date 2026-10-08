@@ -14,6 +14,7 @@
 import { useAppStore } from "@/store/appStore";
 import { WizardContainer } from "./WizardContainer";
 import { ExportFormatSelector } from "./ExportFormatSelector";
+import { ExportAction } from "./ExportAction";
 import { OrderSummary } from "./OrderSummary";
 import { ExportPlatePreview } from "@/components/widgets/ExportPlatePreview";
 import { KURO_STEP_INDEX, TOTAL_KURO_STEPS } from "./constants";
@@ -35,6 +36,7 @@ export function ExportStepView() {
         <ExportFormatSelector />
         <ExportPlatePreview />
         <OrderSummary />
+        <ExportAction />
       </div>
     </WizardContainer>
   );
