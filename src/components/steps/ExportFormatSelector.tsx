@@ -1,36 +1,28 @@
 /**
- * ExportFormatSelector — Export All (Macrogen) single-form export.
+ * ExportFormatSelector — options for the Macrogen export package.
  *
  * [source: spec §5 — "export.format: Export All single button"]
  *
- * Replaces the legacy two-section (IDT/Twist order + Plate Mapping) UI
- * with a single Export All form that calls handleExportAll(), which
- * invokes the kuro sidecar `export_all` RPC.
+ * ExportAction reads these persisted options after the plate preview and
+ * order summary, then invokes the existing export_all handler.
  *
  * Forward and reverse plate names are required before exporting.
  * Amount is either 0.05 or 0.2 μmole (Macrogen MOPC purification).
  * Echo and JANUS transfer volumes are independent fields.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
 import { Info } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { handleExportAll } from "@/components/layout/export-handlers";
 import { PlateQuadrantPicker } from "@/components/widgets/PlateQuadrantPicker";
-import { useKumaProject } from "@/state/projectContext";
 import { useAppStore } from "@/store/appStore";
 import type { AppState } from "@/store/appStore";
-import { validateExportAll } from "@/store/validation";
-import { localeIsKorean } from "@/lib/localeUtils";
 import { MAX_MUTATIONS_PER_RUN } from "@/lib/inputThresholds";
 import { useExportRounds } from "@/hooks/useExportRounds";
 import {
   ECHO_QUADRANTS,
-  echoPlacementIssue,
   HALF_LAYOUT_VERSION,
   QUADRANT_RESTORE_VERSION,
   quadrantColumnOffset,
@@ -39,21 +31,18 @@ import {
   pickAt,
   plateOptionCount,
   roundPickIssue,
-  usedBeforeRound,
   type PlateRound,
   type RoundPick,
 } from "@/lib/plateRounds";
 import type { EchoQuadrant } from "@/types/models";
-const PLATE_NAME_RE = /^[A-Za-z0-9_-]{1,20}$/;
-const PROJECT_NAME_RE = /^[A-Za-z0-9가-힣_\-]{0,40}$/;
+import { PLATE_NAME_RE, PROJECT_NAME_RE, ROUND_ISSUE_KEYS } from "./exportSettings";
 const ECHO_RANGE = { min: 25, max: 500, step: 1, unit: "nL" } as const;
 const JANUS_RANGE = { min: 0.5, max: 10, step: 0.1, unit: "μL" } as const;
 
 export function ExportFormatSelector() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const tx = (key: string, fallback: string, vars?: Record<string, unknown>) =>
     t(key, { defaultValue: fallback, ...vars });
-  const project = useKumaProject();
   const echoVol = useAppStore((s: AppState) => s.echoTransferVol);
   const echoQuadrant = useAppStore((s: AppState) => s.echoQuadrant);
   const setEchoQuadrant = useAppStore((s: AppState) => s.setEchoQuadrant);
@@ -87,92 +76,7 @@ export function ExportFormatSelector() {
   const nameGroups = roundMode
     ? rounds.map((round) => ({ key: round.label, count: round.to - round.from + 1 }))
     : [{ key: "single", count: wellCount }];
-  const bom = useMemo(() => localeIsKorean(), [i18n.language]);
-  const [running, setRunning] = useState(false);
-
-  // PI 2026-05-15 (Item 2): plate name 빈칸 시각 표시는 유지하되 버튼은
-  // 클릭 가능하다. 클릭 순간 toast.warning로 누락 항목을 안내한다. running 은
-  // 여전히 hard disable (액션 불가 상태).
   const projectNameValid = PROJECT_NAME_RE.test(projectName);
-  // Past one plate the selection is exported as rounds of one plate each,
-  // however many that takes (`useExportRounds`). The split happens at the
-  // design-to-mappings boundary, so export_all only ever receives one plate
-  // per call.
-  const canExport = !running && projectNameValid;
-
-  // 사이드카가 거부하는 두 조합은 여기서 먼저 막는다. 넘기면 돌아오는 것은
-  // 개발자용 영어 문장이고, 작업자가 할 일(round 고르기 또는 소진 표시 해제)은
-  // 거기 없다.
-  const placementIssue = echoPlacementIssue(echoQuadrant, echoUsedQuadrants);
-
-  const onExport = async (roundIndex?: number) => {
-    const round = roundIndex === undefined ? undefined : rounds[roundIndex];
-    const { fwd: fwdPlate = "", rvs: rvsPlate = "" } = plateNames[round?.label ?? "single"] ?? {};
-    // A round carries its own source plate and parity, picked on its own row
-    // below, and starts from the earlier rounds on the same plate plus, on
-    // plate 1, the parities marked as spent. Outside rounds the single picker
-    // and its used-round checkboxes apply as before.
-    const pick = round ? pickAt(roundPicks, roundIndex!) : undefined;
-    const quadrant = pick ? pick.quadrant : echoQuadrant;
-    const usedQuadrants = round
-      ? usedBeforeRound(roundPicks, roundIndex!, echoUsedQuadrants)
-      : echoUsedQuadrants;
-    if (!round && placementIssue !== null) {
-      toast.warning(t("validation.actionBlockedTitle"), {
-        description: t(`phaseC.export.all.placementBlocked.${placementIssue}`),
-      });
-      return;
-    }
-    const roundIssue = round ? roundPickIssue(roundPicks, roundIndex!, echoUsedQuadrants) : null;
-    if (roundIssue !== null) {
-      toast.warning(t("validation.actionBlockedTitle"), {
-        description: t(ROUND_ISSUE_KEYS[roundIssue]),
-      });
-      return;
-    }
-    const check = validateExportAll({
-      fwdPlate,
-      rvsPlate,
-      wellCount,
-      plateNameRe: PLATE_NAME_RE,
-    });
-    if (!check.ok) {
-      toast.warning(t("validation.actionBlockedTitle"), {
-        description: check.missing.map((k) => t(k)).join("\n"),
-      });
-      return;
-    }
-    setRunning(true);
-    try {
-      await handleExportAll({
-        projectId: project?.project_id,
-        projectPath: project?.path,
-        projectName: projectName || undefined,
-        fwdPlateName: fwdPlate || undefined,
-        rvsPlateName: rvsPlate || undefined,
-        amount,
-        echoTransferVol: echoVol,
-        janusTransferVol: janusVol,
-        bom,
-        quadrant,
-        usedQuadrants,
-        vectormaps,
-        ...(round
-          ? {
-              round: {
-                label: round.label,
-                sourcePlate: pick!.plate!,
-                mappings: round.mappings,
-                dedupInfo: round.dedupInfo,
-              },
-            }
-          : {}),
-      });
-      // toast surfacing handled inside handleExportAll
-    } finally {
-      setRunning(false);
-    }
-  };
 
   return (
     <section
@@ -332,7 +236,7 @@ export function ExportFormatSelector() {
         <span className="text-caption text-muted-foreground block">
           {tx(
             "phaseC.export.all.orderVendorHint",
-            "Included in Export all as a timestamp-prefixed Macrogen .xls file.",
+            "Included in the export as a timestamp-prefixed Macrogen .xls file.",
           )}
         </span>
       </div>
@@ -466,45 +370,9 @@ export function ExportFormatSelector() {
           )}
         </span>
       </div>
-
-      {roundMode ? (
-        <div className="flex flex-wrap gap-2">
-          {rounds.map((round, index) => {
-            const ready = roundPickIssue(roundPicks, index, echoUsedQuadrants) === null;
-            return (
-              <Button
-                key={round.label}
-                className="w-fit"
-                disabled={!canExport || !ready}
-                onClick={() => void onExport(index)}
-              >
-                {running
-                  ? t("common.loading")
-                  : t("phaseC.export.all.rounds.export", { round: index + 1 })}
-              </Button>
-            );
-          })}
-        </div>
-      ) : (
-        <Button
-          className="w-fit"
-          disabled={!canExport}
-          onClick={() => void onExport()}
-        >
-          {running ? t("common.loading") : tx("phaseC.export.all.runExport", "Export all")}
-        </Button>
-      )}
     </section>
   );
 }
-
-/** Message for each reason a round cannot be exported yet. */
-const ROUND_ISSUE_KEYS = {
-  plateUnpicked: "phaseC.export.all.rounds.choosePlate",
-  quadrantUnpicked: "phaseC.export.all.rounds.chooseFirst",
-  duplicate: "phaseC.export.all.rounds.duplicate",
-  quadrantAlreadyUsed: "phaseC.export.all.placementBlocked.quadrantAlreadyUsed",
-} as const;
 
 /**
  * One source-plate and one column-parity choice per export round, with no

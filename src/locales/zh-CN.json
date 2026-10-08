@@ -530,7 +530,10 @@
       "expand": "放大",
       "collapse": "缩小",
       "expandAriaLabel": "切换孔板视图放大",
-      "expandedRegionAriaLabel": "已放大的孔板视图"
+      "expandedRegionAriaLabel": "已放大的孔板视图",
+      "finalCompositePlate": "最终合成板",
+      "selectedWellSource": "所选孔 {{well}} · 来源：{{barcode}}",
+      "sourceUnknown": "未知"
     },
     "drawer": {
       "stat": {
@@ -978,9 +981,9 @@
         "inspectorReads": "Reads",
         "inspectorReason": "Reason",
         "inspectorNoWellSelected": "Click a well to inspect",
-        "clusterAlertTitle": "Cluster failure detected",
-        "clusterAlertDesc": "{{wells}} — adjacent wells failed simultaneously. This may indicate a pipetting issue.",
-        "clusterAlertAriaLabel": "Plate cluster failure alert"
+        "clusterAlertTitle": "相邻孔的测序深度低 / 无法判定",
+        "clusterAlertDesc": "{{barcode}} 中的 {{wells}} 测序深度低或无法判定。请检查移液记录；仅凭此模式无法确定原因。",
+        "clusterAlertAriaLabel": "测序深度低或无法判定的相邻孔"
       },
       "review": {
         "contextTitle": "Sequencing QC — Review",
@@ -1034,6 +1037,20 @@
         "sharing": {
           "shared_across_replicates": "意外的 read 在各板副本中重复出现。",
           "single_replicate": "意外的 read 只出现在一个板副本中。"
+        },
+        "reason": {
+          "no_demux_matrix": "未生成解复用矩阵，因此无法将读段分配到条形码组合。",
+          "no_occupied_wells": "本次运行未指定占用孔，因此无法识别未占用的条形码组合。",
+          "all_indices_used": "占用孔使用了所有反向和正向条形码索引，因此没有可供测量的未使用索引。",
+          "all_wells_occupied": "该批次占用了所有孔，因此没有未占用孔可用于测量意外流入的读段。",
+          "no_coverage_reads": "没有读段通过覆盖度筛选并进入条形码匹配，因此无法测量匹配歧义。",
+          "no_assigned_reads": "没有读段被分配到孔，因此没有计算嵌合体比例所需的分母。",
+          "pooled_leak_scope": "读段已合并到同一块板，因此无法比较重复板之间的泄漏分布。",
+          "single_replicate_leak_scope": "仅评估了一个板副本，因此无法比较重复板之间的泄漏分布。",
+          "no_leak_reads": "本批次所用索引的未占用组合中没有读段，因此没有可供比较的孔间泄漏。",
+          "pooled_yield_scope": "读段已合并到同一块板，因此没有第二个副本可供比较产量。",
+          "single_replicate_yield_scope": "仅评估了一个板副本，因此没有第二个副本可供比较产量。",
+          "no_plate_yield": "所有板副本均未分配到读段，因此没有可供比较的产量。"
         }
       },
       "legacySampleMap": {
@@ -1204,7 +1221,7 @@
       }
     },
     "buildEvolvepro": {
-      "title": "生成 EVOLVEpro 输入",
+      "title": "转换 EVOLVEpro 输入文件",
       "subtitle": "Convert this round's activity measurements into an NGS-qualified EVOLVEpro [Variant, activity] input.",
       "routeNote": "Every measurement format uses the same NGS verdict, normalization, replicate merge, and EVOLVEpro export pipeline.",
       "inputFiles": "输入文件",
@@ -1228,13 +1245,13 @@
       "gcDataXlsxHelper": "Pre-normalized relative activity per well (Sample Name, Area columns).",
       "round1ReportXlsx": "Raw Agilent report xlsx",
       "round1ReportXlsxHelper": "Raw Agilent FID1B report with well positions and WT blocks.",
-      "confirmationSourceLabel": "Optional confirmation",
+      "confirmationSourceLabel": "附加测量格式",
       "confirmationSourceNone": "None",
       "confirmationSourceNoneHelper": "Use the primary measurement value for every NGS-qualified variant.",
-      "confirmationSourceVariantLabels": "Variant-labeled Agilent report",
-      "confirmationSourceVariantLabelsHelper": "Optional raw Agilent report whose sample names are variant labels. Its independently WT-normalized replicate means override matching primary values.",
-      "remeasureReportXlsx": "Confirmation report xlsx (variant-labeled)",
-      "remeasureReportXlsxHelper": "Raw Agilent report with variant-labeled samples and WT rows; numeric or rank-derived labels are not supported.",
+      "confirmationSourceVariantLabels": "孔位 / 变体标签",
+      "confirmationSourceVariantLabelsHelper": "包含孔位标签（A1, A1-1）或变体标签（S11I, S11I-1）以及 WT 行的原始 Agilent 报告。孔位标签通过布局或 NGS 判定映射；重复测量的均值经独立 WT 归一化后替换对应的初次测量值。",
+      "remeasureReportXlsx": "确认测量报告 xlsx（孔位 / 变体标签）",
+      "remeasureReportXlsxHelper": "包含孔位或变体样品标签以及 WT 行的原始 Agilent 报告。数字位置编号需要明确选择数字 ID 格式。",
       "verdictXlsx": "NGS verdict xlsx",
       "verdictXlsxHelper": "Required Analyze verdict evidence for this round. Only explicit PASS rows that are neither failed nor fallback are exported.",
       "outputXlsx": "输出 EVOLVEpro xlsx",
@@ -1248,7 +1265,7 @@
       "build": "生成 EVOLVEpro 输入",
       "building": "生成中...",
       "resultTitle": "生成结果",
-      "emptyState": "Select one measurement format, the required NGS verdict, and an output path.",
+      "emptyState": "请选择实验数据文件、必需的 NGS 判定和输出路径。如有确认测量文件，请一并添加。",
       "nVariants": "已写入的 variant",
       "nAuthoritative": "Confirmation overrides",
       "nFallbackOnly": "Primary values",
@@ -1285,7 +1302,7 @@
       "mismatchThreshold": "不匹配阈值",
       "mismatchThresholdHelper": "标记不匹配并在审核前阻止导出的绝对活性差值。必须大于零。",
       "changeFile": "更改",
-      "measurementFile": "测量文件",
+      "measurementFile": "实验数据文件",
       "measurementFileHelper": "请先选择文件。格式将从文件内容中读取。支持 csv、xlsx 和 xls。",
       "detectingFormat": "正在读取文件以判别格式...",
       "detectedFormat": "已检测: {{format}}",
@@ -1308,7 +1325,22 @@
         "requiredColumnsNote": "应用未附带该文件的示例，因此列出必须包含的列而非数据行。列名须完全一致。"
       },
       "numericPrimaryNote": "ID i 表示按设计清单顺序对整块板编号后的第 i 个变体。",
-      "numericConfirmationNote": "ID j 只对初筛中高于野生型的变体按同一板序编号，并对每个变体重新测定。"
+      "numericConfirmationNote": "ID j 只对初筛中高于野生型的变体按同一板序编号，并对每个变体重新测定。",
+      "additionalMeasurementFile": "附加实验数据文件（可选）",
+      "additionalMeasurementFileHelper": "添加确认测量后，将在独立进行 WT 归一化后替换对应的初次测量值。格式从文件中读取。",
+      "ambiguityWellRound": "同一份带孔位标签的报告既可用作初次实验，也可用作附加确认测量。请选择其用途；确认测量值会替换对应的初次测量值。",
+      "primaryOnlyFile": "此文件符合初次实验格式。请将其用作实验数据文件，或手动选择附加测量格式。",
+      "useAsPrimary": "用作实验数据：{{format}}",
+      "chooseFormatManually": "手动选择格式",
+      "clearAdditionalMeasurement": "移除附加文件",
+      "detectionSummaryLabel": "文件识别摘要",
+      "detectedSampleRows": "样品行：{{value}}",
+      "detectedRecognizedRows": "已识别标签：{{value}} 行",
+      "detectedSkippedRows": "已跳过行：{{value}}",
+      "detectedUniqueLabels": "不重复的样品标签：{{value}}",
+      "confirmationWellPreview": "孔位标签",
+      "confirmationVariantPreview": "变体标签",
+      "detectedControlRows": "WT 对照行：{{value}}"
     },
     "verdictBadge": {
       "help": {
@@ -3247,7 +3279,9 @@
     "includeAriaLabel": "Include {{mutation}} in downstream outputs",
     "includeTitle": "Include this row in plate map and exports",
     "excludeTitle": "Exclude this row from plate map and exports",
-    "excludedRowAriaLabel": "{{mutation}} is excluded from downstream outputs"
+    "excludedRowAriaLabel": "{{mutation}} is excluded from downstream outputs",
+    "well": "孔位",
+    "wellHint": "当前导出布局中的正向引物孔位。排序会改变导出顺序；R1、R2 等表示独立的导出轮次。"
   },
   "mameSidebar": {
     "runStateLabel": "Run 状态",
@@ -3429,9 +3463,9 @@
       },
       "all": {
         "heading": "Export Package",
-        "runExport": "Export all",
+        "runExport": "导出",
         "orderVendor": "Order vendor",
-        "orderVendorHint": "Included in Export all as a timestamp-prefixed Macrogen .xls file.",
+        "orderVendorHint": "导出内容包含以时间戳为前缀的 Macrogen .xls 文件。",
         "amountLabel": "Amount",
         "purificationLabel": "Purification",
         "purificationTooltip": "MOPC (Macrogen Oligo Purification Cartridge): Macrogen's standard purification method, not changeable.",
@@ -3478,7 +3512,8 @@
         "janusVolLabel": "JANUS 转移体积",
         "ruleHint": "正向和反向引物板的名称均为必填项。",
         "vectormapsLabel": "同时导出每个克隆的 GenBank 载体图谱",
-        "vectormapsHint": "每个孔写出一个 .gb 文件，即标注了该克隆突变的亲本载体，保存在导出文件夹旁以 {{folder}} 结尾的文件夹中。需要 GenBank 或 SnapGene 参考序列。"
+        "vectormapsHint": "每个孔写出一个 .gb 文件，即标注了该克隆突变的亲本载体，保存在导出文件夹旁以 {{folder}} 结尾的文件夹中。需要 GenBank 或 SnapGene 参考序列。",
+        "exportError": "导出失败"
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",

@@ -530,7 +530,10 @@
       "expand": "Vergrößern",
       "collapse": "Verkleinern",
       "expandAriaLabel": "Vergrößerte Plattenansicht umschalten",
-      "expandedRegionAriaLabel": "Vergrößerte Plattenansicht"
+      "expandedRegionAriaLabel": "Vergrößerte Plattenansicht",
+      "finalCompositePlate": "Endgültige zusammengeführte Platte",
+      "selectedWellSource": "Ausgewähltes Well {{well}} · Quelle: {{barcode}}",
+      "sourceUnknown": "Unbekannt"
     },
     "drawer": {
       "stat": {
@@ -978,9 +981,9 @@
         "inspectorReads": "Reads",
         "inspectorReason": "Reason",
         "inspectorNoWellSelected": "Click a well to inspect",
-        "clusterAlertTitle": "Cluster failure detected",
-        "clusterAlertDesc": "{{wells}} — adjacent wells failed simultaneously. This may indicate a pipetting issue.",
-        "clusterAlertAriaLabel": "Plate cluster failure alert"
+        "clusterAlertTitle": "Benachbarte Wells mit geringer Lesetiefe / nicht bestimmbar",
+        "clusterAlertDesc": "Auf {{barcode}} weisen {{wells}} eine geringe Lesetiefe oder keinen auswertbaren Befund auf. Prüfen Sie den Pipettierverlauf; dieses Muster allein lässt keinen Schluss auf die Ursache zu.",
+        "clusterAlertAriaLabel": "Benachbarte Wells mit geringer Lesetiefe oder ohne auswertbaren Befund"
       },
       "review": {
         "contextTitle": "Sequencing QC — Review",
@@ -1034,6 +1037,20 @@
         "sharing": {
           "shared_across_replicates": "Die verirrten Reads wiederholen sich über die Plattenkopien hinweg.",
           "single_replicate": "Die verirrten Reads liegen in einer einzigen Plattenkopie."
+        },
+        "reason": {
+          "no_demux_matrix": "Es wurde keine Demultiplexing-Matrix erstellt, daher können Reads keinen Barcode-Kombinationen zugeordnet werden.",
+          "no_occupied_wells": "Für diesen Lauf sind keine belegten Wells angegeben, daher lassen sich unbelegte Barcode-Kombinationen nicht bestimmen.",
+          "all_indices_used": "Die belegten Wells nutzen sämtliche Reverse- und Forward-Barcode-Indizes, sodass kein ungenutzter Index für eine Messung verbleibt.",
+          "all_wells_occupied": "Die Kampagne belegt alle Wells, sodass kein unbelegtes Well zur Messung verirrter Reads verbleibt.",
+          "no_coverage_reads": "Kein Read hat die Coverage-Prüfung bestanden und den Barcode-Abgleich erreicht, daher konnte die Mehrdeutigkeit nicht gemessen werden.",
+          "no_assigned_reads": "Es wurden keine Reads Wells zugeordnet, daher fehlt der Nenner für die Chimärenrate.",
+          "pooled_leak_scope": "Die Reads wurden auf einer Platte zusammengeführt, daher lässt sich die Verteilung von Leckagen über Replikate hinweg nicht vergleichen.",
+          "single_replicate_leak_scope": "Es wurde nur eine Plattenkopie ausgewertet, daher lässt sich die Verteilung von Leckagen über Replikate hinweg nicht vergleichen.",
+          "no_leak_reads": "Auf unbelegten Kombinationen der in dieser Kampagne verwendeten Indizes wurden keine Reads gefunden, daher gibt es keine Leckage zwischen Wells zu vergleichen.",
+          "pooled_yield_scope": "Die Reads wurden auf einer Platte zusammengeführt, daher gibt es keine zweite Kopie für einen Ausbeutevergleich.",
+          "single_replicate_yield_scope": "Es wurde nur eine Plattenkopie ausgewertet, daher gibt es keine zweite Kopie für einen Ausbeutevergleich.",
+          "no_plate_yield": "Keiner Plattenkopie wurden Reads zugeordnet, daher gibt es keine Ausbeute zu vergleichen."
         }
       },
       "legacySampleMap": {
@@ -1204,7 +1221,7 @@
       }
     },
     "buildEvolvepro": {
-      "title": "EVOLVEpro-Eingabe erstellen",
+      "title": "EVOLVEpro-Eingabedatei konvertieren",
       "subtitle": "Convert this round's activity measurements into an NGS-qualified EVOLVEpro [Variant, activity] input.",
       "routeNote": "Every measurement format uses the same NGS verdict, normalization, replicate merge, and EVOLVEpro export pipeline.",
       "inputFiles": "Eingabedateien",
@@ -1228,13 +1245,13 @@
       "gcDataXlsxHelper": "Pre-normalized relative activity per well (Sample Name, Area columns).",
       "round1ReportXlsx": "Raw Agilent report xlsx",
       "round1ReportXlsxHelper": "Raw Agilent FID1B report with well positions and WT blocks.",
-      "confirmationSourceLabel": "Optional confirmation",
+      "confirmationSourceLabel": "Format der zusätzlichen Messung",
       "confirmationSourceNone": "None",
       "confirmationSourceNoneHelper": "Use the primary measurement value for every NGS-qualified variant.",
-      "confirmationSourceVariantLabels": "Variant-labeled Agilent report",
-      "confirmationSourceVariantLabelsHelper": "Optional raw Agilent report whose sample names are variant labels. Its independently WT-normalized replicate means override matching primary values.",
-      "remeasureReportXlsx": "Confirmation report xlsx (variant-labeled)",
-      "remeasureReportXlsxHelper": "Raw Agilent report with variant-labeled samples and WT rows; numeric or rank-derived labels are not supported.",
+      "confirmationSourceVariantLabels": "Well- / Variantenbezeichnungen",
+      "confirmationSourceVariantLabelsHelper": "Agilent-Rohbericht mit Well-Bezeichnungen (A1, A1-1) oder Variantenbezeichnungen (S11I, S11I-1) und WT-Zeilen. Well-Bezeichnungen werden über das Layout oder die NGS-Befunde zugeordnet; Replikatmittelwerte ersetzen nach unabhängiger WT-Normalisierung die passenden Primärwerte.",
+      "remeasureReportXlsx": "Bestätigungsbericht als xlsx (Well- / Variantenbezeichnungen)",
+      "remeasureReportXlsxHelper": "Agilent-Rohbericht mit Well- oder Variantenbezeichnungen für Proben und WT-Zeilen. Numerische Positionen erfordern die ausdrückliche Auswahl des Formats mit numerischen IDs.",
       "verdictXlsx": "NGS verdict xlsx",
       "verdictXlsxHelper": "Required Analyze verdict evidence for this round. Only explicit PASS rows that are neither failed nor fallback are exported.",
       "outputXlsx": "Ausgabe-EVOLVEpro-xlsx",
@@ -1248,7 +1265,7 @@
       "build": "EVOLVEpro-Eingabe erstellen",
       "building": "Wird erstellt...",
       "resultTitle": "Erstellungsergebnis",
-      "emptyState": "Select one measurement format, the required NGS verdict, and an output path.",
+      "emptyState": "Wählen Sie eine Datei mit Experimentdaten, die erforderlichen NGS-Befunde und einen Ausgabepfad. Fügen Sie eine Bestätigungsdatei hinzu, falls vorhanden.",
       "nVariants": "Geschriebene Variant",
       "nAuthoritative": "Confirmation overrides",
       "nFallbackOnly": "Primary values",
@@ -1285,7 +1302,7 @@
       "mismatchThreshold": "Schwelle für Abweichungen",
       "mismatchThresholdHelper": "Absolute Aktivitätsdifferenz, die eine Abweichung markiert und den Export bis zur Prüfung blockiert. Muss größer als null sein.",
       "changeFile": "Ändern",
-      "measurementFile": "Messdatei",
+      "measurementFile": "Datei mit Experimentdaten",
       "measurementFileHelper": "Zuerst die Datei wählen. Das Format wird aus der Datei selbst gelesen. Akzeptiert csv, xlsx und xls.",
       "detectingFormat": "Datei wird gelesen, um das Format zu bestimmen...",
       "detectedFormat": "Erkannt: {{format}}",
@@ -1308,7 +1325,22 @@
         "requiredColumnsNote": "Die App liefert kein Beispiel dieser Datei mit, daher stehen hier die erforderlichen Spalten statt Datenzeilen. Die Namen müssen exakt übereinstimmen."
       },
       "numericPrimaryNote": "ID i ist die i-te Variante der gesamten Platte, nummeriert in der Reihenfolge der Designliste.",
-      "numericConfirmationNote": "ID j nummeriert nur die Varianten, die im Primärscreen über dem Wildtyp lagen, in derselben Plattenreihenfolge, und jede wird erneut gemessen."
+      "numericConfirmationNote": "ID j nummeriert nur die Varianten, die im Primärscreen über dem Wildtyp lagen, in derselben Plattenreihenfolge, und jede wird erneut gemessen.",
+      "additionalMeasurementFile": "Zusätzliche Datei mit Experimentdaten (optional)",
+      "additionalMeasurementFileHelper": "Fügen Sie eine Bestätigungsmessung hinzu, um passende Primärwerte nach unabhängiger WT-Normalisierung zu ersetzen. Das Format wird aus der Datei gelesen.",
+      "ambiguityWellRound": "Derselbe Bericht mit Well-Bezeichnungen kann das primäre Experiment oder eine zusätzliche Bestätigung darstellen. Wählen Sie die Rolle; Bestätigungswerte ersetzen passende Primärwerte.",
+      "primaryOnlyFile": "Diese Datei entspricht einem Format für primäre Experimente. Verwenden Sie sie als Datei mit Experimentdaten oder wählen Sie das zusätzliche Format manuell aus.",
+      "useAsPrimary": "Als Experimentdaten verwenden: {{format}}",
+      "chooseFormatManually": "Format manuell auswählen",
+      "clearAdditionalMeasurement": "Zusätzliche Datei entfernen",
+      "detectionSummaryLabel": "Zusammenfassung der Dateierkennung",
+      "detectedSampleRows": "Probenzeilen: {{value}}",
+      "detectedRecognizedRows": "Erkannte Bezeichnungen: {{value}} Zeilen",
+      "detectedSkippedRows": "Übersprungene Zeilen: {{value}}",
+      "detectedUniqueLabels": "Eindeutige Probenbezeichnungen: {{value}}",
+      "confirmationWellPreview": "Well-Bezeichnungen",
+      "confirmationVariantPreview": "Variantenbezeichnungen",
+      "detectedControlRows": "WT-Kontrollzeilen: {{value}}"
     },
     "verdictBadge": {
       "help": {
@@ -3247,7 +3279,9 @@
     "includeAriaLabel": "Include {{mutation}} in downstream outputs",
     "includeTitle": "Include this row in plate map and exports",
     "excludeTitle": "Exclude this row from plate map and exports",
-    "excludedRowAriaLabel": "{{mutation}} is excluded from downstream outputs"
+    "excludedRowAriaLabel": "{{mutation}} is excluded from downstream outputs",
+    "well": "Well",
+    "wellHint": "Well des Forward-Primers im aktuellen Exportlayout. Die Sortierung ändert die Exportreihenfolge; R1, R2 usw. kennzeichnen separate Exportrunden."
   },
   "mameSidebar": {
     "runStateLabel": "Ausführen state",
@@ -3429,9 +3463,9 @@
       },
       "all": {
         "heading": "Export Package",
-        "runExport": "Export all",
+        "runExport": "Exportieren",
         "orderVendor": "Order vendor",
-        "orderVendorHint": "Included in Export all as a timestamp-prefixed Macrogen .xls file.",
+        "orderVendorHint": "Als Macrogen-.xls-Datei mit vorangestelltem Zeitstempel im Export enthalten.",
         "amountLabel": "Amount",
         "purificationLabel": "Purification",
         "purificationTooltip": "MOPC (Macrogen Oligo Purification Cartridge): Macrogen's standard purification method, not changeable.",
@@ -3478,7 +3512,8 @@
         "janusVolLabel": "JANUS-Transfervolumen",
         "ruleHint": "Die Namen der Forward- und Reverse-Primerplatten sind erforderlich.",
         "vectormapsLabel": "Zusätzlich eine GenBank-Vektorkarte pro Klon exportieren",
-        "vectormapsHint": "Schreibt pro Well eine .gb-Datei, den Ausgangsvektor mit der markierten Mutation dieses Klons, in einen Ordner mit der Endung {{folder}} neben dem Exportordner. Erfordert eine GenBank- oder SnapGene-Referenz."
+        "vectormapsHint": "Schreibt pro Well eine .gb-Datei, den Ausgangsvektor mit der markierten Mutation dieses Klons, in einen Ordner mit der Endung {{folder}} neben dem Exportordner. Erfordert eine GenBank- oder SnapGene-Referenz.",
+        "exportError": "Export fehlgeschlagen"
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",

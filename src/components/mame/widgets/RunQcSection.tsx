@@ -32,6 +32,7 @@
  *    `ratioText`. There is no `?? 0` and no `||` on a measurement in this file.
  */
 
+import { ContaminationPanel } from "@/components/mame/widgets/ContaminationPanel";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AdvancedSection } from "@/components/ui/AdvancedSection";
@@ -170,6 +171,7 @@ export function RunQcSection({ runHealth }: { runHealth: RunHealthData | null })
         onToggle={() => setOpen((v) => !v)}
       >
         <div data-testid="run-qc-section" className="flex flex-col gap-3">
+          <ContaminationPanel />
           <QcBlock
             testId="run-qc-health"
             title={t("mame.runHealth.qcHealthTitle")}

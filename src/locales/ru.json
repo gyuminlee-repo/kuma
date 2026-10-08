@@ -530,7 +530,10 @@
       "expand": "Развернуть",
       "collapse": "Свернуть",
       "expandAriaLabel": "Переключить увеличенный вид планшета",
-      "expandedRegionAriaLabel": "Увеличенный вид планшета"
+      "expandedRegionAriaLabel": "Увеличенный вид планшета",
+      "finalCompositePlate": "Итоговый составной планшет",
+      "selectedWellSource": "Выбранная лунка {{well}} · Источник: {{barcode}}",
+      "sourceUnknown": "Неизвестен"
     },
     "drawer": {
       "stat": {
@@ -978,9 +981,9 @@
         "inspectorReads": "Reads",
         "inspectorReason": "Reason",
         "inspectorNoWellSelected": "Click a well to inspect",
-        "clusterAlertTitle": "Cluster failure detected",
-        "clusterAlertDesc": "{{wells}} — adjacent wells failed simultaneously. This may indicate a pipetting issue.",
-        "clusterAlertAriaLabel": "Plate cluster failure alert"
+        "clusterAlertTitle": "Соседние лунки с низкой глубиной / без результата",
+        "clusterAlertDesc": "На {{barcode}} лунки {{wells}} имеют низкую глубину или не дали результата. Проверьте историю пипетирования; сам по себе этот паттерн не устанавливает причину.",
+        "clusterAlertAriaLabel": "Соседние лунки с низкой глубиной или без результата"
       },
       "review": {
         "contextTitle": "Sequencing QC — Review",
@@ -1034,6 +1037,20 @@
         "sharing": {
           "shared_across_replicates": "Заблудившиеся риды повторяются во всех копиях планшета.",
           "single_replicate": "Заблудившиеся риды находятся в одной копии планшета."
+        },
+        "reason": {
+          "no_demux_matrix": "Матрица демультиплексирования не была создана, поэтому риды нельзя распределить по комбинациям штрихкодов.",
+          "no_occupied_wells": "Для этого запуска не указаны занятые лунки, поэтому невозможно определить незанятые комбинации штрихкодов.",
+          "all_indices_used": "Занятые лунки используют все обратные и прямые индексы штрихкодов, поэтому неиспользуемых индексов для измерения не осталось.",
+          "all_wells_occupied": "Кампания занимает все лунки, поэтому нет незанятых лунок для измерения заблудившихся ридов.",
+          "no_coverage_reads": "Ни один рид не прошёл фильтр покрытия и не достиг сопоставления штрихкодов, поэтому неоднозначность не удалось измерить.",
+          "no_assigned_reads": "Ни один рид не был назначен лункам, поэтому отсутствует знаменатель для расчёта доли химер.",
+          "pooled_leak_scope": "Риды были объединены в один планшет, поэтому нельзя сравнить повторяемость утечек между репликами.",
+          "single_replicate_leak_scope": "Была оценена только одна копия планшета, поэтому нельзя сравнить повторяемость утечек между репликами.",
+          "no_leak_reads": "Ни один рид не попал в незанятые комбинации индексов, используемых в этой кампании, поэтому нет утечек между лунками для сравнения.",
+          "pooled_yield_scope": "Риды были объединены в один планшет, поэтому нет второй копии для сравнения выхода.",
+          "single_replicate_yield_scope": "Была оценена только одна копия планшета, поэтому нет второй копии для сравнения выхода.",
+          "no_plate_yield": "Ни одной копии планшета не были назначены риды, поэтому нет выхода для сравнения."
         }
       },
       "legacySampleMap": {
@@ -1204,7 +1221,7 @@
       }
     },
     "buildEvolvepro": {
-      "title": "Создание входных данных EVOLVEpro",
+      "title": "Преобразовать входной файл EVOLVEpro",
       "subtitle": "Convert this round's activity measurements into an NGS-qualified EVOLVEpro [Variant, activity] input.",
       "routeNote": "Every measurement format uses the same NGS verdict, normalization, replicate merge, and EVOLVEpro export pipeline.",
       "inputFiles": "Входные файлы",
@@ -1228,13 +1245,13 @@
       "gcDataXlsxHelper": "Pre-normalized relative activity per well (Sample Name, Area columns).",
       "round1ReportXlsx": "Raw Agilent report xlsx",
       "round1ReportXlsxHelper": "Raw Agilent FID1B report with well positions and WT blocks.",
-      "confirmationSourceLabel": "Optional confirmation",
+      "confirmationSourceLabel": "Формат дополнительного измерения",
       "confirmationSourceNone": "None",
       "confirmationSourceNoneHelper": "Use the primary measurement value for every NGS-qualified variant.",
-      "confirmationSourceVariantLabels": "Variant-labeled Agilent report",
-      "confirmationSourceVariantLabelsHelper": "Optional raw Agilent report whose sample names are variant labels. Its independently WT-normalized replicate means override matching primary values.",
-      "remeasureReportXlsx": "Confirmation report xlsx (variant-labeled)",
-      "remeasureReportXlsxHelper": "Raw Agilent report with variant-labeled samples and WT rows; numeric or rank-derived labels are not supported.",
+      "confirmationSourceVariantLabels": "Метки лунок / вариантов",
+      "confirmationSourceVariantLabelsHelper": "Исходный отчёт Agilent с метками лунок (A1, A1-1) или вариантов (S11I, S11I-1) и строками WT. Метки лунок сопоставляются по раскладке или результатам NGS; средние по повторам заменяют соответствующие первичные значения после независимой нормализации по WT.",
+      "remeasureReportXlsx": "Подтверждающий отчёт xlsx (метки лунок / вариантов)",
+      "remeasureReportXlsxHelper": "Исходный отчёт Agilent с метками образцов по лункам или вариантам и строками WT. Для числовых позиций требуется явно выбрать формат с числовыми ID.",
       "verdictXlsx": "NGS verdict xlsx",
       "verdictXlsxHelper": "Required Analyze verdict evidence for this round. Only explicit PASS rows that are neither failed nor fallback are exported.",
       "outputXlsx": "Выходной xlsx EVOLVEpro",
@@ -1248,7 +1265,7 @@
       "build": "Создать входные данные EVOLVEpro",
       "building": "Создание...",
       "resultTitle": "Результат создания",
-      "emptyState": "Select one measurement format, the required NGS verdict, and an output path.",
+      "emptyState": "Выберите файл данных эксперимента, обязательные результаты NGS и путь вывода. Добавьте подтверждающий файл, если он есть.",
       "nVariants": "Записано Variant",
       "nAuthoritative": "Confirmation overrides",
       "nFallbackOnly": "Primary values",
@@ -1285,7 +1302,7 @@
       "mismatchThreshold": "Порог расхождения",
       "mismatchThresholdHelper": "Абсолютная разница активности, отмечающая расхождение и блокирующая экспорт до проверки. Должна быть больше нуля.",
       "changeFile": "Изменить",
-      "measurementFile": "Файл измерений",
+      "measurementFile": "Файл данных эксперимента",
       "measurementFileHelper": "Сначала выберите файл. Формат читается из самого файла. Принимаются csv, xlsx и xls.",
       "detectingFormat": "Чтение файла для определения формата...",
       "detectedFormat": "Определено: {{format}}",
@@ -1308,7 +1325,22 @@
         "requiredColumnsNote": "Приложение не содержит образца этого файла, поэтому вместо строк перечислены обязательные столбцы. Названия должны совпадать точно."
       },
       "numericPrimaryNote": "ID i обозначает i-й вариант всей плашки, пронумерованной в порядке проектного списка.",
-      "numericConfirmationNote": "ID j нумерует только варианты, превысившие дикий тип в первичном скрининге, в том же порядке плашки, и каждый измеряется повторно."
+      "numericConfirmationNote": "ID j нумерует только варианты, превысившие дикий тип в первичном скрининге, в том же порядке плашки, и каждый измеряется повторно.",
+      "additionalMeasurementFile": "Дополнительный файл данных эксперимента (необязательно)",
+      "additionalMeasurementFileHelper": "Добавьте подтверждающее измерение, чтобы заменить соответствующие первичные значения после независимой нормализации по WT. Формат считывается из файла.",
+      "ambiguityWellRound": "Один и тот же отчёт с метками лунок может быть первичным экспериментом или дополнительным подтверждением. Выберите его роль; подтверждающие значения заменяют соответствующие первичные значения.",
+      "primaryOnlyFile": "Этот файл соответствует формату первичного эксперимента. Используйте его как файл данных эксперимента или выберите дополнительный формат вручную.",
+      "useAsPrimary": "Использовать как данные эксперимента: {{format}}",
+      "chooseFormatManually": "Выбрать формат вручную",
+      "clearAdditionalMeasurement": "Убрать дополнительный файл",
+      "detectionSummaryLabel": "Сводка распознавания файла",
+      "detectedSampleRows": "Строки образцов: {{value}}",
+      "detectedRecognizedRows": "Распознанные метки: {{value}} строк",
+      "detectedSkippedRows": "Пропущенные строки: {{value}}",
+      "detectedUniqueLabels": "Уникальные метки образцов: {{value}}",
+      "confirmationWellPreview": "Метки лунок",
+      "confirmationVariantPreview": "Метки вариантов",
+      "detectedControlRows": "Строки контроля WT: {{value}}"
     },
     "verdictBadge": {
       "help": {
@@ -3247,7 +3279,9 @@
     "includeAriaLabel": "Include {{mutation}} in downstream outputs",
     "includeTitle": "Include this row in plate map and exports",
     "excludeTitle": "Exclude this row from plate map and exports",
-    "excludedRowAriaLabel": "{{mutation}} is excluded from downstream outputs"
+    "excludedRowAriaLabel": "{{mutation}} is excluded from downstream outputs",
+    "well": "Лунка",
+    "wellHint": "Лунка прямого праймера в текущей схеме экспорта. Сортировка меняет порядок экспорта; R1, R2 и т. д. обозначают отдельные раунды экспорта."
   },
   "mameSidebar": {
     "runStateLabel": "Run state",
@@ -3429,9 +3463,9 @@
       },
       "all": {
         "heading": "Export Package",
-        "runExport": "Export all",
+        "runExport": "Экспортировать",
         "orderVendor": "Order vendor",
-        "orderVendorHint": "Included in Export all as a timestamp-prefixed Macrogen .xls file.",
+        "orderVendorHint": "Включается в экспорт как файл Macrogen .xls с меткой времени в начале имени.",
         "amountLabel": "Amount",
         "purificationLabel": "Purification",
         "purificationTooltip": "MOPC (Macrogen Oligo Purification Cartridge): Macrogen's standard purification method, not changeable.",
@@ -3478,7 +3512,8 @@
         "janusVolLabel": "Объём переноса JANUS",
         "ruleHint": "Названия планшетов для прямых и обратных праймеров обязательны.",
         "vectormapsLabel": "Также экспортировать карту вектора GenBank для каждого клона",
-        "vectormapsHint": "Записывает один файл .gb на лунку, родительский вектор с отмеченной мутацией этого клона, в папку с окончанием {{folder}} рядом с папкой экспорта. Требуется референс GenBank или SnapGene."
+        "vectormapsHint": "Записывает один файл .gb на лунку, родительский вектор с отмеченной мутацией этого клона, в папку с окончанием {{folder}} рядом с папкой экспорта. Требуется референс GenBank или SnapGene.",
+        "exportError": "Ошибка экспорта"
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",

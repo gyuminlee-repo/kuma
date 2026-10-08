@@ -530,7 +530,10 @@
       "expand": "Ampliar",
       "collapse": "Reducir",
       "expandAriaLabel": "Alternar vista de placa ampliada",
-      "expandedRegionAriaLabel": "Vista de placa ampliada"
+      "expandedRegionAriaLabel": "Vista de placa ampliada",
+      "finalCompositePlate": "Placa compuesta final",
+      "selectedWellSource": "Pocillo seleccionado {{well}} · Origen: {{barcode}}",
+      "sourceUnknown": "Desconocido"
     },
     "drawer": {
       "stat": {
@@ -978,9 +981,9 @@
         "inspectorReads": "Reads",
         "inspectorReason": "Reason",
         "inspectorNoWellSelected": "Click a well to inspect",
-        "clusterAlertTitle": "Cluster failure detected",
-        "clusterAlertDesc": "{{wells}} — adjacent wells failed simultaneously. This may indicate a pipetting issue.",
-        "clusterAlertAriaLabel": "Plate cluster failure alert"
+        "clusterAlertTitle": "Pocillos adyacentes con baja profundidad / sin resultado",
+        "clusterAlertDesc": "En {{barcode}}, {{wells}} tienen baja profundidad o carecen de resultado. Revise el historial de pipeteo; este patrón por sí solo no permite determinar la causa.",
+        "clusterAlertAriaLabel": "Pocillos adyacentes con baja profundidad o sin resultado"
       },
       "review": {
         "contextTitle": "Sequencing QC — Review",
@@ -1034,6 +1037,20 @@
         "sharing": {
           "shared_across_replicates": "Las lecturas descarriadas se repiten en todas las copias de placa.",
           "single_replicate": "Las lecturas descarriadas están en una sola copia de placa."
+        },
+        "reason": {
+          "no_demux_matrix": "No se generó una matriz de desmultiplexado, por lo que no se pueden asignar las lecturas a combinaciones de códigos de barras.",
+          "no_occupied_wells": "Esta ejecución no especifica pocillos ocupados, por lo que no se pueden identificar las combinaciones de códigos de barras desocupadas.",
+          "all_indices_used": "Los pocillos ocupados utilizan todos los índices de códigos de barras inversos y directos, por lo que no queda ningún índice sin usar que medir.",
+          "all_wells_occupied": "La campaña ocupa todos los pocillos, por lo que no queda ningún pocillo desocupado donde medir lecturas descarriadas.",
+          "no_coverage_reads": "Ninguna lectura superó el filtro de cobertura y llegó a la coincidencia de códigos de barras, por lo que no se pudo medir la ambigüedad.",
+          "no_assigned_reads": "No se asignaron lecturas a los pocillos, por lo que no hay denominador para la tasa de quimeras.",
+          "pooled_leak_scope": "Las lecturas se agruparon en una sola placa, por lo que no se puede comparar la distribución de fugas entre réplicas.",
+          "single_replicate_leak_scope": "Solo se evaluó una copia de placa, por lo que no se puede comparar la distribución de fugas entre réplicas.",
+          "no_leak_reads": "No hubo lecturas en las combinaciones desocupadas de los índices que utiliza esta campaña, por lo que no hay fugas entre pocillos que comparar.",
+          "pooled_yield_scope": "Las lecturas se agruparon en una sola placa, por lo que no hay una segunda copia para comparar el rendimiento.",
+          "single_replicate_yield_scope": "Solo se evaluó una copia de placa, por lo que no hay una segunda copia para comparar el rendimiento.",
+          "no_plate_yield": "No se asignaron lecturas a ninguna copia de placa, por lo que no hay rendimiento que comparar."
         }
       },
       "legacySampleMap": {
@@ -1204,7 +1221,7 @@
       }
     },
     "buildEvolvepro": {
-      "title": "Generar entrada de EVOLVEpro",
+      "title": "Convertir archivo de entrada de EVOLVEpro",
       "subtitle": "Convert this round's activity measurements into an NGS-qualified EVOLVEpro [Variant, activity] input.",
       "routeNote": "Every measurement format uses the same NGS verdict, normalization, replicate merge, and EVOLVEpro export pipeline.",
       "inputFiles": "Archivos de entrada",
@@ -1228,13 +1245,13 @@
       "gcDataXlsxHelper": "Pre-normalized relative activity per well (Sample Name, Area columns).",
       "round1ReportXlsx": "Raw Agilent report xlsx",
       "round1ReportXlsxHelper": "Raw Agilent FID1B report with well positions and WT blocks.",
-      "confirmationSourceLabel": "Optional confirmation",
+      "confirmationSourceLabel": "Formato de la medición adicional",
       "confirmationSourceNone": "None",
       "confirmationSourceNoneHelper": "Use the primary measurement value for every NGS-qualified variant.",
-      "confirmationSourceVariantLabels": "Variant-labeled Agilent report",
-      "confirmationSourceVariantLabelsHelper": "Optional raw Agilent report whose sample names are variant labels. Its independently WT-normalized replicate means override matching primary values.",
-      "remeasureReportXlsx": "Confirmation report xlsx (variant-labeled)",
-      "remeasureReportXlsxHelper": "Raw Agilent report with variant-labeled samples and WT rows; numeric or rank-derived labels are not supported.",
+      "confirmationSourceVariantLabels": "Etiquetas de pocillo / variante",
+      "confirmationSourceVariantLabelsHelper": "Informe sin procesar de Agilent con etiquetas de pocillo (A1, A1-1) o de variante (S11I, S11I-1) y filas WT. Las etiquetas de pocillo se asignan mediante el diseño de placa o el dictamen NGS; las medias de las réplicas sustituyen los valores primarios correspondientes tras una normalización independiente respecto a WT.",
+      "remeasureReportXlsx": "Informe de confirmación xlsx (etiquetas de pocillo / variante)",
+      "remeasureReportXlsxHelper": "Informe sin procesar de Agilent con etiquetas de muestra por pocillo o variante y filas WT. Las posiciones numéricas requieren seleccionar explícitamente el formato de ID numéricos.",
       "verdictXlsx": "NGS verdict xlsx",
       "verdictXlsxHelper": "Required Analyze verdict evidence for this round. Only explicit PASS rows that are neither failed nor fallback are exported.",
       "outputXlsx": "xlsx de salida de EVOLVEpro",
@@ -1248,7 +1265,7 @@
       "build": "Generar entrada de EVOLVEpro",
       "building": "Generando...",
       "resultTitle": "Resultado de la generación",
-      "emptyState": "Select one measurement format, the required NGS verdict, and an output path.",
+      "emptyState": "Elija un archivo de datos del experimento, el dictamen NGS requerido y una ruta de salida. Añada un archivo de confirmación si dispone de uno.",
       "nVariants": "Variant escritos",
       "nAuthoritative": "Confirmation overrides",
       "nFallbackOnly": "Primary values",
@@ -1285,7 +1302,7 @@
       "mismatchThreshold": "Umbral de discrepancia",
       "mismatchThresholdHelper": "Diferencia absoluta de actividad que marca una discrepancia y bloquea la exportación hasta revisarla. Debe ser mayor que cero.",
       "changeFile": "Cambiar",
-      "measurementFile": "Archivo de medición",
+      "measurementFile": "Archivo de datos del experimento",
       "measurementFileHelper": "Elegir primero el archivo. El formato se lee del propio archivo. Acepta csv, xlsx y xls.",
       "detectingFormat": "Leyendo el archivo para determinar su formato...",
       "detectedFormat": "Detectado: {{format}}",
@@ -1308,7 +1325,22 @@
         "requiredColumnsNote": "La aplicación no incluye una muestra de este archivo, así que se listan las columnas obligatorias en lugar de filas. Los nombres deben coincidir exactamente."
       },
       "numericPrimaryNote": "El ID i es la i-ésima variante de toda la placa, numerada en el orden de la lista de diseño.",
-      "numericConfirmationNote": "El ID j numera solo las variantes que el cribado primario midió por encima del tipo silvestre, en ese mismo orden de placa, y cada una se vuelve a medir."
+      "numericConfirmationNote": "El ID j numera solo las variantes que el cribado primario midió por encima del tipo silvestre, en ese mismo orden de placa, y cada una se vuelve a medir.",
+      "additionalMeasurementFile": "Archivo adicional de datos del experimento (opcional)",
+      "additionalMeasurementFileHelper": "Añada una medición de confirmación para sustituir los valores primarios correspondientes tras una normalización independiente respecto a WT. El formato se lee del archivo.",
+      "ambiguityWellRound": "El mismo informe con etiquetas de pocillo puede ser el experimento primario o una confirmación adicional. Elija su función; los valores de confirmación sustituyen los valores primarios correspondientes.",
+      "primaryOnlyFile": "Este archivo coincide con un formato de experimento primario. Úselo como archivo de datos del experimento o seleccione manualmente el formato adicional.",
+      "useAsPrimary": "Usar como datos del experimento: {{format}}",
+      "chooseFormatManually": "Elegir formato manualmente",
+      "clearAdditionalMeasurement": "Quitar archivo adicional",
+      "detectionSummaryLabel": "Resumen de detección del archivo",
+      "detectedSampleRows": "Filas de muestras: {{value}}",
+      "detectedRecognizedRows": "Etiquetas reconocidas: {{value}} filas",
+      "detectedSkippedRows": "Filas omitidas: {{value}}",
+      "detectedUniqueLabels": "Etiquetas de muestra únicas: {{value}}",
+      "confirmationWellPreview": "Etiquetas de pocillo",
+      "confirmationVariantPreview": "Etiquetas de variante",
+      "detectedControlRows": "Filas de control WT: {{value}}"
     },
     "verdictBadge": {
       "help": {
@@ -3247,7 +3279,9 @@
     "includeAriaLabel": "Include {{mutation}} in downstream outputs",
     "includeTitle": "Include this row in plate map and exports",
     "excludeTitle": "Exclude this row from plate map and exports",
-    "excludedRowAriaLabel": "{{mutation}} is excluded from downstream outputs"
+    "excludedRowAriaLabel": "{{mutation}} is excluded from downstream outputs",
+    "well": "Pocillo",
+    "wellHint": "Pocillo del cebador directo en el diseño de exportación actual. Ordenar cambia el orden de exportación; R1, R2, etc. identifican rondas de exportación independientes."
   },
   "mameSidebar": {
     "runStateLabel": "Estado de la corrida",
@@ -3429,9 +3463,9 @@
       },
       "all": {
         "heading": "Export Package",
-        "runExport": "Export all",
+        "runExport": "Exportar",
         "orderVendor": "Order vendor",
-        "orderVendorHint": "Included in Export all as a timestamp-prefixed Macrogen .xls file.",
+        "orderVendorHint": "Se incluye en la exportación como archivo .xls de Macrogen con una marca de tiempo como prefijo.",
         "amountLabel": "Amount",
         "purificationLabel": "Purification",
         "purificationTooltip": "MOPC (Macrogen Oligo Purification Cartridge): Macrogen's standard purification method, not changeable.",
@@ -3478,7 +3512,8 @@
         "janusVolLabel": "Volumen de transferencia JANUS",
         "ruleHint": "Los nombres de las placas de cebadores directos e inversos son obligatorios.",
         "vectormapsLabel": "Exportar también un mapa de vector GenBank por clon",
-        "vectormapsHint": "Escribe un archivo .gb por pocillo, el vector parental con la mutación de ese clon marcada, en una carpeta terminada en {{folder}} junto a la carpeta de exportación. Requiere una referencia GenBank o SnapGene."
+        "vectormapsHint": "Escribe un archivo .gb por pocillo, el vector parental con la mutación de ese clon marcada, en una carpeta terminada en {{folder}} junto a la carpeta de exportación. Requiere una referencia GenBank o SnapGene.",
+        "exportError": "Error de exportación"
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",
