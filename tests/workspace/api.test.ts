@@ -1,0 +1,221 @@
+import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from "vitest";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync, unlinkSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+vi.mock("@tauri-apps/api/path", async () => {
+  const path = await import("node:path");
+  return {
+    isAbsolute: async (p: string) => path.isAbsolute(p),
+    join: async (...parts: string[]) => path.join(...parts),
+    resolve: async (...parts: string[]) => path.resolve(...parts),
+  };
+});
+
+vi.mock("@tauri-apps/plugin-fs", async () => {
+  const fs = await import("node:fs");
+  const fsp = await import("node:fs/promises");
+  return {
+    exists: async (p: string) => fs.existsSync(p),
+    stat: async (p: string) => {
+      const s = await fsp.stat(p);
+      return { mtime: s.mtime, size: s.size };
+    },
+    readTextFile: async (p: string) => fsp.readFile(p, "utf8"),
+    writeTextFile: async (p: string, contents: string) =>
+      fsp.writeFile(p, contents, "utf8"),
+    rename: async (from: string, to: string) => fsp.rename(from, to),
+    readDir: async (p: string) => {
+      const entries = await fsp.readdir(p, { withFileTypes: true });
+      return entries.map((entry) => ({
+        name: entry.name,
+        isDirectory: entry.isDirectory(),
+        isFile: entry.isFile(),
+      }));
+    },
+  };
+});
+import {
+  openWorkspace,
+  registerArtifacts,
+  listArtifacts,
+  getLatestArtifact,
+  clearWorkspace,
+  _resetWorkspaceForTest,
+} from "@/lib/workspace/api";
+import { _resetListenersForTest, subscribe } from "@/lib/workspace/events";
+import { readManifest, createEmptyManifest, writeManifest } from "@/lib/workspace/manifest";
+
+describe("workspace api", () => {
+  let dir: string;
+  const created: string[] = [];
+
+  afterAll(() => {
+    try {
+      expect(created.filter((path) => existsSync(path))).toEqual([]);
+    } finally {
+      for (const path of created) rmSync(path, { recursive: true, force: true });
+    }
+  });
+
+  beforeEach(async () => {
+    dir = mkdtempSync(join(tmpdir(), "ws-api-"));
+    created.push(dir);
+    _resetWorkspaceForTest();
+    _resetListenersForTest();
+    await openWorkspace(dir);
+  });
+
+  afterEach(() => {
+    _resetWorkspaceForTest();
+    _resetListenersForTest();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("creates manifest on openWorkspace", async () => {
+    const m = await readManifest(dir);
+    expect(m).not.toBeNull();
+    expect(m!.schemaVersion).toBe(1);
+    expect(m!.artifacts).toHaveLength(0);
+  });
+
+  it("registers and lists artifacts", async () => {
+    const file = join(dir, "out.csv");
+    writeFileSync(file, "a,b\n");
+    await registerArtifacts([
+      { app: "kuro", step: "diversity", type: "evolvepro_csv", absolutePath: file },
+    ]);
+    const list = await listArtifacts({ type: "evolvepro_csv" });
+    expect(list).toHaveLength(1);
+    expect(list[0].path).toBe(file);
+    expect(list[0].stale).toBe(false);
+  });
+
+  it("upserts same (app,step,type) keeping only latest", async () => {
+    const f1 = join(dir, "a.csv");
+    const f2 = join(dir, "b.csv");
+    writeFileSync(f1, "1");
+    writeFileSync(f2, "2");
+    await registerArtifacts([
+      { app: "kuro", step: "diversity", type: "evolvepro_csv", absolutePath: f1 },
+    ]);
+    await registerArtifacts([
+      { app: "kuro", step: "diversity", type: "evolvepro_csv", absolutePath: f2 },
+    ]);
+    const list = await listArtifacts();
+    expect(list).toHaveLength(1);
+    expect(list[0].path).toBe(f2);
+  });
+
+  it("keeps independent (app,step,type) entries", async () => {
+    const f1 = join(dir, "kuro.xlsx");
+    const f2 = join(dir, "mame.fa");
+    writeFileSync(f1, "x");
+    writeFileSync(f2, "y");
+    await registerArtifacts([
+      { app: "kuro", step: "design", type: "sdm_primer_xlsx", absolutePath: f1 },
+      { app: "mame", step: "analysis", type: "mame_consensus_fasta", absolutePath: f2 },
+    ]);
+    const list = await listArtifacts();
+    expect(list).toHaveLength(2);
+  });
+
+  it("keeps project-folder SDM primer artifacts relative in the manifest and resolves them for consumers", async () => {
+    const designDir = join(dir, "design");
+    mkdirSync(designDir);
+    const file = join(designDir, "kuro_sdm_primers.xlsx");
+    writeFileSync(file, "xlsx");
+
+    await registerArtifacts([
+      { app: "kuro", step: "sdm_primer", type: "sdm_primer_xlsx", absolutePath: file },
+    ]);
+
+    const manifest = await readManifest(dir);
+    expect(manifest?.artifacts[0].path).toBe("design/kuro_sdm_primers.xlsx");
+    const latest = await getLatestArtifact("sdm_primer_xlsx");
+    expect(latest?.path).toBe(file);
+    expect(latest?.stale).toBe(false);
+  });
+
+  it("getLatestArtifact returns null when none", async () => {
+    expect(await getLatestArtifact("evolvepro_csv")).toBeNull();
+  });
+
+  it("marks stale when mtime changed since register", async () => {
+    const f = join(dir, "c.csv");
+    writeFileSync(f, "x");
+    await registerArtifacts([
+      { app: "kuro", step: "diversity", type: "evolvepro_csv", absolutePath: f },
+    ]);
+    await new Promise((r) => setTimeout(r, 30));
+    writeFileSync(f, "y-modified");
+    const latest = await getLatestArtifact("evolvepro_csv");
+    expect(latest?.stale).toBe(true);
+  });
+
+  it("removes artifact when file missing", async () => {
+    const f = join(dir, "d.csv");
+    writeFileSync(f, "x");
+    await registerArtifacts([
+      { app: "kuro", step: "diversity", type: "evolvepro_csv", absolutePath: f },
+    ]);
+    unlinkSync(f);
+    expect(await listArtifacts()).toHaveLength(0);
+  });
+
+  it("clearWorkspace removes only specified app artifacts", async () => {
+    const f1 = join(dir, "kuro.xlsx");
+    const f2 = join(dir, "mame.fa");
+    writeFileSync(f1, "x");
+    writeFileSync(f2, "y");
+    await registerArtifacts([
+      { app: "kuro", step: "design", type: "sdm_primer_xlsx", absolutePath: f1 },
+      { app: "mame", step: "analysis", type: "mame_consensus_fasta", absolutePath: f2 },
+    ]);
+    await clearWorkspace("kuro");
+    const remaining = await listArtifacts();
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].app).toBe("mame");
+  });
+
+  it("emits workspace:updated on register and clear", async () => {
+    let count = 0;
+    const off = subscribe("workspace:updated", () => count++);
+    const f = join(dir, "e.csv");
+    writeFileSync(f, "x");
+    await registerArtifacts([
+      { app: "kuro", step: "diversity", type: "evolvepro_csv", absolutePath: f },
+    ]);
+    await clearWorkspace("kuro");
+    off();
+    expect(count).toBeGreaterThanOrEqual(2);
+  });
+
+  it("rejects relative workspace paths", async () => {
+    _resetWorkspaceForTest();
+    await expect(openWorkspace("relative/path")).rejects.toThrow(/absolute/);
+  });
+
+  it("throws when registering without open workspace", async () => {
+    _resetWorkspaceForTest();
+    await expect(
+      registerArtifacts([
+        { app: "kuro", step: "x", type: "evolvepro_csv", absolutePath: "/tmp/nope" },
+      ]),
+    ).rejects.toThrow(/not opened/);
+  });
+
+  it("preserves a corrupt manifest and refuses to overwrite its artifact links", async () => {
+    const m = createEmptyManifest();
+    await writeManifest(dir, m);
+    // Now corrupt it
+    writeFileSync(join(dir, ".kuma-workspace.json"), "{ not json");
+    const f = join(dir, "f.csv");
+    writeFileSync(f, "x");
+    await expect(registerArtifacts([
+      { app: "kuro", step: "diversity", type: "evolvepro_csv", absolutePath: f },
+    ])).rejects.toThrow(/invalid and was preserved as a backup/);
+    expect(await readManifest(dir)).toBeNull();
+    expect(readdirSync(dir)).toContainEqual(expect.stringMatching(/^\.kuma-workspace\.json\.bak-/));
+  });
+});

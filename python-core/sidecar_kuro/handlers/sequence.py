@@ -1,0 +1,77 @@
+"""Handlers: FASTA loading and mutation text parsing."""
+
+from kuma_core.kuro.codon_table import resolve_organism_key
+from kuma_core.kuro.mutation import parse_mutation_notation
+from kuma_core.kuro.sdm_engine import load_sequence
+
+import sidecar_kuro.core as _core
+from sidecar_kuro.core import (
+    _validate_filepath,
+    _ALLOWED_FASTA_EXTENSIONS,
+)
+from sidecar_kuro.models import LoadFastaParams, ParseMutationsTextParams
+
+
+def handle_load_fasta(params: dict) -> dict:
+    """Load a sequence file and return sequence info with gene annotations."""
+    p = LoadFastaParams(**params)
+    resolved = _validate_filepath(p.filepath, allowed_extensions=_ALLOWED_FASTA_EXTENSIONS)
+
+    if not resolved.exists():
+        raise FileNotFoundError(f"File not found: {p.filepath}")
+
+    header, sequence, genes = load_sequence(resolved)
+    with _core._state_lock:
+        _core._state.template = (str(resolved), sequence)
+        _core._state.ca_coords = None  # clear stale structure from previous template
+        _core._state.ca_coords_accession = None
+
+    return {
+        "header": header,
+        "seq_length": len(sequence),
+        "genes": [
+            {
+                "gene": g.gene,
+                "product": g.product,
+                "cds_start": g.cds_start,
+                "cds_end": g.cds_end,
+                "aa_length": g.aa_length,
+                "organism": g.organism,
+                "organism_key": resolve_organism_key(g.organism),
+                "translation": g.translation,
+                "uniprot_accession": g.uniprot_accession,
+            }
+            for g in genes
+        ],
+    }
+
+
+def handle_parse_mutations_text(params: dict) -> dict:
+    """Parse mutation text (one per line). Returns {'parsed': [...], 'errors': [...]}."""
+    p = ParseMutationsTextParams(**params)
+    if not p.text.strip():
+        raise ValueError("No mutations provided")
+
+    parsed = []
+    errors = []
+    for line_num, line in enumerate(p.text.strip().split("\n"), 1):
+        line = line.strip()
+        if not line:
+            continue
+        if line.startswith("#"):
+            continue
+
+        try:
+            wt_aa, position, mt_aa = parse_mutation_notation(line)
+            parsed.append(
+                {
+                    "raw": line,
+                    "wt_aa": wt_aa,
+                    "position": position,
+                    "mt_aa": mt_aa,
+                }
+            )
+        except (ValueError, IndexError) as e:
+            errors.append({"line": line_num, "raw": line, "reason": str(e)})
+
+    return {"parsed": parsed, "errors": errors}

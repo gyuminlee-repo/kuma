@@ -1,2 +1,383 @@
-# kuma
-KUMA: KURO primer design, MAME NGS verification, and EVOLVEpro workflows
+# kuma — primer design (Kuro) + NGS verification (Mame)
+
+[한국어](README.ko.md) | **English**
+
+Public source snapshot: **0.16.73**, with independent Git history. Prior private releases and PRs were not migrated. The first build signed with the new updater key requires manual installation. Experimental-data screenshots are excluded. See [snapshot transition notes](docs/public-snapshot.md).
+
+📖 User guide: https://gyuminlee-repo.github.io/kuma/ — built with MkDocs (Material).
+
+`kuma` packages two subtools into one Tauri desktop app:
+
+- **Kuro** — *Kit for Unified Ranking and Oligodesign.* Batch SDM primer design from Gibson Assembly templates.
+- **Mame** — *Mutagenesis Assessment & Measurement Export.* Oxford Nanopore NGS verdict on which clones carry the intended mutations.
+
+Design primers in the Kuro tab, run wet-lab + sequencing, then switch to the Mame tab to verify which clones carry the intended mutations.
+
+![kuma overview](docs/kuma_overview_hero.svg)
+
+<sub>Full pipeline figure with parameters: [`docs/kuma_overview.svg`](docs/kuma_overview.svg), [caption and provenance](docs/kuma_overview_caption.md) · [what the figure leaves out](docs/overview-figure.md)</sub>
+
+Project folders keep Kuro design output and Mame verification linked across the weeks-long gap between ordering oligos and reading sequencing output. A hidden `__kuma_meta__` sheet in every Kuro-exported xlsx lets Mame auto-recognise the source project when the file is dropped back in.
+
+## Contents
+
+- [Tabs: Kuro & Mame](#tabs)
+- [Selection Strategies](#selection-strategies-kuro-evolvepro-mode)
+- [User codon tables](#user-codon-tables)
+- [Project workflow](#project-workflow)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Activity Data Integration](#activity-data-integration-v027)
+- [Architecture](#architecture)
+
+---
+
+## Tabs
+
+### Kuro — SDM primer design
+
+Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenBank / SnapGene), Kuro automatically designs overlap-extension SDM primer pairs.
+
+**Highlights**
+
+- **EVOLVEpro-driven selection** — Top-N plus position / domain / Pareto / entropy / structural diversity and a σ-Adaptive candidate pool
+- **Calibrated chemistry** — seven polymerase profiles (+ custom), SantaLucia 1998 Tm, GC / length / tolerance controls
+- **Built-in QC** — primer3 hairpin/homodimer, off-target scan, oligo synthesis-quality score, AlphaFold 3D distance
+- **Candidate 3D structure analysis** — Output-step 3Dmol viewer placing candidates on the AlphaFold/PDB structure, with active/binding-site highlights, spatial dispersion vs a random null, clickable color legend, surface, and PNG export (interpretation/QC aid, not a selection filter)
+- **Mode-aware failure rescue** — multi-stage Position Rescue with one-click per-mutation retry
+- **Plate-ready output** — sortable result table, 96-well plate map, Echo 525 / JANUS liquid-handler export
+
+<details>
+<summary><b>Full Kuro feature list</b></summary>
+
+#### Design methods
+
+- **Overlap-extension SDM**: Forward and reverse primers with the overlap placed upstream of the mutation codon. Two overlap modes are available, *Partial overlap (Gibson)* (default; forward and reverse independent) and *Full overlap (Q5 SDM)* (reverse = reverse-complement of forward). Annealing Tm uses the SantaLucia 1998 (Benchling) model. The partially-overlapping design and default Tm heuristics (Fwd 62 / Rev 58 / Overlap 42 °C) follow Landwehr et al. 2025, *Nat Commun* 16, 865 (https://doi.org/10.1038/s41467-024-55399-0)
+- **Overlap upstream design**: Overlap region is placed immediately upstream of the mutation codon (EVOLVEpro convention)
+
+#### Mutation input & candidate selection
+
+- **EVOLVEpro CSV input**: Load EVOLVEpro (`variant`, `y_pred`) output CSV. Sorts by score descending, auto-selects the configured number of variants. Optional **position diversity** filter limits mutations per amino acid position (uses Grantham 1974 distance as tie-breaker when scores are within 2%). Optional **domain diversity** distributes selections across domains detected directly from the loaded reference protein sequence by InterProScan (or entered manually), so selection coordinates match KURO mutations; UniProt-accession domains remain separate for AlphaFold structure coloring. Optional **Pareto diversity** maximizes position spread via MODIFY-style fitness-diversity co-optimization. Optional **structural diversity** runs greedy farthest-point selection over the full candidate pool in 3D Cα-centroid space, anchored on variants already tested in prior rounds, with an optional κ blend toward predicted fitness — it beats Top-N only in the early/low-data rounds of epistatic combinatorial campaigns (conditional; neutral-to-harmful otherwise, see `benchmark/REPORT.md` §6.7–6.12). **σ-Adaptive Pool**: enter EVOLVEpro Round and Round size to automatically calibrate the candidate pool width and entropy weight based on cumulative data (K = 0.50→0.25, entropy = 0.30→0.15 across rounds 1–5+)
+- **Batch mutation parsing**: Mutation list in `Q232A` format → automatic codon position calculation + WT codon validation
+- **AlphaFold 3D distance**: Pareto and structural diversity use real Cα Euclidean distance from AlphaFold DB predicted structures instead of 1D sequence position distance. Fetched automatically after UniProt accession entry; cached at `~/.kuma/kuro/embeddings/{accession}_ca.json`. Falls back to 1D position distance when the structure is unavailable
+
+> The diversity filters (position / domain / Pareto / entropy / structural) are detailed in [Selection Strategies](#selection-strategies-kuro-evolvepro-mode) below.
+
+#### Codon & thermodynamic parameters
+
+- **Codon table (organism)**: The organism chosen beside the target gene decides which codon a mutation is written with. There is no strategy control to set. Every synonymous codon for the target amino acid competes: the wild-type codon is dropped, so are the codons the chosen organism uses for less than 10% of that amino acid, and the design penalty prices every survivor on base changes from the wild-type codon (0 / 2 / 4 for 1 / 2 / 3 changes) and on host usage (4.0 x (1 - usage fraction)) alongside Tm and GC. Nine tables ship (*E. coli*, *B. subtilis*, *H. sapiens*, *S. cerevisiae*, *K. phaffii* (GS115, the organism most protocols still call *P. pastoris*), *C. griseus* (the CHO line), *C. glutamicum*, *A. niger*, *P. putida*) and any other organism can be installed, see [User codon tables](#user-codon-tables)
+- **Polymerase profile selector**: Seven built-in profiles (Taq, Phusion, Q5, Q5 SDM, KOD, DreamTaq, TAKARA_GXL), each with Tm method, salt concentration, DNA concentration, and GC range calibrated to the manufacturer manual. Custom profiles can be created via the Custom Polymerase dialog and are persisted at `~/.kuma/kuro/custom_polymerases.json`. Selecting a profile sets the recommended annealing temperature (Ta) rule, the GC range, and the overlap mode; the design-time Tm scale is fixed and does not follow the profile
+- **Tm calculation**: SantaLucia 1998 nearest-neighbor model; salt/DNA/divalent conditions vary per polymerase profile (e.g. Phusion HF 222 mM monovalent, Q5 150 mM monovalent + 2000 nM DNA). Default Tm targets: Fwd 62°C, Rev 58°C, Overlap 42°C — adjustable in Advanced Options
+- **Progressive Tm tolerance**: Starts at ±0.5°C for Fwd/Rev independently, expanding by ±0.5°C per step (up to ±3.0°C)
+- **Tm tolerance setting**: User-configurable Tm tolerance ±°C (range 0.5–10.0, step 0.5, default 3.0) in Advanced Options. Cascade rescue stages add delta on top of this base value. Recommended 2–5°C
+- **GC% range**: Default 40-60% (adjustable in Advanced Options). Primers outside range receive a penalty
+- **Primer length limit**: Optional Fwd/Rev min/max length constraint (adjustable in Advanced Options)
+
+#### Quality & specificity checks
+
+- **Hairpin / Homodimer check**: Secondary structure check via primer3 calc_hairpin/calc_homodimer. Displays Tm and dG (kcal/mol)
+- **Synthesis quality score**: Oligo synthesis difficulty assessment (0-100) based on IDT/Twist guidelines. Penalizes homopolymer runs, GC-rich stretches, dinucleotide repeats, and extreme GC content
+- **Off-target detection**: Automatic detection of non-specific binding on the template sense/antisense strand
+
+#### Failure rescue
+
+- **Position Rescue**: Mode-aware multi-stage cascade when a primer design fails.
+  - **Top-N + Fill-on-failure ON** → 4-stage relaxation only (length → +GC → +mild Tm → strong), position fixed. Badges `🎯¹` length / `🎯²` +GC / `🎯³` +mild Tm / `🎯⁴` strong
+  - **Pipeline + Fill-on-failure ON** → 6-stage: ① same-position alternate variant (`↻¹`) → ② different-position substitution (`↻²`) → ③–⑥ same 4-stage relaxation
+  - **Fill-on-failure OFF** → failed mutations remain failed; no automatic retry or substitution runs
+  - Legacy pool cascade (`↻ cascade`) and auto-relax (`⚡ relaxed`) still applied by the backend before frontend cascade
+  - Stage counters displayed in Design Report
+- **Auto-rescue failed mutations**: When enabled (default on), triggers the cascade above according to selection mode. When off, failed mutations remain as-is
+- **Failed mutation retry**: Click a failed mutation → adjust Tm/GC%/length/tolerance → re-design → select from candidates. The retry popover offers a one-click **Use suggestion** button that pre-fills median Tm, observed GC/length range, and tol ±5°C derived from primers that already succeeded in the same run
+
+#### Review, visualization & export
+
+- **Sequence Map**: Collapsible SVG linear CDS map with mutation positions, domain regions, and density histogram for cluster detection
+- **Candidate 3D structure analysis**: Collapsible Output-step panel embedding a 3Dmol viewer (loaded on demand). Maps candidate positions onto the fetched AlphaFold/PDB structure (or an uploaded PDB/CIF), highlights UniProt active-site and binding-site residues, and reports spatial dispersion — mean pairwise Cα distance versus a random matched-size null, percentile shown as `P1`/`P99`. A color legend explains every color and each row toggles its 3D layer; surface rendering and PNG export are available. The dispersion / pLDDT / site overlays are interpretation/QC aids, not candidate-selection filters — EVOLVEpro `y_pred` ranking decides what gets designed
+- **Column sorting**: All result columns sortable (including y_pred and synthesis score). Plate map export respects current sort order
+- **Candidate comparison and swap**: Click a primer sequence to open a candidate comparison popover
+- **Custom primer evaluation**: Enter a sequence directly in the candidate popover → Tm, GC%, hairpin, and off-target are calculated immediately
+- **96-well Plate Map**: Linked Fwd/Rev plate. Multi-plate slide for >96 mutations. Synchronized with table sort order
+- **Echo 525 / JANUS export**: Liquid handler mapping export as XLSX workbook. Echo: 384-well source plate layout + transfer list. JANUS: Fwd/Rev 96-well rack layout + transfer list. CSV also supported
+- **Benchmark framework**: Compare Kuro selection (Pareto/Domain) vs Random vs Top-N on fitness landscapes. Metrics: hit rate, mean fitness, position coverage
+
+</details>
+
+### Mame — NGS screening verdict
+
+Given a variant list, a reference FASTA, and MAME-generated barcode-mode consensus FASTA files, Mame produces per-barcode mutation verdicts and a 96-well Final Excel export. The variant list is either a Kuro-exported `expected_mutations.xlsx` or a plain one-column list of variants in plate order; well positions are not written by hand. See `docs/inputs/expected-mutations.md`.
+
+**Highlights**
+
+- **MAME consensus ingest** — barcode-mode consensus, or raw FASTQ via Phred-aware demux→consensus
+- **8-class verdict**, PASS / WRONG_AA / AMBIGUOUS / MIXED / FRAMESHIFT / MANY / LOWDEPTH / NO_CALL
+- **Explainable QC** — read depth, N fraction, low-depth positions, low-quality exclusions, MAPQ/span drops
+- **96-well output** — column-major Final Excel synced to Kuro's plate-map order, in a single-view workbench
+
+<details>
+<summary><b>Full Mame feature list</b></summary>
+
+#### Input & consensus
+
+- **MAME consensus FASTA ingest**: Barcode-mode consensus output from MAME's own demux→consensus pipeline. Consensus headers with `depth=N`, per-base low-depth positions, N fraction, and mixed-allele metrics drive read-count `LOWDEPTH` and within-well `MIXED` gating.
+- **Phred-aware consensus**: When MAME starts from raw FASTQ, read IDs and quality strings are preserved through the internal demux step so low-quality base calls do not win the consensus vote.
+
+#### Verdict & QC evidence
+
+- **8-class verdict**: Each barcode classified into one of eight outcomes, `PASS` (observed AA changes exactly match the design), `WRONG_AA` (expected position mismatched, an expected change missing, or an unexpected extra change; the verdict names what each designed site read, as the observed label or `WT` / `no call` / `not covered`), `AMBIGUOUS` (all expected changes matched but a near-window extra change or an indel-event signal), `MIXED` (substantial within-well second allele), `FRAMESHIFT` (a consensus net insertion or deletion whose length is not a multiple of three), `MANY` (more AA changes than both the cutoff and the design), `LOWDEPTH` (read depth below the minimum), `NO_CALL` (consensus dominated by N bases).
+- **Mixed-well guard**: Consensus headers can carry minor-allele metrics; wells with substantial within-well mixture are surfaced as `MIXED` instead of silently passing on the majority allele.
+- **Explainable QC evidence**: Verdict tables and Excel exports carry read depth, N fraction, low-depth positions, low-quality base exclusions, and MAPQ/span drop counters.
+- **3-replicate best pick**: Among triplicate barcodes, the best-scoring clone is selected.
+- **Substitution support**: Phase 1 focuses on single-residue substitutions. Deletion / insertion reserved for later.
+
+#### Output & workbench
+
+- **96-well Final Excel export**: Column-major 96-well layout with verdict per well. Synchronized with Kuro's plate map ordering.
+- **Single-view workbench**: Input files panel, parameter panel (mode, CDS end, cutoffs), verdict table with FINAL / ALL / per-plate tabs derived from the barcodes the run produced, 96-well map with colorblind-safe toggle.
+
+</details>
+
+## Selection Strategies (Kuro, EVOLVEpro mode)
+
+When loading an EVOLVEpro scored CSV, Kuro applies the configured selection strategy to choose which mutations to design primers for. Strategies are independent checkboxes and can be combined.
+
+| Strategy | Description | When to use |
+|----------|-------------|-------------|
+| **Top-N by score** | Select the top N mutations ranked by predicted fitness score (y_pred / property_value descending). N = max primers setting (default 95). | Default ranking. Use when predicted fitness is the only criterion. |
+| **Position diversity** | Limit the number of mutations per amino acid position (default: 1 per position). When two variants at the same position score within 2%, the more conservative substitution (lower Grantham 1974 distance) is preferred. Applied as a pre-filter before other strategies. | Prevent over-sampling at mutational hot spots. |
+| **Domain diversity** | Allocate mutation quota proportionally (by domain length) or equally across domains detected directly from the loaded reference protein sequence with InterProScan, or entered manually in reference coordinates. UniProt-accession domains are retained separately for AlphaFold structure display. | Ensure coverage across functional regions without mixing reference and accession residue numbering. |
+| **Pareto diversity** | Greedy maximin position selection: iteratively pick the mutation whose position is farthest from all already-selected positions. Maximizes spatial spread across the protein sequence. | Prevent clustering of mutations in a narrow region. Inspired by the MODIFY approach (Ding et al., *Nature Communications*, 2024). |
+| **Entropy-guided** (β) | Blends per-position Shannon entropy of the y_pred distribution (weight 0.3) into the Pareto score. Positions where many mutations score similarly are prioritised. | Escape local optima. Requires Pareto diversity to be enabled. |
+| **Structural diversity** | Greedy farthest-point (maximin) selection over the **full** candidate pool in 3D Cα-centroid space (AlphaFold), anchored on the cumulative set of variants already tested across prior rounds, with an optional κ blend toward predicted fitness (κ=0 pure diversity → κ=1 pure Top-N). Combination variants use the centroid of all substituted positions; falls back to sequence-position distance when no structure is available. | Early/low-data rounds of multi-round epistatic combinatorial campaigns. **Conditional**: beats Top-N on genuinely epistatic, spatially-distributed landscapes but is neutral-to-harmful otherwise and washes out once ~a plate of labels accumulates (`benchmark/REPORT.md` §6.7–6.12). |
+
+**Reference**
+- Ding K, Chin M, Zhao Y, Huang W, Mai BK, Wang H, Liu P, Yang Y, Luo Y. Machine learning-guided co-optimization of fitness and diversity facilitates combinatorial library design in enzyme engineering. *Nature Communications*, 15:6392 (2024). https://doi.org/10.1038/s41467-024-50698-y (PMID:39080249). MODIFY: Pareto fitness-diversity co-optimization. Note on naming: MODIFY computes an explicit Pareto frontier over expected fitness and sequence diversity, whereas the filter named "Pareto diversity" in this table is a fitness-seeded greedy maximin selector that computes no non-dominated front.
+
+> **Benchmark caveat (`benchmark/REPORT.md` §6).** In the in-silico active-learning benchmark, only **structural diversity** beat Top-N, and only conditionally (early/low-data rounds, genuinely epistatic targets). **Domain** and **Pareto** diversity did **not** beat Top-N, and domain diversity can *hurt* on single-active-site proteins (it scatters picks off the functional region). Treat every diversity filter as an early-round hedge, not a general improvement over Top-N.
+
+## User codon tables
+
+kuma ships nine codon usage tables (*E. coli*, *B. subtilis*, *H. sapiens*, *S. cerevisiae*, *K. phaffii* (GS115, the organism most protocols still call *P. pastoris*), *C. griseus* (the CHO line), *C. glutamicum*, *A. niger*, *P. putida*). Every one beyond the first four was counted from an NCBI RefSeq annotation rather than taken from a frozen public table. *M. extorquens* AM1 is no longer bundled: it ships as `mextorquens_am1.json.txt` in the codon table folder, so renaming it to `mextorquens_am1.json` and pressing **Refresh** installs it with no editing. A table for any other organism is installed per user under `~/.kuma/kuro/codon_tables` and appears in the **Organism** dropdown beside the target gene. Three routes lead there.
+
+**1. Drop a file in the folder.** Put `<key>.json` in `~/.kuma/kuro/codon_tables`, then press **Refresh** under Settings → Codon tables. The file name without `.json` becomes the organism key. `TEMPLATE.json.txt` and `README.txt` are placed in that folder for reference (sources: `kuma_core/kuro/resources/codon_table_seeds/`); copy the template to `<key>.json` and replace the numbers.
+
+**2. Add organism...** The last entry of the Organism dropdown opens a dialog whose *Import a table file* tab reads four source formats: a kuma table (JSON), a three-column CSV, EMBOSS `cusp` output, and a Kazusa codon usage page pasted as text. Every rule runs before anything is installed, and the dialog lists what it rejected, what it warns about, what it normalized (RNA `U` to `T`, lowercase codons, frequencies recomputed from counts) and the digest the table will carry. The *Export* tab writes an installed table back to a file to send to a colleague.
+
+**3. Compute from a genome.** The first tab of that dialog counts codons directly from a GenBank file (`.gb`, `.gbk`, `.gbff`) or a CDS FASTA, so no external tool is needed. Before installing, it reports how many coding sequences were counted out of how many were read and why the rest were left out (pseudogene, length not a multiple of three, internal stop, no terminal stop, ambiguous base), the most frequent codon per amino acid, and the amino acids furthest from the bundled reference table.
+
+Rules every table has to satisfy:
+
+- Key: lowercase letters, digits and underscore, 2 to 32 characters, starting with a letter, identical to the file name without `.json`
+- All 20 amino acids plus the stop `*`, all 64 codons exactly once, and the frequencies of one amino acid adding up to about 1 (percentages divided by 100)
+- NCBI genetic code 1 or 11 only. A non-standard code changes how kuma reads wild-type codons rather than only which codon it prefers, so it cannot be imported as a frequency table
+- A built-in key (`ecoli`, `bsubtilis`, `hsapiens`, `scerevisiae`, `kphaffii`, `cgriseus`, `cglutamicum`, `aniger`, `pputida`) cannot be replaced. Import under a different key such as `ecoli_lab`. A run records only the key, so two machines must never disagree about what a key means
+
+A file that fails is listed with its reason under the folder path in Settings, and nothing is installed partially: a file is accepted whole or not at all. A design records the table name, key and digest, so a project opened where that table is missing offers to install the copy the project carries, and a project whose local table has different codons is held back from re-designing until that is resolved.
+
+---
+
+## Project workflow
+
+On first launch kuma asks for a **projects root** folder (default `~/Documents/kuma`). All projects live inside as folders:
+
+```
+<projects_root>/
+└── Sample_42/
+    ├── kuma.project.json          # project metadata (schema v1)
+    ├── design/
+    │   ├── workspace.kuro.json    # Kuro workspace (same format as legacy .kuro.json)
+    │   └── expected_mutations.xlsx # carries hidden __kuma_meta__ sheet
+    └── analysis/
+        ├── consensus/             # MAME-generated consensus FASTAs
+        └── verdict.xlsx           # Mame output
+```
+
+The `stage` field (draft / design_complete / analyzing / done) is derived automatically from file presence. Scratch mode (open a single `.kuro.json` without creating a project) remains supported for compatibility with legacy Kuro workspaces.
+
+## Installation
+
+Download the latest installer from [Releases](https://github.com/gyuminlee-repo/kuma/releases).
+
+- **Windows**: `kuma_x.x.x_x64-setup.exe` (NSIS)
+- **macOS**: `kuma_x.x.x_aarch64.dmg`
+- **Linux**: `.deb` + `.AppImage`
+
+Kuma checks the latest published GitHub release at startup and recommends an update only when its version is newer. Use **Help → Check for updates** to check again manually; update-check failures never block startup.
+
+### Developers — `pnpm setup` instead of `pnpm install` on Windows
+
+On Windows, `pnpm install` may fail with `EACCES` / `EBUSY` on the first run when Defender or an IDE file watcher locks files in `node_modules`. Use the wrapper script:
+
+```powershell
+pnpm setup
+```
+
+`scripts/safe-install.mjs` runs `pnpm install` with `package-import-method=copy` (hardlink locks bypassed) and retries up to three times on retryable errors. macOS and Linux fall back to a plain `pnpm install` with retries.
+
+If three attempts still fail, the script prints a guide (close IDE, add Defender exclusion, or wipe `node_modules`).
+
+### macOS — first-launch Gatekeeper notice
+
+kuma ships with ad-hoc code signing only (no paid Apple Developer ID). The first launch shows an "unidentified developer" warning. If the dialog instead says **"is damaged and can't be opened"**, the file picked up the quarantine bit during download — clear it once:
+
+```bash
+xattr -cr /Applications/kuma.app
+```
+
+Then bypass Gatekeeper one of these ways:
+
+1. Finder → right-click (Control-click) `kuma.app` → **Open** → **Open**
+2. System Settings → Privacy & Security → scroll to the kuma entry → **Open Anyway**
+
+Subsequent launches require no further action.
+
+## Usage
+
+A newly created project runs a skippable spotlight tour: a short project overview followed by Kuro guidance, with a separate Mame tour on first entry. Existing projects are not interrupted. Choose **Help → Show Guided Tour** to replay the tour for the current tab.
+
+**Kuro tab**
+1. **Help → Load Sample Data** to load examples, or:
+2. Load a sequence file (GenBank `.gb` / SnapGene `.dna`)
+3. Verify the target CDS in the Target Gene dropdown (auto-selected)
+4. Verify **Organism** below it, which picks the codon usage table. It is set from the sequence annotation when that names a known organism, and **Add organism...** installs one kuma does not ship
+5. Enter mutations (text / EVOLVEpro CSV)
+6. *(Optional)* Adjust Tm, GC%, length in Advanced Options
+7. Click **Design Primers**
+8. File → Export Excel (writes `design/expected_mutations.xlsx` with `__kuma_meta__` embedded)
+
+**Mame tab** (after wet lab + sequencing)
+1. **Help → Load Sample Data** to load examples, or:
+2. Drop MAME-generated consensus FASTAs into the input panel
+3. Reference FASTA + `expected_mutations.xlsx` (auto-suggested if the active project has them)
+4. Set CDS end / mode / cutoffs
+5. **Run** → verdict table + 96-well plate map
+6. **Export** → final xlsx
+
+Dropping a Kuro-exported xlsx into Mame while a different project is active triggers the "load source project?" dialog (matched via `__kuma_meta__ → project_id`).
+
+## Activity Data Integration (v0.2.7)
+
+KUMA now connects the complete ALE cycle: Kuro designs primers for Round N, wet lab runs the mutations, NGS genotyping identifies which clones succeeded, activity assay measures functional improvement, and a single "Handoff" click feeds the activity data back into Kuro for Round N+1.
+
+### Workflow
+
+```
+1. KURO Design  →  primer list for Round N mutations
+2. Wet lab       →  site-directed mutagenesis + expression
+3. MAME NGS      →  per-clone genotype verdict (8-class)
+4. Activity assay→  plate-reader / fluorescence measurement
+5. MAME Activity →  load long-format CSV; compute fold_change / log2_fc
+6. EVOLVEpro export → variant + activity xlsx for next round (`[Variant, activity]` 2-column, `89W` short notation)
+7. Round Handoff →  1-click: create Round N+1, load EVOLVEpro output into Kuro (short-form variants auto-converted via protein ref_seq)
+8. Repeat        →  Kuro designs Round N+1 from updated scores
+```
+
+<details>
+<summary><b>Activity input format, Round entity & v0.3 xlsx pipeline</b></summary>
+
+### Long Format CSV Input
+
+The activity loader expects a **long format** CSV (or Excel) file with one measurement per row:
+
+| Column | Type | Description |
+|---|---|---|
+| `plate_id` | string | Plate identifier, e.g. `P01` |
+| `well_id` | string | Well address in A01–H12 format, or a WT replicate label matching `^WT_?\d+$` |
+| `value` | float | Raw measurement value |
+| `replicate_idx` | int | Replicate index (1-based); same well × same replicate_idx = one measurement |
+
+The denominator comes from whichever WT source the plate has. Instrument exports ship their own WT replicate blocks, so rows labelled `WT_1`, `WT_2`, `WT_3` are collected as dedicated WT replicates and their mean is the plate denominator. The numeric suffix is the replicate index. These rows never join the variant well space and never reach the EVOLVEpro output.
+
+Plates carrying no such rows fall back to WT wells declared in `plate_meta.json`:
+
+```json
+{
+  "plates": [
+    { "plate_id": "P01", "wt_wells": ["A01", "A12", "H01", "H12"] }
+  ]
+}
+```
+
+The merge stats report which source was used per plate through `n_wt_replicate_rows` and `n_plates_wt_from_replicates`. Fold change and log2_fc are computed against that denominator, and log2_fc maps directly to EVOLVEpro `y_pred`.
+
+### Round Entity
+
+Each ALE round is tracked as a `Round` entity in the workspace (schema v0.3). A round holds:
+- `round_n`: sequential round number (1-based)
+- `status`: `design` → `sequencing` → `activity` → `exported`
+- `plate_meta`: WT well layout for that round
+- Links to the Kuro workspace and MAME NGS results for that round
+
+Workspace files from schema v0.2 and earlier are **not automatically migrated**. Export your design data before upgrading from v0.2.6 or earlier.
+
+### v0.3 xlsx pipeline (v0.2.8+)
+
+xlsx-native readers cover the inputs the wet-lab actually produces: `mutants-well position.xlsx`, Agilent GC-FID raw exports (standard / rep-batch), and EVOLVEpro xlsx files. `kuma_core/mame/activity/evolvepro_xlsx.py:detect_format` auto-dispatches.
+
+`mame.activity.merge_for_evolvepro` (v0.2.9.0) replaces the legacy merge for EVOLVEpro export: it joins activity to genotype, runs `merge_replicates_priority` (authoritative-prefer with mismatch flag), executes the label-swap guard, and surfaces `replicate_stats` plus `export_blocked` in the response. The 5/12 demo continues to use the legacy `activity.merge` path; the v0.3 button "EVOLVEpro용 병합 (v0.3)" lives next to it in the panel and never replaces it.
+
+For EVOLVEpro replicate merging, `ref_seq` comes from the currently selected sequence input and its CDS translation. Non-WT replicate measurements are rejected when that input-derived reference is unavailable; production code never substitutes an EGFP fixture or another implicit target. `fixtures/ispS.fa` (Populus alba ispS CDS, AB198180.1) remains available for legacy IspS rounds, but it is frame-shifted and is not a usable reference CDS; see `fixtures/FIXTURE-DEFECTS.md`.
+
+</details>
+
+---
+
+## Architecture
+
+Tauri v2 + React 19 shell with two Python sidecars (kuro-sidecar, mame-sidecar) spawned lazily on first tab activation. The Rust side owns project CRUD, config, and sidecar lifecycle. Both sidecars share `kuma_core.shared` utilities — config paths, logging, JSON-RPC error format, and `kuma_core.shared.sidecar` helpers (`JsonRpcWriter`, bounded crash-log append, private config dir, path validation).
+
+```
++-------------------------+
+| Tauri shell (React)     |
+| ├─ Home / Onboarding    |
+| └─ MainShell [Kuro|Mame]|
++-------------------------+
+       ↓ sidecar_rpc(kind, method, params)
++----------------+   +----------------+
+| kuro-sidecar   |   | mame-sidecar   |
+| (PyInstaller)  |   | (PyInstaller)  |
++----------------+   +----------------+
+```
+
+## Common Frontend Standards
+
+Kuro and Mame conform to the **Common Frontend Standards charter** (`docs/standards/common-frontend-standards.md`, v1.1 stable) — 22 categories covering recovery, observability, input guards, error UX, output persistence, settings, UI safety, accessibility, versioning, telemetry, build, reproducibility (`run.json`), long-running jobs (queue + OS notification + sleep inhibit), data integrity (input/output SHA-256, sidecar binary hash, schema dry-run migration), onboarding, local diagnostics, cross-platform, partial success, performance guardrails, citation/licensing, multi-workspace, graceful shutdown. PrimerBench applies the same charter through its Phase A-E rollout.
+
+## License
+
+The KUMA source code is licensed under the GNU General Public License as
+published by the Free Software Foundation, either [version 2](LICENSE) of the
+License or (at your option) any later version (SPDX `GPL-2.0-or-later`). This
+declaration was made on 2026-09-28. Every release published so far stays
+available under GPL version 2, and anyone who received an earlier release may
+also choose any later version under this declaration.
+
+KUMA depends on `primer3-py`, which is distributed under GPL version 2 with no
+linking exception, and that library is collected into both PyInstaller sidecar
+binaries. Section 6 of GPL version 2 forbids imposing further restrictions on
+recipients, so no noncommercial clause can be attached to the combined work. A
+research-only or noncommercial license is therefore not available for KUMA as
+currently built. See [license compliance](docs/en/license-compliance.md) for
+the evidence behind that finding.
+
+What GPL version 2 does require of a commercial redistributor is source
+release. Anyone who distributes KUMA or a derivative of it, in a product or
+through a service that delivers the binary, has to supply the complete
+corresponding source of that derivative under the same GPL terms.
+
+For inquiries about terms outside the GPL, contact the copyright holder
+(Gyu Min Lee, `gyuminlee-repo` on GitHub). Any such arrangement would first
+require replacing the GPL dependencies described above, and this notice does
+not promise that an alternative license exists.
+
+The names KUMA, KURO and MAME are not licensed as trademarks by the LICENSE
+file.
+
+### Documentation license
+
+The user documentation under `docs/en/` and `docs/ko/` and the screenshots
+under `docs/screenshots*/` are licensed
+[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/), except where a
+file names a different source. That grant does not cover `docs/help/**`, which
+is compiled into the application bundle and ships under the project GPL license, nor any
+third-party material listed in [NOTICE-bundled.md](NOTICE-bundled.md).

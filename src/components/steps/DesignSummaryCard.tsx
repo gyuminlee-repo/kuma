@@ -1,0 +1,105 @@
+/**
+ * DesignSummaryCard — design.submit step 상단 "현재 입력 요약" 카드.
+ *
+ * [source: spec §0.1 #1 #15 — wizard 내부 변경값이 다음 step 에서 stale 표시되는 문제]
+ *
+ * 사용자가 이전 substep(MutationInput, ParameterPanel 등)에서 바꾼 핵심 설정을
+ * design.submit(=run design) 직전에 한눈에 보이도록 한다.
+ *
+ * 표시 항목 (4 + sequence):
+ *   1. Sequence            seqInfo.header / seq_length          (Not loaded)
+ *   2. Mutation source     mutationInputMode                    (evolvepro)
+ *   3. Selection mode      evolveproMode != topN ? Pipeline (failover) : Top-N only
+ *   4. Variant count       variants the design run is sent (prepareDesignInput,
+ *                          the same computation designPrimers uses); in
+ *                          EVOLVEpro mode "<that> / <evolveproTotalCount> candidates"
+ *   5. Polymerase         selectedPolymerase · tmFwdTarget · maxPrimers
+ *
+ * Memoization: zustand 개별 selector 호출 (참조 안정). 별도 useMemo 불필요.
+ */
+
+import { useTranslation } from "react-i18next";
+import { useAppStore } from "@/store/appStore";
+import { prepareDesignInput } from "@/store/slices/designSlice.helpers";
+
+export function DesignSummaryCard() {
+  const { t } = useTranslation();
+
+  const seqInfo = useAppStore((s) => s.seqInfo);
+  const mutationInputMode = useAppStore((s) => s.mutationInputMode);
+  const evolveproMode = useAppStore((s) => s.evolveproMode);
+  const evolveproTotalCount = useAppStore((s) => s.evolveproTotalCount);
+  const selectedPolymerase = useAppStore((s) => s.selectedPolymerase);
+  const tmFwdTarget = useAppStore((s) => s.tmFwdTarget);
+  const maxPrimers = useAppStore((s) => s.maxPrimers);
+  const mutationText = useAppStore((s) => s.mutationText);
+  const fillOnFailure = useAppStore((s) => s.fillOnFailure);
+  const selectedGene = useAppStore((s) => s.selectedGene);
+  const poolVariants = useAppStore((s) => s.poolVariants);
+  const evolveproSelectedVariants = useAppStore((s) => s.evolveproSelectedVariants);
+  const evolveproRankedCandidates = useAppStore((s) => s.evolveproRankedCandidates);
+
+  const sequenceText = seqInfo
+    ? `${seqInfo.header || t("phaseE.summary.sequence.unnamed")} (${seqInfo.seq_length} nt)`
+    : t("phaseE.summary.sequence.empty");
+
+  const selectionText = evolveproMode !== "topN"
+    ? t("phaseE.summary.selectionMode.pipeline")
+    : t("phaseE.summary.selectionMode.topN");
+
+  // The count designPrimers intends to design: the same prepareDesignInput
+  // call, so this cannot drift from the run. It used to show the CSV
+  // candidate count, which stayed at 200 when the design count was 95, and 0
+  // for typed mutations.
+  const designCount = prepareDesignInput({
+    mutationText: mutationText ?? "",
+    maxPrimers,
+    fillOnFailure,
+    mutationInputMode,
+    selectedGene: selectedGene ?? "",
+    poolVariants: poolVariants ?? [],
+    evolveproSelectedVariants,
+    evolveproRankedCandidates,
+  }).intendedMuts.size;
+  const variantText = mutationInputMode === "evolvepro"
+    ? t("phaseE.summary.variants.ofCandidates", {
+        design: designCount,
+        total: evolveproTotalCount,
+      })
+    : String(designCount);
+
+  const rows: Array<[string, string]> = [
+    [t("phaseE.summary.sequence.label"), sequenceText],
+    [t("phaseE.summary.mutation.label"), mutationInputMode],
+    [t("phaseE.summary.selectionMode.label"), selectionText],
+    [t("phaseE.summary.variants.label"), variantText],
+    [
+      t("phaseE.summary.polymerase.label"),
+      `${selectedPolymerase || "—"} · Tm ${tmFwdTarget}°C · max ${maxPrimers}`,
+    ],
+  ];
+
+  return (
+    <div
+      data-testid="design-summary-card"
+      className="rounded-md border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 px-4 py-3 mb-4"
+    >
+      <div className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400 mb-2">
+        {t("phaseE.summary.heading")}
+      </div>
+      <dl className="grid grid-cols-[max-content,1fr] gap-x-3 gap-y-1 text-sm">
+        {rows.map(([label, value]) => (
+          <div key={label} className="contents">
+            <dt className="text-neutral-500 dark:text-neutral-400">{label}</dt>
+            <dd
+              className="text-neutral-900 dark:text-neutral-100 font-medium truncate"
+              data-testid={`design-summary-${label.toLowerCase().replace(/\s+/g, "-")}`}
+            >
+              {value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}

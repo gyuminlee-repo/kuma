@@ -1,0 +1,1222 @@
+"""Pydantic input-validation models for KURO sidecar JSON-RPC handlers.
+
+All models use field names that match the exact keys the frontend sends
+(verified from params.get() calls in each handler).  Pydantic v2
+ValidationError is a subclass of ValueError, so the dispatcher's
+``except (KeyError, ValueError)`` block catches it automatically — no
+per-handler try/except is required.
+
+Usage in handlers::
+
+    from sidecar_kuro.models import DesignSdmPrimersParams
+    p = DesignSdmPrimersParams(**params)
+    # access as p.fasta_path, p.polymerase, etc.
+"""
+
+from typing import Any, Literal, Optional
+
+from typing_extensions import TypedDict
+
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, field_validator
+
+
+class DomainEntry(TypedDict):
+    """A single protein domain passed from the frontend to selection/benchmark handlers."""
+    name: str
+    start: int
+    end: int
+
+
+# ---------------------------------------------------------------------------
+# sequence.py handlers
+# ---------------------------------------------------------------------------
+
+
+class LoadFastaParams(BaseModel):
+    filepath: str
+
+
+class ParseMutationsTextParams(BaseModel):
+    text: str = ""
+
+
+# ---------------------------------------------------------------------------
+# design.py handlers
+# ---------------------------------------------------------------------------
+
+
+class DesignSdmPrimersParams(BaseModel):
+    fasta_path: str
+    target_start: int = Field(default=0, ge=0)
+    mutations_csv_or_text: str = ""
+    polymerase: str = "KOD"
+    # None → resolved from polymerase profile (slide spec: 18). le=18 hard-caps user input.
+    overlap_len: Optional[int] = Field(default=None, ge=8, le=18)
+    codon_strategy: str = "closest"
+    organism: str = "ecoli"
+
+    # Optional Tm targets (None = use polymerase defaults)
+    tm_fwd_target: Optional[float] = Field(default=None, ge=20.0, le=80.0)
+    tm_rev_target: Optional[float] = Field(default=None, ge=20.0, le=80.0)
+    tm_overlap_target: Optional[float] = Field(default=None, ge=20.0, le=80.0)
+    # Tm tolerance (±°C). Must stay identical to RetryFailedParams.tol_max.
+    tol_max: float = Field(default=4.0, ge=0.5, le=10.0)
+
+    # GC% constraints
+    gc_min: float = Field(default=40.0, ge=0.0, le=100.0)
+    gc_max: float = Field(default=60.0, ge=0.0, le=100.0)
+
+    # Primer length constraints (None → resolved from polymerase profile)
+    fwd_len_min: Optional[int] = Field(default=None, ge=10, le=60)
+    fwd_len_max: Optional[int] = Field(default=None, ge=10, le=100)
+    rev_len_min: Optional[int] = Field(default=None, ge=10, le=60)
+    rev_len_max: Optional[int] = Field(default=None, ge=10, le=100)
+
+    # Overlap mode: "partial" = Gibson-style (default), "full" = NEB Q5 SDM style
+    overlap_mode: Literal["partial", "full"] = "partial"
+
+    # Position rescue
+    rescue_pool: list[str] = Field(default_factory=list)
+    auto_relax: bool = Field(default=True)
+
+    # §12 Reproducibility: optional RNG seed (recorded in run manifest when provided)
+    seed: Optional[int] = Field(default=None, ge=0)
+
+
+class RetryFailedParams(BaseModel):
+    mutation: str = ""
+    fasta_path: str
+    polymerase: str = "KOD"
+    target_start: int = Field(default=0, ge=0)
+    # rescue may explore overlap lengths outside the design spec (le=40)
+    overlap_len: Optional[int] = Field(default=None, ge=8, le=40)
+    codon_strategy: str = "closest"
+    organism: str = "ecoli"
+    tm_fwd_target: float = Field(default=62.0, ge=20.0, le=80.0)
+    tm_rev_target: float = Field(default=58.0, ge=20.0, le=80.0)
+    tm_overlap_target: float = Field(default=42.0, ge=20.0, le=80.0)
+    gc_min: float = Field(default=40.0, ge=0.0, le=100.0)
+    gc_max: float = Field(default=60.0, ge=0.0, le=100.0)
+    # None → resolved from polymerase profile
+    fwd_len_min: Optional[int] = Field(default=None, ge=10, le=60)
+    fwd_len_max: Optional[int] = Field(default=None, ge=10, le=100)
+    rev_len_min: Optional[int] = Field(default=None, ge=10, le=60)
+    rev_len_max: Optional[int] = Field(default=None, ge=10, le=100)
+    tol_max: float = Field(default=4.0, ge=0.5, le=10.0)
+    num_return: int = Field(default=10, ge=1, le=960)
+    # Retries must retain the originating geometry: in full mode sdm_engine
+    # intersects the forward/reverse length bounds, so defaulting to partial
+    # would silently produce different primer geometry.
+    overlap_mode: Literal["partial", "full"]
+
+
+class SwapPrimerParams(BaseModel):
+    mutation: str = ""
+    candidate_idx: int = Field(default=0, ge=0)
+    swap_type: Literal["both", "fwd", "rev"] = "both"
+
+class CommitDesignResultParams(BaseModel):
+    mutation: str = ""
+    candidate_idx: int = Field(default=0, ge=0)
+
+
+class EvaluatePrimerParams(BaseModel):
+    mutation: str = "custom"
+    fasta_path: str
+    forward_seq: str = ""
+    reverse_seq: str = ""
+    # evaluates user-provided primers (including legacy designs), so no le=18 cap
+    overlap_len: int = Field(default=18, ge=8, le=40)
+
+
+class GetAlternativesParams(BaseModel):
+    mutation: str = ""
+
+
+# ---------------------------------------------------------------------------
+# export.py handlers
+# ---------------------------------------------------------------------------
+
+
+class PlateMappingItem(BaseModel):
+    well: str
+    primer_name: str
+    sequence: str
+    primer_type: str
+    mutation: str
+    tm: Optional[float] = None
+    tm_overlap: Optional[float] = None
+    wt_codon: Optional[str] = None
+    mt_codon: Optional[str] = None
+
+
+class WorkspaceModel(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    def to_rpc_dict(self, **kwargs) -> dict[str, Any]:
+        """Serialize JSON-RPC responses without null-valued optional fields."""
+        return self.model_dump(mode="json", exclude_none=True, **kwargs)
+
+
+class SortingEntry(WorkspaceModel):
+    id: str
+    desc: bool
+
+
+class OffTargetHitModel(WorkspaceModel):
+    position: int
+    strand: Literal["sense", "antisense"]
+    match_seq: str
+    tm: float
+    match_length: int
+
+
+class FailedMutationModel(WorkspaceModel):
+    mutation: str
+    rank: int
+    reason: str
+
+
+class RescuedMutationModel(WorkspaceModel):
+    original: str
+    rescued_by: str
+    type: Literal[
+        "pool_cascade",
+        "auto_relax",
+        "auto_suggestion",
+        "same_position",
+        "diff_position",
+        "auto_suggestion_l1",
+        "auto_suggestion_l2",
+        "auto_suggestion_l3",
+        "auto_suggestion_l4",
+    ]
+    penalty: Optional[float] = None
+    tolerance_used: Optional[float] = None
+    stage: Optional[int] = None
+    substitute: Optional[str] = None
+
+
+class RescueStatsModel(WorkspaceModel):
+    pool_cascade: int
+    auto_relax: int
+    positions_attempted: int
+    pool_variants_tried: int
+
+
+class DomainInfoModel(WorkspaceModel):
+    name: str
+    id: str
+    start: int
+    end: int
+    db: str
+
+
+class EvolveproStepStatsModel(WorkspaceModel):
+    position_filter_removed: Optional[int] = None
+    domain_selected: Optional[int] = None
+    pareto_exchanges: Optional[int] = None
+
+
+class RankedCandidateItem(WorkspaceModel):
+    """Single entry in the ranked_candidates list returned by load_evolvepro_csv.
+
+    variant     : normalized variant string (e.g. ``A42V``).
+    y_pred      : raw EVOLVEpro score, rounded to 4 decimal places.
+    aa_position : 1-based amino acid position extracted from variant string;
+                  None when the variant string contains no parseable position
+                  (e.g. multi-substitution strings where extraction fails).
+    """
+    variant: str
+    y_pred: float
+    aa_position: Optional[int] = None
+
+
+class BenchmarkResultModel(WorkspaceModel):
+    n_selected: int
+    hit_rate: float
+    mean_fitness: float
+    unique_positions: int
+    position_coverage: float
+    domain_coverage: float
+    structural_spread: float
+    hits: int
+    threshold: float
+    n_trials: Optional[int] = None
+
+
+class SdmPrimerResultModel(WorkspaceModel):
+    mutation: str
+    aa_position: int
+    codon_pos: int
+    forward_seq: str
+    reverse_seq: str
+    fwd_len: int
+    rev_len: int
+    overlap_len: int
+    candidate_count: Optional[int] = None
+    candidate_fwd_count: Optional[int] = None
+    candidate_rev_count: Optional[int] = None
+    tm_no_fwd: float
+    tm_no_rev: float
+    tm_overlap: float
+    tm_condition_met: bool
+    tolerance_used: float
+    tolerance_fwd: Optional[float] = None
+    tolerance_rev: Optional[float] = None
+    has_offtarget: bool
+    offtarget_fwd: Optional[list[OffTargetHitModel]] = None
+    offtarget_rev: Optional[list[OffTargetHitModel]] = None
+    penalty: float
+    gc_fwd: float
+    gc_rev: float
+    wt_codon: str
+    mt_codon: str
+    overlap_seq: str
+    hairpin_tm_fwd: Optional[float] = None
+    hairpin_tm_rev: Optional[float] = None
+    homodimer_tm_fwd: Optional[float] = None
+    homodimer_tm_rev: Optional[float] = None
+    hairpin_dg_fwd: Optional[float] = None
+    hairpin_dg_rev: Optional[float] = None
+    homodimer_dg_fwd: Optional[float] = None
+    homodimer_dg_rev: Optional[float] = None
+    # Per-structure warning verdicts computed at serialize time by
+    # kuma_core.kuro.sdm_engine.secondary_structure_warn_flags: hairpin warns
+    # on folded fraction at the pair's annealing temperature, homodimer on the
+    # absolute design-scale Tm. Display-only; ranking is unaffected.
+    hairpin_warn_fwd: Optional[bool] = None
+    hairpin_warn_rev: Optional[bool] = None
+    homodimer_warn_fwd: Optional[bool] = None
+    homodimer_warn_rev: Optional[bool] = None
+    synthesis_score_fwd: Optional[float] = None
+    synthesis_score_rev: Optional[float] = None
+    warnings: list[str] = Field(default_factory=list)
+    overlap_mode: Optional[Literal["partial", "full"]] = None
+    # Per-enzyme annealing temperature (added by kuro.annealing; design-invariant).
+    recommended_ta: Optional[float] = None
+    ta_mode: Optional[Literal["3step", "2step", "fixed"]] = None
+    ta_detail: Optional[str] = None
+    ta_touchdown: Optional[str] = None
+
+
+class PolymeraseProfileModel(WorkspaceModel):
+    name: str
+    tm_method: str
+    salt_correction: str
+    opt_tm: float
+    min_tm: float
+    max_tm: float
+    min_gc: float
+    max_gc: float
+    salt_monovalent: float
+    salt_divalent: float
+    dntp_conc: float
+    dna_conc: float
+    opt_tm_fwd: Optional[float] = None
+    opt_tm_rev: Optional[float] = None
+    opt_tm_overlap: Optional[float] = None
+    min_3prime_dist: Optional[int] = None
+    overlap_len: Optional[int] = None
+    fwd_len_min: Optional[int] = None
+    fwd_len_max: Optional[int] = None
+    rev_len_min: Optional[int] = None
+    rev_len_max: Optional[int] = None
+    default_overlap_mode: Optional[Literal["partial", "full"]] = None
+
+
+class AlternativesResultModel(WorkspaceModel):
+    mutation: Optional[str] = None
+    count: Optional[int] = None
+    candidates: list[SdmPrimerResultModel] = Field(default_factory=list)
+
+
+class DesignResultResponseModel(WorkspaceModel):
+    results: list[SdmPrimerResultModel] = Field(default_factory=list)
+    success_count: int
+    total_count: int
+    failed_mutations: list[FailedMutationModel] = Field(default_factory=list)
+    rescue_stats: Optional[RescueStatsModel] = None
+    rescued_mutations: Optional[list[RescuedMutationModel]] = None
+    cancelled: Optional[bool] = None
+
+
+class FileExportResultModel(WorkspaceModel):
+    success: Literal[True] = True
+    filepath: str
+    manifest_path: Optional[str] = None
+    checksum_path: Optional[str] = None
+
+
+class ExportOrderResultModel(FileExportResultModel):
+    format: Literal["idt", "twist"]
+    primer_count: int
+
+
+class ExportMappingResultModel(FileExportResultModel):
+    format: Literal["echo", "janus"]
+    primer_count: int
+
+
+class SaveCustomPolymeraseResultModel(WorkspaceModel):
+    success: Literal[True] = True
+    name: str
+
+
+class WorkspaceInputsModel(WorkspaceModel):
+    fastaPath: str
+    mutationInputMode: Literal["text", "evolvepro"]
+    mutationText: str
+    evolveproCsvPath: str
+    selectedGene: str
+    # Optional: Others-mode mutation source file path. Backward-compatible
+    # with workspaces saved before this field existed.
+    othersSourcePath: Optional[str] = None
+
+
+class WorkspaceSettingsModel(WorkspaceModel):
+    selectedPolymerase: Optional[str] = None
+    codonStrategy: Literal["closest", "optimal"]
+    maxPrimers: int
+    tmFwdTarget: float
+    tmRevTarget: float
+    tmOverlapTarget: float
+    gcMin: float
+    gcMax: float
+    primerLenEnabled: Optional[bool] = None
+    fwdLenMin: Optional[int] = None
+    fwdLenMax: Optional[int] = None
+    revLenMin: Optional[int] = None
+    revLenMax: Optional[int] = None
+    fillOnFailure: Optional[bool] = None
+    tmTolerance: Optional[float] = None
+    uniprotAccession: Optional[str] = None
+    domains: Optional[list[DomainInfoModel]] = None
+    refDomains: Optional[list[DomainInfoModel]] = None
+    refDomainHash: Optional[str] = None
+    structureAccession: Optional[str] = None
+    structureLoaded: Optional[bool] = None
+    domainDiversityEnabled: Optional[bool] = None
+    domainStrategy: Optional[Literal["proportional", "equal"]] = None
+    domainOverlapPolicy: Optional[Literal["first", "largest"]] = None
+    linkerHandling: Optional[Literal["include", "exclude", "separate-bin"]] = None
+    domainQuotaMin: Optional[int] = None
+    paretoDiversityEnabled: Optional[bool] = None
+    structuralDiversityEnabled: Optional[bool] = None
+    structuralKappa: Optional[float] = None
+    disabledDomains: Optional[list[str]] = None
+    rescuedMutations: Optional[list[str]] = None
+    entropyWeightEnabled: Optional[bool] = None
+    entropyWeight: Optional[float] = None
+    paretoPoolMultiplier: Optional[float] = None
+    distanceMode: Optional[Literal["auto", "1d", "3d"]] = None
+    benchmarkTopPercentile: Optional[float] = None
+    benchmarkRandomTrials: Optional[int] = None
+    benchmarkRandomSeed: Optional[int] = None
+    autoRedesignOnLoad: Optional[bool] = None
+    saveCache: Optional[bool] = None
+    organism: Optional[str] = None
+    overlapMode: Optional[Literal["partial", "full"]] = None
+    pipelineMode: Optional[bool] = None
+    # Tri-state EVOLVEpro mode. Takes priority over pipelineMode on restore.
+    evolveproMode: Optional[Literal["topN", "pipeline", "others"]] = None
+    positionDiversityEnabled: Optional[bool] = None
+    maxPerPosition: Optional[int] = None
+    evolveproRound: Optional[int] = None
+    roundSize: Optional[int] = None
+    randomSeed: Optional[int] = None
+    echoTransferVol: Optional[float] = None
+    echoQuadrant: Optional[Literal["A1", "A13", "A2", "B1", "B2"]] = None
+    echoUsedQuadrants: Optional[list[Literal["A1", "A13", "A2", "B1", "B2"]]] = None
+    #: Column parity picked for each export round of a design past one plate,
+    #: index 0 for round 1. Kept loose on purpose: the frontend reads it through
+    #: ``normalizeRoundQuadrants`` (src/lib/plateRounds.ts), which turns any
+    #: unknown entry into "not picked" instead of refusing the whole file.
+    echoRoundQuadrants: Optional[list[Optional[str]]] = None
+    #: Echo source plate number picked for each export round, parallel to
+    #: ``echoRoundQuadrants``. A separate list rather than objects inside that
+    #: one, so an app from before several plates still reads the parities it
+    #: knows. Absent in files from before several plates, which the frontend
+    #: reads as plate 1 for both rounds. Loose for the same reason as above.
+    echoRoundPlates: Optional[list[Optional[int]]] = None
+    janusTransferVol: Optional[float] = None
+
+
+class WorkspaceResultsModel(WorkspaceModel):
+    designResults: list[SdmPrimerResultModel]
+    successCount: int
+    totalCount: int
+    failedMutations: list[FailedMutationModel]
+    plateMappings: list[PlateMappingItem]
+    dedupInfo: dict[str, list[str]]
+    manuallySwapped: dict[str, Literal["fwd", "rev", "both"]]
+    customCandidates: dict[str, list[SdmPrimerResultModel]]
+    rescuedMutationDetails: Optional[list[RescuedMutationModel]] = None
+
+
+class WorkspaceUiModel(WorkspaceModel):
+    tableSorting: list[SortingEntry]
+
+
+class WorkspaceCacheModel(WorkspaceModel):
+    evolveproTotalCount: Optional[int] = None
+    evolveproFilteredCount: Optional[int] = None
+    evolveproParetoExchanges: Optional[int] = None
+    evolveproStepStats: Optional[EvolveproStepStatsModel] = None
+    benchmarkResults: Optional[dict[str, BenchmarkResultModel]] = None
+
+
+class WorkspaceV1Data(WorkspaceModel):
+    version: Literal[1]
+    fastaPath: str
+    mutationInputMode: Literal["text", "evolvepro"]
+    mutationText: str
+    evolveproCsvPath: str
+    selectedGene: str
+    codonStrategy: Literal["closest", "optimal"]
+    maxPrimers: int
+    designResults: list[SdmPrimerResultModel]
+    successCount: int
+    totalCount: int
+    failedMutations: list[FailedMutationModel]
+    plateMappings: list[PlateMappingItem]
+    dedupInfo: dict[str, list[str]]
+    tableSorting: list[SortingEntry]
+    manuallySwapped: dict[str, Literal["fwd", "rev", "both"]]
+    customCandidates: dict[str, list[SdmPrimerResultModel]]
+    tmFwdTarget: float
+    tmRevTarget: float
+    tmOverlapTarget: float
+    gcMin: float
+    gcMax: float
+    primerLenEnabled: Optional[bool] = None
+    fwdLenMin: Optional[int] = None
+    fwdLenMax: Optional[int] = None
+    revLenMin: Optional[int] = None
+    revLenMax: Optional[int] = None
+    fillOnFailure: Optional[bool] = None
+    uniprotAccession: Optional[str] = None
+    domains: Optional[list[DomainInfoModel]] = None
+    domainDiversityEnabled: Optional[bool] = None
+    domainStrategy: Optional[Literal["proportional", "equal"]] = None
+    paretoDiversityEnabled: Optional[bool] = None
+    disabledDomains: Optional[list[str]] = None
+    rescuedMutations: Optional[list[str]] = None
+    entropyWeightEnabled: Optional[bool] = None
+    entropyWeight: Optional[float] = None
+    organism: Optional[str] = None
+    overlapMode: Optional[Literal["partial", "full"]] = None
+    pipelineMode: Optional[bool] = None
+    positionDiversityEnabled: Optional[bool] = None
+    maxPerPosition: Optional[int] = None
+    evolveproRound: Optional[int] = None
+    roundSize: Optional[int] = None
+    evolveproTotalCount: Optional[int] = None
+    evolveproFilteredCount: Optional[int] = None
+    evolveproParetoExchanges: Optional[int] = None
+    evolveproStepStats: Optional[EvolveproStepStatsModel] = None
+
+
+class WorkspaceV2Data(WorkspaceModel):
+    version: Literal[2]
+    inputs: WorkspaceInputsModel
+    settings: WorkspaceSettingsModel
+    results: WorkspaceResultsModel
+    ui: WorkspaceUiModel
+    cache: Optional[WorkspaceCacheModel] = None
+
+
+class WorkspaceV3Data(WorkspaceModel):
+    schema_version: Literal["0.3"]
+    inputs: WorkspaceInputsModel
+    settings: WorkspaceSettingsModel
+    results: WorkspaceResultsModel
+    ui: WorkspaceUiModel
+    cache: Optional[WorkspaceCacheModel] = None
+    rounds: list[Any] = Field(default_factory=list)
+    active_round_id: Optional[str] = None
+
+
+WorkspaceDataModel = WorkspaceV1Data | WorkspaceV2Data | WorkspaceV3Data
+_WORKSPACE_DATA_ADAPTER = TypeAdapter(WorkspaceDataModel)
+
+
+def validate_workspace_data(data: Any) -> WorkspaceV1Data | WorkspaceV2Data | WorkspaceV3Data:
+    """Validate versioned workspace payloads against the sidecar contract."""
+    return _WORKSPACE_DATA_ADAPTER.validate_python(data)
+
+
+class ExportExcelParams(BaseModel):
+    filepath: str
+    mappings: Optional[list[PlateMappingItem]] = None
+    dedup_info: Optional[dict[str, list[str]]] = None
+    project_id: Optional[str] = None
+    kuma_version: Optional[str] = None
+    report_data: Optional[Any] = None
+    benchmark_raw: Optional[Any] = None
+    rescued_info: Optional[list[RescuedMutationModel]] = None
+
+
+class ExportOrderItem(BaseModel):
+    mutation: str
+    forward_seq: str
+    reverse_seq: str
+
+
+class ExportOrderParams(BaseModel):
+    filepath: str
+    format: Literal["idt", "twist"] = "idt"
+    results: Optional[list[ExportOrderItem]] = None
+    bom: bool = False
+
+
+class MappingRange(BaseModel):
+    """Inclusive 384-well row range (e.g. ``A``..``H``) for Echo/Janus layout.
+
+    Both endpoints uppercase A-P; ``row_start`` must precede or equal ``row_end``.
+    Even-row spans are required so fwd/rev pairs fit; this is enforced downstream
+    by ``kuma_core.kuro.plate_mapper._validate_mapping_range``.
+    """
+
+    row_start: str
+    row_end: str
+
+    @field_validator("row_start", "row_end", mode="before")
+    @classmethod
+    def _normalize_row(cls, v):
+        if not isinstance(v, str) or len(v) != 1:
+            raise ValueError("row endpoints must be single A-P letters")
+        v = v.upper()
+        if v < "A" or v > "P":
+            raise ValueError("row endpoints must be within A-P")
+        return v
+
+    @field_validator("row_end")
+    @classmethod
+    def _check_order(cls, v, info):
+        start = info.data.get("row_start")
+        if start is not None and v < start:
+            raise ValueError(
+                f"mapping_range row_end ({v}) precedes row_start ({start})"
+            )
+        return v
+
+
+class ExportMappingParams(BaseModel):
+    filepath: str
+    format: Literal["echo", "janus"] = "echo"
+    transfer_vol: Optional[float] = None  # nL for echo, µL for janus; None = format default
+    mappings: Optional[list[PlateMappingItem]] = None
+    dedup_info: Optional[dict[str, list[str]]] = None
+    mapping_range: Optional[MappingRange] = None
+    #: Which column parity of the 384 source plate this round occupies: "A1"
+    #: for the odd columns 1, 3 .. 23 and "A2" for the even ones. Reverse
+    #: primers sit one row below their forward primer in the same column. Takes
+    #: precedence over ``mapping_range``, which cannot express a column offset.
+    #: Echo only. "B1"/"B2" are interleaved-era names for these same rounds and
+    #: the core folds them onto "A1"/"A2" without moving a well. "A13" is the
+    #: right-half name from v0.16.61 and folds onto neither, because a block of
+    #: twelve consecutive columns covers part of both rounds
+    #: (``plate_quadrant`` docstring), so the core refuses one sent here and
+    #: the operator picks again. All of them stay in this Literal so a saved
+    #: project still loads.
+    quadrant: Optional[Literal["A1", "A13", "A2", "B1", "B2"]] = None
+    #: Rounds already spent on a part-used plate, stated by the operator.
+    #: Dispensing onto one is refused rather than warned about.
+    used_quadrants: Optional[list[Literal["A1", "A13", "A2", "B1", "B2"]]] = None
+    bom: bool = False
+
+
+class ExportMappingDryRunParams(BaseModel):
+    """Params for `export_{echo,janus}_mapping_dry_run` RPC methods.
+
+    Optional ``mappings``/``dedup_info`` lets the frontend ship a pre-reordered
+    plate layout (e.g. matching the ResultTable Mutation sort) instead of
+    relying on the sidecar's stored ``_state.plate_mappings`` ordering.
+    """
+
+    transfer_vol: Optional[float] = None
+    mappings: Optional[list[PlateMappingItem]] = None
+    dedup_info: Optional[dict[str, list[str]]] = None
+    mapping_range: Optional[MappingRange] = None
+    #: Same placement parameters the Echo export takes. The preview sits above
+    #: the quadrant selector in the export step, so a preview that ignored them
+    #: had the operator checking wells the exported csv would not use. Echo only;
+    #: the JANUS dry run accepts and ignores them, as it does ``mapping_range``.
+    quadrant: Optional[Literal["A1", "A13", "A2", "B1", "B2"]] = None
+    used_quadrants: Optional[list[Literal["A1", "A13", "A2", "B1", "B2"]]] = None
+    #: Echo source plate number of the previewed round. See
+    #: ``ExportAllParams.source_plate``.
+    source_plate: Optional[int] = Field(default=None, ge=1)
+
+
+class SaveWorkspaceParams(BaseModel):
+    filepath: str
+    data: Any  # arbitrary JSON object
+
+    @field_validator("data", mode="before")
+    @classmethod
+    def check_data_size(cls, v):
+        import json as _json
+        validate_workspace_data(v)
+        serialized = _json.dumps(v, default=str)
+        if len(serialized) > 50 * 1024 * 1024:  # 50MB
+            raise ValueError("Workspace data exceeds 50MB limit")
+        return v
+
+
+class SaveJsonParams(BaseModel):
+    filepath: str
+    data: Any
+
+    @field_validator("data", mode="before")
+    @classmethod
+    def check_data_size(cls, v):
+        import json as _json
+        serialized = _json.dumps(v, default=str)
+        if len(serialized) > 50 * 1024 * 1024:  # 50MB
+            raise ValueError("JSON data exceeds 50MB limit")
+        return v
+
+
+class LoadWorkspaceParams(BaseModel):
+    filepath: str
+
+
+class BenchmarkResultDict(TypedDict, total=False):
+    """Metrics returned by evaluate_selection() for a single strategy."""
+    n_selected: int
+    hit_rate: float
+    mean_fitness: float
+    unique_positions: int
+    position_coverage: float
+    domain_coverage: float
+    structural_spread: float
+    hits: int
+    threshold: float
+    n_trials: int
+
+
+class ExportBenchmarkCsvParams(BaseModel):
+    filepath: str
+    results: dict[str, BenchmarkResultDict] = Field(default_factory=dict)
+    bom: bool = False
+
+
+# ---------------------------------------------------------------------------
+# external.py handlers
+# ---------------------------------------------------------------------------
+
+
+class FetchDomainsParams(BaseModel):
+    accession: str = ""
+
+
+class SearchUniprotParams(BaseModel):
+    gene_name: str = ""
+    organism: str = ""
+    translation: str = ""
+    known_accession: str = ""
+    # The Settings dialog lets BLAST be switched off on its own, separately from
+    # UniProt itself. BLAST is only ever the secondary step here, so switching it
+    # off leaves direct accession lookup working instead of killing the search.
+    use_blast: bool = True
+
+
+class CheckStructuresParams(BaseModel):
+    accessions: list[str] = Field(default_factory=list, max_length=20)
+
+
+class FetchStructureParams(BaseModel):
+    accession: str = ""
+
+
+class LoadStructureFileParams(BaseModel):
+    """Params for `load_structure_file` RPC (user-supplied PDB / mmCIF / zip)."""
+
+    filepath: str = ""
+
+
+class StructureModelCandidate(BaseModel):
+    """One model found inside an archive, with the metrics used to rank it."""
+
+    name: str
+    ranking_score: Optional[float] = None
+    mean_plddt: Optional[float] = None
+    residue_count: int = 0
+
+
+class LoadStructureFileResult(BaseModel):
+    """Result for `load_structure_file` RPC."""
+
+    success: bool
+    # Synthetic cache key the frontend stores as structureAccession, so later
+    # design and benchmark calls resolve these coordinates. Empty on failure.
+    accession: str = ""
+    residues: int = 0
+    mean_plddt: Optional[float] = None
+    source_name: str = ""
+    selection_metric: str = ""
+    candidates: list[StructureModelCandidate] = Field(default_factory=list)
+    error: Optional[str] = None
+
+
+class FetchInterfaceParams(BaseModel):
+    """Params for `fetch_interface_residues` RPC.
+
+    accession : UniProt accession whose PDB cross-references are scanned for a
+                multi-chain crystal structure.
+    ref_seq   : user reference sequence; the returned interface positions are
+                expressed in this 1-based frame (KURO contract).
+    """
+
+    accession: str = ""
+    ref_seq: str = ""
+
+class AnnotateDomainsBySequenceParams(BaseModel):
+    """Params for `annotate_domains_by_sequence` RPC."""
+
+    sequence: str = ""
+    ref_hash: Optional[str] = None
+
+
+# ---------------------------------------------------------------------------
+# G001: 3D Analysis panel RPCs (fetch_pdb_text, fetch_active_site_residues,
+#        compute_dispersion)
+# ---------------------------------------------------------------------------
+
+
+class FetchPdbTextParams(BaseModel):
+    """Params for `fetch_pdb_text` RPC."""
+
+    accession: str = ""
+
+
+class FetchPdbTextResult(BaseModel):
+    """Result for `fetch_pdb_text` RPC."""
+
+    success: bool
+    accession: str
+    pdb_text: Optional[str] = None
+    source: str = ""
+
+
+class FetchActiveSiteParams(BaseModel):
+    """Params for `fetch_active_site_residues` RPC."""
+
+    accession: str = ""
+
+
+class FetchActiveSiteResult(BaseModel):
+    """Result for `fetch_active_site_residues` RPC."""
+
+    accession: str
+    active_site_positions: list[int] = Field(default_factory=list)
+    binding_positions: list[int] = Field(default_factory=list)
+    source: str = ""
+    has_annotation: bool = False
+
+
+class NullHistogram(BaseModel):
+    """Histogram of the null (random) mean-pairwise distribution for compute_dispersion."""
+
+    min: float = 0.0
+    max: float = 0.0
+    counts: list[int] = Field(default_factory=list)
+
+
+class ComputeDispersionParams(BaseModel):
+    """Params for `compute_dispersion` RPC."""
+
+    accession: str = ""
+    ref_seq: str = ""
+    positions: list[int] = Field(default_factory=list)
+    n_trials: int = Field(default=1000, ge=1, le=100000)
+    seed: Optional[int] = None
+    # Reference-frame structures (e.g. ESMFold predictions) supply their PDB
+    # text directly; the accession pipeline is skipped when coordinate_frame is
+    # "reference". Both fields default to the backward-compatible accession path.
+    pdb_text: Optional[str] = None
+    coordinate_frame: Literal["accession", "reference"] = "accession"
+
+
+class ComputeDispersionResult(BaseModel):
+    """Result for `compute_dispersion` RPC."""
+
+    accession: str
+    mapped: list[int] = Field(default_factory=list)
+    dropped: list[int] = Field(default_factory=list)
+    n_positions: int = 0
+    mean_pairwise: float = 0.0
+    null_mean: float = 0.0
+    null_p05: float = 0.0
+    null_p95: float = 0.0
+    percentile: float = 0.0
+    klass: str = "na"
+    n_trials: int = 1000
+    seed: Optional[int] = None
+    null_hist: NullHistogram = Field(default_factory=NullHistogram)
+
+
+class PredictStructureEsmfoldParams(BaseModel):
+    """Params for `predict_structure_esmfold` RPC."""
+
+    sequence: str = ""
+
+
+class PredictStructureEsmfoldResult(BaseModel):
+    """Reference-frame de-novo structure predicted by ESMFold."""
+
+    success: bool = False
+    source: Literal["esmfold", "esmfold_cache", "error"] = "esmfold"
+    pdb_text: Optional[str] = None
+    plddt_mean: float = 0.0
+    residue_count: int = 0
+    coordinate_frame: Literal["reference"] = "reference"
+    seq_hash: str = ""
+    cache_hit: bool = False
+    error_msg: Optional[str] = None
+
+# ---------------------------------------------------------------------------
+# Sequence-direct InterProScan domain annotation
+# ---------------------------------------------------------------------------
+
+
+class AnnotateDomainsBySequenceResult(WorkspaceModel):
+    """Typed reference-frame result for `annotate_domains_by_sequence`."""
+
+    domains: list[DomainInfoModel] = Field(default_factory=list)
+    protein_length: int = 0
+    source: Literal["interproscan", "error"] = "interproscan"
+    coordinate_frame: Literal["reference"] = "reference"
+    ref_hash: str = ""
+    cache_hit: bool = False
+    error_msg: Optional[str] = None
+    # Set when nothing was submitted because no contact email is configured.
+    error_code: Optional[Literal["contact_email_required"]] = None
+
+
+# ---------------------------------------------------------------------------
+# misc.py handlers
+# ---------------------------------------------------------------------------
+
+
+class ExcludedRange(BaseModel):
+    start: int
+    end: int
+
+
+class PreviewEvolveproSourceParams(BaseModel):
+    """Params for preview_evolvepro_source RPC.
+
+    Returns the sheet names, column headers, and first max_rows data rows
+    from a CSV or XLSX file without loading the full dataset.
+    """
+    filepath: str
+    sheet_name: Optional[str] = None
+    max_rows: int = Field(default=8, ge=1, le=100)
+
+
+class LoadEvolveproParams(BaseModel):
+    filepath: str = ""
+    top_n: int = Field(default=96, ge=0, le=10000)
+    max_per_position: int = Field(default=0, ge=0)
+    domains: list[DomainEntry] = Field(default_factory=list)
+    excluded_ranges: list[ExcludedRange] = Field(default_factory=list)
+    domain_diversity: bool = False
+    domain_strategy: str = "proportional"
+    domain_overlap_policy: Literal["first", "largest"] = "first"
+    linker_handling: Literal["include", "exclude", "separate-bin"] = "include"
+    domain_quota_min: int = Field(default=1, ge=0, le=20)
+    pareto_diversity: bool = False
+    entropy_weight: float = Field(default=0.0, ge=0.0, le=1.0)
+    pool_multiplier: float = Field(default=2.0, ge=1.0, le=10.0)
+    distance_mode: Literal["auto", "1d", "3d"] = "auto"
+    structure_accession: Optional[str] = None
+    evolvepro_round: int = Field(default=0, ge=0)
+    round_size: int = Field(default=96, ge=1, le=10000)
+    # v0.3 §4: protein reference sequence (1-indexed positions) used to
+    # convert short EVOLVEpro variant notation (`89W`) into internal
+    # MAME/kuro notation (`F89W`). Optional -- if omitted, short-form
+    # variants pass through unchanged for backward compatibility.
+    ref_seq: str = ""
+    # Others mode: user-specified column overrides and sort direction.
+    variant_column: Optional[str] = None
+    score_column: Optional[str] = None
+    score_order: Literal["desc", "asc"] = "desc"
+    sheet_name: Optional[str] = None
+    # Iterative pool expansion for proportional domain strategy.
+    # When True, the candidate pool grows until each domain meets its
+    # length-derived quota or the safety cap is reached. Preserves
+    # user-intended domain ratio when high-fitness candidates cluster
+    # in a subset of domains.
+    domain_pool_autoexpand: bool = True
+    domain_pool_max_multiplier: float = Field(default=10.0, ge=1.0, le=100.0)
+    # Structure-aware diversity selector (validated 'kuro_ca' recipe): full pool +
+    # revealed-anchor + 3D Ca-centroid maximin + kappa fitness blend. Off by default.
+    structural_diversity: bool = False
+    structural_kappa: float = Field(default=0.0, ge=0.0, le=1.0)
+    anchor_variants: list[str] = Field(default_factory=list)
+
+
+class LandscapeEntry(BaseModel):
+    variant: str
+    fitness: float
+
+
+class RunBenchmarkParams(BaseModel):
+    landscape: list[LandscapeEntry] = Field(default_factory=list)
+    ground_truth: dict[str, float] = Field(default_factory=dict)
+    n_select: int = Field(default=95, ge=1, le=10000)
+    n_random_trials: int = Field(default=100, ge=1, le=1000)
+    top_percentile: float = Field(default=10.0, gt=0.0, le=100.0)
+    strategies: list[str] = Field(default_factory=lambda: ["topn", "random", "pareto_1d", "pareto_3d", "pareto_entropy"])
+    domains: list[DomainEntry] = Field(default_factory=list)
+    domain_strategy: str = "proportional"
+    max_per_position: int = Field(default=1, ge=1)
+    entropy_weight: float = Field(default=0.3, ge=0.0, le=1.0)
+    pool_multiplier: float = Field(default=2.0, ge=1.0, le=10.0)
+    distance_mode: Literal["auto", "1d", "3d"] = "auto"
+    structure_accession: Optional[str] = None
+    # Reference protein sequence for the frame guard: coordinates are only used
+    # when the loaded structure covers this frame, matching load_evolvepro_csv.
+    ref_seq: str = ""
+    random_seed: Optional[int] = None
+
+
+# ---------------------------------------------------------------------------
+# Export All + Macrogen models (spec 2026-05-13)
+# ---------------------------------------------------------------------------
+
+import re as _re_export
+
+_MACROGEN_PLATE_NAME_RE = _re_export.compile(r"^[A-Za-z0-9_-]{1,20}$")
+_PROJECT_NAME_RE = _re_export.compile(r"^[A-Za-z0-9가-힣_\-]{1,40}$")
+
+
+class ExportMacrogenParams(BaseModel):
+    """Params for `export_macrogen` RPC method (Macrogen Plate Oligo .xls)."""
+
+    project_id: Optional[str] = None
+    output_path: str
+    fwd_plate_name: str = ""
+    rev_plate_name: str = ""
+    amount: Literal["0.05", "0.2"] = "0.05"
+    purification: Literal["MOPC"] = "MOPC"
+
+    @field_validator("fwd_plate_name", "rev_plate_name")
+    @classmethod
+    def _plate_name_rule(cls, v: str) -> str:
+        if v and not _MACROGEN_PLATE_NAME_RE.fullmatch(v):
+            raise ValueError(
+                f"plate name '{v}' violates ^[A-Za-z0-9_-]{{1,20}}$"
+            )
+        return v
+
+
+class ExportAllParams(BaseModel):
+    """Params for `export_all` RPC method.
+
+    The batch writes six artefact kinds as eight files: echo and janus each go
+    out as a csv and an xlsx. See ``EXPORT_ALL_BUNDLE`` in
+    ``sidecar_kuro.handlers.export`` for the declaration both counts come from.
+    """
+
+    project_id: Optional[str] = None
+    project_name: Optional[str] = None
+    output_dir: str
+    fwd_plate_name: str = ""
+    rev_plate_name: str = ""
+    amount: Literal["0.05", "0.2"] = "0.05"
+    purification: Literal["MOPC"] = "MOPC"
+    echo_transfer_vol: int = Field(default=100, ge=25, le=500)
+    janus_transfer_vol: float = Field(default=2.0, ge=0.5, le=10.0)
+    bom: bool = False
+    mappings: Optional[list[PlateMappingItem]] = None
+    dedup_info: Optional[dict[str, list[str]]] = None
+    #: Column parity of the 384 Echo source plate this round occupies. See
+    #: ``ExportMappingParams.quadrant``. Reaches the Echo csv, the xlsx
+    #: worklist sheet and the xlsx layout grid, which draws the columns the
+    #: worklist beside it aspirates from.
+    quadrant: Optional[Literal["A1", "A13", "A2", "B1", "B2"]] = None
+    #: Rounds already spent on a part-used plate, stated by the operator.
+    used_quadrants: Optional[list[Literal["A1", "A13", "A2", "B1", "B2"]]] = None
+    #: Also write one GenBank vector map per clone into the sibling folder
+    #: ``<prefix>_vectormaps/``. Outside the bundle, so the six kinds and eight
+    #: files above are unchanged. Off by default.
+    vectormaps: bool = False
+    #: Round of a design split past one plate that this call writes: ``R``
+    #: followed by the round number (``R1``, ``R2`` .. ``Rn``, no leading
+    #: zero). When set, the folder is named ``<base>_R<n>`` before the same-day
+    #: ``_2`` collision suffix is applied, and the call is refused unless every
+    #: mapping sits on one 96-well plate (A1-H12, no ``P2-`` label, no well
+    #: used twice), ``quadrant`` is chosen and not in ``used_quadrants``, and
+    #: ``source_plate`` is given. Unset keeps the single-plate export exactly
+    #: as it was.
+    round_label: Optional[str] = Field(default=None, pattern=r"^R[1-9][0-9]*$")
+    #: Echo 384 source plate (1-based) this round is dispensed from, picked by
+    #: the operator. Two rounds fill one plate, one per column parity, so a
+    #: design past two rounds needs a second plate. ``used_quadrants`` then
+    #: means the parities already spent on THIS plate. Written into the Echo
+    #: worklist as ``Source [<n>]``; plate 1 keeps the single-plate bytes.
+    source_plate: Optional[int] = Field(default=None, ge=1)
+
+    @field_validator("fwd_plate_name", "rev_plate_name")
+    @classmethod
+    def _plate_name_rule(cls, v: str) -> str:
+        if v and not _MACROGEN_PLATE_NAME_RE.fullmatch(v):
+            raise ValueError(
+                f"plate name '{v}' violates ^[A-Za-z0-9_-]{{1,20}}$"
+            )
+        return v
+
+    @field_validator("project_name")
+    @classmethod
+    def _project_name_rule(cls, v: Optional[str]) -> Optional[str]:
+        if v is None or v == "":
+            return None
+        if not _PROJECT_NAME_RE.fullmatch(v):
+            raise ValueError(
+                f"project_name '{v}' violates ^[A-Za-z0-9가-힣_\\-]{{1,40}}$"
+            )
+        return v
+
+
+# ---------------------------------------------------------------------------
+# Phase 3: Settings
+# ---------------------------------------------------------------------------
+
+SettingsTheme = Literal["light", "dark", "auto"]
+
+
+class SettingsNetwork(BaseModel):
+    """Network consent flags and offline mode for Settings."""
+
+    offline_mode: bool = False
+    consent_uniprot: bool = True
+    consent_blast: bool = True
+    consent_alphafold: bool = True
+    consent_interpro: bool = True
+    consent_esmfold: bool = True
+    # The user's own address, sent to EBI Job Dispatcher (BLAST, InterProScan)
+    # and nowhere else. EBI requires one per submitter. Empty means not given
+    # yet, and the sidecar then skips those submissions rather than inventing
+    # an address.
+    contact_email: str = ""
+
+
+class SettingsBundle(BaseModel):
+    """Complete application preferences bundle persisted to ~/.kuma/preferences.json."""
+
+    language: str = "en"
+    theme: SettingsTheme = "auto"
+    default_workspace_folder: Optional[str] = None
+    network: SettingsNetwork = Field(default_factory=SettingsNetwork)
+
+
+class SettingsLoadRequest(BaseModel):
+    """Empty request body for settings_load RPC."""
+
+
+class SettingsLoadResponse(BaseModel):
+    """Response body for settings_load RPC."""
+
+    settings: SettingsBundle
+    # The address EBI submissions actually carry and where it came from. It can
+    # differ from ``settings.network.contact_email``: the KURO_CONTACT_EMAIL
+    # environment variable wins over it, and ~/.kuma/kuro/config.json fills in
+    # when it is empty. Settings shows the source so neither is invisible.
+    effective_contact_email: Optional[str] = None
+    contact_email_source: Literal["env", "preferences", "legacy_config", "none"] = "none"
+
+
+class SettingsSaveRequest(BaseModel):
+    """Request body for settings_save RPC -- full SettingsBundle payload."""
+
+    settings: SettingsBundle
+
+
+class SettingsSaveResponse(BaseModel):
+    """Response body for settings_save RPC."""
+
+    ok: bool
+    path: str
+
+
+class ImportCodonTableParams(BaseModel):
+    """Parameters for ``import_codon_table``.
+
+    ``key`` is required and is the identity the table is installed under. It
+    is deliberately not derived from the file name: V9 tells a user whose file
+    collides with a bundled table to "import under a different key, for
+    example ecoli_lab", which is only an instruction the user can follow if
+    the key is a field they control. The same parameter is what makes V10
+    reachable, since a second import of one file can now claim the same key.
+
+    ``text`` carries a Kazusa page pasted into the dialog; ``filepath`` a file
+    the user browsed to. One of the two is required, and ``text`` wins when
+    both arrive, because a paste is the more recent thing the user did.
+
+    ``dry_run`` is the preview. It runs the identical validation and returns
+    the identical findings, so the sentences shown before importing are the
+    sentences the import itself would produce.
+    """
+
+    format: Literal["json", "csv", "cusp", "kazusa"]
+    key: str
+    filepath: Optional[str] = None
+    text: Optional[str] = None
+    name: str = ""
+    # Nullable rather than absent: an in-house strain has no NCBI id and V13
+    # accepts null for exactly that reason.
+    taxid: Optional[int] = None
+    genetic_code: Optional[int] = 11
+    aliases: list[str] = Field(default_factory=list)
+    source: str = ""
+    overwrite: bool = False
+    dry_run: bool = False
+
+
+class ComputeCodonTableParams(BaseModel):
+    """Parameters for ``compute_codon_table``.
+
+    ``genetic_code`` is a plain ``int`` with a default rather than an
+    ``Optional[int]``. The import model had to make it optional because a kuma
+    JSON file declares its own code and the dialog's value must not touch it;
+    a genome file declares nothing, so here the caller's value is the only one
+    there is and there is no second source for an ``or 11`` fallback to pick
+    from. That fallback is exactly the overwrite Phase 3 found as a defect, so
+    the type is the one shape in which it cannot be written by accident.
+
+    ``genome_format`` is normally absent: ``codon_compute`` reads the suffix.
+    It is here for the file whose name does not say, which is the one case the
+    user can resolve and the program cannot.
+
+    ``dry_run`` is the preview the dialog calls before it offers to install,
+    and it is the same call with the write skipped, as on the import path.
+    """
+
+    filepath: str
+    key: str
+    name: str = ""
+    taxid: Optional[int] = None
+    genetic_code: int = 11
+    genome_format: Optional[Literal["fasta", "genbank"]] = None
+    aliases: list[str] = Field(default_factory=list)
+    source: str = ""
+    overwrite: bool = False
+    dry_run: bool = False
+
+
+class ExportCodonTableParams(BaseModel):
+    """Parameters for ``export_codon_table``.
+
+    Kazusa is absent from the format union on purpose. It is an input path
+    only: the canonical stored form is decided (design note section 3.3, one
+    storage canon), and writing a fourth spelling of a table kuma would then
+    have to read back is a second canon in all but name.
+    """
+
+    key: str
+    format: Literal["json", "csv", "cusp"]
+    filepath: str

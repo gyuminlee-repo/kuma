@@ -1,0 +1,461 @@
+name: Build & Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  quality-gates:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # 50 to match SEARCH_DEPTH in scripts/check-version-label.mjs, for the
+          # same reason as the frontend-typecheck job in ci.yml: this job runs
+          # sync:check too, and at depth 2 the label can fall outside the window
+          # entirely, which the check reports as "skipped" rather than as a
+          # failure. A release tag builds from here, so a miss here ships.
+          fetch-depth: 50
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: pip install -e ".[test,typecheck]"
+
+      - name: Provide minimap2
+        run: |
+          python python-core/scripts/vendor-minimap2.py
+          echo "$GITHUB_WORKSPACE/python-core/vendor/minimap2/linux-x64" >> "$GITHUB_PATH"
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - name: Install Node dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Python tests
+        run: python -m pytest tests/ -v
+
+      - name: Python typecheck
+        run: basedpyright
+
+      - name: TypeScript typecheck
+        run: npx tsc --noEmit
+
+      - name: Frontend unit tests
+        run: npx vitest run
+
+      - name: Stub generated bundle resource (NOTICE.md) for cross-layer sync
+        run: |
+          mkdir -p src-tauri/resources
+          printf '# Third-party notices\n\n(placeholder; real content generated at build time by scripts/build-notice.mjs)\n' > src-tauri/resources/NOTICE.md
+
+      - name: Cross-layer sync
+        run: pnpm run sync:check
+
+      - name: i18n checks
+        run: pnpm run i18n:check
+
+  build:
+    needs: quality-gates
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+            sidecar-ext: .exe
+          - platform: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            sidecar-ext: ""
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+            sidecar-ext: ""
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      # --- Windows: exclude the workspace from Defender real-time scanning. The
+      # freshly-built ~44MB frozen sidecar and the per-well minimap2.exe spawns
+      # during the frozen smoke were re-scanned on every launch, pushing the
+      # first (cold) demux past the smoke RPC timeout. Runner is admin.
+      - name: Exclude workspace from Windows Defender (CI perf)
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        run: Add-MpPreference -ExclusionPath "${{ github.workspace }}" -ErrorAction SilentlyContinue
+      # --- System dependencies (Linux only) ---
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libjavascriptcoregtk-4.1-dev \
+            libsoup-3.0-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libgtk-3-dev
+
+      # --- Python + sidecar ---
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: pip install -e '.[build]'
+
+      # --- Vendor minimap2 binary (must run BEFORE build_sidecar.py) ---
+      # Windows: build minimap2 from source using MSYS2 + MinGW-w64 toolchain.
+      # Official v2.30 releases do not ship a Windows exe; MinGW compile is the
+      # supported cross-compile path (see notes/specs/2026-06-02-phase3-windows-minimap2.md).
+      - name: Set up MSYS2 + MinGW-w64 (Windows only)
+        if: matrix.platform == 'windows-latest'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-zlib
+            make
+            git
+
+      - name: Build minimap2 from source (Windows / MinGW)
+        if: matrix.platform == 'windows-latest'
+        shell: msys2 {0}
+        env:
+          # MSYS2 converts backslashes; pass workspace as MSYS path explicitly
+          MSYS_WORKSPACE: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch v2.30 https://github.com/lh3/minimap2.git /tmp/minimap2-src
+          cd /tmp/minimap2-src
+          # Static-link so minimap2.exe is self-contained (no libwinpthread-1.dll /
+          # zlib1.dll / libgcc_s_seh-1.dll runtime deps). PyInstaller --add-binary
+          # does not auto-bundle a binary's DLL dependencies.
+          # minimap2 Makefile ignores LDFLAGS in its link rule and uses LIBS only,
+          # so static-link via LIBS with -Wl,-Bstatic/-Bdynamic toggles (verified on
+          # MINGW64: leaves only system DLLs ntdll/KERNEL32/KERNELBASE/msvcrt).
+          make LIBS="-Wl,-Bstatic -lm -lz -lpthread -Wl,-Bdynamic" -j$(nproc)
+          # Fail loudly if any MinGW runtime DLL remains (not fully static).
+          echo "=== minimap2.exe runtime dependencies ==="
+          ldd minimap2.exe || true
+          if ldd minimap2.exe 2>/dev/null | grep -iE 'libwinpthread|zlib1|libgcc|libstdc\+\+|libgomp'; then
+            echo "ERROR: minimap2.exe is not fully static-linked (MinGW runtime DLL dependency present)"
+            exit 1
+          fi
+          echo "minimap2.exe is statically linked (no MinGW runtime DLLs)"
+          # Convert Windows path to MSYS2 path (e.g. D:\workspace -> /d/workspace)
+          WS_MSYS="$(cygpath -u "${MSYS_WORKSPACE}")"
+          VENDOR_DIR="${WS_MSYS}/python-core/vendor/minimap2/windows-x64"
+          mkdir -p "$VENDOR_DIR"
+          cp minimap2.exe "$VENDOR_DIR/minimap2.exe"
+          echo "minimap2 copied to $VENDOR_DIR"
+
+      - name: Verify minimap2.exe version (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: bash
+        run: |
+          EXE="python-core/vendor/minimap2/windows-x64/minimap2.exe"
+          test -f "$EXE" || { echo "ERROR: minimap2.exe not found at $EXE"; exit 1; }
+          VERSION=$("$EXE" --version 2>&1 | head -1)
+          echo "minimap2 version: $VERSION"
+          echo "$VERSION" | grep -E "^2\.30" || {
+            echo "WARNING: expected 2.30, got: $VERSION"
+          }
+
+      # Linux: vendor-minimap2.py downloads the official v2.30 prebuilt binary
+      # (linux-x64 is the only platform with an official release asset).
+      - name: Vendor minimap2 binary (Linux)
+        if: matrix.platform == 'ubuntu-22.04'
+        shell: bash
+        run: python python-core/scripts/vendor-minimap2.py
+
+      # macOS: build minimap2 from source (no official v2.30 macOS binary).
+      # Apple Silicon runners are arm64, so compile with NEON (arm_neon=on
+      # aarch64=on). Unlike the Windows MinGW step there is NO static-link
+      # toggle: macOS ships no static libc/libSystem and minimap2's only real
+      # dependency (libz) lives in /usr/lib, so a plain dynamic build is
+      # already self-contained. otool -L is the macOS analog of the Windows
+      # ldd DLL check (fails the build on any non-system dependency, e.g. an
+      # accidental Homebrew libz link).
+      - name: Build minimap2 from source (macOS / arm64)
+        if: matrix.platform == 'macos-latest'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch v2.30 https://github.com/lh3/minimap2.git /tmp/minimap2-src
+          cd /tmp/minimap2-src
+          # aarch64=on implies arm_neon=1; pass both for clarity. macOS has no
+          # `nproc`, so use sysctl for the parallel job count.
+          make arm_neon=on aarch64=on -j"$(sysctl -n hw.ncpu)"
+          echo "=== minimap2 shared library dependencies ==="
+          otool -L minimap2
+          if otool -L minimap2 | tail -n +2 | grep -vE '^\s+(/usr/lib/|/System/)'; then
+            echo "ERROR: minimap2 links a non-system library (not self-contained)"
+            exit 1
+          fi
+          echo "minimap2 links only system libraries (/usr/lib, /System)"
+          VENDOR_DIR="${GITHUB_WORKSPACE}/python-core/vendor/minimap2/macos-arm64"
+          mkdir -p "$VENDOR_DIR"
+          cp minimap2 "$VENDOR_DIR/minimap2"
+          chmod +x "$VENDOR_DIR/minimap2"
+          echo "minimap2 copied to $VENDOR_DIR"
+
+      - name: Verify minimap2 version (macOS)
+        if: matrix.platform == 'macos-latest'
+        shell: bash
+        run: |
+          BIN="python-core/vendor/minimap2/macos-arm64/minimap2"
+          test -f "$BIN" || { echo "ERROR: minimap2 not found at $BIN"; exit 1; }
+          VERSION=$("$BIN" --version 2>&1 | head -1)
+          echo "minimap2 version: $VERSION"
+          echo "$VERSION" | grep -E "^2\.30" || {
+            echo "WARNING: expected 2.30, got: $VERSION"
+          }
+
+      - name: Build sidecar
+        run: python build_sidecar.py
+        working-directory: python-core
+
+      - name: Verify sidecar binaries
+        shell: bash
+        run: |
+          KURO="src-tauri/binaries/kuro-sidecar-${{ matrix.target }}${{ matrix.sidecar-ext }}"
+          MAME="src-tauri/binaries/mame-sidecar-${{ matrix.target }}${{ matrix.sidecar-ext }}"
+          ls -la "$KURO" "$MAME"
+          test -f "$KURO"
+          test -f "$MAME"
+
+      - name: KURO frozen sidecar smoke (import crash / ping / load_fasta)
+        shell: bash
+        run: python python-core/scripts/frozen_kuro_smoke.py "src-tauri/binaries/kuro-sidecar-${{ matrix.target }}${{ matrix.sidecar-ext }}"
+
+      - name: MAME frozen sidecar smoke (spawn / per-NB parallel demux)
+        shell: bash
+        run: python python-core/scripts/frozen_mame_smoke.py "src-tauri/binaries/mame-sidecar-${{ matrix.target }}${{ matrix.sidecar-ext }}"
+
+      # --- Node.js ---
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Regenerate sidecar hash manifest
+        run: node scripts/sidecar-hash.mjs
+        shell: bash
+
+      - name: Collect Node dependency licenses
+        run: |
+          pnpm licenses list --json --prod > pnpm-licenses.json
+          node scripts/collect-node-licenses.mjs pnpm-licenses.json NOTICE-node.md
+        shell: bash
+
+      # --- Rust ---
+      # No components. This job compiles the app; ci.yml runs cargo check,
+      # and neither workflow invokes clippy or rustfmt. Asking for them made the
+      # release depend on a component install that has nothing to do with the
+      # build, and on 2026-09-02 that dependency broke it: a macOS runner image
+      # shipping its own cargo-clippy turned the install into "detected
+      # conflict: 'bin/cargo-clippy'" and took the whole v0.16.48 release down
+      # with it, after Linux and Windows had already built clean.
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.88.0"
+
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4  # v2.9.1
+        with:
+          workspaces: src-tauri
+
+      # --- License collection: Rust (after toolchain setup so cargo is available) ---
+      - name: Install cargo-about
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-about
+
+      - name: Collect Rust dependency licenses
+        run: cargo about generate -m Cargo.toml about.hbs > ../NOTICE-rust.md
+        working-directory: src-tauri
+        shell: bash
+
+      - name: Collect Python dependency licenses
+        # Read declared runtime dependencies and their installed transitive closure.
+        # Keep the packaging closure (including PyInstaller) identified separately.
+        run: python scripts/collect-python-licenses.py --include-build
+        shell: bash
+
+      - name: Check shipped sidecar components against notices (warn only)
+        # The collector above follows declared dependencies; PyInstaller also
+        # ships the interpreter and native libraries (OpenSSL, libffi, ...).
+        # This lists what the built sidecars actually contain and names every
+        # component without a notice. Warning mode until those notices exist,
+        # so it cannot take a release down; drop --warn-only once it is clean.
+        run: >-
+          python scripts/check-notice-coverage.py --warn-only
+          "src-tauri/binaries/kuro-sidecar-${{ matrix.target }}${{ matrix.sidecar-ext }}"
+          "src-tauri/binaries/mame-sidecar-${{ matrix.target }}${{ matrix.sidecar-ext }}"
+        shell: bash
+
+      - name: Build NOTICE.md and copy to Tauri resources
+        run: node scripts/build-notice.mjs
+        shell: bash
+
+      - name: macOS native host lifecycle smoke
+        if: matrix.platform == 'macos-latest'
+        timeout-minutes: 20
+        working-directory: src-tauri
+        env:
+          RUST_BACKTRACE: "1"
+        run: cargo test --locked --no-default-features --test native_sidecar
+
+      # --- Build Tauri ---
+      # macOS builds the .app only; the post-bundle step re-signs the sidecars
+      # and THEN packages the DMG, because tauri's own DMG step deletes the
+      # staging .app that the hash injector must modify. Linux/Windows build all
+      # default bundles.
+      - name: Build Tauri app
+        run: npx tauri build ${{ matrix.platform == 'macos-latest' && '--bundles app' || '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      # --- Post-bundle sidecar hash injection (Shape A) ---
+      # `sidecar:hash` (run earlier) records unsigned hashes. `tauri build`
+      # ad-hoc signs the sidecars on macOS, mutating bytes. This step rehashes
+      # the post-signing binaries inside the bundle, writes the manifest into
+      # the .app, re-seals the top-level signature, and regenerates the DMG.
+      # On Linux/Windows it is a no-op (legacy manifest stays authoritative).
+      - name: Inject post-bundle sidecar hash manifest
+        run: node scripts/sidecar-hash-postbuild.mjs
+        shell: bash
+        env:
+          CARGO_TARGET_DIR: ${{ github.workspace }}/src-tauri/target
+
+      # --- macOS ad-hoc signature verification ---
+      - name: Verify macOS ad-hoc signature
+        if: matrix.platform == 'macos-latest'
+        shell: bash
+        run: |
+          APP=$(find src-tauri/target -maxdepth 6 -name "kuma.app" | head -1)
+          test -n "$APP" || { echo "kuma.app not found"; exit 1; }
+          codesign --verify --deep --strict --verbose=2 "$APP" || exit 1
+          codesign --display --verbose=4 "$APP" 2>&1 | head -20
+
+      # --- macOS updater artifact ---
+      # macOS builds only the .app (DMG is regenerated in the post-bundle step),
+      # so tauri never emits the updater .app.tar.gz. Build and sign it here from
+      # the re-signed .app so the updater manifest has a darwin-aarch64 target.
+      - name: Build & sign macOS updater artifact (.app.tar.gz)
+        if: matrix.platform == 'macos-latest' && startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          APP=$(find src-tauri/target -maxdepth 6 -name "kuma.app" | head -1)
+          test -n "$APP" || { echo "kuma.app not found"; exit 1; }
+          OUT_DIR=$(dirname "$APP")
+          TARBALL="$OUT_DIR/kuma.app.tar.gz"
+          tar -C "$OUT_DIR" -czf "$TARBALL" "$(basename "$APP")"
+          echo "Created $TARBALL"
+          # Sign with the same minisign key the updater verifies against; writes
+          # <tarball>.sig next to it (base64 minisign signature).
+          npx tauri signer sign --private-key "$TAURI_SIGNING_PRIVATE_KEY" "$TARBALL"
+          test -f "$TARBALL.sig" || { echo "ERROR: .sig not produced"; exit 1; }
+          echo "Signed: $TARBALL.sig"
+
+      # --- Rename artifacts to match 4-part GitHub tag ---
+      # Tauri/Cargo enforce semver MAJOR.MINOR.PATCH, but the project tags
+      # releases as v{A.B.C.D} per CLAUDE.md "Git Convention". Bundle file
+      # names ship the 3-part Tauri version, which makes it hard to map an
+      # installer back to the exact GitHub release. Append the 4th component
+      # so installer file names equal the tag (minus the "v" prefix).
+      - name: Rename bundle artifacts to 4-part tag version
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: node scripts/rename-bundle-to-tag.mjs "${GITHUB_REF_NAME}"
+
+      # --- Upload artifacts ---
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v5
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+        with:
+          name: kuma-${{ matrix.target }}
+          path: |
+            src-tauri/target/release/bundle/**/*
+          retention-days: 14
+
+  # --- Create GitHub Release (only on tags) ---
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/download-artifact@v5
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+        with:
+          path: artifacts
+
+      # Unsigned installers: publish SHA256 checksums so users can verify integrity.
+      - name: Generate SHA256 checksums
+        shell: bash
+        run: |
+          : > SHA256SUMS.txt
+          while IFS= read -r -d '' f; do
+            sha256sum "$f" | awk -v b="$(basename "$f")" '{print $1"  "b}' >> SHA256SUMS.txt
+          done < <(find artifacts -type f \( -name '*.msi' -o -name '*.exe' -o -name '*.dmg' -o -name '*.deb' -o -name '*.AppImage' \) -print0)
+          sort -k2 SHA256SUMS.txt -o SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Generate updater manifest (latest.json)
+        shell: bash
+        run: node scripts/gen-latest-json.mjs "${GITHUB_REF_NAME}" artifacts latest.json
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+        with:
+          draft: false
+          generate_release_notes: true
+          append_body: true
+          body_path: .github/release-footer.md
+          files: |
+            SHA256SUMS.txt
+            latest.json
+            artifacts/**/*.dmg
+            artifacts/**/*.msi
+            artifacts/**/*.exe
+            artifacts/**/*.deb
+            artifacts/**/*.AppImage
+            artifacts/**/*.app.tar.gz

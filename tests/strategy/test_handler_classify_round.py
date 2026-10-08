@@ -1,0 +1,1142 @@
+"""Tests for the ``strategy.classify_round`` JSON-RPC handler -- Fork D (v0.4).
+
+Contract change: params are now ``{round_files, c_next}`` (xlsx paths).
+The old ``{round_id}`` param and sidecar _rounds store are no longer used.
+
+Test structure:
+  TestValidation     -- missing/invalid params raise ValueError
+  TestXlsxParsing    -- column validation and anti-fallback (bad xlsx)
+  TestMultiRound     -- 2-3 round fixtures produce non-deferred Decision
+  TestLog2Fc         -- current_round_activities == log2(activity) (AC2)
+  TestMissingColumns -- missing Variant/activity columns raise ValueError
+  TestZeroActivity   -- a negative activity raises ValueError
+                        (anti-fallback); an activity of exactly 0 is a dead
+                        variant, kept in n and left out of the log2 list
+
+Fixture design (AC3 rationale):
+  sigma_assay=None (no WT) -> T2=NA, T_model=NA.
+  Decision engine uses T1 and T3 only.
+  For non-deferred result without WT:
+    - n_rounds >= N_min=3 to pass calibration gate
+    - hit_rate rising -> T3=False -> no saturation -> continue_walking
+  switch_combinatorial/stop require wt_values (bootstrap gate); unreachable
+  without WT import -- this is correct per spec (sigma deferred).  The handler
+  reports that case as advisory="not_assessable" rather than as a deferred
+  decision, so a question never asked is not counted as a judgement withheld.
+
+anti-fallback: missing columns, bad Variant, a negative activity and a round
+  in which every activity is 0 all raise; no fabricated defaults.  A zero
+  beside live variants is skipped from log2 rather than clamped, and the
+  count of those skips is reported on both response shapes.
+"""
+
+from __future__ import annotations
+
+import importlib
+import math
+
+import openpyxl
+import pytest
+
+from sidecar_mame.handlers.classify_round import (
+    _BOOTSTRAP_GATED_LABELS,
+    _compute_delta_best_ema,
+    _load_xlsx,
+    _round_metrics,
+    _wt_values,
+    handle_classify_round,
+)
+
+
+# ---------------------------------------------------------------------------
+# Helpers to build synthetic xlsx fixtures
+# ---------------------------------------------------------------------------
+
+def _make_xlsx(path, rows):
+    """Write a minimal xlsx with Variant + activity columns."""
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    assert ws is not None
+    ws.append(["Variant", "activity"])
+    for variant, activity in rows:
+        ws.append([variant, activity])
+    wb.save(path)
+
+
+# ---------------------------------------------------------------------------
+# TestValidation
+# ---------------------------------------------------------------------------
+
+class TestValidation:
+    def test_missing_round_files_raises_value_error(self):
+        with pytest.raises(ValueError, match="round_files"):
+            handle_classify_round({})
+
+    def test_empty_round_files_raises_value_error(self):
+        with pytest.raises(ValueError, match="round_files"):
+            handle_classify_round({"round_files": []})
+
+    def test_bad_c_next_raises_value_error(self):
+        with pytest.raises(ValueError, match="c_next"):
+            handle_classify_round(
+                {"round_files": [{"n": 1, "path": "/tmp/x.xlsx"}], "c_next": "bad"}
+            )
+
+    def test_missing_path_in_round_file_raises_value_error(self):
+        with pytest.raises(ValueError, match="missing"):
+            handle_classify_round({"round_files": [{"n": 1}]})
+
+
+# ---------------------------------------------------------------------------
+# TestXlsxParsing
+# ---------------------------------------------------------------------------
+
+class TestXlsxParsing:
+    def test_file_not_found_raises_runtime_error(self):
+        with pytest.raises(RuntimeError, match="not found"):
+            handle_classify_round(
+                {"round_files": [{"n": 1, "path": "/nonexistent/path/round.xlsx"}]}
+            )
+
+    def test_missing_variant_column_raises_value_error(self, tmp_path):
+        bad_xlsx = tmp_path / "bad.xlsx"
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        assert ws is not None
+        ws.append(["SomeCol", "activity"])
+        ws.append(["A100", 1.2])
+        wb.save(str(bad_xlsx))
+        with pytest.raises(ValueError, match="Variant"):
+            handle_classify_round(
+                {"round_files": [{"n": 1, "path": str(bad_xlsx)}]}
+            )
+
+    def test_missing_activity_column_raises_value_error(self, tmp_path):
+        bad_xlsx = tmp_path / "bad.xlsx"
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        assert ws is not None
+        ws.append(["Variant", "Score"])
+        ws.append(["100A", 1.2])
+        wb.save(str(bad_xlsx))
+        with pytest.raises(ValueError, match="activity"):
+            handle_classify_round(
+                {"round_files": [{"n": 1, "path": str(bad_xlsx)}]}
+            )
+
+    def test_variant_without_leading_integer_raises_value_error(self, tmp_path):
+        bad_xlsx = tmp_path / "bad.xlsx"
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        assert ws is not None
+        ws.append(["Variant", "activity"])
+        ws.append(["NoPosition", 1.5])
+        wb.save(str(bad_xlsx))
+        with pytest.raises(ValueError, match="no leading integer"):
+            handle_classify_round(
+                {"round_files": [{"n": 1, "path": str(bad_xlsx)}]}
+            )
+
+    def test_activity_zero_is_kept_as_a_measured_row(self, tmp_path):
+        """A dead variant is scored as part of the round rather than refused.
+
+        It is counted in n, so it stays in the hit-rate denominator, and it is
+        left out of the log2 list, where it has no value.
+        """
+        xlsx = tmp_path / "with_zero.xlsx"
+        _make_xlsx(str(xlsx), [("100A", 0.0), ("101B", 1.5), ("102C", 0.5)])
+        records, _ = _load_xlsx(str(xlsx))
+        assert len(records) == 3
+        metrics = _round_metrics(records)
+        assert metrics["zero_activity_count"] == 1
+        assert metrics["hit_rate"] == pytest.approx(1 / 3)
+        assert len(metrics["log2_activities"]) == 2
+        assert metrics["round_best"] == 1.5
+
+    def test_every_activity_zero_raises_value_error(self, tmp_path):
+        """No variant survives on the log2 scale, so there is no round best."""
+        bad_xlsx = tmp_path / "bad.xlsx"
+        _make_xlsx(str(bad_xlsx), [("100A", 0.0), ("101B", 0.0)])
+        with pytest.raises(ValueError, match="every activity in the round is 0"):
+            handle_classify_round(
+                {"round_files": [{"n": 1, "path": str(bad_xlsx)}]}
+            )
+
+    def test_activity_negative_raises_value_error(self, tmp_path):
+        bad_xlsx = tmp_path / "bad.xlsx"
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        assert ws is not None
+        ws.append(["Variant", "activity"])
+        ws.append(["100A", -0.5])
+        wb.save(str(bad_xlsx))
+        with pytest.raises(ValueError, match="< 0"):
+            handle_classify_round(
+                {"round_files": [{"n": 1, "path": str(bad_xlsx)}]}
+            )
+
+
+# ---------------------------------------------------------------------------
+# TestLog2Fc -- AC2: current_round_activities == log2(activity)
+# ---------------------------------------------------------------------------
+
+class TestLog2Fc:
+    def test_round_metrics_log2_activities(self, tmp_path):
+        activities = [1.0, 2.0, 0.5, 4.0]
+        rows = [(f"{100+i}A", a) for i, a in enumerate(activities)]
+        xlsx = tmp_path / "r1.xlsx"
+        _make_xlsx(str(xlsx), rows)
+        records, _ = _load_xlsx(str(xlsx))
+        metrics = _round_metrics(records)
+        expected_log2 = [math.log2(a) for a in activities]
+        assert metrics["log2_activities"] == pytest.approx(expected_log2)
+
+    def test_beneficial_uses_activity_gt_1_strictly(self, tmp_path):
+        """activity=1.0 is NOT beneficial; must be strictly > 1.0."""
+        activities = [0.5, 1.0, 1.5, 2.0]
+        rows = [(f"{100+i}A", a) for i, a in enumerate(activities)]
+        xlsx = tmp_path / "r1.xlsx"
+        _make_xlsx(str(xlsx), rows)
+        records, _ = _load_xlsx(str(xlsx))
+        metrics = _round_metrics(records)
+        assert metrics["beneficial_count"] == 2
+
+    def test_hit_rate_matches_beneficial_fraction(self, tmp_path):
+        activities = [0.5, 0.8, 1.2, 1.5]
+        rows = [(f"{100+i}A", a) for i, a in enumerate(activities)]
+        xlsx = tmp_path / "r1.xlsx"
+        _make_xlsx(str(xlsx), rows)
+        records, _ = _load_xlsx(str(xlsx))
+        metrics = _round_metrics(records)
+        assert metrics["hit_rate"] == pytest.approx(0.5)
+
+
+# ---------------------------------------------------------------------------
+# TestDeltaScale -- delta_best_ema and current_round_activities share a scale
+# ---------------------------------------------------------------------------
+
+class TestDeltaScale:
+    """classify.py forms delta* = delta_best_ema + (best_n* - max(activities)).
+
+    The bracket is a difference of log2 activities, so delta_best_ema has to be
+    log2 too or that addition mixes two scales. It did: the EMA was fed
+    max(activity) on the linear scale. The mixture was inert while sigma_assay
+    stayed None, because delta_best_ema reaches nothing but compute_T2 and
+    compute_T2 answers None without a sigma.
+
+    The tests below fail on the linear spelling. TestEmaHelper does not: it
+    calls the helper with bare numbers, so it holds on either scale and
+    witnesses nothing about which one the handler supplies.
+    """
+
+    def test_round_best_log2_is_log2_of_round_best(self, tmp_path):
+        activities = [0.5, 1.0, 2.0, 3.0]
+        rows = [(f"{100+i}A", a) for i, a in enumerate(activities)]
+        xlsx = tmp_path / "r1.xlsx"
+        _make_xlsx(str(xlsx), rows)
+        metrics = _round_metrics(_load_xlsx(str(xlsx))[0])
+        assert metrics["round_best"] == pytest.approx(3.0)
+        assert metrics["round_best_log2"] == pytest.approx(math.log2(3.0))
+
+    def test_round_best_log2_is_the_max_of_the_activities_handed_over(self, tmp_path):
+        """The two must not drift: one is what the EMA reads, the other is what
+        the bootstrap resamples, and delta* subtracts the second from the first.
+        """
+        activities = [0.25, 1.6, 2.4, 0.9]
+        rows = [(f"{100+i}A", a) for i, a in enumerate(activities)]
+        xlsx = tmp_path / "r1.xlsx"
+        _make_xlsx(str(xlsx), rows)
+        metrics = _round_metrics(_load_xlsx(str(xlsx))[0])
+        assert metrics["round_best_log2"] == pytest.approx(max(metrics["log2_activities"]))
+
+    def test_the_handler_feeds_the_ema_log2_bests(self, tmp_path, monkeypatch):
+        """Intercept the argument rather than recompute it.
+
+        Reading round_best_log2 and asserting it is log2 proves nothing about
+        which of the two keys the handler passes on, and that choice is the
+        defect. The maxima below are 2.0 and 8.0, so the log2 list is [1.0, 3.0]
+        and the linear list is [2.0, 8.0]: no coincidence makes them agree.
+        """
+        import sidecar_mame.handlers.classify_round as module
+
+        seen: list[list[float]] = []
+        original = module._compute_delta_best_ema
+
+        def recording(round_bests):
+            seen.append(list(round_bests))
+            return original(round_bests)
+
+        monkeypatch.setattr(module, "_compute_delta_best_ema", recording)
+
+        r1 = tmp_path / "r1.xlsx"
+        _make_xlsx(str(r1), [("101A", 2.0), ("102A", 0.7), ("103A", 0.6)])
+        r2 = tmp_path / "r2.xlsx"
+        _make_xlsx(str(r2), [("201A", 8.0), ("202A", 0.7), ("203A", 0.6)])
+        r3 = tmp_path / "r3.xlsx"
+        _make_xlsx(str(r3), [("301A", 8.0), ("302A", 1.5), ("303A", 1.4)])
+
+        module.handle_classify_round(
+            {
+                "round_files": [
+                    {"n": 1, "path": str(r1)},
+                    {"n": 2, "path": str(r2)},
+                    {"n": 3, "path": str(r3)},
+                ]
+            }
+        )
+
+        # The handler computes the final EMA first, then walks the interim
+        # rounds, so the calls arrive full list first and growing prefixes
+        # after. Both feed sites are separate lines and either could have been
+        # left linear, so both are pinned.
+        assert seen == [
+            pytest.approx([1.0, 3.0, 3.0]),
+            pytest.approx([1.0]),
+            pytest.approx([1.0, 3.0]),
+        ]
+        # The linear spelling of the same rounds, which none of these may be.
+        assert seen[0] != pytest.approx([2.0, 8.0, 8.0])
+
+
+# ---------------------------------------------------------------------------
+# TestOrderStatisticNull -- the best-of-N count reaches compute_T2
+# ---------------------------------------------------------------------------
+
+class TestOrderStatisticNull:
+    """t2_null_method defaults to order_statistic, and that method is skipped
+    whenever n_designed is None: compute_T2_threshold falls through to the
+    legacy 1.96 * sigma * sqrt(2/r), which is the null for one nominated
+    variant. The quantity actually judged is the best of a plate, and the best
+    of many is high even when none of them is real, so the count has to arrive.
+
+    It was never supplied, though the handler holds it: the round file has one
+    row per variant. Nothing failed, because sigma_assay is None and compute_T2
+    answers None before it ever reads the method.
+    """
+
+    def _rounds(self, tmp_path, sizes):
+        files = []
+        for index, size in enumerate(sizes, start=1):
+            xlsx = tmp_path / f"r{index}.xlsx"
+            _make_xlsx(
+                str(xlsx),
+                [(f"{index*100+i}A", 1.5 if i < 2 else 0.7) for i in range(size)],
+            )
+            files.append({"n": index, "path": str(xlsx)})
+        return files
+
+    def test_each_round_reports_its_own_row_count(self, tmp_path, monkeypatch):
+        """Intercept the RoundState rather than recompute the count.
+
+        The three rounds hold different numbers of rows on purpose: a single
+        shared value would pass against any one of them by coincidence.
+        """
+        import importlib
+
+        # import_module, not "import a.b.c as x": kuma_core.strategy re-exports
+        # the classify function under the same name as its submodule, so the
+        # plain form binds the function and shadows the module.
+        strategy = importlib.import_module("kuma_core.strategy.classify")
+
+        seen: list = []
+        original = strategy.compute_signals
+
+        def recording(round_state, registered):
+            seen.append(round_state.n_designed)
+            return original(round_state, registered)
+
+        # The handler imports these names inside the function body, so they are
+        # resolved on this module at call time rather than bound to the handler.
+        monkeypatch.setattr(strategy, "compute_signals", recording)
+
+        handle_classify_round({"round_files": self._rounds(tmp_path, [7, 9, 11])})
+
+        # compute_signals runs once per interim round and again inside
+        # classify for the final one, so all three states are visible and each
+        # carries its own size rather than one value shared across the run.
+        assert seen == [7, 9, 11]
+
+    def test_the_final_state_carries_the_last_round_size(self, tmp_path, monkeypatch):
+        import importlib
+
+        # import_module, not "import a.b.c as x": kuma_core.strategy re-exports
+        # the classify function under the same name as its submodule, so the
+        # plain form binds the function and shadows the module.
+        strategy = importlib.import_module("kuma_core.strategy.classify")
+
+        seen: list = []
+        original = strategy.classify
+
+        def recording(round_state, registered):
+            seen.append(round_state.n_designed)
+            return original(round_state, registered)
+
+        monkeypatch.setattr(strategy, "classify", recording)
+
+        handle_classify_round({"round_files": self._rounds(tmp_path, [7, 9, 11])})
+
+        assert seen == [11]
+        assert seen != [None]
+
+
+# ---------------------------------------------------------------------------
+# TestEmaHelper
+# ---------------------------------------------------------------------------
+
+class TestEmaHelper:
+    def test_single_round_returns_zero(self):
+        assert _compute_delta_best_ema([2.0]) == pytest.approx(0.0)
+
+    def test_two_rounds_ema_is_first_delta(self):
+        assert _compute_delta_best_ema([1.0, 1.5]) == pytest.approx(0.5)
+
+    def test_three_rounds_ema_value(self):
+        # delta_0=0.5, delta_1=0.3; EMA_1 = 2/3*0.3 + 1/3*0.5
+        expected = 2 / 3 * 0.3 + 1 / 3 * 0.5
+        assert _compute_delta_best_ema([1.0, 1.5, 1.8]) == pytest.approx(expected)
+
+
+# ---------------------------------------------------------------------------
+# TestMultiRound -- AC3: non-deferred Decision
+# ---------------------------------------------------------------------------
+
+_VALID_LABELS = frozenset({"continue_walking", "switch_combinatorial", "stop", "deferred"})
+_NON_DEFERRED = frozenset({"continue_walking", "switch_combinatorial", "stop"})
+
+
+class TestMultiRound:
+    """Fixture design rationale:
+    sigma=None -> T2=NA, T_model=NA.
+    n_rounds=3 -> clears N_min=3 calibration gate (n >= N_min required).
+    hit_rates rising across 3 rounds -> T3=False -> no saturation.
+    Decision: continue_walking("no_saturation_signal") -- non-deferred.
+
+    cumulative_beneficial varies; K_throughput=14 (c_next=96 default).
+    T1=False (not enough beneficials) -- throughput not met.
+    T3=False (rising trend) -> no saturation -> continue_walking.
+    """
+
+    def _make_3round_files(self, tmp_path):
+        r1 = tmp_path / "r1.xlsx"
+        _make_xlsx(
+            str(r1),
+            [(f"{100+i}A", 1.5 if i < 2 else 0.7) for i in range(10)],
+        )
+        r2 = tmp_path / "r2.xlsx"
+        _make_xlsx(
+            str(r2),
+            [(f"{200+i}A", 1.5 if i < 4 else 0.7) for i in range(10)],
+        )
+        r3 = tmp_path / "r3.xlsx"
+        _make_xlsx(
+            str(r3),
+            [(f"{300+i}A", 1.5 if i < 6 else 0.7) for i in range(10)],
+        )
+        return [
+            {"n": 1, "path": str(r1)},
+            {"n": 2, "path": str(r2)},
+            {"n": 3, "path": str(r3)},
+        ]
+
+    def test_3round_returns_advisory_decision(self, tmp_path):
+        result = handle_classify_round({"round_files": self._make_3round_files(tmp_path)})
+        assert result["advisory"] == "decision"
+
+    def test_3round_declares_missing_inputs(self, tmp_path):
+        """An answered decision still reports which inputs were unavailable.
+
+        continue_walking is reached without the bootstrap gate, so the absent
+        WT replicates never blocked anything here.  They still shaped the
+        answer (T2 and T_model were NA), and the caller is told so.
+        """
+        result = handle_classify_round({"round_files": self._make_3round_files(tmp_path)})
+        assert result["missing_inputs"] == ["wt_replicates"]
+
+    def test_3round_label_is_valid(self, tmp_path):
+        result = handle_classify_round({"round_files": self._make_3round_files(tmp_path)})
+        assert result["label"] in _VALID_LABELS
+
+    def test_3round_non_deferred(self, tmp_path):
+        """Rising hit_rate -> T3=False -> continue_walking (non-deferred).
+
+        T3=False: slope > 0 (0.2->0.4->0.6 = positive slope).
+        all_na(T2=NA, T3=False, T_model=NA) = False (T3 evaluated).
+        sat_now = any_true(T2=NA, T3=False, T_model=NA) = False.
+        => continue_walking(no_saturation_signal). Not deferred.
+        """
+        result = handle_classify_round({"round_files": self._make_3round_files(tmp_path)})
+        assert result["label"] in _NON_DEFERRED, (
+            f"Got {result['label']!r} reason={result.get('reason')!r}"
+        )
+
+    def test_3round_reason_non_empty(self, tmp_path):
+        result = handle_classify_round({"round_files": self._make_3round_files(tmp_path)})
+        assert isinstance(result["reason"], str) and result["reason"]
+
+    def test_3round_confidence_none_or_float(self, tmp_path):
+        result = handle_classify_round({"round_files": self._make_3round_files(tmp_path)})
+        conf = result["confidence"]
+        if conf is not None:
+            assert isinstance(conf, float)
+            assert 0.0 <= conf <= 1.0
+
+    def test_2round_returns_advisory_decision(self, tmp_path):
+        r1 = tmp_path / "r1.xlsx"
+        r2 = tmp_path / "r2.xlsx"
+        _make_xlsx(str(r1), [(f"{100+i}A", 1.3 if i < 3 else 0.6) for i in range(10)])
+        _make_xlsx(str(r2), [(f"{200+i}A", 1.3 if i < 5 else 0.6) for i in range(10)])
+        result = handle_classify_round(
+            {"round_files": [{"n": 1, "path": str(r1)}, {"n": 2, "path": str(r2)}]}
+        )
+        assert result["advisory"] == "decision"
+
+    def test_c_next_custom(self, tmp_path):
+        """c_next=10 -> K=5; small throughput bar."""
+        r1 = tmp_path / "r1.xlsx"
+        r2 = tmp_path / "r2.xlsx"
+        r3 = tmp_path / "r3.xlsx"
+        _make_xlsx(str(r1), [(f"{100+i}A", 1.5 if i < 3 else 0.7) for i in range(10)])
+        _make_xlsx(str(r2), [(f"{200+i}A", 1.5 if i < 5 else 0.7) for i in range(10)])
+        _make_xlsx(str(r3), [(f"{300+i}A", 1.5 if i < 7 else 0.7) for i in range(10)])
+        result = handle_classify_round(
+            {
+                "round_files": [
+                    {"n": 1, "path": str(r1)},
+                    {"n": 2, "path": str(r2)},
+                    {"n": 3, "path": str(r3)},
+                ],
+                "c_next": 10,
+            }
+        )
+        assert result["advisory"] == "decision"
+        assert result["label"] in _VALID_LABELS
+
+    def test_round_files_out_of_order_accepted(self, tmp_path):
+        """round_files provided in wrong n-order are sorted correctly."""
+        r1 = tmp_path / "r1.xlsx"
+        r2 = tmp_path / "r2.xlsx"
+        r3 = tmp_path / "r3.xlsx"
+        _make_xlsx(str(r1), [(f"{100+i}A", 1.2 if i < 2 else 0.8) for i in range(8)])
+        _make_xlsx(str(r2), [(f"{200+i}A", 1.2 if i < 4 else 0.8) for i in range(8)])
+        _make_xlsx(str(r3), [(f"{300+i}A", 1.2 if i < 6 else 0.8) for i in range(8)])
+        result = handle_classify_round(
+            {
+                "round_files": [
+                    {"n": 3, "path": str(r3)},
+                    {"n": 1, "path": str(r1)},
+                    {"n": 2, "path": str(r2)},
+                ]
+            }
+        )
+        assert result["advisory"] == "decision"
+
+
+# ---------------------------------------------------------------------------
+# TestSingleRound -- calibration period degenerate case
+# ---------------------------------------------------------------------------
+
+class TestSingleRound:
+    def test_1round_returns_calibration_period(self, tmp_path):
+        """Single round (n=1 < N_min=3) returns continue_walking(calibration_period)."""
+        r1 = tmp_path / "r1.xlsx"
+        _make_xlsx(str(r1), [(f"{100+i}A", 1.5 if i < 3 else 0.7) for i in range(10)])
+        result = handle_classify_round(
+            {"round_files": [{"n": 1, "path": str(r1)}]}
+        )
+        assert result["advisory"] == "decision"
+        assert result["label"] == "continue_walking"
+        assert result["reason"] == "calibration_period"
+
+
+# ---------------------------------------------------------------------------
+# TestDecliningSaturation -- T3=True path -> deferred(bootstrap_inputs_missing)
+# ---------------------------------------------------------------------------
+
+class TestDecliningSaturation:
+    """Fixture: 3 rounds with declining hit_rates [0.6, 0.4, 0.2].
+
+    T3 uses a 2-round sliding window of hit_rates.  Negative slope
+    (0.4->0.2 in window 2-3) signals saturation.  classify() enters
+    switch/stop evaluation.  wt_values=None triggers the bootstrap gate:
+      Decision(label="deferred", reason="bootstrap_inputs_missing").
+    The handler translates that one case into advisory="not_assessable".
+
+    This test proves:
+      (a) previous_signals chaining fires correctly (T3 reads prior signals).
+      (b) saturated-looking data yields an explicit "cannot be asked" state
+          rather than a fabricated label or a withheld-judgement label.
+    """
+
+    def _make_declining_3round(self, tmp_path):
+        # A hundred wells a round rather than ten.  T3 judges the hit-rate slope
+        # against its own binomial standard error, and the same 0.6 -> 0.4 fall
+        # is z = 2.9 on a hundred wells and z = 0.9 on ten.  The interim signals
+        # of round 2 are what light sat_prev for the hysteresis rule, so at ten
+        # wells this fixture stopped short at hysteresis_pending and never
+        # reached the bootstrap gate these tests are about.  The hit rates are
+        # unchanged; only the plate they were measured on is realistic.
+        # Round 1: hit_rate=60/100=0.6, best=2.0
+        r1 = tmp_path / "r1.xlsx"
+        _make_xlsx(str(r1), [(f"{1000+i}A", 2.0 if i < 60 else 0.5) for i in range(100)])
+        # Round 2: hit_rate=40/100=0.4, best=1.8
+        r2 = tmp_path / "r2.xlsx"
+        _make_xlsx(str(r2), [(f"{2000+i}A", 1.8 if i < 40 else 0.5) for i in range(100)])
+        # Round 3: hit_rate=20/100=0.2, best=1.5
+        r3 = tmp_path / "r3.xlsx"
+        _make_xlsx(str(r3), [(f"{3000+i}A", 1.5 if i < 20 else 0.5) for i in range(100)])
+        return [
+            {"n": 1, "path": str(r1)},
+            {"n": 2, "path": str(r2)},
+            {"n": 3, "path": str(r3)},
+        ]
+
+    def test_declining_hit_rate_is_not_assessable(self, tmp_path):
+        """T3 saturation signal -> bootstrap gate -> not_assessable."""
+        result = handle_classify_round(
+            {"round_files": self._make_declining_3round(tmp_path)}
+        )
+        assert result["advisory"] == "not_assessable", (
+            f"Expected the missing-input state; got {result['advisory']!r} "
+            f"reason={result.get('reason')!r}"
+        )
+        assert result["reason"] == "wt_replicates_missing", (
+            f"Expected wt_replicates_missing; got {result['reason']!r}"
+        )
+
+    def test_declining_names_the_missing_input(self, tmp_path):
+        """The state says what is absent and what that costs."""
+        result = handle_classify_round(
+            {"round_files": self._make_declining_3round(tmp_path)}
+        )
+        assert result["missing_inputs"] == ["wt_replicates"]
+        assert result["blocked_decisions"] == ["switch_combinatorial", "stop"]
+
+    def test_declining_carries_no_decision_fields(self, tmp_path):
+        """A question never asked has no label, reason code, or confidence."""
+        result = handle_classify_round(
+            {"round_files": self._make_declining_3round(tmp_path)}
+        )
+        assert "label" not in result
+        assert "confidence" not in result
+
+    def test_declining_reports_zero_replicates_on_record(self, tmp_path):
+        """No WT recorded and too few WT recorded are different facts.
+
+        Both leave the bootstrap gate shut, so both answer not_assessable.  The
+        counts are what tells them apart, and this is the "none at all" side.
+        """
+        result = handle_classify_round(
+            {"round_files": self._make_declining_3round(tmp_path)}
+        )
+        assert result["wt_replicate_count"] == 0
+        assert result["wt_replicate_min"] == 3
+
+
+# ---------------------------------------------------------------------------
+# TestWtReplicatesForwarded -- step 4.1 replicates reaching the bootstrap gate
+# ---------------------------------------------------------------------------
+
+# Replicates of a wild-type well, on the scale of the activity column: each
+# measurement over the mean of its own cohort, which is where they sit around
+# 1.0.  Step 4.1 records these on the round it built and the caller forwards
+# them on the matching round_files entry.
+_WT_FOUR = [1.02, 0.97, 1.04, 0.99]
+_WT_THREE = _WT_FOUR[:3]
+# One short of the minimum a plate carries, which is the shortfall case now.
+_WT_TWO = _WT_FOUR[:2]
+
+
+class TestWtReplicatesForwarded:
+    """The saturating fixture above, run with WT replicates beside the file.
+
+    The same three rounds reach the bootstrap gate every time; what changes is
+    whether the gate has anything to run on.  Below wt_replicate_min the
+    replicates are withheld on purpose: compute_sigma_assay returns None under
+    that count, so T2 and T_model would stay NA in every resample and the
+    confirmation would fall back on the same lone T3 that proposed the branch.
+    A T3 stable under resampling scores that agreement as high confidence, so
+    forwarding too few would print a single-signal switch as a near-certainty.
+
+    The minimum is three because three is what a plate carries: the block is
+    WT_1, WT_2, WT_3.  Four disabled the signal permanently rather than
+    guarding it, since no run reached the count.  The values arrive on the log2
+    scale, which is the scale delta_best_ema and current_round_activities are
+    on, and the sigma derived from them answers T2 at the point estimate as
+    well as in the draws.
+    """
+
+    def _files(self, tmp_path, wt=None):
+        files = TestDecliningSaturation()._make_declining_3round(tmp_path)
+        if wt is not None:
+            files[-1]["wt_values"] = list(wt)
+        return files
+
+    def test_four_replicates_reach_the_classifier(self, tmp_path):
+        """With enough replicates the gate runs and a real verdict comes back."""
+        result = handle_classify_round(
+            {"round_files": self._files(tmp_path, _WT_FOUR)}
+        )
+        assert result["advisory"] == "decision", (
+            f"Expected the classifier to answer; got {result!r}"
+        )
+        assert result["label"] in _BOOTSTRAP_GATED_LABELS, (
+            f"The gate is only reached for switch/stop; got {result['label']!r}"
+        )
+        assert isinstance(result["confidence"], float)
+
+    def test_three_replicates_reach_the_classifier(self, tmp_path):
+        """Three is the block a plate carries, and it now answers."""
+        result = handle_classify_round(
+            {"round_files": self._files(tmp_path, _WT_THREE)}
+        )
+        assert result["advisory"] == "decision", (
+            f"Expected the classifier to answer on three replicates; got {result!r}"
+        )
+        assert isinstance(result["confidence"], float)
+
+    def _captured_wt_values(self, tmp_path, monkeypatch, wt):
+        """Run the handler and return the wt_values classify() actually saw.
+
+        The handler imports classify() inside the function body, so replacing
+        the module attribute intercepts the real call.
+
+        Asserted directly rather than through the answer because on this
+        fixture the answer cannot tell replicate lists apart: T3 is True in
+        every draw, sat_now is any_true over T2/T3/T_model, and a True T3
+        settles it whatever sigma the draw derived. Both a tight and a
+        scattered WT block return confidence 1.0 here (measured). Every other
+        assertion in this class would therefore still pass if the handler
+        forwarded a list of the right length holding the wrong numbers.
+        """
+        # import_module, not `import ... as`: the package re-exports a function
+        # named classify, which shadows the submodule attribute.
+        classify_module = importlib.import_module("kuma_core.strategy.classify")
+
+        seen = {}
+        real_classify = classify_module.classify
+
+        def capture(round_state, registered):
+            seen["wt_values"] = round_state.wt_values
+            return real_classify(round_state, registered)
+
+        monkeypatch.setattr(classify_module, "classify", capture)
+        handle_classify_round({"round_files": self._files(tmp_path, wt)})
+        return seen["wt_values"]
+
+    def test_the_replicate_values_reach_the_classifier_as_log2(
+        self, tmp_path, monkeypatch
+    ):
+        """Not the values as recorded: their logarithms.
+
+        delta_best_ema is an EMA of log2 round bests and the bootstrap adjusts
+        it by a difference of log2 activities, so a sigma taken on the linear
+        values would be compared against quantities in another unit. The
+        fixture spreads well away from 1.0 on purpose, since near it the two
+        scales agree to within a few percent and the assertion would hold
+        either way.
+        """
+        values = [0.4013, 1.9007, 0.5501, 1.7002]
+        captured = self._captured_wt_values(tmp_path, monkeypatch, values)
+        assert captured == pytest.approx([math.log2(v) for v in values])
+        assert captured != pytest.approx(values)
+
+    def test_two_replicates_reach_the_classifier_as_none(
+        self, tmp_path, monkeypatch
+    ):
+        assert self._captured_wt_values(tmp_path, monkeypatch, _WT_TWO) is None
+
+    def test_two_replicates_do_not_reach_the_classifier(self, tmp_path):
+        """One short of the minimum is still not assessable."""
+        result = handle_classify_round(
+            {"round_files": self._files(tmp_path, _WT_TWO)}
+        )
+        assert result["advisory"] == "not_assessable"
+        assert result["reason"] == "wt_replicates_insufficient"
+        assert "label" not in result
+
+    def test_two_replicates_are_counted_in_the_response(self, tmp_path):
+        """The screen has to be able to say "2 on record, 3 needed"."""
+        result = handle_classify_round(
+            {"round_files": self._files(tmp_path, _WT_TWO)}
+        )
+        assert result["wt_replicate_count"] == 2
+        assert result["wt_replicate_min"] == 3
+
+    def test_a_zero_replicate_is_refused_rather_than_logged(self, tmp_path):
+        """A WT well reading exactly zero is a failed injection, not an activity.
+
+        log2(0) is negative infinity and would carry the whole estimate with
+        it, so the round reads as having no usable block rather than as having
+        one with a hole in it.
+        """
+        result = handle_classify_round(
+            {"round_files": self._files(tmp_path, [0.0, 1.0, 1.1])}
+        )
+        assert result["advisory"] == "not_assessable"
+
+    def test_an_earlier_rounds_replicates_do_not_stand_in_for_this_one(self, tmp_path):
+        """Each round's replicates answer that round, and none substitutes.
+
+        Round 1 forwards a full block and the round being judged forwards
+        nothing.  Round 1's block reaches its own interim T2, which is the
+        point of reading every entry, but the bootstrap resamples the round
+        under judgement and has nothing to resample, so the answer is still
+        not assessable and still reports zero replicates on record -- that
+        count is about the judged round, not the campaign.
+        """
+        files = self._files(tmp_path)
+        files[0]["wt_values"] = list(_WT_FOUR)
+        result = handle_classify_round({"round_files": files})
+        assert result["advisory"] == "not_assessable"
+        assert result["reason"] == "wt_replicates_missing"
+        assert result["wt_replicate_count"] == 0
+
+    def test_empty_replicate_list_reads_as_none_recorded(self, tmp_path):
+        result = handle_classify_round({"round_files": self._files(tmp_path, [])})
+        assert result["reason"] == "wt_replicates_missing"
+        assert result["wt_replicate_count"] == 0
+
+    def test_unreadable_replicates_raise(self, tmp_path):
+        """anti-fallback: a malformed value must not read as "none recorded"."""
+        with pytest.raises(ValueError):
+            handle_classify_round({"round_files": self._files(tmp_path, ["n/a", 1.0, 1.0, 1.0])})
+        with pytest.raises(ValueError):
+            handle_classify_round(
+                {"round_files": self._files(tmp_path, [float("nan"), 1.0, 1.0, 1.0])}
+            )
+
+    def test_replicates_must_be_a_list(self, tmp_path):
+        files = self._files(tmp_path)
+        files[-1]["wt_values"] = 1.0
+        with pytest.raises(ValueError):
+            handle_classify_round({"round_files": files})
+
+    def test_helper_reads_absent_and_present_values(self):
+        assert _wt_values({"n": 1, "path": "x"}) == []
+        assert _wt_values({"wt_values": None}) == []
+        assert _wt_values({"wt_values": [1, "1.5"]}) == [1.0, 1.5]
+
+
+
+# ---------------------------------------------------------------------------
+# TestT2ReachesTheHysteresisRule -- interim rounds get their own sigma
+# ---------------------------------------------------------------------------
+
+class TestT2ReachesTheHysteresisRule:
+    """A plateau with no hit-rate trend at all must still reach a verdict.
+
+    ``_decide_core`` asks for saturation in this round and in the one before
+    it.  The handler used to hand every interim round ``sigma_assay=None``, so
+    an interim round could only ever saturate through T3, and a campaign whose
+    hit rate held steady was unreachable however flat its best activity was.
+    The campaign below is exactly that: the hit rate is 20 of 100 in every
+    round, so T3 is False by construction, and the best activity does not move,
+    so T2 is True.  With replicates on every round the verdict arrives; with
+    replicates on the last round alone it does not.
+    """
+
+    #: Flat: 20 hits of 100, and the same best activity, in every round.
+    def _flat_campaign(self, tmp_path, wt_on):
+        """wt_on: round numbers that forward a wild-type block."""
+        files = []
+        for idx in range(1, 4):
+            rows = [
+                (f"{1000 * idx + i}A", 1.6 if i < 20 else 0.5)
+                for i in range(100)
+            ]
+            path = tmp_path / f"flat{idx}.xlsx"
+            _make_xlsx(str(path), rows)
+            entry = {"n": idx, "path": str(path)}
+            if idx in wt_on:
+                entry["wt_values"] = list(_WT_FOUR)
+            files.append(entry)
+        return files
+
+    def test_a_flat_campaign_carries_no_hit_rate_trend(self, tmp_path):
+        """The premise, asserted rather than assumed: T3 cannot be doing this."""
+        files = self._flat_campaign(tmp_path, wt_on=())
+        result = handle_classify_round({"round_files": files})
+        # No replicates anywhere, so T2 is NA too and nothing saturates.
+        assert result["advisory"] == "decision"
+        assert result["label"] == "continue_walking"
+        assert result["reason"] == "no_saturation_signal"
+
+    def test_replicates_on_every_round_reach_a_verdict(self, tmp_path):
+        files = self._flat_campaign(tmp_path, wt_on=(1, 2, 3))
+        result = handle_classify_round({"round_files": files})
+        assert result["advisory"] == "decision", result
+        assert result["label"] == "switch_combinatorial", result
+        assert result["reason"] == "saturated_with_throughput"
+        # Every round supplied enough replicates, so nothing is missing.
+        assert result["missing_inputs"] == []
+
+    def test_replicates_on_the_last_round_alone_stop_at_the_hysteresis_rule(
+        self, tmp_path
+    ):
+        """The defect, pinned from the other side.
+
+        The round being judged saturates through T2, but the round before it
+        has no sigma and no hit-rate trend, so ``sat_prev`` is dark and the
+        two-round rule withholds the verdict.  ``missing_inputs`` names the
+        shortfall instead of being constant.
+        """
+        files = self._flat_campaign(tmp_path, wt_on=(3,))
+        result = handle_classify_round({"round_files": files})
+        assert result["advisory"] == "decision"
+        assert result["label"] == "continue_walking"
+        assert result["reason"] == "hysteresis_pending"
+        assert result["missing_inputs"] == ["wt_replicates"]
+
+
+# ---------------------------------------------------------------------------
+# TestDeadVariantsAreScored -- a variant that measured exactly 0
+# ---------------------------------------------------------------------------
+
+# Zero-activity rows remain in the designed-variant denominator.
+
+class TestDeadVariantsAreScored:
+    """A zero-activity variant is a lethal mutation, not a broken cell."""
+
+    @staticmethod
+    def _rows(n_zero, n_hit, n_rest):
+        """n_zero dead, n_hit beneficial (>1.0), n_rest live but not beneficial."""
+        rows = []
+        pos = 100
+        for _ in range(n_zero):
+            rows.append((f"{pos}A", 0.0))
+            pos += 1
+        for _ in range(n_hit):
+            rows.append((f"{pos}A", 1.6))
+            pos += 1
+        for _ in range(n_rest):
+            rows.append((f"{pos}A", 0.5))
+            pos += 1
+        return rows
+
+    def _rising_3round(self, tmp_path):
+        """Hit rate 1/10 -> 2/10 -> 3/10, with two dead variants in each round."""
+        paths = []
+        for idx, n_hit in enumerate((1, 2, 3), start=1):
+            path = tmp_path / f"rise{idx}.xlsx"
+            _make_xlsx(str(path), self._rows(2, n_hit, 8 - n_hit))
+            paths.append({"n": idx, "path": str(path)})
+        return paths
+
+    def _declining_3round(self, tmp_path):
+        """Hit rate 30/100 -> 20/100 -> 10/100: T3 fires and the gate shuts.
+
+        The two dead variants stay two, which is what the count assertions are
+        about; the plate around them is a hundred wells so that the fall clears
+        the significance margin T3 now applies.  At ten wells the same
+        proportions are z = 0.5 between rounds 1 and 2, which leaves sat_prev
+        dark and the call short of the bootstrap gate.
+        """
+        paths = []
+        for idx, n_hit in enumerate((30, 20, 10), start=1):
+            path = tmp_path / f"fall{idx}.xlsx"
+            _make_xlsx(str(path), self._rows(2, n_hit, 98 - n_hit))
+            paths.append({"n": idx, "path": str(path)})
+        return paths
+
+    def test_a_round_holding_dead_variants_is_answered(self, tmp_path):
+        """The call that used to raise now returns an advisory."""
+        result = handle_classify_round(
+            {"round_files": self._rising_3round(tmp_path)}
+        )
+        assert result["advisory"] == "decision"
+
+    def test_the_hit_rate_denominator_keeps_the_dead_variants(self, tmp_path):
+        """n stays 10, not 8: a dead variant was designed and was measured."""
+        path = tmp_path / "one.xlsx"
+        _make_xlsx(str(path), self._rows(2, 3, 5))
+        metrics = _round_metrics(_load_xlsx(str(path))[0])
+        assert metrics["hit_rate"] == pytest.approx(3 / 10)
+        assert metrics["zero_activity_count"] == 2
+        # The log2 list is the short one, and this is the documented mismatch:
+        # the bootstrap divides hit_star by this length while the point
+        # estimate above divides by the full row count.
+        assert len(metrics["log2_activities"]) == 8
+
+    def test_the_decision_shape_reports_the_count(self, tmp_path):
+        result = handle_classify_round(
+            {"round_files": self._rising_3round(tmp_path)}
+        )
+        assert result["advisory"] == "decision"
+        assert result["zero_activity_count"] == 2
+
+    def test_the_not_assessable_shape_reports_the_count(self, tmp_path):
+        result = handle_classify_round(
+            {"round_files": self._declining_3round(tmp_path)}
+        )
+        assert result["advisory"] == "not_assessable", (
+            f"expected the missing-input state, got {result!r}"
+        )
+        assert result["zero_activity_count"] == 2
+
+    def test_the_count_is_the_round_being_judged(self, tmp_path):
+        """Not a sum over rounds: the verdict is about the last round."""
+        r1 = tmp_path / "a1.xlsx"
+        _make_xlsx(str(r1), self._rows(4, 1, 5))
+        r2 = tmp_path / "a2.xlsx"
+        _make_xlsx(str(r2), self._rows(0, 2, 8))
+        r3 = tmp_path / "a3.xlsx"
+        _make_xlsx(str(r3), self._rows(1, 3, 6))
+        result = handle_classify_round(
+            {
+                "round_files": [
+                    {"n": 1, "path": str(r1)},
+                    {"n": 2, "path": str(r2)},
+                    {"n": 3, "path": str(r3)},
+                ]
+            }
+        )
+        assert result["zero_activity_count"] == 1
+
+    def test_a_negative_activity_still_raises(self, tmp_path):
+        """The zero policy does not loosen the refusal beside it."""
+        path = tmp_path / "neg.xlsx"
+        _make_xlsx(str(path), [("100A", 0.0), ("101B", -0.2), ("102C", 1.5)])
+        with pytest.raises(ValueError, match="< 0"):
+            handle_classify_round({"round_files": [{"n": 1, "path": str(path)}]})
+
+
+# ---------------------------------------------------------------------------
+# TestWildTypeRowIsNotAVariant -- the control row inside the workbook
+# ---------------------------------------------------------------------------
+
+# Wild-type rows must be recognised independently of file position.
+
+class TestWildTypeRowIsNotAVariant:
+    """A WT row is the normaliser, so it leaves every variant statistic."""
+
+    @staticmethod
+    def _variants(n_hit, n_rest, start=100):
+        rows = []
+        pos = start
+        for _ in range(n_hit):
+            rows.append((f"{pos}A", 1.6))
+            pos += 1
+        for _ in range(n_rest):
+            rows.append((f"{pos}A", 0.5))
+            pos += 1
+        return rows
+
+    def test_a_trailing_wt_row_is_counted_and_dropped(self, tmp_path):
+        path = tmp_path / "trailing.xlsx"
+        _make_xlsx(str(path), self._variants(2, 8) + [("WT", 1.0)])
+        records, wt_rows = _load_xlsx(str(path))
+        assert wt_rows == 1
+        assert len(records) == 10
+
+    def test_a_wt_row_in_the_middle_is_counted_and_dropped(self, tmp_path):
+        """R3 carries its WT at row 35, so this is not an end-of-file rule."""
+        rows = self._variants(2, 8)
+        rows.insert(4, ("WT", 1.0))
+        path = tmp_path / "middle.xlsx"
+        _make_xlsx(str(path), rows)
+        records, wt_rows = _load_xlsx(str(path))
+        assert wt_rows == 1
+        assert len(records) == 10
+        assert all(r["position"] is not None for r in records)
+
+    def test_the_hit_rate_denominator_excludes_the_wt_row(self, tmp_path):
+        """2/10, not 2/11: the wild type was never a chance to succeed.
+
+        The opposite of the zero-activity rule, which keeps its rows in n.
+        """
+        path = tmp_path / "denom.xlsx"
+        _make_xlsx(str(path), self._variants(2, 8) + [("WT", 1.0)])
+        records, _ = _load_xlsx(str(path))
+        metrics = _round_metrics(records)
+        assert metrics["hit_rate"] == pytest.approx(2 / 10)
+        assert metrics["beneficial_count"] == 2
+
+    def test_a_wt_reading_above_every_variant_is_not_the_round_best(self, tmp_path):
+        path = tmp_path / "best.xlsx"
+        _make_xlsx(str(path), self._variants(1, 9) + [("WT", 99.0)])
+        records, _ = _load_xlsx(str(path))
+        metrics = _round_metrics(records)
+        assert metrics["round_best"] == 1.6
+        assert len(metrics["log2_activities"]) == 10
+
+    def test_a_wt_only_round_is_rejected(self, tmp_path):
+        path = tmp_path / "wt_only.xlsx"
+        _make_xlsx(str(path), [("WT", 1.0), ("WT_2", 1.1)])
+        with pytest.raises(ValueError, match="wild-type row"):
+            handle_classify_round({"round_files": [{"n": 1, "path": str(path)}]})
+
+    def test_a_junk_variant_still_raises(self, tmp_path):
+        """The wild type is the one exception, not an opening for typos."""
+        path = tmp_path / "junk.xlsx"
+        _make_xlsx(str(path), self._variants(2, 8) + [("WTX", 1.0)])
+        with pytest.raises(ValueError, match="no leading integer"):
+            handle_classify_round({"round_files": [{"n": 1, "path": str(path)}]})
+
+    def test_the_labelled_replicate_forms_are_recognised(self, tmp_path):
+        """WT_1 and WT1 are what WT_PATTERN itself covers."""
+        path = tmp_path / "labelled.xlsx"
+        _make_xlsx(
+            str(path),
+            self._variants(2, 8) + [("WT_1", 1.0), ("WT2", 1.0), ("wt", 1.0)],
+        )
+        records, wt_rows = _load_xlsx(str(path))
+        assert wt_rows == 3
+        assert len(records) == 10
+
+    def _rounds(self, tmp_path, hits, wt_rows_per_round, plate=10):
+        """``plate`` is the variants per round; ``hits`` how many of them beat 1.0.
+
+        A declining campaign needs a plate large enough for the fall to clear
+        the T3 significance margin, so the tests below that expect the
+        bootstrap gate pass plate=100.  The rising ones do not care and keep
+        the original ten.
+        """
+        files = []
+        for idx, (n_hit, n_wt) in enumerate(zip(hits, wt_rows_per_round), start=1):
+            rows = self._variants(n_hit, plate - n_hit, start=1000 * idx)
+            for _ in range(n_wt):
+                rows.insert(1, ("WT", 1.0))
+            path = tmp_path / f"r{idx}.xlsx"
+            _make_xlsx(str(path), rows)
+            files.append({"n": idx, "path": str(path)})
+        return files
+
+    def test_the_decision_shape_reports_the_wt_row_count(self, tmp_path):
+        result = handle_classify_round(
+            {"round_files": self._rounds(tmp_path, (1, 2, 3), (1, 1, 1))}
+        )
+        assert result["advisory"] == "decision"
+        assert result["wt_row_count"] == 1
+
+    def test_the_not_assessable_shape_reports_the_wt_row_count(self, tmp_path):
+        result = handle_classify_round(
+            {"round_files": self._rounds(tmp_path, (30, 20, 10), (1, 1, 1), plate=100)}
+        )
+        assert result["advisory"] == "not_assessable", (
+            f"expected the missing-input state, got {result!r}"
+        )
+        assert result["wt_row_count"] == 1
+
+    def test_the_wt_row_count_is_the_round_being_judged(self, tmp_path):
+        """Same rule as zero_activity_count: not a sum over rounds."""
+        result = handle_classify_round(
+            {"round_files": self._rounds(tmp_path, (1, 2, 3), (3, 0, 2))}
+        )
+        assert result["wt_row_count"] == 2
+
+    def test_the_wt_rows_do_not_reach_sigma_assay(self, tmp_path):
+        """Sigma comes from the round_files wt_values, never from the workbook.
+
+        Each file here carries three WT rows, which is exactly
+        wt_replicate_min, and no entry forwards any wt_values.  Were the
+        workbook rows read as replicates the bootstrap gate would open and the
+        answer would be a decision; it stays shut and reports zero replicates
+        on record, which is the whole point of keeping the two apart.
+        """
+        result = handle_classify_round(
+            {"round_files": self._rounds(tmp_path, (30, 20, 10), (3, 3, 3), plate=100)}
+        )
+        assert result["advisory"] == "not_assessable"
+        assert result["reason"] == "wt_replicates_missing"
+        assert result["wt_replicate_count"] == 0
+        assert result["wt_row_count"] == 3

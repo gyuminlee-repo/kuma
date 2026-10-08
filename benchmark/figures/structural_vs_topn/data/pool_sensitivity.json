@@ -1,0 +1,37 @@
+{
+ "budget": 95,
+ "model": "esm2_t12_35M_UR50D",
+ "note": "pool=2000 attempted but OOM-killed on this CPU box",
+ "per_assay": {
+  "F7YBW8": {
+   "pool400": {
+    "cell": "FOR-QUALIFIED",
+    "gap": 0.123
+   },
+   "pool1000": {
+    "cell": "FOR-QUALIFIED",
+    "gap": 0.082
+   }
+  },
+  "RASK": {
+   "pool400": {
+    "cell": "AGAINST/REFUTE-STRONG",
+    "gap": -0.077
+   },
+   "pool1000": {
+    "cell": "INCONCLUSIVE",
+    "gap": -0.008
+   }
+  },
+  "A4": {
+   "pool400": {
+    "cell": "AGAINST/REFUTE-STRONG",
+    "gap": -0.1
+   },
+   "pool1000": {
+    "cell": "AGAINST/REFUTE",
+    "gap": -0.096
+   }
+  }
+ }
+}

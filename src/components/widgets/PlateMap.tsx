@@ -1,0 +1,472 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useShallow } from "zustand/react/shallow";
+import { useAppStore } from "../../store/appStore";
+import { reorderMappings, getSortedMutations, wellName, PLATE_WELL_COUNT } from "../../lib/plate-utils";
+import type { PlateMapping } from "../../types/models";
+import { StateView } from "../ui/StateView";
+
+const ROWS = ["A", "B", "C", "D", "E", "F", "G", "H"];
+const COLS = Array.from({ length: 12 }, (_, i) => i + 1);
+
+interface WellEntry {
+  well: string;
+  label: string;
+  sequence: string;
+  mutation: string;
+  shared?: boolean;
+}
+
+interface PlatePair {
+  fwd: Map<string, WellEntry>;
+  rev: Map<string, WellEntry>;
+  fwdCount: number;
+  revCount: number;
+}
+
+function toWellEntry(m: PlateMapping, shared: boolean): WellEntry {
+  return {
+    well: m.well,
+    label: m.primer_name,
+    sequence: m.sequence,
+    mutation: m.mutation,
+    shared,
+  };
+}
+
+function buildPairsFromStore(
+  mappings: PlateMapping[],
+  dedupInfo: Record<string, string[]>,
+  sortedMutations: string[] | null,
+): PlatePair[] {
+  // Apply sort + well reassignment via shared utility
+  const ordered = reorderMappings(mappings, dedupInfo, sortedMutations);
+  const orderedFwd: PlateMapping[] = [];
+  const orderedRev: PlateMapping[] = [];
+  for (const mapping of ordered) {
+    if (mapping.primer_type === "forward") {
+      orderedFwd.push(mapping);
+    } else {
+      orderedRev.push(mapping);
+    }
+  }
+
+  // Determine shared reverse sequences
+  const sharedSeqs = new Set<string>();
+  for (const [seq, muts] of Object.entries(dedupInfo)) {
+    if (muts.length > 1) sharedSeqs.add(seq);
+  }
+
+  function chunkByPlate(items: PlateMapping[]): PlateMapping[][] {
+    const plates: PlateMapping[][] = [];
+    let current: PlateMapping[] = [];
+    for (const m of items) {
+      current.push(m);
+      if (current.length >= PLATE_WELL_COUNT) {
+        plates.push(current);
+        current = [];
+      }
+    }
+    if (current.length > 0) plates.push(current);
+    return plates.length > 0 ? plates : [[]];
+  }
+
+  const fwdPlates = chunkByPlate(orderedFwd);
+
+  // Build mutation → rev sequence lookup from dedupInfo
+  const mutToRevSeq = new Map<string, string>();
+  for (const [seq, muts] of Object.entries(dedupInfo)) {
+    for (const mut of muts) mutToRevSeq.set(mut, seq);
+  }
+  const revBySeq = new Map<string, PlateMapping>();
+  for (const r of orderedRev) revBySeq.set(r.sequence, r);
+
+  const pairs: PlatePair[] = [];
+  for (let i = 0; i < fwdPlates.length; i++) {
+    const fwdChunk = fwdPlates[i] ?? [];
+
+    // Collect rev primers paired with this plate's fwd mutations (deduplicated, fwd order)
+    const seenRevSeq = new Set<string>();
+    const revChunk: PlateMapping[] = [];
+    for (const fwd of fwdChunk) {
+      const revSeq = mutToRevSeq.get(fwd.mutation);
+      if (revSeq && !seenRevSeq.has(revSeq)) {
+        seenRevSeq.add(revSeq);
+        const revEntry = revBySeq.get(revSeq);
+        if (revEntry) revChunk.push(revEntry);
+      }
+    }
+
+    const fwdGrid = new Map<string, WellEntry>();
+    fwdChunk.forEach((m, idx) => {
+      const key = wellName(idx);
+      fwdGrid.set(key, toWellEntry({ ...m, well: key }, false));
+    });
+
+    const revGrid = new Map<string, WellEntry>();
+    revChunk.forEach((m, idx) => {
+      const key = wellName(idx);
+      revGrid.set(key, toWellEntry({ ...m, well: key }, sharedSeqs.has(m.sequence)));
+    });
+
+    pairs.push({ fwd: fwdGrid, rev: revGrid, fwdCount: fwdChunk.length, revCount: revChunk.length });
+  }
+
+  return pairs;
+}
+
+function PlateGrid({
+  grid,
+  color,
+}: {
+  grid: Map<string, WellEntry>;
+  color: "green" | "orange";
+}) {
+  return (
+    <table className="border-separate border-spacing-1 text-caption">
+      <thead>
+        <tr>
+          <th className="w-4 h-5" />
+          {COLS.map((c) => (
+            <th key={c} className="h-5 w-14 text-center text-caption font-semibold text-muted-foreground">
+              {c}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {ROWS.map((row) => (
+          <tr key={row} className="h-control">
+            <td className="pr-0.5 text-center text-caption font-semibold text-muted-foreground">{row}</td>
+            {COLS.map((col) => {
+              const well = `${row}${col}`;
+              const entry = grid.get(well);
+              const isShared = entry?.shared;
+
+              let cellClass: string;
+              if (!entry) {
+                cellClass = "border-border bg-muted/30 text-border";
+              } else if (isShared) {
+                cellClass = "border-info/30 bg-info/10 text-info";
+              } else if (color === "green") {
+                cellClass = "border-success/30 bg-success/10 text-success";
+              } else {
+                cellClass = "border-warning/30 bg-warning/10 text-warning";
+              }
+
+              return (
+                <td
+                  key={well}
+                  className={`rounded-lg border px-0.5 py-1 text-center ${cellClass}`}
+                  title={entry ? `${entry.label}\n${entry.mutation}\n${entry.sequence}` : well}
+                  aria-label={entry ? `${well}: ${entry.label}` : well}
+                >
+                  {entry ? (
+                    <span className="font-mono truncate block leading-tight">
+                      {entry.label}
+                    </span>
+                  ) : (
+                    <span>&middot;</span>
+                  )}
+                </td>
+              );
+            })}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+interface ScrollMetrics {
+  x: number;
+  y: number;
+  xRatio: number;
+  yRatio: number;
+  overflowX: boolean;
+  overflowY: boolean;
+}
+
+const EMPTY_METRICS: ScrollMetrics = {
+  x: 0,
+  y: 0,
+  xRatio: 1,
+  yRatio: 1,
+  overflowX: false,
+  overflowY: false,
+};
+
+function readMetrics(el: HTMLElement): ScrollMetrics {
+  const overflowX = el.scrollWidth > el.clientWidth + 1;
+  const overflowY = el.scrollHeight > el.clientHeight + 1;
+  return {
+    x: el.scrollWidth > el.clientWidth ? el.scrollLeft / (el.scrollWidth - el.clientWidth) : 0,
+    y: el.scrollHeight > el.clientHeight ? el.scrollTop / (el.scrollHeight - el.clientHeight) : 0,
+    xRatio: overflowX ? el.clientWidth / el.scrollWidth : 1,
+    yRatio: overflowY ? el.clientHeight / el.scrollHeight : 1,
+    overflowX,
+    overflowY,
+  };
+}
+
+/**
+ * Always-drawn scroll bar for the plate grid.
+ *
+ * macOS hides native overlay scroll bars until a scroll is already underway,
+ * so a clipped 96-well grid reads as "there is nothing more here". This bar
+ * lives in the DOM, so both platforms show the same affordance and a render
+ * test can assert it.
+ */
+function PlateScrollBar({
+  axis,
+  metrics,
+  onSeek,
+}: {
+  axis: "x" | "y";
+  metrics: ScrollMetrics;
+  onSeek: (axis: "x" | "y", fraction: number) => void;
+}) {
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const draggingRef = useRef(false);
+  const horizontal = axis === "x";
+  const ratio = horizontal ? metrics.xRatio : metrics.yRatio;
+  const pos = horizontal ? metrics.x : metrics.y;
+
+  const seekFromEvent = useCallback(
+    (clientX: number, clientY: number) => {
+      const track = trackRef.current;
+      if (!track) return;
+      const rect = track.getBoundingClientRect();
+      const span = horizontal ? rect.width : rect.height;
+      if (span <= 0) return;
+      const offset = horizontal ? clientX - rect.left : clientY - rect.top;
+      const thumbSpan = span * ratio;
+      const travel = span - thumbSpan;
+      if (travel <= 0) return;
+      const fraction = Math.min(1, Math.max(0, (offset - thumbSpan / 2) / travel));
+      onSeek(axis, fraction);
+    },
+    [axis, horizontal, onSeek, ratio],
+  );
+
+  const thumbPercent = Math.max(ratio * 100, 12);
+  const offsetPercent = pos * (100 - thumbPercent);
+
+  return (
+    <div
+      ref={trackRef}
+      role="scrollbar"
+      aria-orientation={horizontal ? "horizontal" : "vertical"}
+      aria-controls="plate-grid-scroll"
+      aria-valuenow={Math.round(pos * 100)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      tabIndex={-1}
+      data-testid={`plate-scrollbar-${axis}`}
+      className={`shrink-0 rounded-full bg-muted ${horizontal ? "h-2 w-full" : "w-2 h-full"}`}
+      onPointerDown={(e) => {
+        draggingRef.current = true;
+        e.currentTarget.setPointerCapture(e.pointerId);
+        seekFromEvent(e.clientX, e.clientY);
+      }}
+      onPointerMove={(e) => {
+        if (!draggingRef.current) return;
+        seekFromEvent(e.clientX, e.clientY);
+      }}
+      onPointerUp={(e) => {
+        draggingRef.current = false;
+        try {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        } catch {
+          // pointer already released
+        }
+      }}
+    >
+      <div
+        data-testid={`plate-scrollthumb-${axis}`}
+        className="rounded-full bg-muted-foreground/50 hover:bg-muted-foreground/70"
+        style={
+          horizontal
+            ? { width: `${thumbPercent}%`, marginLeft: `${offsetPercent}%`, height: "100%" }
+            : { height: `${thumbPercent}%`, marginTop: `${offsetPercent}%`, width: "100%" }
+        }
+      />
+    </div>
+  );
+}
+
+function useSortedMutations(): string[] | null {
+  const { designResults, tableSorting, yPredMap, customCandidates } = useAppStore(
+    useShallow((s) => ({
+      designResults: s.designResults,
+      tableSorting: s.tableSorting,
+      yPredMap: s.yPredMap,
+      customCandidates: s.customCandidates,
+    })),
+  );
+  return useMemo(
+    () => getSortedMutations(designResults, tableSorting, { yPredMap, customCandidates }),
+    [customCandidates, designResults, tableSorting, yPredMap],
+  );
+}
+
+export function PlateMap() {
+  const { t } = useTranslation();
+  const { plateMappings, dedupInfo } = useAppStore(
+    useShallow((s) => ({
+      plateMappings: s.plateMappings,
+      dedupInfo: s.dedupInfo,
+    })),
+  );
+  const sortedMutations = useSortedMutations();
+  const [activeTab, setActiveTab] = useState<"fwd" | "rev">("fwd");
+  const [page, setPage] = useState(0);
+
+  const pairs = useMemo(() => buildPairsFromStore(plateMappings, dedupInfo, sortedMutations), [plateMappings, dedupInfo, sortedMutations]);
+  const safeIdx = Math.min(page, Math.max(0, pairs.length - 1));
+  const pair = pairs[safeIdx];
+
+  // Reset page when mappings change
+  useEffect(() => setPage(0), [plateMappings]);
+
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [metrics, setMetrics] = useState<ScrollMetrics>(EMPTY_METRICS);
+
+  const syncMetrics = useCallback(() => {
+    const el = scrollRef.current;
+    if (el) setMetrics(readMetrics(el));
+  }, []);
+
+  // Overflow depends on the panel width and on which tab is active, so re-read
+  // whenever the rendered grid or the split width can have changed.
+  useEffect(() => {
+    syncMetrics();
+    const el = scrollRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(syncMetrics);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [syncMetrics, activeTab, safeIdx, plateMappings]);
+
+  const seek = useCallback((axis: "x" | "y", fraction: number) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    if (axis === "x") {
+      el.scrollLeft = fraction * (el.scrollWidth - el.clientWidth);
+    } else {
+      el.scrollTop = fraction * (el.scrollHeight - el.clientHeight);
+    }
+  }, []);
+
+  if (plateMappings.length === 0 || !pair) {
+    return (
+      <div className="flex h-full items-center justify-center p-8">
+        <StateView
+          variant="empty"
+          title={t("plateMap.noPlateLayout")}
+          description={t("plateMap.noPlateLayoutDesc")}
+        />
+      </div>
+    );
+  }
+
+  const totalFwd = pairs.reduce((s, p) => s + p.fwdCount, 0);
+  const totalRev = pairs.reduce((s, p) => s + p.revCount, 0);
+  const sharedReverseCount = Object.values(dedupInfo).filter((muts) => muts.length > 1).length;
+
+  return (
+    <div className="flex h-full min-h-0 flex-col overflow-hidden p-3">
+      <div className="mb-2 flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-caption font-semibold text-muted-foreground">{t("plateMap.platePairReview")}</div>
+          <div className="mt-1 text-caption text-muted-foreground">{t("plateMap.platePairDesc")}</div>
+        </div>
+      </div>
+
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2">
+          <button
+            className={`h-control rounded-full border px-3 text-caption font-semibold transition-colors ${
+              activeTab === "fwd"
+                ? "border-success/40 bg-success/10 text-success"
+                : "border-border bg-card text-muted-foreground hover:bg-muted/60"
+            }`}
+            onClick={() => setActiveTab("fwd")}
+          >
+            {t("plateMap.forward")} ({pair.fwdCount})
+          </button>
+          <button
+            className={`h-control rounded-full border px-3 text-caption font-semibold transition-colors ${
+              activeTab === "rev"
+                ? "border-warning/40 bg-warning/10 text-warning"
+                : "border-border bg-card text-muted-foreground hover:bg-muted/60"
+            }`}
+            onClick={() => setActiveTab("rev")}
+          >
+            {t("plateMap.reverse")} ({pair.revCount})
+          </button>
+        </div>
+
+        {pairs.length > 1 && (
+          <div className="flex items-center gap-1 text-caption">
+            <button
+              className="h-control rounded-full border border-border px-2 hover:bg-muted/60 disabled:opacity-30"
+              disabled={safeIdx === 0}
+              onClick={() => setPage(safeIdx - 1)}
+            >
+              ‹
+            </button>
+            <span className="rounded-full border border-border bg-muted/40 px-2 py-0.5 text-muted-foreground">
+              {t("plateMap.plate")} {safeIdx + 1}/{pairs.length}
+            </span>
+            <button
+              className="h-control rounded-full border border-border px-2 hover:bg-muted/60 disabled:opacity-30"
+              disabled={safeIdx >= pairs.length - 1}
+              onClick={() => setPage(safeIdx + 1)}
+            >
+              ›
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="flex min-h-0 flex-1 gap-1">
+        <div
+          id="plate-grid-scroll"
+          ref={scrollRef}
+          onScroll={syncMetrics}
+          className="min-h-0 min-w-0 flex-1 overflow-auto"
+        >
+          <div className="inline-block rounded-container border border-border bg-card p-3">
+            {activeTab === "fwd" ? (
+              <PlateGrid grid={pair.fwd} color="green" />
+            ) : (
+              <PlateGrid grid={pair.rev} color="orange" />
+            )}
+          </div>
+        </div>
+        {metrics.overflowY && (
+          <PlateScrollBar axis="y" metrics={metrics} onSeek={seek} />
+        )}
+      </div>
+      {metrics.overflowX && (
+        <div className="mt-1">
+          <PlateScrollBar axis="x" metrics={metrics} onSeek={seek} />
+        </div>
+      )}
+
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-3 text-caption text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full border border-success/30 bg-success/8 px-3 py-1 font-medium text-success">{t("plateMap.forward")} {totalFwd}</span>
+          <span className="rounded-full border border-warning/30 bg-warning/8 px-3 py-1 font-medium text-warning">{t("plateMap.reverse")} {totalRev}</span>
+          <span className="rounded-full border border-info/30 bg-info/8 px-3 py-1 font-medium text-info">{t("plateMap.sharedReverse")} {sharedReverseCount}</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm border border-success/30 bg-success/10 align-middle" />{t("plateMap.forwardPrimer")}</span>
+          <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm border border-warning/30 bg-warning/10 align-middle" />{t("plateMap.reversePrimer")}</span>
+          <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm border border-info/30 bg-info/10 align-middle" />{t("plateMap.sharedReverse")}</span>
+        </div>
+      </div>
+    </div>
+  );
+}

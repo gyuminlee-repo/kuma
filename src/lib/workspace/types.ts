@@ -1,0 +1,51 @@
+export type AppId = "kuro" | "mame" | "primerbench";
+
+export type ArtifactType =
+  | "evolvepro_csv"
+  | "sdm_primer_xlsx"
+  | "kuro_echo_csv"
+  | "kuro_echo_xlsx"
+  | "kuro_janus_csv"
+  | "kuro_janus_xlsx"
+  | "kuro_macrogen_xls"
+  | "kuro_platemap_xlsx"
+  | "kuro_primers_fasta"
+  | "kuro_run_json"
+  | "mame_barcodes_xlsx"
+  | "mame_context_json"
+  | "mame_consensus_fasta"
+  | "mame_reference_fasta";
+
+export interface ManifestArtifact {
+  id: string;
+  app: AppId;
+  step: string;
+  type: ArtifactType;
+  path: string;
+  producedAt: string;
+  mtime: string;
+  sizeBytes: number;
+}
+
+export interface WorkspaceManifest {
+  schemaVersion: 1;
+  workspaceId: string;
+  createdAt: string;
+  updatedAt: string;
+  artifacts: ManifestArtifact[];
+}
+
+export interface ArtifactRef extends Omit<ManifestArtifact, "path"> {
+  path: string;
+  stale: boolean;
+}
+
+export interface NewArtifact {
+  app: AppId;
+  step: string;
+  type: ArtifactType;
+  absolutePath: string;
+}
+
+export const SCHEMA_VERSION = 1 as const;
+export const MANIFEST_FILENAME = ".kuma-workspace.json";

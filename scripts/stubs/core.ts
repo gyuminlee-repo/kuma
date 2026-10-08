@@ -1,0 +1,282 @@
+/**
+ * MOCK_MODE shim for `@tauri-apps/api/core`.
+ *
+ * Without this stub `getConfig()` rejects during bootstrap and App.tsx pins the
+ * screen to "onboarding", so every capture came out as the folder picker. The
+ * stub answers the project-shell commands with plausible values and leaves the
+ * rest to the caller's own error handling.
+ *
+ * It deliberately does NOT compute anything: capture screens receive real
+ * sidecar output through the store (see scripts/gen_real_capture_data.py), so
+ * `sidecar_rpc` here only has to not throw.
+ */
+
+import realDataJson from "../real-data.json";
+import mameRealDataJson from "../mame-real-data.json";
+
+export interface MockProject {
+  path: string;
+  name: string;
+  last_opened: string;
+  project_id?: string | null;
+}
+
+// Shown verbatim in captured screenshots, so it stays machine-neutral.
+const PROJECT_ROOT = "~/Documents/kuma";
+const PROJECT: MockProject = {
+  path: `${PROJECT_ROOT}/demo_evolvepro_round1`,
+  name: "demo_evolvepro_round1",
+  last_opened: "2026-08-21T09:00:00+09:00",
+  project_id: "00000000-0000-4000-8000-000000000000",
+};
+
+const CONFIG = {
+  projects_root: PROJECT_ROOT,
+  recent_projects: [PROJECT],
+};
+
+/**
+ * Replies the real sidecars gave for the capture inputs, keyed by RPC method
+ * within each sidecar.
+ *
+ * The two tables are separate because the method namespace is not shared.
+ * `health_info` and `export_janus_mapping_dry_run` are defined by both
+ * sidecars and mean different things, so one flat table would have served a
+ * KURO reply to a MAME screen with nothing raising.
+ */
+type RealBundle = Record<string, unknown>;
+// Static import: Vite transforms JSON into a module here. A dynamic
+// `import(..., { with: { type: "json" } })` is rejected by the browser MIME
+// check under the dev server and silently leaves the bundle empty.
+const realBundle = realDataJson as RealBundle;
+const mameBundle = mameRealDataJson as RealBundle;
+
+const KURO_REPLIES: Record<string, (params?: unknown) => unknown> = {
+  list_polymerases: () => realBundle.polymerases ?? [],
+  load_fasta: () => realBundle.seq_info ?? {},
+  load_evolvepro_csv: () => realBundle.evolvepro ?? {},
+  preview_evolvepro_source: () => realBundle.evolvepro_preview ?? {},
+  design_sdm_primers: () => realBundle.design ?? {},
+  get_plate_map: () => realBundle.plate ?? { mappings: [] },
+  search_uniprot: () => realBundle.uniprot ?? { candidates: [] },
+  fetch_domains: () => realBundle.domains ?? { domains: [] },
+  fetch_pdb_text: () => realBundle.pdb_text ?? {},
+  check_structures_available: () => realBundle.structures ?? {},
+  fetch_active_site_residues: () =>
+    realBundle.active_site ?? { accession: "", active_site_positions: [], binding_positions: [] },
+  // `list_organisms` answers with an envelope since the user codon-table work.
+  // A capture bundle recorded before that still holds a bare array here, and
+  // regenerating one costs a sidecar build, so accept both shapes: a bare array
+  // is lifted into the envelope the validator now demands.
+  list_organisms: () => {
+    const recorded = realBundle.organisms;
+    if (Array.isArray(recorded)) {
+      return { organisms: recorded, failed: [], user_dir: "" };
+    }
+    return recorded ?? { organisms: [], failed: [], user_dir: "" };
+  },
+  export_echo_mapping_dry_run: () => realBundle.echo_dry_run ?? {},
+  export_janus_mapping_dry_run: () => realBundle.janus_dry_run ?? {},
+  health_info: () => realBundle.health ?? {},
+  settings_load: () => realBundle.settings ?? {},
+  // Called once network consent is granted after a sequence load. The capture
+  // bundle holds neither reply, so these answer with the failure shape the
+  // sidecar itself returns when the service is unreachable. The app takes its
+  // own offline path (no reference domains, 1-D distance) instead of a banner.
+  annotate_domains_by_sequence: () => ({
+    domains: [],
+    source: "error",
+    coordinate_frame: "reference",
+    protein_length: 0,
+    ref_hash: "",
+    cache_hit: false,
+    error_msg: "MOCK_MODE: not in the capture bundle",
+  }),
+  fetch_structure: () => ({ success: false, error: "MOCK_MODE: not in the capture bundle" }),
+  // After a design with failed mutations the app retries each one with
+  // suggested parameters (designSlice autoRetryFailedWithSuggestion). No retry
+  // was recorded, so every retry finds nothing and the recorded failures stand.
+  retry_failed_mutation: (params) => ({
+    mutation: String((params as { mutation?: unknown } | undefined)?.mutation ?? ""),
+    count: 0,
+    candidates: [],
+  }),
+  // The Summary screen asks for a dispersion statistic over the designed
+  // positions. It is computed, not recorded, and inventing numbers would put a
+  // false statistic on screen, so the call fails the way an unreachable sidecar
+  // does and the app keeps its own fallback (diversitySlice computeDispersion).
+  compute_dispersion: () => {
+    throw new Error("MOCK_MODE: compute_dispersion is not in the capture bundle");
+  },
+  get_polymerase_details: (params) => {
+    const table = (realBundle.polymerase_details ?? {}) as Record<string, unknown>;
+    const name = String((params as { name?: unknown } | undefined)?.name ?? "");
+    return table[name] ?? {};
+  },
+  ping: () => ({ ok: true }),
+};
+
+const MAME_REPLIES: Record<string, (params?: unknown) => unknown> = {
+  health_info: () => mameBundle.health ?? {},
+  // Held back for as long as the sidecar really took. The app times the call
+  // client-side and prints the result on the review screen, so answering at
+  // once would state a runtime no operator will ever see.
+  analyze: async () => {
+    const seconds = Number(mameBundle.analyze_seconds ?? 0);
+    if (seconds > 0) {
+      await new Promise((done) => setTimeout(done, seconds * 1000));
+    }
+    return mameBundle.analyze ?? {};
+  },
+  get_plate_data: () => mameBundle.plate ?? {},
+  get_run_health: () => mameBundle.run_health ?? {},
+  export_janus_mapping_dry_run: () => mameBundle.janus_dry_run ?? {},
+  read_kuma_meta: () => mameBundle.kuma_meta ?? null,
+  inspect_variant_source: () => mameBundle.variant_source ?? {},
+  validate_inputs: () => mameBundle.validate_inputs ?? {},
+  check_plate_order: () => mameBundle.plate_order ?? {},
+  "mame.ingest.parse_reference": () => mameBundle.parse_reference ?? {},
+  "mame.build_well_layout": () => mameBundle.well_layout ?? {},
+  "mame.detect_native_barcodes": () => mameBundle.native_barcodes ?? {},
+  ping: () => ({ ok: true }),
+};
+
+const SIDECAR_REPLIES: Record<string, Record<string, (params?: unknown) => unknown>> = {
+  kuro: KURO_REPLIES,
+  mame: MAME_REPLIES,
+};
+
+/**
+ * `rawSidecarRpc` in src/lib/ipc.ts refuses to send unless this marker exists,
+ * so without it every panel renders "Tauri bridge unavailable". The plugin
+ * wrappers additionally reach for `transformCallback` while registering event
+ * channels, so the marker carries a working one rather than an empty object.
+ */
+let callbackId = 0;
+const callbacks = new Map<number, (payload: unknown) => void>();
+(globalThis as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ ??= {
+  transformCallback(callback?: (payload: unknown) => void, _once = false): number {
+    callbackId += 1;
+    if (callback) callbacks.set(callbackId, callback);
+    return callbackId;
+  },
+  invoke,
+  convertFileSrc,
+};
+
+const HANDLERS: Record<string, (args?: Record<string, unknown>) => unknown> = {
+  get_config_cmd: () => CONFIG,
+  set_projects_root_cmd: () => CONFIG,
+  list_recent_projects_cmd: () => CONFIG.recent_projects,
+  list_restorable_projects_cmd: () => [],
+  remove_recent_project_cmd: () => CONFIG.recent_projects,
+  create_project_cmd: () => PROJECT.path,
+  load_project_cmd: () => ({
+    schema: 1,
+    project_id: PROJECT.project_id,
+    name: PROJECT.name,
+    stage: "draft",
+  }),
+  probe_writable_dir: () => true,
+  read_text_head: () => "",
+  sidecar_is_running: () => true,
+  sidecar_kill: () => null,
+  sidecar_rpc: (args) => {
+    const kind = String(args?.kind ?? "");
+    const method = String(args?.method ?? "");
+    // Reported with the kind attached. A method missing from the MAME table
+    // while present in the KURO one is the failure this dispatch exists to
+    // make visible, and "no reply for analyze" alone would not say which.
+    const reply = SIDECAR_REPLIES[kind]?.[method];
+    if (!reply) {
+      // Shouted to the console as well as thrown: the app catches this and
+      // paints it into a status bar, where it would ride into a screenshot
+      // unnoticed. capture-real.ts watches the console and fails the run.
+      const message = `MOCK_MODE: no recorded sidecar reply for "${kind}:${method}"`;
+      console.error(message);
+      throw new Error(message);
+    }
+    return reply(args?.params);
+  },
+  keep_awake_start: () => null,
+  keep_awake_stop: () => null,
+  // The sidecar hook subscribes to shell events while spawning. Nothing ever
+  // emits in MOCK_MODE, so registering is enough and unlisten is a no-op.
+  "plugin:event|listen": () => callbackId,
+  "plugin:event|unlisten": () => null,
+  "plugin:event|emit": () => null,
+  "plugin:event|emit_to": () => null,
+  // The autosave layer resolves project paths through plugin-path. Pure string
+  // work, so the stub can answer it without touching a filesystem.
+  "plugin:path|is_absolute": (args) => String((args as { path?: unknown })?.path ?? "").startsWith("/"),
+  "plugin:path|join": (args) => {
+    const parts = ((args as { paths?: unknown })?.paths ?? []) as string[];
+    return parts.filter(Boolean).join("/").replace(/\/{2,}/g, "/");
+  },
+  "plugin:path|resolve_directory": () => PROJECT.path,
+  "plugin:path|resolve": (args) => {
+    const parts = ((args as { paths?: unknown })?.paths ?? []) as string[];
+    return parts.filter(Boolean).join("/").replace(/\/{2,}/g, "/");
+  },
+  "plugin:path|basename": (args) => {
+    const raw = String((args as { path?: unknown })?.path ?? "");
+    return raw.slice(raw.lastIndexOf("/") + 1);
+  },
+  "plugin:path|dirname": (args) => {
+    const raw = String((args as { path?: unknown })?.path ?? "");
+    return raw.slice(0, Math.max(raw.lastIndexOf("/"), 0));
+  },
+};
+
+export async function invoke<T>(
+  command: string,
+  args?: Record<string, unknown>,
+): Promise<T> {
+  const handler = HANDLERS[command];
+  if (!handler) {
+    // Same reasoning as the sidecar gap above: the app paints this into a
+    // banner, so it has to reach the console for capture-real.ts to catch.
+    const message = `MOCK_MODE: no stub for Tauri command "${command}"`;
+    console.error(message);
+    throw new Error(message);
+  }
+  return handler(args) as T;
+}
+
+export function convertFileSrc(filePath: string): string {
+  return filePath;
+}
+
+// The fs, notification and updater plugins import these three names from
+// api/core at module load. Aliasing api/core without them breaks the bundle
+// before a single screen renders, so they exist here as inert shapes.
+
+export class Channel<T = unknown> {
+  id = 0;
+  onmessage: (message: T) => void = () => {};
+  toJSON(): string {
+    return `__CHANNEL__:${this.id}`;
+  }
+}
+
+export class Resource {
+  readonly rid: number;
+  constructor(rid = 0) {
+    this.rid = rid;
+  }
+  async close(): Promise<void> {
+    /* nothing to release in MOCK_MODE */
+  }
+}
+
+export async function addPluginListener<T>(
+  _plugin: string,
+  _event: string,
+  _cb: (payload: T) => void,
+): Promise<{ unregister: () => Promise<void> }> {
+  return { unregister: async () => {} };
+}
+
+export function isTauri(): boolean {
+  return true;
+}

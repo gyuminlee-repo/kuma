@@ -1,0 +1,126 @@
+/**
+ * TypeScript mirror of kuma_core/mame/activity/round.py Pydantic models.
+ * Spec: notes/specs/2026-05-04-mame-activity-integration.md §2.3
+ *
+ * Keep in sync with:
+ *   - kuma_core/mame/activity/round.py (Round, RoundStatus, RoundErrorInfo)
+ *   - src/store/exportSlice.ts getWorkspaceSnapshot / restoreWorkspace
+ */
+
+import type { PlateMeta, ActivityRecord, MergedRow } from "./mame/activity"
+import type { ClassifyRoundResult, RoundFileEntry } from "./mame/strategy"
+
+export type RoundStatus =
+  | "design"
+  | "ordered"
+  | "ngs_done"
+  | "activity_linked"
+  | "exported"
+  | "combinatorial"
+  | "closed"
+  | "error"
+
+export interface RoundErrorInfo {
+  stage: "upload" | "merge" | "export" | "handoff"
+  message: string
+  occurred_at: string
+}
+
+/** A file one round produced, with the moment it was written. */
+export interface RoundArtifact {
+  path: string
+  produced_at: string
+}
+
+/**
+ * The step 4.1 workbook, plus the wild-type replicates behind it.
+ *
+ * The exported activity column is each variant measurement over the mean WT of
+ * its cohort, so the same division applied to the WT rows states the assay
+ * spread on that scale. Those rows are filtered out of the workbook, which
+ * holds one row per designed variant for EVOLVEpro, so nothing in the file
+ * lets step 4.2 read them back.
+ *
+ * They ride on the artifact rather than beside it so a rebuild replaces the
+ * path, the timestamp, and the replicates in one move. Split across two
+ * fields, a rebuild could leave one round replicate list attached to another
+ * round file.
+ *
+ * Optional and empty carry the same meaning, "none on record": absent on
+ * rounds restored from a snapshot written before this field existed, empty
+ * when the primary source was a pre-normalized GC sheet whose WT mean was
+ * taken upstream.
+ */
+export interface EvolveproInputArtifact extends RoundArtifact {
+  wt_values?: number[]
+
+  /**
+   * The replicates behind each exported activity, keyed by variant.
+   *
+   * The workbook holds one mean per variant, so how many measurements produced
+   * that mean is stated nowhere else, and it is what says how much the mean
+   * can be trusted.
+   *
+   * Absent carries one meaning only, "not on record": rounds built before this
+   * field existed have none, and no value is stood in for them. Rebuilding
+   * step 4.1 over the same source report fills it in, which is a recomputation
+   * rather than a re-measurement.
+   */
+  variant_replicates?: Record<string, number[]>
+}
+
+/**
+ * An advisory answer, kept with the inputs that produced it.
+ *
+ * The answer alone cannot be re-examined later: it is a statement about one
+ * ordered set of round files at one moment. Storing the files and the time
+ * alongside it is what lets a restored answer say what it was about, and
+ * `input_signature` is what lets the screen tell whether the list in front of
+ * the operator is still that same list.
+ */
+export interface RoundAdvisoryRecord {
+  /** The sidecar response verbatim, decision or not_assessable. */
+  result: ClassifyRoundResult
+  /** The files it was computed from, with the round numbers they were sent as. */
+  inputs: RoundFileEntry[]
+  /** ISO timestamp of when the answer came back. */
+  decided_at: string
+  /**
+   * Identity of `inputs` including their contents, from roundFilesSignature
+   * (lib/round/roundArtifacts.ts): each entry carries the moment the app wrote
+   * that file, so rebuilding a round over the same path no longer looks like
+   * the list the answer was computed from.
+   */
+  input_signature: string
+}
+
+export interface Round {
+  id: string
+  n: number
+  created_at: string
+  status: RoundStatus
+  error_info: RoundErrorInfo | null
+  plate_meta: PlateMeta
+  design: Record<string, unknown>
+  genotype: Record<string, unknown>
+  activity: { records: ActivityRecord[]; plate_meta: PlateMeta } | null
+  merged_table: MergedRow[]
+  /**
+   * The EVOLVEpro input step 4.1 built for this round, which step 4.2 reads
+   * back as one entry of the round series (lib/round/roundArtifacts.ts).
+   *
+   * Optional because rounds restored from a snapshot written before this field
+   * existed simply do not have it. Absent reads as "this round produced
+   * nothing", which is the same answer those projects give today, so no
+   * snapshot schema bump is warranted.
+   */
+  evolvepro_input?: EvolveproInputArtifact | null
+  /**
+   * The last advisory answer computed while this round was active.
+   *
+   * Optional for the same reason as `evolvepro_input`: absent on rounds
+   * restored from an older snapshot, and absent means no advisory has been run,
+   * which is what those projects report today.
+   */
+  advisory?: RoundAdvisoryRecord | null
+}

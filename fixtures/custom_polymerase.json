@@ -1,0 +1,34 @@
+[
+  {
+    "name": "Lab Custom Taq",
+    "manufacturer": "In-house",
+    "fidelity": "standard",
+    "tm_method": "breslauer",
+    "salt_correction": "schildkraut",
+    "opt_tm": 55.0,
+    "min_tm": 50.0,
+    "max_tm": 62.0,
+    "min_gc": 30.0,
+    "max_gc": 70.0,
+    "salt_monovalent": 50.0,
+    "salt_divalent": 1.5,
+    "dntp_conc": 0.2,
+    "dna_conc": 200.0
+  },
+  {
+    "name": "SpeedSTAR HS",
+    "manufacturer": "Takara",
+    "fidelity": "standard",
+    "tm_method": "santalucia",
+    "salt_correction": "owczarzy",
+    "opt_tm": 60.0,
+    "min_tm": 55.0,
+    "max_tm": 65.0,
+    "min_gc": 35.0,
+    "max_gc": 65.0,
+    "salt_monovalent": 50.0,
+    "salt_divalent": 2.0,
+    "dntp_conc": 0.2,
+    "dna_conc": 250.0
+  }
+]

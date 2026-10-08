@@ -1,0 +1,552 @@
+---
+date: 2026-05-07
+type: decision
+project: kuma
+decided_by: KRIBB C1 Lab
+version: 1.0
+status: stable
+tags: [kuma, frontend, standards, charter, kuro, mame, primerbench]
+---
+
+# KUMA Common Frontend Standards (kuro · mame · primerbench)
+
+세 앱(kuro, mame, primerbench) 독립 배포 빌드에서 공통적으로 지켜야 할 프론트엔드 요건을 22개 카테고리로 정의한다. 각 항목은 [필수]/[권장] 태그와 검증 가능한 acceptance criteria를 포함한다.
+
+## 0. Scope & Conventions
+
+- **대상**: kuro, mame, primerbench 독립 데스크탑 배포 (Tauri v2 + React 19 + Python sidecar)
+- **태그**:
+  - **[필수]**: 미준수 시 릴리스 차단
+  - **[권장]**: 차기 마이너 버전까지 충족
+- **상태 표기 (Per-app status table)**: ✅ 충족 / 🟡 부분 / ❌ 미구현 / ❓ 미확인 — 본 헌장 v0.1 에서는 전부 ❓ placeholder, 별도 audit 작업으로 채움
+- **검증**: acceptance criteria 는 자동/수동 테스트 항목으로 직접 매핑
+
+---
+
+## 1. Recovery — 복구·초기화 [필수]
+
+**Rationale**: 과학용 SW 는 장시간·다단계 작업이 많아 hang/dead-state 빈도가 높다. 복구 경로가 없으면 사용자가 강제 종료로만 빠져나오게 되어 데이터 손실 위험.
+
+**Requirements**
+- [필수] 전역 **Reset 버튼**: store + sidecar 상태 동시 초기화 (단축키 Ctrl/Cmd+Shift+R)
+- [필수] **Sidecar 재시작 버튼**: Python 프로세스만 kill & respawn, UI 상태는 보존
+- [필수] 장시간 작업 **Cancel/Abort** 버튼 (BLAST, alignment, design 등)
+- [권장] **Dead-lock 감지**: progress notification 이 30초 이상 끊기면 모달로 안내
+- [필수] **Workspace 자동 저장**: 30초 간격 또는 주요 액션 후, crash 재기동 시 직전 상태 복원
+
+**Acceptance**
+- Reset 후 sidecar PID 가 변경됨 (재기동 확인)
+- Cancel 누르면 5초 이내 progress 종료
+- 강제 종료 후 재실행 시 마지막 입력 폼 자동 복원
+
+---
+
+## 2. Observability — 진행 상태 가시성 [필수]
+
+**Rationale**: 진행 단계 미공개는 "멈춘 건지 도는 건지" 불확실성을 유발하고 강제 종료를 자극한다.
+
+**Requirements**
+- [필수] **Progress bar + 단계 라벨** ("Aligning reads (3/12)" 형식). 단순 spinner 단독 금지
+- [권장] **ETA 표시**: 동일 입력 크기 평균 기반 추정
+- [필수] **로그 패널** (펼침 가능): sidecar stdout/stderr 실시간 스트림
+- [필수] **Sidecar 헬스 인디케이터**: 좌하단 dot (green/yellow/red) + tooltip 으로 PID·메모리
+- [필수] **에러 발생 위치 trace**: 어느 단계에서 실패했는지 명시
+
+**Acceptance**
+- 모든 RPC 호출에 progress notification 1개 이상 발생
+- 헬스 인디케이터가 sidecar 재시작 직후 1초 이내 갱신
+
+---
+
+## 3. Input Guards — 입력 검증 [필수]
+
+**Rationale**: schema mismatch 가 sidecar 까지 흘러가면 raw traceback 으로만 노출되어 사용자가 원인 파악 불가.
+
+**Requirements**
+- [필수] 파일 업로드 **schema 검증** (컬럼명·타입) 프론트엔드 단에서 1차 차단
+- [필수] **빈 입력 차단**: Run 버튼 disabled + tooltip 으로 사유 표시
+- [필수] **Sample Data 로드 버튼**: 신규 사용자가 동작 검증 가능
+- [권장] **이전 입력 기억** (localStorage 마지막 사용 경로)
+- [권장] 파일 input 옆 동등한 **Drag & Drop 영역**
+
+**Acceptance**
+- 잘못된 컬럼명 CSV 업로드 시 sidecar 호출 없이 즉시 빨간 메시지
+- Sample Data → Run → Export 가 한 클릭씩 3회로 완주 가능
+
+---
+
+## 4. Error UX — 에러 표시 [필수]
+
+**Rationale**: Python traceback raw 노출은 개발자에게만 의미 있고 일반 사용자에게는 진입장벽.
+
+**Requirements**
+- [필수] **사람이 읽을 수 있는 1차 메시지** + traceback 은 토글 펼침
+- [필수] **재현 정보 복사 버튼**: 앱 버전 + sidecar 버전 + OS + 에러 라인 한 번에 클립보드
+- [필수] **다음 액션 명시**: Retry / Reset / Open log folder 중 1개 이상 버튼 노출
+- [권장] **네트워크 에러 분리**: UniProt/BLAST 외부 API 타임아웃은 일반 sidecar 에러와 다른 아이콘·문구
+
+**Acceptance**
+- 모든 에러 모달에 "복사" + "다음 액션" 두 버튼 동시 존재
+- 네트워크 에러는 retry-after 안내 포함
+
+---
+
+## 5. Output Persistence — 결과 영속성 [필수]
+
+**Rationale**: 결과 export 일관성이 부족하면 사용자가 어떤 패널에서 무엇이 저장되는지 학습 비용이 든다.
+
+**Requirements**
+- [필수] **Export 버튼 위치 일관성**: 모든 결과 패널 우상단 동일 위치
+- [필수] **포맷 명시**: CSV / Excel / FASTA / PDF 중 해당 패널이 지원하는 포맷 드롭다운
+- [필수] **결과 폴더 열기** 버튼: OS 파일 탐색기 호출
+- [필수] **Default export 경로 project-aware** (kuro v0.3.1.0 패턴 준용)
+- [필수] **덮어쓰기 confirm**
+
+**Acceptance**
+- Export 버튼 위치를 세 앱 스크린샷에서 동일 좌표(±20px)로 측정 가능
+- 동일 파일명 export 시 confirm 모달 100% 발생
+
+---
+
+## 6. Settings — 설정·상태 [권장]
+
+**Rationale**: 설정 UI 가 분산되면 사용자가 옵션을 찾기 어렵고 앱별 일관성도 떨어진다.
+
+**Requirements**
+- [필수] About 다이얼로그에 **앱 버전 + sidecar 버전 + Python 버전** 표시
+- [권장] **데이터 폴더 위치** 설정 가능 + 현재 위치 표시
+- [권장] **언어 토글** (ko/en) — i18n 미도입 시 향후 슬롯만 확보
+- [권장] sidecar 바이너리 경로 표시
+
+**Acceptance**
+- About 모달이 메뉴바·헬프에서 동일 도달
+- 버전 문자열은 `package.json` / `Cargo.toml` / sidecar 메타 일치
+
+---
+
+## 7. UI Safety — UI 안전장치 [필수]
+
+**Rationale**: 이미 kuma CLAUDE.md 에 일부 명시. 세 앱 공통 강제.
+
+**Requirements**
+- [필수] **`flex-1` + `min-w-0`** 조합 강제 (셀렉트·텍스트 자식)
+- [필수] 고정폭 사이드바 **`overflow-x-hidden`**
+- [필수] 모달 **ESC 닫기 + backdrop click 닫기** (단, 진행 중 작업 모달 제외)
+- [필수] 장시간 작업 중 **창 닫기 confirm**
+- [필수] **다중 인스턴스 락**: 동일 워크스페이스에 두 앱 진입 차단 (lock file)
+
+**Acceptance**
+- ESLint/grep 으로 `flex-1` 인접에 `min-w-0` 누락 0건
+- 작업 중 ⌘W / Alt+F4 누르면 confirm 모달
+
+---
+
+## 8. Accessibility & Ergonomics — 접근성·인체공학 [권장]
+
+**Rationale**: 접근성·단축키 통일 부재는 마우스 미사용 사용자, 색약 사용자, 다른 OS 환경의 진입장벽을 키운다.
+
+**Requirements**
+- [필수] **Run / Reset 단축키** 통일: active KUMA registry 기준 Run = Ctrl/Cmd+D 및 Ctrl/Cmd+Enter, Reset = Ctrl/Cmd+Shift+R. Save 단축키는 project-aware workspace save command가 재도입될 때 registry와 문서에 함께 추가한다.
+- [필수] **Focus ring 보존** (shadcn/ui 기본 유지)
+- [권장] **다크모드** 셋 다 동일 디자인 토큰 사용
+- [필수] **Toast 위치 통일**: top-right
+- [권장] **컬러블라인드 안전 팔레트** (특히 mame 의 plate map heatmap)
+
+**Acceptance**
+- 단축키 매핑 표가 About → Shortcuts 에 동일 구조로 노출
+- Toast 가 동일 컴포넌트(`Sonner` 등) 재사용
+
+---
+
+## 9. Versioning & Updates — 버전·업데이트 [권장]
+
+**Rationale**: 버전 mismatch 미처리 시 구 워크스페이스와 신 sidecar 간 호환성이 깨져 데이터 손실 위험.
+
+**Requirements**
+- [권장] **자동 업데이트 알림** 또는 About 의 "Check for updates"
+- [필수] **Workspace schema_version mismatch 경고** + 마이그레이션 안내
+- [필수] About 다이얼로그에 **Release notes 링크**
+- [필수] 세 파일 버전 동기화 (`package.json` / `tauri.conf.json` / `Cargo.toml`)
+
+**Acceptance**
+- 구버전 워크스페이스 로드 시 호환성 모달 100% 발생
+- 릴리스 시 세 버전 문자열 일치를 CI 단에서 검증
+
+---
+
+## 10. Telemetry & Privacy — 텔레메트리·프라이버시 [필수]
+
+**Rationale**: 학술 SW 에서 무단 외부 호출은 IRB·기관 규정 위반 가능.
+
+**Requirements**
+- [필수] **외부 통신 1회 고지**: UniProt/BLAST/AlphaFold 호출 전 최초 1회 모달 동의
+- [필수] **오프라인 모드 토글**: 외부 의존 기능 명시적 disable
+- [필수] **암묵 텔레메트리 금지**: 사용자 데이터·메트릭 외부 송신 0건
+- [권장] About 에 "Network calls made by this app" 목록 노출
+
+**Acceptance**
+- 첫 실행 시 외부 호출 모달 1회 노출 후 동의 상태 영속
+- Wireshark/proxy 로 검증 시 동의 외 호출 0건
+
+---
+
+## 11. Build & Distribution — 빌드·배포 (Frontend 관점) [필수]
+
+**Rationale**: 빌드 무결성 검증 없이는 변조된 바이너리 배포 가능성이 있고, 버전 불일치는 디버깅 비용을 키운다.
+
+**Requirements**
+- [필수] **버전 3-파일 동기화** (위 §9)
+- [필수] **macOS ad-hoc codesign 상태 표시** (kuro v0.3.1.0 도입분 준용)
+- [필수] **First-run onboarding**: 최초 실행 시 1-page 가이드
+- [권장] **CI 산출물 무결성 표시**: About 에 빌드 SHA / 빌드 시각
+
+**Acceptance**
+- About 의 빌드 SHA 가 git tag 와 일치
+- First-run 가이드는 두 번째 실행부터 미노출 (사용자 토글 가능)
+
+---
+
+## 12. Reproducibility — 재현성 [필수]
+
+**Rationale**: 학술 SW 핵심 가치. 세 앱 모두 현재 약하므로 강하게 도입.
+
+**Requirements**
+- [필수] **Run manifest 자동 생성**: 결과 폴더에 `run.json` 동봉
+  - 입력 파일 SHA-256
+  - 파라미터 dict
+  - 앱 버전 + sidecar 버전 + Python 버전
+  - 시작/종료 timestamp (ISO 8601, UTC)
+  - random seed (있다면)
+- [필수] **Re-run from manifest**: `run.json` 드롭하면 입력·파라미터 자동 로드
+- [권장] **Random seed 노출·고정**: 비결정 단계에서 사용자가 seed 입력 가능
+- [권장] **Diff view**: 두 manifest 의 파라미터 차이 비교
+
+**Acceptance**
+- 모든 export 폴더에 `run.json` 존재
+- 동일 manifest 로 두 번 실행 시 출력 SHA 일치 (seed 고정 시)
+
+---
+
+## 13. Long-running Jobs — 장시간 작업 신뢰성 [권장]
+
+**Rationale**: 큐·OS 알림이 없으면 사용자가 작업 완료 시점을 놓치거나 sleep 으로 작업이 중단된다.
+
+**Requirements**
+- [권장] **Background job queue**: 여러 작업을 큐에 쌓고 순차 실행
+- [필수] **OS native notification**: 작업 완료 시 백그라운드여도 알림
+- [필수] **Sleep 방지**: 실행 중 OS sleep inhibit (Tauri plugin)
+- [권장] **Resume from checkpoint**: 다단계 파이프라인(특히 mame raw_run) 중단 후 재개
+
+**Acceptance**
+- 5분 이상 작업 완료 시 OS 알림 발생률 100%
+- 실행 중 macOS Caffeinate / Windows ES_SYSTEM_REQUIRED 활성화
+
+---
+
+## 14. Data Integrity — 데이터 무결성 검증 [필수]
+
+**Rationale**: 입력 파일 무결성 검증 부재 시 손상된 데이터로 계산한 산출을 신뢰할 수 없고, sidecar 변조도 탐지 불가.
+
+**Requirements**
+- [필수] **입력 파일 SHA-256** UI 노출 + `run.json` 기록
+- [필수] **Sidecar binary 무결성**: 시작 시 hash 검증, 변조 감지 시 실행 차단
+- [필수] **Schema version gate**: 워크스페이스 로드 시 호환성 명시 + dry-run 마이그레이션
+- [권장] **Output checksum**: export 결과에도 `*.sha256` 동봉
+
+**Acceptance**
+- 입력 파일 헤더에 SHA-256 prefix 8자 노출
+- 손상된 sidecar 바이너리로 실행 시 안내 모달 + 종료
+
+---
+
+## 15. Onboarding — 사용자 학습 곡선 [권장]
+
+**Rationale**: 신규 사용자 학습 곡선이 가파르면 docs 의존도가 커지고 초기 이탈률이 상승한다.
+
+**Requirements**
+- [권장] **Inline help (?) 아이콘**: 모든 입력 필드 옆, 호버 시 1-2줄 설명 + 외부 docs 링크
+- [필수] **Empty state 가이드**: 빈 화면일 때 "Sample → Run → Export" 3-step 안내
+- [권장] **What's New 모달**: 업데이트 직후 변경점 요약
+- [권장] **튜토리얼 모드**: 새 프로젝트 최초 진입 시 주요 영역 spotlight walkthrough. 기존 프로젝트 자동 표시 금지, 전체 스킵과 Help 메뉴 재실행 경로 제공
+
+**Acceptance**
+- 신규 사용자가 docs 없이 sample → export 까지 5분 이내 완주
+- What's New 는 마이너 버전 업데이트마다 1회만 노출
+- 새 프로젝트 투어는 프로젝트별 1회만 자동 표시되며, `Esc`는 현재 투어만 닫고 **모든 투어 건너뛰기**만 영구 opt-out 처리
+
+---
+
+## 16. Local Diagnostics — 디버깅 자산 [권장]
+
+**Rationale**: 사용자 ↔ 개발자 채널을 외부 전송 없이 로컬 zip 으로만 제공. 사용자가 메일/디스코드 등으로 직접 첨부.
+
+**Requirements**
+- [필수] **"Generate diagnostics zip" 버튼**: 로그 + manifest + 익명화 입력 헤더 + 환경 정보를 단일 zip 으로 패키징, 저장 후 Finder/Explorer 자동 열기
+- [필수] **외부 자동 전송 금지**: 사용자가 명시적으로 첨부할 때만 외부 도달
+- [권장] **Crash reporter (로컬)**: 패닉 후 다음 실행 시 "지난 세션이 비정상 종료됨, 진단 zip 생성하시겠어요?" 모달
+- [권장] **Verbose 모드 토글**: 평소 깔끔, 디버그 시 stdout 전체
+
+**Acceptance**
+- 진단 zip 생성 시 어떤 외부 호출도 발생하지 않음 (Wireshark 검증)
+- zip 내부에 로그, run.json, version 정보 3종 포함
+
+---
+
+## 17. Cross-platform Consistency — 멀티 플랫폼 일관성 [필수]
+
+**Rationale**: OS별 단축키/경로/인코딩 차이를 무시하면 Windows/macOS/Linux 사용자 간 UX 격차와 데이터 깨짐(특히 한글 CSV)이 발생.
+
+**Requirements**
+- [필수] **OS별 단축키 자동 매핑** (Cmd vs Ctrl)
+- [필수] **경로 표시 native 형식** (Windows `\` vs POSIX `/`)
+- [필수] **CSV export 인코딩**: 기본 UTF-8 + BOM 옵션 (Excel 호환)
+- [필수] **High-DPI 검증**: macOS Retina, Windows 150% 스케일 둘 다 통과
+- [권장] **줄바꿈**: export 시 OS 기본 따름 토글
+
+**Acceptance**
+- macOS / Windows / Linux 빌드 스크린샷에서 단축키 표기 자동 변환 확인
+- 한글 포함 CSV 가 Excel(Win/Mac) 양쪽에서 깨지지 않음
+
+---
+
+## 18. Partial Success — 부분 실패 [필수]
+
+**Rationale**: 100개 primer 중 3개 실패해도 97개는 사용 가능해야 함. all-or-nothing 패턴 금지.
+
+**Requirements**
+- [필수] **Best-effort 결과 보존**: 일부 실패해도 성공분 export 가능
+- [필수] **실패 항목 별도 패널**: 사유 + 개별/일괄 재시도 버튼
+- [필수] **Warning vs Error 구분**: tolerance 완화 같은 "성공했지만 주의" 케이스 별도 색·아이콘
+- [필수] **요약 통계**: "97/100 성공, 2 warning, 1 error"
+
+**Acceptance**
+- 실패 항목 존재 시에도 Export 버튼 enabled
+- 실패 항목 패널에 재시도 버튼 동작 확인
+
+---
+
+## 19. Performance Guardrails — 성능 가드레일 [필수]
+
+**Rationale**: 입력 크기 경고와 메모리 모니터가 없으면 대규모 데이터 처리 시 OOM 또는 freeze 가 사용자 측에서 그대로 발생.
+
+**Requirements**
+- [필수] **입력 크기 사전 경고**: 임계 초과 시 "약 N분 소요 예상" 모달
+- [필수] **메모리 임계값 모니터**: sidecar RSS 가 시스템 메모리 70% 초과 시 차단·경고
+- [필수] **Pagination/Virtual scroll**: 결과 테이블 1만 행 이상 시 가상 스크롤
+- [권장] **Run pre-flight check**: 디스크 여유 공간, sidecar alive, 외부 API 도달 가능성
+
+**Acceptance**
+- 1만 행 테이블 렌더링 시 60fps 유지
+- 메모리 70% 초과 시 모달 발생 후 정상 종료
+
+---
+
+## 20. Citation & Licensing — 라이선스·인용 [필수]
+
+**Rationale**: 학술 SW 의무. 인용은 더미 placeholder 로 시작, 본 SW 가 인용 가능 형태(논문/Zenodo DOI)로 공개되면 채움.
+
+**Requirements**
+- [필수] About → **How to cite** 섹션: BibTeX/RIS 복사 버튼 (현재는 더미)
+- [필수] About → **Third-party licenses** 전체 표시 (Tauri 의무사항)
+- [필수] **Used data sources**: UniProt/PDB/AlphaFold 등 외부 DB 사용 시 출처·버전·접근일 노출
+- [권장] 라이선스 (앱 자체) 명시: 미정 시 "Internal use, KRIBB C1 Lab" 표기
+
+**Acceptance**
+- About → How to cite 클릭 시 BibTeX 복사 동작 (placeholder 라도 형식 유효)
+- Third-party licenses 가 빌드 시 자동 수집
+
+**Citation placeholder (Appendix C 도 참조)**
+```bibtex
+@software{kuro_TBD,
+  title = {KURO: Kit for Unified Ranking and Oligodesign},
+  author = {Kang, Hyemin and KRIBB C1 Lab},
+  year = {2026},
+  note = {DOI/citation forthcoming},
+  url = {https://github.com/<org>/kuro}
+}
+```
+mame, primerbench 도 동일 형식 placeholder.
+
+---
+
+## 21. Multi-workspace Management — 워크스페이스 다중 관리 [권장]
+
+**Rationale**: 워크스페이스 격리가 미흡하면 프로젝트 A 의 설정·캐시가 B 로 누출되어 재현성과 데이터 분리가 깨진다.
+
+**Requirements**
+- [필수] **최근 프로젝트 목록**: 첫 화면에 5–10개
+- [필수] **프로젝트 단위 격리**: 워크스페이스별 설정·캐시 분리
+- [권장] **Compare workspaces**: 두 프로젝트의 결과 나란히 보기
+- [권장] **Export/Import workspace**: 단일 zip 으로 워크스페이스 이전
+
+**Acceptance**
+- 워크스페이스 A 의 설정이 B 에 누출되지 않음
+- 최근 프로젝트 목록이 5개 초과 시 자동 truncate
+
+---
+
+## 22. Graceful Shutdown — 안전한 종료 [필수]
+
+**Rationale**: 비정상 종료 시 sidecar 좀비 프로세스, partial export, file lock 잔존이 다음 실행을 차단하거나 데이터 손상을 유발.
+
+**Requirements**
+- [필수] **Graceful shutdown**: 창 닫기 → sidecar SIGTERM → 정리 → 5초 후 SIGKILL fallback
+- [필수] **Pending writes flush**: export 중 종료 시도 시 차단 + confirm
+- [필수] **Lock file**: 동일 워크스페이스 다중 인스턴스 진입 방지
+- [권장] **Shutdown hook**: 사용자 정의 cleanup 액션 (캐시 비우기 등)
+
+**Acceptance**
+- 종료 후 sidecar 좀비 프로세스 0건
+- export 중 ⌘Q 누르면 confirm 모달
+
+---
+
+## Appendix A. Component Library 매핑
+
+| 카테고리 | shadcn/ui 또는 컴포넌트 |
+|---|---|
+| Reset / Cancel 버튼 | `Button` (variant=destructive/outline) |
+| Progress | `Progress` + 커스텀 stage label |
+| Toast | `Sonner` (top-right) |
+| Modal/Confirm | `Dialog`, `AlertDialog` |
+| Inline help | `Tooltip` + `HoverCard` |
+| Sidebar lock | 커스텀 `Resizable` + `overflow-x-hidden` |
+| Diagnostics zip | 커스텀 (Tauri fs API) |
+
+## Appendix B. Lint-able Rules — CLAUDE.md 흡수 후보
+
+다음 항목은 자동 검증 가능하므로 kuma CLAUDE.md 또는 CI lint 단계로 통합:
+- §7 `flex-1` + `min-w-0` 조합 grep 검증
+- §9 세 파일 버전 일치 (`package.json` / `tauri.conf.json` / `Cargo.toml`)
+- §11 Tauri resources 글로브 패턴(`**`) 미사용
+- §10 외부 호출 화이트리스트 외 fetch 호출 0건
+- §17 CSV export 시 UTF-8 BOM 옵션 존재 확인
+
+## Appendix C. Citation Template (Dummy Placeholders)
+
+```bibtex
+@software{kuro_TBD,
+  title  = {KURO: Kit for Unified Ranking and Oligodesign},
+  author = {Kang, Hyemin and KRIBB C1 Lab},
+  year   = {2026},
+  note   = {DOI/citation forthcoming},
+  url    = {TBD}
+}
+
+@software{mame_TBD,
+  title  = {MAME: Mutagenesis Assessment and Measurement Export},
+  author = {Kang, Hyemin and KRIBB C1 Lab},
+  year   = {2026},
+  note   = {DOI/citation forthcoming},
+  url    = {TBD}
+}
+
+@software{primerbench_TBD,
+  title  = {PrimerBench: Benchmarking Suite for Primer Design Tools},
+  author = {Kang, Hyemin and KRIBB C1 Lab},
+  year   = {2026},
+  note   = {DOI/citation forthcoming},
+  url    = {TBD}
+}
+```
+
+## Appendix D. Per-app Status Matrix (audit 2026-05-08, Phase 1–12 + PB Phase A-I 후 — FINAL)
+
+판정 규칙: 카테고리 내 모든 [필수]·[권장] Requirements 충족 → ✅ / 일부 충족 → 🟡 / 전부 미구현 → ❌. 셀 단위 상세 근거(파일:라인)는 `notes/agent-reports/audit-kuma-v9.md` (Phase 11 후) + Phase 12 보고서 (`phase12a-kuma-final.md`, `pb-I-final.md`) 참조. Phase 12 후 v10/v6 재감사는 별도 진행 가능.
+
+### Req 단위 카운트
+
+| 앱 | ✅ | 🟡 | ❌ | Δ (audit 시점) |
+|---|---|---|---|---|
+| kuro | 50 | 7 | 0 | ✅ 16 → 50 (+34), ❌ 25 → 0 (-25) |
+| mame | 50 | 7 | 0 | ✅ 16 → 50 (+34), ❌ 26 → 0 (-26). Phase J에서 §4 재현 정보 복사 메타데이터 보강 (App ver + OS + sidecar ver + timestamp + RPC trace) |
+| primerbench | 52 | 21 | 0 | ✅ 40 → 52 (+12), ❌ 35 → 0 (-35). audit-v7 실측 50/21/2 + v0.04.07.12 §11 fix (workflow env 명시 + vite.config.ts `__BUILD_SHA__` 정의) → 52/21/0. 코드 fix 완료, CI 산출물 실주입은 다음 release 빌드 로그에서 사후 재현 검증. §21 Export as Zip은 [권장]이므로 ❌ 카운트 제외 |
+
+(Req 카운트 출처: kuma는 audit-v11 실측 (mame §4 보강 후). PB는 audit-v7 실측 (50/21/2) + v0.04.07.12 §11 Build SHA fix (1 ❌→✅) + §5 HR/Mero export 폴더 기억 (Sanger 패턴 이식, 🟡 영역 quality 개선).)
+
+(카테고리 단위 rollup 은 아래 표 참조)
+
+| § | Category | kuro | mame | primerbench | 변동 |
+|---|---|---|---|---|---|
+| 1 | Recovery | ✅ | ✅ | 🟡 | kuro/mame 🟡→✅ (Phase 10-A Restart Sidecar 진입점). PB Cancel 보강 (Phase E1) |
+| 2 | Observability | ✅ | ✅ | 🟡 | kuro/mame 🟡→✅ (Phase 11-A health_info RPC + PID/RSS tooltip) |
+| 3 | Input Guards | ✅ | ✅ | 🟡 | kuro/mame 🟡→✅ (Phase 10-A schemaValidator). PB drag-drop + EmptyState (Phase E2) |
+| 4 | Error UX | ✅ | ✅ | 🟡 | kuro/mame ✅ 유지. mame Copy Crash Log 추가 (Phase 12-A) |
+| 5 | Output Persistence | ✅ | ✅ | 🟡 | kuro/mame 🟡→✅ (Phase 8b openFolder + overwrite confirm). PB openFolder (Phase E2) |
+| 6 | Settings | ✅ | ✅ | ✅ | kuro/mame 🟡→✅ (Phase 12-A `get_sidecar_path` Tauri command). 전 앱 §6 충족 |
+| 7 | UI Safety | ✅ | ✅ | ✅ | PB 🟡→✅ (Phase A) |
+| 8 | A11y & Ergonomics | ✅ | ✅ | ✅ | kuro/mame ✅ 유지 + rescue 배지 colorblind (Phase 12-A). PB 🟡→✅ (Phase 12-B shape prefix + shortcuts 단일 진실) |
+| 9 | Versioning | ✅ | ✅ | 🟡 | PB auto update infrastructure (Phase E1) |
+| 10 | Telemetry & Privacy | ✅ | ✅ | ✅ | PB 🟡→✅ (Phase 10-C OfflineDisclosureDialog) |
+| 11 | Build & Distribution | ✅ | ✅ | 🟡 | kuro/mame 🟡→✅ (Phase 9-B codesign + build SHA). PB build SHA (Phase E3) |
+| 12 | Reproducibility | ✅ | ✅ | 🟡 | mame seed N/A 분류 확정 (Phase 12-A). kuro 기존 seed UI ✅ |
+| 13 | Long-running Jobs | ✅ | ✅ | 🟡 | PB OS notification + sleep inhibit (Phase D). PB ❌→🟡 |
+| 14 | Data Integrity | ✅ | ✅ | 🟡 | PB output checksum (Phase B). PB ❌→🟡 |
+| 15 | Onboarding | ✅ | ✅ | ✅ | kuro/mame: 새 프로젝트 spotlight 투어 + 프로젝트별 persistence + 전체 스킵/Help 재실행; InlineHelp + WhatsNewDialog |
+| 16 | Local Diagnostics | ✅ | ✅ | 🟡 | mame 🟡→✅ (Phase 11-C Generate Diagnostics 진입점) |
+| 17 | Cross-platform | ✅ | ✅ | 🟡 | kuro/mame 🟡→✅ (Phase 10-B UTF-8 BOM CSV 옵션). PB OS shortcut (Phase E3) |
+| 18 | Partial Success | ✅ | ✅ | ✅ | PB 🟡→✅ (Phase 12-B SangerMatrix summary 통계 + StatusBadge panel 통합) |
+| 19 | Performance Guardrails | ✅ | ✅ | 🟡 | PB virtual scroll + input thresholds (Phase E3) |
+| 20 | Citation & Licensing | ✅ | ✅ | 🟡 | PB BibTeX + License + Third-party (Phase C). PB ❌→🟡 |
+| 21 | Multi-workspace | ✅ | ✅ | ✅ | PB 🟡→✅ (Phase 12-B WorkspaceCompareDialog 실동작) |
+| 22 | Graceful Shutdown | ✅ | ✅ | ✅ | PB 🟡→✅ (Phase 11-D shutdown hook 도입) |
+
+### Phase 1–12 + PB Phase A-I 누적 결과
+
+- **kuma kuro/mame ✅ 카테고리**: 22 카테고리 모두 ✅. audit 시점 0건 → **22/22**
+- **PB ✅ 카테고리**: §6, §7, §8, §10, §15, §18, §21, §22 (총 8건). audit 시점 0건 → 8건
+- **kuma rollup**: kuro/mame 모두 ❌ 0 / 🟡 0 / ✅ **22 (전 카테고리 충족)**
+- **PB rollup (카테고리)**: ❌ 0 / 🟡 14 / ✅ 8
+- **Req 단위 실측 (audit v11/v7 + v0.04.07.12 fix)**: kuro 50/57 ✅, mame 50/57 ✅ (Phase J §4 보강 후 ❌ 0), primerbench 52/73 ✅ (§11 코드 fix 완료, CI 사후 재현 검증). audit-v7 summary line `❌ §21 Export as Zip` 은 헌장 §21 [권장] 분류상 오분류로 정정.
+
+### 헌장 100% 카테고리 충족 (kuma kuro/mame)
+
+Phase 1-12 누적 결과 kuma kuro/mame 양 앱이 22 카테고리 모두 ✅ rollup 달성. Req 단위 일부 [권장] 잔여는 있으나 카테고리 단위로는 100%.
+
+### 잔여 약점 (모두 [권장] 또는 부분 항목)
+
+kuma kuro/mame:
+- §1 Sidecar 재시작 별도 버튼, §2 sidecar PID/메모리 tooltip, §3 schema 컬럼 검증 강화, §6 언어 토글, §8 컬러블라인드 (kuro), §11 macOS codesign indicator + 빌드 SHA, §12 mame seed (N/A), §15 Inline help 전수, §16 mame diagnostics 진입점, §17 UTF-8 BOM, §18 Warning vs Error 표준화, §21 Compare workspaces
+
+primerbench (대부분 🟡):
+- §1, §3, §6, §8, §9, §11, §12, §13, §14, §15, §16, §17, §19, §20, §21, §22 — 각 카테고리당 1-3개 [권장] Req 잔여
+
+### 다음 우선 보강 (Phase 9 후보, 가치/비용 기준)
+
+1. **PB §22 Pending export flush + shutdown hook**: kuma Phase 6-2 + 8a 패턴 이식
+2. **PB §10 Telemetry**: PB 외부 호출 0건이므로 disclosure 모달만 추가 (간단)
+3. **kuma §11 macOS codesign indicator + 빌드 SHA**: build.rs + About 통합
+4. **PB §6 Settings**: sidecar 버전 + 데이터 폴더 표시
+5. **kuma §6 언어 토글**: i18n 슬롯만 우선 도입
+
+---
+
+## Changelog
+
+- **v0.1 (2026-05-07)**: 22 카테고리 초안. status matrix placeholder. 외부 진단 전송 제거(§16). Citation 더미(§20).
+- **v0.1.1 (2026-05-07)**: 11개 카테고리(§6, 8, 9, 11, 13, 14, 15, 17, 19, 21, 22) Rationale 보강 (verifier FAIL 수정).
+- **v0.2 (2026-05-07)**: Per-app audit 완료. Appendix D 매트릭스 ❓ → 실제 status 채움. 공통 약점·강점·우선 보강 5순위 추가. 근거: `notes/agent-reports/audit-kuma.md`, `audit-primerbench.md`.
+- **v0.3 (2026-05-07)**: Phase 1–3 (v0.3.2.1 ~ v0.3.3.0) 결과 반영. §7/§10 → ✅, §12/§20 → 🟡, §22 부분 보강. kuro/mame ✅ 카테고리 0→2, ❌ 카운트 4→3. 다음 우선 5순위 갱신.
+- **v0.4 (2026-05-07)**: Phase 4 (v0.3.3.2~v0.3.3.3) 결과 반영. §13/§19 → 🟡, §22 SIGKILL fallback 도입, §12 seed UI, §14 dry-run 마이그레이션. kuro/mame ❌ 카운트 2→0 (모든 [필수] 미구현 카테고리 해소). 다음 우선 5순위 입력 경고·sleep inhibit·output checksum 중심으로 갱신.
+- **v0.4.1 (2026-05-07)**: 셀 단위 재감사 완료 — `audit-kuma-v2.md`. Req 단위 ✅ 카운트 kuro +6, mame +5. ❌ 카운트 kuro -7, mame -7. Appendix D 근거 링크를 v2 로 갱신.
+- **v0.5 (2026-05-07)**: Phase 5 (v0.3.4.0) + fixup 결과 반영. §20 Citation kuro/mame 🟡→✅. §12/§13/§14/§19 셀 단위 보강. Req ✅ 카운트 kuro 22→26, mame 21→24. 모든 [필수] 카테고리에서 ❌ 셀 0건. 잔여는 [권장] 또는 부분 항목. 다음 보강 5순위 갱신 (sidecar hash, pending export flush, 메모리 모니터, in-app toast, PrimerBench).
+- **v0.6 (2026-05-07)**: Phase 6 (v0.3.5.0) 결과 반영. §14 Data Integrity kuro/mame 🟡→✅ (sidecar binary hash 도입). §13/§19 셀 보강 (in-app toast, 메모리 모니터). §22 CloseConfirmDialog. Req ✅ 카운트 kuro 26→27, mame 24→25. ✅ 카테고리 3→4. 다음 우선 5순위 갱신 (§19 pre-flight, §13 job queue, PrimerBench, §9 자동 업데이트, §8 다크모드).
+- **v0.7 (2026-05-07)**: Phase 7 (v0.3.6.0) 결과 반영. §9/§13/§19 kuro/mame 🟡→✅. ✅ 카테고리 4→7. Req ✅ 카운트 kuro 27→29, mame 25→27. PrimerBench 별도 레포 PB Phase A-D 동시 진행 중. 잔여 부진 카테고리: §1, §2, §4, §5, §6, §8, §11, §12, §15, §16, §17, §18, §21, §22 (모두 [권장] 또는 부분 미구현).
+- **v1.0 (2026-05-07)**: 정식 승격. status `draft → stable`, frontmatter version `0.1 → 1.0` (frontmatter 가 v0.1 부터 v0.7 까지 changelog 와 비동기로 stale 했던 것을 일치시킴). 모든 [필수] 카테고리에서 ❌ Req 0건, ✅ 카테고리 7/22, Req ✅ kuro 29/40·mame 27/40 달성. PrimerBench Phase A-D 완료(b7e2eab v0.04.07.00). 잔여 14 (kuma) + 10 (PB) 항목은 모두 [권장] 또는 부분 미구현이며 차기 마이너에서 점진 보강. 헌장 자체 변경은 본 항목으로 종결, 이후 카테고리 보강은 Phase 보고서로 추적.
+- **v1.1 (2026-05-07)**: kuma Phase 8 (v0.3.7.x) + PB Phase E1-E3 (v0.04.07.02) 결과 반영. kuma kuro/mame §4/§5/§22 🟡→✅ (총 ✅ 카테고리 7→10), Req ✅ kuro 29→52, mame 27→52. PB §7 ❌→✅, ❌ 카테고리 0건 달성, Req ✅ 2→32. Appendix D 근거 링크 audit-kuma-v6.md, audit-primerbench-v2.md 로 갱신.
+- **v1.2 (2026-05-08)**: kuma Phase 9 (v0.3.7.5) + PB Phase F (v0.04.07.04) 결과 반영. kuma kuro/mame §11 🟡→✅ (codesign indicator + build SHA in About). §6 i18n locale slot 도입(번역 미바인딩). PB §10 분량 보강(External services + Privacy 섹션). PB §22 export flush (5/6 핸들러). ✅ 카테고리 kuro/mame 10→11. Appendix D 근거 audit-kuma-v7.md, audit-primerbench-v3.md.
+- **v1.3 (2026-05-08)**: kuma Phase 10 (v0.3.7.7) + PB Phase G (v0.04.07.05) 결과 반영. kuma kuro/mame §1/§3/§17 🟡→✅ (Restart Sidecar, schemaValidator, UTF-8 BOM CSV). PB §10 ❌→✅ (OfflineDisclosureDialog 첫 실행 모달). PB §22 handleExportExcel try/finally fixup. ✅ 카테고리 kuro/mame 11→14, PB 1→2. Appendix D 근거 audit-kuma-v8.md, audit-primerbench-v4.md.
+- **v1.4 (2026-05-08)**: kuma Phase 11 (v0.3.7.9) + PB Phase H (v0.04.07.06) 결과 반영. kuma kuro/mame §2/§8/§15/§16/§18/§21 🟡→✅ (health_info, shortcuts.ts + colorblind, InlineHelp + WhatsNew, mame Diagnostics, StatusBadge, workspaceCompare). PB §6/§15/§22 ❌→✅, §8/§18/§21 ❌→🟡. ✅ 카테고리 kuro/mame 14→20 (잔여 §6, §12 만), PB 2→5. Req ✅ kuro 57→48 audit 정밀화, mame 57→46, primerbench 24→29. Appendix D 근거 audit-kuma-v9.md, audit-primerbench-v5.md.
+- **v1.5 (2026-05-08, FINAL)**: kuma Phase 12 (v0.3.7.11) + PB Phase I (v0.04.07.07) 결과 반영. kuma kuro/mame §6/§12 🟡→✅ (sidecar binary path Tauri command + mame seed N/A 분류 확정). kuma 22 카테고리 100% 달성. PB §8/§18/§21 🟡→✅ (shape prefix + summary 통계 + workspaceCompare 실동작). PB ✅ 카테고리 5→8. ❌ Req: kuro 0, mame 1, PB 0 (※ PB 추정치, v1.6에서 정정).
+- **v1.6 (2026-05-08, 수치 정정)**: audit-primerbench-v6.md 실측 결과로 PB Req 카운트 33/8/0 → 40/21/35 정정. PB는 카테고리 단위 8 ✅ / 14 🟡 / 0 ❌이나, Req 단위로 보면 [권장] 항목 35건이 미구현으로 잔여. kuma kuro/mame 수치는 변동 없음. v1.5의 "Phase 12 후 추정" 표기를 실측 출처(audit v10/v6)로 교체.
+- **v1.7 (2026-05-08, Phase J 일괄 보강)**: PB 잔여 ❌ 35건 + mame ❌ 1건 6 그룹 병렬 보강. PB §1 Recovery (Restart Sidecar busy-confirm + Dead-lock detector 15초 progress-idle), §2 Observability (ETA + 로그 패널), §3 Input Guards (pb:lastInputPath), §4 Error UX (Copy Crash Log + 네트워크 toast variant), §6 Settings (데이터 폴더 + sidecar 버전 + i18n locale slot), §8 A11y (sonner top-right), §9 Versioning (What's New menubar), §11 Build (codesign indicator + build SHA), §12 Reproducibility (Re-run manifest + seed N/A 명시), §13 Long-running (Job queue 연동), §14 Data Integrity (digest_file Tauri cmd + sidecar binary SHA-256), §17 Cross-platform (csvExport BOM util), §18 Partial Success (StatusBadge summary stats), §19 Performance (drag-drop pre-flight + psutil). mame §4 재현 정보 복사 메타데이터 풀-스택 (App ver + OS + sidecar ver + timestamp + RPC trace). 커밋: kuma `vX.X.X.X` (mame), PB `0adf25a v0.04.07.08` + `a042b84 v0.04.07.09`. 실측 audit v11 갱신 후 최종 수치 확정.
+- **v1.8 (2026-05-08, audit v11/v7 실측 확정 + PB §11/§5 fix)**: 실측 재감사 audit-kuma-v11 (kuro/mame 22/22 ✅), audit-primerbench-v7 (Req 50/21/2). audit-v7 summary 줄의 §21 Export as Zip ❌ 분류는 헌장 §21 [권장] 분류와 충돌하여 오분류로 정정 → 실제 [필수] ❌은 §11 1건. PB v0.04.07.12 후속 fix: (a) `.github/workflows/{build,release}.yml` tauri-action env에 `GITHUB_SHA: ${{ github.sha }}` 명시, vite.config.ts `__BUILD_SHA__` 주입 보장. (b) §5 HR/Mero export 폴더 기억 — Sanger 패턴 이식 (LS_LAST_HR_EXPORT_DIR + LS_LAST_MERO_XLSX_DIR + LS_LAST_MERO_GB_DIR). (c) PB vitest 인프라 도입 + Phase J 8 모듈 50 케이스 (40 pass / 10 component test follow-up). 커밋 PB `46fcae6 v0.04.07.12`. PB Req 51/21/1 (§11 CI 실주입은 다음 release 산출물에서 GitHub Actions log 확인으로 검증).
+- **v1.9 (2026-09-18, KURO 풀네임 교체)**: §20 Citation placeholder 와 Appendix C 의 KURO BibTeX `title` 을 `Kernel for Upstream Recombination Oligodesign` 에서 `Kit for Unified Ranking and Oligodesign` 으로 교체. 두문자 K-U-R-O 는 그대로이고 `for` 와 `and` 는 두문자에서 빠진다. 저장소의 README·docs·About 다이얼로그·로케일 10종과 같은 문구로 맞췄다.
+- **v1.10 (2026-09-18, MAME 인용 정합)**: Appendix C 의 MAME BibTeX `title` 을 `Multi-round Activity & Mutation Engine` 에서 `Mutagenesis Assessment and Measurement Export` 로 교체해 앱이 표시하는 `mameTagline`·`mameDesc` 와 맞췄다. BibTeX title 안의 `&` 는 LaTeX 에서 이스케이프가 필요하므로 `and` 로 풀어 썼다. 같은 파일의 다른 BibTeX 항목에는 `&` 가 없다.
+
+## 후속 액션
+
+1. 사용자 리뷰 후 v0.1 → v1.0 승격
+2. Per-app audit 별도 태스크로 진행 (kuro/mame/primerbench src grep)
+3. Appendix B 항목을 kuma CLAUDE.md / CI lint 로 흡수
+4. Citation placeholder 는 논문/Zenodo 공개 시 갱신

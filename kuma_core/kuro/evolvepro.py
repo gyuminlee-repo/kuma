@@ -1,0 +1,1449 @@
+"""EVOLVEpro variant selection and diversity optimization.
+
+Provides CSV loading, domain-aware selection, and Pareto diversity
+selection for EVOLVEpro-predicted SDM variants.
+"""
+
+from __future__ import annotations
+
+import csv
+import math
+import re
+import statistics
+from collections.abc import Mapping, Sequence
+from pathlib import Path
+from typing import Any
+
+from kuma_core.kuro.alphafold import pairwise_ca_distance, ca_max_dist
+
+_POS_RE = re.compile(r"[A-Z](\d+)[A-Z]")
+_SINGLE_POS_RE = re.compile(r"^[A-Z](\d+)[A-Z]$")
+_TOKEN_SPLIT_RE = re.compile(r"[\s/,:]+")
+
+def _combo_positions(variant: str) -> list[int]:
+    """Return ALL substituted positions in a (possibly colon-separated) combo variant.
+
+    For a single-mutation variant like 'A10C', returns [10].
+    For a combo like 'L59M:W60T:K64W', returns [59, 60, 64].
+    Returns an empty list if no position pattern is found.
+    """
+    return [int(m.group(1)) for m in _POS_RE.finditer(variant)]
+
+# ---------------------------------------------------------------------------
+# Grantham distance lookup table (Grantham 1974, Science 185:862-864)
+# Keyed by frozenset of two single-letter amino acid codes.
+# ---------------------------------------------------------------------------
+_GRANTHAM: dict[frozenset, int] = {
+    frozenset({"A", "R"}): 112, frozenset({"A", "N"}): 111, frozenset({"A", "D"}): 126,
+    frozenset({"A", "C"}): 195, frozenset({"A", "Q"}): 91,  frozenset({"A", "E"}): 107,
+    frozenset({"A", "G"}): 60,  frozenset({"A", "H"}): 86,  frozenset({"A", "I"}): 94,
+    frozenset({"A", "L"}): 96,  frozenset({"A", "K"}): 106, frozenset({"A", "M"}): 84,
+    frozenset({"A", "F"}): 113, frozenset({"A", "P"}): 27,  frozenset({"A", "S"}): 99,
+    frozenset({"A", "T"}): 58,  frozenset({"A", "W"}): 148, frozenset({"A", "Y"}): 112,
+    frozenset({"A", "V"}): 64,
+    frozenset({"R", "N"}): 86,  frozenset({"R", "D"}): 96,  frozenset({"R", "C"}): 180,
+    frozenset({"R", "Q"}): 43,  frozenset({"R", "E"}): 54,  frozenset({"R", "G"}): 125,
+    frozenset({"R", "H"}): 29,  frozenset({"R", "I"}): 97,  frozenset({"R", "L"}): 102,
+    frozenset({"R", "K"}): 26,  frozenset({"R", "M"}): 91,  frozenset({"R", "F"}): 97,
+    frozenset({"R", "P"}): 103, frozenset({"R", "S"}): 110, frozenset({"R", "T"}): 71,
+    frozenset({"R", "W"}): 101, frozenset({"R", "Y"}): 77,  frozenset({"R", "V"}): 96,
+    frozenset({"N", "D"}): 23,  frozenset({"N", "C"}): 139, frozenset({"N", "Q"}): 46,
+    frozenset({"N", "E"}): 42,  frozenset({"N", "G"}): 80,  frozenset({"N", "H"}): 68,
+    frozenset({"N", "I"}): 149, frozenset({"N", "L"}): 153, frozenset({"N", "K"}): 94,
+    frozenset({"N", "M"}): 142, frozenset({"N", "F"}): 158, frozenset({"N", "P"}): 91,
+    frozenset({"N", "S"}): 46,  frozenset({"N", "T"}): 65,  frozenset({"N", "W"}): 174,
+    frozenset({"N", "Y"}): 143, frozenset({"N", "V"}): 133,
+    frozenset({"D", "C"}): 154, frozenset({"D", "Q"}): 61,  frozenset({"D", "E"}): 45,
+    frozenset({"D", "G"}): 94,  frozenset({"D", "H"}): 81,  frozenset({"D", "I"}): 168,
+    frozenset({"D", "L"}): 172, frozenset({"D", "K"}): 101, frozenset({"D", "M"}): 160,
+    frozenset({"D", "F"}): 177, frozenset({"D", "P"}): 108, frozenset({"D", "S"}): 65,
+    frozenset({"D", "T"}): 85,  frozenset({"D", "W"}): 181, frozenset({"D", "Y"}): 160,
+    frozenset({"D", "V"}): 152,
+    frozenset({"C", "Q"}): 154, frozenset({"C", "E"}): 170, frozenset({"C", "G"}): 159,
+    frozenset({"C", "H"}): 174, frozenset({"C", "I"}): 198, frozenset({"C", "L"}): 198,
+    frozenset({"C", "K"}): 202, frozenset({"C", "M"}): 196, frozenset({"C", "F"}): 205,
+    frozenset({"C", "P"}): 169, frozenset({"C", "S"}): 112, frozenset({"C", "T"}): 149,
+    frozenset({"C", "W"}): 215, frozenset({"C", "Y"}): 194, frozenset({"C", "V"}): 192,
+    frozenset({"Q", "E"}): 29,  frozenset({"Q", "G"}): 87,  frozenset({"Q", "H"}): 24,
+    frozenset({"Q", "I"}): 109, frozenset({"Q", "L"}): 113, frozenset({"Q", "K"}): 53,
+    frozenset({"Q", "M"}): 101, frozenset({"Q", "F"}): 116, frozenset({"Q", "P"}): 76,
+    frozenset({"Q", "S"}): 68,  frozenset({"Q", "T"}): 42,  frozenset({"Q", "W"}): 130,
+    frozenset({"Q", "Y"}): 99,  frozenset({"Q", "V"}): 96,
+    frozenset({"E", "G"}): 98,  frozenset({"E", "H"}): 40,  frozenset({"E", "I"}): 134,
+    frozenset({"E", "L"}): 138, frozenset({"E", "K"}): 56,  frozenset({"E", "M"}): 126,
+    frozenset({"E", "F"}): 140, frozenset({"E", "P"}): 93,  frozenset({"E", "S"}): 80,
+    frozenset({"E", "T"}): 65,  frozenset({"E", "W"}): 152, frozenset({"E", "Y"}): 122,
+    frozenset({"E", "V"}): 121,
+    frozenset({"G", "H"}): 98,  frozenset({"G", "I"}): 135, frozenset({"G", "L"}): 138,
+    frozenset({"G", "K"}): 127, frozenset({"G", "M"}): 127, frozenset({"G", "F"}): 153,
+    frozenset({"G", "P"}): 42,  frozenset({"G", "S"}): 56,  frozenset({"G", "T"}): 59,
+    frozenset({"G", "W"}): 184, frozenset({"G", "Y"}): 147, frozenset({"G", "V"}): 109,
+    frozenset({"H", "I"}): 94,  frozenset({"H", "L"}): 99,  frozenset({"H", "K"}): 32,
+    frozenset({"H", "M"}): 87,  frozenset({"H", "F"}): 100, frozenset({"H", "P"}): 77,
+    frozenset({"H", "S"}): 89,  frozenset({"H", "T"}): 47,  frozenset({"H", "W"}): 115,
+    frozenset({"H", "Y"}): 83,  frozenset({"H", "V"}): 84,
+    frozenset({"I", "L"}): 5,   frozenset({"I", "K"}): 102, frozenset({"I", "M"}): 10,
+    frozenset({"I", "F"}): 21,  frozenset({"I", "P"}): 95,  frozenset({"I", "S"}): 142,
+    frozenset({"I", "T"}): 89,  frozenset({"I", "W"}): 61,  frozenset({"I", "Y"}): 33,
+    frozenset({"I", "V"}): 29,
+    frozenset({"L", "K"}): 107, frozenset({"L", "M"}): 15,  frozenset({"L", "F"}): 22,
+    frozenset({"L", "P"}): 98,  frozenset({"L", "S"}): 145, frozenset({"L", "T"}): 92,
+    frozenset({"L", "W"}): 61,  frozenset({"L", "Y"}): 36,  frozenset({"L", "V"}): 32,
+    frozenset({"K", "M"}): 95,  frozenset({"K", "F"}): 102, frozenset({"K", "P"}): 103,
+    frozenset({"K", "S"}): 121, frozenset({"K", "T"}): 78,  frozenset({"K", "W"}): 110,
+    frozenset({"K", "Y"}): 85,  frozenset({"K", "V"}): 97,
+    frozenset({"M", "F"}): 28,  frozenset({"M", "P"}): 87,  frozenset({"M", "S"}): 135,
+    frozenset({"M", "T"}): 81,  frozenset({"M", "W"}): 67,  frozenset({"M", "Y"}): 36,
+    frozenset({"M", "V"}): 21,
+    frozenset({"F", "P"}): 114, frozenset({"F", "S"}): 155, frozenset({"F", "T"}): 103,
+    frozenset({"F", "W"}): 40,  frozenset({"F", "Y"}): 22,  frozenset({"F", "V"}): 50,
+    frozenset({"P", "S"}): 74,  frozenset({"P", "T"}): 38,  frozenset({"P", "W"}): 147,
+    frozenset({"P", "Y"}): 110, frozenset({"P", "V"}): 68,
+    frozenset({"S", "T"}): 58,  frozenset({"S", "W"}): 177, frozenset({"S", "Y"}): 144,
+    frozenset({"S", "V"}): 124,
+    frozenset({"T", "W"}): 128, frozenset({"T", "Y"}): 92,  frozenset({"T", "V"}): 69,
+    frozenset({"W", "Y"}): 37,  frozenset({"W", "V"}): 88,
+    frozenset({"Y", "V"}): 55,
+}
+
+
+def _grantham_dist(variant: str) -> int:
+    """Grantham distance for a single-mutation variant string (e.g. 'A42V').
+
+    Returns 0 for synonymous, 215 (max) for unknown pairs.
+    """
+    m = _SINGLE_POS_RE.match(variant)
+    if not m:
+        return 215
+    wt, mt = variant[0], variant[-1]
+    if wt == mt:
+        return 0
+    return _GRANTHAM.get(frozenset({wt, mt}), 215)
+
+
+def _rho_from_cumulative(cumulative: int) -> float:
+    """Estimated Spearman ρ based on cumulative EVOLVEpro data points.
+
+    Derived from published benchmarks:
+    - ≤96 → 0.40 (Yang et al. 2019, Nature Methods; ~24 pts extrapolated)
+    - ≤192 → 0.50 (ProteinGym average; ~96 pts)
+    - ≤384 → 0.60 (iScience 2025; ~200 pts)
+    - 385+ → 0.70 (Wu et al. 2019, PNAS; ≥384 pts)
+    """
+    if cumulative <= 96:
+        return 0.40
+    elif cumulative <= 192:
+        return 0.50
+    elif cumulative <= 384:
+        return 0.60
+    else:
+        return 0.70
+
+
+def sigma_adaptive_params(evolvepro_round: int, round_size: int) -> tuple[float, float]:
+    """Compute pool K and entropy_weight from EVOLVEpro round information.
+
+    Uses UCB-style exploration: K = K_max * (1 - ρ), where ρ is predicted
+    model quality and K_max ≈ 0.833 (calibrated so K=0.50 at ρ=0.40).
+
+    Returns
+    -------
+    tuple[float, float]
+        (K, entropy_weight) — K controls the σ-adaptive pool threshold;
+        entropy_weight controls position-entropy bonus in Pareto selection.
+    """
+    cumulative = evolvepro_round * round_size
+    rho = _rho_from_cumulative(cumulative)
+    # Lookup table matches calibration (K_max=5/6 rounded to nearest 0.05)
+    k_map = {0.40: 0.50, 0.50: 0.40, 0.60: 0.30, 0.70: 0.25}
+    ew_map = {0.40: 0.30, 0.50: 0.25, 0.60: 0.20, 0.70: 0.15}
+    return k_map[rho], ew_map[rho]
+
+
+def _position_filter_with_tiebreak(
+    rows: list[tuple[str, float]],
+    max_per_position: int,
+    score_tie_pct: float = 0.02,
+) -> list[tuple[str, float]]:
+    """Filter at most *max_per_position* variants per residue.
+
+    When the top variant at a position is within *score_tie_pct* (2 %) of the
+    next candidate, Grantham distance is used as a tie-breaker — preferring
+    the more conservative (smaller-distance) amino acid substitution.
+
+    Parameters
+    ----------
+    rows : list[tuple[str, float]]
+        (variant, y_pred) pairs, pre-sorted by y_pred descending.
+    max_per_position : int
+        Maximum variants allowed per position.
+    score_tie_pct : float
+        Relative score difference threshold for applying Grantham tie-break.
+
+    Returns
+    -------
+    list[tuple[str, float]]
+        Filtered and re-sorted rows.
+    """
+    from collections import defaultdict
+
+    pos_groups: dict[int, list[tuple[str, float]]] = defaultdict(list)
+    no_pos: list[tuple[str, float]] = []
+
+    for variant, y in rows:
+        m = _SINGLE_POS_RE.match(variant)
+        if m:
+            pos_groups[int(m.group(1))].append((variant, y))
+        else:
+            no_pos.append((variant, y))
+
+    filtered: list[tuple[str, float]] = []
+
+    for candidates in pos_groups.values():
+        if len(candidates) <= max_per_position:
+            filtered.extend(candidates)
+            continue
+
+        selected: list[tuple[str, float]] = []
+        remaining = list(candidates)  # already sorted desc by y_pred
+
+        while len(selected) < max_per_position and remaining:
+            top_score = remaining[0][1]
+            abs_top = abs(top_score)
+
+            if abs_top < 1e-9:
+                tie_group = [r for r in remaining if abs(r[1]) < 1e-9]
+            else:
+                tie_group = [
+                    r for r in remaining
+                    if (top_score - r[1]) / abs_top <= score_tie_pct
+                ]
+
+            if len(tie_group) <= 1:
+                best = remaining[0]
+            else:
+                # Conservative substitution first, then alphabetical
+                best = min(tie_group, key=lambda r: (_grantham_dist(r[0]), r[0]))
+
+            selected.append(best)
+            remaining = [r for r in remaining if r[0] != best[0]]
+
+        filtered.extend(selected)
+
+    filtered.extend(no_pos)
+    filtered.sort(key=lambda r: r[1], reverse=True)
+    return filtered
+
+
+def _position_entropy(pool: list[tuple[str, float]]) -> dict[int, float]:
+    """Shannon entropy of y_pred distribution at each position.
+
+    Positions with many competitive mutations (high entropy) are uncertain —
+    multiple amino acid changes appear similarly beneficial. Entropy-guided
+    selection prioritises exploring these positions over positions dominated
+    by a single standout mutation.
+
+    Returns
+    -------
+    dict[int, float]
+        Normalised per-position entropy (0–1), keyed by 1-based position.
+    """
+    pos_scores: dict[int, list[float]] = {}
+    for variant, y in pool:
+        m = _POS_RE.search(variant)
+        if not m:
+            continue
+        pos = int(m.group(1))
+        pos_scores.setdefault(pos, []).append(max(y, 0.0))
+
+    raw: dict[int, float] = {}
+    for pos, scores in pos_scores.items():
+        total = sum(scores)
+        if total <= 0:
+            raw[pos] = 0.0
+            continue
+        probs = [s / total for s in scores if s > 0]
+        raw[pos] = -sum(p * math.log2(p) for p in probs if p > 0)
+
+    max_h = max(raw.values()) if raw else 1.0
+    if max_h == 0:
+        return {p: 0.0 for p in raw}
+    return {p: h / max_h for p, h in raw.items()}
+
+
+# Flexible column name resolution — first match wins
+VARIANT_COLUMNS = ["variant", "variants", "mutation", "mutations", "mutant", "mutation_list"]
+SCORE_COLUMNS = ["y_pred", "property_value", "predicted_fitness", "fitness", "score", "DMS_score"]
+
+# Maximum number of buffer candidates beyond selected_count to include in
+# ranked_candidates. Provides pre-selection table context without sending
+# the full dataset to the frontend.
+EVOLVEPRO_RANKED_BUFFER = 50
+
+
+_SHORT_VARIANT_RE = re.compile(r"^(\d+)([A-Z])$")
+
+
+def _normalize_variant_notation(variant: str, ref_seq: str) -> str:
+    """Convert EVOLVEpro short notation (``89W``) to internal (``F89W``).
+
+    Pass-through for internal-form variants (``[A-Z]\\d+[A-Z]``), WT, and
+    multi-substitution strings. Conversion runs only when ``variant``
+    matches ``\\d+[A-Z]`` AND ``ref_seq`` is non-empty AND the position
+    fits ``ref_seq``. Otherwise ``variant`` is returned unchanged so
+    callers that still receive internal notation continue to work.
+    """
+    if not ref_seq:
+        return variant
+    m = _SHORT_VARIANT_RE.match(variant)
+    if m is None:
+        return variant
+    pos = int(m.group(1))
+    if pos < 1 or pos > len(ref_seq):
+        return variant
+    return f"{ref_seq[pos - 1]}{pos}{m.group(2)}"
+
+
+def _read_table_rows(
+    filepath: str | Path,
+    sheet_name: str | None,
+    ext: str,
+) -> tuple[list[dict[str, str]], list[str]]:
+    """Read all rows and column names from a CSV or XLSX file.
+
+    Returns a (rows, columns) pair where rows is a list of dicts keyed by
+    column name and columns is the list of header strings in file order.
+    Values are always strings.
+    """
+    if ext == ".xlsx":
+        import openpyxl
+        wb = openpyxl.load_workbook(str(filepath), read_only=True, data_only=True)
+        target = sheet_name if sheet_name is not None else wb.sheetnames[0]
+        if target not in wb.sheetnames:
+            wb.close()
+            raise ValueError(
+                f"sheet '{target}' not found. Available: {wb.sheetnames}"
+            )
+        ws = wb[target]
+        all_rows = list(ws.iter_rows(values_only=True))
+        wb.close()
+        if not all_rows:
+            return [], []
+        columns = [str(c) if c is not None else "" for c in all_rows[0]]
+        rows = [
+            {columns[i]: (str(cell) if cell is not None else "") for i, cell in enumerate(row)}
+            for row in all_rows[1:]
+        ]
+        return rows, columns
+    elif ext == ".xls":
+        import xlrd
+
+        wb = xlrd.open_workbook(str(filepath))
+        target = sheet_name if sheet_name is not None else wb.sheet_names()[0]
+        if target not in wb.sheet_names():
+            raise ValueError(
+                f"sheet '{target}' not found. Available: {wb.sheet_names()}"
+            )
+        ws = wb.sheet_by_name(target)
+        if ws.nrows == 0:
+            return [], []
+        columns = [str(c.value) if c.value is not None else "" for c in ws.row(0)]
+        rows = [
+            {columns[i]: (str(cell.value) if cell.value is not None else "") for i, cell in enumerate(ws.row(ridx))}
+            for ridx in range(1, ws.nrows)
+        ]
+        return rows, columns
+    else:
+        delimiter = "\t" if ext == ".tsv" else ","
+        with open(str(filepath), encoding="utf-8-sig", newline="") as f:
+            reader = csv.DictReader(f, delimiter=delimiter)
+            columns = list(reader.fieldnames or [])
+            rows = [{k: (v or "") for k, v in row.items()} for row in reader]
+        return rows, columns
+
+
+def _normalize_header(name: str) -> str:
+    """Normalize a column header for tolerant matching.
+
+    Strips a UTF-8 BOM, trims surrounding whitespace, and case-folds. Used
+    only for comparison; the original header string is always what gets
+    returned to callers so row lookups keep working.
+    """
+    return name.lstrip("﻿").strip().casefold()
+
+
+def _build_header_index(columns: list[str]) -> dict[str, str]:
+    """Map normalized header to the original header string (first wins)."""
+    index: dict[str, str] = {}
+    for col in columns:
+        key = _normalize_header(col)
+        if key not in index:
+            index[key] = col
+    return index
+
+
+def _resolve_evolvepro_columns(
+    columns: list[str],
+    variant_column: str | None = None,
+    score_column: str | None = None,
+) -> tuple[str, str | None]:
+    """Resolve variant/score column names against the file headers.
+
+    Matching is tolerant of BOM, surrounding whitespace, and letter case,
+    but the returned names are always the original header strings so that
+    ``row[col]`` lookups succeed. Alias order (not header order) decides
+    priority when several aliases are present.
+    """
+    index = _build_header_index(columns)
+
+    if variant_column:
+        # Explicit user choice: match tolerantly, fall back to the raw value.
+        v_col = index.get(_normalize_header(variant_column), variant_column)
+    else:
+        v_col = next(
+            (index[k] for k in (_normalize_header(a) for a in VARIANT_COLUMNS) if k in index),
+            None,
+        )
+    if v_col is None:
+        raise ValueError(
+            f"EVOLVEpro file must have a variant column. "
+            f"Supported aliases: {VARIANT_COLUMNS}. Found: {columns}. "
+            f"None of the aliases matched, so pick the variant column "
+            f"(and optionally the score column) manually from the list above."
+        )
+
+    if score_column:
+        s_col = index.get(_normalize_header(score_column), score_column)
+    else:
+        s_col = next(
+            (index[k] for k in (_normalize_header(a) for a in SCORE_COLUMNS) if k in index),
+            None,
+        )
+    return v_col, s_col
+
+
+def _load_evolvepro_rows(
+    filepath: str | Path,
+    ref_seq: str = "",
+    *,
+    variant_column: str | None = None,
+    score_column: str | None = None,
+    score_order: str = "desc",
+    sheet_name: str | None = None,
+) -> list[tuple[str, float, float]]:
+    """Parse EVOLVEpro CSV/XLSX and return (variant, sort_score, raw_score) triples.
+
+    Column detection uses VARIANT_COLUMNS and SCORE_COLUMNS (first match)
+    unless explicit overrides are provided.
+
+    sort_score = raw_score when score_order == "desc".
+    sort_score = -raw_score when score_order == "asc" (lower raw = better rank).
+
+    Args:
+        filepath: Path to CSV or XLSX file.
+        ref_seq: Protein reference sequence for short-form variant conversion.
+        variant_column: Explicit variant column name. When None, alias lookup applies.
+        score_column: Explicit score column name. When None, alias lookup applies.
+        score_order: "desc" (higher = better) or "asc" (lower = better, e.g. rank).
+        sheet_name: XLSX sheet name. None selects the first sheet. Ignored for CSV.
+
+    Returns:
+        List of (variant, sort_score, raw_score) triples in file order (not sorted).
+
+    Raises:
+        ValueError: If no recognisable variant column is found.
+    """
+    ext = Path(str(filepath)).suffix.lower()
+    table_rows, columns = _read_table_rows(filepath, sheet_name, ext)
+
+    v_col, s_col = _resolve_evolvepro_columns(columns, variant_column, score_column)
+
+    # Score-free mode: either no score column was resolved at all, or the
+    # resolved column is blank in every row. Both mean "this file carries no
+    # fitness values", which downstream handles via has_score. A column that
+    # holds values in *some* rows is not score-free: a blank or unparseable
+    # cell there is an unknown value, and an unknown must not be substituted
+    # with 0.0, because 0.0 is itself a measurable fitness on this scale.
+    score_free = s_col is None or not any(
+        str(row.get(s_col, "") or "").strip() for row in table_rows
+    )
+
+    result: list[tuple[str, float, float]] = []
+    for row in table_rows:
+        variant = row.get(v_col, "").strip()
+        if not variant:
+            continue
+        variant = _normalize_variant_notation(variant, ref_seq)
+        if score_free:
+            raw = 0.0
+        else:
+            cell = row.get(s_col, "") if s_col else ""
+            if not str(cell or "").strip():
+                continue  # unknown score: drop the row rather than rank it as 0
+            try:
+                raw = float(cell)
+            except (ValueError, TypeError):
+                continue  # unparseable score: drop the row
+            if not math.isfinite(raw):
+                continue  # NaN/inf is not a measurement: drop the row
+        sort_score = -raw if score_order == "asc" else raw
+        result.append((variant, sort_score, raw))
+    return result
+
+
+def _variant_has_position_one(variant: str) -> bool:
+    """Return True if any token in a (possibly multi-variant) string is at position 1.
+
+    Tokens are split with _TOKEN_SPLIT_RE (whitespace, '/', ',', ':'), the same
+    splitter _extract_aa_position and _combo_positions use, so a whitespace-
+    separated combo ("M1A A2V") cannot slip past this filter. Each token is
+    matched against _SINGLE_POS_RE; if the captured position is 1 the function
+    returns True immediately.  Non-matching tokens (e.g. "WT") are silently
+    ignored. Position 1 encodes the initiator Met; substituting it abolishes
+    protein expression, so such variants must be excluded before primer design.
+    """
+    for token in _TOKEN_SPLIT_RE.split(variant):
+        token = token.strip()
+        m = _SINGLE_POS_RE.match(token)
+        if m and int(m.group(1)) == 1:
+            return True
+    return False
+
+
+def _extract_aa_position(variant: str) -> int | None:
+    """Extract the 1-based amino acid position from the first token of a variant string.
+
+    Tokens are split on whitespace, slash, comma, or colon (matching the EVOLVEpro
+    multi-substitution conventions in _variant_has_position_one).  _POS_RE is
+    applied only to the first token so that later tokens cannot override the
+    result — a leading non-positional token (e.g. WT) correctly returns None.
+    Returns None when no parseable position is found; never returns 0.
+    """
+    first_token = _TOKEN_SPLIT_RE.split(variant.strip(), maxsplit=1)[0]
+    m = _POS_RE.search(first_token)
+    return int(m.group(1)) if m else None
+
+
+def load_evolvepro_csv(
+    filepath: str | Path,
+    top_n: int = 96,
+    max_per_position: int = 0,
+    domains: Sequence[Mapping[str, Any]] | None = None,
+    excluded_ranges: Sequence[Mapping[str, Any]] | None = None,
+    domain_diversity: bool = False,
+    domain_strategy: str = "proportional",
+    domain_overlap_policy: str = "first",
+    linker_handling: str = "include",
+    domain_quota_min: int = 1,
+    pareto_diversity: bool = False,
+    entropy_weight: float = 0.0,
+    pool_multiplier: float = 2.0,
+    distance_mode: str = "auto",
+    ca_coords: list[tuple[float, float, float] | None] | None = None,
+    evolvepro_round: int = 0,
+    round_size: int = 96,
+    ref_seq: str = "",
+    variant_column: str | None = None,
+    score_column: str | None = None,
+    score_order: str = "desc",
+    sheet_name: str | None = None,
+    domain_pool_autoexpand: bool = True,
+    domain_pool_max_multiplier: float = 10.0,
+    structural_diversity: bool = False,
+    structural_kappa: float = 0.0,
+    anchor_variants: Sequence[str] = (),
+) -> dict:
+    """Load EVOLVEpro df_test.csv and return selected variants.
+
+    Parameters
+    ----------
+    filepath : str | Path
+        Path to the EVOLVEpro CSV. Variant column is detected from
+        VARIANT_COLUMNS (first match). Score column from SCORE_COLUMNS.
+    top_n : int
+        Maximum number of variants to select.
+    max_per_position : int
+        Max mutations per amino acid position (0 = no limit).
+    domains : list[dict] | None
+        Domain boundary dicts with 'name', 'start', 'end' keys.
+    domain_diversity : bool
+        Enable domain-aware quota selection.
+    domain_strategy : str
+        'proportional' or 'equal' quota strategy.
+    pareto_diversity : bool
+        Enable Pareto fitness-diversity selection.
+
+    Returns
+    -------
+    dict
+        Keys: variants, y_preds, total_count, selected_count,
+        filtered_count, domain_stats, pareto_replaced.
+    """
+    ext = Path(str(filepath)).suffix.lower()
+    _, source_columns = _read_table_rows(filepath, sheet_name, ext)
+    used_variant_column, used_score_column = _resolve_evolvepro_columns(
+        source_columns,
+        variant_column,
+        score_column,
+    )
+    raw_rows = _load_evolvepro_rows(
+        filepath,
+        ref_seq=ref_seq,
+        variant_column=used_variant_column,
+        score_column=used_score_column,
+        score_order=score_order,
+        sheet_name=sheet_name,
+    )
+    # Remove start-codon variants (position 1) before any downstream logic.
+    # Substituting the initiator Met abolishes translation; this is a biological
+    # constant, not a configurable filter.
+    _pre_pos1_count = len(raw_rows)
+    start_codon_removed_variants: list[str] = [r[0] for r in raw_rows if _variant_has_position_one(r[0])]
+    raw_rows = [r for r in raw_rows if not _variant_has_position_one(r[0])]
+    start_codon_removed = len(start_codon_removed_variants)
+    # Collapse duplicate variants to their first occurrence. raw_map is keyed by
+    # variant, so without this a repeated variant would consume two selection
+    # slots while every reported score came from the last row seen.
+    _seen_variants: set[str] = set()
+    _unique_rows: list[tuple[str, float, float]] = []
+    for _row in raw_rows:
+        if _row[0] in _seen_variants:
+            continue
+        _seen_variants.add(_row[0])
+        _unique_rows.append(_row)
+    raw_rows = _unique_rows
+    # Build (variant, sort_score) pairs for all downstream filters/selectors.
+    # raw_map keeps the original score for the final response yPredMap.
+    score_rows: list[tuple[str, float]] = [(v, s) for v, s, _ in raw_rows]
+    raw_map: dict[str, float] = {v: r for v, _, r in raw_rows}
+    # has_score: True when at least one row carried a non-zero score.
+    # Used to gate sort and sigma-adaptive logic (score-free files skip both).
+    has_score = any(r != 0.0 for _, _, r in raw_rows)
+    rows = score_rows
+    if has_score:
+        rows.sort(key=lambda r: r[1], reverse=True)
+    # Snapshot of the full sorted list (before position/pareto/domain filtering).
+    # Used to build ranked_candidates, which must reflect the global score order
+    # regardless of which selection mode is active.
+    ranked_full: list[tuple[str, float]] = list(rows)
+
+    # top_n <= 0 means "all variants" (no limit)
+    if top_n <= 0:
+        top_n = len(rows)
+
+    # σ-adaptive pool: derive K and entropy_weight from EVOLVEpro round
+    sigma_pool_size: int | None = None
+    if evolvepro_round > 0 and has_score and len(rows) >= 2:
+        k_auto, entropy_weight = sigma_adaptive_params(evolvepro_round, round_size)
+        scores = [y for _, y in rows]
+        sigma = statistics.stdev(scores)
+        anchor_idx = min(top_n - 1, len(rows) - 1)
+        anchor = rows[anchor_idx][1]
+        threshold = anchor - k_auto * sigma
+        adaptive_count = sum(1 for _, y in rows if y >= threshold)
+        sigma_pool_size = max(top_n, adaptive_count)
+
+    # Pool variants: all variants in the effective pool (before position/diversity filters)
+    if structural_diversity:
+        effective_pool = len(rows)  # validated 'kuro_ca' recipe: diversify over ALL candidates
+    elif sigma_pool_size is not None:
+        effective_pool = sigma_pool_size
+    elif pareto_diversity:
+        effective_pool = min(len(rows), max(top_n, int(top_n * pool_multiplier)))
+    else:
+        effective_pool = top_n
+    pool_variants = [v for v, _ in rows[:effective_pool]]
+
+    # Position diversity filter (with Grantham tie-break)
+    pre_filter_count = len(rows)
+    if max_per_position > 0:
+        rows = _position_filter_with_tiebreak(rows, max_per_position)
+
+    domain_info = domains or []
+    domain_stats = None
+    pareto_replaced = 0
+
+    if structural_diversity:
+        # Structure-aware diversity (full pool + revealed-anchor + 3D Ca-centroid
+        # maximin + kappa fitness blend). Beats Top-N only conditionally -- in the
+        # early/low-data rounds of epistatic combinatorial campaigns; neutral-to-harmful
+        # otherwise (see benchmark/REPORT.md Sec 6.7-6.12).
+        selected, pareto_replaced = structural_diversity_select(
+            rows, top_n, ca_coords=ca_coords,
+            anchor_variants=list(anchor_variants), kappa=structural_kappa,
+        )
+    elif domain_diversity and domain_info and pareto_diversity:
+        selected, domain_stats = domain_aware_select(
+            rows, domain_info, top_n, domain_strategy,
+            domain_overlap_policy=domain_overlap_policy,
+            linker_handling=linker_handling,
+            domain_quota_min=domain_quota_min,
+            use_pareto=True, ca_coords=ca_coords,
+            entropy_weight=entropy_weight,
+            pool_multiplier=pool_multiplier,
+            pool_size_override=sigma_pool_size,
+            distance_mode=distance_mode,
+            excluded_ranges=excluded_ranges,
+            domain_pool_autoexpand=domain_pool_autoexpand,
+            domain_pool_max_multiplier=domain_pool_max_multiplier,
+        )
+    elif domain_diversity and domain_info:
+        selected, domain_stats = domain_aware_select(
+            rows, domain_info, top_n, domain_strategy,
+            domain_overlap_policy=domain_overlap_policy,
+            linker_handling=linker_handling,
+            domain_quota_min=domain_quota_min,
+            excluded_ranges=excluded_ranges,
+            domain_pool_autoexpand=domain_pool_autoexpand,
+            domain_pool_max_multiplier=domain_pool_max_multiplier,
+        )
+    elif pareto_diversity:
+        selected, pareto_replaced = pareto_diversity_select(
+            rows, top_n, pool_multiplier=pool_multiplier,
+            pool_size_override=sigma_pool_size,
+            ca_coords=ca_coords,
+            entropy_weight=entropy_weight,
+            distance_mode=distance_mode,
+        )
+    else:
+        selected = rows[:top_n]
+
+    position_filter_removed = pre_filter_count - len(rows)
+    domain_selected = len(selected) if (domain_diversity and domain_info) else None
+    pareto_exchanges = pareto_replaced if pareto_diversity else None
+
+    # Build ranked_candidates: all selected variants are always included (invariant:
+    # selected ⊆ ranked_candidates), plus up to EVOLVEPRO_RANKED_BUFFER additional
+    # high-scoring non-selected candidates for table context.
+    # Invariant guarantee: selected comes from rows, rows ⊆ ranked_full, so every
+    # selected variant is present in ordered.
+    selected_set: set[str] = {v for v, _ in selected}
+    ordered: list[str] = [v for v, _ in ranked_full]
+    buffer = [v for v in ordered if v not in selected_set][:EVOLVEPRO_RANKED_BUFFER]
+    keep: set[str] = selected_set | set(buffer)
+    ranked_candidates = [
+        {
+            "variant": v,
+            # raw_map holds a finite score for every row in ranked_full, so a
+            # direct lookup is safe. A missing key would mean the invariant
+            # broke, and a KeyError is preferable to reporting a fake 0.0.
+            "y_pred": round(raw_map[v], 4),
+            "aa_position": _extract_aa_position(v),
+        }
+        for v in ordered if v in keep
+    ]
+
+    return {
+        "variants": [v for v, _ in selected],
+        "y_preds": [round(raw_map[v], 4) for v, _ in selected],
+        "total_count": pre_filter_count,
+        "selected_count": len(selected),
+        "filtered_count": position_filter_removed,
+        "domain_stats": domain_stats,
+        "pareto_replaced": pareto_exchanges,
+        "pool_variants": pool_variants,
+        "used_variant_column": used_variant_column,
+        "used_score_column": used_score_column,
+        "start_codon_removed": start_codon_removed,
+        "start_codon_removed_variants": start_codon_removed_variants,
+        "step_stats": {
+            "position_filter_removed": position_filter_removed,
+            "domain_selected": domain_selected,
+            "pareto_exchanges": pareto_exchanges,
+            "start_codon_removed": start_codon_removed,
+            "start_codon_removed_variants": start_codon_removed_variants,
+        },
+        "ranked_candidates": ranked_candidates,
+    }
+
+
+def domain_aware_select(
+    rows: list[tuple[str, float]],
+    domains: Sequence[Mapping[str, Any]],
+    top_n: int,
+    strategy: str = "proportional",
+    domain_overlap_policy: str = "first",
+    linker_handling: str = "include",
+    domain_quota_min: int = 1,
+    use_pareto: bool = False,
+    ca_coords: list[tuple[float, float, float] | None] | None = None,
+    entropy_weight: float = 0.0,
+    pool_multiplier: float = 2.0,
+    pool_size_override: int | None = None,
+    distance_mode: str = "auto",
+    excluded_ranges: Sequence[Mapping[str, Any]] | None = None,
+    domain_pool_autoexpand: bool = True,
+    domain_pool_max_multiplier: float = 10.0,
+    position_mode: str = "first",
+) -> tuple[list[tuple[str, float]], dict]:
+    """Domain-based quota Top-N selection.
+
+    PI instruction: structure-aware domain-diversified selection.
+
+    Parameters
+    ----------
+    rows : list[tuple[str, float]]
+        (variant, y_pred) pairs, pre-sorted by y_pred descending.
+    domains : list[dict]
+        Domain dicts with 'name', 'start', 'end'.
+    top_n : int
+        Target selection count.
+    strategy : str
+        'proportional' or 'equal'.
+    use_pareto : bool
+        Apply Pareto diversity within each domain.
+
+    Returns
+    -------
+    tuple[list, dict]
+        (selected rows, per-domain stats dict).
+    """
+    if not domains or top_n <= 0:
+        return rows[:top_n], {}
+
+    # Iterative pool expansion (proportional strategy only).
+    # When domain_pool_autoexpand=True, restrict binning to a top-ranked pool
+    # and grow that pool until every domain meets its quota, or until the
+    # safety cap (top_n * domain_pool_max_multiplier) is reached.
+    # Goal: preserve the user-intended domain ratio even when high-fitness
+    # candidates skew toward a subset of domains. The pre-quota rebalance
+    # block below remains responsible for residual deficits (true depletion).
+    # equal strategy and sigma-adaptive pool_size_override skip this loop
+    # (user intent / adaptive sizing already binds the pool).
+    if (
+        domain_pool_autoexpand
+        and strategy == "proportional"
+        and pool_size_override is None
+        and len(rows) > 0
+    ):
+        initial_pool = max(top_n, int(top_n * pool_multiplier))
+        safety_cap = min(len(rows), max(initial_pool, int(top_n * domain_pool_max_multiplier)))
+        pool_size = min(initial_pool, safety_cap)
+
+        # Precompute proportional quotas from domain lengths (independent of
+        # bin contents, so quotas do not shift as the pool grows).
+        total_length = sum(d["end"] - d["start"] + 1 for d in domains)
+        if total_length > 0:
+            target_quota = {
+                d["name"]: max(
+                    domain_quota_min if domain_quota_min > 0 else 0,
+                    int((d["end"] - d["start"] + 1) / total_length * top_n),
+                )
+                for d in domains
+            }
+
+            _ex = excluded_ranges or []
+
+            def _pos_in_excluded(p: int) -> bool:
+                return any(r["start"] <= p <= r["end"] for r in _ex)
+
+            def _count_bins(limit: int) -> dict[str, int]:
+                counts: dict[str, int] = {d["name"]: 0 for d in domains}
+                for variant, _ in rows[:limit]:
+                    mp = _POS_RE.search(variant)
+                    if not mp:
+                        continue
+                    pos = int(mp.group(1))
+                    if _pos_in_excluded(pos):
+                        continue
+                    matched = [d for d in domains if d["start"] <= pos <= d["end"]]
+                    if not matched:
+                        continue
+                    if domain_overlap_policy == "largest":
+                        chosen = max(matched, key=lambda d: d["end"] - d["start"])
+                    else:
+                        chosen = matched[0]
+                    counts[chosen["name"]] += 1
+                return counts
+
+            # Monotonic expansion: never shrink the pool. Stop when all
+            # domains satisfy their target quota, when the safety cap is hit,
+            # or when expansion no longer adds rows.
+            while pool_size < safety_cap:
+                counts = _count_bins(pool_size)
+                short = [
+                    name for name, q in target_quota.items()
+                    if counts.get(name, 0) < q
+                ]
+                if not short:
+                    break
+                new_size = min(safety_cap, max(pool_size + 1, int(pool_size * 1.5)))
+                if new_size <= pool_size:
+                    break
+                pool_size = new_size
+
+            rows = rows[:pool_size]
+
+    _excluded = excluded_ranges or []
+
+    def _is_excluded(pos: int) -> bool:
+        return any(r["start"] <= pos <= r["end"] for r in _excluded)
+
+    # Map each variant to a domain.
+    domain_bins: dict[str, list[tuple[str, float]]] = {d["name"]: [] for d in domains}
+    domain_bins["linker"] = []
+
+    for variant, y in rows:
+        if position_mode == "centroid":
+            _ps = _combo_positions(variant)
+            if not _ps:
+                if linker_handling != "exclude":
+                    domain_bins["linker"].append((variant, y))
+                continue
+            pos = round(sum(_ps) / len(_ps))
+        else:  # "first" (default) — unchanged
+            m = _POS_RE.search(variant)
+            if not m:
+                if linker_handling != "exclude":
+                    domain_bins["linker"].append((variant, y))
+                continue
+            pos = int(m.group(1))
+        # Drop positions in explicitly excluded (disabled) domain ranges
+        if _is_excluded(pos):
+            continue
+        matched = [d for d in domains if d["start"] <= pos <= d["end"]]
+        assigned = False
+        if matched:
+            if domain_overlap_policy == "largest":
+                chosen = max(matched, key=lambda d: d["end"] - d["start"])
+            else:
+                chosen = matched[0]
+            domain_bins[chosen["name"]].append((variant, y))
+            assigned = True
+        if not assigned:
+            if linker_handling != "exclude":
+                domain_bins["linker"].append((variant, y))
+
+    # Calculate quotas.
+    domain_names = [d["name"] for d in domains]
+    quota_names = list(domain_names)
+    if linker_handling == "separate-bin" and domain_bins["linker"]:
+        quota_names.append("linker")
+
+    raw_quotas: dict[str, float] = {}
+    if strategy == "equal":
+        n_domains = len(quota_names)
+        base_quota = top_n // n_domains if n_domains else 0
+        remainder = top_n % n_domains if n_domains else 0
+        quotas = {}
+        for i, name in enumerate(quota_names):
+            quotas[name] = base_quota + (1 if i < remainder else 0)
+    else:  # proportional
+        total_length = sum(d["end"] - d["start"] + 1 for d in domains)
+        if linker_handling == "separate-bin":
+            total_length += max(len(domain_bins["linker"]), 0)
+        if total_length == 0:
+            return rows[:top_n], {}
+        raw_quotas = {
+            d["name"]: (d["end"] - d["start"] + 1) / total_length * top_n
+            for d in domains
+        }
+        if linker_handling == "separate-bin":
+            raw_quotas["linker"] = len(domain_bins["linker"]) / total_length * top_n
+        quotas = {name: int(q) for name, q in raw_quotas.items()}
+        # Distribute rounding remainders by largest fractional part
+        allocated = sum(quotas.values())
+        leftover = top_n - allocated
+        if leftover > 0:
+            frac = sorted(
+                raw_quotas.items(),
+                key=lambda kv: kv[1] - int(kv[1]),
+                reverse=True,
+            )
+            for name, _ in frac[:leftover]:
+                quotas[name] += 1
+
+    if domain_quota_min > 0:
+        for name in quota_names:
+            if domain_bins.get(name):
+                quotas[name] = max(quotas.get(name, 0), domain_quota_min)
+        overflow = sum(quotas.get(name, 0) for name in quota_names) - top_n
+        if overflow > 0:
+            raw_lookup: dict[str, float] = raw_quotas if strategy == "proportional" else {
+                name: float(quotas.get(name, 0)) for name in quota_names
+            }
+            order = {name: idx for idx, name in enumerate(quota_names)}
+            while overflow > 0:
+                reducible = [name for name in quota_names if quotas.get(name, 0) > 0]
+                if not reducible:
+                    break
+                name = max(
+                    reducible,
+                    key=lambda n: (
+                        0 if domain_bins.get(n) else 1,  # empty-bin domains reduced first
+                        quotas[n] - raw_lookup.get(n, 0.0),
+                        quotas[n],
+                        -raw_lookup.get(n, 0.0),
+                        order[n],
+                    ),
+                )
+                quotas[name] -= 1
+                overflow -= 1
+
+    # Pre-quota rebalance: clamp quotas by actual candidate availability,
+    # redistribute deficit to domains with spare capacity (proportional weight).
+    # equal strategy: 사용자 의도 보존, 미적용. linker는 재분배 대상 제외.
+    if strategy != "equal":
+        rebalance_names = [d["name"] for d in domains]
+        length_weight = {
+            d["name"]: max(d["end"] - d["start"] + 1, 1) for d in domains
+        }
+        for _ in range(4):
+            deficit = 0
+            flex_names: list[str] = []
+            for name in rebalance_names:
+                available = len(domain_bins.get(name, []))
+                current = quotas.get(name, 0)
+                if current > available:
+                    deficit += current - available
+                    quotas[name] = available
+                elif current < available:
+                    flex_names.append(name)
+            if deficit == 0 or not flex_names:
+                break
+            weight_total = sum(length_weight[n] for n in flex_names)
+            if weight_total == 0:
+                break
+            remaining = deficit
+            for n in flex_names:
+                spare = len(domain_bins[n]) - quotas[n]
+                add = min(
+                    int(round(deficit * length_weight[n] / weight_total)),
+                    spare,
+                )
+                if add > 0:
+                    quotas[n] += add
+                    remaining -= add
+            # Rounding leftover: distribute to flex names with most spare
+            flex_sorted = sorted(
+                flex_names,
+                key=lambda n: len(domain_bins[n]) - quotas[n],
+                reverse=True,
+            )
+            safety = 0
+            while remaining > 0 and flex_sorted:
+                progressed = False
+                for n in flex_sorted:
+                    if remaining <= 0:
+                        break
+                    if len(domain_bins[n]) > quotas[n]:
+                        quotas[n] += 1
+                        remaining -= 1
+                        progressed = True
+                if not progressed:
+                    break
+                safety += 1
+                if safety > 1000:
+                    break
+
+    # Select within each domain by y_pred order (rows already sorted)
+    selected: list[tuple[str, float]] = []
+    selected_set: set[str] = set()
+    stats: dict[str, dict] = {}
+
+    for name in quota_names:
+        quota = quotas[name]
+        candidates = domain_bins.get(name, [])
+        if use_pareto and quota > 1 and len(candidates) > 1:
+            picked, _ = pareto_diversity_select(
+                candidates, quota,
+                pool_multiplier=pool_multiplier,
+                pool_size_override=pool_size_override,
+                ca_coords=ca_coords,
+                entropy_weight=entropy_weight,
+                distance_mode=distance_mode,
+            )
+        else:
+            picked = candidates[:quota]
+        for v, y in picked:
+            if v not in selected_set:
+                selected.append((v, y))
+                selected_set.add(v)
+        actual = len(picked)
+        stats[name] = {"quota": quota, "selected": actual}
+
+    # Hard constraint: domain quota 미충족 시 전역 재분배 없음 (v0.9.36 동작 복원).
+    # top_n 미충족 허용. shortfall 재분배는 의도적으로 제거 (회귀 수정).
+
+    # Fill any remaining slots if total selected < top_n
+    if len(selected) < top_n and linker_handling != "exclude":
+        for v, y in domain_bins["linker"]:
+            if len(selected) >= top_n:
+                break
+            if v not in selected_set:
+                selected.append((v, y))
+                selected_set.add(v)
+
+    return selected[:top_n], stats
+
+
+def pareto_diversity_select(
+    rows: list[tuple[str, float]],
+    top_n: int,
+    pool_multiplier: float = 2.0,
+    pool_size_override: int | None = None,
+    ca_coords: list[tuple[float, float, float] | None] | None = None,
+    entropy_weight: float = 0.0,
+    distance_mode: str = "auto",
+    position_mode: str = "first",
+) -> tuple[list[tuple[str, float]], int]:
+    """MODIFY-style Pareto fitness-diversity selection (greedy maximin).
+
+    Selects variants that maximize minimum position distance to
+    already-selected set, breaking ties by y_pred.
+    Prevents clustering of mutations at nearby positions.
+
+    When *ca_coords* is provided, real 3D Euclidean Cα distance from
+    AlphaFold structures is used instead of simple 1-D position distance.
+    Falls back to 1-D distance for positions without Cα coordinates.
+
+    When *entropy_weight* > 0, the selection score blends spatial diversity
+    with per-position entropy of y_pred (uncertainty-guided exploration).
+    Positions where many mutations score similarly (high Shannon entropy)
+    are prioritised, helping escape local optima in the fitness landscape.
+    A weight of 0.3 gives a mild bias; 0.7 strongly favours uncertain positions.
+
+    Parameters
+    ----------
+    rows : list[tuple[str, float]]
+        (variant, y_pred) pairs, pre-sorted by y_pred descending.
+    top_n : int
+        Target selection count.
+    pool_multiplier : float
+        Candidate pool size = top_n * pool_multiplier.
+    ca_coords : list[tuple[float, float, float] | None] | None
+        1-based AlphaFold Cα coordinates (None entries = missing residues).
+    entropy_weight : float
+        Blend weight for position entropy (0 = pure maximin, 1 = pure entropy).
+
+    Returns
+    -------
+    tuple[list, int]
+        (selected rows, replaced count vs pure Top-N).
+    """
+    if top_n <= 0 or not rows:
+        return rows[:top_n], 0
+
+    if pool_size_override is not None:
+        pool_size = min(len(rows), max(top_n, pool_size_override))
+    else:
+        pool_size = min(len(rows), max(top_n, int(top_n * pool_multiplier)))
+    pool = rows[:pool_size]
+
+    # Extract positions for distance calculation
+    positions: list[int] = []
+    # Centroid Cα coordinates (per-variant mean over substituted residues; centroid mode only)
+    _centroid_ca: list[tuple[float, float, float] | None] = []
+    use_3d = distance_mode == "3d" or (distance_mode == "auto" and ca_coords is not None)
+    for variant, _ in pool:
+        if position_mode == "centroid":
+            _ps = _combo_positions(variant)
+            positions.append(round(sum(_ps) / len(_ps)) if _ps else -1)
+            if use_3d and ca_coords:
+                # The walrus binds the looked-up coordinate so the None filter
+                # narrows the element type; short-circuiting keeps the range
+                # check ahead of the indexing.
+                _valid_ca = [
+                    _ca
+                    for p in _ps
+                    if 0 < p < len(ca_coords) and (_ca := ca_coords[p]) is not None
+                ]
+                if _valid_ca:
+                    _cx = sum(c[0] for c in _valid_ca) / len(_valid_ca)
+                    _cy = sum(c[1] for c in _valid_ca) / len(_valid_ca)
+                    _cz = sum(c[2] for c in _valid_ca) / len(_valid_ca)
+                    _centroid_ca.append((_cx, _cy, _cz))
+                else:
+                    _centroid_ca.append(None)
+            else:
+                _centroid_ca.append(None)
+        else:  # "first" (default) — unchanged
+            m = _POS_RE.search(variant)
+            positions.append(int(m.group(1)) if m else -1)
+            _centroid_ca.append(None)
+
+    # Find max position for normalization (1D fallback)
+    valid_pos = [p for p in positions if p >= 0]
+    max_pos = max(valid_pos) if valid_pos else 1
+
+    # Precompute max Cα distance for normalization (avoids repeated O(N²))
+    _ca_max = ca_max_dist(ca_coords) if use_3d and ca_coords else 1.0
+
+    # Per-position entropy (computed once over full pool)
+    pos_entropy: dict[int, float] = _position_entropy(pool) if entropy_weight > 0 else {}
+
+    selected_indices: list[int] = [0]  # seed: best fitness
+    selected_set = {0}
+
+    for _ in range(min(top_n, len(pool)) - 1):
+        best_idx = -1
+        best_score = -float("inf")
+        best_y = -float("inf")
+
+        for i in range(len(pool)):
+            if i in selected_set:
+                continue
+            pos_i = positions[i]
+            if pos_i < 0:
+                min_dist = 1.0  # unknown position = treat as maximally distant
+            elif position_mode == "centroid" and use_3d and ca_coords:
+                # Centroid mode: Euclidean distance between per-variant Ca centroids.
+                # Falls back to 1D mean-position distance when either centroid is None.
+                ci = _centroid_ca[i]
+                _dists: list[float] = []
+                for j in selected_indices:
+                    cj = _centroid_ca[j]
+                    if ci is not None and cj is not None:
+                        _d3 = math.sqrt(
+                            (ci[0] - cj[0]) ** 2 + (ci[1] - cj[1]) ** 2 + (ci[2] - cj[2]) ** 2
+                        )
+                        _dists.append(_d3 / _ca_max if _ca_max > 0 else 0.0)
+                    else:
+                        _dists.append(
+                            abs(pos_i - positions[j]) / max_pos if positions[j] >= 0 else 1.0
+                        )
+                min_dist = min(_dists) if _dists else 1.0
+            elif use_3d and ca_coords and pos_i >= 1:
+                # AlphaFold 3D Cα distance (real structural space) — first mode
+                min_dist = min(
+                    pairwise_ca_distance(ca_coords, pos_i, positions[j], _ca_max)
+                    if positions[j] >= 1
+                    else 1.0
+                    for j in selected_indices
+                )
+            else:
+                # Fallback: 1D position distance
+                min_dist = min(
+                    abs(pos_i - positions[j]) / max_pos if positions[j] >= 0 else 1.0
+                    for j in selected_indices
+                )
+
+            if entropy_weight > 0:
+                ent = pos_entropy.get(pos_i, 0.0) if pos_i >= 0 else 0.0
+                score = (1.0 - entropy_weight) * min_dist + entropy_weight * ent
+            else:
+                score = min_dist
+
+            y_i = pool[i][1]
+            if (score > best_score) or (score == best_score and y_i > best_y):
+                best_idx = i
+                best_score = score
+                best_y = y_i
+
+        if best_idx < 0:
+            break
+        selected_indices.append(best_idx)
+        selected_set.add(best_idx)
+
+    selected = [pool[i] for i in selected_indices]
+
+    # Count how many differ from pure Top-N
+    top_n_set = {v for v, _ in pool[:top_n]}
+    replaced = sum(1 for v, _ in selected if v not in top_n_set)
+
+    return selected, replaced
+# ---------------------------------------------------------------------------
+# Structural diversity selection — validated 'kuro_ca' recipe
+# ---------------------------------------------------------------------------
+
+
+def _variant_centroid(
+    variant: str,
+    ca_coords: "list[tuple[float, float, float] | None] | None",
+) -> tuple[float, float, float]:
+    """3D Cα centroid descriptor for a (possibly combo) variant string.
+
+    Primary path (ca_coords provided)
+    ----------------------------------
+    Returns the mean (x, y, z) of Cα coordinates at ALL substituted positions.
+    Positions missing from *ca_coords* (None or out-of-range) are silently
+    excluded.  If all positions are missing, falls through to the positional
+    fallback below.
+
+    Positional fallback (no ca_coords or all coords missing)
+    --------------------------------------------------------
+    Returns ``(min_pos, mean_pos, max_pos)`` of the integer substituted
+    positions as a float triple.  For a single-mutation variant the three
+    values are equal; for combos they span the occupied sequence range.
+
+    Returns ``(0.0, 0.0, 0.0)`` for unparseable variants (no positions found).
+    """
+    positions = _combo_positions(variant)
+    if not positions:
+        return (0.0, 0.0, 0.0)
+
+    if ca_coords is not None:
+        resolved: list[tuple[float, float, float]] = [
+            ca_coords[p]  # type: ignore[index]
+            for p in positions
+            if 0 < p < len(ca_coords) and ca_coords[p] is not None
+        ]
+        if resolved:
+            n = len(resolved)
+            cx = sum(c[0] for c in resolved) / n
+            cy = sum(c[1] for c in resolved) / n
+            cz = sum(c[2] for c in resolved) / n
+            return (cx, cy, cz)
+
+    # Positional fallback: (min, mean, max) of integer position indices.
+    mn = float(min(positions))
+    avg = float(sum(positions)) / len(positions)
+    mx = float(max(positions))
+    return (mn, avg, mx)
+
+
+def structural_diversity_select(
+    rows: "list[tuple[str, float]]",
+    top_n: int,
+    *,
+    ca_coords: "list[tuple[float, float, float] | None] | None" = None,
+    anchor_variants: "tuple[str, ...] | list[str]" = (),
+    kappa: float = 0.0,
+) -> "tuple[list[tuple[str, float]], int]":
+    """Structure-aware diversity selection (validated 'kuro_ca' recipe).
+
+    Greedy farthest-point (maximin) over the FULL candidate set in 3D Ca-centroid
+    space, anchored on the cumulative already-revealed set (anchor_variants), with
+    fitness as tie-break (kappa=0) or additive blend (kappa>0).
+
+    Fixes the three gaps vs pareto/domain selectors:
+    (1) full pool (no fitness gate);
+    (2) anchored on revealed history (anchor_variants);
+    (3) 3D centroid-of-Ca-coords distance over ALL substituted positions of a
+        combo (single-mut -> that one residue; positional fallback when coords
+        unavailable).
+
+    Parameters
+    ----------
+    rows : list[tuple[str, float]]
+        (variant_id, y_pred) pairs.  No pre-sorting required; the full set is
+        used as the candidate pool.
+    top_n : int
+        Number of variants to select.
+    ca_coords : list or None
+        1-based AlphaFold Ca coordinates (None entries = missing residues).
+        When provided, Euclidean distance between 3D centroids is used.
+        When None or when all positions of a variant are missing, falls back
+        to positional (min, mean, max) centroid space.
+    anchor_variants : tuple or list of str
+        Variant IDs already revealed / committed — the selection maximises
+        minimum distance to this cumulative anchor set.  When empty the
+        greedy seed is the max-fitness row (mirrors embdiv behavior when no
+        anchor is provided).
+    kappa : float
+        0.0 (default) — pure maximin; y_pred breaks ties.
+        > 0 — blended score: ``(1-kappa)*norm_min_dist + kappa*norm_fitness``
+        where both components are min-max normalised over the active
+        candidates at each step.  kappa=1.0 collapses to pure Top-N.
+
+    Returns
+    -------
+    tuple[list[tuple[str, float]], int]
+        (selected_rows, replaced_vs_topn) where replaced_vs_topn counts how
+        many selected variants are not in the pure Top-N fitness set.
+    """
+    if top_n <= 0 or not rows:
+        return rows[:top_n], 0
+
+    k = min(top_n, len(rows))
+    num = len(rows)
+
+    # Build Ca centroid descriptors for every candidate.
+    cand_descs: list[tuple[float, float, float]] = [
+        _variant_centroid(v, ca_coords) for v, _ in rows
+    ]
+    # Build descriptors for anchor variants.
+    anc_descs: list[tuple[float, float, float]] = [
+        _variant_centroid(v, ca_coords) for v in anchor_variants
+    ]
+
+    def _dist(
+        a: tuple[float, float, float], b: tuple[float, float, float]
+    ) -> float:
+        return math.sqrt(
+            (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2
+        )
+
+    # Initialise per-candidate min-distance to the anchor set.
+    # If anchor is empty, initialise to +inf (first pick = max-fitness via
+    # tiebreak — mirrors _maximin_with_anchor in al.acquisition).
+    if anc_descs:
+        min_dist: list[float] = [
+            min(_dist(d, a) for a in anc_descs) for d in cand_descs
+        ]
+    else:
+        min_dist = [math.inf] * num
+
+    chosen_indices: list[int] = []
+    chosen_set: set[int] = set()
+
+    for _ in range(k):
+        active = [i for i in range(num) if i not in chosen_set]
+        if not active:
+            break
+
+        best_idx = -1
+
+        if kappa > 0.0:
+            active_dists = [min_dist[i] for i in active]
+            max_d = max(active_dists)
+
+            if not math.isfinite(max_d):
+                # All distances are +inf (empty anchor, first round).
+                # Seed with max-fitness row.
+                best_idx = max(active, key=lambda i: rows[i][1])
+            else:
+                min_d = min(active_dists)
+                active_fits = [rows[i][1] for i in active]
+                min_f, max_f = min(active_fits), max(active_fits)
+                denom_d = (max_d - min_d) if max_d > min_d else 1.0
+                denom_f = (max_f - min_f) if max_f > min_f else 1.0
+
+                best_score = -math.inf
+                best_y = -math.inf
+                for i in active:
+                    nd = (min_dist[i] - min_d) / denom_d
+                    nf = (rows[i][1] - min_f) / denom_f
+                    score = (1.0 - kappa) * nd + kappa * nf
+                    y_i = rows[i][1]
+                    if score > best_score or (
+                        score == best_score and y_i > best_y
+                    ):
+                        best_score = score
+                        best_y = y_i
+                        best_idx = i
+        else:
+            # kappa == 0: pure maximin; y_pred breaks ties.
+            # Correct when min_dist contains +inf: all equal => fitness
+            # tiebreak picks max-fitness seed on the first iteration.
+            best_score = -math.inf
+            best_y = -math.inf
+            for i in active:
+                score = min_dist[i]
+                y_i = rows[i][1]
+                if score > best_score or (score == best_score and y_i > best_y):
+                    best_score = score
+                    best_y = y_i
+                    best_idx = i
+
+        if best_idx < 0:
+            break
+
+        chosen_indices.append(best_idx)
+        chosen_set.add(best_idx)
+
+        # Incrementally update min-distances using the newly chosen centroid.
+        new_desc = cand_descs[best_idx]
+        for i in range(num):
+            if i not in chosen_set:
+                d = _dist(cand_descs[i], new_desc)
+                if d < min_dist[i]:
+                    min_dist[i] = d
+
+    selected = [rows[i] for i in chosen_indices]
+
+    # Count variants not present in the pure Top-N fitness set.
+    top_n_set = {v for v, _ in sorted(rows, key=lambda r: -r[1])[:top_n]}
+    replaced = sum(1 for v, _ in selected if v not in top_n_set)
+
+    return selected, replaced

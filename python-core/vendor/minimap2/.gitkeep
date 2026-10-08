@@ -1,0 +1,4 @@
+# This directory is populated at CI build time by:
+#   - linux-x64, macos-x64, macos-arm64: python-core/scripts/vendor-minimap2.py
+#   - windows-x64: .github/workflows/build.yml MinGW inline build step
+# Do not commit binaries here. See notes/specs/2026-06-02-phase3-windows-minimap2.md

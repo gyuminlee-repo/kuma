@@ -1,0 +1,263 @@
+export interface CdsCoords {
+  start: number; // 0-based inclusive
+  end: number;   // 0-based exclusive
+  source: "genbank-cds" | "fasta-orf";
+}
+
+export interface CdsCandidate {
+  start: number;     // 0-based inclusive
+  end: number;       // 0-based exclusive
+  source: "genbank-cds" | "fasta-orf";
+  label?: string;    // GenBank: gene/locus/product; FASTA: "ORF1", "ORF2", ...
+  aa_length: number; // (end - start - 3) / 3 (excluding stop codon)
+  /** Annotation-derived gene identifier. Set only for GenBank/SnapGene CDS
+   *  features: prefers /gene=, then /locus_tag=, then /product=. Blank and
+   *  "unknown" values are ignored. FASTA ORF candidates leave this unset so
+   *  the UI requires an explicit name. */
+  gene_name?: string;
+}
+
+/** Return the first usable gene, locus-tag, or product annotation. */
+export function deriveAnnotationGeneName(
+  gene?: string,
+  locusTag?: string,
+  product?: string,
+): string | undefined {
+  for (const value of [gene, locusTag, product]) {
+    const normalized = value?.trim();
+    if (normalized && normalized.toLowerCase() !== "unknown") return normalized;
+  }
+  return undefined;
+}
+
+// Minimum ORF length in amino acids for FASTA ORF detection
+const MIN_AA_LENGTH = 30;
+
+/**
+ * Extract all CDS/ORF candidates from a sequence file content.
+ *
+ * GenBank: parses all CDS features (skips join() constructs) with gene/locus/product labels.
+ * FASTA: searches all 3 forward frames for ATG~stop ORFs, filters by MIN_AA_LENGTH.
+ * GenBank candidates are returned first when both types are present.
+ */
+export function autoDetectCdsCandidates(content: string): CdsCandidate[] {
+  // Try GenBank first
+  const gbCandidates = parseGenbankCds(content);
+  if (gbCandidates.length > 0) return gbCandidates;
+
+  // Fall back to FASTA ORF detection
+  return parseFastaOrfs(content);
+}
+
+/**
+ * Backward-compatible single result. Returns the first candidate or null.
+ *
+ * Note: FASTA ORF results are subject to MIN_AA_LENGTH (30 aa) filtering,
+ * which means very short ORFs that the old implementation would have returned
+ * are now filtered out. GenBank CDS features are returned regardless of length.
+ * Existing callers in this codebase have all migrated to autoDetectCdsCandidates;
+ * this wrapper is retained for potential external use.
+ */
+export function autoDetectCds(content: string): CdsCoords | null {
+  const candidates = autoDetectCdsCandidates(content);
+  if (candidates.length === 0) return null;
+  const first = candidates[0];
+  return { start: first.start, end: first.end, source: first.source };
+}
+
+// ─── GenBank parser ──────────────────────────────────────────────────────────
+
+/**
+ * Parse all CDS features from a GenBank flat file.
+ * Skips join() constructs (multi-exon). Extracts /gene= and /product= qualifiers.
+ */
+function parseGenbankCds(content: string): CdsCandidate[] {
+  const candidates: CdsCandidate[] = [];
+  const lines = content.split(/\r?\n/);
+
+  // Feature table lines have a 5-column indent for feature keys, 21-column for qualifiers.
+  // A CDS feature line looks like:
+  //   "     CDS             100..500"
+  // or with complement:
+  //   "     CDS             complement(100..500)"
+  // complement( is captured rather than skipped over. Nothing downstream can
+  // express a strand: CdsCoords has no field for one, and the translator
+  // slices reference_seq[cds_start:cds_end] forward
+  // (kuma_core/mame/translate/aa_translator.py:211). Accepting a reverse-strand
+  // CDS therefore reads the coding sequence off the wrong strand and every
+  // amino-acid call and mutation position for that gene comes out wrong, with
+  // nothing anywhere saying the strand was ignored. Such a feature is skipped,
+  // the same way join() constructs already are.
+  const featureLineRe = /^ {5}CDS\s+(complement\()?(\d+)\.\.(\d+)\)?/;
+  const qualifierRe = /^ {21}\/(\w+)="(.*)"/;
+  const contQualifierRe = /^ {21}([^/].*)"/;
+
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const featureMatch = featureLineRe.exec(line);
+    if (featureMatch) {
+      if (featureMatch[1] !== undefined) {
+        // A reverse-strand CDS. Offered as a candidate it would be read off
+        // the forward strand, so skip it rather than return coordinates whose
+        // strand nothing carries.
+        i++;
+        continue;
+      }
+      const start = parseInt(featureMatch[2], 10) - 1; // GenBank 1-based → 0-based inclusive
+      const end = parseInt(featureMatch[3], 10);       // GenBank 1-based inclusive → 0-based exclusive (end stays same)
+      const aaLength = Math.floor((end - start - 3) / 3);
+
+      // Scan forward for qualifiers (stop at next feature)
+      let gene: string | undefined;
+      let product: string | undefined;
+      let locusTag: string | undefined;
+      let j = i + 1;
+      let currentQual: string | null = null;
+      let currentVal = "";
+
+      while (j < lines.length) {
+        const qLine = lines[j];
+        // Next feature detected (non-qualifier indent) → stop
+        if (/^ {5}\S/.test(qLine)) break;
+
+        const qualMatch = qualifierRe.exec(qLine);
+        if (qualMatch) {
+          // Save previous accumulated qualifier
+          if (currentQual === "gene") gene = currentVal;
+          else if (currentQual === "locus_tag") locusTag = currentVal;
+          else if (currentQual === "product") product = currentVal;
+
+          currentQual = qualMatch[1];
+          currentVal = qualMatch[2];
+          // Check if value is complete (ends with ")
+          if (qLine.trimEnd().endsWith('"')) {
+            if (currentQual === "gene") gene = currentVal;
+            else if (currentQual === "locus_tag") locusTag = currentVal;
+            else if (currentQual === "product") product = currentVal;
+            currentQual = null;
+            currentVal = "";
+          }
+        } else if (currentQual !== null) {
+          // Continuation line
+          const contMatch = contQualifierRe.exec(qLine);
+          if (contMatch) {
+            currentVal += " " + contMatch[1].trim().replace(/"$/, "");
+            if (qLine.trimEnd().endsWith('"')) {
+              if (currentQual === "gene") gene = currentVal;
+              else if (currentQual === "locus_tag") locusTag = currentVal;
+              else if (currentQual === "product") product = currentVal;
+              currentQual = null;
+              currentVal = "";
+            }
+          }
+        }
+        j++;
+      }
+
+      // Flush last qualifier if not closed
+      if (currentQual === "gene") gene = currentVal;
+      else if (currentQual === "locus_tag") locusTag = currentVal;
+      else if (currentQual === "product") product = currentVal;
+
+      const geneName = deriveAnnotationGeneName(gene, locusTag, product);
+      candidates.push({
+        start,
+        end,
+        source: "genbank-cds",
+        label: geneName,
+        aa_length: aaLength,
+        gene_name: geneName,
+      });
+      i = j;
+      continue;
+    }
+    i++;
+  }
+  return candidates;
+}
+
+// ─── FASTA ORF parser ────────────────────────────────────────────────────────
+
+// Characters plausible in a text nucleotide/FASTA file: IUPAC nucleotide codes
+// (upper/lower), FASTA header markers, and common line punctuation/whitespace.
+const PLAUSIBLE_TEXT_RE = /^[ACGTUNRYKMSWBDHVacgtunrykmswbdhv\s>;|+\-.0-9]*$/;
+
+/**
+ * Reject content that is not plausibly a text nucleotide file before scanning.
+ * Binary formats such as SnapGene .dna, when accidentally read as text (e.g.
+ * via a text-mode file read), decode to garbage bytes that still contain
+ * enough ATG..stop runs to produce dozens of meaningless "ORF" candidates.
+ * A high proportion of non-nucleotide characters signals binary content, so
+ * bail out with an empty candidate list instead of scanning it.
+ */
+function looksLikeBinary(content: string): boolean {
+  if (!content) return false;
+  // Strip FASTA header lines before checking character plausibility, since
+  // header text (arbitrary description) is expected to contain other chars.
+  const body = content.replace(/^>.*$/gm, "");
+  if (!body.trim()) return false;
+  return !PLAUSIBLE_TEXT_RE.test(body);
+}
+
+/**
+ * Find all ORFs (ATG → stop) in 3 forward reading frames that meet MIN_AA_LENGTH threshold.
+ * Stop codon is excluded from aa_length count.
+ */
+function parseFastaOrfs(content: string): CdsCandidate[] {
+  if (looksLikeBinary(content)) return [];
+
+  // Strip all FASTA headers and whitespace
+  const seq = content
+    .replace(/^>.*$/gm, "")
+    .replace(/\s/g, "")
+    .toUpperCase();
+
+  if (!seq) return [];
+
+  const candidates: CdsCandidate[] = [];
+  const stopCodons = new Set(["TAA", "TAG", "TGA"]);
+  let orfCounter = 0;
+
+  for (let frame = 0; frame < 3; frame++) {
+    let i = frame;
+    while (i + 3 <= seq.length) {
+      const codon = seq.substring(i, i + 3);
+      if (codon === "ATG") {
+        const orfStart = i;
+        let j = i + 3;
+        let found = false;
+        while (j + 3 <= seq.length) {
+          const stopCodon = seq.substring(j, j + 3);
+          if (stopCodons.has(stopCodon)) {
+            const orfEnd = j + 3; // 0-based exclusive (includes stop codon)
+            const aaLength = Math.floor((orfEnd - orfStart - 3) / 3); // exclude stop
+            if (aaLength >= MIN_AA_LENGTH) {
+              orfCounter++;
+              candidates.push({
+                start: orfStart,
+                end: orfEnd,
+                source: "fasta-orf",
+                label: `ORF${orfCounter}`,
+                aa_length: aaLength,
+              });
+            }
+            i = j + 3; // advance past stop
+            found = true;
+            break;
+          }
+          j += 3;
+        }
+        if (!found) {
+          i = seq.length; // no stop found, skip to end
+        }
+      } else {
+        i += 3;
+      }
+    }
+  }
+
+  // Sort by descending aa_length (longest ORF first = most likely coding)
+  candidates.sort((a, b) => b.aa_length - a.aa_length);
+  return candidates;
+}

@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="glowStrong" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <clipPath id="roundClip">
+      <rect x="0" y="0" width="512" height="512" rx="96" ry="96"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect x="0" y="0" width="512" height="512" rx="96" ry="96" fill="#0A0A0A"/>
+
+  <!--
+    DNA centered vertically: helix y=96..316, overhang y=316..416
+    Total height ~320px, centered at y=256 (96+320=416, midpoint=256)
+    Horizontal center: x=256, amplitude ±70
+  -->
+  <g transform="translate(-20, 10) rotate(35, 256, 256)" clip-path="url(#roundClip)">
+
+    <!-- Strand A -->
+    <path d="M 186,96 C 186,152 326,160 326,216 C 326,272 186,276 186,332"
+          fill="none" stroke="#F59E0B" stroke-width="10" stroke-linecap="round"
+          filter="url(#glow)"/>
+    <path d="M 186,96 C 186,152 326,160 326,216 C 326,272 186,276 186,332"
+          fill="none" stroke="#FCD34D" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+
+    <!-- Strand B -->
+    <path d="M 326,96 C 326,152 186,160 186,216 C 186,272 326,276 326,332"
+          fill="none" stroke="#F59E0B" stroke-width="10" stroke-linecap="round"
+          filter="url(#glow)"/>
+    <path d="M 326,96 C 326,152 186,160 186,216 C 186,272 326,276 326,332"
+          fill="none" stroke="#FCD34D" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+
+    <!-- Base rungs -->
+    <g stroke="#F59E0B" stroke-width="8" stroke-linecap="round" filter="url(#glowStrong)">
+      <line x1="196" y1="120" x2="316" y2="120"/>
+      <line x1="228" y1="168" x2="284" y2="168"/>
+      <line x1="186" y1="216" x2="326" y2="216"/>
+      <line x1="228" y1="264" x2="284" y2="264"/>
+      <line x1="196" y1="312" x2="316" y2="312"/>
+    </g>
+    <g stroke="#FCD34D" stroke-width="2.5" stroke-linecap="round" opacity="0.6">
+      <line x1="196" y1="120" x2="316" y2="120"/>
+      <line x1="228" y1="168" x2="284" y2="168"/>
+      <line x1="186" y1="216" x2="326" y2="216"/>
+      <line x1="228" y1="264" x2="284" y2="264"/>
+      <line x1="196" y1="312" x2="316" y2="312"/>
+    </g>
+
+    <!-- Gibson overhang -->
+    <path d="M 186,332 C 180,365 155,390 140,416"
+          fill="none" stroke="#F59E0B" stroke-width="9" stroke-linecap="round"
+          stroke-dasharray="14,10" filter="url(#glow)"/>
+    <path d="M 326,332 C 332,365 357,390 372,416"
+          fill="none" stroke="#F59E0B" stroke-width="9" stroke-linecap="round"
+          stroke-dasharray="14,10" filter="url(#glow)"/>
+
+    <!-- Top caps -->
+    <circle cx="186" cy="96" r="8" fill="#FCD34D" filter="url(#glow)"/>
+    <circle cx="326" cy="96" r="8" fill="#FCD34D" filter="url(#glow)"/>
+
+    <!-- Overhang tips -->
+    <circle cx="140" cy="416" r="7" fill="#F59E0B" opacity="0.8"/>
+    <circle cx="372" cy="416" r="7" fill="#F59E0B" opacity="0.8"/>
+
+  </g>
+</svg>

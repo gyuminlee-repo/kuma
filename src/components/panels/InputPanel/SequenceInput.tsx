@@ -1,0 +1,216 @@
+import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
+import { useAppStore } from "../../../store/appStore";
+import { basename } from "../../../lib/utils";
+import { browseFile } from "../../../lib/file-utils";
+import { Button } from "../../ui/button";
+import { InlineHelp } from "../../ui/InlineHelp";
+import { CodonTableRestoreNotice } from "../../widgets/CodonTableRestoreNotice";
+import { CodonTableManager } from "../../dialogs/CodonTableManager";
+
+const SEQUENCE_DROP_EXTENSIONS = new Set([".gb", ".gbk", ".gbff", ".dna"]);
+const FASTA_EXTENSIONS = new Set([".fa", ".fasta", ".fna"]);
+
+export function SequenceInput() {
+  const { t } = useTranslation();
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [codonManagerOpen, setCodonManagerOpen] = useState(false);
+  const fastaPath = useAppStore((s) => s.fastaPath);
+  const seqInfo = useAppStore((s) => s.seqInfo);
+  const selectedGene = useAppStore((s) => s.selectedGene);
+  const setSelectedGene = useAppStore((s) => s.setSelectedGene);
+  const organism = useAppStore((s) => s.organism);
+  const setOrganism = useAppStore((s) => s.setOrganism);
+  const organisms = useAppStore((s) => s.organisms);
+  const loadSequence = useAppStore((s) => s.loadSequence);
+  const uniprotSearching = useAppStore((s) => s.uniprotSearching);
+
+  // The selection can sit outside the loaded list in three ways: the sidecar has
+  // not answered yet, its codon table was deleted or renamed since the workspace
+  // was saved, or the list call failed. All three need an option carrying the
+  // current value, otherwise the select renders blank and the next change event
+  // silently rewrites a saved selection.
+  const isUnlistedOrganism =
+    organism !== "" && !organisms.some((o) => o.key === organism);
+  // Label it from the sequence annotation when one matches, so an auto-detected
+  // organism still reads as the annotation rather than the bare key. Avoids
+  // duplicating Python alias logic in TypeScript.
+  const unlistedOrganismLabel = isUnlistedOrganism
+    ? (seqInfo?.genes.find((g) => g.organism_key === organism)?.organism ?? organism)
+    : null;
+
+  const handleBrowseSelect = useCallback(async (path: string) => {
+    const ext = path.slice(path.lastIndexOf(".")).toLowerCase();
+    if (FASTA_EXTENSIONS.has(ext)) {
+      useAppStore.setState({ statusMessage: t("errors.sequence.fastaNotSupported") });
+      return;
+    }
+    await loadSequence(path);
+  }, [loadSequence, t]);
+
+  // Item 3: Drag-and-drop visual feedback via Tauri webview event
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    getCurrentWebview()
+      .onDragDropEvent((event) => {
+        const paths = "paths" in event.payload ? event.payload.paths : [];
+        const firstSeqPath = paths.find((p) => {
+          const ext = p.slice(p.lastIndexOf(".")).toLowerCase();
+          return SEQUENCE_DROP_EXTENSIONS.has(ext);
+        });
+
+        if (event.payload.type === "enter" || event.payload.type === "over") {
+          if (firstSeqPath) setIsDragOver(true);
+        } else if (event.payload.type === "drop") {
+          setIsDragOver(false);
+          if (firstSeqPath) {
+            void handleBrowseSelect(firstSeqPath);
+          }
+        } else if (event.payload.type === "leave") {
+          setIsDragOver(false);
+        }
+      })
+      .then((fn) => { unlisten = fn; })
+      .catch(() => { /* webview API not available in test env */ });
+    return () => { unlisten?.(); };
+  }, [handleBrowseSelect]);
+
+  return (
+    <>
+      {/* Sequence File */}
+      <div
+        className={`space-y-1 rounded-control border transition-colors duration-fast ${isDragOver ? "border-dashed border-info bg-info/5" : "border-transparent"}`}
+        aria-label={t("sequenceInput.dropAriaLabel")}
+      >
+        <label className="text-xs font-medium text-foreground inline-flex items-center gap-1.5">
+          {t("sequenceInput.sequenceFile")}
+          <InlineHelp text={t("sequenceInput.sequenceFileHelp")} />
+        </label>
+        <div className="flex gap-1">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              browseFile(
+                [
+                  { name: "Sequence (GenBank/SnapGene)", extensions: ["gb", "gbff", "gbk", "dna"] },
+                  { name: "All Files", extensions: ["*"] },
+                ],
+                handleBrowseSelect,
+              )
+            }
+            className="flex-shrink-0"
+          >
+            {t("sequenceInput.browse")}
+          </Button>
+          <span className="self-center truncate text-xs text-muted-foreground">
+            {fastaPath ? basename(fastaPath) : t("sequenceInput.noFileSelected")}
+          </span>
+        </div>
+        {seqInfo && (
+          <div className="space-y-0.5 rounded-md border border-border bg-muted/50 p-2 text-xs text-muted-foreground">
+            <div className="truncate" title={seqInfo.header}>
+              {seqInfo.header}
+            </div>
+            <div>
+              {seqInfo.seq_length.toLocaleString()} bp | {seqInfo.genes.length} gene(s)
+            </div>
+          </div>
+        )}
+        {seqInfo && uniprotSearching && (
+          <div className="flex items-center gap-1.5 rounded-control border border-info/20 bg-info/10 px-2 py-1 text-xs text-info">
+            <svg className="animate-spin w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+            </svg>
+            {t("sequenceInput.uniprotBlastInProgress")}
+          </div>
+        )}
+      </div>
+
+      {/* Target Gene */}
+      <div className="space-y-1">
+        <label
+          className="text-xs font-medium text-foreground"
+          title={t("sequenceInput.targetGeneTitle")}
+        >
+          {t("sequenceInput.targetGene")}
+        </label>
+        {seqInfo && seqInfo.genes.length > 0 ? (
+          <select
+            className="h-8 w-full rounded-control border border-border bg-card px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+            value={selectedGene}
+            onChange={(e) => setSelectedGene(e.target.value)}
+          >
+            {[...seqInfo.genes]
+              .sort((a, b) => a.cds_start - b.cds_start)
+              .map((g) => {
+                const isNamed = g.gene !== "ORF1" && g.gene !== "unknown";
+                const label = isNamed ? `[${g.gene}]` : `(${g.gene})`;
+                const tooltip = [
+                  `Gene: ${g.gene}`,
+                  `CDS: ${g.cds_start}-${g.cds_end} (${g.aa_length} aa)`,
+                  g.product ? `Product: ${g.product}` : "",
+                ]
+                  .filter(Boolean)
+                  .join("\n");
+                return (
+                  <option key={g.cds_start} value={String(g.cds_start)} title={tooltip}>
+                    {label} {g.cds_start}-{g.cds_end} ({g.aa_length} aa)
+                    {g.product ? ` ${g.product}` : ""}
+                  </option>
+                );
+              })}
+          </select>
+        ) : (
+          <span className="block text-xs italic text-muted-foreground">
+            {t("sequenceInput.loadFirst")}
+          </span>
+        )}
+      </div>
+
+      {/* Organism */}
+      <div className="space-y-1">
+        <label
+          className="text-xs font-medium text-foreground"
+          title={t("sequenceInput.organismTitle")}
+        >
+          {t("sequenceInput.organism")}
+        </label>
+        <select
+          className="h-8 w-full rounded-control border border-border bg-card px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+          value={organism}
+          onChange={(e) => setOrganism(e.target.value)}
+        >
+          {isUnlistedOrganism && unlistedOrganismLabel !== null && (
+            <option value={organism}>{unlistedOrganismLabel}</option>
+          )}
+          {/* Labels come from the table JSON "name" field the backend already
+              returns. A locale key per organism would not survive a user-added
+              table, and Latin binomials are conventionally untranslated. */}
+          {organisms.map((o) => (
+            <option key={o.key} value={o.key}>{o.name}</option>
+          ))}
+        </select>
+        {/* Same place and same shape as ParameterPanel's Custom polymerase
+            button: the thing you add sits under the list you pick it from.
+            Not in SettingsDialog, which is app scope (theme, language,
+            network) and not a place for KURO domain content. */}
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-control rounded-control"
+            onClick={() => setCodonManagerOpen(true)}
+          >
+            {t("sequenceInput.addOrganism")}
+          </Button>
+        </div>
+        <CodonTableRestoreNotice />
+      </div>
+      <CodonTableManager open={codonManagerOpen} onOpenChange={setCodonManagerOpen} />
+    </>
+  );
+}

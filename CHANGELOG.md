@@ -1,0 +1,2695 @@
+# Changelog
+
+## v0.16.73 (Codon tables for the hosts people actually express in)
+
+KURO shipped five codon usage tables and one of them was *Methylorubrum extorquens* AM1, an organism no codon optimization tool offers by default. A survey of the tools whose organism lists can be read end to end, python_codon_tables, DNA Chisel, GenScript GenRCA, GenScript GenSmart and JCat, found AM1 in none of them, while the four tables every one of those tools carries are exactly *E. coli*, *B. subtilis*, *S. cerevisiae* and *H. sapiens*. The built-in set now holds those four plus the hosts the commercial synthesis tools treat as standard and KURO was missing: *Komagataella phaffii* GS115, better known as *Pichia pastoris*, CHO through *Cricetulus griseus*, *Corynebacterium glutamicum* ATCC 13032, *Aspergillus niger*, and *Pseudomonas putida* KT2440. Nine tables in all. Each of the five is counted from the NCBI RefSeq CDS set of a named assembly rather than taken from Kazusa, whose data has not moved since GenBank release 160.0 of June 2007, and each records the assembly, the strain where the record names one, the CDS count and the annotation release it was counted from. Common names resolve, so CHO, CHO-K1 and Chinese hamster all reach the *C. griseus* table and Pichia pastoris reaches *K. phaffii*.
+
+AM1 leaves the built-in set without leaving the app. It ships as a seed file in the user codon table folder, alongside the template that was already there, so one rename and a Refresh install it under a key that is now free for it. A project that recorded a design against the built-in AM1 table opens the way a project with any uninstalled table opens: the workspace copy is offered for installation, and nothing silently falls back to a different table. Installing the seed restores the digest the project recorded.
+
+Two tables were declaring provenance their sources do not support. The *E. coli* table said taxid 83333, whose Kazusa entry holds fourteen coding sequences and matches the shipped numbers in eight codons of sixty-four. The numbers actually come from the Kazusa entry for taxid 316407, K-12 substrain W3110 with 4,332 coding sequences, which matches in fifty-eight. That is also the entry python_codon_tables ships as its own *E. coli* table, so the choice is the convention rather than a mistake, and only the label was wrong. The numbers are untouched, which keeps the digest of every design already recorded against this table. The *A. niger* table claimed strain CBS 513.88, which the current RefSeq record for its assembly does not name; the table now declares no strain and says where the lineage attribution comes from instead.
+
+The comment explaining the codon usage floor cited AM1 as the most skewed of five tables. Measuring all nine again gives *P. putida* KT2440 as the most skewed at 2.35 codons per amino acid surviving the floor, and no amino acid in any shipped table collapses to a single codon or to none. The floor itself is unchanged at 0.10.
+
+### Highlights
+
+- Five expression hosts join the built-in codon tables: P. pastoris, CHO, C. glutamicum, A. niger and P. putida, counted from NCBI RefSeq.
+- Common names resolve, so CHO, CHO-K1 and Chinese hamster all reach the same table, and Pichia pastoris reaches K. phaffii.
+- M. extorquens AM1 is no longer built in. It ships as a ready-to-install seed in the user codon table folder instead.
+- The E. coli table now names the Kazusa entry its numbers come from, W3110 taxid 316407, with the numbers unchanged.
+- The A. niger table declares no strain, since the current RefSeq record for its assembly does not name one.
+
+## v0.16.72 (Several source plates, and inputs that stay where you put them)
+
+The two-round limit of v0.16.71 is gone. A KURO design of any size exports in rounds of at most 96 variants, R1 through Rn, and each round now names its Echo 384 source plate as well as its column parity. A source plate has two parities, so a round takes a pair of plate and parity: the export form asks for both with no default, a pair another round already holds is disabled, and the sidecar refuses a repeat as well. A parity marked as already used on the bench applies to plate 1. The Echo worklist names the plate as `Source [n]` and the echo.xlsx layout sheet heads every plate past the first the same way, while a design that fits on plate 1 writes the same files as before. A project saved with two rounds opens with both on plate 1. A saved plate that the form no longer offers, left over from a design that had more rounds, is cleared rather than sent without being shown.
+
+The step 4 summary showed the number of candidates in the EVOLVEpro CSV under the label for variants, so setting the design count to 95 still read 200, and a typed mutation list read 0. It now counts what the design run is sent, through the same calculation the run uses, and in EVOLVEpro mode shows it beside the candidate count as `95 / 200 candidates`.
+
+An audit of every input that is entered in one place and read in another found values that did not travel. In KURO, a hand-picked EVOLVEpro selection lost its hand-picked status on restart, so the next change to the design count refilled it with the top-ranked variants. It is now saved with the project. A rescued candidate is weighed against the variants actually being designed rather than the text box, which does not follow the EVOLVEpro selection. The export name, the forward and reverse plate names, the amount and the vector map switch are kept with the project instead of resetting whenever the step was left. The EVOLVEpro table registered by MAME step 4 no longer replaces a table picked in KURO or a typed mutation list, including after switching tabs, and it waits for a project restore to finish. A scratch session no longer inherits the previous project's folder, which had let it load that project's EVOLVEpro table, register exports in that project, and clear that project's entries on Clear All.
+
+In MAME, a hand-picked sheet and column for the variant list are saved and restored, and the mapping panel comes back with them. A CDS picked by hand, or the bounds Barcode Setup generated, are no longer replaced by the longest open reading frame when the reference is parsed again after a restart. The Barcode Setup form is kept per project instead of being cleared every time a project opens. An expected workbook given by drag and drop or from the missing inputs banner goes through the same plate order check and variant column inspection as Browse. After Export All in KURO, an empty MAME expected input in the same project is filled with the plate map, and reopening a project uses the newer of the plate map and the primer workbook.
+
+Settings: a theme picked from the menu now survives a restart, and every theme menu shows the same choice. Offline mode switched on in the About dialog also survives a restart. When the settings file could not be read, the first change used to overwrite it with defaults and lose the saved contact email and service switches; the sidecar now merges a change into the file it already has. A contact email that comes from the environment or the older config file is shown in Settings with its source, and a malformed environment value is skipped instead of hiding a valid saved address.
+
+### Highlights
+
+- A design of any size exports in rounds of 96, each on an Echo source plate and column parity you pick.
+- The step 4 summary counts the variants the design will make, next to the EVOLVEpro candidate count.
+- Hand-picked EVOLVEpro variants, export names, and MAME column and CDS choices now survive a restart.
+- A scratch session no longer touches the last project, and a picked EVOLVEpro table is no longer replaced.
+- Theme and offline mode survive a restart, and a settings change no longer resets your other preferences.
+
+## v0.16.71 (A second plate round, and asking before data leaves)
+
+A KURO design used to stop at one 96-well plate. A design of up to 192 variants now exports as two plate rounds of at most 96 each, and a design of 193 or more is refused. Each round is exported on its own into a folder ending in `_R1` or `_R2`, so each round's worklists and plate maps describe exactly one plate. The two rounds share one Echo 384 source plate, one column parity each, and the parity is not assigned by round number: past 96 the export form shows one choice per round with no default, and a round's Export button stays disabled until A1 or A2 is picked for it. Round 2 cannot take the parity round 1 already holds, and the sidecar refuses a repeat as well. The picks are saved with the project and the workspace settings. Each round also keeps its own Macrogen forward and reverse plate names and shows its own well count, and the hint under those fields now says what the export already enforced, that both names are required.
+
+ESMFold structure prediction sends the protein sequence to Meta's ESM Metagenomic Atlas at api.esmatlas.com. The app asked for the AlphaFold consent before doing so, and the consent dialog listed only EBI hosts, so the user was never told the sequence leaves for Meta. ESMFold now has its own consent and its own Settings switch, and the consent dialog names it with its host. A grant saved before this release is read as covering UniProt, BLAST, AlphaFold and InterPro only, so an existing AlphaFold grant does not carry over and the dialog opens again on the first ESMFold call. The other four services are unaffected.
+
+EBI BLAST and InterProScan jobs were submitted under a placeholder address whenever no contact email had been set, which put every such install under one fake submitter that EBI could block for all of them at once. The placeholder is gone. The Network tab of Settings has a contact email field, and the first EBI call without an address opens a short dialog that saves the address and retries once. Skipping continues without the EBI step and says so in the status bar: BLAST is skipped while direct accession and gene lookups still run, and InterProScan is not submitted, although a cached result still returns. The address is sent only to EBI.
+
+KUMA is now declared under GPL-2.0-or-later, the GNU GPL version 2 or, at the recipient's option, any later version. The LICENSE text is unchanged. The About dialog, both READMEs, the contributing and license compliance pages and the package manifests say so.
+
+Smaller KURO fixes from app verification: repeated domain names at different positions get distinct keys in the sequence viewer legend, an empty primer order request is refused before it can overwrite an existing CSV, and the response deadline for sidecar calls is owned by the Rust host alone instead of a second frontend timer that also counted host startup against it.
+
+Build and test changes with no effect on how the app behaves: the Linux sidecars no longer bundle GNU Readline, and the sidecar build fails if the module or its library comes back. A new check lists every component a built sidecar ships without a license notice and runs in CI as a warning for now, since notices for CPython, OpenSSL and the system runtimes are not written yet. The MOCK_MODE end-to-end suite now drives KURO from loading a project to a finished design. That drive found the consent and close dialogs replacing the title id Radix generates, which logged a console error each time they opened, and both now let Radix wire the title.
+
+### Highlights
+
+- A design of up to 192 variants exports as two plate rounds, each on its own column parity of one Echo source plate.
+- Each export round keeps its own Macrogen forward and reverse plate names and shows its own well count.
+- ESMFold asks for its own consent, since it sends the protein sequence to Meta at api.esmatlas.com.
+- EBI BLAST and InterProScan use a contact email you enter once, instead of a shared placeholder address.
+- KUMA is now declared under GPL-2.0-or-later, and the About dialog reads GNU GPL v2 or later.
+
+## v0.16.70 (A codon table is now something you can bring)
+
+KURO shipped five codon usage tables and no way to add a sixth. A lab working on a strain outside that list had to accept the closest bundled table's preference or hand-edit primers afterward. Any organism can now be installed under `~/.kuma/kuro/codon_tables`: drop a `.json` file built from the bundled template and press Refresh, use `Add organism...` to import a kuma table, a three-column CSV, EMBOSS `cusp` output or a pasted Kazusa page, or use its `Compute from a genome` tab to count codons straight from a GenBank file or a CDS FASTA. Every route runs the same checks before installing anything: all 20 amino acids and the stop, all 64 codons exactly once, genetic code 1 or 11 only, and a key that cannot shadow a built-in table. A design records which table it used by key and digest, and opening a project whose table is missing or has since changed offers to install the copy the project carries rather than silently switching tables.
+
+The parameter panel had described a codon strategy choice that stopped existing at v0.16.60, when the two options were found to return the same candidate pool in a different order that the engine re-sorts by penalty anyway. The documentation kept describing the removed control across both READMEs, the in-app help topics, the design report and the overview figure. Every one of those now says what actually decides a codon: the organism table chosen beside the target gene, with the wild-type codon and any codon the host uses below 10 percent of that amino acid dropped from the pool, and the engine penalty pricing the remainder on nucleotide changes and usage.
+
+### Highlights
+
+- Any organism's codon table can now be installed by dropping a file, importing CSV/cusp/Kazusa, or computing it from a genome.
+- A design records the codon table by key and digest, and a missing or changed table offers to install the project's own copy.
+- Documentation that still described the removed codon strategy toggle now describes the organism table it was replaced by.
+
+## v0.16.69 (A missing base and an uncalled base stop sharing a letter)
+
+A stored consensus used one letter for two different facts. An N meant the run could not call the position, and an N also meant the molecule has no base there. The two are opposite kinds of statement, one an absence of knowledge and the other a confident observation, and no reader of the output could tell them apart. Deletion positions now carry a dash. An N means a no-call and nothing else.
+
+The rule that writes the dash is the majority rule the reported deletion positions already use, not the plurality that decides a no-call. A deletion that leads the vote without clearing half the spanning depth is a genuine no-call and keeps its N. Because the two rules now name one set, the stored string and the reported coordinates cannot disagree. No counter moves: the no-call fraction and its four-way split count exactly the positions they counted before, and the gate that subtracts confident deletions still sees them.
+
+Barcode primers are held to the checks KURO applies to design primers. Until now a barcode primer passed on melting temperature and a 3-prime GC clamp alone, while hairpin, self-dimer and off-target were applied to design primers only. The question of whether both paths share a standard was answered as though they did, and they did not. A candidate binding region now has to clear hairpin and self-dimer thresholds and carry no off-target site, at the same thresholds and the same fixed design concentrations KURO uses, so changing the enzyme cannot change which physical primer is chosen. On the bundled sample the previous reverse primer folded at 64.9 degrees, and it no longer ships.
+
+The full ordered oligo, seed plus binding region, is checked separately and reported as an advisory. Rejecting a binding region because a seed folds against it has no defined rule, since the seed is a fixed input the operator already ordered, so that finding is stated rather than acted on. When nothing clears the checks the previous fallback still runs, and the advisory now names the failing measurement instead of letting an unchecked primer leave without comment.
+
+Saving an analysis and opening it again no longer drops what the run measured. The serializer copied fields by hand, so a field added to the model did not reach the payload until somebody remembered to add it, and four had been left behind, among them the consensus deletion length and the length-restored sequence. A test now builds every field from the declared type and fails by name when one does not survive the round trip, so the next omission is caught when it is made rather than months later. Fields left out on purpose have to be named with a reason.
+
+### Highlights
+
+- Consensus sequences write a dash where a base is missing, so a deletion no longer looks like a position the run could not call.
+- Barcode primers now pass the same hairpin, self-dimer and off-target checks that design primers already had to pass.
+- A barcode primer failing those checks is replaced, and when none passes, the advisory names the measurement that failed.
+- Reopening a saved analysis keeps the deletion length and the restored sequence that earlier builds dropped on the way in.
+
+## v0.16.68 (One stamp reaches every other column)
+
+The Echo 384 source plate is built by a 96-head Zephyr with interleaved row and column geometry. v0.16.61 used contiguous halves. This release restores the interleaved layout required by the instrument.
+
+A round is therefore one column parity. A1 is the odd columns 1, 3 up to 23 and A2 is the even columns 2, 4 up to 24, each spanning all sixteen rows for 192 wells, 96 forward primers on rows A, C, E and so on with 96 reverse primers on the rows between them. The two rounds tile one plate, which is the two-round primer set per source plate the campaign runs on.
+
+The picker offers two rounds and not the four of v0.14.0. That version listed A1, A2, B1 and B2 and then derived the reverse placement from the forward one, so A1 and B1 named the same round with the axes swapped, as did A2 and B2. The row axis was a duplicate and the helper that paired them existed only to undo it.
+
+Everything else about plate placement is unchanged. The saved app version still dates a stored selection, the exhaustion check still covers the path where no round is selected, the layout sheet of the exported workbook still honours the selection, and the plate view still shades the wells a run does not touch.
+
+A stored selection is read by its saved version. A project written before v0.16.61 used this same geometry, so B1 and B2 fold onto A1 and A2 without moving a single source well and the project loads as it was. A project written under the half layout is refused instead: a block of twelve consecutive columns holds six odd columns and six even ones, so it matches no parity and sits on 48 of the 192 wells of each round. Such a project loses its selection and has both rounds marked spent, and the operator states the plate again.
+
+Why the worklist holds contiguous columns is not established. It may record a different dispensing method or a different instrument. The geometry module carries that open question along with the two prior flips, so changing it a third time needs more than another reading of that file.
+
+### Highlights
+
+- The Echo source plate returns to interleaved columns, because a 96-head cannot reach a contiguous half of the plate in one stamp.
+- A round is one column parity over all sixteen rows, 192 wells, and the two rounds tile a single source plate.
+- The picker offers two rounds instead of four, since the old row axis named the same two rounds with forward and reverse swapped.
+- A project saved before v0.16.61 loads unchanged, because the names it stored denote rounds this release has and no source well moves.
+- A project saved under the half layout loses its selection and has both rounds marked spent, because a half matches no column parity.
+
+## v0.16.67 (The window is what reaches past the gene)
+
+The MAME barcode step asked for two numbers that measured different things under one name. flank_min was a gap, the empty distance between the primer end nearest the gene and the gene boundary. flank_max was an overhang, how far the outer end of the primer sat from that same boundary. Nothing said so, and the help text explained the pair as though both were the second kind, which is why it claimed a template needed at least 400 bp on each side.
+
+The old search window could exclude primer sites close to the CDS boundary. A linear template shorter than the requested upstream window was rejected instead of searching the available sequence. The parameters now describe amplicon overhang and the search clips to the available linear template.
+
+The window is now a single axis. overhang_min and overhang_max state how far the amplicon may reach past the CDS, defaulting to 20 and 60. A primer never enters the coding region, which is a fixed property rather than a setting, because bases a primer supplies cannot be read as variants. A linear template is searched to its own edge and refused only when what remains cannot hold the shortest binding site, and the refusal says which of the two causes applies.
+
+Both strands now search outward from the gene. The reverse strand used to walk inward and land about 22 bp past the CDS while the forward strand landed at 60, so the last codons of a gene fell inside the edge margin that flags variants near the end of a reference. Both strands reach the same distance now and the amplicon is symmetric.
+
+A project saved before this release carries flank_min and flank_max. flank_max is the same quantity as overhang_max and is kept. flank_min measured a gap that no longer has a setting, so it is dropped and the new default applies.
+
+### Highlights
+
+- The barcode step now states one number, how far the amplicon may reach past the CDS, instead of a gap and an overhang sharing a name.
+- Defaults drop from 100 and 400 to 20 and 60 for the amplicon overhang search window.
+- A short linear template is searched to its own edge instead of being refused for being shorter than the outer search bound.
+- Both strands search outward, so the amplicon is symmetric and the last codons stay clear of the reference edge margin.
+- A primer can no longer sit inside the coding region, and a saved flank_max carries over as overhang_max.
+
+## v0.16.66 (The last step reads its own signals)
+
+The transition advisory on the last MAME step recommends what to do in the next round. It was reaching those recommendations on a signal that could not tell an improving campaign from an exhausted one, while the signal that could was structurally excluded.
+
+Saturation is confirmed over two consecutive rounds. The handler read wild-type replicates from the last round alone and left every earlier round without a noise estimate, so the plateau test could only ever speak for the current round and the two-round rule rested on the hit-rate trend by itself. Measured against known answers, a campaign improving fourfold per round still drew a switch recommendation 13 percent of the time, and the hit-rate trend answered true in half of every scenario put to it, because a two-point slope was accepted with no margin at all. Each round now estimates noise from the replicates recorded for it, and the trend is a least-squares slope over every round that counts as a decline only when it falls further than its own sampling error.
+
+Real EVOLVEpro workbooks were refused before any of that was reached. A variant measured at exactly zero activity stopped the whole call, though a dead variant is an ordinary outcome. It is scored now and left out of the log2 statistics alone, staying in the hit-rate denominator because it was designed and measured. A wild-type control row anywhere in the sheet stopped the call as well. It is counted and taken out of the variant statistics, the denominator included, because a control was never a designed variant.
+
+The plateau threshold now uses the order-statistic null that the handler and the assay noise model were both written around, rather than the placeholder left in place when the advisory was first wired.
+
+### Highlights
+
+- A round now estimates assay noise from its own wild-type replicates, so the plateau test can carry the two-round saturation rule.
+- The hit-rate trend counts as a decline only when the fitted slope falls further than its own sampling error.
+- A variant measured at exactly zero activity is scored instead of stopping the call, and stays in the hit-rate denominator.
+- A wild-type control row anywhere in the workbook is counted and kept out of the variant statistics.
+- The advisory reports how many zero-activity variants and control rows a round carried.
+
+## v0.16.65 (A well on the line goes to review)
+
+The indel event gate decides whether a well whose designed mutations are all confirmed needs human review because reads carry insertions or deletions. The comparison now includes equality at the configured 0.50 threshold. A boundary well reads AMBIGUOUS with the indel note if no earlier gate has already decided it.
+
+No threshold value moved. Reanalysis changes only wells exactly on the threshold that no earlier gate has already decided.
+
+### Highlights
+
+- A well whose indel event fraction lands exactly on 0.50 now reaches the review gate instead of slipping past a strict comparison.
+- Earlier gates still decide first, so a well already called LOWDEPTH or MIXED keeps that verdict.
+
+## v0.16.64 (What the reads support, and what the order sheet says)
+
+A deletion that only half the reads agreed on was being treated as a decision the caller had already made. The no-call gate exempts a position whose call is a deletion, and that exemption was applied to every deletion-bearing position no matter how much of the read stack stood behind it. A well whose designed site carried 40 or 50 percent deletion support therefore walked past the gate and could reach PASS on evidence that was never there. Only a deletion carried by more than half of the covering reads is exempt now, and a well at 40 or 50 percent reads as NO_CALL again. The same evidence is written into the saved analysis and read back from it.
+
+The activity data step could attach an NGS verdict to a variant other than the one the row named. Variant identity is normalized and compared before anything is written, and a row whose identity does not match its evidence is refused instead of exported under the wrong name.
+
+Ordering primers off a reduced row range, or across more than one plate, produced files that disagreed with the order workbook. A reverse primer could fall outside the range it was meant to occupy, the stock positions on the order sheet and on the JANUS worklist named different wells, and the export preview merged the same coordinate from two different plates into a single square. Source and destination plate identity is carried through the whole export now, so the preview, the worklist and the order sheet name the same wells.
+
+Several ordinary files were read badly. A non-finite number in a numeric column stopped the load rather than being set aside, and the delimiter that detection chose was not always the one the reader then used, so a semicolon or pipe separated file could land in the wrong columns. A primer binding interval could be placed with part of it outside the flank it was measured against, on circular templates as well as linear ones, and that whole interval is checked now. A GenBank file holding more than one record attached the CDS annotations of a later record to the first sequence; the first record alone is read now and the supported scope says so.
+
+Demultiplexing reused an earlier run after the inputs behind it had changed, because reuse did not look at the content of the inputs. Reopening a saved workspace could lose a selection, show output belonging to inputs that are no longer loaded, or fail outright on a stored quality block whose nested part held nothing. A workspace that never ran a benchmark reported that empty state as damage and warned about it. Each of those is checked at the boundary now, and work started for inputs that have since changed is cancelled rather than allowed to land on the screen.
+
+On Linux the scratch autosave was refused under the hidden application data directory and raised an error banner during an otherwise normal session, and File > Quit did nothing at all because the window had no permission to close. Both are granted. Exporting an archive twice into the same folder no longer packs the earlier archive into the new one, and at a 375 pixel window width the confirmation choices no longer sit on top of each other.
+
+### Highlights
+
+- A deletion only half the reads support no longer exempts a well from the no-call gate, so a site at 40 or 50 percent reads as a no call.
+- The activity data step refuses to attach an NGS verdict to a variant other than the one its row names.
+- Echo and JANUS files from a reduced row range or several plates keep the stock positions the order workbook gives them.
+- Reopening a workspace keeps its selection and drops output whose inputs are gone, and a benchmark that never ran stops reporting damage.
+- On Linux the scratch autosave works under the hidden app data folder and File > Quit closes the window.
+
+## v0.16.63 (Help that answers the question in front of you)
+
+The Help menu of both apps gains a User guide item. It opens a panel down the right side of the window at the topic for the step being worked on, and the panel stays where it is while the screen behind it is used. Thirteen topics cover the six KURO steps and the four MAME steps, plus an overview for each app and a description of what the MAME pipeline does between a run folder and a verdict. Every topic ships in Korean and English, and a language with no translation falls back to English and says so rather than showing nothing.
+
+A link inside a topic to another topic swaps the panel to it instead of leaving the app, so a cross-reference costs one click and no lost place. A link to the outside opens in the browser. The panel closes with Escape or the close button, and switching between the KURO and MAME tabs does not close it.
+
+The content is written for the person at the bench rather than the person who wrote the code. The step guides these topics came from carried version change notes, module paths, internal field names and layout specifications, none of which answer a question asked while looking at a screen. Each topic now says what is done on that screen, what the screen shows, and what to do about the warnings that actually appear there, quoting the buttons and messages the app displays in the language being read.
+
+Reading the screens while rewriting turned up passages describing controls that are not there: a mutation text-input mode with no way to reach it, a codon strategy control absent from the parameter panel, FASTA listed as a KURO sequence input that the loader rejects, pool filter options placed on the wrong step, and a MAME step 1 topic that described the analyze inputs screen instead of barcode setup. Those are gone.
+
+Two defects behind the help menu are fixed with it. The menu on the MAME analyze inputs screen opened the barcode setup topic, and now opens the analyze topic that documents the run folder, the expected workbook, the reference and the well selection. Pressing Next on MAME step 1 before generating a barcode package opened a dialog listing an internal key, because no language declared a message for it; the dialog now names the missing input in all ten languages.
+
+### Highlights
+
+- The Help menu opens a help panel beside the screen, at the topic for the step being worked on, in Korean or English.
+- Thirteen topics cover KURO and MAME, written around what is done on each screen and what the warnings there mean.
+- A cross-reference inside the help opens in the same panel, which stays open while switching between KURO and MAME.
+- The help menu on the MAME analyze inputs screen opens the analyze topic instead of the barcode setup one.
+- Pressing Next on MAME step 1 without a barcode package names the missing input instead of showing an internal key.
+
+## v0.16.62 (A WRONG_AA well says what it read)
+
+A WRONG_AA well whose designed site had not changed carried the note "missing expected: L187G" and nothing else. Its amino acid column was blank and the NGS Results sheet printed the verdict name in the column meant for what was detected, so an operator could not tell a well that stayed wild type from one whose consensus had no call at that site. A well that read a different residue already said so ("expected L187A, observed L187G"). The missing-site note now says it in the same shape: "expected L187G, observed WT (L187)", "expected L187G, observed no call (X at 187)" or "expected L187G, observed not covered (187)".
+
+An empty change list does not mean wild type. The translator keeps an N-bearing codon out of the change list and counts it as a no call, so the note reads the residue from the translated sequence itself, which carries one character per reference codon. The NGS Results detected cell prints WT only for a WRONG_AA well that read the reference residue at every designed site. A no call at any of them, and every other verdict, keep the verdict name. The per-plate observed_aa column stays blank, because the activity data step reads that column back as mutation labels and a WT token there would enter the label audit as a mutation.
+
+The app says the same thing. Every verdict the sidecar sends now carries what each designed site read, as the observed label or one of those three words, derived when the verdict is serialized rather than stored. The AA Changes column of a WRONG_AA row names a site that stayed wild type or had no call ahead of the observed changes, and the table sorts and searches on that same text. The well detail panel lists the read at each designed site before any other change, a replicate row names the read of a copy that observed nothing, and the selected-well panel beside the plate gains a row for it.
+
+Each sort_barcode directory under demux_filtered also carried an empty reads folder. Per-well read FASTAs were already written only when KUMA_MAME_KEEP_WELL_READS=1 and nothing downstream reads them, but the folder was created on every run. It is now created only under that flag.
+
+A run analysed by an earlier version keeps its old notes and shows no site reads until it is analysed again.
+
+### Highlights
+
+- A WRONG_AA well whose designed site did not change now says what it read there: wild type, a no call, or not covered.
+- The verdict table, well details and plate panel show the read at each designed site instead of a bare dash.
+- The NGS Results sheet prints WT instead of WRONG_AA for a well that read the reference residue at every designed site.
+- The reads folder under each sort_barcode directory is created only when per-well reads are kept, instead of always empty.
+
+## v0.16.61 (A round fills half the Echo source plate, the way the bench fills it)
+
+The 384 source plate layout that shipped in v0.14.0 was wrong, and this release returns it to the layout the bench uses.
+
+This release changed Echo source placement from interleaved columns to contiguous halves, with forward and reverse primers on adjacent rows. A later release, v0.16.68, restores the interleaved geometry required by the instrument.
+
+The selector in this release used contiguous source-plate halves. Instrument head reach and source-plate filling are distinct constraints; v0.16.68 corrects this layout to the interleaved geometry required by the instrument.
+
+The selector offers two halves instead of four quadrants, A1 for columns 1 to 12 and A13 for columns 13 to 24. A quarter cannot hold a round: it offers four forward rows where 96 variants need eight. Forward and reverse are no longer separate placements either, since a reverse primer always sits one row below its forward primer in the same half.
+
+Projects saved before this release still open, and what they carry is not a half. The old column formula put A1 and B1 on the odd columns 1 to 23 and A2 and B2 on the even columns 2 to 24, so all four spanned the full width of the plate. Of the 192 wells an old round occupied, 96 fall in each of the new halves. Reading a stored placement as one half would therefore declare a half free while 96 primers sit in it, which is the one thing this module exists to refuse. A stored placement from an older save is instead dropped, both halves are marked spent, and the export screen says so and says to clear the marks if the plate is a fresh one. A save that predates this release is recognised by its recorded version rather than by its stored value, because A1 reads the same in both vocabularies and means different wells in each. The note shown when no half is chosen also claimed an undivided layout, which was never true: that run lands on columns 1 to 12, the same wells as half A1.
+
+The contiguous-half layout in this historical release is superseded by v0.16.68.
+
+### Highlights
+
+- The four quadrant choice becomes two halves, because one round fills 192 wells and a quarter plate cannot hold it.
+- A plate from before this release is not half free: its round spanned both halves, so both are marked spent and you clear them.
+
+## v0.16.60 (What the plate read, and what the caller had already decided)
+
+A consensus that calls a deletion had decided something. Two verdict gates were counting that decision as if nothing had been decided, and the result was that a well carrying a real amino acid substitution never got to say so.
+
+The NO_CALL gate reads the fraction of the consensus that is N. A position whose majority call is a deletion is not an unresolved base, yet it was entering that fraction, and with the threshold at zero a single such position short-circuited the verdict before the amino acid comparison ever ran. The MIXED gate had the same shape: a position the caller had resolved as a deletion was entering the denominator of the mixture test, so a well was classed as contaminated on the strength of a deletion nobody disputed. Both gates now exclude decided deletions from their input. The reported fields are untouched and the exclusion count is recorded in the verdict note.
+
+A confident deletion position no longer counts as a mixed position. A well can therefore report WRONG_AA for its substitution instead of MIXED for the deletion representation.
+
+A deletion also used to disappear from the molecule before translation. The consensus sequence is pinned to the reference length, so a deletion left the stored sequence the same length with the neighbouring bases shifted into the gap, and the translated protein was read from a molecule the reads never described. Insertions were dropped entirely and were not recorded anywhere, so nothing downstream could reconstruct them. The inserted bases are now kept alongside the event counts, and translation rebuilds the length-true molecule in memory from the deletions and the insertions together whenever the rebuild still shares the reference reading frame. The stored FASTA is unchanged: the rebuild is a reading of the same record rather than a rewriting of it.
+
+The plate-level recurrence tally counted substitutions only, because the mix-eligible mask excludes the deletion token by construction. Deletions and insertions now have their own channels beside the substitution table rather than inside it, since a decided indel carries neither a minor fraction nor strand statistics and folding it in would mean filling half a row with blanks.
+
+Recurring positions alone cannot distinguish alignment artifacts from shared sample features. The workbook exposes recurrence, strand support and consensus indel fields for review without assigning an automated severity.
+
+Two aggregators had grown up doing nearly the same work and only one of them was wired to anything. The wired one is now canonical and carries the fraction columns the unwired one had, which are what separate a plate-wide low-fraction site from one well in genuine mixture at the same position. The unwired module is removed.
+
+Saved results lost their deletion evidence. The serializer that writes a finished analysis dropped the four consensus indel fields, so a run reopened in a later session claimed zero deletions while the live session had them. The round trip now carries them, with each count read from its own key rather than derived from the length of its list, because a count larger than its list is how the format says the report budget was exceeded.
+
+These diagnostic fields carry no automatic grade, score or severity. Independent evidence is required before defining a threshold.
+
+### Highlights
+
+- A decided deletion no longer counts toward the NO_CALL and MIXED gates, so three wells now report the amino acid substitution they carry.
+- Translation rebuilds the length-true molecule from the called deletions and insertions rather than a reference-length sequence.
+- Plate recurrence gains deletion and insertion channels beside the substitution table, with truncation, omission and ties counted apart.
+- Each recurrent position carries how many distinct expected mutations its wells had, separating a caller artifact from a shared sample.
+- A saved analysis now carries its consensus indel evidence, which was previously lost on reopening.
+
+## v0.16.59 (A finished workbook says what produced it)
+
+A finished MAME workbook named plates, wells and verdicts and said nothing about what produced them. The reference the reads were graded against, the translated window, and the thresholds that turn reads into a verdict lived only in the session that ran the analysis. Two results from the same plate under different settings were indistinguishable once that session was gone, and nobody could say whether they may be compared.
+
+The hidden metadata sheet now carries thirteen entries describing the run: the reference file name, its parsed length and a sha256 over the parsed sequence, the coding window, the mode, the ingest mode, the minimum read count, the maximum consensus N fraction, the minimum file size, the many cutoff, the MIXED confidence depth factor and read count, and the verdict class vocabulary. The digest is taken over the parsed sequence rather than over the file bytes, so the same molecule re-saved under another name or re-wrapped at a different line width is recognised as the same reference, which a byte hash would deny.
+
+The verdict vocabulary row is written for every workbook, including one produced by a caller that ran no analysis at all. The class names are a property of kuma rather than of a single run, and a reader holding only the workbook had no way to ask which vocabulary was in force. The row is iterated from the class definition rather than listed by hand, so a class added there reaches the sheet without anyone editing the exporter.
+
+Two provenance fields that were meant to be there already were empty on every workbook written through the library path. The kuma version was never passed in by the pipeline, and the sequencing run metadata was discovered on a thread joined after the pipeline had written the file, so the discovered value reached only the in-memory cache. The join now happens first and both fields reach the file. A re-export carries the same record, because the record belongs to the run rather than to the button that wrote it.
+
+Nothing here changes how a well is judged. The entries describe settings that were already in force, and the judgment logic is untouched.
+
+### Highlights
+
+- A MAME workbook now records the reference, the coding window, the mode and the thresholds the run was executed under.
+- The reference is identified by a digest over the parsed sequence, so the same molecule re-saved under another name still matches.
+- The verdict class vocabulary is recorded on every workbook, so a downstream reader no longer hand-copies the class names.
+- The kuma version and the sequencing run metadata, both empty on every workbook written through the library path, are now filled.
+- No verdict changes: the entries describe settings that were already in force, and the judgment logic is untouched.
+
+## v0.16.58 (Every codon the host uses, and the whole tolerance sweep)
+
+Four faults in KURO primer design, all of them upstream of the primer a user copies into an order.
+
+The codon usage tables were audited against independent references and three of them were wrong. The E. coli table had histidine inverted, so the most frequent codon was reported as the rarer of the pair. The B. subtilis table was of unknown provenance and carried the wrong top codon in five of eighteen amino acids, and it is regenerated from the RefSeq assembly rather than patched. The human table had arginine ranked CGG first, which no reference supports, alongside a serine row that failed the structural sum check and had been exempted instead of investigated. Both rows are repaired to the source values. A M. extorquens AM1 table is added, since the module documented support that did not exist and an AM1 user silently received the E. coli table. Designs produced before this release can therefore differ from designs produced after it, and the arginine repair alone moves eight of 1,344 codon pairs.
+
+Mutant codon choice previously considered only the codon closest to wild type and the most frequently used codon. It now considers every synonymous codon above the configured usage floor, in deterministic order. The floor excludes rare codons and a usage term biases the penalty toward common codons. The default floor of 0.10 is a tool setting rather than a literature constant.
+
+Tm tolerance widened in half-degree steps and the search returned as soon as a candidate survived, so candidates from wider windows were never compared. The sweep now reaches its maximum and ranks all survivors together. The reported Tol can rise when a better-scoring primer is selected from a wider window.
+
+The broader codon and tolerance searches perform more candidate evaluations, trading computation time for search breadth.
+
+The organism dropdown listed three options while the backend already read its resources directory, so the human table shipped without ever appearing and the new AM1 table would have joined it. The dropdown now renders whatever the backend reports. Option labels come from the table itself rather than a locale key, so a Latin binomial appears in full and a user supplied table can carry its own name.
+
+Network trust gains an operator supplied CA on top of the platform trust store tiering that shipped in v0.16.54. Two cases that tiering does not cover remain, a native verifier that fails to load inside a frozen bundle and a proxy root present in neither the OS store nor the bundled fallback, and both are recoverable only this way. The bundle is layered onto whichever tier won rather than replacing it, so an operator CA costs the OS store nothing.
+
+Improvement here is measured by the scoring function KURO itself minimises, which is close to self referential. The GC window and Tm target readouts are physical and independent of it. Whether these primers amplify better at the bench is unverified.
+
+### Highlights
+
+- Mutant codon choice now weighs every synonymous codon the selected organism uses, where before the search saw only two.
+- Rare codons are kept out of that pool, so a design no longer lands on a codon the chosen organism effectively avoids.
+- Design ranks candidates across the whole Tm tolerance sweep, so a looser window holding a better primer is no longer skipped.
+- The Tol figure rises on those designs. A higher Tol here marks a better scoring primer, not a looser standard.
+- Three codon tables were corrected and the organism list now shows every shipped table, so earlier designs can differ.
+
+## v0.16.57 (The off-target caveat says what the list can miss)
+
+The note printed under the off-target table asserted three things the code does not support. It credited Kwok 1990 and Huang 1992 for the temperature threshold, when those papers underpin the extendability criterion instead and the 45 °C threshold is a tool-specific calibration. It described the listed hits as directional because Q5 and KOD One proofread, naming two enzymes unconditionally while a run designed with Taq or DreamTaq read a disclaimer that did not apply to it, and while Phusion and PrimeSTAR GXL went unnamed.
+
+The third claim ran the wrong way round. A site reaches the table only when its 3' terminal base matches the template exactly or when it misanneals inside the overlap arm. A proofreading enzyme excises a 3' mispair and extends from it, so the sites such an enzyme can prime are the ones the table does not show. The old note reassured a reader about the rows on screen while the real exposure sat in the rows missing from it.
+
+The note now states where the threshold came from, states that only an exact 3' terminal match or an overlap arm misanneal is listed, and says that a short or empty list is not proof that no off-target priming can occur. Each polymerase profile carries a proofreading flag, and a second line naming the selected enzyme appears only when that flag is true. An unknown flag prints nothing rather than a silent negative.
+
+### Highlights
+
+- The off-target caveat attributes Kwok 1990 and Huang 1992 to extendability, not to the tool-specific temperature threshold.
+- The caveat now says an empty list is not proof of no off-target priming, since only an exact 3' terminal match is listed.
+- A proofreading enzyme is named from the selected profile instead of two enzyme names hardcoded into the string.
+
+## v0.16.56 (Read quality reaches the consensus filter, and a skipped amplicon cut is announced)
+
+Two faults in the MAME raw run path, both silent, both able to change which clones a plate reports.
+
+The consensus stage carries a minimum base quality filter with a default of 10, and on a raw run that filter had never excluded anything. The FASTQ reader read the quality line and threw it away, so every alignment arriving at the consensus caller held no quality at all and the filter had nothing to act on. The count of low quality bases was zero whatever the input. Quality now travels from the FASTQ reader through the read buffer, the chimera and single hit paths and the trimmer into the alignment, so a base below the threshold is dropped where it always should have been. A fixture pins the effect on a call: seven low quality reads carrying a wrong base no longer outvote three high quality reads carrying the right one.
+
+The second fault concerns the alignment reference. A raw run searches for barcode workbook primer tails and extracts the amplicon between them. When that search fails, a bare coding sequence can still clear the coverage guard and produce plausible verdicts against a shorter region. The run now surfaces that reference mismatch.
+
+A run quality warning now fires whenever no amplicon was cut, carrying the reason the resolver recorded. It warns rather than refuses, because a reference already trimmed of its primer regions reaches the same branch and is harmless, and nothing in the file separates that case from the damaging one.
+
+### Highlights
+
+- Raw run consensus now applies the minimum base quality filter, which had no effect because the FASTQ quality line was discarded.
+- A base under the quality threshold no longer counts toward a call, so a low quality majority cannot outvote a high quality minority.
+- An analyze run now warns when no amplicon could be cut from the supplied reference, and names the reason the search failed.
+- That case used to pass in silence and score the plate against a shorter region, which discards correct clones without saying so.
+- The new finding warns rather than refuses, because a reference already trimmed of its primer regions reaches the same branch and is fine.
+
+## v0.16.55 (One reported run figure for MAME, and every label says what it counts)
+
+A decision taken in August made the success rate the single reported MAME run figure. It counts PASS alone, because the pick list exports PASS alone and nothing wider can be carried to the instrument. Two headline percentages over one denominator invite quoting whichever is higher, so only one of them is the reported figure.
+
+That decision reached the analyze panel and stopped there. The Python side had no code computing PASS on its own, so the HTML run report and the exported workbook went on printing the recovery rate as their headline. It was the only number they could reach. A report handed to someone else therefore led with a figure the project had already retired.
+
+The success rate now exists in the domain package and both output paths lead with it. The recovery rate is demoted rather than removed. The per-plate detected counts already in the report use the same PASS and AMBIGUOUS predicate, so dropping the card would leave those counts with no run-level counterpart. The two are not summands of each other, since a per-plate count counts wells on one plate while the card counts designed mutants. The stored field behind the card also drives replicate pick priority and keeps older saved runs loadable.
+
+Both rates take their denominator and their designed-mutant filter from one helper, so a change to the exclusion rules cannot move one figure without moving the other. Labels that named no verdict set are gone. The report and the workbook now read Success rate (PASS) and Reproduced (PASS+AMBIGUOUS). The recovered and total mutant counts in the workbook are unchanged, so an analysis already reading those rows still finds them.
+
+### Highlights
+
+- The MAME run report and the exported workbook now lead with the success rate, which counts PASS alone.
+- Every rate label names the verdict set it counts, so the wider figure cannot be read as the reported one.
+- The reproduced figure, counting PASS and AMBIGUOUS, stays as a supporting line rather than being dropped.
+- Both rates take their denominator from one piece of code, so the two cannot drift apart.
+- The recovered and total mutant counts in the workbook are unchanged, so existing analyses still read them.
+
+## v0.16.54 (UniProt lookups trust the machine again, and the log stops eating itself)
+
+Every UniProt lookup on the operator machine failed certificate verification. The sidecar log carried 72 of them, all reporting a self-signed certificate in the chain. The institution re-signs TLS at its proxy, and that proxy certificate lives in the operating system trust store.
+
+An earlier change had pinned verification to a bundled certificate list, to fix frozen macOS builds where the system OpenSSL cannot read the Keychain. That list cannot contain a certificate specific to one institution, so pinning to it traded one broken platform for another.
+
+Verification now goes through the platform APIs, which read the Keychain on macOS and the certificate store on Windows directly. That removes the cause the earlier change was routing around rather than adding a second workaround beside it. If the native path ever fails to load inside a frozen bundle, the bundled list and then the standard default still stand behind it, and the log records which one was taken.
+
+Measured against the live proxy, the same request that fails with the bundled list alone returns 200 through the trust store.
+
+The log had also been destroying the evidence. Its file handler carried no encoding, so on a Korean Windows install it took the locale codec and raised on the first dash character, filling the file with logging tracebacks around the very lines needed to diagnose the failure. The file is now written as UTF-8, and characters a console cannot render no longer take the message down with them.
+
+### Highlights
+
+- UniProt lookups verify against the operating system trust store, so an institutional proxy certificate is honoured.
+- The macOS Keychain is read directly rather than through a bundled certificate list.
+- The bundled list and the standard default remain as fallbacks, and the log says which trust source was used.
+- The log file is written as UTF-8, so a character the console cannot render no longer breaks the entry.
+- Log messages that reach a console had their dash characters replaced with plain punctuation.
+
+## v0.16.53 (The Echo plate preview explains its gaps and gets its colours right)
+
+The source-plate preview drew a grid with every other well empty and said nothing about why, which reads as though primers had been skipped. It also painted forward and reverse the wrong way round for two of the four starting points.
+
+A 96-head dispenser has twice the tip spacing of a 384-well plate, so one stamp can only reach every other row and every other column. That is why there are four starting points to choose between, and it is what was asked for when this feature was requested. Filling a solid block instead is the arbitrary placement the same request ruled out.
+
+The grid now names the pair it is drawing, says how much of the plate the run will have used once it finishes, lists any quadrants already spent, and explains the gaps. Wells the current run cannot reach are drawn with a dashed border and a muted fill rather than looking the same as a well that is merely empty, so the two kinds of blank tell themselves apart without relying on colour.
+
+One thing the code corrected along the way: a run uses a pair of quadrants, not one. Forward primers go to the chosen quadrant and reverse primers to its row partner, so a plate holds two rounds rather than four. The progress line says so.
+
+The colour fault came from deciding direction by row position. That is only true when the run starts at one of the two upper quadrants; starting at a lower one puts forward primers on the rows the grid had been colouring as reverse. Colour, popover and legend now answer that question the same way, using the chosen quadrant rather than the row number, and the comment that had asserted the old rule was corrected.
+
+### Highlights
+
+- The plate preview says which pair it draws, how much of the plate the run uses, and why the gaps are there.
+- Wells the run cannot reach are drawn with a dashed border, so they no longer look like wells that are simply empty.
+- Forward and reverse were coloured backwards for two of the four starting points, and now follow the run rather than the row.
+- The grid, the popover and the legend answer the direction question from one place instead of two.
+- A run uses two quadrants rather than one, so a plate holds two rounds, and the progress line reflects that.
+
+## v0.16.52 (MAME says what its second half actually does)
+
+MAME stood for Mutagenesis Assessment and Microplate Export. The first half is right. The second named the wrong thing three times over.
+
+It pointed at a side product. The 96-well workbook reports verdicts onto a plate that already exists rather than producing one, so calling that an export of microplates has the direction backwards.
+
+It pointed at the wrong tool. Designing and exporting a plate is what the other sub-tool does on its last step, where the Echo source plate, the racks and the destination plate are drawn and the order is written. Someone hearing the old name would reasonably go looking there.
+
+It pointed at an optional step. The instrument settings step can be skipped entirely by anyone who only wants a sequencing verdict, and nothing in the run is allowed to depend on it. Half the name rested on a step that need never run.
+
+The expansion is now Mutagenesis Assessment and Measurement Export. Taking activity measurements and writing the input for the next round is the second half of what this tool does, it sits on the path every run takes, and naming the thing being exported is what keeps it apart from the plate export elsewhere in the app.
+
+The historical release notes keep the old expansion. Those entries record what a past version put on its menu bar, and that version put the old name there.
+
+### Highlights
+
+- MAME now expands as Mutagenesis Assessment and Measurement Export, in the app and across the documentation.
+- The old second half named a side product, pointed at the other sub-tool, and rested on a step that can be skipped.
+- Taking measurements and writing the next round input is the step every run passes through, so the name points there.
+- Naming what gets exported keeps this apart from the plate and order export on the other side of the app.
+- Past release notes keep the old wording, because that is the name those versions actually displayed.
+
+## v0.16.51 (A finished design stops throwing itself away)
+
+A design would run, succeed, and leave the summary step empty. The operator had no way to tell whether any primer had been made.
+
+The design handler returned primers to the app, but the code that stored them cleared them two statements later.
+
+Topping the selection back up after a run reloads the prediction file, and that reload rewrites the mutation list. The app reads a rewritten mutation list as a new input and clears whatever a previous run left behind, which on that path is the run that had just finished. Everything downstream then behaves correctly for a run that produced nothing: the retry is skipped, the toast counts zero, and the step never advances, which is why the wizard stayed on the submit step.
+
+The autosave from the failing run carries the fingerprint. Every count is zero except the six rescued mutations, and the only writer that could leave exactly that is the clearing patch, which had been missing those two fields. The reload now says it is preserving the run, the clearing patch covers the fields it had skipped, and switching projects no longer leaks the previous numbers.
+
+A design also had four ways to end and only three of them said so. When the sidecar restarts mid-run the error was swallowed silently, the progress bar returned to zero, and nothing else changed on screen, which is the state behind not knowing whether anything ran. Each ending now leaves a message, including that one.
+
+The summary step used to give the same blank card whether a design had never been started or had been started and kept nothing. Those are now different, and the second one names the time, the counts and how the run ended.
+
+### Highlights
+
+- A finished design no longer discards its own primers while topping the selection back up afterwards.
+- The counters and the table can no longer disagree, because clearing a run now covers every field a run writes.
+- A run interrupted by a sidecar restart says so instead of returning the progress bar to zero in silence.
+- Every way a design can end now leaves a message: the count, the failure, the cancellation, or the interruption.
+- The summary step separates never having run from having run and kept nothing, and names the time and counts.
+
+## v0.16.50 (The step 6 plates look like the rest of the app)
+
+The mapping grids on the last KURO step looked less finished than everything around them. Measuring against the running app said the reason was not the type, which had already been tuned cell by cell, but the box around it. The other two plate views in this app sit in a bordered, rounded, padded card. These three sat on the page with none of that. They have it now, matching the plate view they most resemble.
+
+Sideways overflow used to leave the grid and push the page. The minimum width and the scroll behaviour were on the same element, so a grid that could not fit simply widened its surroundings, dragging the format picker and the order summary along. Measured at four pane widths, that happened only in the narrowest one, and the new arrangement holds the scrolling inside the grid where the older plate view already kept it.
+
+Loading, empty and error were three bare lines of text while the rest of the app puts those through one shared component. Now they go through it too, which is also how the error announces itself to a screen reader for the first time.
+
+The Echo tab stacked two grids with no titles, because the label the code could pass was never passed. Both are named now. The legend and the plate also stopped disagreeing in dark mode: the swatches were painted from one set of colours and the wells from another, and both now read the same four.
+
+Underneath, the three grids stopped keeping their own copies of the same markup. The header row, the row header, the well and the popover were written three times, and every remaining inconsistency traced back to that. Wells are announced the same way in all three now, row headers all carry their labels, and the popover has one shape. The measured cell sizes and fonts come out identical to before, which is what says the rearrangement changed nothing on screen.
+
+### Highlights
+
+- The three mapping grids on the last step now sit in the same bordered card as the other plate views in the app.
+- Sideways scrolling stays inside the grid instead of widening the page and dragging the rest of the step with it.
+- Loading, empty and error use the shared state component, so the error is announced to a screen reader.
+- The two grids on the Echo tab are named, and the legend now matches the plate colours in dark mode.
+- The three grids share one copy of their markup, which is what let the wells, row labels and popovers agree.
+
+## v0.16.49 (Stop the release build installing a linter it never runs)
+
+The v0.16.48 release build compiled on all three platforms and then failed anyway. The macOS job asked its Rust toolchain for clippy and rustfmt, the runner image had arrived carrying its own cargo-clippy, and the install refused with a file conflict. Linux and Windows had already finished clean. Publishing waits on all three, so it was skipped and no release appeared for a tag that was already pushed.
+
+Neither component was ever used in that job. It compiles the app; linting and formatting run in the other workflow. The request was there without a caller, which made publishing depend on a toolchain detail with no bearing on the build, and one runner image change was enough to turn that into a failed release.
+
+The request is gone and the reason sits in the file, so the next person reading it learns what the components cost rather than only that they were removed.
+
+### Highlights
+
+- The release build no longer installs a linter and a formatter it never runs, which is what broke the previous release.
+- A macOS runner image carrying its own cargo-clippy is enough to fail an install that was requested but never called.
+- Linux and Windows had built clean, so publishing was skipped for a toolchain detail rather than anything in the app.
+
+## v0.16.48 (Every file field shows the file it wants)
+
+A field that asks for a workbook used to describe it in a sentence. Eleven of them now carry a question mark that opens the thing itself: a few rows lifted from the sample the app already ships, drawn as a small grid the way a spreadsheet would show them.
+
+Six fields gained one outside the measurement step that started this work. Custom barcodes and the expected-variant list in the first step, barcode seeds in the second, the prediction file on the KURO side, the sequencing summary, and the round advisory workbook.
+
+Nothing in those grids is typed by hand. A generator reads the shipped samples and a test regenerates them on every run, so a preview cannot drift into claiming a shape the reader would reject. The same test counts how many previews it checked, because a run that silently checked none would otherwise look like a clean one.
+
+Showing the opening rows would have been wrong here, which the work found out by trying. The three Agilent report formats are identical for their first fifteen rows, all of them wild-type blocks, and they part at a single cell further down where the sample name reads a well, a number, or a variant. Each preview pairs one wild-type block with the first real sample block and marks that cell.
+
+Two of the six have no sample to lift from, so they list the columns their reader requires and say on screen that columns are what they are showing. Those names are checked against the reader that consumes them rather than transcribed.
+
+The work turned up a defect of its own. The numeric report and the numeric recheck were showing the same table, because they are the same shape of file. They still are, which is why the format question offers both, but the previews now differ the way the two fields do, and a line under each says what a table cannot: one numbers the whole plate in design order, the other numbers within the selection the screen put above wild type.
+
+Twelve other file inputs take folders, sequences, structures, or archives. A grid says nothing useful about those, so they keep the sentence they had.
+
+### Highlights
+
+- Eleven file fields now open a small grid showing the rows that file needs, lifted from the sample the app ships.
+- Six of them are outside the measurement step: two in the first step, one in the second, one in KURO, and two more.
+- The rows are generated from the samples and re-checked on every test run, so a preview cannot drift from what the reader accepts.
+- Two fields with no bundled sample list the columns their reader requires, checked against that reader rather than transcribed.
+- The numeric report and the numeric recheck no longer show the same table, and each says how its numbering differs.
+
+## v0.16.47 (Step 4.1 reads the format off the file)
+
+Step 4.1 asked which of four instrument formats a measurement file was, and only then offered the picker for that branch. The order is reversed. One file picker comes first, and the format is read from the file that was chosen.
+
+Three of the four are settled without a question. A csv is long-format. An Agilent block file announces itself with a signal row, and its sample names say which kind it is: plate wells, position numbers, or variant short forms. The last of those is not a primary measurement at all, because the raw-report reader refuses a sample name that is not a well. That file now gets offered to the confirmation slot it belongs in, instead of being accepted and then failing at build time.
+
+Two pairs are never guessed. A flat sheet of sample names and areas is also a valid long-format file, and the two readings differ in what they do with wild type. A file whose sample names are position numbers is either the primary screen or the numeric recheck, and both are decoded by the same reader. Each pair is offered as two options with the difference spelled out.
+
+What separates those pairs is not in the file. Whether a flat sheet is already relative to wild type, and whether a numeric file is the screen or the recheck, are things the round knows. Guessing either one changes an exported number without saying so, so both stay as questions. The activity scale control stays for the same reason.
+
+Detection never stands in the way. A file that matches nothing, or a call that fails, falls back to the full four-way choice with the reason shown, and the change button reopens all four from any state.
+
+Counted on the screen as it opens, six fewer controls than the previous release. The four-way choice appears only when the operator asks for it, and the scale question waits until there is a file for it to describe.
+
+### Highlights
+
+- Choosing the measurement file comes first, and three of the four instrument formats are then identified without asking.
+- A variant-labeled report is offered to the confirmation slot instead of being accepted as a primary measurement and failing later.
+- Two format pairs that the file cannot separate are asked as two options each, never guessed.
+- A file that matches nothing, or a detection that fails, falls back to the full four-way choice with the reason shown.
+- Six fewer controls on the screen as it opens, on top of the four folded away in the previous release.
+
+## v0.16.46 (Step 4.1 shows the controls that are doing something)
+
+Step 4.1 rendered every control it owns at all times, and four of them do nothing in the state the screen opens in. Each one is folded away rather than removed, so no branch of the measurement builder lost a capability.
+
+The mismatch threshold reaches a comparison that needs two measurements of the same variant. The second measurement arrives only with a confirmation source, so at the default of none the field cannot move any exported number. It now appears with the confirmation file it belongs to, and it is still transmitted on every build, so the request the sidecar receives is unchanged.
+
+The label-mismatch acknowledgement sat in a permanent amber box asking for approval of an exception that had not happened. It now appears inside the failure it authorises, after a build is actually refused for a label swap, where there is something to review. Approval still resets whenever any input changes, so it can never carry across a different set of files.
+
+The verdict workbook and the output destination are both filled automatically already, one from the active round and one from the project. A filled path now reads as a single line naming the file with a button to change it, and an empty one still opens the full picker. The warning about writing over another round output is untouched.
+
+The plate layout file is optional on every branch, because the verdict workbook names the same wells when no layout is given. It moved into a section that stays folded, and a layout that is already chosen opens that section rather than hiding behind it.
+
+Counted on the screen as it opens, twenty-four interactive controls became twenty. The four measurement sources stay as they are. Each reads an instrument format the others cannot, and dropping one would take a workflow away rather than simplify it.
+
+### Highlights
+
+- The mismatch threshold appears only with a confirmation source, the one state where it can change an exported number.
+- The label-mismatch acknowledgement moved out of its permanent warning box and into the failure it authorises.
+- Verdict and output paths, filled automatically already, read as one line with a change button instead of a full picker.
+- The plate layout picker folds away because it is optional, and opens by itself when a layout is already chosen.
+- All four measurement sources stay: each reads an instrument format that none of the others can.
+
+## v0.16.45 (Load Sample Data fills what it can and explains what it cannot)
+
+Load Sample Data referenced thirteen of the eighteen bundled MAME files. Two of the five it skipped have their own form fields, so the numeric-ID branch could be selected but never demonstrated, and the template documentation claimed the loader filled it. Both are now seeded, the primary numeric report and its confirmation report. Selecting an order source is not affected: that requirement applies only when a numeric branch is chosen, and the default state is unchanged.
+
+Three files stay unreferenced because there is nowhere to put them. Two are other formats of the slot the raw long-format measurement already fills, and one has no form field at all in the current interface. Comments beside the path list now record which is which, since the question of why a bundled file goes unused has been re-investigated more than once.
+
+A field that sample data cannot fill used to read exactly like a pick the operator had not finished. A survey of every path control found two, both places to write output rather than input: the analyze export folder and the design output folder. Each now says that sample data does not choose a save location. The value stays empty and only the wording changes, and only once sample data has been loaded, so anyone who has not loaded it still sees the ordinary prompt. Writing an invented path into the field would send it to the sidecar.
+
+KURO gained the existence check MAME received earlier. Resolving a bundled resource joins a path without touching the filesystem, so a bundle missing the sample plasmid surfaced as an error from the sidecar rather than as the missing file it is. Both bundled KURO samples are now checked before use.
+
+Two stale descriptions were corrected. The comment above the KURO loader described a text-mode path injecting demo mutations, which no longer exists in the interface, and the sample bundle for KURO exports opened by calling itself in-app input although nothing reads it and it is not shipped.
+
+### Highlights
+
+- Load Sample Data now fills the numeric-ID inputs, so that branch can be run from the sample rather than only selected.
+- Three bundled files stay unused on purpose, and the reason each one has nowhere to go is recorded beside the code.
+- A field sample data cannot fill now says so instead of looking like an unfinished pick, on both output folders.
+- KURO checks that a bundled sample is really on disk, so a missing file is named rather than surfacing as a sidecar error.
+- Two comments describing behaviour that no longer exists were corrected.
+
+## v0.16.44 (Every variant recovered on one of three reads)
+
+The previous release stopped the sample electing an AMBIGUOUS well and left the rest of the rule unapplied. Six variants still carried the same defect on all three barcodes, so the picker had nothing passing to choose from and elected the defect anyway: five through the fallback that runs when no pickable candidate remains, and one because low depth is pickable by priority. A verdict that no picking path would ever take was still being shown as the well that was chosen.
+
+Each defect now lands on a single named barcode and the other two carry the plain substitution. Every variant has a passing copy to represent it, no replicate is a fallback, and the elected barcode varies across the plate rather than settling on the lowest number. The generator holds one rule for this instead of a constant per exception: a variant maps to a verdict class and the barcode that carries it.
+
+The eight verdict classes did not disappear. They moved to the layer that owns them. All eight are still present across the fifty-one verdicts, and eight variants now read differently between their barcodes, so the plate shows what triplicate sequencing is for: a well that fails one read is recovered by another. Step 4 exports all sixteen variants with nothing excluded, which is the shape of a plate where every variant came back.
+
+One consequence is worth stating. The sample no longer demonstrates a variant measured at the bench and then dropped on NGS evidence, because no variant fails all three reads. Keeping a well that cannot be picked, purely to show that path, is what the rule rules out.
+
+### Highlights
+
+- Every sample variant now has a passing copy representing it, so no unpickable verdict is shown as the chosen well.
+- Defects sit on one barcode each, and eight variants differ between their reads, which is what a third copy is for.
+- No representative comes from the fallback path any more, and the elected barcode varies across the plate.
+- All eight verdict classes remain, in the replicate comparison where they belong rather than on the final well.
+- Step 4 exports all sixteen variants from the sample, with none excluded on NGS evidence.
+
+## v0.16.43 (A representative that could actually be picked)
+
+Picking keeps fully verified clones only. AMBIGUOUS carries the designed change plus a side indel, so its activity measurement would be mislabelled, and step 4 gates on strict PASS for the same reason. Choosing which copy of a well to believe is a separate question, and there the order is PASS, then AMBIGUOUS, then LOWDEPTH. A variant whose three barcodes all read AMBIGUOUS therefore got an AMBIGUOUS representative, and the plate map draws a representative the same way whether or not it passed. The sample showed a well as chosen that no picking path would ever take.
+
+The departure now lands on one barcode instead of three. The other two carry the plain substitution and pass, so a passing copy represents the variant and AMBIGUOUS stays where it belongs, in the replicate comparison. The variant that reads low-depth on its first barcode already had this shape. Coverage on the selected replicate is seven verdict classes rather than eight, which is the point: a class that cannot be picked is no longer displayed as picked. One variant still reads low-depth on all three barcodes and is still elected, left as it is pending the same decision.
+
+Loading the sample also announced a success it had not verified. Resolving a bundled resource joins a path and never touches the filesystem, so every file came back resolved whether or not it was there. Paths pointing at nothing were seeded into step 4, and the failure surfaced much later as a not-found from the sidecar. A development build whose resource copy predates the newer sample files reproduces it exactly. Each path is now checked before it is used: a missing required file names itself and stops, a missing optional one is listed and is not seeded. Two files that could already fail unreported are covered by the same list.
+
+Step 4 could also be disabled outright. A stored form record holding no paths says nothing about which project it came from, but the check demanded at least one path before adopting it, so such a record read as belonging elsewhere. Seeding then became a silent no-op and the build button stayed disabled for good. Both fixes carry tests that fail without them. The suite passed throughout because nothing in it asked whether the files were on disk.
+
+### Highlights
+
+- The sample no longer shows an AMBIGUOUS well as the chosen one. A passing copy represents the variant instead.
+- AMBIGUOUS is still there, on one barcode, where the replicate comparison is meant to show it.
+- Loading sample data now says which files are missing instead of reporting success and failing later in step 4.
+- Step 4 no longer receives file paths that point at nothing, so a build starts with inputs that exist.
+- A saved form with no stored paths no longer disables the step 4 build button permanently.
+
+## v0.16.42 (Three barcodes, and every verdict the pipeline can reach)
+
+Nanopore runs are sequenced in triplicate. The bundled sample was not. One native barcode carried eleven wells and every one of them passed, so two things an operator leans on stayed invisible: the replicate axis that decides which copy of a well is believed, and the failures that decide which variants go back to the bench.
+
+The sample now ships three native barcodes over one plate. NB01 through NB03 each hold the same sixteen variants and wild-type, and each is demultiplexed on its own before the pipeline picks the best copy per variant. The well count did not change, because it cannot. Both the layout reader and the verdict reader require one well per variant, since a variant sitting in two wells has no single well for its sequencing evidence to attach to. Triplicate is an axis across the plate, not a wider plate.
+
+G190A is what that axis is for. It reads low-depth on the first barcode and passes on the other two, so the run keeps a variant that a single pass would have sent back for a redo. Ten other variants are also settled by a barcode other than the first.
+
+All eight verdict classes now appear on the selected replicate: ten passes, and one each of AMBIGUOUS, FRAMESHIFT, LOWDEPTH, MANY, MIXED, NO_CALL and WRONG_AA. Every one of them is reached through the consensus sequence and the FASTA header alone. The classifier was not touched and no fixture was edited by hand, so what the demo displays is what the pipeline decided. Expected mutations, plate layout, verdict workbook, activity files and the Agilent workbooks were regenerated together, so the campaign still agrees with itself.
+
+Loading the sample also left two steps looking unfinished. Step 4 wrote its file paths under one project key and read them under another, so a scratch session seeded nothing at all, and a panel already on screen never re-read what had been written. The MinKNOW run folder has no bundled counterpart, because a raw run is far too large to ship inside a desktop download. That field now says so, instead of reading like a pick the operator left half-done. It stays empty, so nothing invented reaches the sidecar.
+
+### Highlights
+
+- Sample data is sequenced in triplicate now, across three native barcodes on one plate rather than a single pass.
+- One variant reads low-depth on the first barcode and passes on the other two, which is what a third copy is for.
+- All eight verdict classes now appear, so the demo shows the failures a reviewer has to act on and not only passes.
+- Step 4 file paths fill in when sample data loads, including scratch sessions where they were skipped in silence.
+- The run folder field explains that raw runs are left out to keep the download small, instead of looking unfinished.
+
+## v0.16.41 (One campaign, from the prediction to the plate)
+
+The two halves of the sample data named different variants. KURO opens on a round-0 EVOLVEpro prediction of twenty-four candidates and designs primers for the ones an operator picks. MAME opened on a plate of ten variants that shared none of them. Primers were designed for one set of substitutions while sequencing verdicts and activity were reported for another, so the demo walked through a campaign nobody could have run. Both halves already described the same protein, which is why nothing caught it: the plasmid coding sequence and the analyze reference translate to the same two hundred and thirty-nine residues.
+
+The plate is no longer written down anywhere. It is derived. The predictions name the candidates, KURO is run to see which of them it can build primers for, and the best-predicted survivors go to the bench. Eight of the twenty-four fail primer design, each for a stated melting-temperature or off-target reason, and a candidate whose primers do not design never reaches a well. The codons come from that same design, so the expected-mutation sheet states the codon the primers carry rather than one chosen beside them.
+
+Measured activity is deliberately not the prediction ranking. The best measured variant is not the top prediction, and three of the ten land below wild-type. A demo where the model ordered the assay perfectly would teach the wrong thing about what a round of screening is for.
+
+A test now reads the shipped files and states each link of that chain on its own: one protein, every plate variant predicted, the selection being the best buildable candidates, every reference residue matching, and the layout, verdict workbook and activity export naming one set. Run against the previous sample set it fails five of its seven checks, so it discriminates rather than passing on anything put in front of it.
+
+### Highlights
+
+- Sample data is one campaign now. The MAME plate holds variants the bundled KURO prediction proposed, instead of a separate list.
+- The plate is derived from that prediction by running the primer design, so a candidate whose primers fail never appears on it.
+- Expected-mutation codons come from the KURO design, so the sheet states the codon the primers actually carry.
+- Measured activity does not follow the prediction ranking, and three of the ten variants land below wild-type.
+- A new test reads the shipped files and fails if the KURO and MAME halves ever describe different experiments again.
+
+## v0.16.40 (Sample data that finishes the run it starts)
+
+Load Sample Data filled every screen up to step 4 and stopped there. The activity build requires a verdict workbook, no bundled file carried one, and the demo ended at "verdict_xlsx is required". Nothing in the bundle could produce one either. That workbook comes out of an Analyze run, and analysing needs a nanopore run folder, which is far too large to ship inside a desktop download. The sample set now carries the workbook a real Analyze run wrote, so step 4 finishes without a raw run being bundled to make it.
+
+The plate the samples described could not have been built from in any case. Each variant sat in three wells, and both the layout reader and the verdict reader require one well per variant: a variant in two wells has no single well for its sequencing evidence to attach to. Every step 4 input combination stopped at that check. The bundled plate now seats each variant once.
+
+The variant list also disagreed with the sequence it is scored against. Positions were numbered against avGFP while the shipped reference is EGFP, which already carries two of the substitutions the list asked for, and no primer can introduce a substitution that is already there. Ten positions replace them, each numbered against the shipped sequence and each holding the residue the list claims.
+
+The Analyze screen showed hand-written constants describing a different plate than every other sample file named. It now shows the bundled fixture, which a real pipeline run produced over the same variant list, plate and reference that step 4 then builds from.
+
+Four files cover input formats that had no example at all: raw-scale measurements with the wild-type rows that normalise them, variant-labeled measurements that need no plate layout, and a numeric-ID confirmation report whose identifiers count the subset it re-measures. A generator writes all of it and refuses to finish unless all ten step 4 input branches accept what it just wrote.
+
+### Highlights
+
+- Sample data now finishes a step 4 build. The bundled Analyze workbook supplies the verdict evidence every build requires.
+- No nanopore run folder is bundled. The screen shows a run a real pipeline produced, and that same run feeds step 4.
+- The sample plate seats each variant in one well, so the layout and verdict readers accept it instead of refusing a repeated variant.
+- Sample variant positions are numbered against the shipped EGFP reference, replacing a list numbered against a different protein.
+- Four new sample files cover raw-scale, variant-labeled and numeric-ID confirmation inputs that had no example before.
+
+## v0.16.39 (Controls that were never sent, and readouts that filled their own gaps)
+
+A second pass over one bug class: what the operator asked for did not reach the code that acts on it.
+
+Five MAME raw-run controls were serialized only by an action nothing ever called. Setting a Q-score filter or a target amplicon length changed the screen and nothing else. Those controls are gone, together with the orphaned action and the RPC registration behind it. The GC clamp had the mirror-image problem. It gated the preferred match while every candidate still entered a fallback pool ordered by melting temperature alone, so a primer that broke the clamp could still come back from a run that required it.
+
+Two policies decided the answer without saying so. The MAPQ threshold was fixed at 25 while the parameter it belongs to declares a 0 to 60 range, and it is a control now. The EVOLVEpro mismatch threshold that blocks an export and the next-round capacity that moves the advisory recommendation are on screen for the same reason.
+
+Stale primers used to survive the settings that produced them. Changing a melting-temperature target, a GC range, a polymerase or a diversity setting left the previous run on screen and available to export. Design inputs now invalidate through the shared change-sensitive boundary that the analyze side already used.
+
+Missing numbers used to render as confident ones. An absent synthesis score painted a green 100, an absent run-health measurement plotted at zero, and a restored workspace invented an EVOLVEpro score of 0 even though 0.0 is a real fitness value. Each reads as unavailable now. A failed save, a failed export and an unreadable manifest no longer report success, and a corrupt manifest is kept rather than overwritten.
+
+### Highlights
+
+- Five MAME raw-run controls that were never sent are gone, so a Q-score filter or target length no longer looks set while doing nothing.
+- Require GC clamp now binds every candidate, not the preferred match alone, so a primer cannot break the clamp a run asked for.
+- The MAPQ threshold is a control instead of a hardcoded 25, and the EVOLVEpro mismatch limit and next-round capacity are visible too.
+- Changing a Tm target, GC range, polymerase or diversity setting clears the previous primers instead of leaving them exportable.
+- A missing synthesis score reads as unavailable rather than a green 100, and a missing run-health measurement no longer plots as zero.
+
+## v0.16.38 (The retry that changed its geometry, and the validation that described another run)
+
+A failed full-overlap design could be retried as partial overlap without the operator asking for it. `RetryFailedParams.overlap_mode` had a `partial` default, while every retry omitted the field, so validation accepted the request and the UI continued to say full overlap. The field is required now. Retrying also carried primer-length bounds after their limit was switched off, and the substitution stages then used their own 62/58/42 °C and 40/60 % defaults instead of the selected Tm and GC values. The suggestion code read `tm_no_overlap`, which is not on the wire; it now reads `tm_overlap`, rather than silently suggesting the default target. In full-overlap mode the displayed 17–39 nt range became 19–27 nt after the engine intersected separate forward and reverse bounds; the displayed range is now sent to both axes.
+
+The same gap appeared in MAME where a value shown to the operator was not the value the sidecar used. `minFilteredDepth` displayed 15 but the handler applied 30. It now travels as `min_read_count`, matches its displayed default, and survives a reload. Validate and run had independently assembled their payloads, with different `cds_start` and `wt_placement` values possible, so validation could approve a run other than the one it described. They now use one builder. Review also caught a regression introduced while rewrapping the handler's `try/except`: `remeasure_numeric_xlsx` had been dropped, which would have exported primary measurements where numeric confirmation values were required. It is forwarded again, and the regression test compares the complete forwarded mapping so another missing argument fails rather than exporting plausible but wrong output.
+
+Reloading a workspace also treated absent disabled domain/Pareto diversity controls as enabled. That state now remains disabled, and liquid-handler volumes and quadrants, the structure source, and the MAME variant sheet and column persist. Barcode-package requests no longer send `expected_mutations_path`, `variant_sheet`, or `variant_column`: the core had deleted those unused parameters while still documenting them as accepted. Labels in all ten locales now describe the limits the backend actually applies, including auto-relax widening that caps can reduce to zero and a seed tooltip that claimed pending backend integration.
+
+### Highlights
+
+- Retry requests now preserve the selected overlap geometry, primer limits, Tm and GC settings instead of falling back to defaults.
+- Full-overlap primer ranges now match the bounds the engine receives, rather than narrowing a displayed 17–39 nt range to 19–27 nt.
+- MAME minimum filtered depth now matches the applied value and survives reload.
+- MAME validation and run share one payload, so validation describes the run that will execute.
+- Reloading keeps disabled diversity controls disabled and preserves liquid-handler, structure, and variant-list settings.
+
+### Fixed
+
+- `RetryFailedParams.overlap_mode` defaulted to partial while every retry omitted it, changing a full-overlap retry's geometry without changing its label. The field is now required.
+- Retry substitution stages discarded the operator's Tm and GC settings for model defaults of 62/58/42 °C and 40/60 %, and retained length bounds after the length limit was disabled.
+- `suggestRetryParams` read the absent `tm_no_overlap` field instead of `tm_overlap`, silently using the default overlap target.
+- MAME displayed a minimum filtered depth of 15 while the handler used 30. The applied `min_read_count` now matches the display and persists.
+- Separately built MAME validation and run payloads could disagree on `cds_start` and `wt_placement`; both are now built together.
+- A `try/except` rewrap dropped `remeasure_numeric_xlsx`, which would have exported primary measurements where numeric confirmation values were required. The complete forwarded mapping is now regression-tested.
+- Disabled domain/Pareto diversity controls restored as enabled, and liquid-handler, structure-source, variant-sheet, and variant-column values were not restored.
+- Labels across all ten locales stated fixed auto-relax widening despite backend caps, and said seed integration was pending although it already existed.
+
+### Removed
+
+- `expected_mutations_path`, `variant_sheet`, and `variant_column` from barcode-package requests and the core signature, because the core had deleted their unused handling while the request still accepted them.
+
+## v0.16.37 (Four switches that could not be honoured, and one number that disagreed with itself)
+
+The previous release found six Settings controls that stored a preference and changed nothing, implemented two of them, and left four disabled with a notice. Reading the frontend standards that govern this repository turns two of those four into controls that must not be built at all, and measuring the other two turns them into controls not worth building. So they are gone rather than pending.
+
+Section 10 of the standards makes zero outbound telemetry a release-blocking requirement, and the charter changelog records external diagnostic transmission being dropped on purpose in favour of the local zip that section 16 asks for, which the Run menu already writes. Two opt-in flags in Settings offered exactly the thing that was dropped. Leaving them visible was worse than removing them: a disabled control reads as a feature waiting to be switched on, and this one would have broken the standard the day it worked.
+
+The cancel timeout offered anything from 5 to 120 seconds before a force-kill, and both ends of that range are fixed rather than open to preference. Section 22 requires a 5 second SIGKILL fallback and section 1 requires cancel to finish within 5 seconds, so a user-set 120 would break both. It also described a sequence that exists in neither sidecar. KURO cancels cooperatively, and the worst wait measured is 0.06 s. MAME kills the process and respawns it, which on a frozen Windows build is the only option available, since analyze runs on the main thread there.
+
+Reading section 22 closely enough to decide that turned up a number disagreeing with itself. The Rust helper documents itself as a 5 second fallback, the standard requires 5, and the one caller passed the literal 2. It is a named constant now.
+
+The concurrency setting capped a parallel design pool that does not exist. Removing the inert setting makes the interface reflect the execution model.
+
+A preferences file written by an older build still holds the removed keys. Both sides ignore keys they do not know, so an upgrade keeps every other preference rather than falling back to defaults, and both sides now carry a test that says so.
+
+### Highlights
+
+- Two telemetry opt-ins are gone: the standards make zero outbound telemetry release-blocking, so they could never have been switched on.
+- The cancel timeout is gone: the standards fix that wait at 5 seconds, and no cancel path waits before killing in the first place.
+- Shutdown now waits the 5 seconds the standards require and the helper already documented, instead of the 2 its caller passed.
+- The concurrency setting is gone: a full plate designs in about two seconds, so there is no pool for it to cap.
+- Settings written by an older build still load, keeping every preference that still exists.
+
+### Removed
+
+- Settings controls for concurrency, cancel timeout, crash log auto-send and anonymous usage statistics, along with the Telemetry tab and the matching fields in the settings model.
+- The MAME `cancel_analyze` dispatcher entry, which reported success without cancelling anything. Nothing called it; cancelling a MAME run kills the sidecar and respawns it.
+
+### Fixed
+
+- Shutdown passed 2 seconds to a graceful-kill helper documented as a 5 second fallback, below the value the frontend standards require.
+
+### Changed
+
+- The inactive-settings registry is kept and empty. A setting that cannot be honoured yet still belongs there, disabled and labelled, and the contract test still compares it against the settings model.
+
+## v0.16.36 (A box that was unchecked, and a floor that moved anyway)
+
+The primer-length floor and fill-on-failure control were not respected by every rescue path. The request sent auto_relax as a constant, so the sidecar could lower the requested length floor even when the checkbox was cleared.
+
+The relax pass itself was deliberate, added in v0.16.34 so a primer stuck at its shortest allowed length has somewhere cooler to go. What was missing is the two limits on it. The box now gates it, along with the pool cascade, and the absolute floor is 18 nt rather than 15, which is where the bench rule puts it. Floors above 18 still move when the box is checked, since that is what checking it asks for.
+
+The bench also writes primers in a stated order: length of at least 18 nt first, then as close to the target melting temperature as the sequence allows, and between two candidates about equally close, the cooler one. The first two were already in the engine. The third was not, so a near-tie fell to whatever order the search happened to produce. Distance to the target now carries a surcharge when a primer runs hot, which makes a hotter candidate win only when it is meaningfully closer, and the same score drives the per-side extension search so the cooler solution is offered rather than merely preferred afterwards.
+
+Auditing the rest of the application for controls of the same shape, a box that stores a preference and gates nothing, turned up six more in Settings. The four per-service consent switches wrote their flag into the preferences file and nothing read it: every external call went through one global consent flag, so unchecking NCBI BLAST left BLAST running. Each external entry point now names the service it is about to call, and BLAST, which is the secondary step inside UniProt search rather than an entry point of its own, is narrowed away instead of refusing the search. Keep partial results was the advertised default of the cancel control while cancelling discarded everything, so stopping a run at 90 of 96 mutations threw away all 90.
+
+The remaining four have nowhere to land. Designs run one mutation at a time, so there is no parallel job pool for a concurrency number to cap; the only graceful-kill callers pass a literal two seconds and no Rust code reads the preferences file at all; and nothing sends crash reports or usage data. Those controls keep their stored value but are disabled and labelled, so the dialog states what is true.
+
+Two guards keep this from recurring quietly. One requires every field of the settings bundle to be declared either wired, naming the file that acts on it and a string proving the file still does, or inert, naming why not. The other looks for a request flag pinned to a boolean literal, which is the shape no consumer check can see, since the control in question had consumers all along.
+
+### Highlights
+
+- A run pinned to an 18 nt primer floor no longer returns 17mers, and the fill-on-failure box now gates every rescue the run attempts.
+- Primer ranking follows the bench order: at least 18 nt, then closest to the target Tm, and between two equally close, the cooler one.
+- The four per-service consent switches now refuse the service they name instead of only being stored.
+- Cancelling a design keeps the primers it already produced, which is what the cancel setting has always said it would do.
+- Settings that nothing reads are disabled and labelled rather than left looking active.
+
+### Fixed
+
+- The design request carried auto_relax as a constant, so the sidecar relax pass ran with the fill-on-failure box unchecked and lowered the primer length floor below the requested one. The pool cascade was sent unconditionally for the same reason.
+- The absolute floor the relax pass clamps to was 15 nt, below the 18 nt the bench treats as the minimum. The retry suggestion could propose a floor below 18 for the same reason.
+- Ranking scored the distance to the target melting temperature symmetrically, so a candidate above target and one below it, equally far away, were separated by search order rather than by preference.
+- The per-service consent switches were stored and never read. Enforcement was a single global flag, so switching one service off changed nothing.
+- Cancelling a design discarded every primer already produced, regardless of the cancel setting, whose default says to keep them.
+- The consent checkboxes rendered as unchecked over a settings model that defaults each of them to on, so a fresh install showed the opposite of what was stored.
+
+### Changed
+
+- The six general polymerase profiles and the engine fallback floor the forward primer at 18 nt rather than 17.
+- Four Settings controls with no implementation behind them are disabled and carry a notice, rather than appearing to work.
+
+## v0.16.35 (The run that scores three plates, or one, depending on a checkbox)
+
+MAME gained a capture harness that walks the user guide screens using sidecar output from user-supplied inputs. Captures containing experimental data are excluded from the public snapshot.
+
+The KURO harness could not be reused as it stands. It injects store state, which works because the dev build exposes the KURO store on the window; the MAME store is not exposed, and exposing it would mean changing the application to take a picture of itself. So this one clicks instead. It picks the files, presses Validate, presses Run, approves the pre-flight, confirms the replicate axis, and walks the steps. Every panel it photographs was filled by the same handler an operator triggers.
+
+Leaving the native-barcode selection empty pools replicate plates. The capture harness preserves the barcode selection returned by the detection RPC so replicates are scored separately.
+
+The second is in the harness. Replies were keyed by method name alone, and both sidecars define `health_info` and `export_janus_mapping_dry_run`. A MAME screen could have been served a KURO answer with nothing raising. Replies are keyed by sidecar and method now, and a missing one names both.
+
+The recorded analyze reply is delayed by the duration measured by the sidecar capture. The review screen can therefore display that duration when replaying the capture.
+
+### Highlights
+
+- MAME has a capture harness that walks the wizard using recorded sidecar output.
+- The capture drives the wizard by clicking it, so every frame is a screen the application actually reached.
+- Recorded sidecar replies are keyed by sidecar as well as by method, so a MAME screen cannot be served a KURO answer.
+
+### Added
+
+- `scripts/gen_mame_capture_data.py` drives the built MAME sidecar over JSON-RPC against a real run and records every reply, including how long the analyze took.
+- `scripts/capture-mame.ts` walks the MAME wizard in MOCK_MODE and writes twelve frames with their captions. A `--harvest` pass reports every missing reply in one run instead of one per attempt.
+
+### Fixed
+
+- The MOCK_MODE stub keyed recorded sidecar replies by method name only. Two method names are defined by both sidecars, so the wrong one could have been served with nothing to say so.
+
+## v0.16.34 (A primer at its shortest cannot get any cooler)
+
+The rescue cascade widened Tm tolerance but did not shorten primers already at the configured length floor. Some sites therefore remained without a usable primer pair.
+
+A rescued primer must remain compatible with the annealing program used by the rest of the plate.
+
+Allowing the length floor to relax gives the designer additional candidates. The existing score then ranks those candidates alongside the others.
+
+The floor never goes below 15 nt, and it is read from the polymerase profile before anything is taken off, because a caller normally leaves lengths to the profile and there is nothing to subtract from otherwise. The fallback lengths now have names in the engine, so the two files that need to agree on them read the same constant.
+
+### Highlights
+
+- Mutations whose primer is already at the minimum length are recovered, instead of being reported as having no valid pair.
+- The recovered primer anneals with the rest of the plate rather than well above it, because shortening is an option now.
+
+### Fixed
+
+- The automatic relaxation pass widened melting temperature and GC only, so a mutation whose reverse primer sat at the length floor had no route to a valid pair and was reported as a failure.
+- The primer length fallbacks were spelled as bare numbers in two files. They are named constants in the engine now, and the rescue pass reads them rather than carrying its own copy.
+
+Fixes that shipped under this version, from the audit of reachable error cases:
+
+- A JSON-RPC request could carry bare `NaN` or `Infinity`, which the Python parser accepts and no other implementation emits. A threshold given one of those made every comparison against it false, so a gate reported that reads had passed rather than that it could not decide.
+- Plate chunking counted to 96 while well assignment divided by the capacity a mapping range had set, so a second plate joined the first chunk and an order sheet named two different primers for one physical position.
+- Swapping a reverse primer moved five of the twelve fields that belong to one direction, so the record carried a new sequence beside the hairpin, homodimer, synthesis, tolerance and off-target numbers of the primer it replaced. The commit path had the same list with no swap gate, and the store repeated only four of the fields.
+- An explicitly empty mapping payload was read as no payload at all, so the stored plate map was published in its place and the manifest recorded the wrong source.
+- The entropy weight had a floor and no ceiling on one of its two entry points. An infinite weight collapsed the score comparison, and a request for three variants came back with one.
+- A run with no sequencing summary skipped the quality gate entirely: `min_qscore` was accepted and ignored, the filter tally went out empty, and the reads it was asked to drop stayed. In legacy mode the reads were never removed even with a summary present, while the tally reported them as failures.
+- A run report bound of `inf` raised `OverflowError` and took down the whole run folder, and non-finite bin edges reached N50 and the length shares.
+- An unreadable position cell in a designed row was read as position 0, and a well claimed twice by different primers read as agreement between the two plate readers.
+- Cached run flags were read with `bool()`, where the string `"false"` is true.
+- The structure parsers accepted `nan` and `inf` and passed them to the distance computations, and one of them raised an uncaught error on a malformed sign, against its own documented contract of skipping malformed records.
+- Unknown fitness scores were substituted with zero. Zero is a measurable fitness on that scale, so an unknown was ranked against real measurements.
+- An unreadable input was dropped from the run manifest rather than recorded as unreadable, which left it indistinguishable from one never supplied.
+- The memory guard failed open when it could not measure, silencing its own warning and block thresholds for the life of the process.
+- Concurrent writers of one output shared a staging name, so a publish could fail with a missing file.
+- A reverse-strand CDS was offered with forward coordinates, cross-talk reported a pass at sample sizes where its statistic cannot reach its threshold, and `A0` and `A13` were accepted as wells.
+
+Known, and not fixed in this release: after a reverse primer is swapped, the annealing temperature shown for other mutations at the same position is not recomputed. `compute_annealing` takes both primers, so a neighbour depends on its own forward primer, which the store cannot derive. The exported workbooks do not carry that column.
+
+## v0.16.33 (The decode reads the same plate the run did)
+
+A variant list can state the well of every row, and the run places its occupants on exactly those addresses without arithmetic. The numeric-ID decoder did not follow. It read the variant column alone and recomputed the wells from residue position, so a list whose wells are not column-major had its report decoded against a plate the run never used.
+
+Checking that turned up a second defect in the same function, and a worse one, because it meant the path never worked at all. A well has two spellings in this codebase, and one function answered the wrong one. The plate reader and the verdict sheet write A01, while the sequence helper writes A1. Those are one well to a person and two different strings to the gate that compares the well a variant was measured in against the well the verdict names for it. So every build that took its order from the designed variant list, the source the module documents as the one to prefer, was refused for a conflict that did not exist. The refusal named a variant and two wells that look the same when read aloud.
+
+Both are fixed together. A stated well is taken as given and only put in plate order, which is the order the bench fills tubes and therefore the order a numeric position counts in; file row order is not consulted, since a list that states its wells is free to list its rows in any order. Without that column the previous arithmetic stands, which is the same placement the run computes on that path. And wells leave both order sources in one spelling.
+
+One existing test pinned the wrong spelling. It carries the reason now, because a test that pins a defect is how the defect survives.
+
+### Highlights
+
+- A numeric-ID report is decoded against the wells a variant list states, rather than wells recomputed from residue position.
+- Taking the plate order from the designed variant list works at all now. It was refused for a well spelling that differed by one zero.
+- A list that states its wells may list its rows in any order, and the placement it declares is what the decode uses.
+
+### Fixed
+
+- `expected_variant_order` ignored the `well` column a variant list can carry since v0.16.32 and recomputed the placement from residue position, decoding a report against a plate the run never used.
+- The same function spelled a well `A1` where the layout reader and the verdict sheet spell it `A01`, so the strict NGS gate refused every build whose order came from the designed variant list, naming a conflict between two spellings of one well.
+
+## v0.16.32 (The plate says where each variant sits)
+
+A well address was nowhere in the data. It existed as an implicit contract, row order, and that contract produced every defect fixed here. An implicit contract cannot be checked: any permutation of 96 rows looks like a normal plate, so a failure is always silent. Each consumer re-derived the placement in its own way, and every re-derivation was another chance to disagree. People re-derived it too. The template this repository ships was rejected by the reader it ships beside, and one fixture described a different plate from itself.
+
+A variant list can now carry a well column. Where that column is present it is the only authority on placement and row order is not consulted. A blank variant cell is not a refusal but a well this campaign leaves empty, and a stated well means no control is invented, so capacity is a full 96. Duplicate wells, coordinates off the plate, and a row carrying a well and nothing else are refused with the row number and the value. A01 and A1 are the same well, and one module owns that normalization.
+
+The app issues that file. A template button writes a 96-row workbook with the wells already filled in and the control in the last well, and an operator returns the same file with the variant column completed. The wells come from the sidecar rather than being assembled in the interface.
+
+Where the control well goes is now a choice, and the default is the last well of the plate. A row ordinal is not a well address: a 40-mutant list used to put the control in A6, which is not where the bench pipettes it, so the control of such a run was likely never scored. The former rule is still available by name, and a plate with no control at all is a third option.
+
+That choice reached the preview and stopped there. Picking anything other than the default left the preview and the scoring looking at different plates, and the worklist was the dangerous one of the three, because the bench pipettes from it and it named wells nothing would score. All three surfaces now resolve the same placement through one function, and a test holds them to the same wells.
+
+Three reader defects fell out of the same cause. The control row is a plate occupant rather than a design row, and filtering it by status alone rejected both shipped workbooks, Load Sample Data included. A headerless file dropped its first variant in silence while every other misalignment was refused by row number. And the plate-order check recomputed wells from ordinals, counting a row the plate sheet does not carry and renumbering everything after a gap; it now reads the placement the run itself uses and compares by well.
+
+The KURO Echo and JANUS plate views were measured in the engine that ships, with the markup that ships. Lifting the width cap alone grew the cells and left the type behind, so the type now scales with the cell through the same container query the MAME plate already uses, against a shared cell ceiling. Label truncation is zero across 700 to 1900 px, and destination cells match Echo cells at 1.00x rather than twice their size.
+
+### Highlights
+
+- A variant list can state the well of every row, and where it does, that is the placement. No row order is inferred.
+- A template button writes the workbook with all 96 wells filled in, so only the variant column is left to complete.
+- The control well is a choice and now defaults to the last well of the plate, where the bench actually pipettes it.
+- That choice now reaches the run. The worklist, the preview and the scoring name the same wells instead of drifting apart.
+- The plate views scale their type with their cells, so labels no longer truncate at any window width.
+
+### Added
+
+- A `well` column on the variant list, and `export_variant_template`, which writes a 96-row workbook with the wells already stated and the control in the last well.
+- `wt_placement` accepts `last_well` (the default), `after_last_variant` (the former rule) and `none`, resolved by one function shared by the worklist, the well layout and the run.
+- A test that walks every plate workbook this repository ships through the reader it ships with, collected by glob so a new asset is covered on arrival, and guarded against passing on an empty set.
+
+### Fixed
+
+- The shipped template and the bundled sample were refused by kuma own reader, Load Sample Data included, because the wild-type row was filtered as a design row rather than read as a plate occupant.
+- A headerless variant file dropped its first variant without saying so, where every other misalignment is refused with the row number.
+- `check_plate_order` recomputed wells from ordinals, counted a row the plate sheet does not carry, and renumbered every row after a gap. It now compares against the placement the run uses, keyed by well.
+- The demo workbook described a plate it did not have, 96 variants with no control, and named its mutants differently from its own primer list.
+- The destination plate legend named three colours where two exist and stated the wrong one for a partial pick, filled JANUS cells could not be reached by keyboard, and the forward and reverse tags used a card token that disappeared on a coloured well.
+- Eight export-format fields reached the screen in English through a keyless fallback, now translated in ten locales, and the expected-mutations document named sheets and metadata fields that do not exist.
+
+## v0.16.31 (Numbers instead of names)
+
+Step 4 supports Agilent block reports with numeric sample names. A whole-plate screen numbers variants in plate order; replicated confirmation numbers the selected subset and adds replicate suffixes. Those names encode positions rather than variants.
+
+kuma already held the decoder for exactly this, and nothing called it. Reaching it from the app was impossible, so the confirmation of a round could not be merged with its screen at all. Handing that file to the variant-labeled path was worse than a refusal: the sample names that are bare numbers read as calibration rows and were dropped, taking one replicate of every variant with them, and the rest were rejected as labels that are not variants.
+
+Both files are now step 4 sources. A numeric name states a position rather than a label, so decoding one needs the order the plate was filled in, and the designed variant list states it: the same list the analyze step reads, with nothing transcribed by hand. The plate file still works for campaigns that predate it. Exactly one of the two, because both at once leaves the answer ambiguous.
+
+The confirmation is indexed against the variants the screen put above wild-type, in plate order, which is the selection the bench performs. A file covering a different set produces a count that cannot be placed, and the build stops and names the two counts rather than attaching a measurement to a neighbouring variant. That refusal now stays on the screen instead of only passing through as a notification, since the sentence naming the counts is the point of refusing.
+
+Replicate counts are read rather than assumed. Each position contributes the replicates its own sample names declare, so a position measured once and a position measured five times both go through, and a replicate number written twice keeps both areas: a mislabelled replicate is a numbering slip, not a lost injection.
+
+The export combines the primary screen with replicated confirmation values and flags disagreements above the configured threshold.
+
+### Highlights
+
+- Step 4 reads the Agilent reports whose sample names are numbers, both the whole-plate screen and the replicated confirmation.
+- A replicated confirmation is merged into the screen it belongs to, replacing those values and flagging the ones that disagree.
+- Numeric positions are decoded against the designed variant list, so no plate file has to be transcribed by hand.
+- A confirmation covering a different set of variants is refused with the counts named, rather than labelled with the wrong ones.
+- The replicate count is whatever a file carries, from one measurement to as many as the run made.
+
+### Added
+
+- `numeric_report_xlsx` and `remeasure_numeric_xlsx` join the step 4 sources, decoded through `kuma_core/mame/activity/numeric_id_decode.py`. `expected_xlsx` or `layout_xlsx` supplies the plate order, exactly one of the two. `decode_confirmation_against` splits the confirmation decode so the screen it is indexed against does not have to be numeric itself: a well-labelled sheet states one relative activity per well, which is all the subset needs.
+- `DecodeResult` carries the WT block areas, so a numeric screen reports the assay spread the round records beside the workbook.
+
+### Fixed
+
+- A wild-type well is no longer counted as a measurement absent from the well mapping. It is the well the sheet normalizes against, named as WT by whichever source states the placement.
+- A build error stays on the step 4 panel until the next run instead of only appearing as a notification that clears itself.
+
+## v0.16.30 (One less file to hand over)
+
+Step 4 refused to accept GC data or a raw Agilent report without a plate layout xlsx. That file answered one question: which variant sat in which well. The Analyze verdict workbook the same screen already requires answers it too, stating a mutant_id beside every well_id, and the strict NGS gate has been reading it all along to cross-check the layout. The field is now optional, and leaving it empty derives the mapping from the verdict sheet.
+
+The reason it was ever manual is that the artifact carrying it went away. kuma computes the plate placement itself and used to ship it out of the barcode package as a sample map sheet, which schema 2 dropped. Nothing replaced it, so an operator was asked to restate by hand what the app had already decided one step earlier.
+
+A layout file still takes precedence when supplied, and the check that refuses a layout disagreeing with the verdict identities is unchanged, so a bench declaration written independently keeps its value as a second opinion. What changes is that supplying one is a choice rather than a toll.
+
+A measured well the mapping does not name no longer stops the build. Under the derived mapping that is a well whose run produced no replicate result, so no PASS evidence could ever stand behind the measurement and the NGS gate would drop it one step later regardless. It is counted as an unmapped_well exclusion and named in the warnings instead.
+
+### Highlights
+
+- Step 4 no longer demands a plate layout file: leave it empty and well positions are mapped through the Analyze verdict sheet.
+- A layout file still wins when supplied, and the check against the verdict identities behind it is unchanged.
+- A measured well with no NGS result is counted and named rather than failing the whole build.
+
+### Changed
+
+- The plate layout xlsx is optional for the well-labeled Step 4 sources. `build_evolvepro_input` resolves one well to variant mapping for every source: from the layout sheet when given, otherwise from `well_id` and `mutant_id` in the verdict workbook, which this call already requires. The request contract no longer refuses the combination up front, since whether the derived mapping covers the measured wells is a data question the builder answers.
+- A measured well absent from the resolved mapping is reported rather than fatal. It becomes an `unmapped_well` count in the exclusion reasons and a warning naming the wells, replacing the error that ended the build.
+
+## v0.16.29 (What the tests were not looking at)
+
+Eight surfaces of this codebase were read for reachable failure cases, one surface at a time, and 277 of them were confirmed. Ten audit pages record the findings; a re-verification pass overturned six, which are marked where they stand rather than deleted, because a finding that did not survive is worth as much to the next reader as one that did. The fixes here address causes rather than sites.
+
+Most of the volume falls into two shapes. A guard meant to reject a value that is not a number instead tests a relation, and a relation involving NaN is false, so the guard opens. And an invariant is enforced where it was first needed while a second path arrives at the same state with nothing checking it.
+
+One of those cost sixty seconds per occurrence and looked like something else entirely. Python writes a bare NaN into JSON, the Rust side refuses the line, the reply never arrives, and the caller reports an RPC timeout. A single cell that could not be computed anywhere in a result read as a dead sidecar. Serialisation now refuses a non-finite value, walks the object to name the path that carried it, and answers that request with an error naming it. Nothing is substituted. A number the pipeline could not compute is not quietly replaced by one a chart will happily draw.
+
+Decision confidence had the same defect one layer up. The bootstrap used a signal set wider than the point estimate. Aligning the two makes confidence describe the decision actually reported and can change whether the advisory defers.
+
+The largest finding is what the test suite was not looking at. A skip meant to spare machines without the aligner was written across the whole Python suite: absent that one binary, the run reported nothing passed and 1301 skipped, and reported it as success. Windows had no coverage at all. Narrowing the skip to the tests that need the binary turned up 29 real failures on that platform, two of them defects in shipped code that no run on Linux or macOS can reach. Every artifact publish raised an error on Windows, because the publisher asked the operating system to flush a file it had opened read-only, which POSIX permits and Windows refuses. And the checksum file written beside every export, the one meant to be handed to an external checker, picked up a carriage return, so the checker reported a missing file while looking straight at it. This application ships to Windows.
+
+Release stamping now fails where it used to continue. A four-part version label was truncated by one step, which exited early, which skipped regenerating the release notes, and the guard downstream compared substrings and saw nothing wrong, so locales shipped carrying the wrong release. The translation checker was rebuilt before any translation was touched, so what it now catches is a placeholder dropped or renamed against English, an interpolation the calling code supplies under a different name, and a value that is blank rather than translated.
+
+Why none of this failed a test before: the tests were written against the implementation rather than against the contract. A cross-talk test pins a threshold at five because the code says five, while the reachable value is nine. A volume test supplies zero, which separates no two behaviours. A suite written that way agrees with the code by construction, including where the code is wrong.
+
+Two questions are recorded rather than answered, because both need a decision about the assay rather than about the code: whether activity error is additive or multiplicative, which is what settles the unit mixing in the scale, and the bias in the bootstrap, which needs the resampling redesigned rather than patched.
+
+### Highlights
+
+- A value the pipeline could not compute now names itself instead of surfacing sixty seconds later as a connection timeout.
+- A decision confidence is reported only when it was measured, and the estimate and its error bars now read the same signals.
+- The test suite runs on Windows, where a single missing tool used to skip all 1301 tests and report success.
+- Two defects that only Windows can reach are fixed: every export bundle failed to publish, and every checksum file was unreadable.
+- A translation that drops or renames a placeholder is caught before release, rather than reaching the screen with a blank in it.
+
+### Fixed
+
+- A non-finite number in a sidecar result no longer presents as a transport failure. `kuma_core/shared/sidecar.py` serialises with `allow_nan=False` and, when that refuses, walks the payload to list the offending paths and answers the pending request with `-32603` naming them; a notification instead goes to stderr, since it has no id to answer. `src-tauri/src/sidecar.rs` fails the pending request when it can recover the id unambiguously, giving up if the line carries more than one, so the sixty-second timeout is no longer the first sign. No value is coerced or replaced.
+- Every Step 3 artifact publish failed on Windows. `_publish_artifact_bundle` reopened each staged file read-only and asked for its buffers to be flushed, which needs a writable handle on that platform and answers with a bad file descriptor. Opening read-write keeps the intent and truncates nothing. This was invisible while the whole Python suite skipped there.
+- The checksum file written beside an export was unusable on Windows. It exists to be read by `shasum -c` and `sha256sum --check`, both of which treat everything after the two spaces as the filename, and text-mode writing appended a carriage return to it, so the checker reported a failure to open a file sitting in the same directory. A new test reads the raw bytes, because reading it as text hides exactly this.
+- A decision confidence computed from an unusable bootstrap no longer selects a branch. `classify.py` gains an input check that matches the computation it protects, a threshold that refuses a non-finite value rather than opening the gate, and finiteness checks on the activities, whose absence made one bad value change the answer depending on list order. The point estimate and the bootstrap draws now use one signal set.
+- A restored workspace group is read whole or not at all. `readKuroDesignOutcome` sits beside the writer it mirrors, and the export slice clears its table and its counts together rather than leaving one populated after the other is emptied.
+- The raw sidecar transport is no longer reachable from feature code. Twelve call sites went around the validated client and cast the reply to a type nothing checked, including one method absent from the dispatcher table entirely, so no validator existed to skip. The export was renamed and a test scans the source tree to keep it closed, this repository having no lint configuration to carry the rule. The same change cleared an unhandled promise rejection raised once per failed request.
+- Three assertions in the guided tour tests read the DOM synchronously after a click that changes state, and lost that race under load.
+
+### Added
+
+- A translation gate that checks what it claimed to. `scripts/i18n-parity.mjs` now catches a placeholder dropped or renamed relative to English, an interpolation the calling code passes under another name, a null or whitespace-only value, and it holds a per-locale count of untranslated strings that may fall but not rise. Sixteen strings had lost the placeholder naming the wait, thirty-three German ones had their identifiers translated along with the prose, and one relative-time string had been migrated on one side only, which rendered a literal NaN rather than a number.
+- A skip that names the binary it needs, so the suite runs where the application ships. With the aligner absent, the Python suite goes from nothing passed and 1301 skipped to 1239 passed and 62 skipped.
+- Ten audit pages recording all 277 findings by surface, including the six the re-verification pass overturned and why.
+
+## v0.16.28 (What a run measured and never showed)
+
+RunHealthPanel has six sections and the app mounted one. A comment on the review screen said the other five lived in the QC inspector, which never imported the panel. File size, throughput, pore yield, barcode distribution and cross-talk were computed on every run and dropped on the floor. They now sit in a disclosure at the bottom of the review, closed until it is opened, so the verdict table and the plate keep the screen.
+
+Coverage reached that screen as a mean. A well covered evenly at 100x and a well averaging 100x across a gap are the same number under that summary, and the gap is the one that decides whether a base call can be trusted. Five figures now come off the same per-position depth vector the mean is computed from: the coefficient of variation, the tenth percentile, the lowest covered position, the breadth at the depth the mixed-allele rule needs, and the identity of the consensus against the reference. None of them means zero when it is absent. Absent means not measured, and a measured zero is a real reading, which is why the five gate independently rather than behind one guard.
+
+Read-length QC now uses the instrument report. Each N50 retains its entry label and missing labels stay missing. Histogram fractions are base-weighted and remain null unless the report states the supported unit. Plot and outlier buckets describe disjoint read sets even when their ranges overlap, so they are not concatenated. The N50-to-reference ratio is reported without a grade because both concatemers and deliberately longer amplicons can raise it.
+
+A reference FASTA holding two records was accepted by four readers, each in its own way. The amplicon reader dropped every header line and joined the rest, so a file carrying a plasmid backbone and a target gene came back as one sequence with a junction present in no molecule, and every span, coordinate and verdict was computed against that chimera. The reader on the raw run folder path, the one every well of a MinKNOW run passes through, silently kept whichever record sorted first. The judgement now lives in one module that all four call, so the same file is refused the same way with the same sentence naming the records it holds.
+
+An extracted amplicon with no forward ORF reported its coding bounds as (0, 0), which is also what the branches that never attempted extraction report. Downstream that pair does not read as unknown: the start stays at zero and the end is replaced by the full reference length, so the plate is translated in frame 0 from the first base of the amplicon, which is the primer tail. Amino acid numbering then belongs to a frame the design never used, wells carrying an expected mutation fail as wrong amino acid, and wild-type control wells pass clean, none of it mentioning the frame. The resolution now carries whether coding bounds were found at all, and refuses only the case with no answer left, an extracted amplicon with no ORF and no caller CDS that fits it. An operator who states the CDS is never blocked.
+
+The confident-mixed depth factor was derived by multiplying a per-position binomial tail by 1500 positions per amplicon, and no layer reads a reference length or a position count. A 500 bp amplicon runs a third of those trials, so the table that factor was read off does not describe it. The factor and the gate are unchanged. What is new is that the premise is checked and named: the median eligible-position count of the wells actually scored is compared against 1500, and a ratio outside a 0.5x to 2.0x band raises a warning carrying both numbers, the factor and the band. The band exists because run severity turns to warning whenever any finding is present, so an unconditional line would flag every healthy run.
+
+Nothing added in this release grades, colours or gates a well. Every figure here is reported.
+
+### Highlights
+
+- Five run health sections the app measured on every run and never drew are now on the review screen, in a section that starts closed.
+- Coverage reports evenness per well rather than a mean alone, so a well with a gap no longer reads like one covered evenly at the same depth.
+- The read length the sequencer measured is shown against the reference the run aligned to, which is where a concatemer population shows.
+- A reference file holding more than one sequence is refused by all four readers instead of being joined into a chimera or silently truncated.
+- An amplicon with no reading frame found says so, rather than reporting a zero length CDS that translated the plate from the primer tail.
+
+### Fixed
+
+- A multi-record reference FASTA is refused rather than concatenated or truncated. `kuma_core/mame/reference_fasta.py` holds the record-count judgement and `amplicon_reference.py`, `pipeline.py`, the sidecar analyze handler and `well_consensus._read_reference_seq` all raise through it, naming the records the file holds so the operator can pick the one reads align against. The fourth of those is the reader every well of a raw MinKNOW run passes, the primary input path, and it had been keeping whichever record sorted first. Headerless files and single-record files behave exactly as before. A multi-record reference that used to be accepted silently is now rejected.
+- An extracted amplicon with no forward ORF reports that instead of a (0, 0) coding range. `AmpliconReferenceResolution` carries `coding_bounds_found`, the extraction note explains an empty ORF search the way the other three failure branches explain themselves, and `resolve_amplicon_cds` refuses only an extracted amplicon with no ORF and no caller CDS that fits it. Caller bounds in whole-reference or amplicon coordinates still win. Previously `analyze.py` kept `cds_start=0` and replaced a `cds_end` of 0 with the reference length, translating the plate in frame 0 from the primer tail.
+- The MinKNOW block of the run health panel no longer draws an empty panel. The line explaining that a run carrying no raw data has no such measurements was gated on the section subset being undefined, so a subset that asked for those sections rendered a heading over nothing. It is gated on the subset containing one of the four. Cross-talk sits inside that block and was reached by the same fix. A run with no run-health block at all says so.
+- `RUN_HEALTH_QC_SECTIONS` replaces `RUN_HEALTH_VERDICT_SECTIONS` and `RUN_HEALTH_PLATE_SECTIONS`, which had no consumer in `src/` and matched neither what the review screen needs.
+
+### Added
+
+- Five report-only coverage figures on every well: `depth_cv`, `depth_p10`, `depth_min_covered`, `breadth_at_mix_min_depth` and `consensus_identity`. They read the per-position depth vector `mean_depth` is computed from, and travel the whole chain rather than one branch of it: `combinatorial_demux` computes them from the same `depth_stats` and identity definitions the direct path imports, then consensus FASTA header keys, `fasta_parser`, `BarcodeRecord`, the analyze response, the TS `VerdictRecord`, the workbook columns and the sorted-barcode writer. `None` means not measured at every layer and is never 0.0, which is a real reading. Fractions carry six decimals because three would round one mismatch in a 3 kb amplicon to a perfect 1.000.
+- Read length QC quoted from the instrument report, with per-entry labels, base-weighted fractions named as such, and the ratio to the reference the run aligned to. The run folder handed over is the original run directory rather than the input directory, which the raw path rebinds to the demux output. `detect_amplicon_length` also returns p10, p25, p75 and p90 off the length vector it already had, because min, median and max cannot tell a tight amplicon from a smear around the same centre.
+- A stage-2 warning when the amplicon scale the confident-mixed depth factor assumes does not match the run. It carries the ratio, the median eligible-position count, the 1500 positions the factor was derived over, the factor itself and the band, with `provisional` true and `enforced` false, because the band is a printing rule rather than a measured boundary. The derivation comment in `verdict.py` states its dependence on amplicon length instead of leaving it inside the arithmetic.
+- `RunQcSection` on the review screen, holding run health, filter statistics, position recurrence and read length. `filter_stats` distinguishes its two absences: a consensus-directory run never demultiplexes, while a raw run handed no sequencing summary demultiplexes and cannot fill the tally. An all-zero tally is a measurement and prints as zeros. `position_recurrence` states that every count is a floor and cites the wells whose ten-position budget was truncated, and a weak-strand share of null renders as unknown rather than as 0.0, which is the opposite finding.
+- The five coverage figures in the well inspector, with `consensus_identity` directly above `consensus_n_fraction`, because identity is measured over called bases alone and a well whose consensus is 95 percent N reads as a perfect match. A result that predates the measurement answers with one reason line rather than five blanks.
+
+## v0.16.27 (A citation that leads nowhere now stops the build)
+
+The source cites design documents by path, in comments and docstrings, and following one often finds nothing. A sweep of the tracked tree turned up 68 such citations spread over roughly 240 places, and nothing separated the ones that are fine from the ones that are not.
+
+Some are fine. The third-party notice files are built at release time and are supposed to be absent from the source tree. The MAME design specs live under a directory that .gitignore excludes, because this repository is public and those records carry interview transcripts and the names of the people interviewed. Copying them in was the obvious remedy and the wrong one.
+
+Some were not fine. Seven citations named a real document at a path that no longer holds it. The release notes send a reader to the activity page by its old number, which now belongs to a different subject, so the link landed on the wrong page rather than on nothing at all. Three modules cite the benchmark report by bare filename from directories where that resolves to nothing. Those seven are corrected, and only the paths changed.
+
+A new page classifies the rest into five kinds: built at release, internal and staying out, lost outright, belonging to another repository, and never a citation to begin with. For the internal records it says what each one covers, so a reader knows what they are missing rather than only that something is missing. It also states which way a disagreement runs, because the decision tree in the transition classifier follows a backtest rather than the spec that 22 files cite, and the spec still describes the older round model.
+
+A checker enforces the split and runs with the other cross-layer checks. An unresolved citation that is not listed with a reason fails. So does a listed reason that no longer describes any citation, because an allowlist that only ever grows stops being read.
+
+### Highlights
+
+- A citation to a document this repository does not have now fails the build, instead of being discovered by whoever follows it.
+- Seven citations that named a real document at a stale path are corrected, one of which pointed at the wrong page rather than at nothing.
+- A new page says why the design records the code cites are absent from this public repository, and what each of them covers.
+- Where a design record and the code disagree, that page states that the code and its tests are what holds.
+
+## v0.16.26 (Two design fields nobody read, and a docs path that never matched them)
+
+Four fields on the Custom Polymerase Editor, Opt/Min/Max size and Max Tm diff, never reached the design engine: sdm_engine.py held no reference to any of the four. Two of them actively disagreed with the vendor spec already shown next to them in the same dialog. Taq listed a size range of 15-25 while its NEBuilder-derived vendor spec said 20-40, so a profile someone tuned by hand carried two conflicting numbers and only one of them was ever read.
+
+The custom polymerase and config docs pointed at ~/.kuro/, a path the app has not used since the private config directory moved under ~/.kuma/. Every English and Korean doc reference now reads ~/.kuma/kuro/, matching what core.py and config_paths.py actually resolve, except the one line in contributing.md that intentionally still names ~/.kuro/crash.log as the path earlier installs used.
+
+A separate change touches no behavior: the sweep that shows lowering the Gibson-arm assembly homology floor is safe only down to 11 nt, and unsafe at 8 nt and 10 nt, is now recorded as a comment on the constant itself, so the next person to ask does not have to re-run it.
+
+### Highlights
+
+- Custom Polymerase Editor no longer shows Opt/Min/Max size or Max Tm diff, four fields the design engine never read.
+- Docs for the custom polymerase and config paths now say ~/.kuma/kuro/, matching where kuma actually stores them.
+
+### Removed
+
+- `opt_size`, `min_size`, `max_size` and `max_tm_diff` are gone from `PolymeraseProfile`, `PolymeraseProfileModel`, the builtin profile JSON, the custom polymerase editor, and every fixture and test that carried them. A saved custom profile still loads: `_dict_to_profile` reads named keys rather than unpacking the dict, so a leftover key from an older save is silently dropped, and `WorkspaceModel` carries `extra="allow"` for the same reason on the sidecar side.
+
+### Fixed
+
+- `~/.kuro/` corrected to `~/.kuma/kuro/` across `docs/en/` and `docs/ko/`, 22 occurrences in 14 files: `configuration.md`, `contributing.md`, `custom-polymerase-editor.md`, `faq.md`, `troubleshooting.md`, `uniprot-and-alphafold.md`, `workspace-save-load.md`.
+
+### Changed
+
+- `_MIN_ASSEMBLY_HOMOLOGY` in `sdm_engine.py` documents the relationship between the assembly-homology floor and the seed search. No logic in this file changed.
+
+## v0.16.25.1 (A run that scored the plates of the run before it)
+
+Selecting native barcodes did not exclude stale consensus directories left by earlier runs in the same output folder. The analysis now limits ingestion to the selected units.
+
+An operator can check their own past runs for this. The signature is a verdict table holding more plates than the barcodes that were selected, on a run whose output folder had been used before. A workbook matching that description was scored over wells belonging to another run, and needs re-running against a folder holding only one run output. Nothing about the affected files changes on its own; they are workbooks already written.
+
+The output folder is stable on purpose, because that is what lets an interrupted run resume, and nothing in it is ever removed. So a second run exported into the same folder leaves both sets of plate directories side by side, each one complete, each one carrying its own valid completion marker. Every plate passed its own check. What no file recorded was which plates belonged to which run, and a per-plate marker cannot answer that question no matter how carefully it is written.
+
+The folder now records it. When a run finishes writing its plates it also writes down which ones it produced, and reading that folder afterwards returns those and no others. The decision moved into the reading step rather than into the code that asks for it, because the previous arrangement did state the right plate list at the place the demux finished, and the screen still scored six: the analysis reads the same folder a second time, later, with no list to go on. A rule that depends on every caller remembering to repeat itself is one forgotten line from the same defect.
+
+A folder that carries no such record is untouched and every plate directory in it is read, which is what a folder somebody else sorted needs. No record means nothing was claimed, and that is not the same as claiming there are no plates.
+
+Plates left over from an earlier run are named on screen rather than quietly dropped, together with the run that owns them. Silence is the reason this ran four times. Nothing is deleted or moved: which of two runs worth of output is still wanted is the operator call, and the folder may hold the only copy.
+
+A second defect ships in the same release, on the export screen rather than in the analysis. That screen carried a Start and an End row over the sixteen rows of a 384 plate. Eight source rows need eight row pairs, which is all sixteen rows, which is what the screen sent when the two controls were left alone. Every narrower setting wrapped, and the wrap put different mutants on the same destination well. Running the real mapper over a 96 plate and counting distinct destinations for the eight source rows gives eight of eight at the full sixteen rows and at the default, four of eight over A to H, five over A to J, four over C to J, two over C to F, and one over J to K, where all eight rows landed on a single position. The written plate said nothing about it. Moving Start on its own was worse: the code pulled End back down onto Start, which is a band one row tall, and a band has to hold a forward row and a reverse row, so the export refused it for having an odd span. Nothing reachable from those two controls got the screen back out of that message.
+
+The control is gone. The request this area serves asked for a choice among four quadrant start wells, because a 96 head instrument stamps every other row and every other column of a 384 plate, and it ruled out arbitrary placement mapping. The row band predates that request and was never taken off the screen when the quadrant selector shipped. Both controls then sat on the same screen and the quadrant won without announcing it, so the band could not place a plate even on the settings the mapper accepted. Placement now comes from the quadrant selector alone, and the screen sends no row band at all.
+
+The band itself stays supported, because saved projects and callers outside the app can still ask for one, and it now refuses a band that would lay one row on top of a row already placed instead of doing that quietly. The refusal names the band, the row it could not place, and the row whose well that row would have covered, which is what an operator needs to widen the band. A band narrow enough to hold every source row in use is still served, so this is a rule about overlaying rather than about width.
+
+### Highlights
+
+- A run exported into a folder holding an earlier run output scored those plates too, so more reached the table than were selected.
+- A past workbook showing more plates than the barcodes that run selected was scored over another run wells and needs re-running.
+- The folder now records which plates a run produced, leftover plates from an earlier run are named on screen, and nothing is deleted.
+- The export screen no longer offers a start and end row. Every setting but the full plate stacked different mutants onto one well.
+- Placement comes from the quadrant choice alone, and a saved row band that would cover a well already in use is now refused, not written.
+
+### Fixed
+
+- A demux output folder is read as the units the run that filled it recorded, not as whatever directories it holds. `kuma_core/mame/ingest/unit_manifest.py` writes that membership at the output root when `ingest_run_folder` finishes, and `load_barcode_directory` narrows itself to it whatever the caller passes. The `units` parameter it already had scoped only the read inside `ingest_run_folder`; the analyze handler ingests the same tree again after that returns, passed nothing, and that second read is where the leftover plates came back in. Putting the decision in the reader is what stops the next caller reintroducing it.
+- The Start and End row selectors are off the export screen. `ExportPlatePreview.tsx` fed them to `mapping_range` on both dry runs, and `_to_384_well_fwd` takes the source row modulo the number of forward and reverse row pairs the band holds, so any band holding fewer than eight pairs wrapped rows onto wells already taken. Counted over the eight rows of a 96 plate: 8 of 8 with no band and over A..P, 4 over A..H, 5 over A..J, 4 over C..J, 2 over C..F, 1 over J..K. The screen also clamped `row_end` down to `row_start` whenever it sorted below it, which is an odd span, and `_validate_mapping_range` rejects an odd span, so changing Start alone left an error the two controls could not clear. Placement is `echoQuadrant`, which the mapper gives precedence over the band anyway.
+- `mapping_range` refuses a band that would overlay one source row onto another. `_pair_offset` in `kuma_core/kuro/plate_mapper.py` raises where the old modulo silently wrapped, naming the band, the source row and the row whose 384 well it would have covered. The parameter stays supported for saved projects and callers outside the app, and a band wide enough for the rows in use is unaffected, as is a quadrant export, which never reaches this path. The `mapping-range` case in `tests/test_echo_writer_consistency.py` was pinning `C..F` over eight source rows, an overlay, and now pins `A..P`.
+- A folder with no membership record still reads every subdirectory, unchanged. A record that is missing, truncated, unparseable, wrongly typed or names no units at all counts as no record rather than as an error, on the same rule the per-unit completion markers already follow: an interrupted write must not turn an output folder into one that cannot be opened. Re-using a folder for the same units still resumes, which is what the per-unit markers exist for.
+
+### Added
+
+- `stale_units` on the analyze response, the unit directories present in the ingested folder that the run recorded there did not produce, with the run directory and timestamp that owns them. Optional by contract like the other fields on this chain: omitted where the folder carried no record to compare against, and present with an empty list where it did and nothing was stale. Those are different statements, and zero-filling the first would report a check that never ran. `StaleUnitsNotice` renders it in all ten locales, on both the run view and the zero-verdict review, gated on neither the presence nor the absence of verdicts, because the run that shipped this defect produced plenty of them.
+
+## v0.16.25 (A success rate that divided a declared run by the whole plate)
+
+The recovery-rate numerator used the declared wells while its denominator used the entire expected-mutations sheet. The summary now uses the variants assigned to declared wells.
+
+The denominator is now narrowed by the same statement about the plate that narrows the verdicts. The narrowing happens in the analyze handler against `well_layout`, which is the mapping the scored wells are built from, so the two sides of the division move together instead of drifting apart. What leaves the denominator is wells the operator declared absent, and that is not the same thing as wells that failed: a designed mutant that produced no reads still counts against the run, so a run cannot lift its own rate by losing wells.
+
+The wells count now counts distinct well coordinates instead of counting one record per replicate plate.
+
+Earlier saved analyses carry the old denominator and require reanalysis under result contract revision 7.
+
+One consequence is worth stating before it is mistaken for a fault. A declaration naming only the WT control leaves zero designed mutants, so there is nothing to divide by and the rate tile renders a dash instead of a percentage. That is the correct reading of a run that declared no variants.
+
+### Highlights
+
+- A run saved by an earlier build is asked to re-analyse, because its rate was divided by the whole variant list.
+- Declaring only the WT control leaves no designed mutants to score, so the rate shows a dash rather than a percentage.
+
+### Fixed
+
+- The success rate denominator is narrowed by a declared well selection. `declared_designed_ids` in the analyze handler keeps only the designed mutants whose wells the operator declared present, applied only when a selection exists, so a run with no selection takes the path it took before. It is keyed off `well_layout` because that is the same mapping `_scored_wells` is built from, which is what stops the numerator and the denominator being two separate statements about the plate. `kuma_core/mame/detected.py` is untouched and keeps its rule that a designed mutant with zero reads stays in the denominator.
+- The wells hint and the plate estimate in the summary row count distinct wells. `handlers/export.py` builds one row per verdict record, one per well per replicate plate, and both numbers are statements about wells: the hint says how many wells and the estimate divides by a 96-well plate. An entry whose barcode maps to no well is not counted.
+
+### Added
+
+- Revision 7 of the result contract, `declaredWellsDenominator`, with its notice copy in all ten locales. A run saved before this build carries a denominator taken from the whole expected-mutations sheet, so the same data scored by this build reports a different headline rate, which is what the re-run notice exists to say.
+
+### Changed
+
+- A declaration that names only the WT control now leaves zero designed mutants, and the rate tile renders a dash rather than a percentage. Nothing is being hidden: a rate over no designed variants has no value to report, and a dash says so where a zero would claim a measurement.
+
+## v0.16.24 (A minor allele fraction that said nothing about which strand it was read on)
+
+A well reporting a minor allele at 5% is reporting one number for two different situations. A second genotype in the well is read on both strands, because both strands of both molecules go through the pore. A sequence context the basecaller reads wrong is read off whichever strand carries that context, so the minor reads pile up on one side. The fraction is identical in the two cases, and nothing recorded what separates them: a minus-strand read is reverse complemented into reference orientation before it votes, and the strand it arrived on was dropped at that point.
+
+The per-well consensus now reports how the minor allele at the noisiest position splits across strands, with the supporting counts. Minor fraction alone cannot separate a one-strand signal from a balanced signal. A well with no eligible position reports an unknown strand share rather than zero.
+
+Each well also lists its ten noisiest positions and the total eligible-position count. Ten is a reporting budget, so the eligible count states how much the list may omit.
+
+A run-level tally reports reference positions recurring across wells and the strand evidence at each. Recurrence and strand balance help inspect amplicon effects separately from candidate mixtures. The table carries no automated finding or severity.
+
+The demux discard counter is split into seven causes. Read-end window failures are keyed on the read end rather than the F or R barcode axis because strand determines which axis that end serves.
+
+All of this is measurement. No verdict, gate or threshold reads any of the new fields, no threshold moved, and no run saved by an earlier build is scored differently by this one.
+
+### Highlights
+
+- A well now reports which strand its minor reads came from, so a second genotype can be told from an artifact of the amplicon.
+- Each well also lists its ten noisiest positions and how many positions were eligible, so the ten reads as a sample and not a census.
+- A run now tallies which reference positions come back well after well, with the strand evidence at each one.
+- Reads that never reached a well are counted by cause, instead of all being reported as barcode ambiguity.
+- Nothing here grades a run. No well changes verdict, and no threshold moved.
+
+### Added
+
+- `max_minor_allele_strand_share` on the per-well consensus, the weaker-strand share of the minor allele at the position that produced `max_minor_allele_fraction`, with `max_minor_allele_plus_count` and `max_minor_allele_minus_count` beside it. The three are emitted only where a mix-eligible position exists: absence means unknown, and 0.0 means the minor allele was read off one strand alone, which is the artifact reading, so zero-filling a missing value would report evidence nobody measured. `_accumulate_all` keeps a parallel minus-strand accumulator to make this available, one extra `(ref_len, 6)` int64 array per well.
+- `noisy_positions`, the ten mix-eligible positions of a well ranked by minor fraction, and `n_eligible_positions`, how many were eligible in all. Ten is a reporting budget and nothing is accepted or rejected by it. `NoisyPosition` holds position, minor fraction, depth and the plus and minus counts as one record, and travels through the consensus FASTA header, `models.py`, the Excel export and `src/types/mame/models.ts`. The header packs the five numbers into one key, since a position only means anything with all five together and parallel lists can go out of step.
+- `position_recurrence` on the run-quality block: which reference positions more than one well reported, with the median, minimum and maximum weak-strand share at each and the known and unknown share counts behind them. `lower_bound`, `wells_contributing` and `wells_truncated` ride with the table, because each well contributed at most ten positions. It aggregates over the verdicts rather than the ingested records, so a declared selection has already removed the wells the campaign left empty. Nothing renders it yet.
+- Seven `drop_*` counters on the demux stats, one bucket per failed hit, partitioning the total `ambiguous_dropped` already carried. A hit that failed on both axes is charged to `drop_both_axes` alone rather than split. They reach `EmptyAnalysisNotice` as one row each, in all ten locales, and a per-NB resume off a marker written before the breakdown existed omits all seven rather than seeding zeros that would claim a measurement.
+
+### Changed
+
+- `NoisyPosition` is declared once, in `kuma_core/mame/models.py`, with the `weak_strand_share` property included. Two declarations carried the same five fields, and the property lived on the one that never travelled, so the one derived quantity separating a per-clone mixture from a sequence-context artifact was unavailable on every record that is persisted or transmitted.
+- `_NoisyPositionLike` is gone. It declared `position` as a mutable attribute while `NoisyPosition` is frozen, so the structural match failed and Pyright rejected `BarcodeRecord` against it. `_WellLike.noisy_positions` names `Sequence[NoisyPosition]` directly, an import lighter than one that module already makes.
+- `ambiguous_dropped` keeps its exact value and its name. It ships on the demux RPC, in per-NB stage markers and in the contamination rate signal, so renaming it needs its own commit with a migration for those readers.
+
+## v0.16.23 (What other people nanopore runs turned up)
+
+Compatibility checks across MinKNOW report layouts exposed three issues: metadata interpretation, ambiguous sibling run folders and silent coverage-gate exclusions.
+
+The kit was never read. MinKNOW writes it as a column in the sample sheet, and the parser only looked for a line starting with `kit`, so the field sat empty in the Excel export, the Janus mapping file and the HTML report.
+
+A metadata search could select the first matching sibling folder and attach the wrong run identity. Coverage filtering could also remove whole wells without explaining their absence. Reads ending at a primer boundary can fall short of the reference; the same fixed shortfall consumes more of the coverage allowance on a shorter amplicon. The default gate is unchanged, and exclusions are now reported.
+
+### Highlights
+
+- The sequencing kit now reaches the Excel export, the Janus file and the report, instead of being blank on every recent run.
+- A run that discards most of its reads at the coverage gate now says so, instead of leaving those wells looking like wells never filled.
+- Two folders that both look like a run no longer let one run flow cell and start time be reported for another.
+
+### Fixed
+
+- `kit` is read from the sample sheet CSV column MinKNOW actually writes. The previous scan matched only a `kit,value` line, which no GridION sheet contains, so `meta.kit` was `None` for every modern run and reached users blank through `excel_writer`, `janus_mapping` and `html_renderer`.
+- Run metadata discovery returns nothing when two or more sibling directories at the same level look like run folders. It previously returned whichever `iterdir` yielded first, reporting one run flow cell, kit and start time for another with no warning. A single sibling match and a run folder on the direct path both still resolve.
+
+### Added
+
+- An analyze notice reports the share of aligned reads the coverage gate discarded, once it reaches a quarter of them. The existing empty-analysis notice covers only runs that yield nothing at all, so a run that scored most wells and dropped the rest said nothing about the dropped ones. It reads counters the response already carried, and points at the coverage setting in Advanced options rather than naming a value, because the right one depends on the amplicon.
+
+### Changed
+
+- `align_reads` documents that its `require_full_span` default is not what the analyze pipeline passes, and the agent guide corrects the MAME input inventory, which listed only `*.fastq.gz` although plain `*.fastq` has always been read.
+
+## v0.16.22 (One rate for a run instead of two that disagreed)
+
+The verdict breakdown carried a recovery rate, and the summary row above it carried a success rate. Both counted designed variants over the same denominator. They differed in one respect: recovery counted a well whose designed mutation was reproduced alongside an extra change next to the target, and success did not.
+
+That made the higher number available to quote without anything on screen saying which one described the clones the run hands over. The pick list has only ever exported PASS wells, so the success rate was already the one that matched what leaves the run. The recovery rate is withdrawn from the panel and the success rate stays.
+
+Nothing is recalculated and no stored file changes. The per-variant bar under the old header still shows how many variants passed, how many were reproduced with a side change, and how many were not reproduced at all, so the split the recovery rate folded together is still readable.
+
+### Highlights
+
+- The verdict breakdown no longer shows a recovery rate, so the run reports one rate instead of two that counted differently.
+- The success rate stays, and it counts the PASS clones the pick list actually exports.
+- The bar below still splits variants into passed, reproduced with a side change, and not reproduced.
+
+### Changed
+
+- Run Health withdrew the recovery-rate header. Its value counted PASS and AMBIGUOUS over the designed set, while the success rate in the summary row counts PASS alone over the same set, leaving two headline percentages that differed only in whether a side change disqualified a well.
+- `recovery_rate` is still computed and still travels in the run health payload, so a project saved by an earlier build reloads unchanged and the per-variant bar keeps its denominator.
+- Three locale strings that only the withdrawn header used are gone from all ten locales.
+
+## v0.16.21 (A mutation against the end of the reference is where the aligner stops reading)
+
+An aligner cannot attach a mismatch it never reaches. A read carrying a mutation a few bases from the end of the reference gets that end clipped, so the read can align, pass the coverage gate, and contribute nothing at the position the campaign was about. The well reports its depth and the mutated site was read by a fraction of it.
+
+MAME extracts the amplicon between primer sites. If extraction is skipped and the supplied reference is used unchanged, terminal variants now receive an advisory about local coverage.
+
+Run quality now names expected mutations near a reference edge when alignment used the supplied reference without extraction. The warning is advisory: those wells can still score, but clipping can reduce depth at the designed site, especially on shallow runs or with stricter coverage settings.
+
+### Highlights
+
+- Mutations sitting against an end of the reference are named above the verdict table, on runs that used the supplied reference unmodified.
+- They are named rather than counted, because which variant it is decides what to do about it.
+- The note stays advisory: nothing is dropped, and no verdict changes.
+
+### Added
+
+- `variants_near_reference_edge` maps each expected mutation onto the reference through the CDS offset and reports the ones within 30 bp of either end. The margin comes from `trim_flank_bp` and is labelled self-set and provisional in the threshold block, like every other number there.
+- A `variants_at_reference_edge` finding on the run-quality block, carried in all ten locales.
+
+### Changed
+
+- The amplicon-extraction note for a bare-CDS reference no longer stops at calling the case expected. It states that a mutation near either end is read at less depth than its well reports, and points at the run-quality finding.
+
+## v0.16.20 (Notifications stayed on the light theme after the rest of the app went dark)
+
+Every notification drew as a white card no matter which theme was in use. On a dark screen that is a bright rectangle in the corner, and it happened on every toast the app has ever shown. The notification library defaults to the light theme unless told otherwise, and it was never told.
+
+Reading the theme the usual way would not have fixed it, since the app changes theme through more than one path and each reader keeps its own copy. Notifications now watch what is actually applied to the page, so they follow the theme whichever way it was changed, including from the menu bar and from settings.
+
+The rest of this release is internal. The 11 pixel text size, used in twenty-one places for secondary labels and more than any other hard-coded size, is now a named step in the type scale alongside the three that already had names. Nothing on screen changes from that.
+
+### Highlights
+
+- Notifications now follow the dark theme instead of appearing as a bright white card over a dark screen.
+- They keep following it whether the theme was changed from the menu bar, from settings, or by the system.
+
+### Fixed
+
+- Toast notifications rendered with the light theme in every case, because no theme was passed to the notification library and its default is light.
+- Reading the theme from the existing hook would have missed changes made through other paths, so the applied theme is now observed directly.
+
+### Changed
+
+- The 11 pixel secondary text size became a named step in the type scale, replacing twenty-one hard-coded uses. No visual change.
+
+## v0.16.19 (A run that never had the depth to be read still drew a full plate of verdicts)
+
+A verdict table alone does not show whether the run has enough reads to support its well-level calls. The run-quality panel now shows depth and available flow-cell metadata alongside the verdicts.
+
+None of the three numbers that decide this were being read. Median well depth was computed nowhere. Pore counts sit in `report_*.json`, which the app ignored. Flow cell identity was parsed and then dropped, so a cell carrying its second campaign looked like a fresh one.
+
+The review screen now answers the question before the verdicts rather than after them. A median under the depth floor is stated first and loudly, because the verdicts below it are artefacts. A run over the floor and under the vendor recommendation is a quiet line: scorable and under-powered is a different claim from unscorable. A clean run says nothing at all.
+
+Pore counts and flow-cell reuse are reported as context without a pass or fail threshold. Read depth over the scored wells drives the run-quality assessment.
+
+Every threshold on the new panel carries where it came from and what kind of source that is. The depth floor of 30 is a parameter default in the vendor amplicon workflow, not a specification, from a workflow scoped to haploid amplicons that this app does not run, so it is labelled provisional pending a calibration on real runs. It used to sit in the code as "30 is the recommended minimum" with no attribution at all, which is how a borrowed default becomes a house rule nobody can question.
+
+### Highlights
+
+- A run too shallow to score now says so above the verdict table, instead of presenting a full plate of meaningless verdicts.
+- The depth is measured over the wells the run actually judged, so a deliberately partial plate is not reported as a thin one.
+- Starting and ending pore counts and the flow cell id now come from the run folder, with the previous run on a re-used cell.
+- Each threshold shows its source, so a vendor workflow default cannot be read as a vendor requirement.
+
+### Added
+
+- v0.16.19: `kuma_core/mame/ingest/flow_cell.py` reads `counts.single_pore` from mux scans in `report_*.json`, plus flow-cell identity and product code. A per-project ledger records prior use. Report discovery accepts the run folder or a directory inside it.
+- v0.16.19: `kuma_core/mame/run_quality.py` grades the run. Depth is blocking, the vendor recommendation is a warning, pores and re-use only report. The depth it grades comes from the verdicts rather than the ingested records, so a declared selection has already removed the wells the campaign left empty and their leaked reads cannot drag the median down.
+- v0.16.19: the analyze response carries `run_quality` unconditionally, including on a clean run where its severity is null. A block present only for bad runs could not be told apart from an older sidecar that never graded one.
+- v0.16.19: `RunQualityNotice` renders it first on the review screen, as an alert when blocking and a status line when not, silent when there is nothing to say.
+
+### Changed
+
+- v0.16.19: the `min_read_count` default of 30 now records its provenance in `kuma_core/mame/models.py`, as the ONT `wf-amplicon` `minimum_mean_depth` default, along with the three limits on that provenance: a parameter default is not a specification, that workflow states it is not intended for mixtures, and this app does not run it. The MIXED confidence floor keeps its value and gains the same treatment: no vendor figure exists for minor-allele detection, and Moller et al. 2023 (doi:10.1128/spectrum.02728-22) put the amplicon limit at 6.5% using >1000x coverage, which makes 90 reads thin rather than strict. Neither value moved; both now say what they rest on.
+
+## v0.16.18 (One variant name on the plate map still ended before the character that named it)
+
+The plate map cell grew with the panel and, since the last release, so did the writing inside it. At the smallest cell neither helped, and the smallest cell is what an ordinary window gives: room for about four characters where a five-character name needs five.
+
+Variant labels were truncated according to rendered glyph width. Similar names could lose the residue that distinguishes them, so the plate map now preserves the complete label.
+
+Cells are wider now, the label uses the full width of its cell, and a name too long for one line wraps rather than ending early. Ten of the eleven names measured fit on one line; the remaining one is the wild-type label, at most one cell on a plate, which still answers to hovering.
+
+This release also removes fifteen design values that nothing read and folds twenty-eight hard-coded sizes onto the tokens that already held those exact sizes. Nothing on screen changes from that part.
+
+### Highlights
+
+- Variant names on the plate map are no longer cut before the character that tells them apart. R560E and R560Q now read as themselves.
+- A name too long for one line now wraps inside its cell instead of ending early.
+- Internal cleanup of unused design values and hard-coded sizes, with no visible change.
+
+### Fixed
+
+- Plate map cells were narrow enough that a five-character variant name was cut, and whether it was cut depended on the glyphs rather than the length.
+- The label reserved side padding it did not need, spending width that the name required.
+
+### Changed
+
+- Removed fifteen custom properties with no reader, including a spacing scale and four shadow values the config had no way to expose.
+- Replaced a selected-state class that no stylesheet defined; the focused border was already drawn inline.
+- Folded 19 ten-pixel and 9 twelve-pixel literals onto the existing tokens of the same size.
+
+## v0.16.17 (Colour tints that were never drawn, and text that was cut with no way back)
+
+Every soft coloured background and every coloured border in the app was asking for a shade of a semantic colour, and the stylesheet contained none of them. The four semantic colours were written as fixed values, and a fixed value has nowhere to put a transparency, so the build discarded each of those 163 requests without reporting anything. What reached the screen was the plain colour or nothing at all. The 8 percent shade failed for a second reason on top of the first, on every colour in the app rather than only these four.
+
+The same fixed values also explain a mismatch operators could see: the run health charts read the colours a different way, so they alone followed the dark theme while every warning banner beside them stayed on light-theme colours.
+
+Separately, several lines that end in an ellipsis had no way to show the rest. A failed job displayed its reason in one such line, so a message longer than the panel lost the part naming the cause and nothing could bring it back. The analyze status line behaved the same way in both places it appears, and the run folder in the drawer was cut mid-character without even an ellipsis to say so. Those now answer to hovering.
+
+### Highlights
+
+- Soft coloured backgrounds and coloured borders now actually draw. They were silently dropped from the stylesheet in every release so far.
+- Warning and error panels follow the dark theme instead of keeping light-theme colours on a dark background.
+- Hovering a shortened line now shows the whole text, including the reason a job failed and the run folder in the drawer.
+- A long file name no longer pushes the Browse button out of its row.
+
+### Fixed
+
+- Semantic colours were fixed values in the theme, so no transparency variant of them could be built and 163 class uses produced no style.
+- The 8 percent transparency step did not exist, so 33 more uses across all colours produced no style either.
+- Only the run health charts followed the dark-theme colour adjustments; everything using the theme classes kept light values.
+- Failed job reasons, analyze status, and drawer paths were shortened with no hover text and no other route to the full value.
+- A file name in the missing-inputs banner was asked to shorten in a way that cannot work, so it grew past its box.
+- The export path field lacked the shrink allowance its sibling dialog already had.
+
+## v0.16.16 (Declaring ten wells scored ninety-six and failed eighty-six of them)
+
+Declaring which wells a campaign fills was supposed to narrow the run. It did the opposite. The verdict loop walks every well that produced reads, not the wells the layout names, and the layout only decides which expected variants a well is compared against. A well outside it falls back to the FULL expected list, which nothing can match, so it comes back WRONG_AA.
+
+Scoring undeclared wells compared them against variants that were never assigned to them. Those wells inflated the apparent failure rate. The analysis now scores only declared wells.
+
+A well the operator declared empty is not judged now. Reads still arrive from it, because barcode leakage puts a few on combinations nobody pipetted, and they are still counted and named as off-layout records, which is what they are. A run that declares nothing is untouched: there an unlisted well is one nobody said anything about, and it keeps the fallback verdict it always had.
+
+Saved runs made with a declared selection are affected, so this moves the result contract. A project restored from one is shown as produced by a superseded rule, with the reason, rather than presented as current.
+
+### Highlights
+
+- Wells left out of the selection are no longer scored. They used to be compared against the whole variant list and reported as failures.
+- A ten-well campaign now returns ten verdicts instead of ninety-six with eighty-six false failures.
+- Reads arriving from those wells are still counted and named as off-layout records.
+- Runs that declared no selection behave exactly as before.
+- Saved runs made with a selection are flagged as produced by the old rule instead of being trusted.
+
+### Fixed
+
+- v0.16.16: `run_analyze` takes `scored_wells` and skips records whose well is outside it, so a declared selection removes those wells from the verdict list instead of scoping their comparison. `None` keeps the previous path byte-identical. Records whose barcode names no well are unaffected: that is a different failure and they keep their fallback verdict rather than vanishing into a count.
+- v0.16.16: the skipped wells reach `off_layout_records` through a new `skipped_records_out` sink. Counting verdicts alone would have reported zero strays for exactly the runs the signal exists for, since those wells no longer carry a verdict.
+
+### Changed
+
+- v0.16.16: result contract revision 6 (`declaredWellsOnly`). A saved run from a build before this one was scored by the old rule, and if it declared a selection its verdicts are wrong for the wells it left out.
+
+## v0.16.15 (The plate map grew but the writing in it did not)
+
+Every cell on the analyze plate map stretches to fill whatever room the panel has, and the expand button hands it the whole window. The label inside each cell stayed at 10px through all of it, so the button that exists to make the plate readable made the cells larger and the writing no easier to read. Past roughly 1600px of window the same gap opened without touching expand at all.
+
+Label size now follows the width of the plate itself rather than the size of the screen, since the sidebar, the detail panel beside the grid and the expand button all change how much room the plate really has. Small plates read exactly as before, and larger ones scale up to a comfortable ceiling. A name that did not fit a small cell fits once the cell passes about 42px, so widening the plate now makes names legible instead of only larger.
+
+### Highlights
+
+- Variant names on the analyze plate map now grow with the plate instead of staying at one fixed size.
+- Expanding the plate makes the writing bigger, not just the cells.
+- Names that were cut off in a narrow plate become readable once the plate has room.
+
+### Fixed
+
+- Plate map labels were pinned to a fixed size while their cells stretched with the panel, so expanding the plate or using a wide window enlarged the cells without enlarging the text.
+
+## v0.16.14 (Two different variants read as the same cut-off name on the plate grid)
+
+Fixed-width cells clipped long mutant labels before their distinguishing residue. The well grid now makes the full variant identity readable.
+
+Cells are wider now and a name too long for one line wraps inside the cell instead of being cut. The plate still scrolls sideways in its own container, so the extra width takes nothing from the rest of the screen.
+
+### Highlights
+
+- Variant names on the well grid are no longer cut off. Two variants that differ only in the last character can be told apart at a glance.
+- A name too long for one line wraps inside its cell instead of being truncated.
+
+### Fixed
+
+- v0.16.14: `WellSelectionPanel` grid columns go from 2.25rem to 3rem and the cell label wraps (`break-all`, two lines inside a taller cell) rather than truncating. The full name was always in the title and the accessible label, so this was a display cut rather than missing data, but reading it needed a hover per well.
+
+## v0.16.13 (Which barcode goes in which well was stated nowhere before pipetting)
+
+The combinatorial barcode is decided by where a sample sits: the plate row picks the reverse seed, the column picks the forward one. Nothing said so anywhere an operator could read before setting up a plate. The package written at barcode setup lists twenty primers with no plate in it, the per-well sheet it once carried is gone, and the barcode column otherwise appears only on the workbook a finished run writes, which records what was sequenced rather than planning what to sequence.
+
+That was survivable while every campaign filled the leading wells, because the pairing was "read the plate in column-major order" and it could be done by eye. Declaring a partial plate ends that. Wells A1, B1 and B3 use two reverse seeds and two forward ones and skip A3 entirely, and working that out off a grid is exactly the transcription step this app exists to remove.
+
+The well selection panel now writes it. One row per occupied well with the well, what sits in it, the barcode token, and the two seed primers named as the barcode workbook names them, plus the distinct seeds the campaign actually needs, which for a partial plate is fewer than the twenty on hand. The layout comes from the same two calls a run makes, so the sheet cannot name a well the run would score differently, and it carries the same list of left-out samples the review screen shows.
+
+### Highlights
+
+- The well selection panel writes a barcode worklist: every filled well, its barcode, and the two seed primers that make it.
+- It also states which seeds the campaign actually needs, which for a partly filled plate is fewer than the twenty in the workbook.
+- The list is built from the same layout the run scores, so it cannot describe a different plate than the one analysed.
+- Seeds the barcode workbook does not carry are named rather than left blank.
+
+### Added
+
+- v0.16.13: `kuma_core/mame/barcode_worklist.py` pairs each occupied well with its `{R}_{F}` token and the seed names behind it. The pairing reads `plate_geometry.DEFAULT_ADDRESSING` and the token that addressing produces rather than restating the row and column rule, so it cannot drift from what the demux files a read under.
+- v0.16.13: `mame.export_barcode_worklist` RPC writes the csv. It drafts the layout and applies the declared selection through the same `build_draft_layout` and `apply_well_selection` calls `analyze` makes, and returns the seeds in use, the seeds the workbook lacks, and the drafted samples the selection left out. The barcode workbook is optional: without it every well still gets its token, which is a fact about the plate rather than about the workbook.
+- v0.16.13: the export button sits with the selection controls in `WellSelectionPanel` and picks its destination through a save dialog.
+
+## v0.16.12 (The samples a run left off the plate were visible only as an absence)
+
+v0.16.11 made it possible to run a partly filled plate: the wells left out of the selection hold nothing, and the variants drafted into them are not sequenced. The run recorded which ones those were, and no screen read it. On the review screen a sample that was deliberately left out looked exactly like a sample the campaign never had, a blank cell on the plate and no row in the table, and the warning on the selection screen could not stand in for it because that one is drawn from a draft recomputed off the current inputs rather than from what the finished run did. Reopening a project lost the statement entirely.
+
+The review screen now names them, reading what the run itself wrote. A run that declared nothing, one that declared every occupied well, and a result saved before the field existed all stay silent, so the notice appears only where something really was left out.
+
+### Highlights
+
+- The review screen now names the samples a run left off the plate, instead of leaving them as a blank cell and a missing table row.
+- That list is read from the finished run, so reopening a project still says what was left out.
+- Runs that filled every well they drafted are unaffected and show no notice.
+
+### Added
+
+- v0.16.12: `src/components/mame/widgets/ExcludedOccupantsNotice.tsx` renders `layout_provenance.excluded_occupants` on the analyze review sub-step, above `OffLayoutRecordsNotice`. The two answer opposite ends of one question: this one names drafted samples no well received, that one counts records from wells nobody declared. The field reached the store and the autosave snapshot in v0.16.11 with no reader.
+
+## v0.16.11 (A click meant to describe the plate rearranged it)
+
+The MAME well grid drew the computed placement and then re-seated it. Variant one took the first declared well, variant two the second, and so on down the declaration, so leaving a well out slid every later variant one well up. An operator narrowing the selection to the wells a campaign actually filled was not describing the plate in front of them, they were rebuilding it: deselect B1 and the wild-type control jumped out of C1 into the cell that had just been clicked. The grid exists to make the placement assumption visible, and under that rule it could not show a placement that stayed still long enough to be checked against a rack.
+
+The placement is now the draft, and the selection narrows it. Each variant keeps the well the plate order gave it, wild-type control included, and declaring a subset of wells says which of them this campaign filled. Nothing moves, whatever order the wells were clicked in.
+
+That turns two things around. A selection shorter than the sample list used to be refused, on the grounds that some variant had nowhere to go; now it is the ordinary case of a partly filled plate, and it runs. What sits in an undeclared well is not sequenced, so it cannot disappear in silence: the panel names those variants and strikes their labels on the grid, and the finished run records them. The one declaration still refused is an empty one, because a run with no wells has nothing to score.
+
+### Highlights
+
+- Selecting wells no longer moves the variants. Each keeps the well the plate order gave it, and a click only says which wells were filled.
+- A plate filled only in part now runs. Fewer selected wells than samples used to be refused before the run could start.
+- Variants in wells left out are named above the grid and struck through in it, so none of them drops out of a run in silence.
+- The finished run records which wells were left out and what was in them, so a result can say what was never on the plate.
+
+### Changed
+
+- v0.16.11: `apply_well_selection` in `kuma_core/mame/layout.py` narrows the draft in place instead of zipping occupants onto the declared wells. Occupants keep their drafted wells, wells with no occupant come back in `unused_wells` as before, and occupants in undeclared wells come back in the new `excluded_occupants`.
+- v0.16.11: fewer declared wells than plate occupants no longer raises. `handle_validate_inputs` stops reporting it as an error, `handle_analyze` stops refusing before the demux, and `selectCanRun` stops holding the Run button for it. An empty declaration is still refused in all three.
+- v0.16.11: the analyze result carries `layout_provenance.excluded_occupants`, a well to sample map in plate order. Those samples get no verdict anywhere else on the result, so without it the only trace of them is an absence.
+- v0.16.11: `WellSelectionPanel` reads each occupant from the draft row rather than from its index in the selection, names the excluded variants above the grid, and draws their labels struck through. The well-selection copy changed in all ten locales to state the anchored rule.
+
+## v0.16.10 (A Mac saved nothing, and the update notes covered one release out of however many were skipped)
+
+Autosave never once succeeded on macOS or Linux. The file scope the frontend writes through matches its patterns with a rule that differs by platform: a wildcard refuses to cross a path component beginning with a dot on Unix and crosses it on Windows. Everything this app persists of its own lives behind such a component, the two autosave snapshots under a dot directory and the workspace manifest, so on those platforms a project recorded nothing and reopening it restored nothing. It failed quietly, and it looked like something else entirely: the project itself opened, the recent list updated, and the sidecar kept writing its own files, because none of those paths carry a dot. No project folder written by a Mac build contains either name.
+
+The scope now names the two paths the app actually writes, rather than relaxing the rule for every hidden file on disk. A test reads the shipped capability file and judges it by the Unix rule, and it was confirmed to fail when the entries are removed.
+
+The What's New modal had a narrower version of the same problem: it reported the release it landed on and said nothing about the ones in between. Someone who updates after skipping three releases was told about one of them, with no route to the rest from inside the app. It now shows every release from the one after the version last run through the one now installed, newest first, each under its own heading, in a list that scrolls. The bullets for past releases were recovered from the translations that shipped with them, so all nine languages carry the archive with nothing left in English.
+
+### Highlights
+
+- Saving a project on macOS and Linux now works. Autosave was silently refused there, so reopening a project restored nothing.
+- MAME analyze output and KURO inputs survive a restart on those platforms, the same way they already did on Windows.
+- The update notes now cover every release between the version you last ran and the one you just installed, not only the newest one.
+- Each release in that list gets its own heading, and the list scrolls when several releases are shown at once.
+
+### Fixed
+
+- v0.16.10: `src-tauri/capabilities/default.json` names `.autosave`, its contents and `.kuma-workspace.json` in the fs scope. `tauri-plugin-fs` matches scope patterns with `require_literal_leading_dot` defaulting to `cfg!(unix)`, so `$HOME/**` and a bare `**` both refused those paths on macOS and Linux while allowing them on Windows. The directory and its contents need separate patterns because `mkdir` and `exists` resolve the directory path first.
+- v0.16.10: `src-tauri/tests/fs_scope_test.rs` reads the shipped capability file and asserts both directions, that the dot paths are in scope under the Unix rule and that the plain wildcards do not reach them on their own. Removing the new entries makes it fail.
+
+### Changed
+
+- v0.16.10: `scripts/gen-whatsnew.mjs` writes `whatsNewDialog.releases` and `whatsNewDialog.releaseStamps`, one entry per CHANGELOG section carrying a Highlights block, alongside the existing single-release keys. The archive is regenerated from the changelog each time rather than accumulated, so rewording a past release moves that version's digest and marks its nine translations stale. `scripts/i18n-parity.mjs` compares the stamps per version and names the ones a locale is behind on.
+- v0.16.10: `scripts/backfill-whatsnew-archive.mjs` recovers past translations from git history, where every release left its wording in each locale file before the next one overwrote it. All nine locales were filled for all eighteen releases that carry highlights, with no English left in place of a translation.
+
+## v0.16.9 (Fourteen places where one rule had two implementations that no longer agreed)
+
+An audit of the whole codebase looked for a single rule stated in more than one place, then measured whether the statements still matched. Forty were found and sixteen had already drifted. This release closes fourteen of them, ordered by what the drift does to an operator rather than by what it costs to repair.
+
+Three of them reach the bench. One export run wrote an Echo csv and an Echo xlsx into the same folder naming different source wells for the same primer, because three separate loops built those rows and only one of them applied the quadrant. The preview rendered directly above the quadrant selector ignored it too, so the check an operator makes before loading the deck could not see the disagreement. The guard that refuses a `fastq_pass` directory in place of the run folder above it existed on the Validate button and, in the run path, only as a comment, so a run started without pressing Validate completed a plausible workbook over the wrong folder. And the benchmark screen that exists to choose between selection strategies scored a position cap rule the product does not run, disagreeing with the shipped rule on 160 of 200 synthetic landscapes.
+
+Other defects corrupted reported values. The merge log counted verdict records while exports contain one row per variant. Restore dropped the denominator used by recovery. HTML plate colours depended on traversal order, and version metadata disagreed across manifests. These paths now use their respective source values consistently.
+
+Four were loud rather than silent, which is better but still wrong: a front end refusing files the sidecar accepts, a Run button enabled on a configuration that cannot start, a numeric field offering the one value its model rejects, and a file picker advertising extensions the backend does not take while hiding four it does.
+
+Where a repair removed a copy, a check now holds the remaining ones together. Two new cross-layer checks read the Python definitions and compare them to the TypeScript, and both were verified by breaking them on purpose and confirming they fail.
+
+### Highlights
+
+- One Echo row builder feeds the csv, the xlsx worklist and the preview, so all three name the same source well under a quadrant.
+- Starting a run without pressing Validate no longer skips the guard against picking the fastq_pass folder instead of the run folder.
+- The drawer stops reporting a merged row count it never counted, and reopening a project reports recovery instead of n/a.
+- Files the sidecar accepts are no longer refused by the pickers, and provenance files carry one release version instead of three.
+
+### Fixed
+
+- v0.16.9: Echo transfer rows are built once, by `build_echo_rows`, for the csv, the xlsx worklist sheet and the dry-run preview. Previously the csv applied both `quadrant` and `mapping_range`, the xlsx worklist applied neither, and the preview applied only `mapping_range`, so a single `export_all` left two files disagreeing about which well feeds each transfer. `ExportMappingDryRunParams` gained `quadrant` and `used_quadrants`, which the preview had no way to receive. The xlsx layout sheet keeps its row-doubled view, and a test pins every drawn cell of it against a quadrant run.
+- v0.16.9: `handle_analyze` and `handle_validate_inputs` share one `_acceptance_findings`. The `fastq_pass` misselection guard existed only in the validate path, and `is_minknow_run_dir` returns false for that directory, so a run pointed at it fell through to the pre-aligned consensus branch instead of stopping. Output path checking existed only in the run path.
+- v0.16.9: The `position_cap` benchmark row calls the shipped `_position_filter_with_tiebreak` instead of a second implementation that broke ties by landscape order and capped combination variants the shipped rule exempts. On 200 synthetic landscapes the two chose different variant sets 160 times. The duplicated position regex is gone with it.
+- v0.16.9: Restoring an analyze result sends `designed_mutant_ids`, the denominator recovery is measured against. Without it the sidecar cleared the stored value and the panel and the exported report read n/a after every reopen.
+- v0.16.9: The HTML report plate map derives cell colour from the same priority it uses to pick a verdict, so a well covered by an AMBIGUOUS plate and a MIXED plate no longer changes colour with traversal order.
+- v0.16.9: The drawer and the inspector stop presenting a record-level PASS count as a merged row count. The merge admits one row per variant under `verdict == PASS and not failed and not is_fallback`, so on three replicates per variant the old label overstated it roughly threefold. The drawer now reports that the merge ran and leaves the counts to the panel that receives them.
+- v0.16.9: The activity csv gate accepts the column names the ingest actually reads, including `sample name`, `sample`, `well`, `well pos.`, `area` and `activity`, and no longer requires `plate_id`, which is derived from the plate metadata. A raw GC-FID export was refused as a csv and accepted as an xlsx, which reads as a corrupt file.
+- v0.16.9: MAME file extension filters come from one module. The pickers offered csv for two inputs that only accept xlsx, and the missing-inputs banner offered three sequence formats out of the seven the backend reads, so a project whose reference was a GenBank file could not be repaired from the banner and dropping the file on the window did nothing at all. An unroutable drop now says what it was and what is accepted.
+- v0.16.9: The Run button requires the expected workbook on raw runs, which the sidecar validates before it branches on run type and reads while scoring. The comment claiming the file arrives through a `kuro_xlsx` parameter described a field of a different RPC that the front end never sends.
+- v0.16.9: The demux edit-distance ratio field stops offering 0, the one value its model refuses, which failed only after the output directory was created and the reads were sampled. The third statement of the same range, in a store comment, is gone.
+- v0.16.9: Reopening a project restores the JANUS pick-list notice, including its failed state. A failed autosave and a successful one were indistinguishable after a restart, which is the case the notice exists for.
+- v0.16.9: The About dialog asks the MAME sidecar for `health_info`, the method the dispatcher registers, and reads fields it returns. It asked for `health`, which does not exist, for `sidecar_version`, which nothing emits, and swallowed the error, so every MAME crash report ever copied read `Sidecar : unknown`.
+- v0.16.9: The two release smoke scripts share one `SidecarIO`. The MAME copy had dropped the ready-notification tracking that separates a sidecar that never started from one that died mid-call, which is the distinction those scripts exist to make.
+
+### Changed
+
+- v0.16.9: The release version is one value. `kuma_core/shared/version.py` joins the manifests `version-sync` compares and is updated by `scripts/sync-version.sh`, and the export slice stamps `__APP_VERSION__` rather than a literal. Provenance files carried `0.1.0` or `0.02.02` depending on which writer produced them, so a diff of two real releases reported no version change. `KURO_MODULE_VERSION` stays separate, with its reason recorded next to it.
+- v0.16.9: Two cross-layer checks were added, `mame-activity-csv-schema` and `mame-extensions`, each reading the Python definition and comparing it to the TypeScript. Both were confirmed to fail when the two are made to disagree.
+
+## v0.16.8 (Step 4.2 receives the wild-type replicates step 4.1 measured)
+
+Step 4.1 reads the wild-type wells to normalize every other measurement, and then dropped them. The workbook it writes for EVOLVEpro excludes wild-type rows by construction, so step 4.2 had no route back to them, and the handler told the classifier there were none. The classifier gates its two transition verdicts behind a bootstrap that needs those replicates, so no assay could produce a run that reached one. The advisory could only ever agree with carrying on.
+
+Those replicates now leave step 4.1 on the round record that already states what it produced, on the same scale as the exported column, and reach the classifier with the round files. They are forwarded only when there are enough of them to estimate assay noise. Below that count nothing is passed and the advisory still declines to answer, because without a noise estimate two of the three saturation signals are unavailable and the remaining one would carry the verdict by itself. A verdict resting on a single signal is reported at full confidence, since confidence measures agreement between the estimate and its resamples rather than the sufficiency of the evidence, and that is worse than declining.
+
+A workbook that carries no wild-type column and one that carries too few replicates were previously the same answer. They are now distinguishable: the response states how many it had and how many the noise estimate needs, so the screen names which of the two situations applies rather than sending an operator to look for data they already have.
+
+Separately, the backtest that decided which signals drive this advisory now lives in the repository. It was cited twice inside the classifier by filename alone, and the file sits in a different repository with no remote, so the reason a live decision rule ignores three of its own signals was reachable only from the machine that ran the analysis.
+
+### Highlights
+
+- Step 4.2 now receives the wild-type replicates that step 4.1 measured, instead of being told none exist.
+- A workbook with no wild-type column and one with too few replicates are different answers, and the screen says which it is.
+- Replicates reach the classifier only when there are enough to estimate assay noise, so no verdict rests on one signal at full confidence.
+- The backtest that decides which signals drive the advisory is now in the repository, not cited by filename alone.
+
+## v0.16.7 (The final plate keeps the stock plate coordinates, and the mapping CSV keeps its header on line one)
+
+The final culture plate an operator fills by hand could land at a different well than the stock plate it was seeded from. A non-PASS clone (failed QC, ambiguous, low depth) drops out of the pick list before a destination layout is ever chosen, and the old default packed the survivors from A1, pulling every later pick forward to close the gap that clone left. The destination layout now defaults to mirroring the source position instead, so a dropped well stays blank on both plates and the two plates share one coordinate system. Packing from A1 is still available as a choice in the panel for a run where that matters more than positional agreement. A machine already running the previous default migrates its saved choice once, on first load of this build, and an operator who deliberately picks the from-A1 layout afterwards keeps it.
+
+The exported mapping CSV also carried a `# kuma_run_meta: ...` comment line above the header whenever run metadata was available, which pushed every column and every data row down by one line for a plain spreadsheet import or `csv.DictReader`. That comment line is gone; the header is always line one. This writer serves both the device-schema CSV and the analyze step's autosaved pick list, so the comment line is gone from both. Run metadata still reaches the operator through the `__kuma_meta__` sheet of the XLSX export.
+
+### Highlights
+
+- The final culture plate now lines up with the stock plate it came from, instead of pulling later picks forward into a dropped clone's well.
+- Packing the final plate from A1 stays available as a layout choice; only the default changed, and a prior choice of it survives the upgrade.
+- The exported mapping CSV always starts with the header row, instead of a metadata comment line pushing it to row two.
+
+### Changed
+
+- v0.16.7: The Janus mapping default destination layout changed from packing sequentially from A1 to mirroring the source well position, so a non-PASS clone dropped from the pick list leaves its well blank on the final plate rather than being closed up by the next pick. A machine holding the previous default migrates its stored choice once, to a new storage key, and a deliberate choice of the from-A1 layout made afterwards is never overwritten again.
+
+### Fixed
+
+- v0.16.7: The Janus mapping CSV no longer writes a `# kuma_run_meta: ...` comment line above the header. The header row is always line one, matching how a plain `csv.DictReader` or spreadsheet import reads the file. Run metadata is unaffected in the XLSX export, which carries it on its own `__kuma_meta__` sheet.
+
+## v0.16.6 (Step 4.2 says what it was asked, what it answered, and when)
+
+The advisory in step 4.2 reads several rounds at once and says whether single-mutant walking still pays. It could not say the one thing it exists to say. The classifier needs wild-type replicate measurements to gate a switch, the handler passed none, and the gate turned every switch or stop candidate back into a deferral. Two labels remained reachable, `continue_walking` and `deferred`, and both mean carry on. An advisory that can only agree with inertia carries no information.
+
+A missing input is now a different answer from a withheld verdict. When the classifier was never asked, the response carries no label and no confidence at all, because it made no judgement. It names the input it lacked and the decisions that input would have unblocked, and the screen draws that as its own state rather than as a verdict.
+
+Step 4.1 writes the file step 4.2 reads, with the same two columns, and used to make the operator go find it again. Each round now records what it produced, the advisory fills its list from those records, and hand-picked files still work: adding or removing one takes the list over, and a button puts the round list back.
+
+A verdict is kept with the inputs that produced it and the time it was decided. Rebuilding a round writes the same path with different contents, so a stored verdict is compared against when its inputs were last produced, and one that predates them is shown as superseded instead of as the current answer. The completion mark reads the same stored record, so it no longer depends on having opened the screen.
+
+The handoff button on 4.2 is gone. The step that filled its precondition was removed in v0.15.12, so the button had been permanently disabled, under a tooltip pointing at a screen that no longer existed.
+
+### Highlights
+
+- Step 4.2 now distinguishes a verdict it withheld from a question it was never able to ask, and names the input it was missing.
+- Step 4.2 fills its file list from what each round produced, instead of asking for the file step 4.1 just wrote.
+- A stored advisory verdict is shown as superseded once its inputs are rebuilt, rather than passing as the current answer.
+- The step 4.2 completion mark survives a restart instead of appearing only after the screen is opened.
+- The handoff button on step 4.2 is removed; the step that filled its precondition was taken out in v0.15.12.
+
+## v0.16.5 (A design run stops at one plate of variants)
+
+The design count had no upper bound. The field advertised a ceiling of 10000 and the label beside it offered to spread that across however many plates it took, but neither figure was enforced. The value is committed from the raw text of the field, so a typed 500 reached the store unchanged, and a saved project could carry any number at all.
+
+Past the end of a plate the well labels stopped describing a plate. The label generator walked columns without ever rolling onto a second one, so the 97th primer was placed at A13. That is a real coordinate on a 384 plate, which is why nothing downstream rejected it, and it is not a coordinate the 96 to 384 mapping ever fills. The Python exporter names the same position P2-A1. An Echo run built from the first form aspirates a well that was never filled.
+
+The count is now bounded at one plate of variants. Entering more refuses the number and says which number was refused and why, rather than silently accepting a count the plate cannot hold. Forward and reverse primers each occupy a plate of their own, so the bound counts variants and the export screens continue to report two plates for a full run.
+
+The bound is applied in one function, and every path that writes the count calls it, including the two that never went through the setter: opening a saved project and restoring an autosave snapshot. A file written before the bound existed is corrected on load rather than refused, because refusing to open a project over a number the app can correct is the worse outcome.
+
+### Highlights
+
+- The design count stops at 96 variants, one plate worth, and names the refused number instead of accepting a count the plate cannot hold.
+- A saved project or autosave snapshot carrying a larger count is corrected when it is opened, not rejected.
+- Well labels past the end of a plate name the next plate, matching what the Python exporter has always produced.
+
+### Changed
+
+- v0.16.5: The design count is bounded at one plate of variants. The bound lives in a single function that every write calls, including opening a saved project and restoring an autosave snapshot, which previously bypassed the setter entirely. Fractions are truncated, since the field parses as a float and the count indexes an array.
+- v0.16.5: Entering a count above the bound opens a dialog naming the entered value and the bound, with no continue button, and the field returns to the bound. The dialog reuses the existing input size warning rather than adding a third copy of it, and the props are a discriminated union so a caller that omits the continue handler without asking for the acknowledge form still fails to compile.
+
+### Fixed
+
+- v0.16.5: Well labels past the end of a plate roll onto the next plate as `P2-A1` instead of continuing into columns a 96 well plate does not have. The previous form produced `A13`, which is a valid coordinate on a 384 plate and therefore passed unnoticed through export. The Python `_assign_well` has always produced the rolled form, and a test now pins the two against each other.
+- v0.16.5: Opening a project saved with a count above the bound no longer requests a candidate pool sized from the stored number. That one read was left unbounded while the write beside it was corrected.
+
+## v0.16.4 (The plate grid asks the sidecar by the name the sidecar answers to)
+
+The well selection grid on the analyze screen could not draw anything. Where the plate should be, it printed "Method not found" and the error code the sidecar returns for a method it does not recognise. The grid asks for the draft layout over the same RPC the run itself uses, but it asked for `build_well_layout` while the sidecar registers that handler as `mame.build_well_layout`, so the request reached no handler at all.
+
+Nothing caught it. The cross-layer rule for that method names only the sidecar dispatcher file, so it checked the registration against itself, and no test rendered the panel. The panel now carries one, and it fails on the bare name.
+
+The consequence for an operator was not cosmetic. With no grid, a campaign smaller than the plate had no way to declare which wells it occupies, so the run fell back to the leading wells and an empty well kept whatever the draft placed there.
+
+### Highlights
+
+- The well selection grid draws the plate again instead of reporting that a sidecar method was not found.
+- A campaign that occupies part of the plate can declare its wells again, rather than falling back to the leading ones.
+
+### Fixed
+
+- v0.16.4: The well selection panel calls `mame.build_well_layout`, the name the MAME dispatcher registers, instead of the bare `build_well_layout` that reached no handler. A rendering test now pins the method name, which the previous cross-layer check could not: it compares the dispatcher symbol against the dispatcher file alone.
+
+## v0.16.3 (The final plate reads like the plate map, and three inputs stop misdescribing themselves)
+
+The instrument sheet laid its picks down by sequencing depth. The deepest-sequenced clone took A1, the next took B1, and so on, which meant the file read in an order with no relationship to the plate the operator was looking at. Filling a plate by hand against a list sorted on a hidden axis is how a clone ends up in the wrong well. Picks are now laid down in plate-map order, column-major, the same direction the result table already sorts and the same direction an eight channel pipette moves. Depth is still recorded on every row; it just no longer decides position.
+
+Three inputs described themselves incorrectly, and one of them could cost a run.
+
+The reference sequence field asked for the CDS. The pipeline wants the opposite: in a raw run it takes the flank-bearing construct and extracts the amplicon itself, locating the barcode workbook primer tails inside the sequence and re-deriving the coding region by reading frame. Supplying a bare CDS passes alignment and passes the pre-flight check, then loses every read at barcode demux, because the barcode sits a hundred to four hundred bases upstream of the gene while the search window is about thirty. The shipped example was always a construct, not a CDS, and a comment in the store records this exact failure. Only the label said otherwise.
+
+That extraction was also invisible. A run analyses a slice of the file the operator chose, the response has said which slice since the feature shipped, and nothing on screen read it.
+
+The pooled barcode option said it merges the selected barcodes. It merges every read under the run folder, including barcodes left unticked and the unclassified directory, which is why the tick list greys out when it is chosen. The option stays, since it is the only path for a run carrying one barcode or none, but it now says what it does.
+
+### Highlights
+
+- The instrument sheet fills the final plate in the same order the step 2.2 plate map reads, instead of by sequencing depth.
+- The reference sequence field asks for the construct that carries the primer binding regions, which is what the pipeline has always needed.
+- A run that extracted its amplicon now says so, naming the region it analysed.
+- The pooled barcode option states that it merges every read in the folder, not only the ticked barcodes.
+
+### Changed
+
+- v0.16.3: Picks are ordered by their position on the source plate, running down each column, rather than by read depth. The ordering goes through the shared plate-geometry rule rather than a second traversal of its own, so the sheet, the result table and the plate cannot drift apart. A pick whose source well cannot be read sorts first and is named, since the export already refuses to write while any well is unresolved.
+- v0.16.3: The reference input asks for the construct sequence covering the regions the barcode primers bind, and says that MAME extracts the amplicon from it. Naming the primer regions rather than saying whole sequence matters: a plasmid whose primer tails cannot be found is refused, and the refusal already explains itself.
+- v0.16.3: The pooled option for native barcodes states that it merges every read under the run folder, including unticked barcodes and unclassified reads.
+
+### Added
+
+- v0.16.3: The review screen reports when the analysis ran on an extracted amplicon rather than the whole reference file, naming the region. A restored run keeps the notice, and a run where no extraction happened shows nothing.
+
+## v0.16.2 (What the demo shows, what a reopened run remembers, and what the docs still claimed)
+
+v0.16.1 shipped the eight column instrument sheet and the review popups. Checking what it left behind turned up four things, none of them in the code it changed.
+
+The sample run health panel was telling users that a check had passed when the check had never run. The fixture generator kept its own copy of the run health response and had been missing `cross_talk_status` since v0.13.23.0; the panel reads a missing status as normal, finds no candidates, and prints "No cross-talk candidates detected". The generator now calls the real handler instead of mirroring it by hand, the same repair applied to the verdict serializer, and the fixture states `not_run`. That fixture was also never declared in the bundle, so a packaged build could not read it at all. The gap that hid this is closed too: the cross-layer rule requiring every sample file to be declared existed in writing but nothing enforced it, and now something does.
+
+Reopening a saved run lost its off-layout record count. The value was in the saved file the whole time; only the read was missing, and the notice renders nothing for a null count exactly as it does for a count of zero, so a restored run looked clean on that axis rather than looking unmeasured.
+
+The recovery bar could contradict the header above it. Run health is fetched without being awaited, so a second analysis navigates to the review screen while the previous run health is still on screen, the memo computes once against the old recovered count, and the arriving value does not invalidate it because the other dependencies did not change. The header recomputes on every render, the bar does not, and the two disagreed.
+
+The documentation still described a sample map input removed in v0.16.0, still explained FRAMESHIFT by a code path the engine documents as unreachable, and cited a version that was never released.
+
+### Highlights
+
+- The bundled sample no longer reports a cross-talk check as clean when that check never ran.
+- The sample analysis fixture is bundled with the app, so the demo reads it in a released build rather than only in development.
+- Reopening a saved run brings back its off-layout record count instead of showing nothing.
+- The recovery bar and the header above it can no longer show figures from two different runs.
+- The KURO plate preview stops labelling its two panels as deck racks, which are plate names now.
+
+### Fixed
+
+- v0.16.2: The MAME sample fixture reports `cross_talk_status`. The generator now imports the real run health handler rather than assembling the response by hand, so the class of drift that hid this cannot recur; a test pins the handler identity and the key set.
+- v0.16.2: `samples/mame/sample_analysis_result.json` is declared in the bundle resources. It never was, so a packaged build silently failed to read it and the sample run health panel stayed empty.
+- v0.16.2: A saved run restores its off-layout record count. The count was already written to the result file; only the read was missing, and the notice cannot distinguish a null from a zero, so the omission was silent.
+- v0.16.2: The per-plate recovery bar recomputes when the recovered count changes. It previously kept the figure from the previous run whenever run health arrived after the review screen had already drawn, which showed a bar and a header describing different runs.
+- v0.16.2: The KURO Janus plate preview no longer calls its two panels Rack 1 and Rack 2. Those are panel indices, and since v0.16.1 a deck rack is a plate name, so the numbers read as deck positions that do not exist.
+- v0.16.2: The sample verdict mock carries the noise floor and the evaluable flag, so the confidence popups demonstrate what they do when the app is opened with sample data.
+
+### Changed
+
+- v0.16.2: Documentation corrected in several places: the sample map removed in v0.16.0 was still listed as an analyze input, including in the step contract agents read; the FRAMESHIFT explanation described a code path the verdict engine documents as unreachable rather than the net indel length rule that actually fires; two pages cited v0.15.24, a version that was never released.
+
+## v0.16.1 (The robot gets the sheet the lab actually uses, and the review screen explains itself)
+
+The JANUS mapping file was transcribed from a primer dispensing workbook and had nine columns, one of them carrying a liquid class string and two of them carrying integer deck positions. The workbook the lab now seeds cells from has eight: the liquid class column is gone, and the racks are plate names, which is what the JANUS software matches on. A file describing deck position 1 to an instrument that looks up "Stock plate1" is a file the operator has to fix by hand. KURO and MAME share one definition of that sheet, so both now write the new shape.
+
+Step 3 now exposes one transfer-volume control backed by one stored value. The default is 70 uL. Instrument export uses CSV with a fixed column layout.
+
+The review screen had a different problem. It showed ten confidence numbers and explained none of them, and the sidecar never told the frontend what any of them was judged against, so nothing on screen could have said. The analyze response now reports those thresholds, plus the per-well noise floor that makes the minor-allele number readable and a flag distinguishing a measured zero from a gate that was skipped. Clicking a metric opens what it counts, at what stage, and whether it can move a verdict at all: seven of the ten cannot.
+
+Two smaller repairs came out of the same work. The verdict legend already had explanations, but they were English in all ten locales and did not appear at all on a class with zero wells, which is exactly the class an operator looks up. And the shipped FRAMESHIFT text described a code path the engine documents as unreachable.
+
+### Highlights
+
+- The JANUS mapping file now matches the workbook the lab seeds from: eight columns, with plates named rather than numbered.
+- Clicking a replicate in the review inspector opens that copy, the way clicking its well or its table row already did.
+- Each confidence metric now opens a popup stating what it counts and which threshold, if any, the run was judged against.
+- Verdict legend entries explain themselves on hover, in your own language, at both places they appear.
+
+### Added
+
+- v0.16.1: The analyze response reports the thresholds a run was judged against, so the review screen can state a number instead of repeating one. Every one of them has a backend default that applies when the caller omits it, and the frontend omits the read-depth floor on every run, so its own input fields could not have answered the question.
+- v0.16.1: Each verdict carries the per-well median minor allele fraction, the noise floor the mixed-position gate is measured against, and a flag saying whether the consensus N fraction was evaluable at all. Without the flag a well that could not be measured and a well that measured clean both read as 0.0 per cent.
+- v0.16.1: Confidence metrics open a detail popup on click, stating what the number counts, at which stage it was measured, and whether it can produce a verdict class. Seven of the ten are diagnostic and say so. The two alignment drop counters say when the input mode does not populate them, because a zero there is not a measurement.
+
+### Changed
+
+- v0.16.1: The JANUS sheet is eight columns for both KURO and MAME. The liquid class column is gone, since the new workbook has no cell for it, and the aspirate and dispense racks carry plate names: MAME generates them from the plates of the run, KURO names the forward, reverse and destination plates its layout sheet already names. The liquid class is still recorded and shown; it simply is not part of the instrument file.
+- v0.16.1: Step 3 has one volume field, one output format and one column layout. The duplicate transfer volume input, the CSV and XLSX choice, the nine and five column choice, and the static deck picture are all gone. A stored volume of 100 uL, the old shipped default, is raised to 70; any other stored value is the operator's and is left alone.
+- v0.16.1: Replicate comparison rows in the review inspector are buttons. Clicking one selects that plate copy, which moves the inspector, the plate highlight and the verdict table together, as clicking the same well anywhere else already did.
+- v0.16.1: The verdict legend explains each class on hover in the per-plate breakdown as well as on the plate map, including classes with no wells, which were unreachable because the chip was disabled. The eight explanations are translated into all ten locales; they had been English everywhere since June, which the key-set parity check cannot see.
+
+### Fixed
+
+- v0.16.1: The FRAMESHIFT explanation described a code path the verdict engine documents as unreachable and omitted the gate that actually fires. It now states the rule the engine applies: a net insertion or deletion length that is not a multiple of three.
+
+## v0.16.0 (The plate says where the samples are, and the run says what landed outside it)
+
+MAME asked for a sample map: a workbook naming which variant sits in which well. That file was never observed from the data. It was a transcription of a placement that MAME can compute, because the placement is deterministic once the plate conventions are fixed, and they are. The reverse barcode indexes the row, the forward barcode indexes the column, wells fill down a column before moving right, and the origin is A1. Every one of those is a property of a 96 well plate and of how an eight channel pipette moves across it, not a choice a run gets to make.
+
+So the sample map is removed. The placement comes from the variant list in the order the list states, with the wild-type control taking the ordinal its own row declares. A project that still carries a sample map file is not ignored: the run compares it against the computed placement and names the wells that disagree, rather than letting a stale file quietly decide the scoring.
+
+Removing it exposed three defects in the reader that the file had been covering. A wild-type row was dropped on read, which shifted every later well by one. The capacity check counted variants rather than occupied wells, so a design of exactly 96 reached a coordinate that does not exist and died naming no file. Blank rows in the middle of a list, and rows filtered out by status, vanished without a word, which meant two readers of the same workbook saw different rows. All three now stop the run and say which row is at fault, and they stop it before the demux rather than after.
+
+Not every plate is full. A run that uses part of the plate can now say which part: a 96 well grid where wells are picked by clicking, dragging, or clicking a row or column header. Leaving it alone gives the placement MAME always assumed. Reads that land outside the declared wells are counted and reported, split by whether the barcode indices involved were ever used by this campaign, because a read on an index nobody ordered is a different problem from a read on an unoccupied combination of indices that were.
+
+Choosing native barcodes now says what that choice is. A native barcode is a replicate of one plate, not a separate plate, and the dialog, the verdict table and the well inspector now say so together: which replicates were read, how deep each one was, why one was picked, and which wells have replicates that disagree.
+
+### Highlights
+
+- The sample map is gone. MAME places the plate from the variant list itself, and a leftover file is compared rather than obeyed.
+- Pick which wells a run used on a 96 well grid, by clicking, dragging, or clicking a row or column header.
+- A variant list with a blank row in the middle, or a second wild-type row, stops the run instead of shifting every later well.
+- Choosing native barcodes now says what it is choosing: replicates of one plate. Wells whose replicates disagree are flagged.
+- A run reports reads that landed outside the declared wells, split by whether those barcode indices were ever used.
+
+## v0.15.23 (One home for the rule that turns a barcode pair into a well)
+
+A well is named from the combinatorial barcode as `{R}_{F}`, and the arithmetic that turns that pair into a plate coordinate had been written out four times: in the workbook writer, in the robot mapping, in the sidecar export handler, and in the plate geometry module itself. Four copies of one rule is four chances to drift, and a drift here files a read under a well it did not come from. The rule now lives in `plate_geometry` alone, as a frozen addressing value that names the row axis and the fill order rather than leaving them implicit. The other three call it.
+
+Nothing about the plate changed: the reverse index is still the row, the forward index is still the column, and wells still fill down a column before moving right. The tests that pin it were rewritten so they fail when either axis moves, which the previous ones did not do.
+
+The plate capacity guard was also narrowed. It ran before, it refused a design that exactly filled the plate with no room left for a wild-type well, and that design scores correctly. It now refuses only a design with more variants than the plate holds, reports the missing wild-type well instead of refusing it, and leaves a run alone when the operator supplied the layout directly. Loading a barcode file now says how many forward and reverse barcodes it holds and how many wells they describe.
+
+### Highlights
+
+- The rule that turns a barcode pair into a plate well lives in one place instead of four, so the four cannot drift apart.
+- A design that fills the plate exactly, leaving no room for a wild-type well, is no longer refused for it.
+- Loading a barcode file shows how many forward and reverse barcodes it holds, and how many wells they describe.
+- The native barcode dialog says what it is choosing: replicates of one plate, rather than separate plates.
+- A run that overflows the plate is refused before the demux starts, not after wells have been written.
+## v0.15.22 (A saved run is judged by what changed, not by what version wrote it)
+
+v0.15.20 asked the wrong question and then gave the wrong answer to it. It compared version strings, so a release that moved a panel or added a translation made a perfectly current run look suspect; and when it did find an older run it showed the verdicts anyway behind a "keep these results" button. Twenty releases shipped in the 0.15 line and five of them changed what a run produces. Warning on the other fifteen teaches an operator to dismiss the warning, and a button that offers to keep reading an obsolete result is the app recommending an obsolete engine.
+
+### Highlights
+
+- A project only asks to be re-analysed when this version would actually score the run differently, not because the version number moved.
+- When it does ask, it says which changes make the saved run obsolete, so the hour of re-analysis has a stated reason.
+- A run scored by another version is no longer shown at all: no verdict table, no plate, no export. There is no "keep these results".
+- Nothing is deleted. The saved run stays in the project folder, and a re-run replaces it.
+
+### Added
+
+- v0.15.22: Analyze results carry a result contract: a revision that moves only when the meaning of a result moves, recorded in the snapshot next to the version. Projects saved before this release are dated by mapping their version onto the revision that was current at the time, so an old project is still judged by behaviour rather than by release cadence. The five revisions so far are the v0.15.10 plate-disagreement refusal, the v0.15.13 replicate purity order, the v0.15.15 self-consistency check, the v0.15.17.03 plate-column row order and the v0.15.19 barcode plate-shape refusal.
+- v0.15.22: A cross-layer group and a table test tie the revision list to the analyze handlers, so a change to what a run produces cannot ship without dating itself. The test also fails when a revision has no copy explaining it, because a re-run demand with no argument is worse than none.
+
+### Changed
+
+- v0.15.22: A saved run from a different result contract is not replayed: not into the sidecar, not into the verdict table, and the project does not open on the review step. The screen states which version produced it, lists what has changed since, and offers a re-run. The saved file is untouched on disk, and the notice says so, because an operator who watches their verdicts disappear will otherwise assume the app deleted them.
+- v0.15.22: The "keep these results" button from v0.15.20 is gone, along with the acknowledgement it recorded.
+
+## v0.15.21 (The barcode annealing tail is read from the file, not from one gene)
+
+MAME cut a barcode into seed and annealing tail using hardcoded annealing sequences and fixed prefix lengths. Every barcode package the app generates carries a flanking primer that primer3 designs per gene, so those two sequences are never present in a file MAME made itself. The reader found no tail, said nothing, and fell back to cutting at 11 bases forward and 10 reverse. On the shipped seed template, whose reverse seeds are 11 bases, that silently removed the last base of all eight reverse barcodes, and the reverse index is the plate row. A seed longer than eleven lost more.
+
+The tail is now derived from the data: the longest suffix every barcode on an axis shares. Legacy files with a shared annealing tail retain their seed boundaries. On a generated package it recovers every seed intact. A file whose tail cannot be derived no longer guesses. It stops the run, names the axis, states how far short the shared suffix fell, and points at the rows that end differently when the rest of the axis agrees. The same reader now backs the Validate Inputs button, so a file that would fail the run fails the check.
+
+The bundled barcode sample and its template copy were regenerated, because both carried twenty sequences that shared nothing and only loaded through the fallback. The error text that told an operator to split a campaign across plates and supply one sample map per plate was corrected too: a native barcode is a replicate of one plate, not a second plate.
+
+### Highlights
+
+- The barcode annealing tail is now read from the file itself, so a barcode set designed for any gene gets cut in the right place.
+- A file whose tail cannot be read stops the run, instead of guessing a cut point and filing reads into wells they do not belong to.
+- Reverse barcodes no longer lose their last base, which had been narrowing the evidence used to pick a plate row.
+- The result workbook records which annealing tail was derived, so a finished run can be audited later.
+- The bundled barcode sample was rebuilt to carry the seed plus shared tail structure the reader expects.
+## v0.15.20 (A restored run says which version scored it)
+
+A project folder outlives the app that made it: sequencing turnaround is weeks, and a run saved in v0.15.9 is opened in whatever is installed today. The restore is faithful to a fault. It replays the analyze response verbatim into the sidecar and the screen, and until now the review step presented those verdicts as though this build had just produced them. Between v0.15.10 and v0.15.18 MAME changed what a run produces more than once: a workbook that describes one plate two ways is refused, replicate picks are ordered by measured purity, a finished run is checked against itself, and result rows follow the plate column. A result scored before those changes is not what this build would produce, and nothing on screen said so. The snapshot had recorded `kuma_version` since it was introduced; nothing ever read it.
+
+### Highlights
+
+- A run restored from an older kuma now says which version scored it, instead of appearing as if this build had just produced it.
+- You choose what happens next: re-run for a result this build stands behind, or keep the saved one. Nothing is deleted or re-run for you.
+- Keeping is remembered per project and per version, so the notice stays quiet until a different snapshot turns up.
+- A snapshot with no recorded version, or one from a newer build, is reported rather than trusted.
+
+### Added
+
+- v0.15.20: A run restored from a snapshot another build wrote is labelled with the version that produced it, on both the inputs step and the review step. The two ways out are stated rather than chosen for the operator: re-run, which is the only thing that yields a result this build stands behind, or keep the saved one. Keeping is remembered per project and per producing version, so the notice does not reappear every restart but does speak up for a different snapshot.
+- v0.15.20: A snapshot that records no version at all, written before the field existed, is treated as suspect rather than current, because it cannot be told apart from an old run. A snapshot written by a newer build says so too.
+
+### Changed
+
+- v0.15.20: Nothing is discarded and nothing is re-run without being asked. The saved verdicts, plate and summary are still restored and still exportable, because deleting an operator's run or starting a long analysis unasked are both worse than showing the run with its origin stated. A snapshot this build wrote behaves exactly as before: no notice, no extra click.
+
+## v0.15.19 (A barcode file that does not describe the plate stops the run)
+
+MAME names a well from the combinatorial barcode as `{R}_{F}`: the reverse index is the plate row, the forward index is the plate column. Nothing checked that the file being read is numbered that way, and both ways it can fail are silent. A set numbered past the plate loses the coordinate, and the well id reaches the workbook as an empty cell that reads like a well which failed to sequence. A gap in the numbering is worse: the loader sorts by index and then keeps position, so a set numbered 1, 2, 5 makes the matcher call the third barcode F3, and every read carrying `_f_5` is filed under plate column 3 with nothing to show for it.
+
+### Highlights
+
+- A barcode file not numbered for an 8 by 12 plate now stops the run and names the barcodes at fault, instead of leaving wells unnamed.
+- A gap in the barcode numbering is caught too, which used to shift every later barcode into the wrong row or column.
+- The plate shape is now stated once instead of being written out at each place that maps a well.
+
+### Added
+
+- v0.15.19: Input validation reads the barcode file and refuses a set that cannot describe the plate, naming the indices at fault (`R9`, `F13`) or the gap (`F3, F4`) and restating the rule. It runs before the multi-minute demux, alongside the plate-order check on the expected workbook.
+- v0.15.19: `kuma_core/mame/plate_geometry.py` holds `PLATE_ROWS`, `PLATE_COLS` and `PLATE_CAPACITY` plus `check_barcode_layout`. `well_mapper`, `excel_writer` and `layout` read the constants instead of writing 8, 12 and 96 out again, so the assumption is stated where it can be checked rather than repeated where it cannot.
+- v0.15.19: `read_barcode_indices` reads the numeric suffixes off the barcode rows without the sequences, which is what makes a gap visible: `load_barcode_prefixes` discards the file's own numbering, so by the time the matcher runs there is nothing left to compare against.
+
+### Fixed
+
+- v0.15.19: The per-well consensus worker declared a 17-element return and returned 21. The four that arrived with v0.15.13 and v0.15.17 (`min_variant_support`, `variant_positions`, `min_variant_support_depth`, `median_minor_fraction`) were never added to the annotation. Runtime was unaffected because the caller unpacks all 21, but an annotation four releases stale is worse than none: anyone trusting it while editing the unpacking gets a silent shift.
+
+## v0.15.18 (Step 2.2 stops dividing a window it was never bound by)
+
+The plate map and the verdict breakdown were sized to the window and scrolled inside whatever share they got, so the plate sat cropped at row D behind an inner scrollbar while the operator scrolled three separate boxes to read one result. Three releases went into redistributing that share: a content fit in v0.15.11, a repair in v0.15.14 for the stored layout that suppressed it, and neither addressed the premise. The screen is a page, not a split view, and a page has no fixed height to divide.
+
+### Highlights
+
+- The plate map and the verdict breakdown now draw whole instead of scrolling inside a box far shorter than they need.
+- Step 2.2 scrolls as one page, so the two of them and the verdict table read in a single pass.
+- The verdict table keeps its own scroll, bounded to about the height of the two panels beside it.
+
+### Changed
+
+- v0.15.18: The plate map and the per-plate breakdown are drawn at the height their content needs. `DataPanel` and `PlateView` take an `autoHeight` mode that drops the fill-and-clip rules meant for a parent with a height to hand down, and step 2.2 uses it for both. The plate grid, the well inspector and the breakdown lose their inner scroll containers with it.
+- v0.15.18: The left column takes its height from the right one instead of adding to it. Its contents are absolutely positioned, so the verdict table, virtualised and up to 96 rows, reports no intrinsic height and cannot stretch the grid row; it fills what the plate map and the breakdown define and scrolls inside that. Below the `lg` breakpoint the columns stack and the table takes an explicit viewport-relative height, since there is no row to borrow from.
+- v0.15.18: The resizable splitters on 2.2 are gone, along with `useContentFitSplit` and the layout it persisted. Measuring panel heights in a `ResizeObserver` and writing the result back was re-deriving what the box model states directly, and it was the source of both earlier defects. Nothing else used the hook.
+
+## v0.15.17 (A threshold nobody had measured against)
+
+The mixed-position gate fires at a fixed 0.20 minor-allele fraction, and until now the workbook reported only how bad the worst position in a well was. That says nothing about whether 0.20 is a lot or a little for the run in front of you.
+
+### Highlights
+
+- A well now reports its typical background noise beside its worst position, so the mixed gate can be judged against the run at hand.
+- The workbook exposes background noise and peak noise beside the configured mixed-position gate.
+
+### Changed
+
+- v0.15.17: A consensus reports the median minor-allele fraction over eligible positions. The workbook carries it beside the peak so the operator can compare observed noise with the configured mixed-position gate.
+
+## v0.15.16 (What's New says a few short things, in the language the app is set to)
+
+The What's New modal pasted the changelog into itself. It read the Added, Changed and Fixed bullets of the latest release, cut each one at 240 characters and showed the pieces: six of the seven notes that shipped with v0.15.6 ended mid-word, and what did fit was prose written for someone reading a diff, backticked parameter names and all. All seven were in English whatever language the app was set to, because the array was compiled into a TypeScript module that i18n never read. Two smaller faults travelled in the same area: three MAME help texts named a well-filling order without saying which way it goes, and the post-commit hook that keeps the version manifests in step died on a path that no longer exists.
+
+### Highlights
+
+- What's New now shows a short note per release instead of a cut-off copy of the changelog.
+- Those notes are translated into all ten languages, and a release cannot ship with a stale one.
+- The variant mapping help now says which way wells are filled: A1, B1, C1 to H1, then A2.
+- The post-commit version hook no longer breaks on a path that was removed.
+- A long release note now scrolls inside the dialog instead of running off the bottom.
+
+### Added
+
+- v0.15.16: A release can no longer ship a stale translation of those notes. `scripts/gen-whatsnew.mjs` writes `whatsNewDialog.highlightsStamp` into `en.json` as `<version>+<digest8>`, the version in `package.json` followed by the first eight hex characters of a sha256 over the English bullets, and `scripts/i18n-parity.mjs` fails when any of the ten locales carries a different value. The digest half is what makes it bite inside a release: a version-only stamp moves at a release boundary and nowhere else, so rewording a bullet after the bump, which this branch did twice while settling the v0.15.6 wording, would leave nine translations describing text that is no longer shipping while every gate stays green. Nothing else can see that, because `gen-whatsnew.mjs --check` reads `en.json` alone and key parity flattens an array to `highlights.0`, `highlights.1` and so on, where the previous release wording has the same element count and the same non-empty values.
+- v0.15.16: `scripts/i18n-parity.mjs` applies authoring rules to the translated bullets too, which the generator never sees: no backticks, and at most 200 characters. That is looser than the 140 imposed on English because the same sentence runs longer in most of these languages, and the set shipping here shows the gap is real (94 characters at most in English, against 115 in Brazilian Portuguese, 121 in French and 128 in German). A violation names the locale and the array index.
+- v0.15.16: `.githooks/pre-push` gained a third stage that runs `node scripts/i18n-lint.mjs` and `node scripts/i18n-parity.mjs`. The three scripts behind `sync:check` look at `en.json` alone, so a locale left on the previous release wording was invisible to every local gate and would have surfaced only in CI. The hook calls `node` directly at every stage, on `scripts/sync-check-all.mjs` and then on a `tsc` resolved from the checkout's own `node_modules`, falling back to the main checkout because a worktree carries no dependencies of its own and failing with both paths named when neither has one. No stage calls a package manager or an on-demand package runner: this is a Windows-target checkout on a shared folder, where a WSL-side install replaces `node_modules` with Linux binaries and leaves the app unable to start.
+- v0.15.16: Fourteen fixture tests for the two scripts, under `tests/scripts/`. Nine cover `scripts/gen-whatsnew.mjs`: the length and backtick rules with the reported figure checked, a bullet wrapped over two lines joined into one, all three cases that exit 2 rather than 1, and a one-character edit moving the stamp digest and failing `--check`. Five cover `scripts/i18n-parity.mjs`: a clean set, a locale still holding the previous stamp, a missing stamp in `en.json`, and the two translated-bullet rules. Each case runs the real script against a temporary repo tree, so the checks that gate a release are themselves checked.
+- v0.15.16: `.cross-layer-sync.json` carries a `whats-new-highlights` group naming `CHANGELOG.md` and all ten locale files, so editing a highlight reports the other files that have to move with it. It is `warning` rather than `blocking` on purpose: enforcement already lives in `gen-whatsnew.mjs --check` and `scripts/i18n-parity.mjs`, and the group is there to say so at edit time, not to check the same thing a second time.
+
+### Changed
+
+- v0.15.16: What's New shows a short note per release instead of a cut-off copy of the changelog. `scripts/gen-whatsnew.mjs` reads a `### Highlights` block written for the modal, at most five bullets of at most 140 characters each, no backticks and no `vX.Y.Z:` prefix, and a bullet that breaks a rule fails the build instead of being trimmed, because these bullets are shown verbatim and are never truncated. A bullet wrapped over several lines in `CHANGELOG.md` is joined back into one string with single spaces before the rules apply, so wrapping cannot buy extra length and cannot drop the rest of a note without saying so. The latest release section needs such a block now: the generator slices the top `## ` heading down to the next one and reads that alone, so a missing block there, or one with no bullets, exits 2 and fails `sync:check` with it, while the sections below are never inspected.
+- v0.15.16: The notes are translated into all ten languages. `src/components/dialogs/whatsNew.generated.ts` is deleted and `whatsNewDialog.highlights` in `src/locales/*.json` is what the modal reads through `t()`, generated into `en.json` and hand-translated into the nine others. The array used to be a TypeScript module compiled into the bundle, which is why every user read English regardless of the app language. The component keeps only string elements and renders no list at all when the value is missing or malformed, rather than printing a raw key.
+- v0.15.16: The modal is capped at 85% of the viewport height and its list scrolls. Header and footer refuse to shrink and the bullets take what is left, so a long set of notes can no longer push the Got it button past the bottom of the screen with no way back to it. The list is a tab stop of its own, since it scrolls, holds nothing focusable, and Radix keeps focus inside the dialog, which together left a keyboard-only user no way to reach the overflow. The margin is thinner than it looks: the bullets shipping here run to 94 characters in English and to 128 in German.
+- v0.15.16: Three MAME help texts state which way the wells are filled. `mame.inputPanel.variantMapping.helper`, `mame.barcodeSetup.variantColumnHelper` and `mame.dialogs.janusMapping.destLayoutHint.compact` each named an order without giving its direction, so a reader could take the same plate as A1, A2, A3 or as A1, B1, C1. The mapping has always been column-major (`seq_to_well` in `kuma_core/mame/export/well_mapper.py` sends 1 to 10 to A1 B1 C1 D1 E1 F1 G1 H1 A2 B2), and the three strings now spell that out as A1, B1, C1 to H1, then A2.
+- v0.15.16: The CI step name and the comments around it say what actually runs. The i18n step was called "i18n en/ko key parity" while reading all ten locales, and the `sync:check` comment still described a generated bundle file. `AGENTS.md` gains the highlights authoring rules, the stamp and its digest, the multi-line bullet behaviour, and the point that the i18n lint and parity scripts, not `sync:check`, are what read the other nine locales.
+
+### Fixed
+
+- v0.15.16: `scripts/sync-version.sh` no longer stages a file that was deleted. Its `git add` list still held `src/components/dialogs/whatsNew.generated.ts`, and under `set -euo pipefail` that failing command killed the post-commit hook after it had already rewritten the four version manifests in the working tree. What survived was a release commit whose message carried a version that the manifests it committed did not, which is the drift the hook exists to prevent. It stages `src/locales/en.json` instead, and the recovery commands it prints on failure name the same path.
+- v0.15.16: The German heading of the dialog is German now. `src/locales/de.json` had `whatsNewDialog.title` as "What's Neu in v{{version}}" and `whatsNewDialog.description` as "Highlights von die latest update.", English sentences with a few German words dropped into them, shown to every German user each time the dialog opened. They now read "Was ist neu in v{{version}}" and "Die wichtigsten Neuerungen des letzten Updates." Those two keys are hand-written, not generated, so no gate had anything to compare them against; the other nine locales carry sound wording for both keys and were left alone.
+
+## v0.15.15.01 (The banner about inputs a restore lost stops describing a project it already left)
+
+MAME lists the inputs a restore could not recover so the operator can point at them again. Nothing ever took an entry off that list except the browse button on the banner itself, and the list was only ever built once per hydration. Picking the file again in the normal input panel left the warning up, and a scratch entry inherited whatever the previous project had failed to find, because that path returns before the block that rebuilds the list. What the banner named was true at one moment and then kept being displayed as though it were still true.
+
+### Fixed
+
+- v0.15.15.01: An entry disappears as soon as its field holds a path again, whichever control filled it. The hydration hook and the banner now read one shared function instead of each carrying a copy of the field-to-value mapping.
+- v0.15.15.01: The list is cleared at the start of every hydration, ahead of the scratch early return, so entering a scratch session no longer shows what a different project was missing.
+- v0.15.15.01: Custom barcodes and sequencing summary are named by their file rather than by their own label twice. Both live under `parameters.raw_run_params` in the snapshot, and the lookup only searched the `input` block, so it found nothing and fell back to the label.
+
+## v0.15.15 (A finished run is checked against itself, and stops describing the file it no longer reads)
+
+Workbook consistency checks cannot detect verdicts generated before an expected workbook was replaced. A saved run can therefore carry internally consistent current inputs beside stale verdicts. The finished analysis now compares observed changes with assigned variants and reports a possible placement mismatch when changes agree with other wells instead.
+
+### Added
+
+- v0.15.15: MAME compares each well against its own expected variant and against every other one after the run, and says so on the review screen when the second agreement is high and the first is near zero. The message carries the counts it was computed from rather than a fixed threshold, and it does not gate anything: the run is over by then, and what it can still do is stop the numbers from being read as biology. The check needs 24 wells before it will speak, so a small plate is not accused on thin evidence.
+- v0.15.15: Every run records how the wells were placed, whether from a layout that was given, a sample map, or the order of the expected sheet, along with the workbook it read. A verdict table that looks ordinary is now traceable to the decision that produced it.
+
+### Changed
+
+- v0.15.15: Choosing a different run folder, expected workbook, reference or sample map clears what the previous run produced. The screen used to keep the verdicts, the plate map and the two instrument-file notices next to inputs that no longer made them, which reads as a description of the file now selected. Re-picking the same path changes nothing, and the export destination is not an input, so neither clears anything.
+- v0.15.15: The analyze screens carry no Janus text at all. The instrument controls moved to step 3 in v0.15.12 but the notice about the files a run wrote stayed behind, which is the one thing an operator who stops at a sequencing verdict has no use for. It is stated in step 3, where the rest of the instrument work already lives.
+- v0.15.15: Step 3 shows the instrument settings on the page instead of behind a button that opened a dialog. The deck preview and the row preview are what the operator checks before an export, and they were being read through a modal on a screen that exists to hold them. Nothing was gained by the extra click, and the preview had less room than the step had to give.
+- v0.15.15: A run no longer writes the instrument mapping file. Analyzing produced the 9-column robot sheet next to the workbook whether or not anyone intended to touch a robot, which made step 3 a formality for an operator who only wanted a sequencing verdict. The pick list is still written by the run, since selecting clones is what the run is for, and the mapping file is written when it is exported from step 3.
+
+### Fixed
+
+- v0.15.15: A well layout MAME inferred for one run no longer comes back from a restored project as though the operator had chosen it. It used to be stored with the verdicts, restored into the input state, and sent to the next run as a layout that was given, which told validation the sheet order never reached a well and lowered the warning it would otherwise raise. A layout with no recorded origin is treated as inferred for the same reason.
+- v0.15.15: An amplicon that cannot be extracted says which of the three reasons applied. It reported every case as primer boundaries that were not unique, including the ordinary one where a bare CDS reference simply does not contain the primer tails, which sent the reader looking for duplicate binding sites that were never there.
+
+## v0.15.14 (The step 2.2 height fix reaches the people who needed it)
+
+The panel sizing shipped in v0.15.11 did nothing on any machine that had opened step 2.2 before. It skipped the fit whenever a stored layout existed for the panel group, reading that as a size the operator had chosen. The panel library writes that entry on mount for its own default layout, so it was there for everyone who had ever opened the step, and the fix sat inert behind it. Reinstalling the app did not clear it either: the store lives in the webview profile, not in the installed files.
+
+### Fixed
+
+- v0.15.14: Only a drag counts as a size the operator chose, and it is recorded under its own key. A layout the panel library persisted on its own no longer suppresses the content fit, so the plate map takes the height its rows need on machines that had used step 2.2 before v0.15.11. A split someone actually dragged is still left alone, across restarts.
+
+## v0.15.13 (The replicate that reads cleanest is the one that ships)
+
+MAME selects one replicate per variant. Verdict class decides first; equal-verdict replicates now use read support and depth instead of native barcode order.
+
+### Changed
+
+- v0.15.13: A consensus reports the weakest read support among called substitutions and its depth. The replicate picker orders equal-verdict plates by the Wilson score lower bound on that support.
+- v0.15.13: Native barcode number breaks exact ties and nothing else now, and the module says so in as many words. It never carried quality meaning; it had been standing in for a measure that did not exist yet.
+- v0.15.13: Both per-plate sheets and the Final sheet carry the purity evidence behind a pick: the weakest called-substitution support, the depth it was measured on, the lower bound the picker ordered by, and the fraction of reads carrying an indel. A cell left empty means unknown, so nothing reads as zero purity by accident.
+- v0.15.13: A `review` column names the wells whose numbers stand out, judged against the plate they sit on rather than against a fixed gate. Each plate supplies its own median and median absolute deviation, and a well more than three MAD out is reported with the measured value and the baseline beside it. Nothing is excluded and no verdict changes; the operator decides.
+- v0.15.13: The value travels in the consensus FASTA header. It is absent for a well that calls no substitution and for files written before this release, and absent means unknown rather than zero, so an older run picks exactly what it picked before.
+
+## v0.15.12 (A run that only sequences never passes a robot)
+
+MAME asked about the cell-picking robot on the screen that collects a run's inputs. The transfer volume, the instrument settings button and, from the Activity step, a second export CTA all sat inside a workflow whose first two steps are the only ones a genotyping run needs: build the barcode package, read the plate. An operator who wanted a verdict and nothing else had the deck, the liquid class and the rack numbers in front of them on step 2.1 anyway, and nothing said any of it was optional.
+
+### Changed
+
+- v0.15.12: Janus instrument configuration is its own step 3, and the Activity step is step 4. Step 2 is the sequencing verdict and nothing else: the transfer volume, the settings/export dialog, the deck reference and the report of what the run wrote itself all live on the new step, which states in the first line that it can be skipped. The Activity pane's duplicate "Open JANUS export" button is gone, because the step that owns the dialog is now one click away in the rail rather than hidden behind a sub-step condition.
+- v0.15.12: The step stays optional in the strict sense. A run still writes `..._picks.csv` and `..._janus.csv` from whatever is stored, no gate on step 2 or step 4 consults the new step, and step 3 reports itself done only once the liquid class (the one value nothing can derive) is supplied or a mapping file exists. The rail counts six sub-steps, so Activity reads 4.1 and 4.2 where it read 3.1 and 3.2.
+
+## v0.15.11 (The plate map gets the height it needs, not the share it was assigned)
+
+Step 2.2 stacks the plate map over the verdict breakdown and split them 34/66, a ratio with no idea how tall either one wants to be. The plate map wants 600 to 790 px for eight rows and a well inspector, so it scrolled from row D down on every window size measured, while the panel underneath had room left over: 381 px of grid hidden at 1920x1080, 442 px at 2560x1440. A scrollbar is worth having, but not while the neighbour leaves space unused.
+
+### Changed
+
+- v0.15.11: The two panels on step 2.2 are sized by what they hold. When both fit, the plate map takes exactly the height its rows need and the rest goes to the breakdown; when they do not both fit, the shortfall is split in proportion to what each asked for, so neither is starved by a number written in the source. The plate map goes from 312 px to 490 px at 1920x1080 and from 434 px to 756 px at 2560x1440, showing rows A to F where it used to stop at C.
+- v0.15.11: A split the operator dragged is left alone, and so is one restored from an earlier session. The automatic fit is a starting point, not a correction applied over someone's decision.
+
+## v0.15.10 (A workbook that writes one plate two ways does not start a run)
+
+A KURO export carries the same plate twice, on `Fwd List` and on `expected_mutations`, and exports written before v0.14.3 wrote the two in different orders. MAME had reported that disagreement since v0.15.6 and then run anyway, on the reasoning that a sample map or a confirmed layout supplied the wells so the sheet order never reached one. That is true of the wells and false of the run: every verdict was still scored against whichever of the two plates in the workbook the other input happened to match, with nothing checking that it matched at all.
+
+### Changed
+
+- v0.15.10: A disagreement between the two plate descriptions in one workbook now fails validation instead of appearing beside a passing one. The run is refused whether or not a sample map or a well layout was chosen, because placing wells is not the same as recording which of the two plates went into the tubes, and no input on the analyze screen records that. The notice states the wells that disagree and what is missing, as before, and now says the run is held.
+- v0.15.10: The refusal also holds before any validation is asked for. Picking the workbook checks it on its own, so the operator no longer reaches Run through a file picker without passing through validation, which is the route the 2026-08-04 misscoring took. A restored project applies the same check to the workbook it comes back with.
+- v0.15.10: The way out is a workbook whose sheets agree: re-export from KURO v0.14.3 or later, or choose another file. Picking one clears the refusal, and the re-check reinstates it only when the new file disagrees with itself too. Naming the variant sheet and column no longer silences the notice, since that answers a different question and left the validation error with nothing on screen to explain it.
+
+## v0.15.9 (A primer that leaves the manufacturer's range says so)
+
+Each polymerase ships with a primer length and GC range in its own protocol, and KURO knew none of them. A 16 nt primer for KOD, whose manual asks for 22 to 35, designed and ranked exactly like any other; nothing on screen distinguished a primer the enzyme's maker would question from one it would not. The design itself was not wrong, since the ranking already balances Tm, structure and specificity, but the operator had no way to see that a particular oligo sat outside the range printed in the manual they were about to follow.
+
+### Added
+
+- v0.15.9: A designed primer that falls outside the polymerase manufacturer's recommended length or GC range is now flagged, naming the range and the document it comes from (NEB M0267 for Taq, M0530 for Phusion, M0491 for Q5, Toyobo KMM-101/201 for KOD, Thermo MAN0012036 for DreamTaq, Takara R050A for PrimeSTAR GXL). These are warnings only. Ranking, penalties and the designed sequences are untouched, because vendor guidance is advisory and the existing scoring already weighs what actually drives a reaction.
+- v0.15.9: Where a manual does not document a range, nothing is flagged for it. PrimeSTAR GXL publishes no GC range, so GC is never questioned for that enzyme rather than borrowing a number from a different one.
+
+### Changed
+
+- v0.15.9: The JANUS deck the instrument files describe now has one definition instead of a copy in each writer. The mapping CSV, the workbook sheet and the on-screen preview built the same nine columns separately, each with its own rack numbers and liquid class, so an edit to one left the other two describing a different bench. The files themselves are unchanged, byte for byte, and the preview no longer works out which direction a transfer goes by reading the rack number back, which would have swapped forward and reverse on screen the first time anyone renumbered the deck.
+
+## v0.15.8 (The mapping file comes out the way KURO already makes it)
+
+JANUS mapping now derives plate names from the detected native barcodes instead of requiring a fixed rack map. Transfer volume remains an operator input, and export settings follow the shared KURO mapping format.
+
+### Added
+
+- v0.15.8: A finished analyze writes the instrument mapping too, `<result workbook>_janus.csv`, in the nine columns the robot reads. The pick list added in v0.15.7 stays exactly where it is as `<result workbook>_picks.csv`: one records what the run selected and reads without a deck in front of you, the other is the sheet that goes to the robot, and neither answers the other's question. Both outcomes are reported after the run, each naming its own file.
+- v0.15.8: The transfer volume sits on step 2.1, next to the run's other inputs. It is the one instrument value nothing can derive, since how much of a cell stock to move is an experimental condition, and the shipped 100 µL is an assumption with no lab source in this repository, which the field says out loud.
+
+### Changed
+
+- v0.15.8: Deck rack numbers are derived from the plates of the run instead of being asked for. Source plates take the first racks in plate order and the destination takes the next, which is the convention KURO already writes for this instrument without consulting anybody (`Asp. Rack` 1 for the forward plate, 2 for the reverse, `Dsp. Rack` 3 for the destination). A run over `sort_barcode07/08/09` now numbers them 1, 2, 3 with the destination at 4. Anything typed in the export dialog still wins, and the dialog shows the derived numbers so what is on screen is what the file carries.
+- v0.15.8: A blank liquid class no longer withholds the file. It still has no default, because it decides how the robot handles the cells and a guessed value would change that silently, so the column simply ships empty for the operator to fill. Nothing is invented to make a file come out: what shipped blank and what was derived from the run are reported next to the file, on screen and in the RPC response, as warnings that never block a run or an export.
+
+## v0.15.7 (A finished run leaves the picks, not a worklist for a deck nobody confirmed)
+
+The file every analyze wrote for itself was an instrument sheet: liquid class, dispense volume, and deck rack numbers, none of which have a lab source in this repository. Every exploratory re-run dropped another one in the output folder stating a deck that may not be the deck in the room, and any of them could be carried to the robot. A fixed deck map could reject clones when detected native-barcode names did not match its predefined plate labels. The remedy the message named, File > Export Janus Mapping, has not existed since v0.14.7.
+
+### Changed
+
+- v0.15.7: The file an analyze writes beside its result workbook is the selection, not a worklist. Five columns, `name | source_plate | source_well | dest_well | priority_score`: which variant was picked, where it sits, and where it goes when the picks are gathered. It carries no instrument setting, so it is written whether or not one has been entered, which is the point. The Janus dialog still writes the 9-column instrument sheet and still refuses to write one without a liquid class, and the automatic file deliberately ignores the schema chosen there: the two answer different questions. How the picks are chosen and gathered (`dest_layout`, `include_verdicts`, `include_fallback`) is still the operator's, and is honoured by both.
+- v0.15.7: The automatic file is named `<result workbook>_picks.csv`, not `_janus.csv`. The old name promised a file that could be handed to the instrument.
+- v0.15.7: Janus export uses `nb_label` like the other MAME exports. The deck rack map uses the same normalized native-barcode labels, so the displayed label is also the lookup key.
+- v0.15.7: The Janus dialog builds deck fields from the plate labels returned by the current run preview. Before a run it falls back to stored labels and identifies them as stored values.
+### Fixed
+
+- v0.15.7: The raw-run path no longer reads an amplicon span it has just found missing. The guard sat on the first coordinate branch only, so a resolution reporting extraction without a span fell into the next branch and read `span.end` there, ending a finished demux with an AttributeError. The four cases now live in one function with the missing span handled first, falling back to the coordinates the resolution reports for itself; the producer never pairs extraction with a missing span, so this is a contract guard, pinned by tests rather than silenced with a type escape.
+
+### Changed
+
+- v0.15.7: Janus instrument settings are reachable from step 2.1, the screen that collects the run's other inputs, since the File menu item that used to open them was removed in v0.14.7. They stay optional and gate nothing: a run needs none of them. The text reporting the automatic file points there too, instead of at a menu that is gone.
+
+## v0.15.6 (MAME reads the list you point at, and stops asking about the plate it built for nobody)
+
+MAME still treated a KURO export as the only variant list it could analyse, kept a Build well layout button whose 96 rows nobody ever checked, refused a run over two sheets disagreeing inside a workbook the operator had already chosen how to read, and offered two EVOLVEpro-input routes for a workflow that always sequences. The Janus mapping an analyze run writes for itself also failed on every run, because the settings it needs never left the export dialog.
+
+### Added
+
+- v0.15.6: The analyze path reads a plain variant list, not only a KURO export. `analyze`, `validate_inputs` and `mame.build_well_layout` take optional `variant_sheet` / `variant_column`, absent means the previous behaviour, and `mame.inspect_variant_source` reports what a picked file offers: whether it is a KURO export, its sheets, the headers per sheet, and the column the reader would choose on its own (`variant`, `mutation`, `mutant_id` and their plurals, case-insensitive, with `wt`/`wildtype`/`control` read as the control row).
+- v0.15.6: The expected-list file field carries a sheet and column picker, following the convention the KURO input step set: the auto-detected column is preselected as a first-class option in the same select, so the mapping on screen is the mapping that runs and a wrong guess is visible before a run rather than after one. The three calls that read the file (validation and both analyze paths) are sent the same pair, so a run can never be validated against rows nobody looked at. A KURO export hides the controls: its reader knows its own sheet and column, and a picker that changes nothing is worse than none.
+- v0.15.6: A finished analyze reports what became of the Janus mapping it wrote beside its result workbook: the path and row count when written, that nothing was selected when there was nothing to write, and the reason when it failed. The run also sends the Janus settings the export dialog holds, which is what turns a `missing_liquid_class` refusal into a file; those settings are kept between sessions, since the sidecar assumes no liquid class of its own (it decides how the robot handles the cells).
+
+### Changed
+
+- v0.15.6: Build well layout is gone, along with its confirmation dialog. Confirming 96 rows by hand was never done, and nothing is lost by removing it: analyze assigns the wells itself whether or not a layout was pinned. The `well_layout` parameter stays on the RPC, and a layout stored in an older project still restores and still outranks the sample map.
+- v0.15.6: A plate-order disagreement no longer stops a run. Now that the operator names the sheet and the column the variant list is read from, the program has no standing to refuse: the finding is stated on the inputs panel and the run proceeds, and once the sheet and column have been picked by hand the notice says nothing at all, because it would only repeat a decision that was just made. What it keeps reporting either way is a mutant on the plate with no row in the list, which shifts every later well by one whatever the sheet order is and is invisible in the output. The escape wording names the sample map and the column mapping, not the button that no longer exists.
+- v0.15.6: The Activity step offers one path instead of two routes. The route selector is now an activity value source: an uploaded long-format activity table joined to the round genotype, or a plate layout with GC data or a raw Agilent report. The plate-layout handling is absorbed, not deleted, so the WT-block normalisation and round-1 baseline selection added in v0.13.27 stay exactly where they were, and the NGS verdicts are part of the answer whichever source is chosen.
+- v0.15.6: The per-plate verdict breakdown scrolls instead of clipping its last rows.
+
+## v0.15.5 (A workbook that describes two plates is stopped before the run, not after it)
+
+A KURO export describes plate placement in both the primer sheet and expected_mutations. Earlier exports could disagree between those sheets while still producing a full verdict table. The consistency check now runs before analysis as well as on project restore.
+
+### Fixed
+
+- v0.15.5: `validate_inputs` runs the same plate-order check on the expected workbook it already has open and returns the finding under `plate_order`, absent when there is nothing to report so `valid` and `errors` keep their meaning. Severity splits on whether the layout is inferred: `handle_analyze` falls back to a draft layout built from `expected_mutations` only when neither `well_layout` nor `sample_map_xlsx` is given, and only then is the sheet order a well coordinate system. Blocking there, informational otherwise. Both parameters are read as optional, so omitting them grades as inferred, the louder of the two answers.
+- v0.15.5: Choosing an expected workbook checks that one file straight away, through `check_plate_order` rather than a full validation, so the answer arrives while the other inputs may still be unchosen and cannot be buried under errors about them. The finding is also shown with the validation result and refuses the run: a blocking one disables the Run button and is repeated as the reason if a run is started another way. The way past it is to state which sample sits in which well, by choosing a sample map or confirming a built well layout, which is what makes the sheet order irrelevant to the run. No sheet is picked automatically, because only the operator knows which plate was pipetted.
+- v0.15.5: The restore-time notice and the analyze-inputs notice are built from one message, so the same disagreement is described the same way in both places instead of reading as two problems. Each names the plate sheet, the disagreeing wells with what each sheet puts there, and the mutants the plate carries that `expected_mutations` does not.
+
+### Changed
+
+- v0.15.5: A clipped verdict-table cell now has a real way to read the rest of it. The Notes, AA Changes and Quality cells clip a long value at the column edge and the only way past that was a native `title` tooltip: about a second of hover before it appears, no keyboard path to it at all, and one unwrapped line that the browser cuts off at the screen edge, which is how a 180-character fallback explanation stayed unreadable. Each clipped cell now carries a button that opens the full text in a wrapped panel with no delay, reachable by Tab and closed with Escape. The button appears only when the text actually overflows its column, measured per cell, so a short note or an empty one stays a plain span.
+- v0.15.5: Verdict-table columns can be resized by dragging the header edge, and the widths are kept per machine in local storage so a column widened once stays widened after a reload. The drag handle is focusable and takes arrow keys, so the width can be set without a pointer, and a column dragged too narrow comes back through a double-click, the Home key, or "Reset column widths" in the column menu.
+
+## v0.15.4 (The verdict table opens on the picks, and a well explains itself)
+
+The review screen opened on ALL, so the first thing on screen was every replicate copy of every well instead of the per-variant picks that the run was made to produce. Nothing anywhere said why a well was called what it was called: the expected mutation, the observed change, the counters behind the call and the two rejected replicate copies all arrived in the analyze response and none of them were drawn. And the file field that has accepted a plain variant list since v0.14.0 was still labelled for KURO exports alone.
+
+### Changed
+
+- v0.15.4: FINAL is the default verdict-table tab. FINAL fills only once replicate selection has run, so a run without a selection would open on an empty table that reads as a broken screen: FINAL degrades to ALL in that case and says so in a status line, and returns to FINAL by itself once selection data arrives. The stored filter is left untouched by the degrade.
+- v0.15.4: Clicking a variant id in the verdict table, or a well in the plate map, opens the same detail panel in the right inspector. It puts `expected_mutations` beside `observed_aa_changes` (an empty observation reads as "No change observed" rather than blank), compares every replicate copy of the variant with the selected plate, the selection reason and any fallback reason marked, lists the confidence counters (reads, alignment drops, mixed and low-depth positions, consensus N, low-quality bases), shows the nucleotide changes, and offers the consensus FASTA path and the amino acid sequence as copy buttons instead of printing the sequence. Both entry points write the same `selectedWell`, so the plate highlight follows a table click. A field the backend did not report drops its row rather than being drawn as 0.
+- v0.15.4: The expected-variant file field is labelled for both inputs it accepts. The help text states that a KURO export is read from its `expected_mutations` sheet with the status filter applied first, and that any other workbook lets the sheet and the variant column be chosen by hand.
+
+## v0.15.3 (A zero-well MAME run names the gate that emptied it)
+
+A raw run given a reference from another construct still finished with `Analysis complete` and an empty plate. The counts that could have said why (reads read, reads that cleared MAPQ, reads that cleared coverage) existed inside the demux and were dropped at the ingest boundary, so the only way to find the cause was to open the run folder and read the per-barcode statistics by hand.
+
+### Changed
+
+- v0.15.3: The analyze response carries the three demux gate counters, `total_reads`, `passed_mapq` and `passed_coverage`, filled by `ingest_run_folder` through a stats sink (pooled, or summed across native barcodes). Consensus-dir mode runs no aligner, so it produces no gate counters and the keys stay absent rather than zero-filled: a 0 there would read as "every read was rejected", the opposite of "this mode never counted".
+- v0.15.3: The zero-result notice reads those counters and names a cause where the counts prove one. Reads present with none clearing MAPQ is reported as nothing aligning to the reference, the signature of a reference from a different sequence. Reads clearing MAPQ with none clearing coverage is reported as the separate case it is, what a whole-construct reference looks like against amplicon reads. Every other combination, including a run whose `fastq_pass` held no reads and consensus-dir mode where the counters do not exist, names no cause and keeps the checklist: asserting a cause without the counts behind it is worse than asking for a look. The counters themselves are shown as their own rows, and `pickAnalyzeYield` now carries all five yield fields instead of discarding a response that held only gate counts.
+
+## v0.15.2 (A MAME run that cannot answer says so)
+
+A raw analysis could finish with empty outputs when amplicon extraction was skipped and whole-plasmid coverage filtering rejected every read. The counters did not identify that rejection stage. A changed reference could also reuse stale completion markers and score old consensus against new inputs. These paths now report the failure and invalidate incompatible resume state.
+
+### Fixed
+
+- v0.15.2: Raw MinKNOW analysis refuses to start when the amplicon span cannot be derived from the custom barcode workbook AND the reference as supplied cannot pass the coverage filter. The two cases are told apart on the data: an alignment cannot span more reference than the read is long, so a run whose longest read falls short of `coverage_fraction` times the reference length can place no read in any well. A reference that is already an amplicon keeps running exactly as before. The refusal names the barcode file, the expected `*_f_<n>` / `*_r_<n>` primer naming rule, the reference length and the coverage fraction, so the file to correct is obvious.
+- v0.15.2: `passed_mapq` and `passed_coverage` count their own gate. Both used to be assigned the post-filter total, which made a coverage wipeout indistinguishable from a MAPQ wipeout in the per-barcode statistics and nearly sent the diagnosis above down the wrong path. The native-barcode resume check now reads `passed_coverage`, the last gate, so a completed unit whose reads all died there is reprocessed rather than resumed as empty; markers written before the split carry equal values and are judged as they were.
+- v0.15.2: Completion markers record the identity of what produced the unit, the reference digest and the gates applied, and resume compares it. A unit whose reference or parameters differ from the current run is reprocessed instead of reused, and a marker written before this record existed is reprocessed too, because nothing in it says which reference it used. Inventory alone said the files were all there, never what they were made from, which is how a one-second rerun rewrote the verdict table from consensus it had not recalled.
+- v0.15.2: The verdict diff refuses a consensus that ends before the coding sequence it is compared against, naming both lengths and pointing at a stale output directory. Consensus is called one base per reference position, so such a pair cannot share a reference; a consensus that reaches the CDS end is still accepted, since an externally supplied one may carry insertions past it.
+
+## v0.15.1 (MAME raw runs reach the review plate)
+
+MAME could report `Analysis complete` while leaving the verdict table and plate empty when a whole-plasmid FASTA was supplied for a shorter sequenced amplicon. The default 98% coverage gate was applied to the full plasmid, so every read was rejected, and the resulting zero-hit completion marker caused later runs to skip the same input.
+
+### Fixed
+
+- v0.15.1: Raw MinKNOW analysis derives the shared primer tails from the custom barcode workbook and, when they uniquely bound the reference, extracts the sequenced amplicon before mapping. CDS coordinates are translated into the extracted reference, and the resolution details are returned with the analysis result.
+- v0.15.1: A completed native-barcode marker with input reads but no MAPQ-passing alignments is reprocessed instead of resumed as a successful empty unit. If no wells are recovered after processing, the run now reports an actionable input/reference error rather than a false successful completion.
+
+## v0.14.8 (Off-target scanning sees the sites the 3' end never touches)
+
+Both off-target rules required the last bases of a primer to match the template exactly before a site was examined at all, so the 3' terminus decided which sites reached the thermodynamic test rather than only whether one could be extended. A site where a non-terminal stretch anneals was never scored, however strong the duplex. Widening the prefilter also surfaces sites whose 3' terminus does not pair, and those cannot prime, so each hit now records which failure mode it belongs to and only the two modes that can actually spoil a reaction are reported.
+
+### Fixed
+
+- v0.14.8: Candidate off-target windows now come from the union of the existing 4 nt 3' anchor and a position-agnostic 8 nt seed scan, each seed hit expanded back to a full-primer-length window and deduplicated by coordinate. The anchor path is kept because a site dense in internal mismatches can contain no exact seed anywhere, so the window set is a strict superset of the previous one. The verdict is still the `calc_heterodimer` Tm against the same 45.0 C threshold, and both design fixtures come out character-identical.
+- v0.14.8: Every hit is classified as extendable (the 3' terminal base pairs, so a polymerase can extend from it, a spurious-amplicon risk) or as confined to the 5' overlap arm (the Gibson homology, so an assembly risk), and a site that is neither is no longer reported. The arm mode requires at least 15 nt of shared sequence, the bottom of the 15-30 bp overlap range NEB documents for HiFi assembly; without that floor an 8 nt partial match inside an 11 nt arm rejected a valid H277G design outright and displaced the winning P297I pair.
+
+## v0.14.7 (One File menu, drawn once)
+
+v0.13.35.1 renamed the two app-name triggers to `File` so the menubars had the same shape. The contents stayed in two files and drifted anyway. KURO offered project zip import and export and MAME did not, although the archive holds the whole project folder and therefore the work of both apps. The two menus also reached for different label keys for the same word, so fixing one left the other behind without any sign of it.
+
+### Changed
+
+- v0.14.7: Both menubars render one `FileMenu`. Project open, archive import, archive export, sidecar restart and quit live in it once; each app passes only what it alone can do. `useProjectArchiveActions` holds the two archive callbacks so their dialogs, toasts and cancel-is-not-an-error behaviour cannot diverge either. MAME gains archive import and export, which is the gap this closes: a project carries KURO and MAME work together, so exporting one from the app that produced the second half was never a KURO-only action.
+- v0.14.7: Both menubars use `menu.file` and `menu.edit`. KURO was reading `menuBar.edit.title` for the same word.
+- v0.14.7: A cross-layer group ties the two menubars to `FileMenu`, so touching one alone is reported rather than noticed months later.
+
+### Removed
+
+- v0.14.7: The File menu no longer repeats what a button already does during normal work. `Open sequence` duplicated the Browse button in `SequenceInput`, and the two behaved differently: the panel rejects a FASTA with an explanation while the menu path accepted it. `Export JANUS mapping` duplicated the `Open JANUS export` button in the pane that has the data in front of the operator. `Export run report` stays, being the only way in. The dead `onJanusOpen` prop goes with it.
+
+### Added
+
+- v0.14.7: CI runs the frontend unit tests. Around 900 vitest cases had no job and were only ever run by hand, which on this repo cannot be done from WSL at all: a `pnpm install` into the shared folder replaces the Windows `node_modules` and breaks the Windows build. New tests pin the shared File menu, including the absence of the two duplicated entries.
+
+## v0.14.5 (Reopening a project brings back the session that was left)
+
+Autosave was on, yet closing KURO and reopening the project landed on step 5 with nothing in it. Two separate causes stacked. The check that decides whether a restored design table is still valid compared each row against the reselected variant list plus the candidate pool it was drawn from, but never against what had actually been saved, so every row that fill-on-failure or rescue had filled in from that pool read as a leftover from an edited CSV and the whole table went. The emptied state could then overwrite the saved snapshot. Underneath that, restore was never treating the snapshot as authoritative: it reran `load_fasta` and the EVOLVEpro pipeline from the source files on every launch, and that rerun overwrote the domain selection, the variant selection, the pipeline statistics and the pool it had just restored. Saving more fields alone could not have fixed it.
+
+### Fixed
+
+- v0.14.5: Whether to keep a restored design table is now decided by comparing the saved mutation list against the mutation list a reload of the same EVOLVEpro source produces, not by checking each row against that list. A row whose mutation came from the candidate pool rather than the typed-in list is no longer read as evidence the source changed. A genuinely stale autosave (source file edited, round advanced) still discards the table and says so, unchanged.
+- v0.14.5: The autosave snapshot stores the candidate variant pool (`poolVariants`) next to `designResults`, so pool-dependent UI such as the combinatorial-variant ratio no longer flashes empty during a restore.
+
+### Added
+
+- v0.14.5: Autosave keeps the rest of the session too (schema 5): the wizard position and per-step completion, the EVOLVEpro derived state (selection, ranking, per-step statistics, score map, domain statistics), the reference domain annotation and its hash, the loaded structure, the parsed sequence itself, table sorting, and the benchmark settings and output. Reopening a project restores where the work was, not just its inputs.
+- v0.14.5: A restore that finds the sequence file and the EVOLVEpro source unchanged since the snapshot was written skips the pipeline rerun entirely and uses the saved state as it stands. Sameness is judged by file size and modification time, so no hashing cost is added. A file that did change, or one that cannot be inspected, falls back to the previous reload path and to the divergence check above.
+- v0.14.5: `Ctrl/Cmd+S` saves the open project immediately instead of waiting out the autosave debounce, and reports the time it saved at. It works while a text field has focus, where the other global shortcuts deliberately stand aside, and it is listed in the keyboard shortcuts dialog.
+
+## v0.14.4 (A row per well, and a project that says when it disagrees with itself)
+
+v0.14.3 put the expected sheet in plate order and stopped there. Order is only half of it. `export_excel` takes `mappings` from the UI, which carries the wells filled while relaxing conditions on a failed mutation, and design output from the design state, which does not. A filled well therefore had a primer and no row, and dropping that row renames every later well.
+
+### Fixed
+
+- v0.14.4: `expected_mutations` carries one row per plate well. A well whose mutation has no design result is written from its mapping, taking the residues from the notation and the codons from the mapping when it has them, leaving the rest empty rather than inventing it. Row count now equals well count, which is the property MAME depends on and the one v0.14.3 left unchecked.
+- v0.14.4: The column picker on the MAME variant input is disabled while the KURO reader sheet is selected, and says why. It was live but inert: that path always reads `mutant_id` and applies the status filter first, so a chosen column changed nothing.
+
+### Added
+
+- v0.14.4: Loading a project reports an expected workbook that disagrees with itself. The plate sheets and `expected_mutations` in one file are the same statement written twice, and a workbook exported before v0.14.3 can have them differ. Nothing failed when they did: every well got a variant and the verdicts came out scored against a plate nobody built. The message names the well and both readings. A file missing either sheet is reported as not comparable rather than as consistent, so silence cannot be read as agreement.
+
+### Changed
+
+- v0.14.4: The well-layout controls state one precedence rule instead of two contradicting ones. `Sample Map` was described as the authority in one hint and as overridden in another, and which won depended on the order the two controls were touched. Both now say what the code does: a built layout, then the sample map, then the inference. The hint also says the inference happens on its own, so the button previews and pins that assignment rather than being a step to remember.
+
+## v0.14.3 (The expected list is written in plate order)
+
+A KURO export described two different plates. The `Fwd List` and `Fwd Plate` sheets are written from the plate mapping, so their order is the well order, while `expected_mutations` iterated the design output, whose order is whatever ranking produced it.
+
+MAME reads row *i* of `expected_mutations` as well *i*. If the sheet order differs from the plate order, a well is scored against another design and can be labelled WRONG_AA. A LOWDEPTH verdict can mask that placement mismatch without resolving it.
+
+### Fixed
+
+- v0.14.3: `expected_mutations` is written in the order the plate sheets use. The forward mappings carry the well order and the sheet now follows them, so one workbook describes one plate and a change to the primer ordering moves both together. A designed mutation with no forward mapping keeps its place at the end rather than being dropped. Reading an already-exported workbook is unchanged, so a file written before this still needs its sheet chosen by hand.
+- v0.14.3: Naming a sheet on the MAME variant input overrides the KURO recognition instead of being discarded. A workbook carrying an `expected_mutations` sheet was routed to the strict reader before the choice was consulted, so pointing at the sheet that describes the bench plate silently read the other one. Naming no sheet, or naming `expected_mutations`, behaves exactly as before.
+- v0.14.3: The variant input offers sheets and headers for a KURO export too. The picker was hidden entirely for those files, so there was nothing to override with. The strict sheet stays selected by default.
+
+## v0.14.2 (Three features the app never announced)
+
+No behaviour changes here. The Echo quadrant selector, the plain variant-list input and the run-report fix all shipped in the v0.14.0 build, but none of them was written into the release notes, so What's New has never mentioned that they exist. This release carries the announcement. The full write-up sits in the v0.13.39.2 to v0.13.39.4 section.
+
+### Added
+
+- v0.14.2: Shipped in v0.14.0 and announced now: the Echo source plate quadrant is selectable as A1, A2, B1 or B2, which is the set of starting points a 96-head can actually reach on a 384 plate. Choosing one fixes forward and reverse as a row-parity pair, and leaving it unset keeps the previous mapping.
+- v0.14.2: Shipped in v0.14.0 and announced now: MAME accepts a plain variant list, one variant per row in file order, as csv, tsv or xlsx with the sheet and column chosen on screen. A workbook holding an `expected_mutations` sheet still takes the original path unchanged.
+
+### Fixed
+
+- v0.14.2: Shipped in v0.14.0 and announced now: a run report no longer comes out blank or refuses to write. A restored session seeds the export path from its own snapshot, and an analysis that found no wells is refused with the inputs to check rather than saved as an empty report that reads like a finished run.
+
+## v0.14.1 (Frameshift is judged from the consensus)
+
+A well whose consensus aligns to the reference without a single gap was being called FRAMESHIFT. The gate read the median net indel across raw reads rather than the net indel of the consensus, and ONT reads carry frequent single-base indel errors, so on a run where that median lands at one base the gate fired almost everywhere. Building a consensus is what averages those errors away, so the verdict was reading the very signal the consensus exists to remove.
+
+### Fixed
+
+- v0.14.1: Frameshift is decided from the consensus. The net indel now comes from the same majority vote that calls the bases, counting deletion-majority reference positions and majority insertion length. The per-read median is kept as a quality metric under a separate header key and no longer reaches the verdict. Real frame-breaking indels are still caught, and the tests that pin them pass unchanged.
+- v0.14.1: The consensus and per-read figures are written as separate FASTA header keys. A file written by an earlier version keeps its old key read as the per-read metric, so reprocessing it does not re-condemn the same wells.
+
+## v0.14.0 (MAME step 2 finishes a whole sequencing run)
+
+Step 2 held an entire native barcode of read slices until consensus and flattened a whole well into arrays indexed by aligned base. Peak memory therefore grew with input size and depth. Bounded buffers and pileup batches now limit those allocations. This release also fixes alignment-cursor and read-counter defects.
+
+### Fixed
+
+- v0.14.0: Read chunk boundaries could change alignment output because query names restarted at zero on each aligner call and minimap2 uses those names to seed per-read randomness. Running name offsets now preserve query identity across chunks.
+- v0.14.0: The minus-strand consensus cursor now accounts for reverse-complemented query coordinates. Asymmetric end clipping no longer shifts a read's votes into the wrong pileup positions.
+- v0.14.0: `assigned_reads` and `chimera_splits` now consume the first-hit flag only after a successful assignment. Sequence output is unaffected. Older resume markers still carry their recorded totals.
+- v0.14.0: Step 2 no longer holds a whole barcode of read slices, or a whole well of pileup arrays, at once. Both are processed in bounded batches whose size is derived from the memory limit divided by the number of concurrent workers, reading a cgroup limit ahead of total system memory so a container does not size itself against host RAM.
+
+### Changed
+
+- v0.14.0: Step 2 avoids redundant per-file durability calls, directory scans and metadata lookups. Latency-aware read fan-out overlaps storage access when the filesystem probe indicates it is useful.
+- v0.14.0: Consensus accumulation uses bounded batches to limit intermediate array size as well depth grows.
+- v0.14.0: Demux workers hand freed cores back to whichever native barcode is still running, so an uneven plate stops leaving cores idle once the smaller barcodes finish.
+
+## v0.13.39.2 to v0.13.39.4 (Three items from the 260731 revision list)
+
+Three requests arrived together and merged the same day, and this section is written afterwards because none of them was recorded at the time. They first shipped in the v0.14.0 build. The first of the three carried a `v0.13.39.1` label that was already taken by the raw-run path fix below, so it is grouped here rather than given a version of its own.
+
+### Added
+
+- v0.13.39.3-4: The Echo source plate quadrant is selectable as A1, A2, B1 or B2. A 96-head is on a 9 mm pitch and a 384 plate on 4.5 mm, so one stamp reaches every other row and every other column, and exactly four starting points exist. The previous mapping doubled the row and kept the column, which fills rows A-P against columns 1-12: reachable by hand but not by the head that actually makes the plate. Choosing a quadrant fixes forward and reverse as a row-parity pair, so A1 puts reverse at B1, and two pairs fill one plate, which is the `2 round primer set / 1 Echo source plate` working concept. Leaving the choice unset keeps the old mapping unchanged. Where a plate is part used, the operator states which quadrants are gone rather than the app guessing, and dispensing onto a used quadrant is refused rather than warned about, because the primers already there would be lost.
+- v0.13.39.1: MAME accepts a plain variant list instead of only a KURO export. A workbook holding an `expected_mutations` sheet still goes to the original reader untouched, so status filtering and codon fields behave exactly as before; anything else is read as one variant per row in file order, and csv and tsv are accepted too. Of the ten columns the old format required, only `mutant_id`, `status` and the `wt_aa`/`position`/`mt_aa` triple are read anywhere downstream, so relaxing the shape costs no behaviour. A WT row is recognised rather than parsed as a variant, and a list carrying its own control does not get a second one added.
+
+### Fixed
+
+- v0.13.39.2: A run report no longer comes out blank or refuses to write. Two paths produced the same complaint. The verdict table on screen is restored straight from the autosave snapshot, while every export reads a separate sidecar copy that was filled only from a result file, and a missing or unreadable result file failed silently: the table looked fine and the export then refused with `No prior analyze result`, writing nothing and warning no one. The snapshot now seeds the sidecar through the same load path when the result file cannot be read. Separately, an analysis finding no wells produced an empty verdict list that passed the null guard, and the renderer built a complete report scaffold with every count at zero and an empty plate map, which opens and reads like a finished run. That is now refused with a message naming the inputs to check.
+
+Portable snapshot paths landed in v0.13.35.4, but two of them sit nested inside the raw-run parameters and were missed, so a moved project lost its custom barcodes and sequencing summary without saying so.
+
+### Fixed
+
+- v0.13.39.1: The custom barcode table and sequencing summary paths are stored relative to the project folder like every other input. Thresholds and length settings in the same block are not paths and are untouched. Older snapshots keep reading as absolute.
+
+## v0.13.39 (Autosave survives a hard exit and a bad save)
+
+Project folders became portable in v0.13.35.4, and a moved project re-detects its inputs since v0.13.38. Two ways of losing work were left.
+
+### Fixed
+
+- v0.13.39: Autosave is flushed when the app closes. The flush existed but nothing called it on the close path, so edits made inside the 1.5 second debounce window were lost on exit. Both autosave subscriptions now register the shutdown step themselves instead of depending on the screen to wire it.
+- v0.13.39: The previous snapshot is kept before each overwrite, three generations deep, at most one every five minutes so the copies point at genuinely different times. Autosave used to overwrite a single file, leaving no way back from a bad save.
+- v0.13.39: Inputs that a restore cannot recover are listed in a banner naming each one, and it stays until each is pointed at its new location. They were previously blanked behind a status message that disappeared after four seconds. A replacement that does not look like the original raises a warning, since attaching a same-named but different sequencing run is the mistake this guards against, while a deliberate replacement is still accepted.
+
+## v0.13.38 (Reopening a moved project finds its files again)
+
+Autosave records the absolute paths picked in a file dialog. Opening the project from a new folder, or on another machine, left those paths pointing at nothing. Auto-detect could not step in, because it only fills fields that are empty and a dead path is not empty.
+
+### Fixed
+
+- v0.13.38: Restored MAME input paths are checked before use. Ones that no longer resolve are cleared, so the existing auto-detect finds the same files inside the project again. A path whose check fails outright is kept, because a permission error or a slow network drive is not evidence that the file is gone.
+- v0.13.38: Inputs that auto-detect cannot recover, a raw MinKNOW run folder outside the project being the common case, are named on screen. Previously they were blanked with no notice.
+- v0.13.38: A sequence file that cannot be reopened during restore is reported by name. It used to fail into the console only, leaving a project that looked fully restored but had no sequence loaded.
+
+## v0.13.37 (KURO exports land in the project)
+
+MAME started routing its generated files through the open project. KURO did not, so a design exported from the same project could end up anywhere the last save dialog happened to point, and nothing downstream knew the files existed.
+
+### Fixed
+
+- v0.13.37: Export All opens on the project design folder and creates it first, so a project that has never been exported to is still a valid destination. Choosing somewhere else still works and behaves as before.
+- v0.13.37: The files Export All writes are recorded in the project manifest, each under a type taken from its filename suffix. Steps that look for an earlier output can now find one. Files with an unrecognised suffix are skipped rather than filed under a guess, and a recording failure reports itself without turning a finished export into an error.
+
+## v0.13.35 (Release version sync)
+
+### Fixed
+
+- v0.13.35: Release metadata now stays aligned across the frontend package, Tauri app, Python package, and Cargo lockfile so CI catches no version drift during tagged builds.
+- v0.13.35: The release notes and in-app What's New source are refreshed for the current patch release instead of carrying the previous release version.
+
+## v0.13.33 (Two step 3 inputs, chosen one at a time)
+
+A single toggle named Activity source was deciding two unrelated things at once: what the primary screen measurement arrives as, and how the confirmation report labels its samples. Naming the pairs as modes collapsed six real combinations into two.
+
+### Fixed
+- v0.13.33: The step 3 inputs are chosen on their own axes. The one that mattered was a raw primary screen report paired with a numeric-index confirmation, which no mode could express and which is what arrives once Agilent reports come off the instrument without variant names in the sequence table. The five builders were already split along both axes, so this opens the pairs rather than adding arithmetic. A single entry point takes each axis independently and enforces only the companion each genuinely needs: a well-labelled primary screen needs the plate layout, a numeric-index confirmation needs a rank source. Both previous functions remain as thin wrappers with signatures, warnings, and error strings intact. (#187)
+- v0.13.33: `prev_evolvepro_xlsx` meant opposite axes in the two previous functions, a rank source in one and a primary screen baseline in the other. The unified entry point separates them. (#187)
+- v0.13.33: The provisional badge appears for a prev-EVOLVEpro primary screen with no confirmation. `confidence` is only emitted on the legacy rank branch, so that pair was provisional in fact and unmarked on screen. The badge now derives from the confirmation axis, and the panel names the pair it built from. (#187)
+
+### Changed
+- v0.13.33: An NGS verdict file now applies to every input combination. It carries no axis constraint in the backend, and its previous reports-only visibility was a side effect of the toggle. Callers that sent a GC data sheet together with a verdict file previously had the verdict ignored and will now see gating applied. (#187)
+
+## v0.13.32 (Step 3 inputs named after what they hold)
+
+A user reading the step 3 panel could not find where the triplicate re-measurement goes, asked why a primary screen source was needed at all, and pointed out that EVOLVEpro writes CSV so a request for an xlsx looked wrong. Every one of those traces back to a label rather than to behaviour.
+
+### Fixed
+- v0.13.32: The step 3 input labels say what each file is. `Round-1` read as the EVOLVEpro active-learning round when it meant the first pass over the whole plate, two senses the project notes already record as being confused. The panel had the right vocabulary in its own mismatch hints, a 1-replicate primary screen against a 3-replicate confirmation, so the labels adopt that pair and `round` leaves this panel. Both EVOLVEpro fields now state they want the input xlsx KUMA built and that the result CSV EVOLVEpro writes is a different file, which is what made the xlsx request look wrong. The confirmation report is optional so the provisional path stays open, and its helper says it is nonetheless what the panel exists for. `confirmedLabel` and `nAuthoritative` referred to a `rep-batch` name no longer on screen and were brought along. Values only across all ten locales, no key renamed and no component logic touched. (#185)
+
+## v0.13.31 (Work that survives a crash, a structure you can supply yourself, and a selector that says what it changes)
+
+Seven versions since the last tag. The theme running through them is a gap between what the app appeared to do and what it did: autosave that saved nothing for users who never made a project file, a polymerase selector named after a Tm preset it does not switch, a 3D panel reporting active while computing in one dimension, and a MAME verdict calling thin wells contaminated.
+
+### Fixed
+- v0.13.30.6: Autosave keeps work for projects that were never saved to a file. It returned early for scratch projects, so a user who had not created one had nothing saved and no save button. Scratch autosave now writes to the app data directory, gated on the KURO kind so MAME autosave is untouched. The snapshot schema also carries the nine result fields it used to drop, and schema 1 snapshots still load. (`src/lib/autosave.ts`)
+- v0.13.30.6: A moved template no longer kills the whole restore. Restore called `load_fasta` unguarded, so a template that had been moved aborted the settings, the computed output, and the UI restore together. The failure is now contained, its cause reaches the status bar, and auto-redesign is skipped.
+- v0.13.30.6: Step 2 no longer crashes on a pandas-written file. `df.to_csv(path)` writes an unnamed index column, and Radix throws on an empty `SelectItem` value from the component body, on the render right after preview and without anyone opening the dropdown. Headers map to index sentinels and the empty column stays listed, labelled unnamed.
+- v0.13.30.6: Loading a different template clears the previous protein primers. Residue numbers are CDS-relative, so keeping them across a template change showed numbers that belong to another sequence.
+- v0.13.30.6: The 3D panel stops claiming to be active while using distance in one dimension. A loaded structure file lives in a different slot than a UniProt accession, so its coordinates never reached the sidecar, and because they never arrived the frame guard never ran either.
+- v0.13.30.6: A sidecar left running during an update no longer bricks the install. A live exe holds a Windows file lock, the installer skips it, and the stale binary then fails every integrity check. KURO and MAME are stopped before the installer runs, integrity failures name a recovery step, and sidecar stderr lands in a rolled log file instead of being truncated away.
+- v0.13.30.2: A mixed MAME signal below three times the minimum read count reports LOWDEPTH rather than MIXED. At low depth a few minor-allele positions are indistinguishable from ONT error, so thin wells were published as confident contamination. (`kuma_core/mame/compare/verdict.py`)
+- v0.13.30.2: The single-hit demux path honours `coverage_fraction` instead of collapsing it to `require_full_span=(coverage_fraction >= 1.0)`, which disabled the span filter at the 0.98 default. (`kuma_core/mame/ingest/combinatorial_demux.py`)
+- v0.13.30.2: The read-length window scales with the amplicon instead of using a fixed absolute window, allowing length tolerance to follow the reference. (`kuma_core/mame/ingest/quality_filter.py`)
+- v0.13.30.2: The QC panel appears for MIN114 runs. Three MinKNOW health parsers returned nothing on real MIN114 column names, so a run with valid metadata showed no panel at all. (`kuma_core/mame/health.py`)
+- v0.13.30.4: The What is New bundle is regenerated where the version bump happens. It went stale in two consecutive releases and both times the tag build would have died in quality gates, because the post-commit hook rewrites `package.json` (a generation input) and amends without regenerating. The three-stage `sync:check` also no longer short-circuits, so a later stage failing cannot hide behind an earlier stage passing. (`scripts/sync-version.sh`, `scripts/sync-check-all.mjs`)
+
+### Changed
+- v0.13.30.3: The polymerase selector states what it actually controls. The design Tm has run on one fixed SantaLucia 1998 scale for every polymerase since v0.13.19, but the selector was labelled a Tm calculation preset, so choosing KOD read as if the design Tm switched formula. NEB calibration applies to Ta only.
+- v0.13.30.3: Switching polymerase now reports the GC range or overlap mode it overwrote instead of changing them silently. Enzymes differ on both, so a switch could change which primer is selected, or the design algorithm itself.
+- v0.13.30.3: The Benchling profile is retired. It named a Tm scale rather than an enzyme, and it was both the default selection and the only profile allowing GC 30 to 70 while the other seven allow 40 to 60. The default is now KOD and seven profiles remain. A saved state carrying Benchling migrates to KOD with its stored GC range and overlap mode preserved, and reports the switch. Reproducing an older Benchling design stays possible by entering GC 30 to 70 in Advanced Options.
+- v0.13.30.6: A user-predicted structure can be loaded directly. AlphaFold DB is keyed by UniProt accession, so a construct matching no entry exactly has no structure there, and ESMFold refuses sequences over 400 residues. PDB and mmCIF are parsed with the standard library, an AlphaFold Server zip picks its best model by ranking score rather than filename order, and the frame guard verifies the file against the CDS without a network call.
+- v0.13.30.7: The dead `activity.export_evolvepro_csv` RPC layer and five unused MAME activity wrappers in `src/lib/ipc.ts` are gone, along with two orphan locale keys. Nothing changes at runtime: the store already called `sendRequest` directly, and the xlsx export path is untouched. The core `export_evolvepro_csv` function stays, since the round-trip integration test uses it to pin the column agreement between the MAME writer and the KURO reader.
+- v0.13.30.5: The rescue and consensus documents describe what ships. They claimed `tol_max` defaults to 3 degrees when the engine has used 4 since v0.13.23, and a three-pass auto-relax cascade that does not exist.
+
+### Known issues
+- Golden Gate stays out of the build pending a go or no-go decision, and the branch holding it also carries the reverted original feature.
+- Combo measurements stay out of the EVOLVEpro input, unchanged from v0.13.30.
+- A format exemplar is not a measurement source for the current campaign. Use measurements with matching provenance.
+
+## v0.13.30 (The sample map the lab fills in now works end to end)
+
+`05_mame_sample_map.xlsx` names every well `<sample>_r<n>` and marks empty wells `blank`. The layout parser read those literally, so a filled-in template produced no usable variants at all. Two independent reasons, fixed together.
+
+### Fixed
+- v0.13.30: The layout parser reads the replicate suffix the lab writes. A trailing `_r<n>` is stripped and the remaining text is the sample name, so `WT_r1` is WT and `Q232A_r1`, `Q232A_r2`, `Q232A_r3` collapse onto one mutant whose three wells accumulate as replicates. Only the trailing suffix goes, which keeps `A40P_E61Y_r1` intact as `A40P_E61Y`. Rows named `blank` are dropped. Names without a suffix behave exactly as before. (`kuma_core/mame/activity/plate_layout_xlsx.py`)
+- v0.13.30: A variant that cannot become EVOLVEpro short notation no longer kills the build. Short notation is one position plus one residue, so a double substitution has no token, and `to_evolvepro` raised on it. Both fallback builders called that unguarded, so a single combo variant in a layout aborted everything and the singles beside it produced nothing. The conversion failure is now caught per mutant, that mutant alone is dropped, and one warning names it with its wells. (`kuma_core/mame/activity/build_evolvepro_input.py`)
+
+### Known issues
+- Combo measurements stay out of the EVOLVEpro input. The activity is read and the wells parse, but the value never reaches the next round, which matters as combinatorial variants grow in number. Giving them a short-notation form needs confirming what the external EVOLVEpro accepts, so it is deliberately left open.
+- `to_evolvepro` and the multi-mutation parser in `kuma_core/kuro/mutation.py` disagree on the separator. The parser handles `A40P/E61Y` while the templates write `A40P_E61Y`.
+
+## v0.13.28 (Files the lab already has, and a shared primer that reaches every well)
+
+Three complaints, one shape: KUMA asked for a file or a column name the user did not have, and called the mismatch a bad file. A fourth item is worse than a complaint, since it produced a plausible looking export with primers missing from it.
+
+### Fixed
+- v0.13.28: Step 2 accepts mutation files whose headers merely differ in case, spacing, or a byte-order mark. Header comparison strips the BOM, trims, and casefolds, while the resolved name stays the original string so row lookup still works. Both the loader and the preview now read CSV as `utf-8-sig`, so the dropdown offers exactly what the loader will find; before, an Excel-exported CSV showed the preview a header the loader could not resolve. (`kuma_core/kuro/evolvepro.py`, `python-core/sidecar_kuro/handlers/misc.py`)
+- v0.13.28: Step 2 column pickers work without hunting for the Preview button. The manual mapping panel was always rendered but its two selects were gated on a preview only that button fetched, so a failed auto-detect left two disabled dropdowns under a message reading "Load a file first" for a file already loaded. Choosing a file fetches the preview on its own, the selects survive a failed auto-detect, and the failure message says the columns can be picked below. A stale-response guard keeps a quick file switch from pairing one file headers with another file rows. (`src/components/panels/InputPanel/`)
+- v0.13.28: MAME step 3.1 takes the sample map step 1 already produced. It demanded a plate layout workbook with `Mutant` and `Well Pos.` columns that nothing in the codebase writes, while the identical mapping existed as `sample_name` and `well` from `generate_mame_package`. The parser accepts either pair, prefers the plate layout pair when both appear, and says so. (`kuma_core/mame/activity/plate_layout_xlsx.py`)
+- v0.13.28: Echo and JANUS exports no longer drop the reverse rows of shared primers. Mutations sharing a reverse primer are keyed through a dedup map; when a workspace carried none, `_build_rev_lookups` rebuilt that map from the already deduplicated list, which holds only each group representative. Every other mutation then failed the lookup and lost its reverse transfer row, meaning a reaction with no primer in it, from an export that otherwise looked complete. Old workspaces reach this through `dedupInfo: ws.dedupInfo ?? {}`. The export handlers now rebuild the map from the design results, and the mapper raises with the affected mutation names rather than dropping rows when rebuilding is impossible. (`kuma_core/kuro/plate_mapper.py`, `python-core/sidecar_kuro/handlers/export.py`)
+
+### Added
+- v0.13.28: Echo and JANUS layout sheets report how many reactions each source well feeds and the volume that draws. A shared reverse primer is aspirated once per destination, so a well feeding ten reactions gives up ten times the per-transfer volume, and nothing in the previous exports said so. The machine-readable transfer files are untouched, since their schemas are fixed and the total belongs where a human fills the plate. Dead volume stays out of the arithmetic: neither the Echo picklist nor the JANUS worklist has a field for it, vendor working ranges vary by fluid class, and the sheet says to add the labware figure.
+
+### Known issues
+- The required fill volume still needs the labware dead volume added by hand. Both instruments detect a shortfall only at run time, Echo through a survey exception report and JANUS through a liquid level error, which is after the plate is loaded.
+- A mutation column named explicitly but absent from the file yields an empty result rather than an error. The dropdown only offers headers the preview returned, so the path is unreachable through the UI.
+
+## v0.13.27 (Step 3 learns to read the instrument, and stops asking a human to normalise first)
+
+MAME step 3 could parse a raw Agilent FID1B report but never use one. The parser had zero production callers, so the only way in was a GC sheet somebody had already divided by WT. The capability lived in an open PR that had gone stale for five weeks against a UI another open PR had since rewritten. Both are landed here.
+
+### Added
+- v0.13.27: A raw Agilent report can be the round source. `build_evolvepro_input_from_reports` normalises each replicate as `area / mean(WT block areas)` and is reachable from the plate-layout route through a source toggle, with a second toggle choosing the round-1 baseline between a raw report and a prior EVOLVEpro file. WT blocks are matched on `^WT_?\d+$`; pure-numeric sample names are treated as calibration and skipped. A missing WT block fails loudly rather than falling back. Optional NGS verdict gating drops variants whose well did not pass. (#173, supersedes #120)
+- v0.13.27: Step 3 splits into an exclusive input route and cross-round signals, so the genotype path and the plate-layout path no longer share one crowded screen. (#173, supersedes #163)
+
+### Changed
+- v0.13.27: The WT denominator comes from the WT replicate rows the instrument ships. Long-format ingest dropped every row whose sample name failed to parse as a well coordinate, which silently discarded the `WT_1`/`WT_2`/`WT_3` blocks present in Agilent exports and forced the genotype route to back out a denominator from plate-designated WT wells instead. Those rows now land in a separate `wt_records` collection, keeping them out of the variant well space, and the join prefers their mean per plate. Plates with no dedicated rows keep the previous behaviour, and `n_wt_replicate_rows` plus `n_plates_wt_from_replicates` report which source applied. This aligns the genotype route with the definition reports mode already used.
+- v0.13.27: `MergedRow.relative_activity` is gone. It was declared and read but never assigned, so the export ternary always resolved to `fold_change`, which is the same quantity by construction (`activity_mean / wt_mean`). The dead branch made the code read as if it honoured a separate relative-activity definition that was never wired.
+- v0.13.27: The step 3 document is rewritten against the actual parsers and columns. It had claimed a 96-well grid input that no parser implements and named the output columns `mutation`, `activity` when the writer emits `Variant`, `activity`.
+
+### Fixed
+- v0.13.27: The two-file provisional build works again after the merge. The mode validator arriving from #120 judged rank mode by `all([gc_data_xlsx, rep_batch_xlsx, prev_evolvepro_xlsx])`, which rejected the layout-plus-GC path main had opened by making the last two optional; a copy of the same guard sat in the handler. Both now key off `gc_data_xlsx`. The regression survived the merge because the existing validator test supplies all three files, so three tests now pin the two-file path.
+- v0.13.27: The reports branch no longer shows a false "Provisional" badge. It returns no `confidence` key, but the panel rendered the badge unconditionally. The types also missed the `mode` field the handler returns, and marked `layout_xlsx` and `gc_data_xlsx` required when the backend treats both as optional.
+
+### Known issues
+- A correctly formatted activity workbook may belong to a different campaign. Confirm input provenance before combining primary and confirmation measurements. Rank mode remains available when a raw primary report is unavailable.
+- The `export_evolvepro_csv` output is log2 while both xlsx writers are linear. The CSV exists for the in-repo KURO round trip and is not an EVOLVEpro input, but the shared name invites confusion.
+
+## v0.13.26 (Panels that announce themselves on a laptop screen, a sample map that arrives pre-filled)
+
+A user on a MacBook reported that the KURO Step 5 plate view was missing, while the same build looked fine on Windows. The cause turned out to be two independent things that only combine on a short screen: a panel that shrinks instead of overflowing, and an OS that hides its scroll bars. Measurement drove the fix; the numbers below come from Playwright renders rather than from reading the code.
+
+### Fixed
+- v0.13.26: The KURO Step 5 plate grid no longer collapses out of sight. The Output split container was `h-full min-h-0`, so it could never exceed the wizard body and produced no overflow to scroll. At a 1280x800 viewport, the MacBook 13-inch default scaled resolution, the wizard body holds 143 px while the 96-well grid needs 316 px, so the grid was squeezed into a 75 px box with only its own hairline scroll bar. The container now carries a height floor, which lets the grid render at full size and hands the surplus to the wizard body scroll. Measured across 720 px to 1100 px of viewport height, the grid box tracks `viewport - 741` before the change and stays at 424 px after it. (`src/components/steps/OutputStepView.tsx`)
+- v0.13.26: MAME Analyze fits on a laptop. The review container declared `min-h-[960px]`, so on any window shorter than roughly 1700 px the whole step sat inside a scroll trap; the verdict table and the efficiency chart added 640 px and 360 px floors of their own. All three now sit at or below 240 px and scroll inside themselves. This was never reported, and it bites harder than the plate view because it moves the entire step rather than one panel. (`src/components/mame/steps/AnalyzeStepView.tsx`)
+- v0.13.26: The plate grid draws its own scroll bar. Nothing in the codebase styled a scroll bar, so every scrollable region inherited the platform default, and macOS keeps overlay scroll bars hidden until a scroll is already in progress. A clipped grid therefore read as "there is nothing more here" on a Mac and as "clipped, more below" on Windows, from one identical build. The plate view now renders a scroll bar as a real element, present on both platforms and assertable in a test, and a global rule opts WebKit out of the overlay style for every other panel. The thumb tracks the true ratio: at 1280x800 the horizontal thumb spans 42 % of the track against a 323/771 px viewport-to-content ratio. (`src/components/widgets/PlateMap.tsx`, `src/index.css`)
+- v0.13.26: Seventeen interface strings stop rendering as raw key names. i18next echoes the key when it cannot resolve one, so `onboarding.maximizeHint` appeared verbatim in the first-run toast, and twelve MAME barcode-setup strings, two artifact badge strings and the sidebar resize label did the same. `i18n-parity` compares locale files against each other, so a key absent from all ten passed it. All seventeen are now defined in every locale. (`src/locales/*.json`)
+- v0.13.26: The `--text-title` token is larger than `--text-body`. At 13 px against a 14 px body, every panel header rendered smaller than the text inside it. Now 15 px. (`src/index.css`)
+- v0.13.26: The MAME sample map template arrives pre-filled. `generate_mame_package` accepts the KURO expected-mutations workbook and writes one row per designed mutant in column-major well order plus a trailing `WT` row, delegating placement to `build_draft_layout` so the file on disk and the in-app draft cannot diverge. Regeneration no longer discards a template that already carries operator rows. `build_draft_layout` previously truncated past well 96 and dropped the WT control at exactly 96 with no signal, which rendered as a correct full plate; it now reports `dropped_mutant_ids` and `wt_omitted`. (#171)
+
+### Added
+- v0.13.26: `i18n-lint` resolves every literal `t()` key against all ten locales and fails on any that no locale defines. The call span is sliced by paren balance rather than a fixed window, so a neighbouring call carrying a `defaultValue` cannot excuse the one beside it. Calls with their own fallback text are exempt, and plural keys are matched through their CLDR suffixes. (`scripts/i18n-lint.mjs`)
+
+### Known issues
+- At a 900x600 window, the floor allowed by `minHeight`, the Step 5 body holds 16 px and the plate is reachable only by scrolling. This is a hand-shrunk window rather than a display size, and it appears in no screen-resolution statistic, so it is out of scope for now.
+- The plate grid is 745 px wide against a panel of 359 px at 1280x800, so horizontal scrolling remains necessary. The new scroll bar makes that state legible; narrowing the cells or promoting the grid to a full-width view is still open.
+- A trivial sidecar call shares the same 60 s timeout budget as a heavy one. `get_polymerase_details` is an in-memory registry lookup, yet it can exhaust the budget and surface as `RPC timeout` when sidecar cold start is slow.
+
+## v0.13.25 (Legacy .xls sources load in a packaged build, round hints name a step that exists)
+
+Two defects that only a shipped build exposes. Both were found by reading the v0.13.24 release back rather than by a failing test, and neither had a test that could have caught it.
+
+### Fixed
+- v0.13.25: Legacy `.xls` EVOLVEpro sources load in a packaged build. `xlrd` is declared in `pyproject.toml` but was absent from the kuro `hidden_imports` list, and it is imported lazily in two places PyInstaller cannot see statically: the preview path (`sidecar_kuro/handlers/misc.py:125`) and the table load path (`kuma_core/kuro/evolvepro.py:339`). Any `.xls` source therefore raised `ModuleNotFoundError` in an installed build while a development run succeeded, because the wheel is present there. This affected loading, not only previewing. `openpyxl` was already listed, so `.xlsx` was never affected, and nothing on the MAME side imports `xlrd`. (`python-core/build_sidecar.py`)
+- v0.13.25: The round hints name a step that exists. The v0.13.24 hints sent the user to "Step 1 (Load Variants)", but the inputs were added to `MutationInput`, which `DesignStepView` maps to `design.mutation`, the Mutations step. `SequenceInput` is Load Variants. The numbering was ambiguous besides, since `DiversitySections` labels the diversity pipeline stages Step 1 to Step 4 in its own separate scheme, so "Step 1" inside that panel meant something else. Both hints now name the step rather than numbering it, in all ten locales. (`src/locales/*.json`)
+
+### Known issues
+- A trivial sidecar call shares the same 60 s timeout budget as a heavy one. `get_polymerase_details` is an in-memory registry lookup, yet it can exhaust the budget and surface as `RPC timeout` when sidecar cold start is slow, which on Windows includes onefile extraction plus antivirus scanning a bundle of roughly 90 MB. The call itself is not slow; the startup ahead of it is.
+
+## v0.13.24 (Plasmid input that works, campaign round asked for instead of assumed)
+
+Two rounds of work on inputs the app accepted but could not actually use. MAME refused every circular plasmid and silently scanned SnapGene binaries as text; KURO collected the campaign round in a step the user reaches after the value has already been consumed, and treated "never entered" as round 1.
+
+### Fixed
+- v0.13.24: MAME designs primers across the origin of circular plasmids by indexing search windows modulo sequence length. Linear templates retain their boundary checks. (`kuma_core/mame/ingest/barcode_package.py`, `kuma_core/kuro/sdm_engine.py`, `python-core/sidecar_mame/handlers/barcode_package.py`)
+- v0.13.24: SnapGene `.dna` files are parsed instead of scanned as text. `BarcodeSetupPanel` read every input with `readTextFile`, so a binary `.dna` found no flat-file CDS lines, fell through to the FASTA ORF scanner, and filled the CDS dropdown with dozens of ORFs found in 3.16 MB of binary, then auto-wrote those coordinates into the form. Annotated formats now route through the existing Biopython-backed `load_fasta` RPC, which returns the same four genes at the same coordinates as the GenBank text path. Plain FASTA keeps the ORF scan, the scanner rejects content that is not plausibly text, and an RPC failure surfaces the error rather than falling back to the path that produced the junk. (`src/components/mame/panels/BarcodeSetupPanel.tsx`, `src/lib/sequence/autoDetectCds.ts`)
+- v0.13.24: The MAME sequence field says what it needs. The helper read "Reference CDS sequence", inviting the one input that can never work, since a CDS-only FASTA has zero flank on either side. It now asks for a plasmid or construct map with flanking template, and an inline warning reports the shortfall in bp per side. The warning does not block, because circular templates legitimately succeed in those cases. (`src/locales/*.json`, `src/components/mame/panels/BarcodeSetupPanel.tsx`)
+- v0.13.24: Annotated and ORF-derived CDS candidates report the same protein length. The sidecar counted the stop codon as a residue while the frontend candidate type excludes it, so the same gene read 561 aa from a GenBank map and 560 aa from a FASTA ORF. (`src/components/mame/panels/BarcodeSetupPanel.tsx`)
+- v0.13.24: The KURO campaign round is set where it is used. Both inputs lived in Step 4 Pool Filters while the value is consumed at EVOLVEpro load time to derive the sigma-adaptive pool, so the field was only discovered after the load had run. They now sit in the Mutations step next to the variant file, bound to the same store fields, and an informational hint appears when recorded round history disagrees with the entered value. (`src/components/panels/InputPanel/MutationInput.tsx`, `DiversitySections.tsx`, `DiversityOptions.tsx`)
+- v0.13.24: An unentered round is no longer read as round 1. The frontend initialised `evolveproRound` to 1 while the sidecar default, the Pydantic field, the source inspector display, and the request builder all treat 0 as unset, so an untouched round silently selected the round-1 pool parameters. Zero is now the initial value and a dismissible dialog asks for the round once an EVOLVEpro table is loaded, mounted app-level so it does not depend on which step the user opened first. With the round unset, Pool Filters points at the Mutations step rather than displaying the k and entropy values that `computeSigmaParams(0, size)` happens to return. (`src/store/slices/diversitySlice.ts`, `src/components/dialogs/RoundPromptDialog.tsx`, `src/components/layout/AppLayout.tsx`)
+- v0.13.24: The KURO Tip card shows its text instead of a key name. The side-card key was assembled by splitting the substep id, which does not match the locale keys for three of six substeps (`design.mutation`, `output.summary`, `export.all` against `nominate`, `output`, `export`), so those steps rendered the raw key string in all ten locales. (`src/components/layout/KuroChrome.tsx`)
+- v0.13.24: Prose no longer renders at the 8 px well-plate size. Seven status lines, section labels, and descriptions used the plate-label token; they now use the caption size. The 8 px token stays on plate badges and compact controls. (`src/components/panels/InputPanel/DiversitySections.tsx`, `UniprotSearch.tsx`)
+
+### Added
+- v0.13.24: Structural diversity is suggested in the regime where it is validated. The selector stays off by default, since the benchmark records a conditional win that loses on some assays, but the app now offers one-click enable when the candidate pool is combinatorial, the round is 1 or 2, and a real 3D structure is loaded, which are the three conditions the benchmark requires together. (`src/components/panels/InputPanel/DiversityOptions.tsx`, `src/store/slices/diversitySlice.helpers.ts`)
+
+### Known issues
+- The campaign round reaches the sidecar only when the Pareto optimisation step is enabled. `evolvepro_round` is attached to the request under `usePipeline && paretoDiversityEnabled`, so the round is stored, displayed, and persisted as campaign metadata while its only functional effect is on the sigma-adaptive pool inside that one path.
+
+## v0.13.23 (Rescue levers that run, verdicts that stop overclaiming, annealing below extension)
+
+A defect audit run straight after v0.13.22, aimed at one pattern: a declared contract that the code quietly contradicts, with nothing checking the two against each other. That is what the v0.13.22 Tm scale bug was, and five sweeps (constant provenance, hard bounds, hidden diagnostics, cross-layer drift, MAME thresholds) found more of it.
+
+### Fixed
+- v0.13.23: The Tm tolerance control now reaches batch design through `tol_max`. Auto-relax widens from the requested tolerance instead of a fixed constant. (`python-core/sidecar_kuro/models.py`, `kuma_core/kuro/sdm_engine.py`, `python-core/sidecar_kuro/handlers/design.py`, `src/components/panels/ParameterPanel.tsx`)
+- v0.13.23: Auto-relax rescue runs with an empty rescue pool, including manual and CSV input. (`python-core/sidecar_kuro/handlers/design.py`)
+- v0.13.23: A well counts as recovered only when its designed mutation is confirmed. The indel-event gate returned AMBIGUOUS before the expected mutation was ever compared, and `detected.py` treats AMBIGUOUS as a guarantee that every expected mutation matched, so a deletion-bearing well whose consensus lacked the designed mutation reported a recovery rate of 1.0 and won replicate selection. (`kuma_core/mame/compare/verdict.py`)
+- v0.13.23: `consensus_n_fraction` is scoped to covered positions. Dividing by the whole alignment reference sent every well to NO_CALL when the reference was a plasmid map, which the translator explicitly supports: 150 perfect reads carrying the designed mutation measured 0.97. A file written before this change is recovered exactly from `low_depth_positions`, and when that is unavailable the value is marked unevaluable and the gate is skipped with a note, rather than reusing a differently defined number. (`kuma_core/mame/ingest/consensus.py`, `fasta_parser.py`, `consensus_metadata.py`)
+- v0.13.23: A coordinate-origin mismatch fails loudly. The expected WT residue was parsed and discarded, so a tag, leader peptide, or plasmid offset shifted a whole plate onto the wrong residues and still reported PASS with empty notes. (`kuma_core/mame/compare/verdict.py`)
+- v0.13.23: Cross-talk reports whether it ran. Four states, including a missing input file and a parse failure, collapsed into an empty list that the panel rendered as an all-clear, in a section that sat outside the MinKNOW guard. The z-score population also included the `unclassified` bin, which demux excludes by name, so a large unclassified count hid the real candidate. (`kuma_core/mame/health.py`, `src/components/mame/widgets/RunHealthPanel.tsx`)
+- v0.13.23: Wells that cannot be identified stay unidentified. A failing well with no label match and no sample_map entry was attributed to `expected[idx % len(expected)]`, so its position in the ingest list decided which mutant it joined. (`kuma_core/mame/pipeline.py`)
+- v0.13.23: The verdict inspector shows the note instead of an invented identity. The Identity row rendered 100 minus five per observed AA change; no identity field exists anywhere in the backend. (`src/components/mame/layout/MameInspectorContent.tsx`)
+- v0.13.23: Recommended annealing never exceeds the extension temperature. Q5 SDM carried no two-step threshold, so all eleven pairs the fixture designs were recommended 74 to 79 C against a 72 C extension step. The demotion also tested the raw Tm rather than the annealing temperature NEB specifies, and Phusion lacked the documented sub-20-nucleotide branch. Across all eight profiles, pairs above 72 C fall from 12 to 0. (`kuma_core/kuro/annealing.py`, `kuma_core/kuro/resources/polymerase_profiles.json`)
+- v0.13.23: The KURO sidecar surfaces the exception type and message instead of a bare "Internal error", matching the MAME sidecar under the same -32603 code. (`python-core/sidecar_kuro/dispatcher.py`)
+
+### Known issues
+- Reported MAME values can change. Scoping the N fraction to covered positions and requiring the designed mutation before AMBIGUOUS both change verdict semantics. A coordinate-origin mismatch now aborts the run.
+- A well whose N fraction is unevaluable serializes as 0.000, so Excel, CLI, and the frontend read it as clean. The reason is carried in `verdict_notes` on the same row.
+- The pool-cascade branch still designs at the default tolerance.
+
+---
+## v0.13.22 (SDM design Tm scale correction, failure reasons that name the blocking stage)
+
+### Fixed
+- v0.13.22.1: Design-time Tm uses the monovalent-salt and oligo-concentration inputs of the Benchling SantaLucia 1998 scale without polymerase-buffer Mg and dNTP terms. Targets, primer lengths and enzyme-specific annealing-temperature rules are unchanged. (`kuma_core/kuro/sdm_engine.py`)
+- v0.13.22.1: A failed mutation now reports which stage blocked it instead of one generic tolerance line. The reason names the overlap window, the forward primer, the reverse primer, or the full-overlap gate, and carries the closest reachable Tm, the target window, and the length limits, for example `reverse: closest Tm 64.4C at 19 bp, outside 58+-4.0C (length 19-27 bp)`. Diagnosis runs only after a failure is confirmed, so the success path is unchanged, and it observes through the same search primitives rather than reimplementing the ladder, so the message cannot drift from the search. (`kuma_core/kuro/sdm_engine.py`, `tests/test_sdm_engine.py`)
+
+### Changed
+- v0.13.22.0: KURO step 2 loads EVOLVEpro and Others through one loader with optional column mapping, `resetAll` no longer leaks candidates, export BOM is selected by locale, and UniProt BLAST auto-search is gated. (`src/store/slices/inputSlice.ts`, `src/store/slices/sequenceSlice.ts`, `src/store/slices/exportSlice.ts`)
+
+### Known issues
+- Some sites can remain outside the allowed reverse-primer Tm range after auto-relax because the minimum primer length still applies.
+
+---
+## v0.13.19 (Paper-standard SDM design for every polymerase)
+
+### Changed
+- v0.13.19.0: SDM design targets are now **method-level constants** (Fwd 62 / Rev 58 / Overlap 42 C, mutation site at least 4 bp from the 3' end) for **every** polymerase profile, and the design-time Tm runs on one fixed scale. Previously only the Benchling profile carried the paper values; the others derived targets from `opt_tm` (`opt_tm`, `-4`, `-20`), so selecting KOD or Q5 silently designed to 68/64/48, and the design Tm itself was computed on a per-enzyme scale (NEB-calibrated for Q5/Phusion/Taq). Every profile that shares the length spec now designs byte-identical primers matching the paper reference, and enzyme identity affects only the recommended annealing temperature. Targets and lengths follow Landwehr et al. 2025 (Nat Commun 16, 865), whose SI Fig. S4 defines 62/58 as whole-primer melting temperatures. (`kuma_core/kuro/sdm_engine.py`, `kuma_core/kuro/resources/polymerase_profiles.json`, `src/store/slices/designSlice.ts`)
+
+### Fixed
+- v0.13.19.0: CI now smoke-tests the frozen KURO sidecar (spawn, `ping`, `load_fasta`, import-stage marker) so an import crash cannot reach a release. The v0.13.17 startup failure shipped because the pipeline only checked that the binary existed. (`python-core/scripts/frozen_kuro_smoke.py`, `.github/workflows/build.yml`)
+
+---
+## v0.13.18 (Sidecar startup fix on non-UTF-8 Windows locales)
+
+### Fixed
+- v0.13.18.0: The KURO sidecar no longer dies at import on Windows systems whose locale encoding is not UTF-8 (cp949 on Korean Windows, for example). The profile loader opened the bundled polymerase table with the locale default encoding, so the non-ASCII touchdown text introduced in v0.13.17 raised `UnicodeDecodeError` before any RPC could run, which surfaced as "Sidecar process exited" for every command including sequence loading. The loader now pins utf-8, matching the three other readers in that module, and a regression test drives the registry under `PYTHONWARNDEFAULTENCODING` so a locale-default open cannot come back. (`kuma_core/kuro/polymerase.py`, `tests/test_polymerase.py`)
+
+---
+## v0.13.17 (Per-enzyme annealing temperature)
+
+### Added
+- v0.13.17.0: KURO now outputs a **recommended annealing temperature (Ta)** per SDM primer pair, calibrated to the selected polymerase with verified manufacturer rules: NEB Q5 (Tm+1), Phusion (Tm+3), Taq (Tm-5) via the existing NEB Tm offsets; KOD One (nearest-neighbor Tm-5, 3-step, step-down 74/72/70/68); Takara PrimeSTAR GXL (discrete 55/60); Thermo DreamTaq (Wallace, Tm-5), with 2-step promotion for high-Tm pairs. The design-time Tm scale (Fwd 62 / Rev 58 / Overlap 42) stays unchanged; Ta is an additive output in the result table with a mode and touchdown tooltip. Rules verified against primary sources (NEB Tm API, Toyobo/Takara/Thermo manuals). (`kuma_core/kuro/annealing.py`, `kuma_core/kuro/polymerase.py`, `kuma_core/kuro/resources/polymerase_profiles.json`, `python-core/sidecar_kuro/handlers/design.py`, `python-core/sidecar_kuro/models.py`, `src/components/widgets/resultTableColumns.tsx`, `docs/2026-07-16-annealing-ta-rules-verified.md`)
+
+---
+## v0.13.16 (In-app automatic updates)
+
+### Added
+- v0.13.16.0: Kuma can now **update itself in place**. When a newer signed release is detected, the update dialog offers **Update now**, which downloads the platform artifact, verifies its Ed25519 signature against the key embedded in the app, installs it, and relaunches, no manual installer step. Windows (NSIS), macOS, and Linux AppImage are fully automatic; Debian `.deb` has no updater artifact and falls back to opening the release page. Signing uses a self-generated Tauri updater key (not a paid code-signing certificate), so the free/unsigned distribution policy is unchanged and the SmartScreen guidance still applies. (`src-tauri/tauri.conf.json`, `src-tauri/src/lib.rs`, `src-tauri/capabilities/default.json`, `src/lib/updateCheck.ts`, `src/components/dialogs/UpdateAvailableDialog.tsx`, `.github/workflows/build.yml`, `scripts/gen-latest-json.mjs`)
+
+---
+## v0.13.15 (MAME Activity runs independently on layout + GC)
+
+### Changed
+- v0.13.15.0: MAME **Build EVOLVEpro input** no longer forces all four files. Layout + GC alone now produce a valid activity table for a first-round primary screen, marked **Provisional**; supplying the Agilent rep-batch (3-replicate re-measurement of positives) and the previous-round EVOLVEpro rank file upgrades the result to **Confirmed** (authoritative replicates merged over the primary screen, with per-variant mismatch QC preserved). Each pipeline step stays independently runnable and the result badge states the confidence level. The existing four-file confirmation workflow is unchanged. (`kuma_core/mame/activity/build_evolvepro_input.py`, `python-core/sidecar_mame/models.py`, `python-core/sidecar_mame/handlers/activity.py`, `src/types/mame/build_evolvepro_input.ts`, `src/components/mame/panels/BuildEvolveproInputPanel.tsx`, `src/locales/*.json`)
+
+---
+## v0.13.14 (KURO structure-accuracy guard for 3D selection)
+
+### Fixed
+- v0.13.14.0: KURO now uses AlphaFold Cα coordinates for structural-diversity and Pareto-3D selection only when the loaded structure exactly covers the reference sequence (identity or a clean substring; terminal tags/truncations are fine, interior substitutions are not). A near-but-not-exact structure would place coordinates on the wrong residues and silently corrupt selection; such cases now fall back to 1-D sequence distance with a status notice. Domain diversity is unaffected (sequence-based) and the benchmark comparison deliberately keeps both 1-D and 3-D arms. (`kuma_core/kuro/interface.py`, `python-core/sidecar_kuro/handlers/misc.py`, `src/store/slices/inputSlice.helpers.ts`)
+
+---
+## v0.13.13 (KURO ESMFold de-novo structure prediction)
+
+### Added
+- v0.13.13.0: The KURO 3D panel can predict a structure directly from the reference sequence via ESMFold (EMBL-EBI ESMAtlas) when no UniProt accession is available, enabling the 3D viewer, reference-frame dispersion, and pLDDT/variant/domain overlays for novel or synthetic constructs (≤400 residues). AlphaFold-by-accession remains the primary source; active/binding-site overlays require an accession and are hidden for ESMFold. (`kuma_core/kuro/esmfold.py`, `kuma_core/kuro/dispersion.py`, `python-core/sidecar_kuro/handlers/external.py`, `src/components/panels/Selection3DPanel.tsx`)
+---
+## v0.13.12 (KURO reference-sequence domains, guided tours, update checks, runtime fixes)
+
+### Added
+- v0.13.12.0: KURO **Scan sequence** annotates protein domains directly from the loaded reference sequence via EMBL-EBI InterProScan (after external-service consent), so domain coordinates match KURO mutation positions instead of UniProt accession numbering. Results cache by sequence SHA-256; reference-frame `refDomains` drive selection/benchmark while accession-frame `domains` stay dedicated to AlphaFold 3D coloring. (`kuma_core/kuro/domains.py`, `python-core/sidecar_kuro/handlers/external.py`, `src/store/slices/diversitySlice.ts`, `src/components/panels/InputPanel/UniprotSearch.tsx`)
+- v0.13.12.0: New projects show a skippable spotlight tour of navigation and Kuro; Mame guidance appears separately on first entry. **Skip all tours** persists per project; `Esc` closes only the current tour; **Help → Show Guided Tour** replays it. Existing projects are never interrupted. (`src/components/dialogs/GuidedTour.tsx`, `src/components/dialogs/ProjectTourCoordinator.tsx`)
+- v0.13.12.0: Kuma checks GitHub for a newer published release at startup and recommends it only when strictly newer; **Help → Check for updates** performs a real version check. Network failures never block startup. (`src/lib/updateCheck.ts`, `src/components/dialogs/UpdateAvailableDialog.tsx`)
+
+### Fixed
+- v0.13.12.0: **Export PNG** now has the binary file-write capability (`fs:allow-write-file`), reports save success/failure via toast, and no longer rejects the Tauri `fs.write_file` command. (`src-tauri/capabilities/default.json`, `src/components/panels/Selection3DPanel.tsx`)
+- v0.13.12.0: The sequence viewer now draws domain bands from reference-frame domains so bands align with the loaded sequence; 3D residue spheres use a consistent opaque style to remove the 3Dmol ambiguous-opacity warning; title-only dialogs opt out of a missing description; an embedded favicon prevents the default `/favicon.ico` 404. (`src/components/widgets/SequenceViewer.tsx`, `src/components/panels/Selection3DPanel.tsx`, `index.html`)
+
+---
+## v0.13.11 (MAME single-step Activity, KURO 3D viewer background)
+
+### Changed
+- v0.13.11.0: MAME **Activity Data** is now a single step (3) that stacks Ingest, Merge, and Export in one scrollable view; the former 3.1 Ingest / 3.2 Merge & Export split is removed and the legacy `activity.mergeExport` id redirects to it. (`src/store/mame/slices/mameSubSteps.ts`, `src/components/mame/steps/ActivityStepView.tsx`, `src/components/mame/layout/MameWorkflowRail.tsx`, `src/components/mame/layout/MameAppLayout.tsx`, `src/locales/*.json`, `docs/mame/*`)
+
+### Improved
+- v0.13.11.0: the KURO 3D viewer defaults to a white background, and the Dark toggle now applies live (no reload). (`src/components/panels/Selection3DPanel.tsx`)
+
+---
+
+## v0.13.10 (KURO 3D surface + PNG export fixes)
+
+### Fixed
+- v0.13.10.0: the KURO 3D viewer **Surface** toggle now works in the packaged app. 3Dmol computes the molecular surface in a `blob:` Web Worker, which the app CSP blocked (no `worker-src`); the CSP now allows `worker-src 'self' blob:`, and surface generation degrades gracefully with a notice if a host webview still blocks workers. (`src-tauri/tauri.conf.json`, `src/components/panels/Selection3DPanel.tsx`, `src/locales/*.json`)
+- v0.13.10.0: the KURO 3D viewer **Export PNG** button now saves a file. The Tauri webview ignores programmatic `<a download>`, so the export now uses the Tauri save dialog and writes the PNG via the fs plugin. (`src/components/panels/Selection3DPanel.tsx`)
+
+---
+
+## v0.13.9 (KURO dispersion structure-frame fix, release checksums)
+
+### Fixed
+- v0.13.9.0: KURO 3D dispersion no longer drops all positions ("N position(s) could not be mapped to the structure") when the structure loads but the UniProt FASTA fetch fails. The accession-frame sequence is now derived from the fetched AlphaFold/PDB structure itself (falling back to the UniProt FASTA only when the structure carries no sequence), so dispersion works whenever the structure is available. (`kuma_core/kuro/alphafold.py`, `kuma_core/kuro/dispersion.py`, `tests/test_g001_backend.py`)
+
+### Improved
+- v0.13.9.0: GitHub releases now attach a `SHA256SUMS.txt` for every installer and append Windows SmartScreen "Unknown publisher" guidance (More info → Run anyway), checksum-verification steps, and a macOS Gatekeeper note to the release body; a matching troubleshooting page is added. (`.github/workflows/build.yml`, `.github/release-footer.md`, `docs/troubleshooting/windows-smartscreen.md`, `docs/troubleshooting/index.md`)
+
+---
+
+## v0.13.8 (KURO 3D panel polish + packaged-sidecar dispersion fix)
+
+### Improved
+- v0.13.8.0: the KURO Candidate 3D structure analysis panel now explains itself inline, the Structural Dispersion card, its null-distribution histogram, and each metric row carry `?` help toggles; the histogram marker uses `P1`/`P96` percentile notation instead of `1%ile`; the metric is relabeled "Observed percentile vs random"; and a Color legend under the viewer maps every color (domain / pLDDT backbone, y_pred variant spheres, active-site sticks, binding-site spheres) to its meaning, adapting to the current coloring mode. (`src/components/panels/Selection3DPanel.tsx`, `src/locales/*.json`)
+- v0.13.8.0: the Color legend rows are clickable toggles that show/hide each 3D layer (variant spheres, active-site sticks, binding-site spheres) while the backbone stays always-on; the standalone Interface checkbox is folded into the legend, and the panel is reordered to toolbar → 3D viewer → legend → Structural Dispersion → tables so toggle/coloring changes are visible in the viewer immediately. (`src/components/panels/Selection3DPanel.tsx`, `src/locales/*.json`)
+- v0.13.8.0: corrected the mislabeled "Interface" overlay to "Binding site" across the viewer, legend, table column, and hover label, the magenta spheres are UniProt `Binding site` (ligand/cofactor/metal-binding) residues, not a protein-protein interface. (`src/components/panels/Selection3DPanel.tsx`, `src/locales/*.json`, `docs/kuro/05-output.md`)
+- v0.13.8.0: documented that the 3D dispersion, pLDDT, and active/binding overlays are interpretation/QC aids, not candidate-selection filters, low-confidence or disordered residues are not auto-excluded from the mutation set, and EVOLVEpro y_pred ranking remains the sole selection authority. (`docs/kuro/05-output.md`)
+
+### Fixed
+- v0.13.8.0: the KURO 3D dispersion compute no longer fails in the packaged sidecar with `[Errno 2] No such file or directory: '..._MEI.../Bio/Align/substitution_matrices/data/BLOSUM62'`. The reference→accession position mapper now uses `PairwiseAligner` with explicit match/mismatch scoring instead of loading Biopython's loose `BLOSUM62` data file, which PyInstaller does not bundle into the temp extraction dir. (`kuma_core/kuro/interface.py`, `tests/test_g001_backend.py`)
+
+---
+
+## v0.13.7 (KURO Current-Selection 3D Analysis)
+
+### Added
+- v0.13.7.0: the KURO Output step gains a collapsible Current-Selection 3D Analysis panel that embeds a 3Dmol viewer (collapsed by default to avoid eager 3Dmol loading) and reports the spatial dispersion of the selected residue positions. (`src/components/panels/Selection3DPanel.tsx`, `src/lib/selection3d.ts`, `src/components/steps/OutputStepView.tsx`, `src/store/slices/diversitySlice.ts`)
+- v0.13.7.0: the backend adds a stdlib-only 3D dispersion null-model (`compute_round_dispersion`, mean pairwise C-alpha distance versus random sampling) plus UniProt active/binding-site fetch in the accession frame, wired through the kuro dispatcher. (`kuma_core/kuro/dispersion.py`, `kuma_core/kuro/uniprot_features.py`, `python-core/sidecar_kuro/dispatcher.py`, `python-core/sidecar_kuro/handlers/external.py`, `python-core/sidecar_kuro/models.py`)
+- v0.13.7.0: the panel strings are localized across all 10 locales, and `3dmol@^2.5.5` is added as a dependency. (`src/locales/*.json`, `package.json`)
+
+---
+
+## v0.13.6.1 (What's New automation)
+
+### Added
+- v0.13.6.1: the What's New dialog is auto-generated from `CHANGELOG.md` (`pnpm gen:whatsnew`); `sync:check` now fails the build when the generated module drifts or when the latest CHANGELOG section does not match `package.json`'s version. (`scripts/gen-whatsnew.mjs`, `src/components/dialogs/whatsNew.generated.ts`, `package.json`)
+
+### Fixed
+- v0.13.6.1: corrected the Kuro Export All BOM label to "UTF-8 BOM (Excel compatibility)" across all 10 locales. (`src/components/steps/ExportFormatSelector.tsx`, `src/locales/*.json`)
+- v0.13.6.1: aligned KURO wizard step bodies and MAME file-picker field widths. (`src/components/steps/WizardContainer.tsx`, `src/components/mame/panels/FileField.tsx`)
+
+---
+
+## v0.13.5 - v0.13.6 (macOS SSL fix, MAME sample-data UX)
+
+### Fixed
+- v0.13.5: outbound HTTPS (Kuro UniProt search, AlphaFold, EBI BLAST, ESM) failed on the packaged macOS app with `CERTIFICATE_VERIFY_FAILED: unable to get local issuer certificate`. macOS OpenSSL does not read the Keychain and the frozen app has no build-machine CA store, so `ssl.create_default_context()` had no trust anchors. All external requests now route through a shared certifi-backed SSL context (`certifi.where()`, bundled by PyInstaller `hook-certifi`), identical on Windows, macOS, and Linux. Windows and Linux were unaffected because their OS CA stores are present on the target. (`kuma_core/shared/net.py`, `python-core/sidecar_kuro/core.py`, `kuma_core/kuro/alphafold.py`, `kuma_core/kuro/esm_embeddings.py`, `pyproject.toml`)
+- v0.13.6: MAME step 1.1 "Generate Barcode Package" no longer requires the output directory to live inside the project root (it failed with `output_dir must be inside project_root`). `mame_context.json` stores paths relative when the output is inside the project root (portable) and absolute when outside, and the loader resolves both. (`kuma_core/mame/ingest/barcode_package.py`, `src/lib/mame/detectProjectFiles.ts`)
+
+### Added
+- v0.13.6: loading sample data populates a precomputed analysis result (`samples/mame/sample_analysis_result.json`, serialized from the real demux/consensus/verdict/health pipeline) so the Per-plate verdict breakdown renders instead of showing "Setup incomplete". (`python-core/scripts/generate_mame_sample_result.py`, `src/store/mame/slices/analysisSlice.ts`)
+- v0.13.6: loading sample data seeds the Build EVOLVEpro Input form (layout / GC data / Agilent rep-batch / previous EVOLVEpro) from the bundled `06`/`08`/`09`/`10` sample xlsx files; fields already set by the user are preserved. (`src/store/mame/slices/analysisSlice.ts`, `src/lib/mame/buildEvolveproFormStorage.ts`, `src/components/mame/panels/BuildEvolveproInputPanel.tsx`)
+
+---
+
+## v0.13.3.1 - v0.13.4.0 (native MinKNOW run-folder ingestion, auto-updater removal, CI quality gates, i18n parity)
+
+### Added
+- v0.13.4.0: MAME `analyze` auto-detects a raw MinKNOW run folder (a directory containing `fastq_pass/`) and orchestrates demux → consensus internally, so a pre-demuxed consensus directory is no longer required. There is no new RPC: the pre-demuxed consensus path and the standalone `mame.run_combinatorial_demux` RPC are unchanged, and the `{R}_{F}` well-naming contract is preserved. (`kuma_core/mame/ingest/run_pipeline.py` `is_minknow_run_dir`/`ingest_run_folder`, `python-core/sidecar_mame/handlers/analyze.py`, `python-core/sidecar_mame/models.py` `DemuxParamsBase`/`AnalyzeRawRunParams`, `src/types/mame/models.ts`, `src/store/mame/slices/inputSlice.ts`, `src/hooks/mame/useMameSidecar.ts`)
+- v0.13.4.0: raw-run analyze emits two-phase progress (demux 0–50, analyze 50–100) carrying a `stage` field, so the UI shows one demux→analyze flow from a single `analyze` call with a dedicated `MAME_RAWRUN_RPC_TIMEOUT_MS`; the consensus-directory path keeps its byte-identical 0–100 progress with no `stage` key. (`python-core/sidecar_mame/handlers/analyze.py`, `src/store/mame/slices/inputSlice.ts`, `src/hooks/mame/useMameSidecar.ts`)
+- v0.13.4.0: CI gains a `quality-gates` job (pytest / `tsc --noEmit` / `sync:check` / `i18n:check`) that gates the release build, plus a new `mame-analyze-run-folder` cross-layer sync group keeping the demux params identical across Pydantic, TypeScript, and the dispatcher. (`.github/workflows/build.yml`, `.cross-layer-sync.json`)
+- v0.13.4.0: all 10 locales brought to full key parity with `i18n-lint` hardening; UI locales and the Kuro/MAME screens now load on demand (dynamic `import()` + `React.lazy`/`Suspense`), trimming the initial JS bundle. (`src/locales/*.json`, `scripts/i18n-lint.mjs`, `src/lib/i18n.ts`, `src/screens/MainShell.tsx`)
+
+### Removed
+- v0.13.4.0: the Tauri auto-updater is removed, the frontend `src/lib/updater.ts`, the Cargo dependency, the updater capability, the `lib.rs` plugin registration, and the About-dialog wiring are all gone, and the Check-for-updates menu entry is repurposed to the release page. (`src/lib/updater.ts` deleted, `src-tauri/Cargo.toml`, `src-tauri/capabilities/default.json`, `src-tauri/src/lib.rs`, `src/components/layout/SharedAboutDialog.tsx`)
+
+### Fixed
+- v0.13.3.2: corrected an EVOLVEpro numeric overflow and four stale test expectations.
+- v0.13.3.3: the verdict window note now reflects the real window instead of a hardcoded ±5, `compute_T3` is de-duplicated, and the SDM parse fallback is logged instead of failing silently.
+
+---
+
+## v0.13.0.1 - v0.13.3.0 (MAME verdict depth gate, analyze progress, resume hardening, export guards, macOS build)
+
+### Fixed
+- v0.13.0.1: MAME verdict depth gate uses the consensus header `depth=N` (real read depth) instead of the consensus FASTA file size; the file-size check is demoted to a fallback that fires only when `depth=N` is absent, and `CompareParams.min_read_count` now defaults to 30. Previously every well was flagged `LOWDEPTH` because a gene-length-fixed consensus FASTA (~1.8KB, identical across same-amplicon wells) could never reach the raw-read `min_file_size_kb=50` floor. (`kuma_core/mame/compare/verdict.py`, `kuma_core/mame/models.py`)
+- v0.13.1.0: MAME analyze emits per-record sub-progress and runs a 30s keep-alive heartbeat, fixing the ETA stalling near 60% and the 300s "no response" deadlock popup on long but healthy analyze runs. (`kuma_core/mame/pipeline.py` `run_analyze`, `python-core/sidecar_mame/handlers/analyze.py`)
+- v0.13.2.4: the resume orphan guard detects stray `.fa`/`.fas` files (not only `.fasta`) via a shared `CONSENSUS_FILE_PATTERNS`; resumed demux runs seed `n_input_reads`/`n_unassigned` from completion markers so totals no longer undercount or go negative. (`kuma_core/mame/ingest/stage_marker.py`, `kuma_core/mame/ingest/fasta_parser.py`, `python-core/sidecar_mame/handlers/demux.py`)
+- v0.13.2.6: MAME resume/skip now also covers the raw_run path (`run_combinatorial_demux_per_nb`), not only `handle_demux_and_filter`. Re-running raw_run on a folder that has completion markers skips already-finished native barcodes instead of re-demuxing everything. (`kuma_core/mame/ingest/combinatorial_demux.py`, `kuma_core/mame/ingest/stage_marker.py`)
+
+### Added
+- v0.13.2.1: MAME step 2.1 (demux/consensus) writes are atomic (temp file + `os.replace`), each native-barcode group writes a `.demux_consensus_complete.json` completion marker, and a rerun skips groups whose marker matches the on-disk inventory. An asymmetric consumer guard fails fast on a present-but-invalid marker while still loading legacy or externally-sorted directories that have no marker. (`kuma_core/shared/atomic_write.py`, `kuma_core/mame/ingest/stage_marker.py`, `python-core/sidecar_mame/handlers/demux.py`, `kuma_core/mame/ingest/fasta_parser.py`)
+- v0.13.2.2: overwrite confirmation for the MAME Janus mapping, Run report, and Barcode package exports; the Barcode package confirms at the `design/` directory level. (`src/components/mame/dialogs/JanusMappingDialog.tsx`, `RunReportDialog.tsx`, `src/components/mame/panels/BarcodeSetupPanel.tsx`, `src/lib/overwriteConfirm.ts`)
+- v0.13.3.0: `max_consensus_n_fraction` is adjustable from the MAME analyze parameter panel (default 0.0, strict by default). (`src/components/mame/panels/ParameterPanel.tsx`, `src/store/mame/slices/inputSlice.ts`)
+- v0.13.2.5: macOS minimap2 is compiled from source in CI (`make arm_neon=on aarch64=on`, pinned v2.30) and bundled into the macOS sidecar, mirroring the Windows MinGW step; previously the macOS build had no minimap2 source and failed at `build_sidecar.py`. (`.github/workflows/build.yml`)
+
+---
+
+## v0.12.1.0 – v0.12.3.4 (minimap2 CLI cross-platform)
+
+In-process `mappy` 정렬기를 사이드카에 번들된 `minimap2` CLI 로 교체. mappy 는 Windows wheel 이 없어 MAME `raw_run` 이 Windows 에서 실패했음.
+
+### Changed
+- `kuma_core/mame/ingest/align.py`: `align_reads`/`align_reads_multi` 가 `minimap2` 바이너리를 subprocess 로 호출하고 SAM 을 파싱, 동일한 `Alignment` dataclass 반환. 바이너리는 `KURO_MINIMAP2` → 사이드카 `_MEIPASS/bin` → PATH 순으로 해석.
+- reverse-strand `q_st`/`q_en` 를 원본 read 좌표로 환산, soft/hard clip 을 `Alignment.cigar` 에서 제거하여 mappy 와 일치(실 ONT 데이터에서 consensus byte-identical 검증).
+- `build_sidecar.py` / `mame-sidecar.spec`: PyInstaller `--add-binary` 로 플랫폼별 `minimap2` 를 `_MEIPASS/bin/` 에 번들.
+- `.github/workflows/build.yml`: 사이드카 빌드 전 vendor 채우기. Linux/macOS 는 `scripts/vendor-minimap2.py` 로 공식 바이너리 다운로드, Windows 는 MSYS2/MinGW 정적 빌드(`make LIBS="-Wl,-Bstatic -lm -lz -lpthread -Wl,-Bdynamic"`) + `ldd` 가드로 비정적 바이너리 거부.
+- `.github/workflows/ci.yml`: `python-tests` 에 minimap2 제공(Linux/macOS). `tests/mame/conftest.py` 는 바이너리 부재 시 MAME 테스트 skip(Windows leg).
+
+### Removed
+- `pyproject.toml` 의 `mappy` 의존(main + `mame-raw` extra).
+
+### Added
+- `NOTICE-bundled.md`: minimap2(MIT)·zlib 서드파티 고지, 번들 `NOTICE.md` 에 병합.
+
+---
+
+## v0.11.0.0 (PR-B: Legacy cleanup)
+
+Remove legacy sort_barcode pipeline and Trim Adapters UI fields.
+Aporva-style alignment-based combinatorial demux becomes canonical.
+
+### Removed
+- `kuma_core.mame.ingest.sort_barcode`: sliding/edlib read-sorting algorithm
+  (`sort_barcode_run`, `_sort_one_nb`, `_hamming_prefix_window_in_head`,
+  `_hamming_suffix_window_in_tail`, `_FWD_SEARCH_WINDOW_BP`, `_EDIT_DIST_RATIO`,
+  `SortBarcodeResult`, `_hamming_suffix_window`)
+- `python-core/sidecar_mame/handlers/sort_barcode.py`: RPC handler
+- `sort_barcode_run` method from dispatcher `_METHODS` and `_ASYNC_METHODS`
+- `src/types/mame/sort_barcode.ts`: TypeScript type file
+- `RawRunParams.minBarcodeScore`, `linkedTrim`, `revPrimerUniversal` state fields
+- Trim Adapters, Universal Rev Primer, Min Barcode Score UI fields (9 keys x 10 locales)
+
+### Changed
+- `sort_barcode.py` retained as barcode xlsx parser module only
+  (`parse_combinatorial_barcodes`, `parse_sample_map`, `_make_well_filename`,
+  `_nb_to_sort_barcode_name`)
+- `models.py`: removed `_check_pr_b_fields_deferred` validator;
+  `sample_map_xlsx` and `kuro_xlsx` params now accepted without error
+- `.cross-layer-sync.json`: removed `mame-sort-barcode` and
+  `mame-dispatcher-sort-barcode` groups
+
+---
+
+## v0.10.3.0 (PR-A: combinatorial demux frontend)
+
+Add combinatorial demux RPC and UI.
+
+- ParameterPanel Advanced section (coverageFraction, editDistRatio, chimeraSplit)
+- `mame.run_combinatorial_demux` RPC wired to `runAnalysis` in `inputSlice`
+- `selectCanRun` updated for raw_run mode validation
+
+---
+
+## v0.10.2.0
+
+Chimera-aware demux for concatenated nanopore reads.
+
+---
+
+## v0.10.1.0
+
+Add combinatorial_demux pipeline for 96-well amplicon screening.

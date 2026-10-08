@@ -1,0 +1,285 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 40% 96.1%;
+    --foreground: 220 22% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 22% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 22% 12%;
+    --primary: 220 18% 10%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 40 14% 94%;
+    --secondary-foreground: 220 18% 16%;
+    --muted: 36 18% 95%;
+    --muted-foreground: 220 10% 40%;
+    --accent: 36 20% 94%;
+    --accent-foreground: 220 18% 14%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 30 14% 88%;
+    --input: 30 14% 88%;
+    --ring: 220 18% 10%;
+    --radius: 0.5rem;
+
+    /* Density */
+    --font-size-body: 14px;
+
+    /* === Phase 1 tokens (§4.1–§4.4) === */
+
+    /* size */
+    --header-h: 48px;
+    --menubar-h: 40px;
+    --statusbar-h: 24px;
+    --control-h: 32px;
+    --control-h-primary: 36px;
+
+    /* radius */
+    --radius-container: 12px;
+    --radius-control: 8px;
+
+    /* typography (4 steps)
+       title sits above body. It was 13px against a 14px body, so every panel
+       header rendered smaller than the text inside it.
+       meta sits below caption: secondary/meta text paired with
+       text-muted-foreground (badges, timestamps, helper notes). */
+    --text-title: 15px;
+    --text-body: 14px;
+    --text-caption: 12px;
+    --text-meta: 11px;
+
+    /* semantic colors (4 kinds)
+       Stored as bare oklch components (no oklch() wrapper) so Tailwind can
+       splice <alpha-value> into oklch(var(--color-x) / <alpha-value>). Use
+       only inside oklch(...); do not consume these vars directly as colors. */
+    --color-success: 0.65 0.15 145;
+    --color-warning: 0.72 0.15 75;
+    --color-error:   0.55 0.20 25;
+    --color-info:    0.60 0.12 250;
+
+    /* motion */
+    --duration-fast: 150ms;
+    --duration-base: 200ms;
+
+    /* domain-specific (well plate) */
+    --text-plate: 10px;
+    --text-plate-tiny: 8px;
+    --text-plate-min: 10px;
+    --text-plate-max: 15px;
+    /* Echo preview is a 384-well (24-column) grid sharing the same container
+       width a 12-column grid (Janus/Dest, WellPlate) uses, so its per-column
+       share is roughly half at narrow widths. --text-plate-tiny-min keeps
+       the 8px baseline as Echo's starting floor; there is no separate tiny
+       ceiling any more (see --plate-preview-cell-cap below: once a cell hits
+       the shared width cap, Echo's font converges on the same
+       --text-plate-max ceiling Janus/Dest use, because at that point the
+       cells are the same size and a smaller font there has no justification). */
+    --text-plate-tiny-min: 7px;
+
+    /* Export plate preview (Echo/Janus/Dest) shared cell size cap. Measured
+       with canvas measureText (Edge engine, ui-monospace stack, weight 400 -
+       the weight these labels actually render at, no font-medium/bold class
+       on the mutation span) at the font ceiling (--text-plate-max, 15px):
+       the longest realistic label "S1234T" (6 chars) needs 49.48px. Cap is
+       that plus ~10.5px margin for the 1px border on each side (2px,
+       border-box sizing) and Dest's extra `px-0.5` span padding (4px), plus
+       a few px of headroom so truncate never fires right at the boundary.
+       Rounds to 60px. Shared by all three grids so a wide container converges
+       to the same well size instead of Echo/Janus/Dest drifting apart the
+       way unlimited `1fr` columns did (dest/echo cellW ratio was 2.02x-2.04x
+       across 700-1900px before this cap; WellPlate.tsx:34 sets the same kind
+       of floor via minmax(38px,1fr) but had no cap since its grid never had
+       a sibling grid to converge with). */
+    --plate-preview-cell-cap: 60px;
+    /* Per-grid floors, kept below the cap and below what each grid already
+       renders unassisted at its narrowest supported width (min-w-[700px] /
+       min-w-[340px] per rack), so they only guard against a container
+       narrower than tested rather than forcing cells bigger than before.
+       Echo/Janus floor: measureText("S1234T") scales close to linearly with
+       font size (32.99px @ 10px, 49.48px @ 15px); at their 7px tiny floor
+       that is ~23.1px, +2px border ≈ 25px, rounds to 24px. Dest floor reuses
+       WellPlate.tsx:34's established 38px (same 10px font floor, same
+       6-char-label justification, already shipped). */
+    --plate-preview-cell-min-tiny: 24px;
+    --plate-preview-cell-min: 38px;
+  }
+
+  [data-tool="kuro"] {
+    --primary: 221.1 13.5% 27.6%;       /* #3D4350 */
+    --primary-foreground: 0 0% 100%;
+    --ring: 221.1 13.5% 27.6%;
+  }
+
+  [data-tool="mame"] {
+    --primary: 27.4 16.7% 41.0%;        /* #7A6757 */
+    --primary-foreground: 0 0% 100%;
+    --ring: 27.4 16.7% 41.0%;
+  }
+
+  [data-tool="evolvepro"] {
+    --primary: 168 35% 30%;             /* #316B5F teal-green, distinct from kuro/mame */
+    --primary-foreground: 0 0% 100%;
+    --ring: 168 35% 30%;
+  }
+
+  .dark[data-tool="kuro"] {
+    --primary: 221.1 13.5% 70%;
+    --primary-foreground: 222 14% 12%;
+    --ring: 221.1 13.5% 70%;
+  }
+
+  .dark[data-tool="mame"] {
+    --primary: 27.4 16.7% 70%;
+    --primary-foreground: 24 17% 12%;
+    --ring: 27.4 16.7% 70%;
+  }
+
+  .dark[data-tool="evolvepro"] {
+    --primary: 168 30% 62%;
+    --primary-foreground: 168 30% 12%;
+    --ring: 168 30% 62%;
+  }
+
+  .dark {
+    --background: 222.2 47% 7%;
+    --foreground: 210 40% 96%;
+    --card: 222.2 47% 9%;
+    --card-foreground: 210 40% 96%;
+    --popover: 222.2 47% 11%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 210 40% 96%;
+    --primary-foreground: 222.2 47% 11%;
+    --secondary: 222.2 47% 14%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 222.2 47% 14%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 222.2 47% 14%;
+    --accent-foreground: 210 40% 96%;
+    --destructive: 0 62% 50%;
+    --border: 222.2 47% 18%;
+    --input: 222.2 47% 18%;
+    --ring: 210 40% 80%;
+
+    /* semantic colors, adjusted for dark backgrounds
+       Bare oklch components (see light-mode block above for why). */
+    --color-success: 0.72 0.15 145;
+    --color-warning: 0.78 0.15 75;
+    --color-error:   0.65 0.20 25;
+    --color-info:    0.70 0.12 250;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --duration-fast: 0ms; --duration-base: 0ms; }
+}
+
+@layer components {
+  /* 플레이트 그리드는 사이드바(180~480 가변), lg:grid-cols-2, 164px 인스펙터,
+     확대 토글이 폭을 결정한다. 뷰포트가 아니라 이 컨테이너가 기준이라
+     container query 를 쓴다. */
+  .well-plate-grid {
+    container-type: inline-size;
+  }
+
+  /* 2줄 선언은 의도된 것이다. container query 미지원 환경에서는 두 번째
+     선언이 통째로 무효가 되어 현행 10px 로 정확히 떨어진다. */
+  .well-button {
+    font-size: var(--text-plate);
+    font-size: clamp(var(--text-plate-min), 2cqw, var(--text-plate-max));
+  }
+
+  /* Echo/Janus/Dest export plate previews (ExportPlatePreview and children).
+     Same container-query approach as .well-plate-grid/.well-button above:
+     container-type goes on the scrollable wrapper each view already has
+     (`overflow-x-auto`), clamp goes on the cell button so its label span
+     children can inherit via em instead of carrying their own fixed px.
+     Coefficients measured with the Edge-engine harness described in
+     ExportPlatePreview.tsx (6-char labels "R560E"/"R560Q"/"S1234T" at
+     container widths 700-1900px, 0% scrollWidth>clientWidth truncation
+     target): Janus/Dest reuse .well-button's 2cqw because both are the same
+     12-column-plus-label-column shape .well-button was tuned for. Echo packs
+     24 columns into the same width, so its per-column share is roughly half
+     and it uses 1cqw with the tighter --text-plate-tiny range. */
+  .plate-preview-grid {
+    container-type: inline-size;
+  }
+  .plate-preview-cell {
+    font-size: var(--text-plate);
+    font-size: clamp(var(--text-plate-min), 2cqw, var(--text-plate-max));
+  }
+  /* Echo's floor stays lower than Janus/Dest (--text-plate-tiny-min, 7px vs
+     10px) because Echo starts narrower per-column at 24 columns. Its ceiling
+     used to be its own --text-plate-tiny-max (11px), which meant a wide
+     Echo grid stopped growing at 11px while an equally-wide Janus/Dest cell
+     kept going to 15px, the two looked like different components once
+     --plate-preview-cell-cap made their cell sizes converge. The ceiling is
+     now the same --text-plate-max all three grids share, so Echo starts
+     smaller and arrives at the same size. */
+  .plate-preview-cell-tiny {
+    font-size: var(--text-plate-tiny);
+    font-size: clamp(var(--text-plate-tiny-min), 1cqw, var(--text-plate-max));
+  }
+  /* Janus specifically: its container-type sits on each Rack, not on the
+     pair, so its cqw is relative to roughly half the visual width
+     .plate-preview-cell's 2cqw was tuned against (two racks share the row).
+     Measured with the harness described above: keeping 2cqw but dropping the
+     floor to --text-plate-tiny-min (7px, same floor Echo uses) let 6-char
+     labels ("S1234T") fit down to a ~340px rack, where the 10px floor
+     produced fonts too wide for the mutation column and truncated 20-80% of
+     labels depending on container width. The ceiling stays --text-plate-max
+     so a wide rack still reaches the same size Dest/WellPlate do. */
+  .plate-preview-cell-narrow {
+    font-size: var(--text-plate);
+    font-size: clamp(var(--text-plate-tiny-min), 2cqw, var(--text-plate-max));
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    margin: 0;
+    min-height: 100vh;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI",
+      "Apple SD Gothic Neo", "Noto Sans KR", "Helvetica Neue", Arial, sans-serif;
+    font-size: var(--font-size-body);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Persistent scrollbars.
+     macOS defaults to overlay scrollbars that stay hidden until a scroll is
+     already in progress, so a clipped panel reads as "there is nothing more
+     here". Windows draws them permanently, which is why the same build looks
+     complete there and truncated on a Mac. Declaring a width opts WebKit out
+     of the overlay style, so every scrollable region advertises itself. */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background-color: hsl(var(--muted) / 0.4);
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.45);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.7);
+  }
+  ::-webkit-scrollbar-corner {
+    background-color: transparent;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.45) hsl(var(--muted) / 0.4);
+  }
+}

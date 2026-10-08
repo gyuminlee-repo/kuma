@@ -1,0 +1,964 @@
+import i18next from "i18next";
+import type { StateCreator } from "zustand";
+import type { SortingState, Updater } from "@tanstack/react-table";
+import { sendRequest } from "../../lib/ipc-kuro";
+import { getSortedMutations, reorderMappings, wellName } from "../../lib/plate-utils";
+import { clampMaxPrimers } from "../../lib/inputThresholds";
+import { foldPersistedPlacement } from "../../lib/echoQuadrant";
+import { normalizeRoundPicks, persistRoundPicks } from "../../lib/plateRounds";
+import { formatError } from "../../lib/utils";
+import { readKuroDesignOutcome } from "../../lib/kuroSnapshot";
+import { notifyJobDone, notifyJobError } from "../../lib/toast";
+import { registerArtifacts, ensureWorkspaceFromExportPath, getActiveWorkspace } from "../../lib/workspace";
+import type { AppState } from "../types";
+import type { ExpectedCodonTable } from "../../lib/codonTableRestore";
+import type {
+  BenchmarkResult,
+  SequenceInfo,
+  WorkspaceData,
+  WorkspaceV3,
+} from "../../types/models";
+import { useRoundStore } from "../round/roundSlice";
+import {
+  buildIncludedPlateState,
+  EMPTY_RESCUE_STATS,
+  getIncludedDesignResults,
+} from "./designSlice.helpers";
+import { resolveSelectionDomains } from "./inputSlice.helpers";
+import {
+  DEFAULT_POLYMERASE,
+  resolvePolymeraseName,
+  retiredPolymeraseNotice,
+} from "../../lib/polymeraseAliases";
+
+import type { ExportSlice } from "../slice-interfaces";
+
+// These match the creating slices: inputSlice starts in top-N mode and
+// diversitySlice uses round 0 as the backend-aligned "not set" value. Restore
+// and reset must use the same defaults rather than manufacturing a pipeline run.
+const DEFAULT_EVOLVEPRO_MODE = "topN" as const;
+const DEFAULT_EVOLVEPRO_ROUND = 0;
+export type { ExportSlice };
+
+async function sha256ProteinSequence(sequence: string): Promise<string> {
+  const normalized = sequence.replace(/\s+/g, "").toUpperCase().replace(/\*+$/, "");
+  const bytes = new TextEncoder().encode(normalized);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function avg(values: number[]): number {
+  return values.length > 0 ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+}
+
+function std(values: number[]): number {
+  if (values.length < 2) return 0;
+  const mean = avg(values);
+  return Math.sqrt(values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / (values.length - 1));
+}
+
+function formatDomainAllocation(
+  enabled: boolean,
+  domains: Array<{ name: string }>,
+  domainStats: Record<string, { quota: number; selected: number }>,
+  domainStrategy: "proportional" | "equal",
+): string {
+  if (!enabled || domains.length === 0) return "OFF";
+  const total = Object.values(domainStats).reduce((sum, stat) => sum + stat.selected, 0);
+  const quota = Object.values(domainStats).reduce((sum, stat) => sum + stat.quota, 0);
+  return quota > 0 ? `${domainStrategy}: ${total}/${quota}` : `${domainStrategy} (${domains.length} domains)`;
+}
+
+function buildReportData(state: AppState) {
+  const includedDesignResults = getIncludedDesignResults(
+    state.designResults,
+  );
+  const successCount = includedDesignResults.length;
+  const failCount = state.failedMutations.length;
+  // Attempts, not successes. Setting the denominator to successCount made
+  // success_rate 100 in every report ever exported, including the ones whose
+  // next line stated how many mutations failed. failedMutations is the store's
+  // own record of the attempts that produced no primer, so the two summands
+  // are what was tried.
+  const totalCount = successCount + failCount;
+  const tmMet = includedDesignResults.filter((r) => r.tm_condition_met).length;
+  const fwdTms = includedDesignResults.map((r) => r.tm_no_fwd).filter((t) => t > 0);
+  const revTms = includedDesignResults.map((r) => r.tm_no_rev).filter((t) => t > 0);
+  const ovTms = includedDesignResults.map((r) => r.tm_overlap).filter((t) => t > 0);
+  const positionRemoved = state.evolveproStepStats?.position_filter_removed ?? state.evolveproFilteredCount;
+  const domainSelected = state.evolveproStepStats?.domain_selected;
+  const paretoExchanges = state.evolveproStepStats?.pareto_exchanges ?? state.evolveproParetoExchanges;
+  const rescueTotal = state.rescueStats.pool_cascade + state.rescueStats.auto_relax;
+  const rescuePenalties = state.rescuedMutationDetails
+    .map((r) => r.penalty)
+    .filter((penalty): penalty is number => penalty != null);
+  const rescuedSet = new Set(state.rescuedMutationDetails.map((detail) => detail.rescued_by));
+  const avgRescuePenalty = avg(rescuePenalties);
+  const avgNormalPenalty = avg(
+    includedDesignResults.filter((r) => !rescuedSet.has(r.mutation)).map((r) => r.penalty),
+  );
+
+  const selectionDomains = resolveSelectionDomains(state.refDomains);
+  const sections: Array<{ title: string; items: Array<{ label: string; value: string | number; warn?: boolean }> }> = [];
+
+  if (state.evolveproMode !== "topN") {
+    sections.push({
+      title: "Pipeline",
+      items: [
+        {
+          label: "Step 1 filter",
+          value: state.positionDiversityEnabled
+            ? `max ${state.maxPerPosition}/pos${positionRemoved != null && positionRemoved > 0 ? ` (-${positionRemoved})` : ""}`
+            : "OFF",
+        },
+        {
+          label: "Step 2 domains",
+          value: formatDomainAllocation(
+            state.domainDiversityEnabled,
+            selectionDomains,
+            state.domainStats,
+            state.domainStrategy,
+          ),
+        },
+        { label: "Step 2 overlap", value: state.domainDiversityEnabled ? (state.domainOverlapPolicy === "largest" ? "LARGEST" : "FIRST") : "N/A" },
+        { label: "Step 2 linker", value: state.domainDiversityEnabled ? state.linkerHandling.toUpperCase() : "N/A" },
+        { label: "Step 2 min quota", value: state.domainDiversityEnabled ? state.domainQuotaMin : "N/A" },
+        {
+          label: "Step 3 Pareto",
+          value: state.paretoDiversityEnabled
+            ? `ON${paretoExchanges != null && paretoExchanges > 0 ? ` (${paretoExchanges} swapped)` : ""}`
+            : "OFF",
+        },
+        {
+          label: "Distance mode",
+          value: state.distanceMode === "auto"
+            ? (state.structureLoaded ? "AUTO -> 3D" : "AUTO -> 1D")
+            : state.distanceMode.toUpperCase(),
+        },
+        { label: "Pareto pool", value: `${state.paretoPoolMultiplier.toFixed(2)}x` },
+        { label: "Entropy-guided", value: state.entropyWeightEnabled ? `ON (${state.entropyWeight.toFixed(2)})` : "OFF" },
+        { label: "AlphaFold 3D", value: state.structureLoaded ? "ON (Cα distance)" : "OFF (1D distance)" },
+        ...(positionRemoved != null && state.positionDiversityEnabled ? [{ label: "Removed by Step 1", value: positionRemoved }] : []),
+        ...(domainSelected != null && state.domainDiversityEnabled ? [{ label: "After Step 2", value: domainSelected }] : []),
+        ...(paretoExchanges != null && state.paretoDiversityEnabled ? [{ label: "Step 3 exchanges", value: paretoExchanges }] : []),
+        ...(state.evolveproTotalCount > 0 ? [{
+          label: "EVOLVEpro pool",
+          value: `${state.evolveproTotalCount} variants`,
+        }] : []),
+      ],
+    });
+  }
+
+  sections.push({
+    title: "Benchmark Defaults",
+    items: [
+      { label: "Top percentile", value: `${state.benchmarkTopPercentile}%` },
+      { label: "Random trials", value: state.benchmarkRandomTrials },
+      { label: "Random seed", value: state.benchmarkRandomSeed ?? "AUTO" },
+    ],
+  });
+
+  sections.push({
+    title: "Primer Design",
+    items: [
+      { label: "Succeeded", value: `${successCount}/${totalCount}` },
+      { label: "Tm condition met", value: `${tmMet}/${successCount}`, warn: tmMet < successCount },
+      ...(failCount > 0 ? [{ label: "Failed", value: failCount, warn: true }] : []),
+    ],
+  });
+
+  if (rescueTotal > 0) {
+    sections.push({
+      title: "Position Rescue",
+      items: [
+        {
+          label: "Position coverage",
+          value: state.rescueStats.positions_attempted > 0
+            ? `${rescueTotal}/${state.rescueStats.positions_attempted} rescued`
+            : "0",
+        },
+        ...(state.rescueStats.pool_cascade > 0
+          ? [{ label: "Pool cascade", value: `${state.rescueStats.pool_cascade} (${state.rescueStats.pool_variants_tried} tried)` }]
+          : []),
+        ...(state.rescueStats.auto_relax > 0
+          ? [{ label: "Auto-relax (Tm tolerance up to +2°C, GC range up to ±5 pp, minimum length up to −2 nt)", value: state.rescueStats.auto_relax }]
+          : []),
+        ...(failCount > 0 ? [{ label: "Still failed", value: failCount, warn: true }] : []),
+        ...(rescuePenalties.length > 0
+          ? [{
+            label: "Rescued avg penalty",
+            value: `${avgRescuePenalty.toFixed(1)} vs ${avgNormalPenalty.toFixed(1)} normal`,
+            warn: avgRescuePenalty > avgNormalPenalty * 1.5,
+          }]
+          : []),
+      ],
+    });
+  }
+
+  if (fwdTms.length > 0) {
+    sections.push({
+      title: "Tm Distribution",
+      items: [
+        { label: "Forward", value: `${avg(fwdTms).toFixed(1)} ± ${std(fwdTms).toFixed(1)} °C` },
+        { label: "Reverse", value: `${avg(revTms).toFixed(1)} ± ${std(revTms).toFixed(1)} °C` },
+        { label: "Overlap", value: `${avg(ovTms).toFixed(1)} ± ${std(ovTms).toFixed(1)} °C` },
+      ],
+    });
+  }
+
+  if (Object.keys(state.domainStats).length > 0) {
+    sections.push({
+      title: "Domain Allocation",
+      items: Object.entries(state.domainStats).map(([name, stat]) => ({
+        label: name,
+        value: `${stat.selected}/${stat.quota}`,
+        warn: stat.selected < stat.quota,
+      })),
+    });
+  }
+
+  if (failCount > 0) {
+    sections.push({
+      title: "Failed Mutations",
+      items: state.failedMutations.map((failed) => ({
+        label: failed.mutation,
+        value: failed.reason,
+        warn: true,
+      })),
+    });
+  }
+
+  return {
+    exported_at: new Date().toISOString(),
+    summary: {
+      success_count: successCount,
+      total_count: totalCount,
+      success_rate: totalCount > 0 ? Math.round(successCount / totalCount * 100) : 0,
+    },
+    sections,
+  };
+}
+
+function buildBenchmarkRawData(state: AppState, results: Record<string, BenchmarkResult> | null) {
+  if (!results || Object.keys(state.yPredMap).length === 0) {
+    return null;
+  }
+  const selectionDomains = resolveSelectionDomains(state.refDomains);
+  const activeDomains = selectionDomains.filter(
+    (domain) => !state.disabledDomains.includes(`${domain.name}-${domain.start}`),
+  );
+  const excludedDomains = selectionDomains.filter(
+    (domain) => state.disabledDomains.includes(`${domain.name}-${domain.start}`),
+  );
+  const landscape = Object.entries(state.yPredMap)
+    .map(([variant, fitness]) => ({ variant, fitness }))
+    .sort((a, b) => b.fitness - a.fitness);
+
+  return {
+    exported_at: new Date().toISOString(),
+    settings: {
+      n_select: Math.max(1, state.maxPrimers),
+      top_percentile: state.benchmarkTopPercentile,
+      random_trials: state.benchmarkRandomTrials,
+      random_seed: state.benchmarkRandomSeed,
+      domain_strategy: state.domainStrategy,
+      distance_mode: state.distanceMode,
+      pareto_pool_multiplier: state.paretoPoolMultiplier,
+      entropy_weight: state.entropyWeightEnabled ? state.entropyWeight : 0,
+    },
+    domains: {
+      active: activeDomains,
+      excluded: excludedDomains,
+    },
+    landscape,
+    results,
+  };
+}
+
+export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (set, get) => ({
+  plateMappings: [],
+  dedupInfo: {},
+  progress: 0,
+  statusMessage: "Ready",
+  tableSorting: [],
+  isExporting: false,
+  echoTransferVol: 100,
+  echoQuadrant: null,
+  echoUsedQuadrants: [],
+  echoRoundPicks: [],
+  echoLegacyPlacement: null,
+  janusTransferVol: 2.0,
+  exportName: "",
+  exportPlateNames: {},
+  exportAmount: "0.05",
+  exportVectormaps: false,
+
+  getPlateMap: async () => {
+    try {
+      const result = await sendRequest("get_plate_map", {});
+      set({
+        plateMappings: result.mappings,
+        dedupInfo: result.dedup_info,
+      });
+    } catch (err) {
+      set({ statusMessage: `Plate map failed: ${formatError(err)}` });
+    }
+  },
+
+  exportExcel: async (filepath: string, projectId?: string) => {
+    const _exportStartedAt = Date.now();
+    set({ isExporting: true });
+    try {
+      const state = get();
+      const { designResults, plateMappings, dedupInfo, tableSorting } = state;
+      const sortedMuts = getSortedMutations(designResults, tableSorting, {
+        yPredMap: state.yPredMap,
+        customCandidates: state.customCandidates,
+      });
+      const ordered = reorderMappings(plateMappings, dedupInfo, sortedMuts);
+      const reportData = buildReportData(state);
+      const benchmarkRaw = buildBenchmarkRawData(state, state.benchmarkResults);
+
+      const resultByMut = new Map(designResults.map((r) => [r.mutation, r]));
+      const enriched = ordered.map((m) => {
+        const r = resultByMut.get(m.mutation);
+        if (!r) return m;
+        return {
+          ...m,
+          tm: m.primer_type === "forward" ? r.tm_no_fwd : r.tm_no_rev,
+          tm_overlap: r.tm_overlap,
+          wt_codon: r.wt_codon,
+          mt_codon: r.mt_codon,
+        };
+      });
+
+      const rescuedInfo = state.rescuedMutationDetails.length > 0
+        ? state.rescuedMutationDetails
+        : undefined;
+
+      await sendRequest("export_excel", {
+        filepath,
+        mappings: enriched,
+        dedup_info: dedupInfo,
+        report_data: reportData,
+        ...(benchmarkRaw ? { benchmark_raw: benchmarkRaw } : {}),
+        // __APP_VERSION__ is the build's release version (vite.config.ts:69), the
+        // same idiom as kuroSnapshot.ts:144, autosaveSnapshot.ts:146 and
+        // resultSnapshot.ts:71. This value is stamped into the hidden
+        // __kuma_meta__ sheet of the exported workbook and is what manifestDiff.ts
+        // compares across releases, so a literal froze every export at one string.
+        ...(projectId ? { project_id: projectId, kuma_version: __APP_VERSION__ } : {}),
+        ...(rescuedInfo ? { rescued_info: rescuedInfo } : {}),
+      });
+      set({ statusMessage: `Exported Excel: ${filepath}` });
+      notifyJobDone({ title: "Excel export complete", description: filepath, durationMs: Date.now() - _exportStartedAt });
+      try {
+        await ensureWorkspaceFromExportPath(filepath);
+        await registerArtifacts([
+          { app: "kuro", step: "design", type: "sdm_primer_xlsx", absolutePath: filepath },
+        ]);
+      } catch {
+        // registry failure must not break the user-visible export success
+      }
+    } catch (err) {
+      set({ statusMessage: `Excel export failed: ${formatError(err)}` });
+      notifyJobError("Excel export failed", err);
+      throw err;
+    } finally {
+      set({ isExporting: false });
+    }
+  },
+
+  setTableSorting: (updater: Updater<SortingState>) => {
+    const current = get().tableSorting;
+    const next = typeof updater === "function" ? updater(current) : updater;
+    set({ tableSorting: next });
+  },
+
+  setEchoTransferVol: (value: number) => set({ echoTransferVol: value }),
+  setEchoQuadrant: (value) => set({ echoQuadrant: value }),
+  // 소진 표시를 고치는 것이 레거시 안내가 요청하는 행동이다. 그래서 그 입력이
+  // 들어온 시점에 안내를 지운다. round 선택만으로는 지우지 않는다. 양쪽이
+  // 소진으로 남아 있는 한 안내가 설명하는 상태가 그대로이기 때문이다.
+  setEchoUsedQuadrants: (value) => set({ echoUsedQuadrants: value, echoLegacyPlacement: null }),
+  setEchoRoundPicks: (value) => {
+    const saved = persistRoundPicks(value);
+    set({ echoRoundPicks: normalizeRoundPicks(saved.quadrants, saved.plates) });
+  },
+  setJanusTransferVol: (value: number) => set({ janusTransferVol: value }),
+  setExportName: (value) => set({ exportName: value }),
+  setExportPlateName: (key, direction, value) => {
+    const current = get().exportPlateNames;
+    set({
+      exportPlateNames: {
+        ...current,
+        [key]: { ...(current[key] ?? { fwd: "", rvs: "" }), [direction]: value },
+      },
+    });
+  },
+  setExportAmount: (value) => set({ exportAmount: value }),
+  setExportVectormaps: (value) => set({ exportVectormaps: value }),
+
+  setStatus: (msg: string) => set({ statusMessage: msg }),
+
+  getWorkspaceSnapshot: () => {
+    const s = get();
+    const roundState = useRoundStore.getState();
+    const snapshot: WorkspaceV3 = {
+      schema_version: "0.3",
+      // 저장 시점 빌드. 저장된 Echo round 이름 중 "A1" 과 "A2" 는 half 어휘와
+      // 현재 어휘가 같은 글자라 값만으로 구분되지 않아 이 값이 유일한 판별 신호다
+      // (`foldPersistedPlacement`). kuroSnapshot.ts:149 와 같은 관용구다.
+      kuma_version: __APP_VERSION__,
+      rounds: roundState.rounds,
+      active_round_id: roundState.active_round_id,
+      // A workspace travels. Opened on a machine that never had the file, a key
+      // alone would name a table nobody there can produce, so the whole block
+      // rides along (design note section 8.2). Only for a user-installed table:
+      // a bundled one is identified by its key, which every build ships.
+      codon_table: (() => {
+        const selected = s.organisms.find((o) => o.key === s.organism);
+        return selected?.source === "user" ? selected.document ?? null : null;
+      })(),
+      // Recorded for a bundled table too, where no document is embedded: a
+      // later build may ship different numbers under the same key, and the
+      // digest is the only thing that notices.
+      codon_table_sha256:
+        s.organisms.find((o) => o.key === s.organism)?.table_sha256 ?? null,
+      inputs: {
+        fastaPath: s.fastaPath,
+        mutationInputMode: s.mutationInputMode,
+        mutationText: s.mutationText,
+        evolveproCsvPath: s.evolveproCsvPath,
+        selectedGene: s.selectedGene,
+      },
+      settings: {
+        selectedPolymerase: s.selectedPolymerase,
+        codonStrategy: s.codonStrategy,
+        maxPrimers: s.maxPrimers,
+        tmFwdTarget: s.tmFwdTarget,
+        tmRevTarget: s.tmRevTarget,
+        tmOverlapTarget: s.tmOverlapTarget,
+        gcMin: s.gcMin,
+        gcMax: s.gcMax,
+        primerLenEnabled: s.primerLenEnabled,
+        fwdLenMin: s.fwdLenMin,
+        fwdLenMax: s.fwdLenMax,
+        revLenMin: s.revLenMin,
+        revLenMax: s.revLenMax,
+        fillOnFailure: s.fillOnFailure,
+        tmTolerance: s.tmTolerance,
+        uniprotAccession: s.uniprotAccession || undefined,
+        domains: s.domains.length > 0 ? s.domains : undefined,
+        refDomains: s.refDomains?.length ? s.refDomains : undefined,
+        refDomainHash: s.refDomainHash || undefined,
+        domainDiversityEnabled: s.domainDiversityEnabled,
+        domainStrategy: s.domainDiversityEnabled ? s.domainStrategy : undefined,
+        domainOverlapPolicy: s.domainDiversityEnabled ? s.domainOverlapPolicy : undefined,
+        linkerHandling: s.domainDiversityEnabled ? s.linkerHandling : undefined,
+        domainQuotaMin: s.domainDiversityEnabled ? s.domainQuotaMin : undefined,
+        paretoDiversityEnabled: s.paretoDiversityEnabled,
+        structuralDiversityEnabled: s.structuralDiversityEnabled,
+        structuralKappa: s.structuralKappa,
+        structureAccession: s.structureAccession,
+        structureLoaded: s.structureLoaded,
+        disabledDomains: s.disabledDomains,
+        rescuedMutations: s.rescuedMutations,
+        entropyWeightEnabled: s.entropyWeightEnabled,
+        entropyWeight: s.entropyWeight,
+        paretoPoolMultiplier: s.paretoPoolMultiplier,
+        distanceMode: s.distanceMode,
+        benchmarkTopPercentile: s.benchmarkTopPercentile,
+        benchmarkRandomTrials: s.benchmarkRandomTrials,
+        benchmarkRandomSeed: s.benchmarkRandomSeed,
+        autoRedesignOnLoad: s.autoRedesignOnLoad,
+        saveCache: s.saveCache,
+        organism: s.organism,
+        pipelineMode: s.evolveproMode !== "topN",
+        evolveproMode: s.evolveproMode,
+        positionDiversityEnabled: s.positionDiversityEnabled,
+        maxPerPosition: s.maxPerPosition,
+        evolveproRound: s.evolveproRound,
+        roundSize: s.roundSize,
+        overlapMode: s.overlapMode,
+        randomSeed: s.randomSeed ?? null,
+        echoTransferVol: s.echoTransferVol,
+        echoQuadrant: s.echoQuadrant,
+        echoUsedQuadrants: s.echoUsedQuadrants,
+        echoRoundQuadrants: persistRoundPicks(s.echoRoundPicks).quadrants,
+        echoRoundPlates: persistRoundPicks(s.echoRoundPicks).plates,
+        janusTransferVol: s.janusTransferVol,
+      },
+      results: {
+        designResults: s.designResults,
+        successCount: s.successCount,
+        totalCount: s.totalCount,
+        failedMutations: s.failedMutations,
+        plateMappings: s.plateMappings,
+        dedupInfo: s.dedupInfo,
+        manuallySwapped: s.manuallySwapped,
+        customCandidates: s.customCandidates,
+        rescuedMutationDetails: s.rescuedMutationDetails,
+      },
+      ui: {
+        tableSorting: s.tableSorting,
+      },
+      ...(s.saveCache && {
+        cache: {
+          evolveproTotalCount: s.evolveproTotalCount,
+          evolveproFilteredCount: s.evolveproFilteredCount,
+          evolveproParetoExchanges: s.evolveproParetoExchanges,
+          evolveproStepStats: s.evolveproStepStats,
+          benchmarkResults: s.benchmarkResults,
+        },
+      }),
+    };
+    return snapshot;
+  },
+
+  restoreWorkspace: async (ws: WorkspaceData) => {
+    // schema_version "0.3" 이전 워크스페이스는 지원하지 않음
+    const wsWithSchema = ws as WorkspaceData & { schema_version?: string };
+    if (!wsWithSchema.schema_version || wsWithSchema.schema_version < "0.3") {
+      throw new Error(
+        i18next.t("exportSlice.legacyWorkspaceUnsupported")
+      );
+    }
+    // The guard rejects V1/V2 before this point, so migrating them here was
+    // unreachable and could silently discard V3 fields such as overlapMode.
+    const { inputs, settings, results, ui, cache } = ws as WorkspaceV3;
+    let loadedSeqInfo: SequenceInfo | null = null;
+    let restoredGene = "";
+    let templateLoadError: string | null = null;
+
+    if (inputs.fastaPath) {
+      try {
+        const info = await sendRequest("load_fasta", {
+          filepath: inputs.fastaPath,
+        });
+        loadedSeqInfo = info;
+        if (inputs.selectedGene) {
+          const geneExists = info.genes.some(
+            (g) => String(g.cds_start) === String(inputs.selectedGene),
+          );
+          if (geneExists) {
+            restoredGene = inputs.selectedGene;
+          }
+        }
+      } catch (err) {
+        // 템플릿 파일 경로가 깨져도 나머지 복원(설정·결과물·UI)은 계속한다.
+        // 사용자에게는 statusMessage로 원인과 다음 행동을 드러낸다.
+        templateLoadError = formatError(err);
+        loadedSeqInfo = null;
+        restoredGene = "";
+      }
+    }
+
+    let restoredRefDomains = settings.refDomains ?? [];
+    let restoredRefDomainHash = settings.refDomainHash ?? "";
+    if (restoredRefDomains.length > 0 && restoredRefDomainHash !== "manual") {
+      const restoredTarget = loadedSeqInfo?.genes.find(
+        (gene) => String(gene.cds_start) === restoredGene,
+      ) ?? loadedSeqInfo?.genes[0];
+      try {
+        const currentHash = restoredTarget?.translation
+          ? await sha256ProteinSequence(restoredTarget.translation)
+          : "";
+        if (!currentHash || currentHash !== restoredRefDomainHash) {
+          restoredRefDomains = [];
+          restoredRefDomainHash = "";
+        }
+      } catch {
+        restoredRefDomains = [];
+        restoredRefDomainHash = "";
+      }
+    }
+
+    let preloadedYPred: Record<string, number> | null = null;
+    let preloadedPoolVariants: string[] | null = null;
+    let evolveproReloadError: string | null = null;
+    if (inputs.evolveproCsvPath) {
+      try {
+        // Same clamp as the `maxPrimers` write below. A saved file can carry a
+        // count from before the one-plate bound, and asking the sidecar for a
+        // pool sized off the raw value loads a multiple of what the run can
+        // ever place on a plate.
+        const sendCount = clampMaxPrimers(settings.maxPrimers ?? 95);
+        const result = await sendRequest("load_evolvepro_csv", {
+          filepath: inputs.evolveproCsvPath,
+          top_n: (settings.fillOnFailure ?? true) ? sendCount * 2 : sendCount,
+        });
+        const yPredMap: Record<string, number> = {};
+        if (Array.isArray(result.variants) && Array.isArray(result.y_preds)) {
+          (result.variants as string[]).forEach((v: string, i: number) => {
+            const predicted = (result.y_preds as number[])[i];
+            // 0.0 is a valid measured fitness. A missing sidecar value must
+            // remain absent rather than being exported as that measurement.
+            if (predicted !== undefined && predicted !== null) yPredMap[v] = predicted;
+          });
+        }
+        preloadedYPred = yPredMap;
+        preloadedPoolVariants = (result.pool_variants as string[]) ?? [];
+      } catch (err) {
+        evolveproReloadError = formatError(err);
+      }
+    }
+
+    const store = get();
+    store.resetAll();
+    // designResults 와 두 카운트는 저장 측이 조건 없이 한 객체 리터럴로 함께 쓴다
+    // (위 getWorkspaceSnapshot 의 results 블록). 그래서 읽는 쪽도 통째로 읽거나
+    // 통째로 버린다. 판정은 쓰는 쪽 옆(lib/kuroSnapshot.ts)에 있고 여기서는 결과만
+    // 받는다. 자동 저장 스냅샷과 필드 이름·의미가 같은 블록이라 같은 판정기를 쓴다.
+    //
+    // 아래 maxPrimers 의 clamp 와는 다른 판단이다. clamp 는 범위를 벗어난 "설정"을
+    // 합법 값으로 고치는 교정이지만, 카운트에 `?? 0` 을 씌우는 것은 교정이 아니라
+    // 옆에 놓인 designResults 와 모순되는 "측정값"을 만들어 내는 일이다(세 줄짜리
+    // 표 위의 3/0, DesignReportContent.tsx 의 성공률). JSON.stringify 가
+    // NaN/Infinity 를 null 로 쓰므로 이 경로는 실제로 열린다.
+    const designOutcome = readKuroDesignOutcome(results);
+    const restoredDesignResults = designOutcome.ok ? designOutcome.value.designResults : [];
+    // 워크스페이스는 사용자가 직접 고른 파일이라 자동 복원과 달리 파일 자체는
+    // 열려야 한다(입력·설정은 멀쩡하다). 그래서 파일을 거절하지 않고 이 그룹만
+    // 버린 뒤, 이 함수가 이미 쓰고 있는 statusMessage 채널로 무엇이 빠졌는지
+    // 알린다(templateLoadError 와 같은 자리). 문구는 자동 복원 쪽 그룹 거절
+    // 문구를 그대로 쓴다. 같은 사유·같은 필드 목록이고 10개 로케일에 이미 있다.
+    const designOutcomeError = designOutcome.ok
+      ? null
+      : i18next.t("autosaveHydration.resultsIncomplete", {
+          fields: designOutcome.missing.join(", "),
+        });
+    const restoredPlateState = buildIncludedPlateState({
+      designResults: restoredDesignResults,
+      wellName,
+    });
+    // Retired profiles are remapped in place. The saved GC range and overlap
+    // mode below are kept as-is, so an old run keeps the conditions it was
+    // designed under instead of inheriting the replacement profile defaults.
+    const restoredPolymerase = ((): { name: string; notice: string | null } => {
+      const saved = settings.selectedPolymerase;
+      if (typeof saved !== "string" || !saved) return { name: DEFAULT_POLYMERASE, notice: null };
+      const { name, retiredFrom } = resolvePolymeraseName(saved);
+      if (!retiredFrom) return { name, notice: null };
+      return {
+        name,
+        notice: retiredPolymeraseNotice(retiredFrom, name, settings.gcMin ?? 40, settings.gcMax ?? 60),
+      };
+    })();
+    // The expectation, not a decision. Which of section 8.3's branches this is
+    // depends on the organism listing, which may not have arrived yet, so the
+    // question is answered by a selector over both (lib/codonTableRestore.ts).
+    const restoredCodonTable = ((): ExpectedCodonTable | null => {
+      const key = typeof settings.organism === "string" ? settings.organism : "";
+      const saved = ws as WorkspaceV3;
+      const digest = saved.codon_table_sha256;
+      // No digest means the file predates Phase 2, and a project that recorded
+      // nothing must restore exactly as it did before rather than be reported
+      // as disagreeing with a digest nobody wrote.
+      if (!key || typeof digest !== "string" || !digest) return null;
+      const embedded = saved.codon_table ?? null;
+      return {
+        key,
+        tableSha256: digest,
+        document: embedded && embedded.key === key ? embedded : null,
+      };
+    })();
+    const restoredEchoPlacement = foldPersistedPlacement(
+      settings.echoQuadrant,
+      settings.echoUsedQuadrants ?? [],
+      (ws as WorkspaceV3).kuma_version,
+    );
+    set({
+      mutationInputMode: inputs.mutationInputMode === "text" ? "evolvepro" : (inputs.mutationInputMode ?? "evolvepro"),
+      mutationText: inputs.mutationText ?? "",
+      // Legacy fallback: pre-merge workspaces stored the "Others" source file
+      // path separately. Newer evolveproCsvPath takes priority when present.
+      evolveproCsvPath: inputs.evolveproCsvPath || inputs.othersSourcePath || "",
+      fastaPath: inputs.fastaPath ?? "",
+      seqInfo: loadedSeqInfo,
+      selectedGene: restoredGene,
+      backendDesignStateSynced: false,
+      codonStrategy: settings.codonStrategy ?? "closest",
+      // A saved project can carry a count from before the one-plate bound
+      // existed, or a hand-edited one. Clamped here rather than rejected in
+      // the workspace validator: refusing to open an old project over a
+      // number the app can correct is a worse outcome than correcting it.
+      maxPrimers: clampMaxPrimers(settings.maxPrimers ?? 95),
+      designResults: restoredDesignResults,
+      ...(restoredDesignResults.length > 0
+        ? {
+            currentMajor: "output" as const,
+            currentSubStep: "output.summary" as const,
+          }
+        : {}),
+      // 위 designOutcome 과 한 덩어리다. 그룹이 거절되면 표도 카운트도 함께
+      // 비운다(restoredDesignResults 도 []). 표만 살아 있고 카운트만 0 인 상태를
+      // 만들지 않는 것이 이 그룹 판정의 목적이다.
+      successCount: designOutcome.ok ? designOutcome.value.successCount : 0,
+      totalCount: designOutcome.ok ? designOutcome.value.totalCount : 0,
+      failedMutations: results.failedMutations ?? [],
+      plateMappings: restoredPlateState.plateMappings,
+      dedupInfo: restoredPlateState.dedupInfo,
+      tableSorting: ui.tableSorting ?? [],
+      manuallySwapped: (() => {
+        const rawSwapped = results.manuallySwapped ?? {};
+        const safe: Record<string, "fwd" | "rev" | "both"> = {};
+        for (const [k, v] of Object.entries(rawSwapped)) {
+          if (v === "fwd" || v === "rev" || v === "both") safe[k] = v;
+        }
+        return safe;
+      })(),
+      customCandidates: results.customCandidates ?? {},
+      rescuedMutationDetails: results.rescuedMutationDetails ?? [],
+      selectedPolymerase: restoredPolymerase.name,
+      tmFwdTarget: settings.tmFwdTarget ?? 62,
+      tmRevTarget: settings.tmRevTarget ?? 58,
+      tmOverlapTarget: settings.tmOverlapTarget ?? 42,
+      gcMin: settings.gcMin ?? 40,
+      gcMax: settings.gcMax ?? 60,
+      primerLenEnabled: settings.primerLenEnabled ?? true,
+      fwdLenMin: settings.fwdLenMin ?? 18,
+      fwdLenMax: settings.fwdLenMax ?? 39,
+      revLenMin: settings.revLenMin ?? 19,
+      revLenMax: settings.revLenMax ?? 27,
+      fillOnFailure: settings.fillOnFailure ?? true,
+      tmTolerance: settings.tmTolerance ?? 4.0,
+      uniprotAccession: settings.uniprotAccession ?? "",
+      domains: settings.domains ?? [],
+      refDomains: restoredRefDomains,
+      refDomainHash: restoredRefDomainHash,
+      ...(settings.disabledDomains && { disabledDomains: settings.disabledDomains }),
+      rescuedMutations: settings.rescuedMutations ?? [],
+      domainOverlapPolicy: settings.domainOverlapPolicy ?? "first",
+      linkerHandling: settings.linkerHandling ?? "include",
+      domainQuotaMin: settings.domainQuotaMin ?? 1,
+      entropyWeightEnabled: settings.entropyWeightEnabled ?? true,
+      entropyWeight: settings.entropyWeight ?? 0.3,
+      paretoPoolMultiplier: settings.paretoPoolMultiplier ?? 2.0,
+      distanceMode: settings.distanceMode ?? "auto",
+      benchmarkTopPercentile: settings.benchmarkTopPercentile ?? 10,
+      benchmarkRandomTrials: settings.benchmarkRandomTrials ?? 100,
+      benchmarkRandomSeed: settings.benchmarkRandomSeed ?? null,
+      autoRedesignOnLoad: settings.autoRedesignOnLoad ?? true,
+      saveCache: settings.saveCache ?? true,
+      ...(settings.organism && { organism: settings.organism }),
+      restoredCodonTable,
+      // Prefer the saved evolveproMode when present. Legacy "others" value
+      // (pre-merge workspaces) coerces to "pipeline", the "Others" source
+      // file is now loaded through the single evolveproCsvPath field with
+      // column-mapping overrides, not a separate mode. Falls back to the
+      // legacy boolean pipelineMode for workspaces that pre-date evolveproMode.
+      evolveproMode:
+        settings.evolveproMode === "others"
+          ? "pipeline"
+          : settings.evolveproMode ??
+            (settings.pipelineMode === true ? "pipeline" : DEFAULT_EVOLVEPRO_MODE),
+      positionDiversityEnabled: settings.positionDiversityEnabled ?? true,
+      maxPerPosition: settings.maxPerPosition ?? 1,
+      evolveproRound: settings.evolveproRound ?? DEFAULT_EVOLVEPRO_ROUND,
+      roundSize: settings.roundSize ?? 96,
+      overlapMode: settings.overlapMode ?? "partial",
+      randomSeed: settings.randomSeed ?? null,
+      evolveproTotalCount: cache?.evolveproTotalCount ?? 0,
+      evolveproFilteredCount: cache?.evolveproFilteredCount ?? null,
+      evolveproParetoExchanges: cache?.evolveproParetoExchanges ?? null,
+      evolveproStepStats: cache?.evolveproStepStats ?? null,
+      benchmarkResults: cache?.benchmarkResults ?? null,
+      domainDiversityEnabled: settings.domainDiversityEnabled ?? true,
+      domainStrategy: settings.domainStrategy ?? "proportional",
+      paretoDiversityEnabled: settings.paretoDiversityEnabled ?? true,
+      structuralDiversityEnabled: settings.structuralDiversityEnabled ?? false,
+      structuralKappa: settings.structuralKappa ?? 0.3,
+      structureAccession: settings.structureAccession ?? "",
+      structureLoaded: settings.structureLoaded ?? false,
+      echoTransferVol: settings.echoTransferVol ?? 100,
+      // Same reading as the autosave path (useAutosaveHydration), and for the
+      // same reason: a placement stored under the half layout is a block of
+      // twelve consecutive columns, which matches no column parity and covers
+      // part of both rounds, so it marks both spent. The saved build is read
+      // alongside the values because a lone "A1" is spelled the same in both
+      // vocabularies.
+      echoQuadrant: restoredEchoPlacement.quadrant,
+      echoUsedQuadrants: restoredEchoPlacement.usedQuadrants,
+      echoLegacyPlacement:
+        restoredEchoPlacement.legacySeen.length > 0 ? restoredEchoPlacement.legacySeen : null,
+      echoRoundPicks: normalizeRoundPicks(settings.echoRoundQuadrants, settings.echoRoundPlates),
+      janusTransferVol: settings.janusTransferVol ?? 2.0,
+      yPredMap: preloadedYPred ?? {},
+      poolVariants: preloadedPoolVariants ?? [],
+      // 두 실패는 독립이다. 분기로 두면 템플릿 실패가 EVOLVEpro 실패를 가려,
+      // 사용자가 템플릿을 고친 뒤에야 두 번째 실패를 처음 보게 된다.
+      // 폴리머라제 마이그레이션 안내는 실패 여부와 무관하게 항상 덧붙인다.
+      statusMessage: [
+        templateLoadError
+          ? i18next.t("exportSlice.templateLoadFailed", { error: templateLoadError })
+          : null,
+        evolveproReloadError
+          ? `Workspace loaded. EVOLVEpro CSV reload failed: ${evolveproReloadError}`
+          : null,
+        templateLoadError || evolveproReloadError
+          ? null
+          : restoredDesignResults.length > 0
+            ? "Workspace loaded. Re-design to enable alternatives and primer swapping."
+            : (settings.autoRedesignOnLoad ?? true)
+            ? "Workspace loaded. Re-designing to sync backend..."
+            : "Workspace loaded.",
+        // 그룹 거절은 로딩 실패와 독립이다. 위 분기에 섞으면 템플릿이 깨진
+        // 파일에서 이 안내가 통째로 사라진다.
+        designOutcomeError,
+        restoredPolymerase.notice,
+      ]
+        .filter(Boolean)
+        .join(" "),
+    });
+    // 템플릿 로딩이 실패했으면 seqInfo가 없으므로 자동 재설계를 시도하지 않는다.
+    if ((settings.autoRedesignOnLoad ?? true) && restoredDesignResults.length === 0 && inputs.mutationText && inputs.fastaPath && !evolveproReloadError && !templateLoadError) {
+      await get().designPrimers();
+      const redesignedResults = get().designResults;
+      const redesignedPlateState = buildIncludedPlateState({
+        designResults: redesignedResults,
+        wellName,
+      });
+      set({
+        plateMappings: redesignedPlateState.plateMappings,
+        dedupInfo: redesignedPlateState.dedupInfo,
+        // designPrimers 는 statusMessage 를 통째로 덮어쓴다(designSlice.ts 의
+        // "Designing primers..." 와 완료 문구). 그룹을 거절해서 designResults 가
+        // 비면 바로 이 분기 조건이 성립하므로, 거절 안내는 사용자가 읽기도 전에
+        // 지워진다. 저장된 표를 버렸다는 사실은 재설계가 성공해도 남아야 하므로
+        // 재설계 문구 뒤에 다시 붙인다.
+        ...(designOutcomeError
+          ? { statusMessage: [get().statusMessage, designOutcomeError].filter(Boolean).join(" ") }
+          : {}),
+      });
+    }
+  },
+
+  resetAll: (options) => {
+    set({
+      fastaPath: "",
+      seqInfo: null,
+      mutationInputMode: "evolvepro",
+      mutationText: "",
+      evolveproCsvPath: "",
+      evolveproVariantColumn: null,
+      evolveproScoreColumn: null,
+      evolveproScoreOrder: "desc",
+      evolveproSheetName: null,
+      evolveproPreview: null,
+      evolveproUsedVariantColumn: null,
+      evolveproUsedScoreColumn: null,
+      evolveproRankedCandidates: [],
+      evolveproSelectedVariants: [],
+      evolveproSelectionManual: false,
+      evolveproExtraExposed: 10,
+      evolveproCsvUserPicked: false,
+      yPredMap: {},
+      evolveproMode: DEFAULT_EVOLVEPRO_MODE,
+      positionDiversityEnabled: true,
+      maxPerPosition: 1,
+      domainDiversityEnabled: true,
+      domainStrategy: "proportional",
+      domainOverlapPolicy: "first",
+      linkerHandling: "include",
+      domainQuotaMin: 1,
+      uniprotAccession: "",
+      domains: [],
+      domainLoading: false,
+      refDomains: [],
+      refDomainsLoading: false,
+      refDomainHash: "",
+      disabledDomains: [],
+      domainStats: {},
+      paretoDiversityEnabled: true,
+      structuralDiversityEnabled: false,
+      structuralKappa: 0.3,
+      entropyWeightEnabled: true,
+      entropyWeight: 0.3,
+      paretoPoolMultiplier: 2.0,
+      distanceMode: "auto",
+      evolveproRound: DEFAULT_EVOLVEPRO_ROUND,
+      roundSize: 96,
+      benchmarkTopPercentile: 10,
+      benchmarkRandomTrials: 100,
+      benchmarkRandomSeed: null,
+      randomSeed: null,
+      benchmarkRunning: false,
+      showBenchmark: false,
+      benchmarkResults: null,
+      autoRedesignOnLoad: true,
+      saveCache: true,
+      poolVariants: [],
+      parsedMutations: [],
+      parseErrors: [],
+      selectedGene: "",
+      uniprotCandidates: [],
+      uniprotSearching: false,
+      isDesigning: false,
+      backendDesignStateSynced: false,
+      designResults: [],
+      successCount: 0,
+      totalCount: 0,
+      failedMutations: [],
+      selectedPolymerase: DEFAULT_POLYMERASE,
+      codonStrategy: "closest",
+      maxPrimers: 95,
+      tmFwdTarget: 62,
+      tmRevTarget: 58,
+      tmOverlapTarget: 42,
+      gcMin: 40,
+      gcMax: 60,
+      primerLenEnabled: true,
+      fwdLenMin: 18,
+      fwdLenMax: 39,
+      revLenMin: 19,
+      revLenMax: 27,
+      fillOnFailure: true,
+      tmTolerance: 4.0,
+      overlapMode: "partial",
+      manuallySwapped: {},
+      customCandidates: {},
+      alternativesCache: {},
+      rescuedMutations: [],
+      // Run-scoped, like the rescue list above: without these a new project
+      // opens showing the previous project's rescue counters and its
+      // "last design produced N primers" card.
+      rescueStats: EMPTY_RESCUE_STATS,
+      rescuedMutationDetails: [],
+      lastDesignRun: null,
+      structureAccession: "",
+      structureLoaded: false,
+      structureLoading: false,
+      evolveproTotalCount: 0,
+      evolveproFilteredCount: null,
+      evolveproParetoExchanges: null,
+      evolveproStepStats: null,
+      showReport: false,
+      organism: "ecoli",
+      restoredCodonTable: null,
+      plateMappings: [],
+      dedupInfo: {},
+      progress: 0,
+      statusMessage: "Ready",
+      tableSorting: [],
+      isExporting: false,
+      echoTransferVol: 100,
+      echoQuadrant: null,
+      echoUsedQuadrants: [],
+      echoRoundPicks: [],
+      echoLegacyPlacement: null,
+      janusTransferVol: 2.0,
+      exportName: "",
+      exportPlateNames: {},
+      exportAmount: "0.05",
+      exportVectormaps: false,
+    });
+    if (!options?.preserveWorkspaceArtifacts && getActiveWorkspace()) {
+      void import("../../lib/workspace").then(({ clearWorkspace }) =>
+        clearWorkspace("kuro").catch(() => {
+          // workspace manifest cleanup is best-effort
+        }),
+      );
+    }
+  },
+});

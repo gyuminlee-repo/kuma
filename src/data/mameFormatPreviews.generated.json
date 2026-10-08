@@ -1,0 +1,475 @@
+{
+  "_generated": "scripts/gen_mame_format_preview.py -- do not edit by hand",
+  "previews": {
+    "longFormat": {
+      "source": "templates/07_mame_activity_long.csv",
+      "headerRow": true,
+      "windows": [
+        {
+          "startRow": 1,
+          "rows": [
+            [
+              "plate_id",
+              "well_id",
+              "value",
+              "replicate_idx"
+            ],
+            [
+              "plate01",
+              "A1",
+              "1.011",
+              "1"
+            ],
+            [
+              "plate01",
+              "A2",
+              "0.962",
+              "1"
+            ],
+            [
+              "plate01",
+              "A3",
+              "0.982",
+              "1"
+            ]
+          ]
+        }
+      ],
+      "ellipsisBetweenWindows": false,
+      "truncatedAfter": true,
+      "highlight": null
+    },
+    "gcSheet": {
+      "source": "templates/10_mame_gc_prenormalised.xlsx",
+      "headerRow": true,
+      "windows": [
+        {
+          "startRow": 1,
+          "rows": [
+            [
+              "Sample Name",
+              "Area"
+            ],
+            [
+              "A1",
+              "1"
+            ],
+            [
+              "A2",
+              "1"
+            ],
+            [
+              "A3",
+              "1"
+            ]
+          ]
+        }
+      ],
+      "ellipsisBetweenWindows": false,
+      "truncatedAfter": true,
+      "highlight": null
+    },
+    "rawReport": {
+      "source": "templates/11_mame_gc_fid_round1_raw.xlsx",
+      "headerRow": false,
+      "windows": [
+        {
+          "startRow": 1,
+          "rows": [
+            [
+              "Signal:",
+              "FID1B"
+            ],
+            [
+              "Area",
+              "Sample Name"
+            ],
+            [
+              "1000",
+              "WT1"
+            ],
+            [
+              "Sum",
+              "1000"
+            ]
+          ]
+        },
+        {
+          "startRow": 16,
+          "rows": [
+            [
+              "Signal:",
+              "FID1B"
+            ],
+            [
+              "Area",
+              "Sample Name"
+            ],
+            [
+              "1840",
+              "A4"
+            ],
+            [
+              "Sum",
+              "1840"
+            ]
+          ]
+        }
+      ],
+      "ellipsisBetweenWindows": true,
+      "truncatedAfter": true,
+      "highlight": {
+        "window": 1,
+        "row": 2,
+        "col": 1
+      }
+    },
+    "numericReport": {
+      "source": "templates/12_mame_agilent_numeric_index.xlsx",
+      "headerRow": false,
+      "windows": [
+        {
+          "startRow": 1,
+          "rows": [
+            [
+              "Signal:",
+              "FID1B"
+            ],
+            [
+              "Area",
+              "Sample Name"
+            ],
+            [
+              "1000",
+              "WT1"
+            ],
+            [
+              "Sum",
+              "1000"
+            ]
+          ]
+        },
+        {
+          "startRow": 16,
+          "rows": [
+            [
+              "Signal:",
+              "FID1B"
+            ],
+            [
+              "Area",
+              "Sample Name"
+            ],
+            [
+              "3180",
+              "1"
+            ],
+            [
+              "Sum",
+              "3180"
+            ]
+          ]
+        }
+      ],
+      "ellipsisBetweenWindows": true,
+      "truncatedAfter": true,
+      "highlight": {
+        "window": 1,
+        "row": 2,
+        "col": 1
+      }
+    },
+    "confirmationVariantLabels": {
+      "source": "templates/09_mame_agilent_rep_batch.xlsx",
+      "headerRow": false,
+      "windows": [
+        {
+          "startRow": 1,
+          "rows": [
+            [
+              "Signal:",
+              "FID1B"
+            ],
+            [
+              "Area",
+              "Sample Name"
+            ],
+            [
+              "1000",
+              "WT1"
+            ],
+            [
+              "Sum",
+              "1000"
+            ]
+          ]
+        },
+        {
+          "startRow": 16,
+          "rows": [
+            [
+              "Signal:",
+              "FID1B"
+            ],
+            [
+              "Area",
+              "Sample Name"
+            ],
+            [
+              "3180",
+              "65A"
+            ],
+            [
+              "Sum",
+              "3180"
+            ]
+          ]
+        }
+      ],
+      "ellipsisBetweenWindows": true,
+      "truncatedAfter": true,
+      "highlight": {
+        "window": 1,
+        "row": 2,
+        "col": 1
+      }
+    },
+    "confirmationNumericIds": {
+      "source": "templates/12_mame_agilent_numeric_index.xlsx",
+      "headerRow": false,
+      "windows": [
+        {
+          "startRow": 1,
+          "rows": [
+            [
+              "Signal:",
+              "FID1B"
+            ],
+            [
+              "Area",
+              "Sample Name"
+            ],
+            [
+              "1000",
+              "WT1"
+            ],
+            [
+              "Sum",
+              "1000"
+            ]
+          ]
+        },
+        {
+          "startRow": 21,
+          "rows": [
+            [
+              "Signal:",
+              "FID1B"
+            ],
+            [
+              "Area",
+              "Sample Name"
+            ],
+            [
+              "3210",
+              "1-2"
+            ],
+            [
+              "Sum",
+              "3210"
+            ]
+          ]
+        }
+      ],
+      "ellipsisBetweenWindows": true,
+      "truncatedAfter": true,
+      "highlight": {
+        "window": 1,
+        "row": 2,
+        "col": 1
+      }
+    },
+    "plateLayout": {
+      "source": "templates/06_mame_plate_layout.xlsx",
+      "headerRow": true,
+      "windows": [
+        {
+          "startRow": 1,
+          "rows": [
+            [
+              "Mutant",
+              "Well Pos."
+            ],
+            [
+              "WT",
+              "A1"
+            ],
+            [
+              "WT",
+              "A2"
+            ],
+            [
+              "WT",
+              "A3"
+            ]
+          ]
+        }
+      ],
+      "ellipsisBetweenWindows": false,
+      "truncatedAfter": true,
+      "highlight": null
+    },
+    "expectedMutations": {
+      "source": "templates/03_mame_expected_mutations.xlsx",
+      "headerRow": true,
+      "windows": [
+        {
+          "startRow": 1,
+          "rows": [
+            [
+              "mutant_id",
+              "position",
+              "wt_aa",
+              "mt_aa",
+              "wt_codon",
+              "mt_codon",
+              "group_id",
+              "primer_set_ref",
+              "notation_type",
+              "status"
+            ],
+            [
+              "M001",
+              "232",
+              "Q",
+              "A",
+              "CAG",
+              "GCG",
+              "G1",
+              "PS_001",
+              "single",
+              "designed"
+            ],
+            [
+              "M002",
+              "233",
+              "Y",
+              "A",
+              "TAC",
+              "GCC",
+              "G1",
+              "PS_002",
+              "single",
+              "designed"
+            ],
+            [
+              "M003",
+              "40",
+              "A",
+              "P",
+              "GCG",
+              "CCG",
+              "G2",
+              "PS_003",
+              "single",
+              "designed"
+            ]
+          ]
+        }
+      ],
+      "ellipsisBetweenWindows": false,
+      "truncatedAfter": true,
+      "highlight": null
+    },
+    "customBarcodes": {
+      "source": "templates/04_mame_custom_barcodes.xlsx",
+      "headerRow": true,
+      "windows": [
+        {
+          "startRow": 1,
+          "rows": [
+            [
+              "barcode_name",
+              "sequence"
+            ],
+            [
+              "isps_f_1",
+              "TATCTGACCTTCTATTCAGGGCGCGGTGG"
+            ],
+            [
+              "isps_f_2",
+              "GCATACGTAACCTATTCAGGGCGCGGTGG"
+            ],
+            [
+              "isps_f_3",
+              "AACTTGCATAGCTATTCAGGGCGCGGTGG"
+            ]
+          ]
+        }
+      ],
+      "ellipsisBetweenWindows": false,
+      "truncatedAfter": true,
+      "highlight": null
+    },
+    "barcodeSeeds": {
+      "source": "src-tauri/samples/mame/02_mame_barcode_seeds.xlsx",
+      "headerRow": true,
+      "windows": [
+        {
+          "startRow": 1,
+          "rows": [
+            [
+              "name",
+              "sequence"
+            ],
+            [
+              "fwd_1",
+              "TATCTGACCTT"
+            ],
+            [
+              "fwd_2",
+              "GCATACGTAAC"
+            ],
+            [
+              "fwd_3",
+              "AACTTGCATAG"
+            ]
+          ]
+        }
+      ],
+      "ellipsisBetweenWindows": false,
+      "truncatedAfter": true,
+      "highlight": null
+    },
+    "evolveproPrediction": {
+      "source": "templates/01_kuro_evolvepro_pred.csv",
+      "headerRow": true,
+      "windows": [
+        {
+          "startRow": 1,
+          "rows": [
+            [
+              "variant",
+              "y_pred"
+            ],
+            [
+              "Q232A",
+              "0.952"
+            ],
+            [
+              "Y233A",
+              "0.91"
+            ],
+            [
+              "A40P",
+              "0.887"
+            ]
+          ]
+        }
+      ],
+      "ellipsisBetweenWindows": false,
+      "truncatedAfter": true,
+      "highlight": null
+    }
+  }
+}

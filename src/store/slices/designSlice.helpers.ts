@@ -1,0 +1,594 @@
+import type {
+  DesignResult,
+  FailedMutation,
+  OverlapMode,
+  PlateMapping,
+  RescueStats,
+  RescuedMutation,
+  SdmPrimerResult,
+} from "../../types/models";
+import type { RankedCandidateItem } from "../../types/models.generated";
+
+export const EMPTY_RESCUE_STATS: RescueStats = {
+  pool_cascade: 0,
+  auto_relax: 0,
+  positions_attempted: 0,
+  pool_variants_tried: 0,
+};
+
+interface PreparedDesignInput {
+  intendedMuts: Set<string>;
+  limitedText: string;
+  sendCount: number;
+  isEvolveMode: boolean;
+  targetStart: number;
+  rescuePool: string[];
+}
+
+interface DesignRequestPayload extends Record<string, unknown> {
+  fasta_path: string;
+  target_start: number;
+  mutations_csv_or_text: string;
+  polymerase: string;
+  codon_strategy: "closest" | "optimal";
+  organism: string;
+  tm_fwd_target: number;
+  tm_rev_target: number;
+  tm_overlap_target: number;
+  gc_min: number;
+  gc_max: number;
+  fwd_len_min?: number;
+  fwd_len_max?: number;
+  rev_len_min?: number;
+  rev_len_max?: number;
+  overlap_mode: OverlapMode;
+  rescue_pool?: string[];
+  auto_relax: boolean;
+  seed?: number;
+}
+
+type PrimerLengthBounds = {
+  fwdLenMin: number;
+  fwdLenMax: number;
+  revLenMin: number;
+  revLenMax: number;
+};
+
+export function buildPrimerLengthBounds(
+  primerLenEnabled: boolean,
+  overlapMode: OverlapMode,
+  lengths: PrimerLengthBounds,
+): Record<string, number> {
+  if (!primerLenEnabled) return {};
+  const { fwdLenMin, fwdLenMax, revLenMin, revLenMax } = lengths;
+  // kuma_core/kuro/sdm_engine.py intersects both axes in full overlap, but
+  // ParameterPanel exposes only the forward range. Mirroring prevents a stale
+  // hidden reverse range from narrowing an initial design or any retry.
+  return {
+    fwd_len_min: fwdLenMin,
+    fwd_len_max: fwdLenMax,
+    rev_len_min: overlapMode === "full" ? fwdLenMin : revLenMin,
+    rev_len_max: overlapMode === "full" ? fwdLenMax : revLenMax,
+  };
+}
+
+interface ProcessedDesignResult {
+  capped: SdmPrimerResult[];
+  intendedFailed: FailedMutation[];
+  rescueStats: RescueStats;
+  rescuedMutationDetails: RescuedMutation[];
+  rescuedMutations: string[];
+  tmMet: number;
+  statusMessage: string;
+}
+
+/** Default number of extra (buffer) candidates exposed in the picker. */
+export const DEFAULT_EVOLVEPRO_EXTRA_EXPOSED = 10;
+
+// Reverse-primer propagation, frontend half.
+//
+// Mutations that share an amino-acid position share one reverse primer, so
+// swapping or committing a reverse primer for one of them rewrites all of
+// them. The backend does this in `_apply_direction_swap`
+// (python-core/sidecar_kuro/handlers/design.py) but its RPC reply describes
+// only the mutation that was clicked, so the store has to repeat the same
+// rewrite for the neighbours it already holds.
+//
+// The field list below mirrors `_SWAP_FIELDS["rev"]` with two documented
+// differences, and `tests/sidecar_kuro/test_swap_primer_fields.py` fails if
+// either stops holding:
+//   - `reverse_binding` is missing here because SdmPrimerResultModel does not
+//     serialize it, so no frontend object ever has that value to update.
+//   - `tm_rev` is called `tm_no_rev` on the wire, renamed by _serialize_result.
+//
+// Pair Ta cannot follow one primer: clear it until the backend recomputes
+// the neighbour with its own forward primer. The hairpin warn flags ride on
+// that same pair Ta (the verdict is the folded fraction at Ta), so both are
+// cleared with it; the homodimer verdict is a function of the reverse
+// sequence alone, so it travels with the primer like homodimer_tm_rev does.
+const REVERSE_WARNING_PREFIXES = ["Rev", "Reverse"];
+
+function isReverseWarning(text: string): boolean {
+  return REVERSE_WARNING_PREFIXES.some((prefix) => text.startsWith(prefix));
+}
+
+/**
+ * Return `neighbour` carrying the reverse primer, and the reverse diagnostics,
+ * of `source`.
+ *
+ * Mirror of `_apply_direction_swap(neighbour, source, "rev")` on the backend,
+ * including the three fields it re-derives rather than copies.
+ */
+export function applyReversePropagation(
+  neighbour: SdmPrimerResult,
+  source: SdmPrimerResult,
+): SdmPrimerResult {
+  const offtargetRev = source.offtarget_rev ? [...source.offtarget_rev] : undefined;
+  const toleranceRev = source.tolerance_rev;
+  return {
+    ...neighbour,
+    reverse_seq: source.reverse_seq,
+    recommended_ta: undefined,
+    ta_mode: undefined,
+    ta_detail: undefined,
+    ta_touchdown: undefined,
+    rev_len: source.rev_len,
+    tm_no_rev: source.tm_no_rev,
+    gc_rev: source.gc_rev,
+    tolerance_rev: toleranceRev,
+    synthesis_score_rev: source.synthesis_score_rev,
+    hairpin_tm_rev: source.hairpin_tm_rev,
+    hairpin_dg_rev: source.hairpin_dg_rev,
+    homodimer_tm_rev: source.homodimer_tm_rev,
+    homodimer_dg_rev: source.homodimer_dg_rev,
+    homodimer_warn_rev: source.homodimer_warn_rev,
+    // Ta-dependent, not sequence-pure: stale under the neighbour's own pair.
+    hairpin_warn_fwd: undefined,
+    hairpin_warn_rev: undefined,
+    offtarget_rev: offtargetRev,
+    // Derived from the two per-direction hit lists, not copied.
+    has_offtarget: Boolean(neighbour.offtarget_fwd?.length) || Boolean(offtargetRev?.length),
+    // An upper bound over both directions. Raised when the incoming reverse
+    // primer needs more, never lowered, exactly as the backend does it.
+    tolerance_used: Math.round(
+      Math.max(
+        neighbour.tolerance_used,
+        neighbour.tolerance_fwd ?? 0,
+        toleranceRev ?? 0,
+      ) * 10,
+    ) / 10,
+    // Every warning names its direction first, so the reverse ones follow the
+    // reverse primer and the forward ones stay with the row.
+    warnings: [
+      ...neighbour.warnings.filter((text) => !isReverseWarning(text)),
+      ...source.warnings.filter(isReverseWarning),
+    ],
+  };
+}
+
+export function prepareDesignInput(params: {
+  mutationText: string;
+  maxPrimers: number;
+  fillOnFailure: boolean;
+  mutationInputMode: "text" | "evolvepro";
+  selectedGene: string;
+  poolVariants: string[];
+  /** EVOLVEpro: user-selected variant list (controls design input when in evolvepro mode). */
+  evolveproSelectedVariants?: string[];
+  /** EVOLVEpro: ranked candidates for ordering the selection set. */
+  evolveproRankedCandidates?: RankedCandidateItem[];
+}): PreparedDesignInput {
+  const {
+    mutationText,
+    maxPrimers,
+    fillOnFailure,
+    mutationInputMode,
+    selectedGene,
+    poolVariants,
+    evolveproSelectedVariants,
+    evolveproRankedCandidates,
+  } = params;
+
+  const sendCount = fillOnFailure
+    ? Math.max(Math.ceil(maxPrimers * 1.5), maxPrimers + 20)
+    : maxPrimers;
+  const isEvolveMode = mutationInputMode === "evolvepro";
+
+  // In evolvepro mode with an explicit selection set, derive allLines from the
+  // selection set ordered by y_pred (ranked_candidates order). This preserves
+  // the existing limitedText/rescuePool structure while switching the source.
+  let allLines: string[];
+  if (isEvolveMode && evolveproSelectedVariants !== undefined) {
+    const selectedSet = new Set(evolveproSelectedVariants);
+    if (evolveproRankedCandidates && evolveproRankedCandidates.length > 0) {
+      // Order by ranked_candidates (already y_pred desc from backend).
+      const ranked = evolveproRankedCandidates
+        .filter((c) => selectedSet.has(c.variant))
+        .map((c) => c.variant);
+      // Any selected variants not in ranked_candidates come last.
+      const rankedSet = new Set(ranked);
+      const unranked = evolveproSelectedVariants.filter((v) => !rankedSet.has(v));
+      allLines = [...ranked, ...unranked];
+    } else {
+      allLines = [...evolveproSelectedVariants];
+    }
+  } else {
+    allLines = mutationText
+      .trim()
+      .split("\n")
+      .filter((l) => l.trim() && !l.trim().startsWith("#"));
+  }
+
+  const intendedMuts = new Set(allLines.slice(0, maxPrimers).map((l) => l.trim()));
+  const limitedText = allLines.slice(0, sendCount).join("\n");
+  const targetStart = selectedGene ? parseInt(selectedGene, 10) : 0;
+  // The sidecar treats rescue_pool as permission to replace a failed requested
+  // mutation with another variant, so it must be absent with auto-rescue off;
+  // limiting the frontend's own cascade alone leaves that backend rescue active.
+  const rescuePool = fillOnFailure && isEvolveMode
+    ? poolVariants.filter((v) => !intendedMuts.has(v))
+    : [];
+
+  return {
+    intendedMuts,
+    limitedText,
+    sendCount,
+    isEvolveMode,
+    targetStart,
+    rescuePool,
+  };
+}
+
+export function buildDesignRequestPayload(params: {
+  fastaPath: string;
+  targetStart: number;
+  limitedText: string;
+  selectedPolymerase: string;
+  codonStrategy: "closest" | "optimal";
+  organism: string;
+  tmFwdTarget: number;
+  tmRevTarget: number;
+  tmOverlapTarget: number;
+  gcMin: number;
+  gcMax: number;
+  primerLenEnabled: boolean;
+  fwdLenMin: number;
+  fwdLenMax: number;
+  revLenMin: number;
+  revLenMax: number;
+  overlapMode: OverlapMode;
+  rescuePool: string[];
+  tolMax: number;
+  randomSeed: number | null;
+  /**
+   * The "fill on failure" checkbox. It gates every rescue the run may attempt,
+   * the sidecar relax pass included. Sending auto_relax unconditionally used to
+   * let that pass reopen the length and GC axes behind an unchecked box, so a
+   * run pinned to a 18 nt floor could still return a 17 nt primer.
+   */
+  fillOnFailure: boolean;
+}): DesignRequestPayload {
+  const {
+    fastaPath,
+    targetStart,
+    limitedText,
+    selectedPolymerase,
+    codonStrategy,
+    organism,
+    tmFwdTarget,
+    tmRevTarget,
+    tmOverlapTarget,
+    gcMin,
+    gcMax,
+    primerLenEnabled,
+    fwdLenMin,
+    fwdLenMax,
+    revLenMin,
+    revLenMax,
+    overlapMode,
+    rescuePool,
+    tolMax,
+    randomSeed,
+    fillOnFailure,
+  } = params;
+
+  return {
+    fasta_path: fastaPath,
+    target_start: targetStart,
+    mutations_csv_or_text: limitedText,
+    polymerase: selectedPolymerase,
+    codon_strategy: codonStrategy,
+    organism,
+    tm_fwd_target: tmFwdTarget,
+    tm_rev_target: tmRevTarget,
+    tm_overlap_target: tmOverlapTarget,
+    gc_min: gcMin,
+    gc_max: gcMax,
+    ...buildPrimerLengthBounds(primerLenEnabled, overlapMode, {
+      fwdLenMin,
+      fwdLenMax,
+      revLenMin,
+      revLenMax,
+    }),
+    overlap_mode: overlapMode,
+    ...(fillOnFailure && rescuePool.length > 0 && { rescue_pool: rescuePool }),
+    tol_max: tolMax,
+    auto_relax: fillOnFailure,
+    ...(randomSeed !== null && { seed: randomSeed }),
+  };
+}
+
+export function processDesignResult(params: {
+  result: DesignResult;
+  maxPrimers: number;
+  intendedMuts: Set<string>;
+}): ProcessedDesignResult {
+  const { result, maxPrimers, intendedMuts } = params;
+  const intendedCount = intendedMuts.size;
+  const rescueStats = result.rescue_stats ?? EMPTY_RESCUE_STATS;
+  const rescuedMutationDetails = result.rescued_mutations ?? [];
+  const rescuedMutations = rescuedMutationDetails.map((r) => r.rescued_by);
+  const rescuedSet = new Set(rescuedMutations);
+  const rescued = result.results.filter((r) => rescuedSet.has(r.mutation));
+  const nonRescued = result.results.filter((r) => !rescuedSet.has(r.mutation));
+  const rescueSlots = Math.min(rescued.length, maxPrimers);
+  const capped = [
+    ...nonRescued.slice(0, maxPrimers - rescueSlots),
+    ...rescued.slice(0, rescueSlots),
+  ];
+  const intendedFailed = (result.failed_mutations ?? []).filter((f) => intendedMuts.has(f.mutation));
+  const tmMet = capped.filter((r) => r.tm_condition_met).length;
+
+  const rescueTotal = rescueStats.pool_cascade + rescueStats.auto_relax;
+  const failedMsg = intendedFailed.length > 0 ? ` | ${intendedFailed.length} failed` : "";
+  const rescueMsg = rescueTotal > 0 ? ` | ${rescueTotal} rescued` : "";
+
+  return {
+    capped,
+    intendedFailed,
+    rescueStats,
+    rescuedMutationDetails,
+    rescuedMutations,
+    tmMet,
+    statusMessage: `${capped.length}/${intendedCount} designed | Tm: ${tmMet}/${capped.length}${failedMsg}${rescueMsg}`,
+  };
+}
+
+export function applyCustomPrimerToResults(params: {
+  mutation: string;
+  result: SdmPrimerResult;
+  designResults: SdmPrimerResult[];
+}) {
+  const { mutation, result, designResults } = params;
+  const targetPos = result.aa_position;
+
+  return designResults.map((r) => {
+    if (r.mutation === mutation) {
+      return {
+        ...result,
+        mutation: r.mutation,
+        aa_position: r.aa_position,
+        codon_pos: r.codon_pos,
+        candidate_count: r.candidate_count,
+        candidate_fwd_count: r.candidate_fwd_count,
+        candidate_rev_count: r.candidate_rev_count,
+      };
+    }
+    if (r.aa_position === targetPos) {
+      return applyReversePropagation(r, result);
+    }
+    return r;
+  });
+}
+
+export function rebuildPlateStateFromResults(params: {
+  designResults: SdmPrimerResult[];
+  wellName: (idx: number) => string;
+}) {
+  const { designResults, wellName } = params;
+  const forwardMappings: PlateMapping[] = [];
+  const reverseSeqToMuts: Record<string, string[]> = {};
+  const reverseSeqOrder: string[] = [];
+
+  for (const result of designResults) {
+    forwardMappings.push({
+      well: wellName(forwardMappings.length),
+      primer_name: `${result.mutation}_F`,
+      sequence: result.forward_seq,
+      primer_type: "forward",
+      mutation: result.mutation,
+    });
+
+    if (!reverseSeqToMuts[result.reverse_seq]) {
+      reverseSeqToMuts[result.reverse_seq] = [];
+      reverseSeqOrder.push(result.reverse_seq);
+    }
+    reverseSeqToMuts[result.reverse_seq]!.push(result.mutation);
+  }
+
+  const reverseMappings: PlateMapping[] = reverseSeqOrder.map((sequence, index) => {
+    const representativeMutation = reverseSeqToMuts[sequence]![0]!;
+    return {
+      well: wellName(index),
+      primer_name: `${representativeMutation}_R`,
+      sequence,
+      primer_type: "reverse",
+      mutation: representativeMutation,
+    };
+  });
+
+  return {
+    plateMappings: [...forwardMappings, ...reverseMappings],
+    dedupInfo: reverseSeqToMuts,
+  };
+}
+
+/** Returns all design results (exclusion feature removed; always all-included). */
+export function getIncludedDesignResults(
+  designResults: SdmPrimerResult[],
+): SdmPrimerResult[] {
+  return designResults;
+}
+
+/** @deprecated Exclusion feature removed. Always returns []. Kept for workspace migration compat. */
+export function pruneExcludedDesignMutations(
+  _designResults: SdmPrimerResult[],
+  _excludedDesignMutations: string[],
+): string[] {
+  return [];
+}
+
+export function buildIncludedPlateState(params: {
+  designResults: SdmPrimerResult[];
+  wellName: (idx: number) => string;
+}) {
+  const { designResults, wellName } = params;
+  return rebuildPlateStateFromResults({
+    designResults,
+    wellName,
+  });
+}
+
+export function addDesignResultState(params: {
+  mutation: string;
+  result: SdmPrimerResult;
+  designResults: SdmPrimerResult[];
+  failedMutations: FailedMutation[];
+  rescuedMutations: string[];
+  wellName: (idx: number) => string;
+  maxPrimers?: number;
+  preferredMutations?: Set<string>;
+}) {
+  const {
+    mutation,
+    result,
+    designResults,
+    failedMutations,
+    rescuedMutations,
+    wellName,
+    maxPrimers,
+    preferredMutations,
+  } = params;
+
+  let aaPos = result.aa_position;
+  if (!aaPos) {
+    const match = mutation.match(/[A-Z](\d+)[A-Z]/);
+    if (match) aaPos = parseInt(match[1], 10);
+  }
+
+  const fixedResult: SdmPrimerResult = {
+    ...result,
+    mutation,
+    aa_position: aaPos || 0,
+    candidate_fwd_count: result.candidate_fwd_count ?? 1,
+    candidate_rev_count: result.candidate_rev_count ?? 1,
+  };
+
+  const nextDesignResultsUncapped = [
+    ...designResults.map((r) => {
+      if (r.aa_position !== fixedResult.aa_position) return r;
+      return applyReversePropagation(r, fixedResult);
+    }),
+    fixedResult,
+  ];
+  const nextDesignResults =
+    maxPrimers !== undefined && nextDesignResultsUncapped.length > maxPrimers
+      ? trimDesignResults({
+          results: nextDesignResultsUncapped,
+          maxPrimers,
+          mustKeep: mutation,
+          preferredMutations,
+        })
+      : nextDesignResultsUncapped;
+  const plateState = buildIncludedPlateState({
+    designResults: nextDesignResults,
+    wellName,
+  });
+
+  return {
+    backendDesignStateSynced: false,
+    designResults: nextDesignResults,
+    failedMutations: failedMutations.filter((f) => f.mutation !== mutation),
+    successCount: nextDesignResults.length,
+    plateMappings: plateState.plateMappings,
+    dedupInfo: plateState.dedupInfo,
+    rescuedMutations: rescuedMutations.includes(mutation)
+      ? rescuedMutations
+      : [...rescuedMutations, mutation],
+  };
+}
+
+function trimDesignResults(params: {
+  results: SdmPrimerResult[];
+  maxPrimers: number;
+  mustKeep: string;
+  preferredMutations?: Set<string>;
+}): SdmPrimerResult[] {
+  const { results, maxPrimers, mustKeep, preferredMutations } = params;
+  const trimmed = [...results];
+
+  while (trimmed.length > maxPrimers) {
+    const removableIdx = findLastIndex(trimmed, (r) =>
+      r.mutation !== mustKeep && !preferredMutations?.has(r.mutation)
+    );
+    const fallbackIdx = findLastIndex(trimmed, (r) => r.mutation !== mustKeep);
+    const removeIdx = removableIdx >= 0 ? removableIdx : fallbackIdx;
+    if (removeIdx < 0) break;
+    trimmed.splice(removeIdx, 1);
+  }
+
+  return trimmed;
+}
+
+function findLastIndex<T>(items: T[], predicate: (item: T) => boolean): number {
+  for (let i = items.length - 1; i >= 0; i -= 1) {
+    if (predicate(items[i]!)) return i;
+  }
+  return -1;
+}
+
+export function removeDesignResultState(params: {
+  mutation: string;
+  reason: string;
+  designResults: SdmPrimerResult[];
+  failedMutations: FailedMutation[];
+  successCount: number;
+  rescuedMutations: string[];
+  wellName: (idx: number) => string;
+}) {
+  const {
+    mutation,
+    reason,
+    designResults,
+    failedMutations,
+    successCount,
+    rescuedMutations,
+    wellName,
+  } = params;
+
+  const removed = designResults.find((r) => r.mutation === mutation);
+  if (!removed) return null;
+
+  const newDesignResults = designResults.filter((r) => r.mutation !== mutation);
+
+  const restoredRank = failedMutations.length > 0
+    ? Math.max(...failedMutations.map((f) => f.rank)) + 1
+    : newDesignResults.length + 1;
+  const plateState = buildIncludedPlateState({
+    designResults: newDesignResults,
+    wellName,
+  });
+
+  return {
+    backendDesignStateSynced: false,
+    designResults: newDesignResults,
+    failedMutations: [
+      ...failedMutations,
+      { mutation, rank: restoredRank, reason },
+    ],
+    successCount: Math.max(0, successCount - 1),
+    plateMappings: plateState.plateMappings,
+    dedupInfo: plateState.dedupInfo,
+    rescuedMutations: rescuedMutations.filter((m) => m !== mutation),
+  };
+}

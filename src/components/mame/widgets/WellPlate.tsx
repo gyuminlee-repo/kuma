@@ -1,0 +1,226 @@
+import { useTranslation } from "react-i18next";
+import { cn } from "@/lib/utils";
+import { VERDICT_FILL, DETECTED_VERDICTS } from "@/lib/mame/verdictColors";
+import { nbLabel } from "@/lib/mame/nbLabel";
+import { collapseWells } from "@/lib/mame/plateWells";
+import type { WellEntry, VerdictClass } from "@/types/mame/models";
+
+const ROWS = ["A", "B", "C", "D", "E", "F", "G", "H"] as const;
+const COLS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
+
+// Shared single source of truth so the grid and the verdict-breakdown chart
+// render each verdict in the same colour. See src/lib/mame/verdictColors.ts.
+const verdictFill: Record<VerdictClass, { bg: string; text: string; border: string }> =
+  VERDICT_FILL;
+
+const emptyFill = { bg: "#F1F3F5", text: "#C1C8D0", border: "#DDE1E7" };
+
+const cbPatterns: Partial<Record<VerdictClass, string>> = {
+  PASS: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Cline x1='0' y1='6' x2='6' y2='0' stroke='rgba(255,255,255,0.20)' stroke-width='1'/%3E%3C/svg%3E")`,
+  AMBIGUOUS: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Ccircle cx='3' cy='3' r='1' fill='rgba(0,0,0,0.15)'/%3E%3C/svg%3E")`,
+  WRONG_AA: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Cline x1='0' y1='0' x2='6' y2='6' stroke='rgba(255,255,255,0.20)' stroke-width='1'/%3E%3Cline x1='0' y1='6' x2='6' y2='0' stroke='rgba(255,255,255,0.20)' stroke-width='1'/%3E%3C/svg%3E")`,
+  FRAMESHIFT: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect x='0' y='0' width='2' height='2' fill='rgba(255,255,255,0.18)'/%3E%3C/svg%3E")`,
+  MANY: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Cline x1='3' y1='0' x2='3' y2='6' stroke='rgba(255,255,255,0.20)' stroke-width='1'/%3E%3C/svg%3E")`,
+};
+
+// 38px is the measured minimum well width at which a 6-character mutant_id
+// (e.g. "S1234T") fits on one line at 10px/font-weight 500 (Edge canvas
+// measureText). At the previous 34px, 5-char labels split inconsistently
+// by content, not length: "R560E" fit but "R560Q" was clipped down to the
+// shared "R560" prefix, cutting off the distinguishing character (the
+// same failure v0.16.14 fixed for WellSelectionPanel.tsx). The plate grid
+// already scrolls horizontally (overflow-x-auto below), so the extra width
+// deepens an existing scroll region instead of creating a new one.
+const plateGridTemplate = "24px repeat(12, minmax(38px, 1fr))";
+const plateGridGap = "4px";
+
+/** Plate badge text from a native barcode: "sort_barcode06" → "NB06".
+ *  Empty barcode → null (no badge). */
+function getPlateBadge(nativeBarcode: string): string | null {
+  return nativeBarcode ? nbLabel(nativeBarcode) : null;
+}
+
+/** Color override: { bg, text, border } hex strings. null/undefined = use verdict default. */
+export type WellColorOverride = { bg: string; text: string; border: string };
+
+interface WellPlateProps {
+  wells: WellEntry[];
+  onWellClick?: (well: WellEntry) => void;
+  selectedWellId?: string;
+  colorblindMode?: boolean;
+  /** Optional callback to override per-well fill colors. Default = verdict-mode. */
+  wellColorOf?: (well: WellEntry) => WellColorOverride | null;
+  /** When true for a well, render it dimmed (lower opacity) while keeping its
+   *  verdict color — used for legend-class filtering highlight. */
+  dimmedOf?: (well: WellEntry) => boolean;
+}
+
+export function WellPlate({
+  wells,
+  onWellClick,
+  selectedWellId,
+  colorblindMode = false,
+  wellColorOf,
+  dimmedOf,
+}: WellPlateProps) {
+  const { t } = useTranslation();
+  // Collapse to one record per well position (shared helper): prefer the
+  // selected (winning) replicate, else last-seen. Without this, combinatorial
+  // runs (many replicates per well) showed a single native barcode per cell.
+  const wellMap = new Map(collapseWells(wells).map((w) => [w.well, w] as const));
+
+  return (
+    <div className="well-plate-grid w-full overflow-x-auto rounded-container border border-border/70 bg-card p-2.5" role="grid" aria-label={t("wellPlate.gridAriaLabel")}>
+      <div
+        className="grid items-center text-center"
+        style={{ gridTemplateColumns: plateGridTemplate, gap: plateGridGap }}
+      >
+        <div className="font-display text-caption uppercase tracking-widest text-muted-foreground" aria-hidden="true">
+          R
+        </div>
+        {COLS.map((col) => (
+          <div
+            key={col}
+            className="rounded-full bg-muted/55 py-1 text-center text-caption font-semibold text-muted-foreground"
+            aria-label={t("wellPlate.columnAriaLabel", { col })}
+          >
+            {col}
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-1.5 space-y-1" role="rowgroup">
+        {ROWS.map((row) => (
+          <div
+            key={row}
+            className="grid items-center"
+            style={{ gridTemplateColumns: plateGridTemplate, gap: plateGridGap }}
+            role="row"
+          >
+            <div
+              className="font-display text-center text-caption font-semibold text-muted-foreground"
+              aria-label={t("wellPlate.rowAriaLabel", { row })}
+              role="rowheader"
+            >
+              {row}
+            </div>
+
+            {COLS.map((col) => {
+              const id = `${row}${col}`;
+              const well = wellMap.get(id);
+              const isFocused = selectedWellId === id;
+              // NB badge only on detected (non-fail) wells: PASS/AMBIGUOUS.
+              // Fail wells (WRONG_AA/MANY/MIXED/FRAMESHIFT/LOWDEPTH/NO_CALL)
+              // have no meaningful "chosen replicate", so the NB is just noise.
+              const plate =
+                well && DETECTED_VERDICTS.includes(well.verdict)
+                  ? getPlateBadge(well.native_barcode)
+                  : null;
+              const fill = well
+                ? (wellColorOf?.(well) ?? verdictFill[well.verdict])
+                : emptyFill;
+              const pattern = colorblindMode && well ? cbPatterns[well.verdict] : undefined;
+              const isFallback = well?.is_fallback ?? false;
+              const isDimmed = well ? (dimmedOf?.(well) ?? false) : false;
+
+              return (
+                <div
+                  key={id}
+                  role="gridcell"
+                  aria-label={`Well ${id}${well ? `: ${well.verdict}${isFallback ? " (fallback)" : ""}` : " empty"}`}
+                >
+                  <button
+                    type="button"
+                    disabled={!well}
+                    onClick={() => well && onWellClick?.(well)}
+                    aria-pressed={isFocused}
+                    title={well?.mutant_id || undefined}
+                    className={cn(
+                      "well-button relative flex aspect-square w-full flex-col items-stretch justify-between overflow-hidden rounded-md border text-center shadow-sm",
+                      "font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
+                      !well && "cursor-default",
+                      well?.selected && "shadow-md",
+                    )}
+                    style={{
+                      // Focus/selection border is expressed here via borderColor/borderWidth,
+                      // not a CSS class. Do not reintroduce a "selected" utility class.
+                      backgroundColor: fill.bg,
+                      color: fill.text,
+                      borderColor: isFocused ? "hsl(var(--ring))" : fill.border,
+                      borderWidth: isFocused ? "2px" : "1px",
+                      backgroundImage: pattern,
+                      opacity: isDimmed ? 0.3 : undefined,
+                    }}
+                  >
+                    {well && (
+                      <span
+                        className="min-w-0 flex-1 break-all leading-tight opacity-85"
+                        title={well.mutant_id || undefined}
+                      >
+                        {well.mutant_id || "-"}
+                      </span>
+                    )}
+                    {/* Badge row at bottom (flex, no absolute positioning) */}
+                    {(well?.selected || isFallback || plate) && (
+                      <div className="flex h-[1.4em] w-full items-center justify-between gap-0.5 px-0.5">
+                        <div className="flex items-center gap-0.5">
+                          {well?.selected && (
+                            <span
+                              className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-card"
+                              aria-label={t("wellPlate.pick")}
+                              title={t("wellPlate.pick")}
+                            />
+                          )}
+                          {isFallback && (
+                            <span
+                              className="inline-flex shrink-0 items-center justify-center rounded-full bg-warning/80 p-[1px]"
+                              aria-hidden="true"
+                              title={t("wellPlate.fallbackReplicateTitle")}
+                            >
+                              <svg
+                                width="7"
+                                height="7"
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                                aria-hidden="true"
+                              >
+                                <path
+                                  d="M8 2L14.928 14H1.072L8 2Z"
+                                  fill="currentColor"
+                                  className="text-warning-foreground"
+                                />
+                                <path d="M8 6v4M8 11v1" stroke="hsl(var(--warning-foreground, 0 0% 10%))" strokeWidth="1.5" strokeLinecap="round" />
+                              </svg>
+                            </span>
+                          )}
+                        </div>
+                        {plate && (
+                          <span
+                            className={cn(
+                              "shrink-0 rounded-full px-1 text-[0.9em] font-bold leading-none",
+                              well?.selected && "font-extrabold ring-1 ring-white/70",
+                            )}
+                            style={{
+                              backgroundColor: well?.selected
+                                ? "rgba(0,0,0,0.55)"
+                                : "rgba(0,0,0,0.3)",
+                              color: fill.text,
+                            }}
+                            aria-hidden="true"
+                          >
+                            {plate}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

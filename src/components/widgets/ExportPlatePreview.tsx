@@ -1,0 +1,375 @@
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
+import { useShallow } from "zustand/react/shallow";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { StateView } from "@/components/ui/StateView";
+import { sendRequest } from "@/lib/ipc-kuro";
+import {
+  adaptEchoRows,
+  adaptJanusRows,
+  adaptDestCellsEcho,
+  adaptDestCellsJanus,
+  type EchoCell,
+  type JanusCell,
+  type DestCell,
+} from "@/lib/echoJanusAdapter";
+import { EchoPlateView } from "./EchoPlateView";
+import { JanusPlateView } from "./JanusPlateView";
+import { DestPlateView } from "./DestPlateView";
+import { PlateLegendsPanel } from "./PlateLegendsPanel";
+import { useAppStore } from "@/store/appStore";
+import { getSortedMutations, reorderMappings } from "@/lib/plate-utils";
+import {
+  echoPlacementIssue,
+  otherQuadrants,
+  quadrantFirstColumn,
+  quadrantsFilledAfterRun,
+  ECHO_QUADRANTS,
+} from "@/lib/echoQuadrant";
+import { PLATE_FILL_RESERVED } from "@/lib/platePreviewStyles";
+import type { EchoQuadrant } from "@/types/models";
+import { useExportRounds } from "@/hooks/useExportRounds";
+import { pickAt, usedBeforeRound } from "@/lib/plateRounds";
+
+// The two dry-run result shapes used to be declared here and asserted onto the
+// raw transport reply. They now come from RpcMethodMap via sendRequest, which
+// checks them against src/types/validators.ts before handing them back, so a
+// local restatement would be a second source of truth for the same contract.
+
+type View = "echo" | "janus";
+
+/**
+ * Caption that makes the Echo grid explain itself: which column parity this
+ * run fills, how much of the plate that leaves, and why the columns in
+ * between are empty.
+ *
+ * The grid reads as "primers placed every other column" and the question it
+ * draws is why they are not one contiguous block. They cannot be: a 96-head
+ * on a 9 mm pitch over a 4.5 mm plate reaches every other column in one stamp
+ * (kuma_core/kuro/plate_quadrant.py). The picker in ExportFormatSelector says
+ * this at the point of choosing; this says it at the point of looking, which
+ * is where the layout is actually seen.
+ *
+ * A run spends one round, so progress is stated as rounds filled out of two
+ * rather than as a batch ordinal the mapper does not have.
+ */
+function EchoQuadrantNote({
+  quadrant,
+  usedQuadrants,
+}: {
+  quadrant: EchoQuadrant | null;
+  usedQuadrants: EchoQuadrant[];
+}) {
+  const { t } = useTranslation();
+
+  if (quadrant === null) {
+    return (
+      <p data-testid="echo-quadrant-note" className="text-caption text-muted-foreground">
+        {t("exportPreview.quadrantNoneNote")}
+      </p>
+    );
+  }
+
+  const others = otherQuadrants(quadrant).join(", ");
+  return (
+    <div data-testid="echo-quadrant-note" className="space-y-1">
+      <p className="text-sm font-medium text-foreground">
+        {t("exportPreview.quadrantBatch", {
+          round: quadrant,
+          first: quadrantFirstColumn(quadrant),
+        })}
+      </p>
+      <p data-testid="echo-quadrant-progress" className="text-caption text-muted-foreground">
+        {t("exportPreview.quadrantProgress", {
+          filled: quadrantsFilledAfterRun(quadrant, usedQuadrants),
+          total: ECHO_QUADRANTS.length,
+        })}
+      </p>
+      <p className="text-caption text-muted-foreground">
+        {t("exportPreview.quadrantInterleaveNote", { others })}
+      </p>
+      {usedQuadrants.length > 0 ? (
+        <p data-testid="echo-quadrant-used" className="text-caption text-muted-foreground">
+          {t("exportPreview.quadrantUsedNote", { list: usedQuadrants.join(", ") })}
+        </p>
+      ) : null}
+      {/* Swatches name the two empty-well shapes the grid draws. Outline style
+          carries the split as well as the fill does, so the distinction does
+          not rest on colour alone. */}
+      <div className="flex flex-wrap gap-3 pt-0.5">
+        <span className="flex items-center gap-2 text-caption text-muted-foreground">
+          <span className="w-5 h-3 rounded-sm border border-border/50 bg-background" />
+          {t("exportPreview.quadrantLegendFree")}
+        </span>
+        <span className="flex items-center gap-2 text-caption text-muted-foreground">
+          <span className={`w-5 h-3 rounded-sm border ${PLATE_FILL_RESERVED}`} />
+          {t("exportPreview.quadrantLegendReserved", { others })}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * ExportPlatePreview
+ *
+ * Container widget that fetches Echo + JANUS mapping dry-run rows from the
+ * Kuro sidecar on mount, adapts them via echoJanusAdapter, and renders the
+ * 384-well Echo plate or 96-well JANUS racks under a Tabs switcher. Echo
+ * and JANUS are mutually exclusive views (never rendered simultaneously).
+ *
+ * Source-plate placement is chosen by the round picker rendered beneath this
+ * preview: a round fills one column parity, which is what a 96-head stamp can
+ * reach (kuma_core/kuro/plate_quadrant.py).
+ * A row-band picker used to sit here as well; it fed ``mapping_range``,
+ * which the mapper wraps modulo the band width, so every band it could
+ * express other than the full plate stacked different mutants onto one well
+ * (and quadrant outranked it on the backend regardless).
+ *
+ * Note: the design plan referenced a shadcn ToggleGroup primitive. That
+ * primitive is not installed in this repo; the Tabs primitive
+ * (`@/components/ui/tabs`) is semantically equivalent (single-select,
+ * exclusive content, ARIA-correct) and avoids adding a new dependency.
+ */
+export function ExportPlatePreview() {
+  const { t } = useTranslation();
+  const [view, setView] = useState<View>("echo");
+  const [echo, setEcho] = useState<EchoCell[]>([]);
+  const [echoDest, setEchoDest] = useState<DestCell[]>([]);
+  const [janus, setJanus] = useState<{ rack1: JanusCell[]; rack2: JanusCell[] }>({
+    rack1: [],
+    rack2: [],
+  });
+  const [janusDest, setJanusDest] = useState<DestCell[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { designResults, plateMappings, dedupInfo, tableSorting, yPredMap, customCandidates, echoTransferVol, janusTransferVol, echoQuadrant, echoUsedQuadrants } = useAppStore(
+    useShallow((s) => ({
+      designResults: s.designResults,
+      plateMappings: s.plateMappings,
+      dedupInfo: s.dedupInfo,
+      tableSorting: s.tableSorting,
+      yPredMap: s.yPredMap,
+      customCandidates: s.customCandidates,
+      echoTransferVol: s.echoTransferVol,
+      janusTransferVol: s.janusTransferVol,
+      // This preview renders below the quadrant selector in ExportStepView, so
+      // an operator picks a quadrant and then checks it against the plate drawn
+      // here. Until the selection reached the RPC, that check was against wells
+      // the exported csv would not use.
+      echoQuadrant: s.echoQuadrant,
+      echoUsedQuadrants: s.echoUsedQuadrants,
+    })),
+  );
+
+  // Past one plate the preview shows one export round at a time, the same
+  // split and the same per-round parity the export sends. Sending all of them
+  // at once would preview P2- wells, or two rounds stacked on A1..H12.
+  const { roundMode, rounds, picks: echoRoundPicks } = useExportRounds();
+  const [roundIndex, setRoundIndex] = useState(0);
+  const shownRound = roundMode ? rounds[Math.min(roundIndex, rounds.length - 1)] : undefined;
+  const shownIndex = shownRound ? rounds.indexOf(shownRound) : -1;
+
+  const unsplitMappings = useMemo(() => {
+    const sortedMuts = getSortedMutations(designResults, tableSorting, { yPredMap, customCandidates });
+    return reorderMappings(plateMappings, dedupInfo, sortedMuts);
+  }, [designResults, tableSorting, yPredMap, customCandidates, plateMappings, dedupInfo]);
+  const sortedMappings = shownRound ? shownRound.mappings : unsplitMappings;
+  const previewDedup = shownRound ? shownRound.dedupInfo : dedupInfo;
+  const shownPick = shownRound ? pickAt(echoRoundPicks, shownIndex) : undefined;
+  const previewQuadrant: EchoQuadrant | null = shownPick ? shownPick.quadrant : echoQuadrant;
+  const previewPlate: number | null = shownPick ? shownPick.plate : null;
+  const previewUsed = useMemo(
+    () =>
+      shownRound
+        ? usedBeforeRound(echoRoundPicks, shownIndex, echoUsedQuadrants)
+        : echoUsedQuadrants,
+    [shownRound, echoRoundPicks, shownIndex, echoUsedQuadrants],
+  );
+
+  // 사이드카가 거부하는 조합은 보내지 않는다. 보내면 catch 가 그 영어 문장을
+  // 그대로 화면에 올리고, preview 전체가 오류 상태가 된다. 거부 사유는 Echo
+  // 배치뿐이므로 JANUS 쪽 dry-run 은 그대로 돈다. 라운드는 패리티를 고르기 전에는
+  // 배치가 정해지지 않았으므로 같은 방식으로 Echo 요청을 보내지 않는다.
+  const placementIssue = echoPlacementIssue(previewQuadrant, previewUsed);
+  const roundUnpicked =
+    shownRound !== undefined && (previewQuadrant === null || previewPlate === null);
+  const echoBlocked = placementIssue !== null || roundUnpicked;
+
+  const load = useCallback(async (): Promise<void> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const echoParams = {
+        mappings: sortedMappings,
+        dedup_info: previewDedup,
+        transfer_vol: echoTransferVol,
+        // Echo only. quadrant outranks mapping_range on the backend, so both
+        // are sent and the sidecar decides, exactly as the export does.
+        quadrant: previewQuadrant,
+        used_quadrants: previewUsed,
+        source_plate: previewPlate,
+      };
+      const janusParams = {
+        mappings: sortedMappings,
+        dedup_info: previewDedup,
+        transfer_vol: janusTransferVol,
+      };
+      const [e, j] = await Promise.all([
+        !echoBlocked
+          ? sendRequest("export_echo_mapping_dry_run", echoParams)
+          : undefined,
+        sendRequest("export_janus_mapping_dry_run", janusParams),
+      ]);
+      const echoRows = e?.rows ?? [];
+      const janusRows = j?.rows ?? [];
+      // Direction is 384 row parity in either round, so the adapters do not
+      // need to be told which round this run took.
+      setEcho(adaptEchoRows(echoRows));
+      setEchoDest(adaptDestCellsEcho(echoRows));
+      setJanus(adaptJanusRows(janusRows));
+      setJanusDest(adaptDestCellsJanus(janusRows));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
+  }, [sortedMappings, previewDedup, echoTransferVol, janusTransferVol, previewQuadrant, previewPlate, previewUsed, echoBlocked]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  // Loading/empty/error go through StateView like the app's other data
+  // surfaces (PlateMap, ResultTable, VerdictTable, SequenceViewer), which is
+  // also where role="alert" and aria-live come from: the hand-rolled versions
+  // announced nothing when a retry failed again.
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="p-0">
+          <StateView
+            variant="error"
+            title={t("exportPreview.errorTitle")}
+            description={error}
+            action={{ label: t("common.retry"), onClick: () => void load() }}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="p-0">
+          <StateView variant="loading" title={t("exportPreview.loading")} />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // A refused placement leaves the Echo grid empty because the request was
+  // never made, which is not the same thing as having nothing to preview. The
+  // empty state would say "design primers first" to an operator whose primers
+  // are designed, so the tabs stay up and the notice below says what to fix.
+  if (
+    !echoBlocked &&
+    echo.length === 0 &&
+    janus.rack1.length === 0 &&
+    janus.rack2.length === 0
+  ) {
+    return (
+      <Card>
+        <CardContent className="p-0">
+          <StateView variant="empty" title={t("exportPreview.empty")} />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t("exportPreview.title")}</CardTitle>
+        <CardDescription>{t("exportPreview.subtitle")}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {roundMode && rounds.length > 1 ? (
+          <Tabs
+            value={String(shownIndex)}
+            onValueChange={(v) => setRoundIndex(Number(v))}
+          >
+            <TabsList>
+              {rounds.map((round, index) => (
+                <TabsTrigger key={round.label} value={String(index)}>
+                  {t("phaseC.export.all.rounds.label", {
+                    round: index + 1,
+                    from: round.from,
+                    to: round.to,
+                  })}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        ) : null}
+        <PlateLegendsPanel />
+        <Tabs value={view} onValueChange={(v) => setView(v as View)}>
+          <TabsList>
+            <TabsTrigger value="echo">{t("exportPreview.echoTab")}</TabsTrigger>
+            <TabsTrigger value="janus">{t("exportPreview.janusTab")}</TabsTrigger>
+          </TabsList>
+          <TabsContent value="echo">
+            <div className="space-y-3">
+              {/* Both grids carry a caption at the JANUS rack-label level, so
+                  the two stacked plates in this tab say which is which. */}
+              {placementIssue !== null ? (
+                <p
+                  role="status"
+                  data-testid="echo-placement-blocked"
+                  className="rounded-md border border-warning/40 bg-warning/10 p-2 text-caption text-foreground"
+                >
+                  {t(`phaseC.export.all.placementBlocked.${placementIssue}`)}
+                </p>
+              ) : roundUnpicked ? (
+                <p
+                  role="status"
+                  data-testid="echo-round-unpicked"
+                  className="rounded-md border border-warning/40 bg-warning/10 p-2 text-caption text-foreground"
+                >
+                  {t(
+                    previewPlate === null
+                      ? "phaseC.export.all.rounds.choosePlate"
+                      : "phaseC.export.all.rounds.chooseFirst",
+                  )}
+                </p>
+              ) : null}
+              <EchoQuadrantNote quadrant={previewQuadrant} usedQuadrants={previewUsed} />
+              <EchoPlateView
+                cells={echo}
+                title={t("exportPreview.echoSourcePlateLabel")}
+                quadrant={previewQuadrant}
+              />
+              <DestPlateView
+                cells={echoDest}
+                sourceMethod="echo"
+                title={t("exportPreview.destPlateLabel")}
+              />
+            </div>
+          </TabsContent>
+          <TabsContent value="janus">
+            <div className="space-y-3">
+              <JanusPlateView rack1={janus.rack1} rack2={janus.rack2} />
+              <DestPlateView
+                cells={janusDest}
+                sourceMethod="janus"
+                title={t("exportPreview.destPlateLabel")}
+              />
+            </div>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
+  );
+}

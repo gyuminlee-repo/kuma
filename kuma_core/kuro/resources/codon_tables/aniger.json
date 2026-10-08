@@ -1,0 +1,33 @@
+{
+  "name": "Aspergillus niger",
+  "taxid": 5061,
+  "source": "NCBI RefSeq. The record names no strain (no infraspecific_names.strain, tax_id 5061 at species level, checked 2026-09-30), so strain is null; ASM285v2 is the CBS 513.88 sequencing by lineage, which its An09g-style locus tags show.",
+  "assembly": "GCF_000002855.4_ASM285v2",
+  "strain": null,
+  "n_cds": 13503,
+  "transl_table": 1,
+  "source_release": "2025-02-21",
+  "codons": {
+    "A": [["GCC", 0.32], ["GCT", 0.26], ["GCA", 0.21], ["GCG", 0.21]],
+    "R": [["CGC", 0.25], ["CGG", 0.18], ["CGT", 0.16], ["CGA", 0.15], ["AGA", 0.13], ["AGG", 0.12]],
+    "N": [["AAC", 0.58], ["AAT", 0.42]],
+    "D": [["GAT", 0.51], ["GAC", 0.49]],
+    "C": [["TGC", 0.59], ["TGT", 0.41]],
+    "Q": [["CAG", 0.60], ["CAA", 0.40]],
+    "E": [["GAG", 0.58], ["GAA", 0.42]],
+    "G": [["GGC", 0.33], ["GGT", 0.25], ["GGA", 0.24], ["GGG", 0.19]],
+    "H": [["CAC", 0.51], ["CAT", 0.49]],
+    "I": [["ATC", 0.52], ["ATT", 0.34], ["ATA", 0.14]],
+    "L": [["CTG", 0.25], ["CTC", 0.24], ["TTG", 0.18], ["CTT", 0.17], ["CTA", 0.10], ["TTA", 0.06]],
+    "K": [["AAG", 0.67], ["AAA", 0.33]],
+    "M": [["ATG", 1.00]],
+    "F": [["TTC", 0.65], ["TTT", 0.35]],
+    "P": [["CCC", 0.29], ["CCT", 0.25], ["CCG", 0.24], ["CCA", 0.22]],
+    "S": [["TCC", 0.23], ["AGC", 0.18], ["TCT", 0.17], ["TCG", 0.17], ["TCA", 0.13], ["AGT", 0.13]],
+    "T": [["ACC", 0.35], ["ACT", 0.23], ["ACG", 0.22], ["ACA", 0.21]],
+    "W": [["TGG", 1.00]],
+    "Y": [["TAC", 0.58], ["TAT", 0.42]],
+    "V": [["GTC", 0.35], ["GTG", 0.30], ["GTT", 0.24], ["GTA", 0.11]],
+    "*": [["TGA", 0.41], ["TAG", 0.32], ["TAA", 0.28]]
+  }
+}

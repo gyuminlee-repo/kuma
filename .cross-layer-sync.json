@@ -1,0 +1,1514 @@
+{
+  "checks": [
+    {
+      "id": "version-sync",
+      "type": "version_sync",
+      "files": [
+        {
+          "path": "package.json",
+          "extract": "json:version"
+        },
+        {
+          "path": "src-tauri/tauri.conf.json",
+          "extract": "json:version"
+        },
+        {
+          "path": "src-tauri/Cargo.toml",
+          "extract": "regex:^version\\s*=\\s*\"([^\"]+)\""
+        },
+        {
+          "path": "pyproject.toml",
+          "extract": "regex:^version\\s*=\\s*\"([^\"]+)\""
+        },
+        {
+          "path": "src-tauri/Cargo.lock",
+          "extract": "regex:^name = \"kuma\"\\nversion = \"([^\"]+)\""
+        },
+        {
+          "path": "kuma_core/shared/version.py",
+          "extract": "regex:^KUMA_VERSION = \"([^\"]+)\""
+        }
+      ]
+    },
+    {
+      "id": "run-manifest-schema-version",
+      "type": "version_sync",
+      "files": [
+        {
+          "path": "kuma_core/shared/run_manifest.py",
+          "extract": "regex:^SCHEMA_VERSION = \"([^\"]+)\""
+        },
+        {
+          "path": "src/lib/runManifest.ts",
+          "extract": "regex:^export const SCHEMA_VERSION = \"([^\"]+)\""
+        }
+      ]
+    },
+    {
+      "id": "tauri-resource-paths",
+      "type": "command",
+      "run": "node scripts/sync-check-resources.mjs",
+      "label": "bundle.resources source paths are non-empty strings"
+    },
+    {
+      "id": "tauri-resources",
+      "type": "files_exist",
+      "manifest": "src-tauri/tauri.conf.json",
+      "extract": "json:bundle.resources",
+      "base": "src-tauri"
+    },
+    {
+      "id": "kuro-dispatcher",
+      "type": "registry_match",
+      "left": {
+        "path": "python-core/sidecar_kuro/dispatcher.py",
+        "extract": "python_dict_keys:_METHODS"
+      },
+      "right": {
+        "path": "src/types/models.ts",
+        "extract": "ts_interface_keys:RpcMethodMap"
+      },
+      "comment": "health_info was excluded while it had no RpcMethodMap entry and reached the sidecar through the raw transport. It is now a table method like any other, so the check enforces it. ping and shutdown stay excluded: they are lifecycle calls owned by spawnSidecar/killSidecar inside the ipc clients and never reach sendRequest.",
+      "exclude": [
+        "ping",
+        "shutdown"
+      ]
+    },
+    {
+      "id": "generated-models",
+      "type": "command",
+      "run": "node scripts/gen-models.mjs --check",
+      "label": "src/types/models.generated.ts up to date"
+    },
+    {
+      "id": "janus-defaults",
+      "type": "command",
+      "run": "node scripts/sync-check-janus-defaults.mjs",
+      "label": "DEFAULT_JANUS_SETTINGS matches JanusSettings() defaults"
+    },
+    {
+      "id": "mame-activity-csv-schema",
+      "type": "command",
+      "run": "node scripts/sync-check-mame-activity-schema.mjs",
+      "label": "MAME_ACTIVITY_CSV_SCHEMA matches ingest_long_csv column aliases"
+    },
+    {
+      "id": "mame-extensions",
+      "type": "command",
+      "run": "node scripts/sync-check-mame-extensions.mjs",
+      "label": "MAME input extension sets match sidecar_mame.core"
+    }
+  ],
+  "genModels": [
+    {
+      "module": "sidecar_kuro.models",
+      "pythonPath": "python-core",
+      "output": "src/types/models.generated.ts"
+    }
+  ],
+  "groups": [
+    {
+      "id": "kuro-autosave-results-restore",
+      "files": [
+        "src/lib/kuroSnapshot.ts",
+        "src/hooks/useAutosaveHydration.ts",
+        "src/lib/kuroResultReset.ts"
+      ],
+      "symbols": [
+        "KURO_SCHEMA",
+        "buildKuroSnapshot",
+        "applyKuroSnapshot",
+        "discardResultsIfVariantsDiverged",
+        "buildKuroResultResetPatch"
+      ],
+      "note": "kuroSnapshot의 results 블록 필드 목록, useAutosaveHydration의 복원/divergence 판정, kuroResultReset의 초기화 패치는 1:1로 맞아야 한다. schema 4에서 poolVariants를 results에 추가하고 divergence 판정을 mutation_text 집합 비교로 교체했다(2026-08-03).",
+      "severity": "warning"
+    },
+    {
+      "id": "workspace-artifact-registry",
+      "files": [
+        "src/lib/workspace/types.ts",
+        "src/lib/workspace/api.ts",
+        "src/store/slices/exportSlice.ts",
+        "src/store/mame/slices/exportSlice.ts",
+        "src/store/mame/resetAll.ts"
+      ],
+      "symbols": [
+        "registerArtifacts",
+        "ArtifactType",
+        "AppId",
+        "clearWorkspace"
+      ],
+      "note": "Export slices register artifacts via registerArtifacts(ArtifactType). Clear flows call clearWorkspace(AppId).",
+      "severity": "warning"
+    },
+    {
+      "id": "evolvepro-columns",
+      "files": [
+        "kuma_core/kuro/evolvepro.py",
+        "fixtures/*.csv"
+      ],
+      "symbols": [
+        "VARIANT_COLUMNS",
+        "SCORE_COLUMNS"
+      ],
+      "note": "evolvepro.py VARIANT_COLUMNS/SCORE_COLUMNS ↔ fixtures CSV 컬럼명 일치",
+      "severity": "blocking"
+    },
+    {
+      "id": "evolvepro-fixture-regen",
+      "files": [
+        "kuma_core/kuro/evolvepro.py",
+        "python-core/sidecar_kuro/models.py",
+        "fixtures/generate_sample_data.py"
+      ],
+      "note": "evolvepro 모델 변경 시 fixtures/generate_sample_data.py 재실행 필요",
+      "severity": "warning"
+    },
+    {
+      "id": "kuro-models-ts-py",
+      "files": [
+        "src/types/models.ts",
+        "python-core/sidecar_kuro/models.py"
+      ],
+      "note": "TS interfaces ↔ Pydantic models 동기화",
+      "severity": "blocking"
+    },
+    {
+      "id": "kuro-sequence-domain-rpc",
+      "files": [
+        "kuma_core/kuro/domains.py",
+        "python-core/sidecar_kuro/handlers/external.py",
+        "python-core/sidecar_kuro/models.py",
+        "python-core/sidecar_kuro/dispatcher.py",
+        "src/types/models.ts",
+        "src/types/validators.ts",
+        "src/store/slices/diversitySlice.ts",
+        "src/components/panels/InputPanel/UniprotSearch.tsx"
+      ],
+      "symbols": [
+        "annotate_domains_by_sequence",
+        "AnnotateDomainsBySequenceParams",
+        "AnnotateDomainsResult",
+        "refDomains"
+      ],
+      "note": "InterProScan sequence-domain RPC, typed guard, reference-frame state, and UI must remain synchronized.",
+      "severity": "blocking"
+    },
+    {
+      "id": "tauri-samples",
+      "files": [
+        "src-tauri/samples",
+        "src-tauri/tauri.conf.json"
+      ],
+      "note": "src-tauri/samples/ 신규 파일은 tauri.conf.json resources에 명시 매핑 추가 (glob 금지)",
+      "severity": "blocking"
+    },
+    {
+      "id": "kuro-sample-data",
+      "files": [
+        "src/store/slices/inputSlice.ts",
+        "src-tauri/samples"
+      ],
+      "symbols": [
+        "loadSampleData"
+      ],
+      "note": "inputSlice loadSampleData가 참조하는 src-tauri/samples/ 파일 존재 확인",
+      "severity": "blocking"
+    },
+    {
+      "id": "kuro-rescue-constants",
+      "files": [
+        "python-core/sidecar_kuro/handlers/design.py",
+        "kuma_core/kuro/sdm_engine.py"
+      ],
+      "symbols": [
+        "_DEFAULT_TOL_MAX",
+        "tol_max"
+      ],
+      "note": "rescue 상수 _DEFAULT_TOL_MAX는 design_single_sdm() 기본 tol_max와 일치",
+      "severity": "blocking"
+    },
+    {
+      "id": "kuro-excluded-ranges",
+      "files": [
+        "src/store/slices/inputSlice.ts",
+        "python-core/sidecar_kuro/models.py",
+        "kuma_core/kuro/evolvepro.py"
+      ],
+      "symbols": [
+        "excluded_ranges",
+        "ExcludedRange"
+      ],
+      "note": "excluded_ranges 파라미터 + ExcludedRange Pydantic 모델 + evolvepro param 동기화",
+      "severity": "blocking"
+    },
+    {
+      "id": "kuro-rescue-stats",
+      "files": [
+        "src/types/models.ts",
+        "python-core/sidecar_kuro/handlers/design.py"
+      ],
+      "symbols": [
+        "RescueStats",
+        "RescuedMutation",
+        "rescue_stats",
+        "rescued_info"
+      ],
+      "note": "design handler 응답 dict 키 ↔ TS RescueStats/RescuedMutation",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-activity-models",
+      "files": [
+        "src/types/mame/activity.ts",
+        "kuma_core/mame/activity/models.py"
+      ],
+      "symbols": [
+        "ActivityRecord",
+        "MergedRow",
+        "MergeStats",
+        "PlateMeta"
+      ],
+      "note": "MAME activity TS interfaces ↔ Pydantic models",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-round",
+      "files": [
+        "src/types/round.ts",
+        "kuma_core/mame/activity/round.py"
+      ],
+      "symbols": [
+        "Round"
+      ],
+      "note": "Round TS interface ↔ Pydantic Round (status enum, field names)",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-activity-fixtures",
+      "files": [
+        "fixtures/activity_demo/generate.py",
+        "kuma_core/mame/activity/models.py"
+      ],
+      "symbols": [
+        "ActivityRecord"
+      ],
+      "note": "fixtures activity_demo seed CSV 헤더 ↔ ActivityRecord 컬럼명",
+      "severity": "warning"
+    },
+    {
+      "id": "mame-activity-handlers",
+      "files": [
+        "python-core/sidecar_mame/handlers/activity.py",
+        "kuma_core/mame/activity/models.py"
+      ],
+      "note": "MAME activity RPC params ↔ activity module API (ingest_long_csv, merge_activity_with_genotype)",
+      "severity": "blocking"
+    },
+    {
+      "id": "kuro-workspace-snapshot",
+      "files": [
+        "src/store/slices/exportSlice.ts",
+        "src/types/round.ts"
+      ],
+      "symbols": [
+        "getWorkspaceSnapshot",
+        "rounds",
+        "active_round_id"
+      ],
+      "note": "Workspace snapshot에 rounds[] + active_round_id (schema_version 0.3) 포함",
+      "severity": "blocking"
+    },
+    {
+      "id": "kuro-load-round-activity",
+      "files": [
+        "src/store/slices/inputSlice.ts",
+        "kuma_core/kuro/evolvepro.py"
+      ],
+      "symbols": [
+        "loadRoundActivity",
+        "VARIANT_COLUMNS"
+      ],
+      "note": "loadRoundActivity ↔ evolvepro VARIANT_COLUMNS가 variant/y_pred/round_n 수용",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-merged-row",
+      "files": [
+        "kuma_core/mame/activity/models.py",
+        "src/types/mame/activity.ts"
+      ],
+      "symbols": [
+        "activity_merged_mean",
+        "MergedRow"
+      ],
+      "note": "MergedRow.activity_merged_mean Pydantic ↔ TS field (Phase B)",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-merge-for-evolvepro",
+      "files": [
+        "python-core/sidecar_mame/handlers/activity.py",
+        "src/types/mame/activity.ts",
+        "src/store/mame/activitySlice.ts",
+        "src/components/mame/panels/BuildEvolveproInputPanel.tsx",
+        "src/store/slices/sequenceSlice.ts"
+      ],
+      "symbols": [
+        "handle_merge_for_evolvepro",
+        "MergeForEvolveproParams",
+        "MergeForEvolveproResponse",
+        "mergeForEvolvepro",
+        "selectedGene",
+        "translation"
+      ],
+      "note": "merge_for_evolvepro handler ↔ TS params/response ↔ MAME store action ↔ selected KURO CDS translation forwarded by ActivityPanel 2026-08-05: ActivityPanel.tsx 가 삭제되고 BuildEvolveproInputPanel.tsx 가 그 흐름을 맡았다.",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-wt-merge",
+      "files": [
+        "kuma_core/mame/activity/merge.py",
+        "kuma_core/mame/activity/normalize.py",
+        "python-core/sidecar_mame/handlers/activity.py"
+      ],
+      "symbols": [
+        "merge_replicates_priority",
+        "WT_PATTERN",
+        "_is_wt_key"
+      ],
+      "note": "merge_replicates_priority + WT_PATTERN + 핸들러 _is_wt_key가 WT 키를 variant-priority merge에서 분리",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-barcode-tail",
+      "files": [
+        "kuma_core/mame/ingest/barcode_tail.py",
+        "kuma_core/mame/ingest/amplicon_reference.py",
+        "kuma_core/mame/ingest/combinatorial_demux.py"
+      ],
+      "symbols": [
+        "common_tail",
+        "common_suffix_length",
+        "MIN_TAIL_LENGTH",
+        "MIN_SEED_LENGTH"
+      ],
+      "note": "barcode annealing tail 유도 규칙 단일 정본. amplicon span 절단(amplicon_reference)과 demux seed 절단(combinatorial_demux)이 같은 common_tail + 두 하한을 공유하므로, 하한이나 유도 방식을 바꾸면 앰플리콘 추출과 seed 매칭이 함께 바뀐다. 한쪽만 고치면 같은 워크북을 두 리더가 다르게 자른다",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-combinatorial-barcode-xlsx",
+      "files": [
+        "kuma_core/mame/ingest/sort_barcode.py"
+      ],
+      "symbols": [
+        "parse_combinatorial_barcodes"
+      ],
+      "note": "parse_combinatorial_barcodes xlsx 스키마 (egfp_f_/egfp_r_ prefix) ↔ barcodes sequence.xlsx fixture 포맷",
+      "severity": "warning"
+    },
+    {
+      "id": "mame-combinatorial-demux",
+      "files": [
+        "kuma_core/mame/ingest/combinatorial_demux.py",
+        "python-core/sidecar_mame/handlers/combinatorial_demux.py",
+        "python-core/sidecar_mame/models.py",
+        "src/types/mame/combinatorial_demux.ts"
+      ],
+      "symbols": [
+        "run_combinatorial_demux",
+        "CombinatorialDemuxParams",
+        "handle_run_combinatorial_demux",
+        "CombinatorialDemuxResult"
+      ],
+      "note": "mame.run_combinatorial_demux: core func <-> Pydantic model <-> handler dict <-> TS interfaces",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-dispatcher-combinatorial-demux",
+      "files": [
+        "python-core/sidecar_mame/dispatcher.py"
+      ],
+      "symbols": [
+        "_METHODS",
+        "mame.run_combinatorial_demux"
+      ],
+      "note": "mame.run_combinatorial_demux RPC 등록 + _ASYNC_METHODS 포함 확인",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-build-well-layout",
+      "files": [
+        "kuma_core/mame/layout.py",
+        "python-core/sidecar_mame/handlers/build_well_layout.py",
+        "python-core/sidecar_mame/handlers/analyze.py",
+        "python-core/sidecar_mame/models.py",
+        "src/types/mame/well_layout.ts",
+        "src/types/mame/models.ts"
+      ],
+      "symbols": [
+        "build_draft_layout",
+        "BuildWellLayoutParams",
+        "handle_build_well_layout",
+        "BuildWellLayoutResult",
+        "dropped_mutant_ids",
+        "wt_ordinal"
+      ],
+      "note": "mame.build_well_layout: core func <-> Pydantic model <-> handler dict <-> TS interfaces. analyze.py 와 models.ts 를 2026-08-06 에 추가했다. 실제 의존은 RPC 하나가 아니라 DraftLayout 이다: analyze 는 build_draft_layout 을 같은 wt_ordinal 로 다시 부르고, dropped_mutant_ids 가 비지 않으면 demux 이전에 run 을 거부한다. 플레이트 점유량은 변이 N 이 아니라 N+1 이다(WT 도 시퀀싱 대상이고 웰 하나를 쓴다). 그래서 용량 판정은 배치 전에 N+1 로 하고, 초과하면 layout 을 통째로 비운다. wt_omitted 는 2026-08-07 에 사라졌다: WT 를 뺀 96칸 플레이트라는 상태 자체가 없어졌기 때문이다.",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-barcode-worklist",
+      "files": [
+        "kuma_core/mame/barcode_worklist.py",
+        "python-core/sidecar_mame/handlers/barcode_worklist.py",
+        "python-core/sidecar_mame/models.py",
+        "python-core/sidecar_mame/dispatcher.py",
+        "src/types/mame/barcode_worklist.ts",
+        "src/components/mame/panels/WellSelectionPanel.tsx"
+      ],
+      "symbols": [
+        "build_barcode_worklist",
+        "ExportBarcodeWorklistParams",
+        "handle_export_barcode_worklist",
+        "ExportBarcodeWorklistResult",
+        "mame.export_barcode_worklist"
+      ],
+      "note": "mame.export_barcode_worklist: core pairing <-> Pydantic model <-> handler dict <-> dispatcher entry <-> TS interfaces <-> the panel button that calls it. The pairing is NOT a second copy of the plate rule: build_barcode_worklist reads plate_geometry.DEFAULT_ADDRESSING and the token it produces, so a change to the addressing moves the sheet with it. What drifts here instead is the response shape, read byte-for-byte by the TS type and the toast strings. The handler applies the declared selection through apply_well_selection, the same call analyze makes, so a sheet written before a run and the wells that run scores cannot disagree; excluded_occupants rides along for the same reason.",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-plate-addressing",
+      "files": [
+        "kuma_core/mame/plate_geometry.py",
+        "kuma_core/mame/export/well_mapper.py",
+        "kuma_core/mame/export/nb_label.py",
+        "kuma_core/mame/export/excel_writer.py",
+        "kuma_core/mame/export/janus_mapping.py",
+        "kuma_core/mame/ingest/combinatorial_demux.py",
+        "python-core/sidecar_mame/handlers/export.py",
+        "src/lib/mame/nbLabel.ts"
+      ],
+      "symbols": [
+        "PlateAddressing",
+        "DEFAULT_ADDRESSING",
+        "token_to_seq",
+        "seq_to_well",
+        "well_sort_key",
+        "wellSortKey"
+      ],
+      "note": "(R,F) barcode token -> plate well 규칙의 단일 정본. plate_geometry.PlateAddressing 이 두 결정(row_axis: 어느 축이 행인가, traversal: column-major/row-major)을 값으로 들고 있고 DEFAULT_ADDRESSING 이 MAME 의 규약(reverse=행, 원점 A1, column-major)이다. 나머지 파일은 전부 위임한다: well_mapper 의 seq_to_well/well_to_seq, nb_label 의 well_sort_key, excel_writer/janus_mapping/사이드카 export 핸들러의 _custom_barcode_to_seq, combinatorial_demux 의 축 개수 경고. 2026-08-06 이전에는 같은 합 ((F-1)*8+R) 이 네 곳에 따로 적혀 있었고 사이드카 핸들러만 옛 규칙에 남을 수 있었다. src/lib/mame/nbLabel.ts 의 wellSortKey 는 Python well_sort_key 의 미러이며 tests/mame/test_nb_label.py 와 src/lib/mame/nbLabel.test.ts 가 같은 골든 표를 단언한다. 축·순서를 바꾸는 변경은 대각선 아닌 토큰(예: 2_5)과 seq 값으로 검증할 것: 웰 라벨만 보는 테스트는 두 traversal 을 구분하지 못한다. 이 그룹의 범위는 (R,F) 토큰 -> seq -> 웰 라벨 경로 하나뿐이다. 96웰 격자 자체를 따로 들고 있는 코드가 밖에 남아 있다: kuma_core/mame/cross_talk.py 의 _ROW_LABELS/_COL_RANGE/_neighbour_keys 는 이웃 웰을 A~H x 1~12 로 직접 계산하고, kuma_core/kuro/plate_mapper.py 는 프라이머 소스 플레이트를 다룬다(MAME 의 대상 플레이트가 아니므로 여기 묶지 않는다). 격자 크기를 바꾸려면 이 그룹만으로는 부족하다.",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-variant-source",
+      "files": [
+        "kuma_core/mame/io/variant_list.py",
+        "kuma_core/mame/ingest/barcode_package.py",
+        "python-core/sidecar_mame/handlers/barcode_package.py",
+        "python-core/sidecar_mame/handlers/build_well_layout.py",
+        "python-core/sidecar_mame/handlers/analyze.py",
+        "python-core/sidecar_mame/models.py",
+        "src/types/mame/barcode_package.ts",
+        "src/types/mame/well_layout.ts",
+        "src/types/mame/models.ts",
+        "src/components/mame/panels/BarcodeSetupPanel.tsx"
+      ],
+      "symbols": [
+        "read_variant_source",
+        "inspect_variant_source",
+        "variant_sheet",
+        "variant_column",
+        "has_explicit_wt"
+      ],
+      "note": "expected-variant input accepts a KURO export or a plain variant list, and every RPC that reads it must offer the same choice: read_variant_source <-> the sample map, well layout, and analyze paths <-> variant_sheet/variant_column params on generate_mame_package, mame.build_well_layout, analyze, and validate_inputs <-> the TS params and the sheet/column picker. Adding the param to one RPC and not the others makes one file read two ways in one run, which places wells from a list nobody chose. wt_ordinal travels with the read: any path that calls build_draft_layout must pass wt_ordinal=read.wt_ordinal, and since 2026-08-18 wells/wt_well travel with it too: a Well-column source states its own placement, and passing wt_ordinal without wells/wt_well would fall back to row order for a file that never meant that. has_explicit_wt is now a property derived from it and kept only as this cross-layer name. 2026-08-07 이전에는 WT 행을 버리고 has_explicit_wt 만 넘겨서, 명시 WT 행 뒤의 모든 웰이 한 칸씩 밀렸다.",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-janus-autosave",
+      "files": [
+        "kuma_core/mame/export/janus_mapping.py",
+        "python-core/sidecar_mame/handlers/analyze.py",
+        "python-core/sidecar_mame/handlers/export.py",
+        "src/lib/mame/janus.ts",
+        "src/lib/mame/janusSettings.ts",
+        "src/types/mame/models.ts",
+        "src/components/mame/widgets/JanusMappingPanel.tsx"
+      ],
+      "symbols": [
+        "picks_autosave_path",
+        "_janus_settings_from_params",
+        "DEFAULT_JANUS_SETTINGS",
+        "build_janus_preview_rows"
+      ],
+      "note": "analyze writes one file beside the result workbook automatically: the pick list (legacy5, reported on janus_autosave). The instrument mapping (device, the 8-column sheet whose two rack columns carry plate NAMES and which has no liquid class column) is written only by a manual export_janus_mapping call from JanusMappingPanel (src/components/mame/widgets/JanusMappingPanel.tsx), which on success calls setJanusMappingAutosave to report it on the same janusMappingAutosave store field (removed from the analyze response's janus_mapping_autosave key in v0.15.14, since a robot worklist states a deck that describes the room at export time, not at analyze time). Both the automatic pick list and the manual export resolve their settings through _janus_settings_from_params, the one resolver export_janus_mapping and export_janus_mapping_dry_run also use. Only the pick list pins its schema: analyze.py forces output_schema to legacy5 before resolving, while the manual export reads output_schema off the wire and falls back to device. The panel no longer offers that choice, so it always sends device and promotes a stored legacy5 to device on load; device9 is the former name of that same schema and both sides fold it into device (SCHEMA_DEVICE_FORMER_NAME in kuma_core, the load-time promotion in janusSettings.ts), so a project saved before the rename still exports. SCHEMA_LEGACY5 in kuma_core stays for the automatic pick list alone and must not be removed. DEFAULT_JANUS_SETTINGS (src/lib/mame/janusSettings.ts) in the panel must keep matching the Python defaults, empty sourceRacks and null destRack included: those mean 'derive the deck from the plates of the run' (JanusSettings.resolve_deck). That one is no longer left to the reader: the janus-defaults check in checks[] pushes the TS defaults through the toRpcParams mapping and compares them with JanusSettings().to_payload(), so a value moving on one side alone fails sync:check. Changing the autosave keys (status, output_path, format, row_count, excluded, excluded_count, errors, warnings) means changing the TS type that renders them.",
+      "severity": "warning"
+    },
+    {
+      "id": "mame-dispatcher-build-well-layout",
+      "files": [
+        "python-core/sidecar_mame/dispatcher.py"
+      ],
+      "symbols": [
+        "_METHODS",
+        "mame.build_well_layout"
+      ],
+      "note": "mame.build_well_layout RPC 등록 (synchronous: _ASYNC_METHODS 미포함)",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-dispatcher-load-analyze-result",
+      "files": [
+        "python-core/sidecar_mame/dispatcher.py",
+        "python-core/sidecar_mame/handlers/load.py",
+        "src/types/mame/models.ts"
+      ],
+      "symbols": [
+        "_METHODS",
+        "load_analyze_result",
+        "LoadAnalyzeResultParams",
+        "handle_load_analyze_result",
+        "LoadAnalyzeResultRequest",
+        "LoadAnalyzeResultResponse"
+      ],
+      "note": "load_analyze_result RPC: dispatcher 등록 <-> Pydantic params <-> handler. Frontend resultSnapshot.ts persists analyze response AS-IS (replicates[].plate_verdicts) and replays it here on restart; LoadAnalyzeResultParams mirrors analyze.py serializers, co-evolution risk if deserializers drift.",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-plate-order-finding",
+      "files": [
+        "python-core/sidecar_mame/handlers/analyze.py",
+        "python-core/sidecar_mame/handlers/barcode_package.py",
+        "src/types/mame/models.ts",
+        "src/hooks/useAutosaveHydration.ts",
+        "src/store/mame/slices/inputSlice.ts"
+      ],
+      "symbols": [
+        "plate_order_payload",
+        "_plate_order_finding",
+        "check_plate_order",
+        "missing_from_expected"
+      ],
+      "note": "validate_inputs 와 check_plate_order 는 같은 plate_order_payload 모양을 돌려주고, validate_inputs 쪽만 severity 를 덧붙인다. 2026-08-05 부터 등급은 blocking 하나뿐이고 well_layout 으로 낮추지 않는다(어느 시트가 분주된 플레이트인지는 그 입력이 말해 주지 못한다). 2026-08-07 부터 handle_analyze 도 같은 검사를 직접 돌려 거절한다. 그 전까지 유일한 호출부가 handle_validate_inputs 였고, 실제 방어선은 프론트의 selectCanRun 뿐이라 CLI·하네스·스크립트 경로는 그냥 통과했다. validate_inputs 는 이 불일치를 errors 에도 넣어 valid=false 로 만든다. payload 필드를 바꾸면 ValidationResult 와 useAutosaveHydration 의 PlateOrderReport 를 함께 고칠 것.",
+      "severity": "blocking"
+    },
+    {
+      "id": "shared-sidecar",
+      "files": [
+        "kuma_core/shared/sidecar.py",
+        "python-core/sidecar_kuro/core.py",
+        "python-core/sidecar_mame/core.py",
+        "tests/shared/test_sidecar.py"
+      ],
+      "symbols": [
+        "JsonRpcWriter",
+        "append_crash_log",
+        "ensure_private_dir",
+        "validate_filepath",
+        "validate_output_path"
+      ],
+      "note": "shared/sidecar.py 헬퍼 ↔ kuro/mame core import sites + tests/shared/test_sidecar.py 갱신",
+      "severity": "blocking"
+    },
+    {
+      "id": "kuro-export-order",
+      "files": [
+        "python-core/sidecar_kuro/handlers/export.py",
+        "python-core/sidecar_kuro/models.py",
+        "src/types/models.ts",
+        "src/types/validators.ts"
+      ],
+      "symbols": [
+        "handle_export_order",
+        "ExportOrderParams",
+        "ExportOrderResultModel",
+        "ExportOrderResult",
+        "isExportOrderResult"
+      ],
+      "note": "export_order 핸들러 + Pydantic 모델 ↔ TS ExportOrderResult + validator + dispatcher 등록 (IDT/Twist CSV)",
+      "severity": "blocking"
+    },
+    {
+      "id": "sidecar-kill",
+      "files": [
+        "package.json",
+        "scripts/kill-sidecars.mjs"
+      ],
+      "symbols": [
+        "sidecar:kill"
+      ],
+      "note": "sidecar:kill 스크립트는 self-safe 패턴 (pkill -f 단독 금지, 빌드 자기 종료 방지)",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-build-exclusions",
+      "files": [
+        "python-core/build_sidecar.py"
+      ],
+      "note": "MAME PyInstaller exclusions (torch, sklearn, transformers 등). 4 GB CArchive 한도 회피, 신규 ML 의존 추가 시 재검토",
+      "severity": "warning"
+    },
+    {
+      "id": "notice-build",
+      "files": [
+        "scripts/build-notice.mjs",
+        "src-tauri/about.hbs",
+        "src/components/layout/MenuBar.tsx"
+      ],
+      "note": "build-notice.mjs 출력 포맷 또는 pip-licenses/pnpm licenses 스키마 변경 시 MenuBar.tsx NOTICE.md 렌더러 영향",
+      "severity": "warning"
+    },
+    {
+      "id": "python-deps-licenses",
+      "files": [
+        "pyproject.toml",
+        ".github/workflows/build.yml"
+      ],
+      "note": "pyproject.toml [project.dependencies] 변경 시 build.yml pip-licenses --packages 리스트 동기화",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-barcode-package",
+      "files": [
+        "kuma_core/mame/ingest/barcode_package.py",
+        "python-core/sidecar_mame/handlers/barcode_package.py",
+        "src/types/mame/barcode_package.ts",
+        "src/components/mame/panels/BarcodeSetupPanel.tsx",
+        "src/lib/sequence/autoDetectCds.ts",
+        "src/store/validation.ts"
+      ],
+      "symbols": [
+        "generate_mame_package",
+        "design_flanking_primers",
+        "GenerateMamePackageParams",
+        "MamePackageResult",
+        "gene_name"
+      ],
+      "note": "generate_mame_package requires an input-derived or explicit gene_name across CDS detection, UI validation, handler dict, core API, and TS interfaces",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-polymerase",
+      "files": [
+        "kuma_core/mame/ingest/polymerase.py",
+        "src/components/mame/panels/BarcodeSetupPanel.tsx"
+      ],
+      "symbols": [
+        "POLYMERASE_PROFILES"
+      ],
+      "note": "POLYMERASE_PROFILES keys (Q5, Taq, Phusion, KOD) ↔ BarcodeSetupPanel.tsx dropdown options + union type",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-sequence-extensions",
+      "files": [
+        "python-core/sidecar_mame/core.py",
+        "src/components/mame/panels/BarcodeSetupPanel.tsx",
+        "kuma_core/mame/ingest/barcode_package.py"
+      ],
+      "symbols": [
+        "_ALLOWED_SEQUENCE_EXTENSIONS",
+        "_parse_first_cds_sequence"
+      ],
+      "note": "허용 시퀀스 확장자 (.fa/.fasta/.fna/.gb/.gbk/.gbff/.dna) ↔ browse 다이얼로그 필터 ↔ CDS 라우팅",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-evolvepro-xlsx",
+      "files": [
+        "kuma_core/mame/activity/export_evolvepro.py",
+        "python-core/sidecar_mame/handlers/activity.py",
+        "src/store/mame/activitySlice.ts"
+      ],
+      "symbols": [
+        "export_evolvepro_xlsx",
+        "handle_activity_export_evolvepro_xlsx",
+        "exportEvolveproXlsx"
+      ],
+      "note": "export_evolvepro_xlsx signature (rows, path) → (n_written, excluded) ↔ 핸들러 response ↔ store action ↔ dispatcher",
+      "severity": "blocking"
+    },
+    {
+      "id": "kuro-load-evolvepro-ref-seq",
+      "files": [
+        "kuma_core/kuro/evolvepro.py",
+        "python-core/sidecar_kuro/models.py",
+        "src/store/slices/inputSlice.helpers.ts",
+        "src/store/slices/inputSlice.ts"
+      ],
+      "symbols": [
+        "_load_evolvepro_rows",
+        "ref_seq",
+        "LoadEvolveproParams",
+        "EvolveproLoadConfig",
+        "loadEvolveproCsv"
+      ],
+      "note": "_load_evolvepro_rows ref_seq param ↔ Pydantic LoadEvolveproParams.ref_seq ↔ TS EvolveproLoadConfig.refSeq ↔ store action (seqInfo.genes[].translation pull)",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-phase-tabs",
+      "files": [
+        "src/store/mame/slices/phaseSlice.ts",
+        "src/store/mame/slices/mameSubSteps.ts",
+        "src/store/mame/slices/navigationSlice.ts",
+        "src/components/mame/layout/MameAppLayout.tsx",
+        "src/components/mame/steps/SetupStepView.tsx",
+        "src/components/mame/steps/AnalyzeStepView.tsx",
+        "src/components/mame/steps/JanusStepView.tsx",
+        "src/components/mame/steps/ActivityStepView.tsx"
+      ],
+      "symbols": [
+        "MamePhase",
+        "ActivityTab",
+        "MameSubStepId",
+        "MAME_SUBSTEP_ORDER",
+        "TabsTrigger",
+        "TabsContent"
+      ],
+      "note": "MamePhase·ActivityTab·MameSubStepId enum ↔ MameAppLayout TabsTrigger values ↔ ActivityPanel sub-tab values ↔ StepView dispatcher. phase 추가 시 sub-step + TabsContent + StepView 동시 추가 2026-08-05: ActivityPanel.tsx 삭제로 항목 제거. sub-tab 값은 ActivityStepView 가 갖는다.",
+      "severity": "blocking"
+    },
+    {
+      "id": "kuro-major-substep-i18n",
+      "files": [
+        "src/store/slices/navigationSlice.ts",
+        "src/locales/en.json",
+        "src/locales/ko.json"
+      ],
+      "symbols": [
+        "MajorStepId",
+        "SubStepId",
+        "MAJOR_ORDER",
+        "SUBSTEP_ORDER",
+        "phaseC",
+        "phaseE"
+      ],
+      "note": "kuro navigationSlice union 타입 ↔ i18n phaseC.majors/subSteps/phaseE.descriptions 키 1:1. 신규 major/sub-step 추가 시 en+ko 동시 갱신 (D1.1 false positive 재발 방지)",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-major-substep-i18n",
+      "files": [
+        "src/store/mame/slices/mameSubSteps.ts",
+        "src/store/mame/slices/navigationSlice.ts",
+        "src/locales/en.json",
+        "src/locales/ko.json"
+      ],
+      "symbols": [
+        "MameSubStepId",
+        "MAME_SUBSTEP_ORDER",
+        "mameSubSteps"
+      ],
+      "note": "mame sub-step union ↔ i18n phaseE.descriptions. setMamePhase에서 sub-step 자동 리셋이라 phase 추가 시 sub-step + i18n 동시 추가",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-context",
+      "files": [
+        "src/types/mame/mame_context.ts",
+        "src/lib/mame/detectProjectFiles.ts",
+        "kuma_core/mame/ingest/barcode_package.py"
+      ],
+      "symbols": [
+        "MameContext",
+        "MAME_CONTEXT_SCHEMA",
+        "legacySampleMapPointer",
+        "custom_barcodes_path",
+        "reference_path",
+        "sample_map_template_path"
+      ],
+      "note": "mame_context.json 스키마 ↔ TS MameContext interface ↔ detectProjectFiles field mapping. 쓰는 쪽은 barcode_package._write_mame_context_json 이고 MAME_CONTEXT_SCHEMA 와 숫자를 맞춰야 한다. 스키마 2(2026-08-07)는 sample_map_template_path 를 뺐다. 그 키는 스키마 1 프로젝트를 위해 타입에 남아 있고, legacySampleMapPointer 가 스키마 번호로만 분기해 마이그레이션 경로에서 읽는다(웰 배치에는 쓰지 않는다). isMameContext 는 typeof schema === number 만 보므로 번호를 올리는 것 자체로는 어떤 분기도 생기지 않는다. 새 스키마를 낼 때는 번호를 읽는 분기를 반드시 따로 추가할 것.",
+      "severity": "blocking"
+    },
+    {
+      "id": "macrogen-export-flow",
+      "files": [
+        "src/components/layout/export-handlers.ts",
+        "python-core/sidecar_kuro/handlers/export.py",
+        "python-core/sidecar_kuro/models.py",
+        "kuma_core/kuro/plate_mapper.py",
+        "src/types/models.ts",
+        "src/types/validators.ts"
+      ],
+      "symbols": [
+        "export_macrogen",
+        "export_all",
+        "ExportMacrogenParams",
+        "ExportAllParams",
+        "export_macrogen_xls",
+        "handleExportAll",
+        "handleExportMacrogen"
+      ],
+      "note": "Export All UI 핸들러 ↔ TS RpcMethodMap/validators ↔ sidecar handler + Pydantic 모델 ↔ kuro exporter 정합성 (spec 2026-05-13)",
+      "severity": "blocking"
+    },
+    {
+      "id": "plate-well-capacity",
+      "files": [
+        "src/lib/plate-utils.ts",
+        "src/lib/inputThresholds.ts",
+        "kuma_core/kuro/plate_mapper.py",
+        "src/components/inspectors/kuro/ParameterInspector.tsx",
+        "src/components/inspectors/kuro/ExportInspector.tsx",
+        "src/components/steps/OutputStepView.tsx",
+        "src/components/steps/OrderSummary.tsx",
+        "src/components/steps/ExportFormatSelector.tsx",
+        "src/components/widgets/PlateMap.tsx",
+        "src/lib/plateRounds.ts",
+        "python-core/sidecar_kuro/handlers/export.py"
+      ],
+      "symbols": [
+        "PLATE_WELL_COUNT",
+        "MAX_MUTATIONS_PER_RUN",
+        "clampMaxPrimers",
+        "_assign_well",
+        "splitIntoRounds",
+        "roundPickIssue",
+        "normalizeRoundPicks",
+        "_check_round_payload"
+      ],
+      "note": "플레이트 용량 96 은 TS 와 Python 에 두 번 적힌 하나의 규칙이다. plate-utils.ts 의 PLATE_WELL_COUNT 와 wellName, plate_mapper.py 의 _assign_well/_well_name/_chunk_by_plate 가 그 두 사본이다. 둘이 갈라지면 로봇 파일이 비어 있는 well 을 가리키는데, 어긋난 값(A13)이 384 플레이트에 실재하는 좌표라 예외도 로그도 남지 않는다. inputThresholds.ts 의 MAX_MUTATIONS_PER_RUN 은 그 기하에 묶인 정책(1회 1플레이트)이고, clampMaxPrimers 는 maxPrimers 로 들어오는 모든 쓰기가 지나는 단 하나의 지점이다(setMaxPrimers, 워크스페이스 복원, 자동저장 재수화). 용량을 바꾸면 세 파일을 함께 고치고, 검증은 96 경계를 넘는 인덱스(95, 96, 191, 192)로 한다. 96 미만만 쓰는 픽스처는 두 구현이 같은 답을 내므로 아무것도 증명하지 못한다. MAME 대상 플레이트의 (R,F) 토큰 주소 규칙은 별개이며 mame-plate-addressing 이 담당한다. 2026-08-07 에 96 리터럴 사본 7곳(ParameterInspector, ExportInspector, OutputStepView, OrderSummary 2곳, PlateMap, ExportFormatSelector 의 WELL_LIMIT)을 PLATE_WELL_COUNT import 로 바꾸고 이 그룹에 등록했다. 이들은 정본을 읽기만 하는 소비자이므로 값 자체를 다시 적지 말 것. 2026-09-28 A3: 한 설계가 고를 수 있는 수는 MAX_MUTATIONS_PER_DESIGN = MAX_MUTATIONS_PER_RUN × PLATE_ROUNDS(2) 이고 clampMaxPrimers 가 그 값으로 자른다. MAX_MUTATIONS_PER_RUN 은 여전히 한 라운드(한 플레이트)의 상한이다. 96 을 넘는 선택은 plateRounds.ts 의 splitIntoRounds 가 설계 결과→mappings 경계에서 96 이하 라운드로 가르고 라운드마다 export_all 을 따로 부른다. export.py 의 _check_round_payload 가 round_label 이 붙은 호출에서 A1-H12 밖 well, P2- 라벨, 한 방향 안의 중복 well 을 거부해 분할이 실제로 일어났는지 확인한다. _chunk_by_plate 와 P2- 경로는 여전히 UI 에 잇지 않는다. 2026-09-29 다중 소스 플레이트: 설계 수 상한(MAX_MUTATIONS_PER_DESIGN, PLATE_ROUNDS)을 없앴다. clampMaxPrimers 는 1 이상 정수로만 정규화한다. 라운드 수는 ceil(선택 수 / 96) 이고 이름은 R1..Rn 이다(python round_label 패턴 ^R[1-9][0-9]*$). 라운드마다 작업자가 Echo 소스 플레이트 번호와 패리티를 고르고 export_all 은 source_plate 를 받아 Echo 워크리스트의 Source Plate Name 을 Source [n] 으로 쓴다. 플레이트 1 은 단일 플레이트 출력과 바이트가 같다. 같은 (플레이트, 패리티) 중복 거부는 plateRounds.ts 의 roundPickIssue 가, 저장값 읽기는 normalizeRoundPicks 가 맡는다. 검증 경계는 95, 96, 97, 191, 192, 193, 288, 289 다.",
+      "severity": "blocking"
+    },
+    {
+      "id": "sidebar-resize-flow",
+      "files": [
+        "src/components/shell/AppShell.tsx",
+        "src/components/shell/ResizeHandle.tsx",
+        "src/store/slices/layoutSlice.ts",
+        "src/lib/sidebar-default-width.ts",
+        "scripts/compute-sidebar-width.mjs"
+      ],
+      "note": "Sidebar default width calc -> store -> AppShell render alignment",
+      "severity": "warning"
+    },
+    {
+      "id": "evolvepro-column-override",
+      "files": [
+        "python-core/sidecar_kuro/models.py",
+        "src/store/slices/inputSlice.helpers.ts",
+        "src/types/models.generated.ts"
+      ],
+      "symbols": [
+        "variant_column",
+        "score_column",
+        "score_order",
+        "sheet_name",
+        "structural_diversity",
+        "structural_kappa",
+        "anchor_variants"
+      ],
+      "severity": "blocking",
+      "note": "LoadEvolveproParams override fields must stay in sync across Pydantic model, store helper, and generated TS types"
+    },
+    {
+      "id": "evolvepro-preview-rpc",
+      "files": [
+        "python-core/sidecar_kuro/dispatcher.py",
+        "src/lib/ipc.ts"
+      ],
+      "symbols": [
+        "preview_evolvepro_source"
+      ],
+      "severity": "blocking",
+      "note": "preview_evolvepro_source RPC name must match between dispatcher registry and ipc.ts client (Wave C: ipc.ts client to be added)"
+    },
+    {
+      "id": "kuro-mame-load-sequence",
+      "files": [
+        "kuma_core/kuro/sdm_engine.py",
+        "python-core/sidecar_mame/handlers/ingest.py"
+      ],
+      "severity": "blocking",
+      "note": "MAME parse_reference가 KURO load_sequence/load_fasta를 재사용하면 KURO 정책 변경이 MAME로 cascade. ingest.py가 KURO 모듈 import 시 함께 검토 필요."
+    },
+    {
+      "id": "kuro-sequence-organism-annotation",
+      "files": [
+        "kuma_core/kuro/codon_table.py",
+        "python-core/sidecar_kuro/handlers/sequence.py",
+        "python-core/sidecar_kuro/handlers/misc.py",
+        "src/types/models.ts",
+        "src/types/validators.ts",
+        "src/store/slices/sequenceSlice.ts",
+        "src/components/panels/InputPanel/SequenceInput.tsx"
+      ],
+      "symbols": [
+        "resolve_organism_key",
+        "organism_key"
+      ],
+      "note": "Input organism annotation resolves to a backend-owned supported codon-table key; unsupported annotations preserve the user's explicit selection. handle_list_organisms owns the key set the dropdown renders and validators.ts guards the payload, so both move with resolve_organism_key. The group only flags co-change; it does not compare the option list itself, which is how the hsapiens drift went unnoticed.",
+      "severity": "blocking"
+    },
+    {
+      "id": "mutation-input-mode-enum",
+      "files": [
+        "src/store/slices/inputSlice.ts",
+        "src/locales/en.json",
+        "src/locales/ko.json"
+      ],
+      "symbols": [
+        "evolveproMode",
+        "topN",
+        "pipeline",
+        "others"
+      ],
+      "severity": "warning",
+      "note": "EvolveproMode literal values (topN/pipeline/others) and i18n keys must align across store and locale files"
+    },
+    {
+      "id": "mame-analyze-run-folder",
+      "files": [
+        "kuma_core/mame/ingest/run_pipeline.py",
+        "python-core/sidecar_mame/models.py",
+        "python-core/sidecar_mame/handlers/analyze.py",
+        "src/types/mame/models.ts",
+        "src/store/mame/slices/inputSlice.ts"
+      ],
+      "symbols": [
+        "ingest_run_folder",
+        "is_minknow_run_dir",
+        "DemuxParamsBase",
+        "AnalyzeRawRunParams",
+        "AnalysisParams"
+      ],
+      "note": "Native MinKNOW run-folder ingestion: kuma_core ingest_run_folder/is_minknow_run_dir orchestrator <-> AnalyzeRawRunParams (composed from shared DemuxParamsBase) <-> analyze handler raw-run path <-> TS AnalysisParams raw-run fields <-> inputSlice single analyze call. Demux param names must stay identical across DemuxParamsBase, AnalyzeRawRunParams, and AnalysisParams.",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-analyze-yield-fields",
+      "files": [
+        "kuma_core/mame/ingest/combinatorial_demux.py",
+        "kuma_core/mame/ingest/run_pipeline.py",
+        "python-core/sidecar_mame/handlers/analyze.py",
+        "src/types/mame/models.ts",
+        "src/lib/mame/analyzeYield.ts",
+        "src/components/mame/widgets/EmptyAnalysisNotice.tsx"
+      ],
+      "symbols": [
+        "DemuxStats",
+        "stats_out",
+        "passed_mapq",
+        "passed_coverage",
+        "total_reads",
+        "AnalyzeYield",
+        "pickAnalyzeYield"
+      ],
+      "note": "Optional analyze-response yield fields that explain a zero-verdict run: DemuxStats counters -> ingest_run_folder stats_out sink -> analyze response keys (total_reads, passed_mapq, passed_coverage, assigned_reads, wells_with_reads) -> TS AnalyzeYield -> pickAnalyzeYield narrowing -> EmptyAnalysisNotice rows. Every key is optional by contract and is OMITTED, never zero-filled, when the mode cannot produce it (consensus-dir mode runs no demux). Adding a counter on the Python side without extending AnalyzeYield and pickAnalyzeYield silently drops it before it reaches the notice. The seven drop_* counters (drop_short_window_read_5p, drop_short_window_read_3p, drop_no_barcode_f, drop_no_barcode_r, drop_ambiguous_tie_f, drop_ambiguous_tie_r, drop_both_axes) travel the same chain and say WHY a read that cleared both gates reached no well. They PARTITION DemuxStats.ambiguous_dropped, one bucket per failed alignment hit, with a hit that failed on both axes charged to drop_both_axes alone; tests/mame/test_demux_drop_reasons.py pins that identity on all three matching paths, so a new bucket must be added to the partition rather than beside it. ambiguous_dropped itself is NOT on the analyze response and is not renamed here despite naming the rarest of the four causes, because it is shipped on the mame.run_combinatorial_demux RPC result, in per-NB stage markers, and in the contamination ambiguous_dropped rate. Two of the seven are keyed on the READ END rather than the F/R axis on purpose: the window is cut from the read, the 3' end is the one that comes up short on real runs, and which axis that surfaces on is decided by strand, so an axis-keyed tally splits one phenomenon in two. These seven have one omission case the other keys do not: a per-NB resume that reuses a completion marker written before the breakdown existed omits ALL SEVEN, since such a marker records only the total.",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-minor-allele-strand-evidence",
+      "files": [
+        "kuma_core/mame/ingest/consensus.py",
+        "kuma_core/mame/ingest/consensus_metadata.py",
+        "kuma_core/mame/ingest/fasta_parser.py",
+        "kuma_core/mame/models.py",
+        "python-core/sidecar_mame/handlers/analyze.py",
+        "src/types/mame/models.ts"
+      ],
+      "symbols": [
+        "NoisyPosition",
+        "max_minor_allele_strand_share",
+        "max_minor_allele_plus_count",
+        "max_minor_allele_minus_count",
+        "n_eligible_positions",
+        "noisy_positions",
+        "format_noisy_positions",
+        "parse_noisy_positions"
+      ],
+      "note": "Minor-allele strand evidence, reported only, no gate reads it: consensus.py measures the weak-strand share and the top-K mix-eligible positions -> consensus_metadata.py encodes them as FASTA header keys (max_minor_allele_strand_share / _plus / _minus emitted ONLY when a share exists, eligible_positions always, noisy_positions as pos:frac:depth:plus:minus records) -> fasta_parser.py decodes them -> BarcodeRecord mirrors them -> _serialize_verdict/_deserialize_verdict carry them -> TS VerdictRecord. Two things break when these are edited apart. (1) The share is Optional the whole way down because 0.0 is the ARTIFACT reading (minor allele on one strand only) and absence is unknown; any layer that defaults it to 0.0 or zero-fills the omitted key reports one-strand evidence that was never measured. (2) noisy_positions is a truncated top-K, and n_eligible_positions is the only signal saying so (n_mixed_positions counts only positions over the 0.20 gate, which is 0 on a healthy run); dropping the count on any layer turns a sample into an apparent census. The encoding lives once in format_noisy_positions/parse_noisy_positions, and excel_writer.py reuses the writer, so changing the separators or field order requires changing both halves together.",
+      "severity": "warning"
+    },
+    {
+      "id": "mame-coverage-uniformity",
+      "files": [
+        "kuma_core/mame/ingest/well_consensus.py",
+        "kuma_core/mame/ingest/combinatorial_demux.py",
+        "kuma_core/mame/ingest/consensus_metadata.py",
+        "kuma_core/mame/ingest/fasta_parser.py",
+        "kuma_core/mame/models.py",
+        "kuma_core/mame/export/excel_writer.py",
+        "python-core/sidecar_mame/handlers/analyze.py",
+        "python-core/sidecar_mame/handlers/demux.py",
+        "src/types/mame/models.ts"
+      ],
+      "symbols": [
+        "depth_stats",
+        "consensus_identity",
+        "depth_cv",
+        "depth_p10",
+        "depth_min_covered",
+        "breadth_at_mix_min_depth"
+      ],
+      "note": "Coverage uniformity and consensus identity, reported only, no gate reads them: well_consensus.py defines depth_stats and consensus_identity ONCE and both consensus paths call them (compute_well_consensuses for sorted barcode directories, _compute_well_consensus for the raw MinKNOW run folder, which is the primary user-facing input) -> consensus_metadata.py encodes them as FASTA header keys -> fasta_parser.py decodes them -> BarcodeRecord mirrors them -> _serialize_verdict/_deserialize_verdict carry them -> TS VerdictRecord, with excel_writer.py writing the same five as columns. Three things break when these are edited apart. (1) None means NOT MEASURED at every layer and 0.0 is a real reading (a flat well, a consensus matching the reference nowhere); any layer that defaults to 0.0, coerces with `or 0.0`, or writes a 0 cell reports a measurement nobody made. (2) The five gate INDEPENDENTLY, unlike the minor-allele strand trio: a well with no reads has a real breadth_at_mix_min_depth of 0.0 while the other four are unmeasurable, so guarding them as one block drops that 0.0. (3) Both paths must read the SAME per-position depth vector mean depth comes from, which is why the formulas live in one module and are imported rather than restated; two copies would be two metrics wearing one name. breadth is scoped to DEFAULT_MIX_MIN_DEPTH (consensus.py), not to the caller's min_depth, or the field name lies.",
+      "severity": "warning"
+    },
+    {
+      "id": "mame-build-evolvepro-input",
+      "files": [
+        "kuma_core/mame/activity/build_evolvepro_input.py",
+        "kuma_core/mame/activity/verdict_ngs.py",
+        "python-core/sidecar_mame/models.py",
+        "python-core/sidecar_mame/dispatcher.py",
+        "python-core/sidecar_mame/handlers/activity.py",
+        "src/types/mame/build_evolvepro_input.ts",
+        "src/lib/ipc-mame/index.ts",
+        "src/lib/mame/buildEvolveproFormStorage.ts",
+        "src/components/mame/panels/BuildEvolveproInputPanel.tsx",
+        "src/store/mame/slices/inputSlice.ts",
+        "src/store/mame/slices/analysisSlice.ts"
+      ],
+      "note": "Step 3 단일 파이프라인 계약: 조립/strict NGS gate <-> Pydantic request <-> dispatcher/handler response <-> TS RPC type/client <-> 프로젝트별 form state/UI <-> Analyze round evidence 연결. primary source는 activity_path, gc_data_xlsx, round1_report_xlsx 중 정확히 하나이고 verdict_xlsx는 필수다. 응답 키와 TS 필드명은 byte-for-byte 일치하며 round evidence signature 변경은 완료 서명을 무효화한다.",
+      "severity": "warning"
+    },
+    {
+      "id": "whats-new-highlights",
+      "files": [
+        "CHANGELOG.md",
+        "src/locales/en.json",
+        "src/locales/ko.json",
+        "src/locales/ja.json",
+        "src/locales/zh-CN.json",
+        "src/locales/zh-TW.json",
+        "src/locales/de.json",
+        "src/locales/es.json",
+        "src/locales/fr.json",
+        "src/locales/pt-BR.json",
+        "src/locales/ru.json"
+      ],
+      "note": "The '### Highlights' block of every CHANGELOG.md section generates src/locales/en.json whatsNewDialog.releases (per version) plus releaseStamps (one sha256 digest8 per version), and the newest of those is also written as whatsNewDialog.highlights with highlightsStamp ('<version>+<digest8>'). The nine other locales hand-translate both arrays and copy both stamp values. The modal shows every release between the version an operator last ran and the one now installed, so a past release stays on screen and a reworded past bullet leaves nine translations behind. Editing a bullet, in a new release or inside one, means regenerating en.json (node scripts/gen-whatsnew.mjs) and retranslating the affected versions in all nine; node scripts/backfill-whatsnew-archive.mjs recovers past translations from git history when an archive is missing rather than merely stale. Enforcement is elsewhere and stays there: gen-whatsnew.mjs --check owns CHANGELOG-to-en drift, scripts/i18n-parity.mjs owns the nine stamps and the translated authoring rules. This group is the co-edit reminder, hence warning. Deliberately no 'symbols': there is nothing here whose disappearance this group should announce that gen-whatsnew.mjs --check and i18n-parity.mjs do not already fail on. Note that scripts/sync-check.mjs now scans symbols at every severity (a warning group reports a miss as WARN), so adding them here would run, unlike before.",
+      "severity": "warning"
+    },
+    {
+      "id": "mame-mapping-integrity",
+      "files": [
+        "python-core/sidecar_mame/handlers/analyze.py",
+        "src/types/mame/models.ts",
+        "src/components/mame/widgets/MappingIntegrityAlert.tsx"
+      ],
+      "symbols": [
+        "layout_provenance",
+        "mapping_integrity",
+        "LayoutProvenance",
+        "MappingIntegrity"
+      ],
+      "note": "analyze response always carries layout_provenance (which of the three well->sample sources scored this run) and mapping_integrity (whole-run self/cross mapping sanity check, kuma_core/mame/qc/mapping_integrity.py) <-> TS LayoutProvenance/MappingIntegrity <-> the review-screen alert reading mapping_integrity.suspect. useAutosaveHydration.ts's well_layout promotion guard also depends on layout_provenance.source; do not drop the field without checking that guard.",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-run-unit-membership",
+      "files": [
+        "kuma_core/mame/ingest/unit_manifest.py",
+        "kuma_core/mame/ingest/run_pipeline.py",
+        "kuma_core/mame/ingest/fasta_parser.py",
+        "kuma_core/mame/ingest/mode_router.py",
+        "python-core/sidecar_mame/handlers/analyze.py",
+        "src/types/mame/models.ts",
+        "src/components/mame/widgets/StaleUnitsNotice.tsx"
+      ],
+      "symbols": [
+        "write_run_manifest",
+        "read_run_manifest",
+        "units_of",
+        "strays_out",
+        "stale_units",
+        "StaleUnits",
+        "diagnoseStaleUnits"
+      ],
+      "note": "Which unit directories belong to the run that filled a demux output folder: ingest_run_folder writes the manifest (unit_manifest.py) into demux_output_dir after the units are on disk -> load_barcode_directory reads it and narrows itself to the units it names, whatever the caller passed -> leftovers travel out through the strays_out sink, through route_ingest, to the analyze response 'stale_units' -> TS StaleUnits -> StaleUnitsNotice. Four things break if these are edited apart. (1) The narrowing decision belongs in the READER, not at a call site. The parameter form of this (load_barcode_directory units=) already existed and only protected the one caller that remembered it; the analyze handler ingests the same tree a SECOND time after ingest_run_folder returns, passed nothing, and scored three plates of the previous day alongside the three selected (2026-08-10, four verdict workbooks). Moving the decision back to a call site restores that defect. (2) NO manifest means NO CLAIM, never zero units: an externally sorted directory a user points MAME at directly carries none and every subdirectory must still be read, which is why units_of folds an empty or corrupt claim into None rather than honouring it. (3) stale_units is OMITTED when the read had no manifest to compare against and PRESENT-with-empty-names when it had one and found nothing, and those are different statements; zero-filling the first claims a check nobody ran. Same optional-by-contract rule as the mame-analyze-yield-fields chain. (4) Strays are reported and excluded, never deleted or moved: removing a previous run output is the operator decision, and this code has no way to know the folder is not the only copy. The per-unit stage_marker.py answers a different question (is THIS unit complete) and resume depends on it, so the two must not be merged.",
+      "severity": "blocking"
+    },
+    {
+      "id": "shared-file-menu",
+      "files": [
+        "src/components/layout/FileMenu.tsx",
+        "src/components/layout/MenuBar.tsx",
+        "src/components/mame/layout/MenuBar.tsx"
+      ],
+      "symbols": [
+        "FileMenu",
+        "menu.file",
+        "menu.edit"
+      ],
+      "note": "File 메뉴는 FileMenu 하나가 그린다. 두 메뉴바는 앱 고유 항목만 extraItems 로 넘긴다. 한쪽 메뉴바만 고치면 v0.13.35.1 처럼 이름만 같고 내용이 갈린다. 라벨 키도 menu.file/menu.edit 로 공유한다.",
+      "severity": "warning"
+    },
+    {
+      "id": "mame-restored-result-provenance",
+      "files": [
+        "src/lib/mame/resultSnapshot.ts",
+        "src/lib/mame/autosaveSnapshot.ts",
+        "src/lib/mame/resultProvenance.ts",
+        "src/lib/mame/resultContract.ts",
+        "src/hooks/useAutosaveHydration.ts",
+        "src/components/mame/widgets/RestoredResultNotice.tsx"
+      ],
+      "symbols": [
+        "kuma_version",
+        "result_contract",
+        "RESULT_CONTRACT",
+        "RESULT_CONTRACT_REVISIONS",
+        "classifyResultVersion",
+        "restoredResultProvenance"
+      ],
+      "note": "Snapshot writers stamp result_contract; hydration compares it and refuses to show another contract's run. A change to what analyze produces must add a RESULT_CONTRACT_REVISIONS entry, or an obsolete saved run keeps being presented as current.",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-analyze-result-contract",
+      "files": [
+        "python-core/sidecar_mame/handlers/analyze.py",
+        "kuma_core/mame/pipeline.py",
+        "kuma_core/mame/select",
+        "src/lib/mame/resultContract.ts"
+      ],
+      "symbols": [
+        "RESULT_CONTRACT_REVISIONS",
+        "VerdictRecord",
+        "ReplicateResult"
+      ],
+      "note": "What an analyze run produces vs the revision table that dates it. Changing verdicts, replicate selection, ordering or a refusal without adding a revision leaves every older project silently trusted.",
+      "severity": "warning"
+    },
+    {
+      "id": "mame-run-health",
+      "files": [
+        "kuma_core/mame/health.py",
+        "python-core/sidecar_mame/handlers/health.py",
+        "src/components/mame/widgets/RunHealthPanel.tsx"
+      ],
+      "symbols": [
+        "build_run_health",
+        "detect_cross_talk_with_status",
+        "cross_talk_candidates",
+        "cross_talk_status",
+        "barcode_distribution"
+      ],
+      "note": "RunHealthData travels core -> handler dict -> panel with no schema between them, so a renamed or dropped field surfaces as an empty section rather than an error. The cross-talk fields are the reason this group exists: detect_cross_talk reads barcode_distribution and returns a status instead of raising when that mapping is keyed by native barcode, which is what the raw-run path produces, so the check reports not_run and the panel shows nothing. Whoever changes what fills barcode_distribution has to say what the panel then displays. Stray-read counting no longer lives here at all: it reads the demux matrix (kuma_core/mame/qc/contamination.py, analyze response `contamination`).",
+      "severity": "warning"
+    },
+    {
+      "id": "mame-run-quality",
+      "files": [
+        "kuma_core/mame/run_quality.py",
+        "kuma_core/mame/ingest/flow_cell.py",
+        "kuma_core/mame/ingest/read_length.py",
+        "kuma_core/mame/models.py",
+        "python-core/sidecar_mame/handlers/analyze.py",
+        "src/types/mame/run_quality.ts",
+        "src/store/mame/slice-interfaces.ts",
+        "src/store/mame/slices/analysisSlice.ts",
+        "src/components/mame/widgets/RunQualityNotice.tsx"
+      ],
+      "symbols": [
+        "assess_run_quality",
+        "serialise_run_quality",
+        "read_flow_cell_history",
+        "find_report_json",
+        "run_quality",
+        "RunQuality",
+        "setRunQuality",
+        "summarise_position_recurrence",
+        "serialise_position_recurrence",
+        "position_recurrence",
+        "summarise_indel_recurrence",
+        "serialise_indel_recurrence",
+        "indel_recurrence",
+        "read_read_length_qc",
+        "serialise_read_length_qc",
+        "read_length"
+      ],
+      "note": "Whether a run could have been scored at all: core grading <-> flow cell history read from report_*.json <-> the analyze response block <-> TS type <-> store field and setter <-> the notice that stands above the verdict table. Three couplings drift silently if edited apart. (1) The depth floor is CompareParams.min_read_count, so changing that changes what this grades and the sourced comment in models.py has to move with it. (2) Depth is measured over VERDICTS, not ingested records, so a declared selection already excludes the wells the campaign left empty; measuring records instead would report a thin plate for a run that used ten wells of ninety-six. (3) Every threshold carries a `kind` and the notice renders it, because the floor is a vendor WORKFLOW DEFAULT (ONT wf-amplicon minimum_mean_depth) rather than a specification, and this repo already shipped that overstatement once as a bare 'recommended minimum' comment. Pore counts and reuse are reported with no threshold on purpose: pore availability alone does not establish per-well depth. (4) The nested `position_recurrence` block rides this same chain rather than a group of its own: it is built by summarise_position_recurrence/serialise_position_recurrence, attached to the run_quality dict in analyze.py, mirrored on the TS RunQuality, and therefore carried into the store by the existing setRunQuality. It reads the per-well noisy_positions produced by the mame-minor-allele-strand-evidence group, so the two move together when that encoding changes. Three things break if edited apart. It grades NOTHING, for the same reason the pore counts do not; the only restriction on the table is that a position seen in a single well has not recurred, which is definitional and is counted in positions_single_well rather than dropped. Its counts are a LOWER BOUND because each well contributes a top-ten sample of n_eligible_positions, so wells_truncated and lower_bound must survive every layer. And the weak-strand share stays Optional here too: absent is unknown, 0.0 is a minor allele read off one strand, and a layer that folds one into the other reports evidence nobody measured. Nothing RENDERS the block yet; RunQualityNotice.tsx is untouched and stays in this group so a future rendering moves with the shape. (5) The nested `read_length` block rides the same chain for the same reason, and reads the SAME report_*.json flow_cell.py does, through the one shared find_report_json so the two readers can never disagree about which report a run has. Four things break if edited apart. Its N50 is QUOTED from MinKNOW, never recomputed, and its provenance entry says so; a layer that recalculates it publishes a different number under the instrument's name. There is no single N50: a report can carry multiple entries and can omit read_length_type, so a layer that collapses them to one publishes a figure whose definition nobody can recover. bucket_values are BASES (verified by recomputing the stated n50 both ways), which is why every fraction is named *_bases_fraction and is null unless bucket_value_type is the verified ReadLengths; renaming without re-verifying makes the field lie. And null means NOT READ at every layer: no report json, an unreadable one, or a MinKNOW too old to write read_length_histogram, none of which is a run whose reads had no lengths, so no layer may zero-fill or default. It grades nothing, like the pore counts and for the same reason: an N50 at twice the reference is both a concatemer population and a deliberately long amplicon. (6) The nested `indel_recurrence` block is a SIBLING of `position_recurrence` on the same chain and deliberately not more rows on it: a decided deletion has no minor fraction and no strand counts, so one shape holding both would blank or zero half of every row, and a zero in the minor-fraction column is the reading 'a clean position'. Four things break if edited apart. It is built from VerdictRecord and not BarcodeRecord, because a coordinate repeating across wells has two readings and only the EXPECTATION each well was scored against separates them (for example, one position recurring in several wells that all expect the same variant is a shared sample rather than a basecaller artifact), so `expected_variants` must survive every layer or the screen reports exactly the wrong thing as systematic. Its lower bound has a DIFFERENT cause than the substitution block's and carries `lower_bound_cause`: there a well contributes its top ten of a larger pool (truncation), here a well past DEL_RUN_REPORT_BUDGET drops its list whole (omission), plus a third state on the insertion side where reads tied on which sequence they inserted; a layer that folds `deletion_wells_omitted`, `insertion_wells_unreported` and `insertion_anchors_tied` into one number reports a floor nobody measured. It carries `wells_scored` and NO per-row rate, because most wells of an ordinary plate carry no indel and three of three contributing would print as a whole plate. And it grades nothing, like every other block on this chain.",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-amplicon-length-distribution",
+      "files": [
+        "kuma_core/mame/ingest/quality_filter.py",
+        "python-core/sidecar_mame/handlers/demux.py",
+        "src/types/mame/models.ts"
+      ],
+      "symbols": [
+        "detect_amplicon_length",
+        "AmpliconLengthEstimate",
+        "distribution_summary",
+        "AmpliconLengthDistributionSummary"
+      ],
+      "note": "The sampled read length distribution behind the auto-detected amplicon length: detect_amplicon_length builds distribution_summary -> the demux handler passes that dict through verbatim -> the TS AmpliconLengthDistributionSummary names its keys. The dict is handed over untyped, so a key added on one side and not the other is invisible until a component reads undefined. The percentiles come from the same in-hand vector as the modal peak and add no pass over the reads; they exist because min/median/max cannot tell a tight amplicon from a smear around the same centre, and max is set by whichever single 200 kb read the sample caught. They are optional on the TS side because a project saved before they existed carries none, and a missing percentile is not a read of length 0. Percentiles are interpolated (statistics.quantiles method=inclusive) then truncated the way the neighbouring median already is, so no reported length exceeds a read that was seen; changing that definition changes every stored summary's meaning without changing its shape.",
+      "severity": "warning"
+    },
+    {
+      "id": "mame-contamination",
+      "files": [
+        "kuma_core/mame/qc/contamination.py",
+        "kuma_core/mame/ingest/run_pipeline.py",
+        "python-core/sidecar_mame/handlers/analyze.py",
+        "src/types/mame/models.ts",
+        "src/store/mame/slices/analysisSlice.ts",
+        "src/components/mame/widgets/ContaminationPanel.tsx"
+      ],
+      "symbols": [
+        "analyze_contamination",
+        "per_nb_out",
+        "POOLED_PLATE_NAME",
+        "ContaminationReport",
+        "CONTAMINATION_SIGNAL_NAMES"
+      ],
+      "note": "Stray-read signals: the per-NB demux matrix (per_nb_out sink) -> qc.contamination -> raw-run-only `contamination` response key -> TS ContaminationReport -> store field -> panel. Signal names are a fixed list on both sides; adding one on the Python side without extending CONTAMINATION_SIGNAL_NAMES drops it before the panel. Every signal is `ok` with a value or `unavailable` with a reason, never zero-filled, so nothing in this chain may substitute 0 for a missing measurement.",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-transition-backtest-rationale",
+      "files": [
+        "kuma_core/strategy/classify.py",
+        "docs/2026-06-08-mame-transition-backtest.md"
+      ],
+      "symbols": [
+        "_decide_core",
+        "any_true",
+        "all_na"
+      ],
+      "note": "_decide_core가 T2/T3/T_model과 T1만 결정에 쓰고 T4/T_active/T_unused를 informational로 강등한 근거는 2026-06-08 backtest다. 그 근거 문서는 원래 kuma 밖 형제 저장소(mame_backtest, 리모트 없음)의 report_final.md만 가리키고 있어서 다른 머신에서 해석 불가능했다. docs/ 안으로 옮겨 적어 코드와 함께 이동하게 했다. 결정 트리에서 어떤 신호가 쓰이는지 바꾸면 이 문서의 '코드가 여기에 의존하는 지점' 절도 같이 고쳐야 한다. 반대로 문서만 고치고 코드를 안 고치면 강등 근거와 실제 동작이 어긋난다.",
+      "severity": "warning"
+    },
+    {
+      "id": "mame-assay-noise-model",
+      "files": [
+        "kuma_core/strategy/signals.py",
+        "python-core/sidecar_mame/handlers/classify_round.py",
+        "docs/2026-08-19-mame-assay-noise-model.md"
+      ],
+      "symbols": [
+        "compute_T2_threshold",
+        "compute_sigma_assay"
+      ],
+      "note": "sigma_assay 와 r 이 무엇을 재는 양인지의 근거는 docs/2026-08-19-mame-assay-noise-model.md 다. 핵심은 sqrt(2/r) 이 r 번 평균이 비교가 노출된 분산을 실제로 평균해 없앨 때만 맞다는 것이다. Agilent 경로에서 변이 웰의 반복은 같은 웰의 재주입(injection)이라 웰간 분산을 줄이지 않고, WT_1/WT_2/WT_3 는 서로 다른 웰이다. 따라서 v0.16.30.01 이 실어 나른 반복 개수를 그대로 r 에 넣으면 없던 오차가 생긴다. 임계값 공식이나 r 의 출처를 바꾸면 이 문서의 '두 종류의 반복' 절과 '무엇을 먼저 재야 하는가' 절을 같이 고쳐야 한다. 문서만 고치고 코드를 두면 잡음 모델의 근거와 실제 계산이 어긋난다.",
+      "severity": "warning"
+    },
+    {
+      "id": "mame-classify-round-rpc",
+      "files": [
+        "python-core/sidecar_mame/handlers/classify_round.py",
+        "src/types/mame/strategy.ts",
+        "src/types/mame/validators.ts",
+        "src/lib/ipc-mame/index.ts",
+        "src/components/round/AdvisoryDecisionCard.tsx",
+        "src/lib/round/roundArtifacts.ts",
+        "src/lib/mame/mameStepCompletion.ts"
+      ],
+      "note": "strategy.classify_round 계약: 핸들러 응답 두 형태(decision / not_assessable)와 그 키·reason 코드 <-> TS 타입 <-> RPC 클라이언트 <-> 카드 렌더 <-> round_files 조립 <-> step 완료 판정. round_files 항목은 {n, path, wt_values?} 이고 wt_values 는 모든 항목이 읽힌다. 각 라운드의 반복값은 그 라운드 자신의 T2 가 비교되는 잡음을 추정하고, 가장 큰 n 항목은 거기에 더해 부트스트랩이 리샘플한다. 예전에는 가장 큰 n 만 읽어 그 앞 라운드는 sigma_assay 가 전부 None 이었고, 그래서 T2 가 2라운드 hysteresis 규칙에 구조적으로 도달하지 못했다. not_assessable 의 reason 은 wt_replicates_missing(0개)과 wt_replicates_insufficient(부족)로 갈리고 wt_replicate_count/wt_replicate_min 을 함께 싣는다. 문서만 남고 코드가 갈라지는 사고가 실제로 있었다: 4.2 가 WT 반복값을 받을 수 있게 된 뒤에도 ipc.ts 의 @param 과 mameStepCompletion.ts 의 주석이 'xlsx 포맷이 그 입력을 담을 수 없다'로 남아 있었다.",
+      "severity": "warning"
+    },
+    {
+      "id": "settings-ui-charter",
+      "files": [
+        "src/components/layout/SettingsDialog.tsx",
+        "docs/standards/common-frontend-standards.md"
+      ],
+      "note": "AGENTS.md lists Settings UI changes as a charter trigger, and reading it as documentation was not enough. v0.16.36 disabled two telemetry toggles and labelled them as not yet active, which reads as a feature waiting to be switched on; section 10 of the charter makes zero outbound telemetry release-blocking, so the honest answer was to remove them, and v0.16.37 did. The same omission produced a proposal to make the cancel timeout configurable, which section 22 and section 1 both forbid by fixing that wait at 5 s. Pairing the dialog with the charter puts the governing document in context at the moment the dialog is edited, rather than relying on someone remembering the trigger list.",
+      "severity": "warning"
+    },
+    {
+      "id": "mame-activity-label-swap-message",
+      "files": [
+        "kuma_core/mame/activity/build_evolvepro_input.py",
+        "python-core/sidecar_mame/handlers/activity.py",
+        "src/components/mame/panels/BuildEvolveproInputPanel.tsx"
+      ],
+      "symbols": [
+        "Label swap detected"
+      ],
+      "note": "step 4.1 의 label-mismatch 승인 체크박스는 상시 노출을 그만두고, 빌드가 실제로 label swap 으로 거절됐을 때만 에러 패널 안에 나타난다. 그 판정은 백엔드 예외 문구에 'Label swap detected' 가 들어 있는지로 하며(describeRpcError 가 원문을 그대로 돌려준다), 문구를 바꾸면 체크박스가 영영 나타나지 않아 사용자가 검토 후 재빌드할 방법이 사라진다. 실패는 조용하다: 타입검사도 테스트도 문구 일치를 보지 않는다. 예외 문구를 고칠 때 패널의 매칭도 같이 고칠 것.",
+      "severity": "warning"
+    },
+    {
+      "id": "mame-detect-measurement-source",
+      "files": [
+        "kuma_core/mame/activity/detect_measurement_source.py",
+        "kuma_core/mame/activity/build_evolvepro_input.py",
+        "kuma_core/mame/activity/evolvepro_xlsx.py",
+        "kuma_core/mame/activity/plate_layout_xlsx.py",
+        "python-core/sidecar_mame/models.py",
+        "python-core/sidecar_mame/dispatcher.py",
+        "python-core/sidecar_mame/handlers/activity.py",
+        "src/types/mame/detect_measurement_source.ts",
+        "src/types/mame/validators.ts",
+        "src/lib/ipc-mame/index.ts"
+      ],
+      "symbols": [
+        "detect_measurement_source",
+        "MEASUREMENT_SOURCES",
+        "DetectMeasurementSourceParams",
+        "DetectMeasurementSourceResult",
+        "detectMeasurementSource"
+      ],
+      "note": "Step 4.1 measurement source detection: the detector reads the file and reports every source it could be, so the six names in MEASUREMENT_SOURCES must match the MeasurementSource union in TS and the membership set the result validator checks. The membership tests are borrowed rather than re-written (_WELL_RE from plate_layout_xlsx, _BLOCK_REP_ID_RE and _iter_fid1b_blocks from evolvepro_xlsx, _short_variant and the column sets from build_evolvepro_input), so a change to any of those changes what this reports. Two pairs are reported as two candidates rather than resolved: a gcSheet is also a valid longFormat file, and a numeric-ID block file is numericReport or confirmationNumericIds because decode_primary_screen and decode_confirmation_against call the same parse_agilent_block_rep_batch.",
+      "severity": "warning"
+    },
+    {
+      "id": "kuro-polymerase-proofreading",
+      "files": [
+        "kuma_core/kuro/resources/polymerase_profiles.json",
+        "kuma_core/kuro/polymerase.py",
+        "python-core/sidecar_kuro/handlers/misc.py",
+        "src/types/models.ts",
+        "src/components/widgets/popovers/OffTargetDetail.tsx"
+      ],
+      "symbols": [
+        "proofreading",
+        "PolymeraseProfile",
+        "PolymeraseProfileModel",
+        "handle_list_polymerases",
+        "PolymeraseInfo"
+      ],
+      "note": "polymerase_profiles.json의 proofreading 필드는 PolymeraseProfile dataclass(_dict_to_profile) -> handle_list_polymerases -> TS PolymeraseInfo/PolymeraseProfile -> OffTargetDetail의 proofreadingNote 조건부 렌더까지 한 줄로 흐른다. PolymeraseProfileModel(Pydantic)은 extra=\"allow\"라 필드 선언 없이 get_polymerase_details 응답에 그대로 실린다(ta_rule/vendor_spec과 같은 경로). 새 폴리머라제를 추가하면 JSON에 proofreading을 명시해야 UI가 조용히 미표시로 빠지지 않는다.",
+      "severity": "blocking"
+    },
+    {
+      "id": "echo-plate-column-parity-geometry",
+      "files": [
+        "kuma_core/kuro/plate_quadrant.py",
+        "src/lib/echoQuadrant.ts"
+      ],
+      "symbols": [
+        "QUADRANTS",
+        "LEGACY_QUADRANTS",
+        "FOLDED_QUADRANTS",
+        "fold_persisted_placement",
+        "to_384_well",
+        "ECHO_QUADRANTS",
+        "foldPersistedPlacement",
+        "savedUnderHalfLayout"
+      ],
+      "note": "Echo 384 source plate 의 열 패리티 기하와 저장값 판독 규칙이 두 벌 있다. plate_quadrant.py 가 정본이고 echoQuadrant.ts 가 미러다. round 이름(QUADRANTS), 열 offset, 교차 시절 이름의 폴딩(FOLDED_QUADRANTS = {B1->A1, B2->A2}), half 시절 값 집합(LEGACY_QUADRANTS = {A13}), fold_persisted_placement 의 판정이 한쪽만 바뀌면 저장된 프로젝트를 다시 열 때 소스 웰이 말없이 옮겨간다. 실제로 v0.16.61 의 half fold 는 교차 배치를 한쪽 절반으로 접어 프라이머가 든 절반을 비어 있음으로 선언했다. TS 쪽에는 파이썬에 없는 항목이 하나 더 있다. 저장 파일의 kuma_version 으로 단독 A1/A2 가 half 시절의 연속 12열 블록인지 현재의 열 패리티인지 판별하는 savedUnderHalfLayout 인데, 값만 보는 코어는 이 구분을 할 수 없기 때문이다.",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-expected-site-reads",
+      "files": [
+        "kuma_core/mame/compare/verdict.py",
+        "python-core/sidecar_mame/handlers/analyze.py",
+        "src/types/mame/models.ts",
+        "src/lib/mame/siteReads.ts",
+        "src/components/mame/widgets/VerdictTable.tsx",
+        "src/components/mame/inspectors/VerdictDetailInspector.tsx",
+        "src/components/mame/widgets/PlateView.tsx"
+      ],
+      "symbols": [
+        "expected_site_reads",
+        "ExpectedSiteRead"
+      ],
+      "note": "Every verdict dict from _serialize_verdict (including replicate plate_verdicts) carries expected_site_reads, a list of {label, position, read} per designed site built by verdict.py expected_site_reads over read_at_position. read is an observed label or one of the tokens WT, no call, not covered, and a TS consumer that branches on those three strings stops matching silently if a token is renamed on either side. The field is derived at serialize time only: no dataclass stores it and _deserialize_verdict never reads it, so a reloaded result recomputes it. It is optional in TS (ExpectedSiteRead on VerdictRecord) because an autosaved payload replayed from before the field existed lacks it, and every UI must then render exactly as it did without the field.",
+      "severity": "warning"
+    },
+    {
+      "id": "help-content-mirror",
+      "files": [
+        "docs/help/ko/kuro-index.md",
+        "docs/kuro/index.md",
+        "docs/help/ko/kuro-01-load.md",
+        "docs/kuro/01-load.md",
+        "docs/help/ko/kuro-02-mutation.md",
+        "docs/kuro/02-mutation.md",
+        "docs/help/ko/kuro-03-params.md",
+        "docs/kuro/03-params.md",
+        "docs/help/ko/kuro-04-submit.md",
+        "docs/kuro/04-submit.md",
+        "docs/help/ko/kuro-05-output.md",
+        "docs/kuro/05-output.md",
+        "docs/help/ko/kuro-06-export.md",
+        "docs/kuro/06-export.md",
+        "docs/help/ko/mame-index.md",
+        "docs/mame/index.md",
+        "docs/help/ko/mame-01-setup.md",
+        "docs/mame/01-setup.md",
+        "docs/help/ko/mame-02-review.md",
+        "docs/mame/02-review.md",
+        "docs/help/ko/mame-03-janus.md",
+        "docs/mame/03-janus.md",
+        "docs/help/ko/mame-04-activity.md",
+        "docs/mame/04-activity.md",
+        "docs/help/ko/mame-pipeline.md",
+        "docs/mame/mame-pipeline.md"
+      ],
+      "note": "In-app help is the user-facing digest of the published step guide next to it: same screen, same steps, same warnings, with the version history, module paths and design rationale left out. The two are not identical by design, so this group is a warning rather than a gate. When a step changes behaviour, both sides have to say the new behaviour or the app and the site disagree about what the app does.",
+      "severity": "warning"
+    },
+    {
+      "id": "kuro-codon-table-reproducibility",
+      "files": [
+        "kuma_core/kuro/codon_table.py",
+        "python-core/sidecar_kuro/handlers/design.py",
+        "python-core/sidecar_kuro/handlers/export.py",
+        "src/lib/codonTableRestore.ts",
+        "src/lib/kuroSnapshot.ts",
+        "src/hooks/useAutosaveHydration.ts",
+        "src/store/slices/exportSlice.ts",
+        "src/types/models.ts"
+      ],
+      "symbols": [
+        "describe",
+        "_codon_table_provenance",
+        "_design_provenance_for_manifest",
+        "resolveCodonTableRestore"
+      ],
+      "note": "What a run made with a given codon table records, and what a restored project is entitled to. The digest is minted in codon_table.py (describe), carried by design.py into the session provenance, turned into inputs[design_codon_table] by export.py, and stored by two frontend paths that deliberately store different things: kuroSnapshot.ts writes key plus digest, exportSlice.ts writes the whole document, and codonTableRestore.ts is the only place that reconciles them. models.ts declares both shapes. Changing what one path stores without the other reopens the section 8.1 hole, where two manifests read identically and the primers differ.",
+      "severity": "blocking"
+    },
+    {
+      "id": "kuro-custom-codon-tables",
+      "files": [
+        "kuma_core/kuro/codon_table.py",
+        "kuma_core/kuro/codon_import.py",
+        "python-core/sidecar_kuro/core.py",
+        "python-core/sidecar_kuro/handlers/misc.py",
+        "src/types/models.ts",
+        "src/types/validators.ts",
+        "src/lib/ipc.ts",
+        "src/components/panels/InputPanel/SequenceInput.tsx",
+        "kuma_core/kuro/codon_formats.py",
+        "python-core/sidecar_kuro/handlers/codon.py",
+        "python-core/sidecar_kuro/dispatcher.py",
+        "src/store/slices/sequenceSlice.ts",
+        "src/components/dialogs/CodonTableManager.tsx",
+        "kuma_core/kuro/codon_compute.py",
+        "src/lib/codonTableMessages.ts"
+      ],
+      "symbols": [
+        "get_registry",
+        "user_codon_dir",
+        "validate_codon_table_data",
+        "handle_list_organisms",
+        "handle_import_codon_table",
+        "handle_compute_codon_table",
+        "_judge_and_install",
+        "compute_codon_table",
+        "_ALLOWED_GENOME_EXTENSIONS",
+        "import_context",
+        "parse_table_text"
+      ],
+      "note": "User-installed codon tables: the search path and scan live in codon_table.py, the rules in codon_import.py, the single registry in core.get_registry() and the list_organisms envelope in misc.py. The TypeScript consumers of that envelope join the group now that the frontend side has landed: models.ts declares ListOrganismsResult, validators.ts guards it, SequenceInput.tsx renders the organisms it carries, and ipc.ts is listed because a Phase 3 import/export RPC lands there and must not be added without the rest. Phase 3 joins the import and export path: codon_formats.py converts CSV, cusp and Kazusa into the document codon_import judges, handlers/codon.py owns the two RPCs and is registered in dispatcher.py, sequenceSlice.ts carries the send/relist/select actions and CodonTableManager.tsx is the dialog. The import context is built by CodonTableRegistry.import_context rather than in the handler, because a second hand-assembled context makes V9 pass vacuously and nothing downstream notices. Phase 4b joins the compute path: codon_compute.py counts a genome, core.py declares _ALLOWED_GENOME_EXTENSIONS beside the untouched _ALLOWED_FASTA_EXTENSIONS (the design template must be annotated, a cds_from_genomic.fna need not be), handlers/codon.py owns the third RPC and shares _judge_and_install with import so a computed table meets the rules an imported one meets, and codonTableMessages.ts joins because the compute path raises G1, G2 and G3, which come from the handler rather than from MESSAGE_CODES and would otherwise ship as the unknown fallback in ten locales.",
+      "severity": "blocking"
+    },
+    {
+      "id": "kuro-codon-table-seeds",
+      "files": [
+        "kuma_core/kuro/resources/codon_table_seeds/README.txt",
+        "kuma_core/kuro/resources/codon_table_seeds/TEMPLATE.json.txt",
+        "kuma_core/kuro/resources/codon_table_seeds/mextorquens_am1.json.txt",
+        "python-core/sidecar_kuro/handlers/misc.py",
+        "kuma_core/kuro/codon_table.py"
+      ],
+      "symbols": [
+        "_CODON_SEED_FILES",
+        "ensure_user_codon_dir",
+        "_ORGANISM_ALIASES"
+      ],
+      "note": "What the codon-table seed folder ships and what copies it into the user folder. ensure_user_codon_dir writes exactly the names in _CODON_SEED_FILES, so a seed added, renamed or removed without touching that tuple never reaches a user and nothing fails. The README states the built-in key set that cannot be replaced, which is _ORGANISM_ALIASES plus the bundled stems, so the README goes stale the moment the bundled set changes: that is how it kept listing mextorquens after the table became an installable seed. mextorquens_am1.json.txt is a finished table rather than a placeholder and keeps the .json.txt suffix so seeding it is not installing it.",
+      "severity": "warning"
+    }
+  ]
+}
