@@ -1,0 +1,310 @@
+/**
+ * MameInspectorContent — MAME 7화면 우측 Inspector 패널 내용.
+ *
+ * currentMameSubStep에 따라 화면별 KV(키-값) 패널을 렌더한다.
+ * InspectorPanel 래퍼는 MameAppLayout에서 적용하므로 여기서는 내부 콘텐츠만 담당.
+ *
+ * [source: v5-strategy.md §2.2 — 화면별 Inspector 콘텐츠]
+ * [source: v5-audit.md Post-Phase 1 재점검 — per-screen Inspector 콘텐츠 0건 GAP]
+ */
+
+import { useTranslation } from "react-i18next";
+import { useMameAppStore } from "@/store/mame/mameAppStore";
+import type { MameSubStepId } from "@/store/mame/slices/mameSubSteps";
+import { VerdictDetailInspector } from "@/components/mame/inspectors/VerdictDetailInspector";
+
+// KV 행 공통 컴포넌트
+function KVRow({ label, value }: { label: string; value: string | number | null | undefined }) {
+  const display = value != null && value !== "" ? String(value) : "—";
+  return (
+    <div className="flex items-start justify-between gap-2 py-1.5 border-b border-border last:border-0">
+      <span className="text-xs text-muted-foreground shrink-0 w-[40%]">{label}</span>
+      <span className="text-xs text-foreground text-right min-w-0 break-all">{display}</span>
+    </div>
+  );
+}
+
+// 캘아웃(강조 텍스트) 박스
+function Callout({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="mt-3 rounded border border-primary/30 bg-primary/5 px-3 py-2">
+      <p className="text-xs font-semibold text-primary">{title}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{body}</p>
+    </div>
+  );
+}
+
+// 빈 상태
+function EmptyState({ message }: { message: string }) {
+  return (
+    <p className="text-xs text-muted-foreground py-2">{message}</p>
+  );
+}
+
+/** 화면 1: MAME Setup/Files — Run Inspector */
+function SetupFilesInspector() {
+  const { t } = useTranslation();
+  const inputDir = useMameAppStore((s) => s.inputDir);
+
+  if (!inputDir) {
+    return <EmptyState message={t("mame.setup.files.inspectorNoFolder")} />;
+  }
+
+  // inputDir에서 폴더 이름만 추출 (Run 폴더 이름을 Device 식별자로 사용)
+  const folderName = inputDir.replace(/\\/g, "/").split("/").filter(Boolean).pop() ?? inputDir;
+
+  return (
+    <div>
+      <KVRow label={t("mame.setup.files.inspectorBarcodes")} value={folderName} />
+    </div>
+  );
+}
+
+/** 화면 2: MAME Setup/Design — Barcode Inspector */
+function SetupDesignInspector() {
+  const { t } = useTranslation();
+  const expectedPath = useMameAppStore((s) => s.expectedPath);
+
+  if (!expectedPath) {
+    return <EmptyState message={t("mame.setup.design.inspectorNoBarcodeSelected")} />;
+  }
+
+  const fileName = expectedPath.replace(/\\/g, "/").split("/").filter(Boolean).pop() ?? expectedPath;
+
+  return (
+    <div>
+      <KVRow label={t("mame.setup.design.inspectorDesignSource")} value={fileName} />
+    </div>
+  );
+}
+
+/** 화면 3: MAME QC/Inputs — QC Inspector (estimated retention 2x2) */
+function QcInputsInspector() {
+  const { t } = useTranslation();
+  const minFileSizeKb = useMameAppStore((s) => s.minFileSizeKb);
+  const minFilteredDepth = useMameAppStore((s) => s.minFilteredDepth);
+  const verdicts = useMameAppStore((s) => s.verdicts);
+
+  // Record-level retention estimate: PASS records over all records, one entry
+  // per VerdictRecord, so a well sequenced across several replicates counts
+  // several times. That is the intended question here (what share of the reads
+  // that came back are usable), and it is deliberately none of the other two
+  // PASS quantities in this app: SummaryRow reports the variant-level success
+  // rate, and the backend merge admits a variant once under `verdict == PASS
+  // and not failed and not is_fallback`
+  // (kuma_core/mame/activity/build_evolvepro_input.py:224). Do not present this
+  // number as a merge row count.
+  const totalWells = verdicts.length;
+  const passCount = verdicts.filter((v) => v.verdict === "PASS").length;
+  const estRetention =
+    totalWells > 0 ? `${Math.round((passCount / totalWells) * 100)}%` : "—";
+
+  return (
+    <div>
+      <KVRow label={t("mame.qc.inputs.inspectorEstRetention")} value={estRetention} />
+      <KVRow label={t("mame.qc.inputs.inspectorEstPass")} value={totalWells > 0 ? `${passCount}/${totalWells}` : "—"} />
+      <KVRow label={t("mame.qc.inputs.inspectorMinDepth")} value={`${minFilteredDepth} reads`} />
+      <KVRow label={t("mame.parameters.legacyKbCutoff")} value={`${minFileSizeKb} KB`} />
+    </div>
+  );
+}
+
+/** 화면 4: MAME QC/Verdict — Barcode Verdict Inspector */
+function QcVerdictInspector() {
+  const { t } = useTranslation();
+  const verdicts = useMameAppStore((s) => s.verdicts);
+
+  // 첫 번째 PASS 또는 첫 번째 verdict를 preview로 사용
+  const selected = verdicts.find((v) => v.verdict === "PASS") ?? verdicts[0] ?? null;
+
+  if (!selected) {
+    return <EmptyState message={t("mame.qc.verdict.inspectorNoBarcodeSelected")} />;
+  }
+
+  return (
+    <div>
+      <KVRow label={t("mame.qc.verdict.inspectorReads")} value={selected.read_count} />
+      <KVRow label={t("mame.qc.verdict.inspectorCall")} value={selected.verdict} />
+      {/* verdict_notes: backend-authored diagnostic string (VerdictRecord.verdict_notes).
+          Replaces a fabricated "Identity %" that no backend field backed. */}
+      <KVRow label={t("mame.verdictTable.colNotes")} value={selected.verdict_notes} />
+    </div>
+  );
+}
+
+/** 화면 5: MAME QC/Plate, Well Inspector.
+ *
+ * The plate map well button and the verdict table variant-id button both write
+ * `selectedWell`, so this one panel is what either entry point opens. The
+ * detail body lives in VerdictDetailInspector. */
+function QcPlateInspector() {
+  const { t } = useTranslation();
+  const selectedWell = useMameAppStore((s) => s.selectedWell);
+
+  if (!selectedWell) {
+    return <EmptyState message={t("mame.qc.plate.inspectorNoWellSelected")} />;
+  }
+
+  return <VerdictDetailInspector />;
+}
+
+/** 화면 3.1: MAME Janus 장비 설정, Instrument Inspector.
+ *
+ * The three values the sheet is written from, and what the last manual export
+ * (from JanusMappingPanel) did with the mapping file. A blank liquid class is
+ * stated as blank rather than hidden: it is the one value the sidecar cannot
+ * derive. */
+function JanusSettingsInspector() {
+  const { t } = useTranslation();
+  const janusSettings = useMameAppStore((s) => s.janusSettings);
+  const janusMappingAutosave = useMameAppStore((s) => s.janusMappingAutosave);
+
+  const mappingPath = janusMappingAutosave?.output_path ?? null;
+  const mappingFile = mappingPath
+    ? (mappingPath.replace(/\\/g, "/").split("/").filter(Boolean).pop() ?? mappingPath)
+    : null;
+
+  return (
+    <div>
+      <KVRow label={t("mame.janus.settings.inspectorVolume")} value={janusSettings.volume} />
+      <KVRow label={t("mame.janus.settings.inspectorSampleType")} value={janusSettings.sampleType} />
+      <KVRow label={t("mame.janus.settings.inspectorLiquidClass")} value={janusSettings.liquidClass} />
+      <KVRow label={t("mame.janus.settings.inspectorLastMapping")} value={mappingFile} />
+    </div>
+  );
+}
+
+/** 화면 6: MAME Activity/Ingest — Activity Inspector */
+function ActivityIngestInspector() {
+  const { t } = useTranslation();
+  const verdicts = useMameAppStore((s) => s.verdicts);
+  const hasActivity = verdicts.length > 0;
+
+  if (!hasActivity) {
+    return <EmptyState message={t("mame.activity.ingest.inspectorNoData")} />;
+  }
+
+  return (
+    <div>
+      <KVRow label={t("mame.activity.ingest.inspectorMean")} value="—" />
+      <KVRow label={t("mame.activity.ingest.inspectorStdDev")} value="—" />
+      <KVRow label={t("mame.activity.ingest.inspectorReplicates")} value="—" />
+      <KVRow label={t("mame.activity.ingest.inspectorWtNorm")} value="—" />
+    </div>
+  );
+}
+
+/** 화면 7: MAME Activity/Merge & Export — Export Inspector */
+function ActivityMergeExportInspector() {
+  const { t } = useTranslation();
+  const verdicts = useMameAppStore((s) => s.verdicts);
+  const hasMerge = verdicts.length > 0;
+
+  if (!hasMerge) {
+    return <EmptyState message={t("mame.activity.mergeExport.inspectorNoMerge")} />;
+  }
+
+  // PASS verdict records, not merged rows. The merge admits one row per variant
+  // under `verdict == PASS and not failed and not is_fallback`
+  // (kuma_core/mame/activity/build_evolvepro_input.py:224), so on a run with
+  // three replicates per variant this count runs about threefold higher. The
+  // real counts (n_variants, n_ngs_excluded, exclusion_reason_counts) come back
+  // from the RPC into BuildEvolveproInputPanel and never reach this inspector,
+  // so the label states what this number is instead of predicting the merge.
+  const passVerdicts = verdicts.filter((v) => v.verdict === "PASS");
+
+  return (
+    <div>
+      <KVRow label={t("mame.activity.mergeExport.inspectorMergedRows")} value={passVerdicts.length} />
+      <Callout
+        title={t("mame.activity.mergeExport.inspectorBridgeCallout")}
+        body={t("mame.activity.mergeExport.inspectorBridgeDesc")}
+      />
+    </div>
+  );
+}
+
+/** Task #12 — analyze.review 통합 Inspector: 선택된 well 있으면 Plate 인스펙터,
+ * 없으면 Verdict 인스펙터로 fallback. */
+function QcReviewInspector() {
+  const selectedWell = useMameAppStore((s) => s.selectedWell);
+  return selectedWell ? <QcPlateInspector /> : <QcVerdictInspector />;
+}
+
+/** 화면별 Inspector 디스패처 */
+const INSPECTOR_MAP: Record<MameSubStepId, React.ComponentType> = {
+  "setup.files": SetupFilesInspector,
+  "setup.design": SetupDesignInspector,
+  "analyze.inputs": QcInputsInspector,
+  "analyze.review": QcReviewInspector,
+  // Legacy ids (redirect 진입 시 표시)
+  "analyze.verdict": QcVerdictInspector,
+  "analyze.plate": QcPlateInspector,
+  "activity.ingest": ActivityIngestInspector,
+  "janus.settings": JanusSettingsInspector,
+  "activity.signals": ActivityMergeExportInspector,
+  "activity.mergeExport": ActivityMergeExportInspector,
+};
+
+export function MameInspectorContent() {
+  const currentSubStep = useMameAppStore((s) => s.currentMameSubStep);
+  const InspectorComponent = INSPECTOR_MAP[currentSubStep];
+
+  if (!InspectorComponent) return null;
+  return <InspectorComponent />;
+}
+
+/** 화면별 Inspector 제목/부제목 반환 훅 */
+export function useMameInspectorMeta(): { title: string; subtitle: string } {
+  const { t } = useTranslation();
+  const currentSubStep = useMameAppStore((s) => s.currentMameSubStep);
+
+  const META: Record<MameSubStepId, { titleKey: string; subtitleKey: string }> = {
+    "setup.files": {
+      titleKey: "mame.setup.files.inspectorTitle",
+      subtitleKey: "mame.setup.files.inspectorSubtitle",
+    },
+    "setup.design": {
+      titleKey: "mame.setup.design.inspectorTitle",
+      subtitleKey: "mame.setup.design.inspectorSubtitle",
+    },
+    "analyze.inputs": {
+      titleKey: "mame.qc.inputs.inspectorTitle",
+      subtitleKey: "mame.qc.inputs.inspectorSubtitle",
+    },
+    "analyze.review": {
+      titleKey: "mame.qc.review.inspectorTitle",
+      subtitleKey: "mame.qc.review.inspectorSubtitle",
+    },
+    "analyze.verdict": {
+      titleKey: "mame.qc.review.inspectorTitle",
+      subtitleKey: "mame.qc.review.inspectorSubtitle",
+    },
+    "analyze.plate": {
+      titleKey: "mame.qc.review.inspectorTitle",
+      subtitleKey: "mame.qc.review.inspectorSubtitle",
+    },
+    "activity.ingest": {
+      titleKey: "mame.activity.ingest.inspectorTitle",
+      subtitleKey: "mame.activity.ingest.inspectorSubtitle",
+    },
+    "janus.settings": {
+      titleKey: "mame.janus.settings.inspectorTitle",
+      subtitleKey: "mame.janus.settings.inspectorSubtitle",
+    },
+    "activity.signals": {
+      titleKey: "mame.activity.mergeExport.inspectorTitle",
+      subtitleKey: "mame.activity.mergeExport.inspectorSubtitle",
+    },
+    "activity.mergeExport": {
+      titleKey: "mame.activity.mergeExport.inspectorTitle",
+      subtitleKey: "mame.activity.mergeExport.inspectorSubtitle",
+    },
+  };
+
+  const meta = META[currentSubStep];
+  return {
+    title: t(meta.titleKey),
+    subtitle: t(meta.subtitleKey),
+  };
+}

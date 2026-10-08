@@ -1,0 +1,214 @@
+#!/usr/bin/env bash
+# Local pre-push gate. Mirrors what tag-only CI used to catch on every push.
+# Skip in emergencies: git push --no-verify
+#
+# Every step runs `node` against files that already exist in the repo. No
+# package manager and no on-demand package fetcher: this is a Windows-target
+# checkout on a shared folder, so a WSL-side install would replace
+# node_modules with Linux binaries and leave the app unable to start.
+set -e
+
+repo_root=$(git rev-parse --show-toplevel)
+cd "$repo_root"
+
+# git feeds a pre-push hook one line per ref on stdin:
+#   <local ref> <local sha> <remote ref> <remote sha>
+#
+# A tag push makes no claim about this working tree. The tag names a commit that
+# is already on the remote and was gated by CI on the pull request that landed
+# it, while the checkout running the hook may sit on an unrelated branch with
+# its own manifests and its own uncommitted work. Gating a tag push on the
+# working tree therefore fails on state the push does not touch: on 2026-09-18
+# pushing v0.16.66 was refused because this checkout held another session's
+# branch at 0.16.59 with 94 dirty files, and the version-label step dutifully
+# reported that branch's number instead of the tag's.
+#
+# Deleting a remote ref makes no claim about this working tree either. git
+# reports a deletion with an all-zero local sha, and nothing is uploaded. On
+# 2026-09-28 a push that only deleted two remote branches ran the gates for
+# seven minutes and was then refused by the version-label step, which has
+# nothing to say about a deletion. A push is skipped only when every ref in it
+# is a tag or a deletion; one ordinary branch update runs the full gates.
+#
+# An empty stdin means the hook was invoked by hand rather than by git, so the
+# gates still run.
+only_skippable=1
+saw_ref=0
+while read -r _local_ref local_sha remote_ref _remote_sha; do
+  [ -z "$remote_ref" ] && continue
+  saw_ref=1
+  case "$local_sha" in
+    *[!0]*) ;;
+    *) continue ;;
+  esac
+  case "$remote_ref" in
+    refs/tags/*) ;;
+    *) only_skippable=0 ;;
+  esac
+done
+
+if [ "$saw_ref" = 1 ] && [ "$only_skippable" = 1 ]; then
+  echo "[pre-push] tag or deletion only push: the working tree is not what is being pushed, skipping the gates"
+  exit 0
+fi
+
+# A worktree carries no dependencies of its own, so fall back to the main
+# checkout. `--git-common-dir` points at the shared git dir (.git of the main
+# checkout), whose parent is that checkout. It is relative in the main
+# checkout and absolute in a worktree, so normalize before use.
+common_dir=$(git rev-parse --git-common-dir)
+case "$common_dir" in
+  /*) ;;
+  *) common_dir="$repo_root/$common_dir" ;;
+esac
+main_root=$(cd "$common_dir/.." && pwd)
+
+tsc=""
+for candidate in "$repo_root" "$main_root"; do
+  if [ -f "$candidate/node_modules/typescript/bin/tsc" ]; then
+    tsc="$candidate/node_modules/typescript/bin/tsc"
+    break
+  fi
+done
+
+if [ -z "$tsc" ]; then
+  echo "[pre-push] FAIL: typescript is not installed in this repository." >&2
+  echo "[pre-push] Looked for node_modules/typescript/bin/tsc under:" >&2
+  echo "[pre-push]   $repo_root" >&2
+  echo "[pre-push]   $main_root" >&2
+  echo "[pre-push] Install dependencies once in the main checkout" >&2
+  echo "[pre-push] ($main_root) from a Windows-native terminal, then push again." >&2
+  echo "[pre-push] Worktrees intentionally share that install; do not run a" >&2
+  echo "[pre-push] package manager from WSL on this drive." >&2
+  echo "[pre-push] Emergency bypass: git push --no-verify" >&2
+  exit 1
+fi
+
+# The Python type gate. CI runs `basedpyright` over the rule set in
+# [tool.pyright] of pyproject.toml, and until now nothing ran it before a push,
+# so a plain type error in new Python cost a full push-to-CI round trip to
+# learn about. On 2026-09-20 that happened twice in one session, once on a test
+# helper whose builder returned `object` and once on a `**dict` expansion that
+# widened into primer3 int and bool parameters. Both reproduce locally in
+# seconds.
+#
+# Unlike node_modules, the virtualenv is optional: AGENTS.md has it as a setup
+# step and a checkout that only touches the frontend never needs one. A missing
+# venv therefore says so once and moves on rather than refusing the push. The
+# run costs about the same as the tsc step on this repo, 46 seconds against 40
+# measured on 2026-09-23, so it is not gated on which files changed; the other
+# steps read the working tree rather than the pushed range and this one keeps
+# that shape.
+#
+# CI stays authoritative when the two disagree. The checker version is pinned
+# but the analysed dependencies are not, so a local venv holding older
+# libraries can report a different set than the runner does.
+pyright=""
+pyright_python=""
+for candidate in "$repo_root" "$main_root"; do
+  if [ -x "$candidate/.venv/bin/basedpyright" ]; then
+    pyright="$candidate/.venv/bin/basedpyright"
+    pyright_python="$candidate/.venv/bin/python3"
+    break
+  fi
+  if [ -x "$candidate/.venv/Scripts/basedpyright.exe" ]; then
+    pyright="$candidate/.venv/Scripts/basedpyright.exe"
+    pyright_python="$candidate/.venv/Scripts/python.exe"
+    break
+  fi
+done
+
+# sync:check's generated-models stage shells out to `json2ts`. The vendored
+# scripts/gen-models.mjs looks for it at <cwd>/node_modules/.bin and otherwise
+# falls back to a bare `json2ts` on PATH. A worktree has no node_modules and
+# PATH has no json2ts either, so spawnSync returns status null and the whole
+# first step fails before tsc and i18n:check ever run. Point PATH at the main
+# checkout's bin dir. That shim is a plain `exec node <local cli.js>` against
+# the pnpm store that is already on disk, so this only resolves an installed
+# binary; it runs no package manager and fetches nothing.
+bin_dir="$main_root/node_modules/.bin"
+if [ -d "$bin_dir" ]; then
+  PATH="$bin_dir:$PATH"
+  export PATH
+fi
+
+# The tauri-resources check asserts every path in tauri.conf.json's
+# bundle.resources exists on disk. resources/NOTICE.md is gitignored: it is
+# assembled by scripts/build-notice.mjs out of NOTICE-{rust,node,python}.md,
+# which are themselves gitignored outputs of cargo-about, pnpm licenses and
+# pip-licenses. So the generator cannot run here either, and the check fails on
+# any tree that has not been through a full build. ci.yml stubs this one file
+# for exactly that reason before running the same check. Do the same, with two
+# limits: never touch an existing file, so a real generated notice is left
+# alone, and drop the stub again on the way out, so a later local `tauri build`
+# cannot bundle a placeholder in place of the real licenses. Every other
+# declared resource is still checked for real.
+notice_rel="src-tauri/resources/NOTICE.md"
+notice_stubbed=""
+if [ ! -e "$repo_root/$notice_rel" ]; then
+  mkdir -p "$repo_root/src-tauri/resources"
+  printf '# Third-party notices\n\n(placeholder; real content generated at build time by scripts/build-notice.mjs)\n' \
+    > "$repo_root/$notice_rel"
+  notice_stubbed=1
+  echo "[pre-push] stubbed $notice_rel for the tauri-resources check (removed on exit)"
+fi
+
+drop_notice_stub() {
+  if [ -n "$notice_stubbed" ]; then
+    rm -f "$repo_root/$notice_rel"
+  fi
+}
+trap drop_notice_stub EXIT
+
+echo "[pre-push] sync:check -> node scripts/sync-check-all.mjs"
+node scripts/sync-check-all.mjs
+
+echo "[pre-push] tsc --noEmit -> node $tsc"
+node "$tsc" --noEmit
+
+if [ -n "$pyright" ]; then
+  # --pythonpath pins the environment being analysed. Without it the checker
+  # picks one up next to its own working directory, so a worktree borrowing the
+  # main checkout's venv analysed a different set of library stubs than the
+  # main checkout did and reported two errors in scripts/gen-font-metrics.py
+  # that are not there (measured 2026-09-23, 0 errors either way once pinned).
+  #
+  # The files are listed from git instead of letting the checker enumerate the
+  # include folders. When enumeration takes over 10 seconds on 50 or more files
+  # basedpyright prints its "taking longer than 10 seconds" notice through
+  # console.error, and checkForErrors then ends the run with exit 3
+  # (ConfigFileParseError) whenever anything was logged as an error, whatever
+  # the diagnostics say. On this shared drive that depends on load alone: on
+  # 2026-09-28 the gate reported 0 errors and still exited 3, where the same
+  # step had passed an hour earlier. The include folders are read from
+  # [tool.pyright] in pyproject.toml so the two cannot drift. Only tracked
+  # files are listed, and none of them sits under an exclude pattern.
+  # xargs keeps each command line under 30000 bytes, below the 32767 character
+  # limit of a Windows command line; 481 files took 18145 bytes on 2026-09-28,
+  # so today it is a single run.
+  echo "[pre-push] python typecheck -> $pyright"
+  pyright_include=$("$pyright_python" -c 'import tomllib; print("\n".join(tomllib.load(open("pyproject.toml", "rb"))["tool"]["pyright"]["include"]))' | tr -d '\r')
+  pyright_specs=()
+  while IFS= read -r folder; do
+    [ -n "$folder" ] || continue
+    pyright_specs+=("$folder/*.py" "$folder/*.pyi")
+  done <<< "$pyright_include"
+  if [ "${#pyright_specs[@]}" = 0 ]; then
+    echo "[pre-push] FAIL: could not read [tool.pyright] include from pyproject.toml" >&2
+    exit 1
+  fi
+  git ls-files -z -- "${pyright_specs[@]}" \
+    | xargs -0 -r -s 30000 "$pyright" --pythonpath "$pyright_python" \
+    || { echo "[pre-push] FAIL: python typecheck (xargs exit $?; 123 means the checker exited 1)" >&2; exit 1; }
+else
+  echo "[pre-push] python typecheck skipped: no .venv found under $repo_root or $main_root"
+fi
+
+# sync:check reads en.json only, so a locale left on the previous release's
+# What's New wording is invisible to it. i18n:check (i18n-lint + i18n-parity)
+# is what compares the nine translations against en's highlightsStamp.
+echo "[pre-push] i18n:check -> node scripts/i18n-lint.mjs + scripts/i18n-parity.mjs"
+node scripts/i18n-lint.mjs
+node scripts/i18n-parity.mjs
+
+echo "[pre-push] ok"

@@ -1,0 +1,719 @@
+"""Contract + orchestration tests for per-native-barcode combinatorial demux.
+
+Covers four minimap2-free contracts plus one optional real-pipeline test:
+
+A) LAYOUT CONTRACT -- ``load_barcode_directory`` must descend exactly one
+   directory level (the ``sort_barcode{NN}`` native-barcode dir) and never
+   recurse into nested ``reads/`` / ``final/`` / ``consensus/`` subdirs.  Every
+   resulting ``BarcodeRecord.native_barcode`` must be a ``sort_barcode*`` name.
+B) ORCHESTRATION -- ``run_combinatorial_demux_per_nb`` (inline ``parallel=False``
+   path) must call ``_demux_one_nb`` per native barcode, preserve input order,
+   map nb names to ``sort_barcode{NN}`` dirs, and sum the 8 stat keys.  The
+   heavy worker is monkeypatched so no minimap2/edlib is exercised.
+C) DETECT RPC -- ``handle_detect_native_barcodes`` flags used vs unused native
+   barcodes by FASTQ byte share and excludes ``unclassified`` / ``barcode00``.
+D) BACKWARD-COMPAT -- ``run_combinatorial_demux`` keeps the new keyword-only
+   defaults (``well_consensus_at_root=False``, ``minimap2_threads=None``,
+   ``consensus_workers=None``) so existing callers are unaffected.
+E) (optional, gated) real per-NB writer layout with ``edlib`` present.
+
+The contract/orchestration tests here do not *use* minimap2 themselves, so they
+run everywhere, including the Windows CI leg that has no aligner. Only
+``test_real_per_nb_writer_well_consensus_at_root`` drives the real writer
+through alignment, and it carries ``@requires_minimap2``
+(``tests/mame/minimap2_support``) for that reason. A conftest hook used to
+session-skip every mame test instead, which hid roughly 1,200 aligner-free
+tests on the platform this app ships to.
+"""
+
+from __future__ import annotations
+
+import gzip
+import inspect
+from pathlib import Path
+
+import pytest
+
+from kuma_core.mame import ingest as _ingest_pkg  # noqa: F401  (namespace anchor)
+from kuma_core.mame.ingest import combinatorial_demux as cdx
+from kuma_core.mame.ingest.combinatorial_demux import (
+    run_combinatorial_demux,
+    run_combinatorial_demux_per_nb,
+)
+from kuma_core.mame.ingest.fasta_parser import load_barcode_directory
+from kuma_core.mame.ingest.unit_manifest import (
+    UnreadableManifestError,
+    manifest_path,
+    write_run_manifest,
+)
+from tests.mame.minimap2_support import requires_minimap2
+
+
+# ===========================================================================
+# A) LAYOUT CONTRACT TEST (no minimap2)
+# ===========================================================================
+
+
+_SINGLE_RECORD = ">1_1 depth=5\nACGT\n"
+_MULTI_RECORD = ">r0\nACGT\n>r1\nTTTT\n>r2\nGGGG\n"
+
+
+def _write(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def test_layout_contract_load_barcode_directory_one_level(tmp_path: Path) -> None:
+    """load_barcode_directory descends exactly one NB level, never reads/final/.
+
+    Hand-built tree::
+
+        parent/sort_barcode06/1_1.fasta             single-record consensus
+        parent/sort_barcode06/1_2.fasta             single-record consensus
+        parent/sort_barcode06/reads/1_1.fasta       MULTI-record (must be ignored)
+        parent/sort_barcode06/final/consensus_all_dna.fasta  MULTI (ignored)
+        parent/sort_barcode13/2_1.fasta             single-record consensus
+
+    The parser globs ``*.fasta`` non-recursively per top-level dir under
+    ``parent``, so the multi-record files under ``reads/`` and ``final/`` are
+    never opened (no ValueError), and ``native_barcode`` is always the
+    ``sort_barcode{NN}`` dir name (never ``reads``/``final``/``consensus``).
+    """
+    parent = tmp_path / "parent"
+
+    _write(parent / "sort_barcode06" / "1_1.fasta", _SINGLE_RECORD)
+    _write(parent / "sort_barcode06" / "1_2.fasta", ">1_2 depth=4\nTTTT\n")
+    _write(parent / "sort_barcode06" / "reads" / "1_1.fasta", _MULTI_RECORD)
+    _write(
+        parent / "sort_barcode06" / "final" / "consensus_all_dna.fasta",
+        _MULTI_RECORD,
+    )
+    _write(parent / "sort_barcode13" / "2_1.fasta", ">2_1 depth=7\nCCCC\n")
+
+    # Must NOT raise ValueError (multi-header guard would fire on reads/final).
+    records = load_barcode_directory(parent)
+
+    # Exactly the 3 top-level single-record files, never the nested multi files.
+    assert len(records) == 3, (
+        f"expected 3 records, got {len(records)}: "
+        f"{[(r.native_barcode, r.custom_barcode) for r in records]}"
+    )
+
+    nbs = {r.native_barcode for r in records}
+    assert nbs <= {"sort_barcode06", "sort_barcode13"}, (
+        f"native_barcode leaked a nested dir name: {nbs}"
+    )
+    for forbidden in ("reads", "final", "consensus"):
+        assert forbidden not in nbs, f"native_barcode must never be {forbidden!r}"
+
+    # A sort_barcode06 record carries custom_barcode '1_1' (from header / stem).
+    sb06 = {r.custom_barcode for r in records if r.native_barcode == "sort_barcode06"}
+    assert "1_1" in sb06, f"sort_barcode06 custom_barcodes: {sb06}"
+
+
+def test_units_scopes_the_read_to_what_this_run_wrote(tmp_path: Path) -> None:
+    """A pooled re-run must not read the per-NB output an earlier run left.
+
+    The demux output directory is stable so a re-run can resume, and nothing
+    removes what an earlier run put there. Analysing one folder per native
+    barcode and then pooled leaves::
+
+        demux_filtered/sort_barcode06/1_1.fasta
+        demux_filtered/sort_barcode20/1_1.fasta
+        demux_filtered/consensus/1_1.fasta      <- the pooled run
+
+    Unscoped, the pooled run reads three plates while its own per-NB summary
+    states one, so one analyze response holds two replicate counts. ``units``
+    names the directories the run wrote, and the unscoped read is asserted here
+    too so the scoping is what makes the difference.
+    """
+    parent = tmp_path / "demux_filtered"
+    _write(parent / "sort_barcode06" / "1_1.fasta", _SINGLE_RECORD)
+    _write(parent / "sort_barcode20" / "1_1.fasta", _SINGLE_RECORD)
+    _write(parent / "consensus" / "1_1.fasta", _SINGLE_RECORD)
+
+    unscoped = {r.native_barcode for r in load_barcode_directory(parent)}
+    assert unscoped == {"sort_barcode06", "sort_barcode20", "consensus"}
+
+    pooled = load_barcode_directory(parent, units=["consensus"])
+    assert {r.native_barcode for r in pooled} == {"consensus"}
+
+    per_nb = load_barcode_directory(parent, units=["sort_barcode06", "sort_barcode20"])
+    assert {r.native_barcode for r in per_nb} == {"sort_barcode06", "sort_barcode20"}
+
+
+# ===========================================================================
+# A2) RUN MEMBERSHIP: the directory decides, not the call site (no minimap2)
+# ===========================================================================
+
+
+def _stage_units(parent: Path, names: list[str]) -> None:
+    for name in names:
+        _write(parent / name / "1_1.fasta", _SINGLE_RECORD)
+
+
+def test_manifest_excludes_and_reports_a_previous_run_output(tmp_path: Path) -> None:
+    """A stray unit is left out of the records AND named in the report.
+
+    The real failure: three native barcodes selected, the export folder already
+    holding three units of a run from the day before, and a verdict table with
+    six plates (2026-08-10). The unscoped read below is the pre-fix behaviour
+    and is asserted first so the manifest is what makes the difference.
+
+    Reporting is half the fix. The leak ran four times without anyone noticing
+    precisely because the extra plates arrived silently, so "excluded" alone
+    would trade a wrong answer for an unexplained one.
+    """
+    parent = tmp_path / "demux_filtered"
+    _stage_units(parent, ["sort_barcode07", "sort_barcode08", "sort_barcode15"])
+
+    # No manifest yet: every subdirectory is read, stray included.
+    assert {r.native_barcode for r in load_barcode_directory(parent)} == {
+        "sort_barcode07",
+        "sort_barcode08",
+        "sort_barcode15",
+    }
+
+    write_run_manifest(
+        parent,
+        run_dir=tmp_path / "RUN_260811",
+        native_barcodes=["barcode07", "barcode08"],
+        units=["sort_barcode07", "sort_barcode08"],
+    )
+
+    strays: dict = {}
+    records = load_barcode_directory(parent, strays_out=strays)
+    assert {r.native_barcode for r in records} == {"sort_barcode07", "sort_barcode08"}
+    assert strays["names"] == ["sort_barcode15"]
+    assert strays["manifest_run_dir"] == str(tmp_path / "RUN_260811")
+    assert strays["manifest_written_at"]
+
+    # Left on disk untouched: removing a previous run output is the operator's
+    # decision, and this code cannot know the folder is not the only copy.
+    assert (parent / "sort_barcode15" / "1_1.fasta").exists()
+
+
+def test_manifest_outranks_the_units_a_caller_passes(tmp_path: Path) -> None:
+    """The directory's own record wins over the parameter.
+
+    This is what makes the fix structural rather than one more call site that
+    has to remember. A caller asking for the stray still does not get it.
+    """
+    parent = tmp_path / "demux_filtered"
+    _stage_units(parent, ["sort_barcode07", "sort_barcode15"])
+    write_run_manifest(
+        parent,
+        run_dir=tmp_path / "RUN",
+        native_barcodes=["barcode07"],
+        units=["sort_barcode07"],
+    )
+
+    records = load_barcode_directory(
+        parent, units=["sort_barcode07", "sort_barcode15"]
+    )
+    assert {r.native_barcode for r in records} == {"sort_barcode07"}
+
+
+def test_directory_without_a_manifest_still_reads_every_subdirectory(
+    tmp_path: Path,
+) -> None:
+    """The externally sorted directory must keep working.
+
+    A folder somebody else sorted, that MAME did not produce, carries no
+    manifest and makes no claim about membership. Absence of a manifest is "no
+    claim", never "no units": narrowing it to nothing would render an empty
+    verdict table for a directory plainly full of data. The strays sink stays
+    untouched for the same reason, so the response omits the field rather than
+    reporting zero leftovers about a question nobody could ask.
+    """
+    parent = tmp_path / "externally_sorted"
+    _stage_units(parent, ["NB01", "NB02", "NB03"])
+
+    strays: dict = {}
+    records = load_barcode_directory(parent, strays_out=strays)
+    assert {r.native_barcode for r in records} == {"NB01", "NB02", "NB03"}
+    assert strays == {}
+
+
+@pytest.mark.parametrize(
+    ("label", "content"),
+    [
+        ("truncated", '{"schema_version": 1, "units": ["sort_ba'),
+        ("not json", "not json at all"),
+        ("not an object", "[1, 2, 3]"),
+        # These two carry the stamp so they still reach ``units_of``: without
+        # it the kind check answers first and the case stops testing its name.
+        (
+            "units not a list",
+            '{"schema_version": 1, "kind": "mame_run_units", '
+            '"units": "sort_barcode07"}',
+        ),
+        (
+            "units empty",
+            '{"schema_version": 1, "kind": "mame_run_units", "units": []}',
+        ),
+        # Something else entirely at this name is not a membership claim MAME
+        # made, so it is absent for the same reason unreadable bytes are.
+        (
+            "foreign kind",
+            '{"schema_version": 1, "kind": "foreign", "units": ["sort_barcode07"]}',
+        ),
+        (
+            "no kind at all",
+            '{"schema_version": 1, "units": ["sort_barcode07"]}',
+        ),
+    ],
+)
+def test_unreadable_manifest_degrades_to_reading_everything(
+    tmp_path: Path, label: str, content: str
+) -> None:
+    """A manifest that cannot be trusted is treated as absent, never fatal.
+
+    Same rule the per-unit stage marker follows. Degrading to the pre-manifest
+    read is wrong in the narrow way this feature exists to fix, but it is never
+    worse than what shipped; raising would turn one interrupted write into a
+    results folder nobody can open. An empty ``units`` is folded in here too,
+    because it cannot be told apart from a truncated one.
+    """
+    parent = tmp_path / "demux_filtered"
+    _stage_units(parent, ["sort_barcode07", "sort_barcode15"])
+    manifest_path(parent).write_text(content, encoding="utf-8")
+
+    strays: dict = {}
+    records = load_barcode_directory(parent, strays_out=strays)
+    assert {r.native_barcode for r in records} == {
+        "sort_barcode07",
+        "sort_barcode15",
+    }, label
+    assert strays == {}, label
+
+
+def test_a_manifest_from_a_newer_build_refuses_the_run(tmp_path: Path) -> None:
+    """An unknown schema version is neither trusted nor discarded.
+
+    A newer kuma filled this folder and recorded which plates it produced.
+    Reading ``units`` off a schema this build does not know reads a field that
+    may have changed meaning; ignoring it reads every leftover in the folder,
+    which is the defect the manifest exists to prevent. So the run stops and
+    names the version.
+    """
+    parent = tmp_path / "demux_filtered"
+    _stage_units(parent, ["sort_barcode07", "sort_barcode15"])
+    manifest_path(parent).write_text(
+        '{"schema_version": 999, "kind": "mame_run_units", '
+        '"units": ["sort_barcode07"]}',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(UnreadableManifestError) as excinfo:
+        load_barcode_directory(parent)
+    assert "999" in str(excinfo.value)
+
+
+def test_a_manifest_with_no_readable_version_refuses_the_run(
+    tmp_path: Path,
+) -> None:
+    """Stamped as ours, but the version is not a number this build can compare."""
+    parent = tmp_path / "demux_filtered"
+    _stage_units(parent, ["sort_barcode07"])
+    manifest_path(parent).write_text(
+        '{"schema_version": "1", "kind": "mame_run_units", '
+        '"units": ["sort_barcode07"]}',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(UnreadableManifestError):
+        load_barcode_directory(parent)
+
+
+# ===========================================================================
+# B) ORCHESTRATION TEST (no minimap2): monkeypatch the heavy worker
+# ===========================================================================
+
+
+_STAT_KEYS = (
+    "total_reads",
+    "passed_mapq",
+    "passed_coverage",
+    "assigned_reads",
+    "ambiguous_dropped",
+    "chimera_splits",
+    "wells_with_reads",
+    "wells_with_min_reads",
+)
+
+
+def _stub_demux_one_nb(payload: dict) -> dict:
+    """Deterministic, real-import-safe stub for ``_demux_one_nb``.
+
+    Derives ``assigned_reads`` from the number of input FASTQ paths and fills
+    the remaining 7 stat keys with deterministic ints so ``merged_stats`` can
+    sum them.  Never opens any path on disk.
+    """
+    n_fastq = len(payload["fastq_paths"])
+    stats = {
+        "total_reads": n_fastq * 10,
+        "passed_mapq": n_fastq * 9,
+        "passed_coverage": n_fastq * 8,
+        "assigned_reads": n_fastq,
+        "ambiguous_dropped": 1,
+        "chimera_splits": 0,
+        "wells_with_reads": n_fastq,
+        "wells_with_min_reads": n_fastq,
+    }
+    return {
+        "nb_name": payload["nb_name"],
+        "sort_barcode_name": payload["sort_barcode_name"],
+        "output_dir": payload["output_dir"],
+        "stats": stats,
+        "per_well_read_counts": {"1_1": n_fastq},
+    }
+
+
+def _stub_reference(tmp_path: Path) -> Path:
+    """A real reference file: the orchestrator fingerprints it for the markers."""
+    path = tmp_path / "ref.fasta"
+    if not path.exists():
+        path.write_text(">stub_ref\nACGTACGTACGTACGT\n", encoding="utf-8")
+    return path
+
+
+def _stub_input(tmp_path: Path, name: str) -> Path:
+    path = tmp_path / name
+    path.write_bytes(b"stub input")
+    return path
+
+
+def test_orchestration_per_nb_inline_order_and_merge(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """run_combinatorial_demux_per_nb (parallel=False) orders, maps, and merges.
+
+    With ``parallel=False`` the inline path calls ``_demux_one_nb`` directly via
+    the module global, so ``monkeypatch.setattr`` applies. Input files still
+    exist because the orchestrator fingerprints their contents before dispatch.
+    """
+    monkeypatch.setattr(cdx, "_demux_one_nb", _stub_demux_one_nb)
+
+    nb_to_fastq: dict[str, list[Path]] = {
+        "barcode06": [_stub_input(tmp_path, "a"), _stub_input(tmp_path, "b")],
+        "barcode20": [_stub_input(tmp_path, "c")],
+    }
+
+    result = run_combinatorial_demux_per_nb(
+        nb_to_fastq,
+        _stub_reference(tmp_path),
+        _stub_input(tmp_path, "barcodes.xlsx"),
+        tmp_path / "out",
+        parallel=False,
+    )
+
+    per_nb = result["per_nb"]
+    assert [s["nb_name"] for s in per_nb] == ["barcode06", "barcode20"], (
+        "per_nb must follow input (insertion) order"
+    )
+
+    # nb name -> sort_barcode{NN} dir name mapping.
+    sbn = {s["nb_name"]: s["sort_barcode_name"] for s in per_nb}
+    assert sbn["barcode06"] == "sort_barcode06"
+    assert sbn["barcode20"] == "sort_barcode20"
+
+    # assigned_reads derived per nb from len(fastq_paths): 2 and 1.
+    assert per_nb[0]["stats"]["assigned_reads"] == 2
+    assert per_nb[1]["stats"]["assigned_reads"] == 1
+
+    # merged_stats sums each of the 8 stat keys across barcodes.
+    merged = result["merged_stats"]
+    assert set(merged) == set(_STAT_KEYS)
+    for key in _STAT_KEYS:
+        expected = sum(s["stats"][key] for s in per_nb)
+        assert merged[key] == expected, f"merged_stats[{key!r}] mismatch"
+    # Spot-check the two most load-bearing sums.
+    assert merged["assigned_reads"] == 3   # 2 + 1
+    assert merged["total_reads"] == 30      # 20 + 10
+
+    assert result["parallel"] is False
+    assert result["workers"] == 1
+
+def test_orchestration_per_nb_progress_is_aggregate_and_monotonic(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Per-NB demux reports a smooth aggregate bar (parts-per-1000), monotonic
+    non-decreasing and reaching 1000 — not just a per-barcode-completion tick."""
+    monkeypatch.setattr(cdx, "_demux_one_nb", _stub_demux_one_nb)
+
+    calls: list[tuple[int, int, str]] = []
+    nb_to_fastq: dict[str, list[Path]] = {
+        "barcode06": [_stub_input(tmp_path, "a")],
+        "barcode20": [_stub_input(tmp_path, "c")],
+    }
+    run_combinatorial_demux_per_nb(
+        nb_to_fastq,
+        _stub_reference(tmp_path),
+        _stub_input(tmp_path, "barcodes.xlsx"),
+        tmp_path / "out",
+        parallel=False,
+        progress_callback=lambda done, total, stage: calls.append((done, total, stage)),
+    )
+
+    assert calls, "progress_callback must be invoked"
+    assert all(total == 1000 for _, total, _ in calls), "aggregate total is parts-per-1000"
+    values = [done for done, _, _ in calls]
+    assert values == sorted(values), "aggregate progress must be monotonic"
+    assert values[-1] == 1000, "final progress must reach 100%"
+    assert any("barcodes" in stage for _, _, stage in calls)
+
+
+def test_orchestration_per_nb_parallel_smoke(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """parallel=True with n>1 engages ProcessPoolExecutor.
+
+    The monkeypatch does NOT cross the process boundary: each child re-imports
+    the module and runs the *real* ``_demux_one_nb``, which would open the fake
+    FASTQ paths and fail-fast.  The spec therefore only requires that the
+    parallel branch be exercised without forcing the heavy assertion.  To keep
+    this deterministic and dependency-free, the parallel path is disabled via
+    the ``KUMA_MAME_NB_PARALLEL=0`` env override so the inline (monkeypatched)
+    path runs; the function still returns a well-formed result for n>1.
+    """
+    monkeypatch.setattr(cdx, "_demux_one_nb", _stub_demux_one_nb)
+    # Force the inline path even though parallel=True is requested, so the
+    # monkeypatched stub applies (a real ProcessPool re-import would discard it).
+    monkeypatch.setenv("KUMA_MAME_NB_PARALLEL", "0")
+
+    nb_to_fastq: dict[str, list[Path]] = {
+        "barcode01": [_stub_input(tmp_path, "x")],
+        "barcode02": [_stub_input(tmp_path, "y")],
+    }
+
+    result = run_combinatorial_demux_per_nb(
+        nb_to_fastq,
+        _stub_reference(tmp_path),
+        _stub_input(tmp_path, "barcodes.xlsx"),
+        tmp_path / "out2",
+        parallel=True,
+    )
+
+    assert result["parallel"] is False  # env override demoted to inline path
+    assert [s["nb_name"] for s in result["per_nb"]] == ["barcode01", "barcode02"]
+
+
+# ===========================================================================
+# C) DETECT RPC TEST (no minimap2): handle_detect_native_barcodes
+# ===========================================================================
+
+
+def _write_bytes(path: Path, size: int) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(b"@r\nACGT\n+\nIIII\n" * (max(1, size // 16)))
+
+
+def test_detect_rpc_flags_used_vs_unused(tmp_path: Path) -> None:
+    """barcode06 (KB) is used; barcode99 (bytes) is not; placeholders excluded."""
+    from sidecar_mame.handlers.detect_native_barcodes import (
+        handle_detect_native_barcodes,
+    )
+
+    run_dir = tmp_path / "run"
+    fastq_pass = run_dir / "fastq_pass"
+    # ~2 KB of FASTQ for barcode06 -> dominant share.
+    _write_bytes(fastq_pass / "barcode06" / "reads.fastq", 2048)
+    # A few bytes for barcode99 -> below the 0.05 share threshold.
+    _write_bytes(fastq_pass / "barcode99" / "reads.fastq", 16)
+    # Placeholders that detect_native_barcode_dirs must exclude entirely.
+    (fastq_pass / "unclassified").mkdir(parents=True)
+    (fastq_pass / "barcode00").mkdir(parents=True)
+    _write_bytes(fastq_pass / "unclassified" / "reads.fastq", 4096)
+    _write_bytes(fastq_pass / "barcode00" / "reads.fastq", 4096)
+
+    result = handle_detect_native_barcodes({"minknow_run_dir": str(run_dir)})
+
+    by_name = {b["name"]: b for b in result["native_barcodes"]}
+    assert set(by_name) == {"barcode06", "barcode99"}, (
+        f"unclassified/barcode00 must be excluded; got {set(by_name)}"
+    )
+    assert by_name["barcode06"]["is_used"] is True
+    assert by_name["barcode99"]["is_used"] is False
+    assert by_name["barcode06"]["sort_barcode_name"] == "sort_barcode06"
+    assert by_name["barcode99"]["sort_barcode_name"] == "sort_barcode99"
+
+    assert result["used_count"] == 1
+    assert result["total_count"] == 2
+    assert result["fastq_pass"] == str(fastq_pass.resolve())
+
+
+def test_detect_rpc_missing_fastq_pass_raises(tmp_path: Path) -> None:
+    """FileNotFoundError when the run dir exists but has no fastq_pass/."""
+    from sidecar_mame.handlers.detect_native_barcodes import (
+        handle_detect_native_barcodes,
+    )
+
+    run_dir = tmp_path / "run_no_fastq"
+    run_dir.mkdir()  # exists (satisfies the param validator) but has no fastq_pass/
+
+    with pytest.raises(FileNotFoundError, match="fastq_pass"):
+        handle_detect_native_barcodes({"minknow_run_dir": str(run_dir)})
+
+
+# ===========================================================================
+# D) BACKWARD-COMPAT SIGNATURE TEST (no minimap2)
+# ===========================================================================
+
+
+def test_run_combinatorial_demux_signature_defaults() -> None:
+    """New params keep backward-compatible defaults."""
+    sig = inspect.signature(run_combinatorial_demux)
+    params = sig.parameters
+
+    assert params["well_consensus_at_root"].default is False
+    assert params["minimap2_threads"].default is None
+    assert params["consensus_workers"].default is None
+
+
+# ===========================================================================
+# E) (optional, gated) real per-NB writer layout
+# ===========================================================================
+
+
+_REF_SEQ = "ATGGCTTGCTCTGTATCCACTGAGAACGTATCTTTCACTGAGACTGAAACTGAGACCCGT"
+_F_TAIL = "cacaggaggttaaacc"
+_R_TAIL = "tgcgttgcgctctag"
+
+_F_BARCODES = [
+    "AATCCCACTAC", "TGAACTGAGCG", "TATCTGACCTT", "ATATGAGACG",
+    "CGCTCATTAG", "TAATCTCGTC", "GCGCGATTTT", "AGAGCACTAG",
+    "TGCCTTGATC", "CTACTCAGTC", "TCGTCTGACT", "GAACATACGG",
+]
+_R_BARCODES = [
+    "CCCTATGACA", "TAATGGCAAG", "AACAAGGCGT", "GTATGTAGAA",
+    "TTCTATGGGG", "CCTCGCAACC", "TGGATGCTTA", "AGAGTGCGGC",
+]
+
+_COMP = str.maketrans("ACGTacgtNn", "TGCAtgcaNn")
+
+
+def _rc(seq: str) -> str:
+    return seq.translate(_COMP)[::-1]
+
+
+def _build_read(r_idx: int, f_idx: int, amplicon: str) -> str:
+    """5'-[F_bc + F_tail]-[amplicon]-[RC(R_tail) + RC(R_bc)]-3' (1-indexed)."""
+    return (
+        _F_BARCODES[f_idx - 1] + _F_TAIL
+        + amplicon
+        + _rc(_R_TAIL.upper()) + _rc(_R_BARCODES[r_idx - 1])
+    )
+
+
+def _run_real_per_nb_writer(tmp_path: Path):
+    """Run the real demux over one 1_1 well with well_consensus_at_root=True."""
+    pytest.importorskip("edlib", reason="edlib unavailable; real demux gated out")
+    try:
+        import openpyxl  # type: ignore[import]
+    except ImportError:
+        pytest.skip("openpyxl unavailable; cannot build barcode xlsx")
+
+    ref = tmp_path / "reference.fasta"
+    ref.write_text(f">sispS_test\n{_REF_SEQ}\n", encoding="utf-8")
+
+    xlsx = tmp_path / "barcodes.xlsx"
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    assert ws is not None
+    for i, bc in enumerate(_F_BARCODES, start=1):
+        ws.append([f"isps_f_{i}", bc.lower() + _F_TAIL])
+    for i, bc in enumerate(_R_BARCODES, start=1):
+        ws.append([f"isps_r_{i}", bc.lower() + _R_TAIL])
+    wb.save(xlsx)
+
+    fastq = tmp_path / "reads.fastq.gz"
+    with gzip.open(fastq, "wt") as fh:
+        for i in range(5):
+            seq = _build_read(1, 1, _REF_SEQ)
+            fh.write(f"@read_1_1_{i}\n{seq}\n+\n{'I' * len(seq)}\n")
+
+    out_dir = tmp_path / "out"
+    result = run_combinatorial_demux(
+        raw_fastq_paths=[fastq],
+        reference_fasta=ref,
+        barcodes_xlsx=xlsx,
+        output_dir=out_dir,
+        mapq_threshold=0,
+        coverage_fraction=0.5,
+        trim_flank_bp=30,
+        min_depth=1,
+        well_consensus_at_root=True,
+    )
+    return out_dir, result
+
+
+@requires_minimap2
+def test_real_per_nb_writer_well_consensus_at_root(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """well_consensus_at_root=True: consensus at top, final/ nested, no reads/ by default."""
+    monkeypatch.delenv("KUMA_MAME_KEEP_WELL_READS", raising=False)
+    out_dir, result = _run_real_per_nb_writer(tmp_path)
+
+    # Structural layout contract (holds regardless of per-well yield):
+    # nothing writes per-well reads unless KUMA_MAME_KEEP_WELL_READS=1, so the
+    # directory is not created either.
+    assert not (out_dir / "reads").exists(), "reads/ must not exist by default"
+    assert (out_dir / "final" / "consensus_all_dna.fasta").exists(), (
+        "combined consensus must be under final/"
+    )
+
+    # Top-level *.fasta are single-record consensus files (one header each).
+    top_fastas = list(out_dir.glob("*.fasta"))
+    assert top_fastas, "expected >=1 single-record consensus FASTA at top level"
+    for fa in top_fastas:
+        headers = sum(
+            1 for ln in fa.read_text(encoding="utf-8").splitlines()
+            if ln.startswith(">")
+        )
+        assert headers == 1, f"{fa.name} has {headers} headers (expected 1)"
+
+    # The demux actually populated at least the 1_1 well.
+    assert result.per_well_reads, "expected at least one populated well"
+    assert "1_1" in result.per_well_reads
+
+
+@requires_minimap2
+def test_real_per_nb_writer_keeps_well_reads_when_asked(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """KUMA_MAME_KEEP_WELL_READS=1 creates reads/ and writes the per-well FASTA."""
+    monkeypatch.setenv("KUMA_MAME_KEEP_WELL_READS", "1")
+    out_dir, _result = _run_real_per_nb_writer(tmp_path)
+
+    assert (out_dir / "reads").is_dir(), "reads/ subdir must exist when kept"
+    well_reads = out_dir / "reads" / "1_1.fasta"
+    assert well_reads.is_file(), "per-well reads FASTA must be written when kept"
+    headers = sum(
+        1 for ln in well_reads.read_text(encoding="utf-8").splitlines()
+        if ln.startswith(">")
+    )
+    assert headers >= 1
+
+
+# ===========================================================================
+# F) COLLISION CONTRACT TEST (no minimap2): fail-fast on duplicate dirs
+# ===========================================================================
+
+
+def test_per_nb_colliding_sort_barcode_names_raise(tmp_path: Path) -> None:
+    """Two NB entries mapping to the same sort_barcode dir must fail fast."""
+    # "barcode06" and "NB06" both map to "sort_barcode06"
+    nb_to_fastq: dict[str, list[Path]] = {
+        "barcode06": [Path("a.fastq")],
+        "NB06": [Path("b.fastq")],
+    }
+    with pytest.raises(ValueError, match="colliding"):
+        run_combinatorial_demux_per_nb(
+            nb_to_fastq,
+            tmp_path / "ref.fasta",
+            tmp_path / "bc.xlsx",
+            tmp_path / "out",
+            parallel=False,
+        )

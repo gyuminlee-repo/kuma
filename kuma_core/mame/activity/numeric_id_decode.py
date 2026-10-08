@@ -1,0 +1,423 @@
+"""Decode the numeric sample IDs of an Agilent GC-FID report into variants.
+
+Activity reports can use a block layout whose sample names are numeric IDs (``parse_agilent_block_rep_batch`` grammar:
+``<base>`` is replicate 1, ``<base>-<rep>`` is replicate ``rep``). The IDs
+carry no variant information, so they have to be decoded against the plate
+layout.
+
+Two files arrive per round and they are numbered independently:
+
+  primary screen (whole plate, 1 replicate per variant)
+      ID ``i`` is the ``i``-th non-WT row of the plate layout, in well order.
+
+  confirmation (subset, n replicates per variant)
+      ID ``j`` is the ``j``-th member of the subset that was re-measured, in
+      the same well order. The subset is every variant whose primary-screen
+      relative activity exceeded wild-type. It is derived from the primary
+      screen rather than supplied separately.
+
+The previous activity-ranking decoder uses a different order and can mislabel
+position-indexed samples; see WRONG_RANK_ASSUMPTION_NOTE.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from pathlib import Path
+from collections.abc import Sequence
+from typing import TypeAlias
+
+from .evolvepro_xlsx import BlockRepBatchResult, parse_agilent_block_rep_batch
+from .plate_layout_xlsx import _normalise_well, parse_plate_layout_xlsx
+from .variant_notation import to_evolvepro
+
+WRONG_RANK_ASSUMPTION_NOTE = (
+    "numeric sample IDs index the plate layout in well order, not a "
+    "previous EVOLVEpro file sorted by activity"
+)
+
+# Wild-type relative activity. The report is normalised by its own WT block
+# mean, so WT sits at exactly 1.0 and the selection threshold is that value.
+WT_RELATIVE = 1.0
+
+DecodeOrder: TypeAlias = list[tuple[str | None, str, str]]
+
+
+@dataclass(frozen=True)
+class DecodedId:
+    """One numeric ID resolved to a variant, with its measured replicates.
+
+    id: 1-based numeric base ID as written in the report.
+    variant: short EVOLVEpro notation, e.g. ``53R``.
+    mutant: internal notation from the layout, e.g. ``K53R``.
+    well: layout well of that variant.
+    relative: replicate areas divided by the report WT block mean, in the
+        replicate order the parser found them.
+    """
+
+    id: int
+    variant: str
+    mutant: str
+    well: str
+    relative: tuple[float, ...]
+
+    @property
+    def mean(self) -> float:
+        return sum(self.relative) / len(self.relative)
+
+
+@dataclass(frozen=True)
+class DecodedSlot:
+    id: int
+    variant: str | None
+    mutant: str
+    well: str
+    relative: tuple[float, ...]
+
+    @property
+    def mean(self) -> float:
+        return sum(self.relative) / len(self.relative)
+
+
+@dataclass
+class DecodeResult:
+    """Outcome of decoding one numeric-ID report.
+
+    rows: DecodedId per numeric ID, ascending by ID.
+    wt_mean: WT block mean used as the divisor.
+    order: the variant order the IDs were matched against, so a caller can
+        show what position each ID resolved to.
+    warnings: non-fatal notes.
+    """
+
+    rows: list[DecodedId]
+    wt_mean: float
+    order: list[str]
+    slots: list[DecodedSlot] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    #: WT block areas of the report, unnormalised and in the order the parser
+    #: found them. Divided by ``wt_mean`` they are the wild-type replicates on
+    #: the scale every decoded value carries, which is what a caller needs to
+    #: state the spread of the assay behind the round.
+    wt_areas: tuple[float, ...] = ()
+
+    def by_variant(self) -> dict[str, list[float]]:
+        return {r.variant: list(r.relative) for r in self.rows}
+
+    def id_to_variant(self) -> dict[int, str]:
+        return {r.id: r.variant for r in self.rows}
+
+
+def _wt_mean(block: BlockRepBatchResult, source: str) -> float:
+    if not block.wt_areas:
+        raise ValueError(
+            f"{source} has no WT block areas; relative activity needs the "
+            "WT blocks (sample names 'WT1'/'WT_1'/...) to divide by."
+        )
+    m = sum(block.wt_areas) / len(block.wt_areas)
+    if m <= 0:
+        raise ValueError(
+            f"{source} WT block mean must be > 0 (computed {m:.6g} from "
+            f"{block.wt_areas})."
+        )
+    return m
+
+
+def layout_variant_order(
+    layout_xlsx: str | Path,
+) -> tuple[DecodeOrder, list[str]]:
+    """Non-WT layout rows in well order as ``(short, mutant, well)``.
+
+    Rows whose mutant has no EVOLVEpro short form (several substitutions) are
+    kept as unlabelled slots. Numeric IDs index physical non-WT rows; dropping
+    an unconvertible row would shift every later ID and rename the whole plate.
+    """
+    warnings: list[str] = []
+    order: DecodeOrder = []
+    for entry in parse_plate_layout_xlsx(layout_xlsx):
+        if entry.is_wt:
+            continue
+        try:
+            short = to_evolvepro(entry.mutant)
+        except ValueError:
+            warnings.append(
+                f"Layout mutant {entry.mutant!r} (well {entry.well_id}) has no "
+                "EVOLVEpro short form (several substitutions); its numeric ID "
+                "slot is preserved but omitted from EVOLVEpro output."
+            )
+            short = None
+        order.append((short, entry.mutant, entry.well_id))
+    return order, warnings
+
+
+def expected_variant_order(
+    expected_xlsx: str | Path,
+) -> tuple[DecodeOrder, list[str]]:
+    """Decode order straight from the expected-variant list.
+
+    Same shape as :func:`layout_variant_order`, derived from the design instead
+    of a hand-written plate file, so nobody transcribes a plate by hand and no
+    transcription slip can reach the decode.
+
+    Where the placement comes from depends on what the list says, and the two
+    sources are not equal.
+
+    **Stated wells.** A list carrying a ``Well`` column states the address of
+    every row, and ``build_draft_layout`` places the run on exactly those
+    addresses without arithmetic. Recomputing them here would decode the report
+    against a plate the run never used, so the stated wells are taken as given
+    and only put in plate order, which is the order the bench fills tubes and
+    therefore the order a numeric ID counts in. File row order is not consulted:
+    a stated-well file is free to list its rows in any order.
+
+    **Row order.** Without that column the list states an order and nothing
+    more, so :func:`canonical_plate_order` fixes it and ``seq_to_well`` assigns
+    the column-major wells, which is the same arithmetic ``build_draft_layout``
+    does on that path.
+
+    Prefer this over layout_variant_order when the design input supplies the
+    intended placement rather than a separately maintained plate workbook.
+
+    Wells leave in the zero-padded spelling (``A01``) the activity path compares
+    on, the one ``layout_variant_order`` already produces. ``seq_to_well``
+    answers ``A1``, and the two spellings are the same well to a person and two
+    different strings to the strict NGS gate, which refused a build over the
+    difference.
+
+    The list may be a KURO export or a plain variant list; the sheet and column
+    are auto-detected. There is no sheet/column override here because this path
+    has no picker in front of it: a file too ambiguous to read on its own is
+    served by passing ``layout_xlsx`` instead, which states the order outright.
+    An explicit wild-type row needs no handling: it is not a decodable variant,
+    so the generic reader drops it exactly as ``layout_variant_order`` skips
+    ``is_wt`` entries, and a stated ``wells`` list is aligned with the mutants
+    that survive that drop.
+    """
+    from kuma_core.mame.export.well_mapper import seq_to_well, well_to_seq
+    from kuma_core.mame.io.variant_list import read_variant_source
+    from kuma_core.mame.layout import canonical_plate_order
+
+    warnings: list[str] = []
+    order: DecodeOrder = []
+    source = read_variant_source(Path(expected_xlsx))
+    if source.wells is None:
+        placed = [
+            (mutation, seq_to_well(seq))
+            for seq, mutation in enumerate(canonical_plate_order(source.expected), 1)
+        ]
+    else:
+        placed = sorted(
+            zip(source.expected, source.wells),
+            key=lambda pair: well_to_seq(pair[1]),
+        )
+    for mutation, well in placed:
+        mutant = mutation.mutant_id
+        try:
+            short = to_evolvepro(mutant)
+        except ValueError:
+            warnings.append(
+                f"Designed mutant {mutant!r} has no EVOLVEpro short form (several "
+                "substitutions); its numeric ID slot is preserved but omitted "
+                "from EVOLVEpro output."
+            )
+            short = None
+        order.append((short, mutant, _normalise_well(well)))
+    return order, warnings
+
+
+def _decode_against(
+    block: BlockRepBatchResult,
+    order: Sequence[tuple[str | None, str, str]],
+    wt_mean: float,
+    *,
+    source: str,
+    order_label: str,
+) -> tuple[list[DecodedId], list[DecodedSlot]]:
+    """Match ascending numeric IDs onto *order* positionally.
+
+    An ID outside ``1..len(order)`` aborts the decode. Guessing would attach a
+    real measurement to the wrong variant, and every consumer downstream treats
+    the label as ground truth.
+    """
+    ids = sorted(block.reps)
+    if not ids:
+        raise ValueError(f"{source} carries no numeric sample IDs to decode.")
+    lo, hi = ids[0], ids[-1]
+    if lo < 1 or hi > len(order):
+        raise ValueError(
+            f"{source} has numeric IDs {lo}..{hi}, but {order_label} holds "
+            f"{len(order)} variants. IDs must be 1..{len(order)}; a decode "
+            "outside that range would label measurements with the wrong "
+            "variant. Check that the layout matches this run."
+        )
+    if len(ids) != len(order):
+        raise ValueError(
+            f"{source} carries {len(ids)} numeric IDs but {order_label} holds "
+            f"{len(order)} variants. The two must line up one to one; a "
+            f"partial file cannot be decoded positionally. Missing IDs: "
+            f"{sorted(set(range(1, len(order) + 1)) - set(ids))[:10]}"
+        )
+
+    rows: list[DecodedId] = []
+    slots: list[DecodedSlot] = []
+    for base_id in ids:
+        short, mutant, well = order[base_id - 1]
+        relative = tuple(a / wt_mean for a in block.reps[base_id])
+        slots.append(
+            DecodedSlot(
+                id=base_id,
+                variant=short,
+                mutant=mutant,
+                well=well,
+                relative=relative,
+            )
+        )
+        if short is None:
+            continue
+        rows.append(
+            DecodedId(
+                id=base_id,
+                variant=short,
+                mutant=mutant,
+                well=well,
+                relative=relative,
+            )
+        )
+    return rows, slots
+
+
+def decode_primary_screen(
+    report_xlsx: str | Path,
+    layout_xlsx: str | Path | None = None,
+    *,
+    expected_xlsx: str | Path | None = None,
+) -> DecodeResult:
+    """Decode the whole-plate primary screen. ID ``i`` is the ``i``-th variant.
+
+    Exactly one order source. ``expected_xlsx`` (the KURO ``expected_mutations``
+    sheet) is the one to reach for: it removes the hand-written plate file from
+    the round entirely. ``layout_xlsx`` stays for campaigns whose plate was filled
+    before that, and for the case where the bench deliberately departed from the
+    design order.
+
+    Raises:
+        ValueError: neither or both order sources given, WT blocks missing, or the
+            ID set does not line up with the order one to one.
+    """
+    if (layout_xlsx is None) == (expected_xlsx is None):
+        raise ValueError(
+            "exactly one order source is required: expected_xlsx (KURO design, "
+            "preferred) or layout_xlsx (hand-written plate file)"
+        )
+    source = Path(report_xlsx).name
+    block = parse_agilent_block_rep_batch(report_xlsx)
+    wt_mean = _wt_mean(block, source)
+    if expected_xlsx is not None:
+        order, warnings = expected_variant_order(expected_xlsx)
+        order_label = "the KURO expected_mutations design"
+    else:
+        assert layout_xlsx is not None
+        order, warnings = layout_variant_order(layout_xlsx)
+        order_label = "the plate layout"
+    rows, slots = _decode_against(
+        block,
+        order,
+        wt_mean,
+        source=source,
+        order_label=order_label,
+    )
+    return DecodeResult(
+        rows=rows,
+        wt_mean=wt_mean,
+        order=[o[0] for o in order if o[0] is not None],
+        slots=slots,
+        warnings=warnings,
+        wt_areas=tuple(block.wt_areas),
+    )
+
+
+def above_wt_subset(primary: DecodeResult) -> DecodeOrder:
+    """Primary-screen variants above wild-type, in layout well order.
+
+    This reproduces the lab selection rule: every variant that beat WT in the
+    one-replicate screen goes on to the replicated confirmation. Order is the
+    layout order the primary screen was decoded in, so the confirmation file
+    numbers its subset the same way.
+    """
+    if not primary.slots:
+        return [
+            (r.variant, r.mutant, r.well)
+            for r in primary.rows
+            if r.mean > WT_RELATIVE
+        ]
+    return [
+        (slot.variant, slot.mutant, slot.well)
+        for slot in primary.slots
+        if slot.mean > WT_RELATIVE
+    ]
+
+
+def decode_confirmation(
+    report_xlsx: str | Path,
+    primary: DecodeResult,
+) -> DecodeResult:
+    """Decode the replicated confirmation against the above-WT subset.
+
+    ID ``j`` is the ``j``-th above-WT variant of *primary*, in layout well
+    order. The subset comes from the primary screen rather than a separate
+    file, so the two reports are the only inputs beyond the layout.
+
+    Raises:
+        ValueError: WT blocks missing, or the ID count does not match the
+            above-WT count. That mismatch means the confirmation covered a
+            different set than "everything above WT", which this decoder
+            cannot infer, so it refuses rather than mislabelling.
+    """
+    return decode_confirmation_against(report_xlsx, above_wt_subset(primary))
+
+
+def decode_confirmation_against(
+    report_xlsx: str | Path,
+    subset: DecodeOrder,
+) -> DecodeResult:
+    """Decode a replicated confirmation against a subset the caller assembled.
+
+    Same rule as :func:`decode_confirmation`: ID ``j`` is the ``j``-th member of
+    *subset*, which must already be in plate well order. This entry point exists
+    because the primary screen does not have to be a numeric-ID report. A round
+    whose whole-plate screen arrived as a well-labelled sheet knows exactly the
+    same thing, one relative activity per well, and can build the subset from
+    the plate order without decoding anything.
+
+    *subset* must keep a slot for a variant with no EVOLVEpro short form
+    (``None`` in the first field). Those positions are numbered on the bench
+    like any other, so dropping one would shift every later ID.
+
+    Raises:
+        ValueError: WT blocks missing, an empty subset, or an ID count that does
+            not match the subset size.
+    """
+    source = Path(report_xlsx).name
+    block = parse_agilent_block_rep_batch(report_xlsx)
+    wt_mean = _wt_mean(block, source)
+    if not subset:
+        raise ValueError(
+            f"No primary-screen variant exceeded wild-type ({WT_RELATIVE}), so "
+            f"there is no subset for {source} to index into. Check that the "
+            "primary screen WT blocks are the right ones."
+        )
+    rows, slots = _decode_against(
+        block,
+        subset,
+        wt_mean,
+        source=source,
+        order_label="the above-WT subset of the primary screen",
+    )
+    return DecodeResult(
+        rows=rows,
+        wt_mean=wt_mean,
+        order=[s[0] for s in subset if s[0] is not None],
+        slots=slots,
+        warnings=[],
+        wt_areas=tuple(block.wt_areas),
+    )

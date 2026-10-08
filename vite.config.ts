@@ -1,0 +1,111 @@
+import { defineConfig } from "vite";
+import { resolve } from "path";
+import { readFileSync } from "fs";
+import { execSync } from "child_process";
+import react from "@vitejs/plugin-react-swc";
+
+const pkg = JSON.parse(readFileSync(resolve(__dirname, "package.json"), "utf-8"));
+
+// 4-part version from git tag (vA.BB.CC.DD). Fallback to package.json (3-part) if
+// git missing or no 4-part tag reachable. See docs/troubleshooting/build-version.md.
+function getAppVersion(): string {
+  try {
+    const desc = execSync("git describe --tags --always", {
+      encoding: "utf-8",
+      cwd: __dirname,
+    }).trim();
+    const match = desc.match(/^v?(\d+\.\d+\.\d+\.\d+)/);
+    if (match) return match[1];
+  } catch {
+    /* fall through to pkg.version */
+  }
+  return pkg.version;
+}
+
+export default defineConfig(({ }) => {
+  const isMockMode = process.env.MOCK_MODE === "1";
+
+  return {
+    plugins: [react()],
+    resolve: {
+      alias: {
+        "@": resolve(__dirname, "src"),
+        ...(isMockMode
+          ? {
+              "@tauri-apps/plugin-shell": resolve(
+                __dirname,
+                "scripts/stubs/shell.ts",
+              ),
+              "@tauri-apps/plugin-dialog": resolve(
+                __dirname,
+                "scripts/stubs/dialog.ts",
+              ),
+              "@tauri-apps/api/core": resolve(
+                __dirname,
+                "scripts/stubs/core.ts",
+              ),
+              "@tauri-apps/plugin-fs": resolve(
+                __dirname,
+                "scripts/stubs/fs.ts",
+              ),
+              "@tauri-apps/api/event": resolve(
+                __dirname,
+                "scripts/stubs/event.ts",
+              ),
+              "@tauri-apps/api/webview": resolve(
+                __dirname,
+                "scripts/stubs/webview.ts",
+              ),
+              "@tauri-apps/api/window": resolve(
+                __dirname,
+                "scripts/stubs/webview.ts",
+              ),
+              // SettingsDialog stays mounted and asks for notification
+              // permission on mount, so without this alias every workspace
+              // screen logs "no stub for plugin:notification|is_permission_granted".
+              "@tauri-apps/plugin-notification": resolve(
+                __dirname,
+                "scripts/stubs/notification.ts",
+              ),
+            }
+          : {}),
+      },
+    },
+    clearScreen: false,
+    server: {
+      port: 1421,
+      strictPort: true,
+      // Worktrees live INSIDE the repo root (.claude/worktrees/*, .worktrees/*).
+      // Each is a full checkout, so Vite's recursive watcher would otherwise see
+      // their tsconfig.json / index.html / src changes and force a full reload of
+      // the running app whenever a concurrent worktree session edits files there.
+      watch: {
+        ignored: ["**/.claude/worktrees/**", "**/.worktrees/**"],
+      },
+    },
+    envPrefix: ["VITE_", "TAURI_"],
+    define: {
+      __APP_VERSION__: JSON.stringify(getAppVersion()),
+      // §11 CI build SHA (GitHub Actions: GITHUB_SHA env var, local dev: "dev")
+      __BUILD_SHA__: JSON.stringify(process.env.GITHUB_SHA ?? "dev"),
+    },
+    build: {
+      target: "esnext",
+      minify: !process.env.TAURI_DEBUG ? "esbuild" : false,
+      sourcemap: !!process.env.TAURI_DEBUG,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes("node_modules")) return undefined;
+            if (id.includes("@tanstack/react-table")) return "table-vendor";
+            if (id.includes("zustand")) return "store-vendor";
+            if (id.includes("@tauri-apps")) return "tauri-vendor";
+            if (id.includes("@radix-ui")) return "ui-vendor";
+            if (id.includes("react") || id.includes("react-dom")) return "react-vendor";
+            return "vendor";
+          },
+        },
+      },
+    },
+  };
+});

@@ -1,0 +1,395 @@
+import { useEffect, useId, useState } from "react";
+import { AlertTriangle, Maximize2, Minimize2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { VerdictBadge } from "./VerdictBadge";
+import { WellPlate } from "./WellPlate";
+import type { WellColorOverride } from "./WellPlate";
+import { cn } from "@/lib/utils";
+import type { VerdictClass, WellEntry } from "@/types/mame/models";
+import { VERDICT_HELP_KEY, VERDICT_LABEL } from "@/lib/mame/verdictColors";
+import { nbLabel, nbOrderKey } from "@/lib/mame/nbLabel";
+import { collapseWells } from "@/lib/mame/plateWells";
+import { siteReadPairs } from "@/lib/mame/siteReads";
+
+function getSelectedPlateLabel(nativeBarcode: string | null): string {
+  return nativeBarcode ? nbLabel(nativeBarcode) : "None";
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start justify-between gap-3 border-b border-border/50 py-1 last:border-0">
+      <span className="flex-shrink-0 text-caption text-muted-foreground">{label}</span>
+      <span className="break-all text-right text-caption font-medium text-foreground">{value}</span>
+    </div>
+  );
+}
+
+interface PlateViewProps {
+  /** Optional callback to override per-well fill colors. Default = verdict-mode (mame). */
+  wellColorOf?: (well: WellEntry) => WellColorOverride | null;
+  /**
+   * Optional external wells array. When provided, mameAppStore wells are NOT used
+   * and loadPlateData is NOT triggered. mame callers omit this prop — default store behavior preserved.
+   */
+  wells?: WellEntry[];
+  /** When provided, renders an expand/collapse toggle button in the header. */
+  expanded?: boolean;
+  onToggleExpand?: () => void;
+  /**
+   * Draw the whole plate instead of fitting it to the box.
+   *
+   * The default fills its parent and scrolls the grid inside, which is right
+   * when a parent hands down a height. On a page that scrolls as a whole there
+   * is no such height, and the same rules cropped the plate to whatever the row
+   * gave it: eight rows of wells behind an inner scrollbar that started at row D.
+   * With this on, the grid is as tall as its rows and the page carries the scroll.
+   */
+  autoHeight?: boolean;
+}
+
+export function PlateView({ wellColorOf, wells: externalWells, expanded, onToggleExpand, autoHeight = false }: PlateViewProps = {}) {
+  const { t } = useTranslation();
+  const verdicts = useMameAppStore((state) => state.verdicts);
+  const storeWells = useMameAppStore((state) => state.wells);
+  const selectedWell = useMameAppStore((state) => state.selectedWell);
+  const setSelectedWell = useMameAppStore((state) => state.setSelectedWell);
+  const loadPlateData = useMameAppStore((state) => state.loadPlateData);
+  const replicates = useMameAppStore((state) => state.replicates);
+
+  // Use external wells if provided (kuro mode), otherwise fall back to mame store wells
+  const wells = externalWells ?? storeWells;
+
+  // Prefix for the per-class sr-only help ids. Generated rather than hardcoded
+  // so two PlateView instances on one page cannot collide on the same id.
+  const legendHelpId = useId();
+
+  const [colorblindMode, setColorblindMode] = useState(false);
+  // Legend-class filter: clicking a verdict class dims non-matching wells.
+  // Single-select toggle; resets when the underlying wells change.
+  const [activeClass, setActiveClass] = useState<VerdictClass | null>(null);
+  // NB-class filter: clicking an NB chip dims wells from other native barcodes.
+  const [activeNb, setActiveNb] = useState<string | null>(null);
+  useEffect(() => {
+    setActiveClass(null);
+    setActiveNb(null);
+  }, [wells]);
+  // Collapse to one record per well position (the plate renders one cell per
+  // position; legend/NB counts must match what is drawn). Prefer the selected
+  // winner per position.
+  const displayWells = collapseWells(wells);
+  const selectedCount = displayWells.filter((well) => well.selected).length;
+  const filledCount = displayWells.length;
+  // Verdict counts over the drawn cells, for the legend filter chips.
+  const verdictCounts = new Map<VerdictClass, number>();
+  for (const well of displayWells) {
+    verdictCounts.set(well.verdict, (verdictCounts.get(well.verdict) ?? 0) + 1);
+  }
+  // NB picked counts: native_barcode → number of selected (winning) wells.
+  const nbPickedCounts = new Map<string, number>();
+  for (const well of displayWells) {
+    if (!well.native_barcode) continue;
+    if (!nbPickedCounts.has(well.native_barcode)) {
+      nbPickedCounts.set(well.native_barcode, 0);
+    }
+    if (well.selected) {
+      nbPickedCounts.set(
+        well.native_barcode,
+        (nbPickedCounts.get(well.native_barcode) ?? 0) + 1,
+      );
+    }
+  }
+  const nbList = Array.from(nbPickedCounts.keys()).sort(
+    (a, b) => nbOrderKey(a) - nbOrderKey(b),
+  );
+  const showNbChips = nbList.length > 1 || selectedCount > 0;
+
+  useEffect(() => {
+    // Only trigger mame store load when external wells are NOT provided
+    if (externalWells !== undefined) return;
+    if (verdicts.length > 0 && storeWells.length === 0) {
+      void loadPlateData();
+    }
+  }, [externalWells, loadPlateData, verdicts.length, storeWells.length]);
+
+  return (
+    <div className={autoHeight ? "flex flex-col" : "flex h-full min-h-0 flex-col overflow-hidden"}>
+      <div className="flex items-center justify-between border-b border-border px-3 py-1.5">
+        <div className="flex items-center gap-2 text-caption text-muted-foreground">
+          <span>
+            {t("mame.plateView.plate")}:{" "}
+            <span className="font-medium text-foreground">
+              {getSelectedPlateLabel(selectedWell?.native_barcode ?? null)}
+            </span>
+          </span>
+          <span className="rounded-full border border-border/70 bg-muted px-2 py-0.5 text-caption font-medium text-muted-foreground">
+            {t("mame.plateView.wells", { count: filledCount })}
+          </span>
+          <span className="rounded-full border border-primary/15 bg-primary/10 px-2 py-0.5 text-caption font-medium text-primary">
+            {t("mame.plateView.picked", { count: selectedCount })}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+        <label className="flex items-center gap-1 text-caption text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={colorblindMode}
+            onChange={(e) => setColorblindMode(e.target.checked)}
+            className="h-3 w-3 rounded accent-primary"
+            aria-label={t("mame.plateView.colorAssistAriaLabel")}
+          />
+          {t("mame.plateView.colorAssist")}
+        </label>
+        {onToggleExpand && (
+          <button
+            type="button"
+            onClick={onToggleExpand}
+            aria-pressed={!!expanded}
+            aria-label={t(expanded ? "mame.plateView.collapse" : "mame.plateView.expand")}
+            title={t("mame.plateView.expandAriaLabel")}
+            className="flex h-6 w-6 items-center justify-center rounded border border-border/70 text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            {expanded ? (
+              <Minimize2 size={12} aria-hidden="true" />
+            ) : (
+              <Maximize2 size={12} aria-hidden="true" />
+            )}
+          </button>
+        )}
+        </div>
+      </div>
+
+      <div
+        className={
+          autoHeight
+            ? "grid grid-cols-[1fr_164px] items-start gap-2 p-2"
+            : "grid flex-1 min-h-0 grid-cols-[1fr_164px] gap-2 overflow-hidden p-2"
+        }
+      >
+        <div className={autoHeight ? undefined : "min-h-0 overflow-auto"}>
+          <WellPlate
+            wells={displayWells}
+            selectedWellId={selectedWell?.well}
+            onWellClick={(well) => setSelectedWell(well)}
+            colorblindMode={colorblindMode}
+            wellColorOf={wellColorOf}
+            dimmedOf={(w) =>
+              (activeClass !== null && w.verdict !== activeClass) ||
+              (activeNb !== null && w.native_barcode !== activeNb)
+            }
+          />
+          <div
+            className="mt-2 flex flex-wrap gap-1"
+            role="group"
+            aria-label={t("mame.plateView.verdictLegendAriaLabel")}
+          >
+            {(
+              [
+                "PASS",
+                "AMBIGUOUS",
+                "MIXED",
+                "WRONG_AA",
+                "FRAMESHIFT",
+                "MANY",
+                "LOWDEPTH",
+                "NO_CALL",
+              ] as VerdictClass[]
+            ).map((verdict) => {
+              const active = activeClass === verdict;
+              const count = verdictCounts.get(verdict) ?? 0;
+              const hasData = count > 0;
+              const help = t(VERDICT_HELP_KEY[verdict]);
+              const helpId = `${legendHelpId}-${verdict}`;
+              // The title sits on the WRAPPER, not on the button. A disabled
+              // control dispatches no mouse events for itself or its
+              // descendants in Chromium, so the badge title inside never
+              // surfaced on the six classes that are typically zero, exactly
+              // the ones whose meaning is unclear. The button keeps `disabled`
+              // (and with it aria-pressed and the dead onClick), and only gives
+              // up pointer-events so the hover lands on the wrapper instead.
+              return (
+                <span
+                  key={verdict}
+                  title={help}
+                  className={cn("inline-flex", hasData ? "cursor-help" : "cursor-not-allowed")}
+                >
+                  <button
+                    type="button"
+                    disabled={!hasData}
+                    onClick={() =>
+                      setActiveClass((prev) => (prev === verdict ? null : verdict))
+                    }
+                    aria-pressed={active}
+                    aria-label={t("mame.plateView.verdictFilterAriaLabel", { verdict })}
+                    // aria-label wins the accessible NAME computation, so the
+                    // badge title is invisible to a screen reader. The same
+                    // sentence is attached as a DESCRIPTION instead.
+                    aria-describedby={helpId}
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-control border px-0.5 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
+                      active
+                        ? "border-primary bg-primary/10"
+                        : "border-transparent",
+                      hasData ? "hover:bg-muted/60" : "pointer-events-none opacity-40",
+                    )}
+                  >
+                    <VerdictBadge verdict={verdict} className="text-caption" />
+                    <span className="text-caption font-medium tabular-nums text-muted-foreground">
+                      {count}
+                    </span>
+                  </button>
+                  <span id={helpId} className="sr-only">
+                    {help}
+                  </span>
+                </span>
+              );
+            })}
+          </div>
+          {showNbChips && (
+            <div
+              className="mt-1 flex flex-wrap gap-1"
+              role="group"
+              aria-label={t("mame.plateView.nbFilterGroupAriaLabel")}
+            >
+              {nbList.map((nb) => {
+                const active = activeNb === nb;
+                const count = nbPickedCounts.get(nb) ?? 0;
+                return (
+                  <button
+                    key={nb}
+                    type="button"
+                    onClick={() =>
+                      setActiveNb((prev) => (prev === nb ? null : nb))
+                    }
+                    aria-pressed={active}
+                    aria-label={t("mame.plateView.nbFilterAriaLabel", { nb: nbLabel(nb) })}
+                    className={cn(
+                      "rounded-control border px-1.5 py-0.5 text-caption font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
+                      active
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border/70 bg-muted text-muted-foreground hover:bg-muted/60",
+                    )}
+                  >
+                    {t("mame.plateView.nbPicked", {
+                      nb: nbLabel(nb),
+                      count,
+                    })}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <aside
+          className={
+            autoHeight
+              ? "flex flex-col rounded-control border border-border bg-background p-2"
+              : "flex min-h-0 flex-col overflow-auto rounded-control border border-border bg-background p-2"
+          }
+          aria-live="polite"
+          aria-label={t("mame.plateView.selectedWellAriaLabel")}
+        >
+          {selectedWell ? (
+            <div className="space-y-2">
+              <div className="rounded-control border border-border bg-muted/20 px-2.5 py-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-caption font-medium uppercase tracking-wide text-muted-foreground">
+                      {t("mame.plateView.selectedWellLabel")}
+                    </p>
+                    <p className="font-display text-lg font-semibold leading-none text-foreground">
+                      {selectedWell.well}
+                    </p>
+                  </div>
+                  <VerdictBadge verdict={selectedWell.verdict} />
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  <span className="rounded-full border border-border/70 bg-muted px-2 py-0.5 text-caption font-medium text-muted-foreground">
+                    {getSelectedPlateLabel(selectedWell.native_barcode)}
+                  </span>
+                  {selectedWell.selected && (
+                    <span className="rounded-full border border-primary/15 bg-primary/10 px-2 py-0.5 text-caption font-medium text-primary">
+                      {t("mame.plateView.selectedReplicate")}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-0">
+              <DetailRow label={t("mame.plateView.detailWell")} value={selectedWell.well} />
+              <DetailRow label={t("mame.plateView.detailBarcode")} value={selectedWell.barcode} />
+              <DetailRow label={t("mame.plateView.detailNativeBc")} value={selectedWell.native_barcode} />
+              <DetailRow label={t("mame.plateView.detailMutant")} value={selectedWell.mutant_id || "—"} />
+              {(() => {
+                const rep = replicates.find((r) => r.mutant_id === selectedWell.mutant_id);
+                const selPlate = rep?.selected_plate ?? null;
+                const selVerdict = selPlate ? (rep?.plate_verdicts[selPlate]?.verdict ?? null) : null;
+                const label = `${getSelectedPlateLabel(selPlate)}${selVerdict ? ` (${VERDICT_LABEL[selVerdict]})` : ""}`;
+                return (
+                  <DetailRow
+                    label={t("mame.plateView.detailSelectedReplicate")}
+                    value={label}
+                  />
+                );
+              })()}
+              {(() => {
+                // WellEntry carries no site reads, so read them from the verdict
+                // record of this exact copy, keyed the way VerdictDetailInspector
+                // keys it: custom_barcode alone cannot tell replicates apart.
+                const record = verdicts.find(
+                  (v) =>
+                    v.native_barcode === selectedWell.native_barcode &&
+                    v.custom_barcode === selectedWell.barcode,
+                );
+                const sites = record?.expected_site_reads ?? [];
+                if (sites.length === 0) return null;
+                return (
+                  <DetailRow
+                    label={t("mame.verdictDetail.labelReadAtSite")}
+                    value={siteReadPairs(sites, t)}
+                  />
+                );
+              })()}
+              <DetailRow label={t("mame.plateView.detailNotes")} value={selectedWell.notes || "—"} />
+              </div>
+              {selectedWell.is_fallback && (
+                <div
+                  className="mt-2 flex items-start gap-1.5 rounded-control border border-warning/40 bg-warning/10 px-2.5 py-2"
+                  role="note"
+                  aria-label={t("mame.plateView.fallbackNoticeAriaLabel")}
+                >
+                  <AlertTriangle
+                    size={12}
+                    className="mt-0.5 shrink-0 text-warning"
+                    aria-hidden="true"
+                  />
+                  <div className="space-y-0.5">
+                    <p className="text-caption font-semibold text-warning">
+                      {t("mame.plateView.fallbackTitle")}
+                    </p>
+                    <p className="text-caption text-muted-foreground">
+                      {t("mame.plateView.fallbackDesc")}
+                    </p>
+                    {selectedWell.fallback_reason && (
+                      <p className="text-caption text-muted-foreground">
+                        {selectedWell.fallback_reason}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-1 flex-col items-center justify-center text-center">
+              <span className="mb-1 text-base text-muted-foreground" aria-hidden="true">◎</span>
+              <p className="text-caption text-muted-foreground">
+                {t("mame.plateView.clickWellHint")}
+              </p>
+            </div>
+          )}
+        </aside>
+      </div>
+    </div>
+  );
+}

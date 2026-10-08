@@ -1,0 +1,706 @@
+/**
+ * JanusMappingPanel, writes the final cell-stock Janus mapping (K4 spec).
+ *
+ * Provides:
+ *  - Destination layout selection (compact from A1 vs source position)
+ *  - Instrument settings: volume, liquid class, and the `type` column value
+ *  - Row preview via the `export_janus_mapping_dry_run` RPC, refreshed on
+ *    mount and whenever any setting changes
+ *  - The clones left out of the pick, with the reason for each
+ *  - Output path with Browse button
+ *  - Export button that calls sidecar `export_janus_mapping` RPC, blocked while
+ *    the preview reports a problem
+ *  - Success / error feedback inline
+ *
+ * Two choices this panel used to offer are gone, because in this lab neither
+ * had a second answer:
+ *  - file format. The instrument reads CSV only, so the panel writes CSV: the
+ *    derived path, the Browse filter and the export call all pin that
+ *    extension. The sidecar still accepts `xlsx` and `JanusExportResult.format`
+ *    still reports what was written, so the type stays; only the operator's
+ *    radio group is gone.
+ *  - output columns. The instrument sheet is the only file this panel writes,
+ *    so `outputSchema` stays `device` and the instrument fieldset below renders
+ *    unconditionally. The 5-column `legacy5` sheet is still written,
+ *    automatically by analyze, as the pick list (`..._picks.csv`). That is why
+ *    `kuma_core` keeps the schema, and it is why removing the choice here
+ *    removes nothing from the backend: the 5-column file was never this panel's
+ *    to write.
+ *
+ * The transfer volume input that used to sit above this panel on step 3 went
+ * with them. It wrote `janusSettings.volume`, the same stored value the Volume
+ * field below writes, so one number was being asked for twice; the hint it
+ * carried moved under the surviving field.
+ *
+ * So did the static deck picture that used to open the panel, and the rack
+ * number fields that replaced it. The sheet names plates instead of numbering
+ * deck slots, and the names are generated from the plates of the run, so there
+ * is nothing here for an operator to answer: a picture of slots states a layout
+ * the JANUS software does not read, and a rack number states an address it does
+ * not use. The generated names are read back in the row preview, which is what
+ * the operator approves before exporting.
+ *
+ * Preview and export send the same settings object, so what the operator
+ * approves here is what the exported file describes. The object lives in the
+ * mame store (persisted), so the panel and any future reader of the settings
+ * agree on the same values.
+ *
+ * Was `JanusMappingDialog` until v0.15.14, a modal opened from a button on
+ * this same step. Step 3 (`JanusStepView`) is already its own full-screen
+ * step, so a second, smaller surface inside it added a click and cramped the
+ * row table for no reason. Only the shell went:
+ *  - open/close, ESC, focus trap: nothing to replace. The panel is mounted
+ *    for as long as step 3 is showing, so there is no "closed" state that
+ *    used to hold stale preview rows; the mount-time load below replaces the
+ *    old open-transition load.
+ *  - the dialog's own "Close" button: dropped. `WizardContainer`'s Prev/Next
+ *    already move the wizard along, and there was nothing left to close to.
+ *  - `isExporting` guarding `onOpenChange`: dropped with `onOpenChange`
+ *    itself, since there is no dismiss action left to guard.
+ *
+ * Entered as part of step 3.1 (`JanusStepView`), the step that owns the
+ * instrument configuration. It used to be reachable from step 2.1 (inputs)
+ * and from a CTA on the Activity step; both are gone, so a sequencing-only
+ * run never meets it. The File menu item was removed in v0.14.7, so no text
+ * may point there either.
+ */
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import { save } from "@tauri-apps/plugin-dialog";
+import { AlertCircle, CheckCircle2, Download, FolderOpen, Info } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { useKumaProject } from "@/state/projectContext";
+import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  buildJanusDefaultPath,
+  fetchMameJanusPreview,
+  handleExportMameJanusMapping,
+} from "@/lib/mame/janus";
+import { fileExists, requestOverwriteConfirm } from "@/lib/overwriteConfirm";
+import type {
+  JanusDestLayout,
+  JanusExclusionReason,
+  JanusExportSettings,
+  JanusPreviewResult,
+} from "@/types/mame/models";
+
+/** Preview refresh delay, so typing into a text field is one RPC, not one per key. */
+const PREVIEW_DEBOUNCE_MS = 300;
+
+/**
+ * The instrument sheet header, in the order the writer emits it
+ * (`JANUS_DEVICE_HEADER` in `kuma_core/shared/janus_deck.py`).
+ *
+ * Only a fallback: a preview reply states its own columns, and those are what
+ * the table renders. It is this header rather than anything else because this
+ * panel writes no other file.
+ */
+const INSTRUMENT_COLUMNS = [
+  "name",
+  "type",
+  "no",
+  "Asp. Rack",
+  "Asp. Posi",
+  "Dsp. Rack",
+  "Dsp. Posi",
+  "volume",
+];
+
+function previewMatchesSettings(
+  preview: JanusPreviewResult | null,
+  settings: JanusExportSettings,
+): boolean {
+  if (!preview) return false;
+  const resolved = preview.settings;
+  return (
+    resolved.dest_layout === settings.destLayout &&
+    resolved.output_schema === settings.outputSchema &&
+    resolved.include_fallback === settings.includeFallback &&
+    resolved.volume === settings.volume &&
+    resolved.sample_type === settings.sampleType &&
+    resolved.liquid_class === settings.liquidClass &&
+    resolved.dest_rack === settings.destRack &&
+    JSON.stringify(resolved.include_verdicts) ===
+      JSON.stringify(settings.includeVerdicts) &&
+    JSON.stringify(resolved.source_racks) === JSON.stringify(settings.sourceRacks)
+  );
+}
+
+/**
+ * One cell of the instrument sheet, addressed by column NAME.
+ *
+ * It used to be addressed by position and name together, because the nine
+ * column sheet named `Dsp. Rack` twice and the name alone did not say which
+ * value belonged in it. The eight column sheet has no repeat, so the position
+ * is no longer needed to disambiguate, and dropping it is what stops the table
+ * from drifting: the columns come from the preview reply
+ * (`JanusSettings.header`), so a column the writer moves arrives here already
+ * moved, and only a column the writer RENAMES can go unrecognised.
+ *
+ * An unrecognised column renders empty rather than throwing, since a blank cell
+ * beside eight filled ones is a visible symptom and a thrown render is not.
+ *
+ * Only the instrument sheet is rendered. The 5-column `legacy5` file exists,
+ * but analyze writes it on its own as the pick list and this panel never
+ * produces it, so there is no branch for it here.
+ */
+function previewCellValue(
+  row: JanusPreviewResult["rows"][number],
+  rowIdx: number,
+  column: string,
+  settings: JanusPreviewResult["settings"],
+): string {
+  switch (column) {
+    case "name":
+      return row.name;
+    case "type":
+      return settings.sample_type;
+    case "no":
+      return String(rowIdx + 1);
+    case "Asp. Rack":
+      // The resolved deck, not the operator's overrides alone: a plate nobody
+      // named still gets a name, generated from the plates of the run.
+      return (settings.resolved_source_racks ?? settings.source_racks)[row.source_plate] ?? "";
+    case "Asp. Posi":
+      return row.source_well;
+    case "Dsp. Rack":
+      return settings.resolved_dest_rack ?? settings.dest_rack ?? "";
+    case "Dsp. Posi":
+      return row.dest_well;
+    case "volume":
+      return String(settings.volume);
+    default:
+      return "";
+  }
+}
+
+export function JanusMappingPanel() {
+  const { t } = useTranslation();
+  const project = useKumaProject();
+
+  const storeIsExporting = useMameAppStore((s) => s.isExporting);
+  const settings = useMameAppStore((s) => s.janusSettings);
+  const setSettings = useMameAppStore((s) => s.setJanusSettings);
+  const setJanusMappingAutosave = useMameAppStore((s) => s.setJanusMappingAutosave);
+  const [outputPath, setOutputPath] = useState<string>("");
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [lastExportPath, setLastExportPath] = useState<string | null>(null);
+
+  const [preview, setPreview] = useState<JanusPreviewResult | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewFailure, setPreviewFailure] = useState<string | null>(null);
+  // Monotonic request id: a fast layout toggle can resolve out of order, and a
+  // stale response would show the other layout dest wells.
+  const previewSeq = useRef(0);
+
+  const loadPreview = useCallback(async (next: JanusExportSettings) => {
+    const seq = ++previewSeq.current;
+    setPreviewLoading(true);
+    setPreviewFailure(null);
+    try {
+      const result = await fetchMameJanusPreview(next);
+      if (previewSeq.current !== seq) return;
+      setPreview(result);
+    } catch (err) {
+      if (previewSeq.current !== seq) return;
+      setPreview(null);
+      setPreviewFailure(err instanceof Error ? err.message : String(err));
+    } finally {
+      if (previewSeq.current === seq) setPreviewLoading(false);
+    }
+  }, []);
+
+  // Debounced and run once on mount, then again on every settings change: a
+  // text field would otherwise fire one request per keystroke. The panel has
+  // no closed state to reset from (unlike the dialog this replaced), so there
+  // is nothing to clear on an "open" transition.
+  useEffect(() => {
+    const timer = setTimeout(() => void loadPreview(settings), PREVIEW_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [settings, loadPreview]);
+
+  const previewErrors = preview?.errors ?? [];
+  const hasPreviewErrors = previewErrors.length > 0;
+  // Reported, never enforced: what the export derived for itself is something
+  // the operator has to see, not a reason to withhold a file.
+  const previewWarnings = preview?.warnings ?? [];
+  const excluded = preview?.excluded ?? [];
+  const resolvedPath = outputPath || deriveDefaultPath();
+  const isPreviewCurrent = previewMatchesSettings(preview, settings);
+  const previewColumns =
+    preview?.settings.columns && preview.settings.columns.length > 0
+      ? preview.settings.columns
+      : INSTRUMENT_COLUMNS;
+  const canExport =
+    Boolean(resolvedPath) &&
+    !isExporting &&
+    !storeIsExporting &&
+    !hasPreviewErrors &&
+    isPreviewCurrent &&
+    !previewLoading;
+
+  /** Excluded clones grouped by reason, so a retry plan reads at a glance. */
+  const excludedByReason = excluded.reduce<Partial<Record<JanusExclusionReason, string[]>>>(
+    (acc, entry) => {
+      (acc[entry.reason] ??= []).push(entry.mutant_id);
+      return acc;
+    },
+    {},
+  );
+
+  function patchSettings(partial: Partial<JanusExportSettings>) {
+    setSettings({ ...settings, ...partial });
+  }
+
+  /** Always `.csv`: the instrument reads nothing else, so there is no extension to vary. */
+  function deriveDefaultPath(): string {
+    if (!project) return "";
+    return buildJanusDefaultPath(project.path, project.name, "csv");
+  }
+
+  async function browseOutput() {
+    const selected = await save({
+      filters: [{ name: "CSV", extensions: ["csv"] }],
+      defaultPath: outputPath || deriveDefaultPath() || undefined,
+    });
+    if (selected) setOutputPath(selected);
+  }
+
+  async function doExport() {
+    const target = outputPath || deriveDefaultPath();
+    if (!target) {
+      setExportError(t("mame.dialogs.janusMapping.exportErrorPathRequired"));
+      return;
+    }
+    // §5 overwrite confirm (auto-derived 경로로 조용히 덮어쓰는 것을 막는다)
+    if (await fileExists(target)) {
+      const decision = await requestOverwriteConfirm(target);
+      if (decision === "cancel") return;
+    }
+    setIsExporting(true);
+    setExportError(null);
+    try {
+      // Format stated rather than defaulted: the sidecar still knows how to
+      // write xlsx, and this call site is the reason it never will from here.
+      const result = await handleExportMameJanusMapping(target, "csv", settings);
+      setLastExportPath(result.output_path);
+      setOutputPath(result.output_path);
+      // Only writer of the instrument mapping now that analyze does not write
+      // one automatically; feeds the same "step 3 done" signal and the
+      // inspector/drawer/rail displays that used to read the automatic file.
+      setJanusMappingAutosave({
+        status: "saved",
+        output_path: result.output_path,
+        format: result.format,
+        row_count: result.row_count,
+        excluded: result.excluded,
+        excluded_count: result.excluded_count,
+        errors: [],
+        warnings: result.warnings,
+      });
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
+  return (
+    <section className="space-y-4" aria-labelledby="janus-mapping-panel-title">
+      <div className="space-y-1">
+        <h2 id="janus-mapping-panel-title" className="text-sm font-medium text-foreground">
+          {t("mame.dialogs.janusMapping.title")}
+        </h2>
+        <p className="text-caption text-muted-foreground">
+          {t("mame.dialogs.janusMapping.description")}
+        </p>
+      </div>
+
+      <fieldset className="space-y-1.5">
+        <legend className="text-xs font-medium text-muted-foreground">
+          {t("mame.dialogs.janusMapping.destLayoutLabel")}
+        </legend>
+        <div
+          className="flex gap-4"
+          role="radiogroup"
+          aria-label={t("mame.dialogs.janusMapping.destLayoutAriaLabel")}
+        >
+          {(["compact", "source"] as const).map((layout: JanusDestLayout) => (
+            <label
+              key={layout}
+              className="flex cursor-pointer items-center gap-2 text-sm"
+            >
+              <input
+                type="radio"
+                name="janus-dest-layout"
+                value={layout}
+                checked={settings.destLayout === layout}
+                onChange={() => patchSettings({ destLayout: layout })}
+                className="accent-primary"
+                aria-label={t(`mame.dialogs.janusMapping.destLayoutOption.${layout}`)}
+              />
+              <span className="font-medium">
+                {t(`mame.dialogs.janusMapping.destLayoutOption.${layout}`)}
+              </span>
+            </label>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          {t(`mame.dialogs.janusMapping.destLayoutHint.${settings.destLayout}`)}
+        </p>
+      </fieldset>
+
+      {/* Unconditional: the instrument sheet is the only file written from
+          here. This used to be hidden behind the 5-column choice, which no
+          longer exists. Volume and type reach the file; the liquid class is
+          recorded beside them and reaches nothing, which is why its hint says
+          so rather than leaving the operator to assume a column. */}
+      <fieldset className="space-y-2 rounded-control border border-border px-3 py-2.5">
+        <legend className="px-1 text-xs font-medium text-muted-foreground">
+          {t("mame.dialogs.janusMapping.instrumentHeading")}
+        </legend>
+
+        <div className="flex gap-2">
+          <div className="flex-1 min-w-0 space-y-1">
+            <Label
+              htmlFor="janus-volume"
+              className="text-xs font-medium text-muted-foreground"
+            >
+              {t("mame.dialogs.janusMapping.volumeLabel")}
+            </Label>
+            <Input
+              id="janus-volume"
+              type="number"
+              min={0}
+              step="any"
+              value={settings.volume}
+              onChange={(e) => {
+                const parsed = Number.parseFloat(e.target.value);
+                if (!Number.isNaN(parsed)) patchSettings({ volume: parsed });
+              }}
+              className="h-9 w-full text-sm"
+              disabled={isExporting}
+            />
+            {/* The only volume field on the step now. Says where the number
+                goes, because step 3 used to ask for it again above the panel
+                and that duplicate is what carried this sentence. */}
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {t("mame.dialogs.janusMapping.volumeHint")}
+            </p>
+          </div>
+          <div className="flex-1 min-w-0 space-y-1">
+            <Label
+              htmlFor="janus-liquid-class"
+              className="text-xs font-medium text-muted-foreground"
+            >
+              {t("mame.dialogs.janusMapping.liquidClassLabel")}
+            </Label>
+            <Input
+              id="janus-liquid-class"
+              value={settings.liquidClass}
+              onChange={(e) => patchSettings({ liquidClass: e.target.value })}
+              placeholder={t("mame.dialogs.janusMapping.liquidClassPlaceholder")}
+              className="h-9 w-full min-w-0 text-sm"
+              disabled={isExporting}
+            />
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          {t("mame.dialogs.janusMapping.liquidClassHint")}
+        </p>
+
+        {/* The `type` column, in the open rather than behind a "Deck
+            configuration" disclosure. That disclosure existed for the rack
+            number fields, and the racks are plate names generated from the run
+            now, so the only thing left under it was this one field and a
+            heading naming the very thing that is no longer configurable. */}
+        <div className="space-y-1">
+          <Label
+            htmlFor="janus-sample-type"
+            className="text-xs font-medium text-muted-foreground"
+          >
+            {t("mame.dialogs.janusMapping.sampleTypeLabel")}
+          </Label>
+          <Input
+            id="janus-sample-type"
+            value={settings.sampleType}
+            onChange={(e) => patchSettings({ sampleType: e.target.value })}
+            className="h-9 w-full min-w-0 text-sm"
+            disabled={isExporting}
+          />
+        </div>
+      </fieldset>
+
+      {/* Row preview, what the export would write, before it writes it. */}
+      <section className="space-y-1.5" aria-label={t("mame.dialogs.janusMapping.previewHeading")}>
+        <div className="flex items-baseline justify-between gap-2">
+          <h3 className="text-xs font-medium text-muted-foreground">
+            {t("mame.dialogs.janusMapping.previewHeading")}
+          </h3>
+          {preview && (
+            <span className="text-caption tabular-nums text-muted-foreground">
+              {t("mame.dialogs.janusMapping.previewCount", {
+                count: preview.row_count,
+              })}
+            </span>
+          )}
+        </div>
+
+        {/* Validation problems block the export; this is the point of the preview. */}
+        {hasPreviewErrors && (
+          <div
+            className="space-y-1 rounded-control border border-error/40 bg-error/8 px-3 py-2"
+            role="alert"
+            aria-live="assertive"
+          >
+            <p className="text-caption font-medium text-error">
+              {t("mame.dialogs.janusMapping.previewBlocked")}
+            </p>
+            <ul className="space-y-1">
+              {previewErrors.map((e) => (
+                <li key={e.code} className="flex items-start gap-2">
+                  <AlertCircle
+                    size={13}
+                    className="mt-0.5 flex-shrink-0 text-error"
+                    aria-hidden="true"
+                  />
+                  <span className="text-caption text-error">{e.message}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Reported, not enforced: Export stays enabled. */}
+        {previewWarnings.length > 0 && (
+          <div
+            data-testid="janus-preview-warnings"
+            className="space-y-1 rounded-control border border-border bg-muted/30 px-3 py-2"
+            role="status"
+            aria-live="polite"
+          >
+            <p className="text-caption font-medium text-muted-foreground">
+              {t("mame.dialogs.janusMapping.previewWarned")}
+            </p>
+            <ul className="space-y-1">
+              {previewWarnings.map((w) => (
+                <li key={w.code} className="flex items-start gap-2">
+                  <Info
+                    size={13}
+                    className="mt-0.5 flex-shrink-0 text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                  <span className="text-caption text-muted-foreground">{w.message}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {previewLoading && (
+          <p className="text-caption text-muted-foreground" aria-live="polite">
+            {t("mame.dialogs.janusMapping.previewLoading")}
+          </p>
+        )}
+
+        {/* A dry-run failure is not a validation failure: it leaves Export
+            enabled, since the export path has its own fail-fast guards. */}
+        {previewFailure && !previewLoading && (
+          <div className="flex items-start gap-2 rounded-control border border-warning/40 bg-warning/8 px-3 py-2">
+            <AlertCircle
+              size={13}
+              className="mt-0.5 flex-shrink-0 text-warning"
+              aria-hidden="true"
+            />
+            <div className="space-y-1">
+              <p className="text-caption text-warning">
+                {t("mame.dialogs.janusMapping.previewFailed", {
+                  message: previewFailure,
+                })}
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 px-2 text-caption"
+                onClick={() => void loadPreview(settings)}
+              >
+                {t("mame.dialogs.janusMapping.previewRetry")}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {preview && !previewLoading && preview.rows.length === 0 && (
+          <p className="text-caption text-muted-foreground">
+            {t("mame.dialogs.janusMapping.previewEmpty")}
+          </p>
+        )}
+
+        {preview && preview.rows.length > 0 && (
+          <div className="max-h-56 overflow-y-auto rounded-control border border-border">
+            {/* Column labels are the literal export header row, so they stay
+                untranslated to match the produced file byte-for-byte. */}
+            <table className="w-full border-collapse text-caption">
+              <thead className="sticky top-0 bg-muted">
+                <tr className="text-left">
+                  {previewColumns.map((column, idx) => (
+                    <th
+                      key={`${column}-${idx}`}
+                      scope="col"
+                      className="px-2 py-1 font-medium"
+                    >
+                      {column}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {preview.rows.map((row, idx) => (
+                  <tr
+                    key={`${row.name}-${row.source_plate}-${row.source_well}-${idx}`}
+                    className="border-t border-border/60"
+                  >
+                    {previewColumns.map((column, columnIdx) => (
+                      <td
+                        key={`${column}-${columnIdx}`}
+                        className="px-2 py-1 font-mono tabular-nums"
+                      >
+                        {previewCellValue(row, idx, column, preview.settings)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* The plate names are generated, so this table is the only place the
+            operator reads them back before the file is written. Rendered with
+            the table rather than with the settings above, because there is no
+            field up there to attach it to. */}
+        {preview && preview.rows.length > 0 && (
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            {t("mame.dialogs.janusMapping.plateNamesNote")}
+          </p>
+        )}
+
+        {preview && !previewLoading && (
+          <div className="space-y-1">
+            <p className="text-caption font-medium text-muted-foreground">
+              {t("mame.dialogs.janusMapping.excludedHeading", {
+                count: preview.excluded_count,
+              })}
+            </p>
+            {preview.excluded_count === 0 ? (
+              <p className="text-caption text-muted-foreground">
+                {t("mame.dialogs.janusMapping.excludedNone")}
+              </p>
+            ) : (
+              <ul className="space-y-0.5">
+                {(
+                  Object.entries(excludedByReason) as [JanusExclusionReason, string[]][]
+                ).map(([reason, ids]) => (
+                  <li key={reason} className="text-caption text-muted-foreground">
+                    <span className="font-medium">
+                      {t(`mame.dialogs.janusMapping.excludedReason.${reason}`)}
+                    </span>
+                    <span className="tabular-nums"> ({ids.length}): </span>
+                    <span className="font-mono break-all">{ids.join(", ")}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* Output path */}
+      <div className="space-y-1.5">
+        <Label
+          htmlFor="janus-output-path"
+          className="text-xs font-medium text-muted-foreground"
+        >
+          {t("mame.dialogs.janusMapping.outputPathLabel")}
+        </Label>
+        <div className="flex gap-2">
+          <Input
+            id="janus-output-path"
+            value={resolvedPath}
+            onChange={(e) => setOutputPath(e.target.value)}
+            placeholder={t("mame.dialogs.janusMapping.outputPathPlaceholder")}
+            className="h-9 flex-1 min-w-0 text-sm font-mono"
+            aria-label={t("mame.dialogs.janusMapping.outputPathAriaLabel")}
+            disabled={isExporting}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void browseOutput()}
+            className="h-9 gap-1.5 px-3 flex-shrink-0"
+            aria-label={t("mame.dialogs.janusMapping.browseAriaLabel")}
+            disabled={isExporting}
+          >
+            <FolderOpen size={14} aria-hidden="true" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Column info note. One string, not one per schema: the file this panel
+          writes always has the instrument columns. It names them in the order
+          the writer emits them, so it moves whenever the sheet does. */}
+      <p className="text-xs text-muted-foreground leading-relaxed">
+        {t("mame.dialogs.janusMapping.columnsNote")}
+        <br />
+        <span className="text-warning">
+          {t("mame.dialogs.janusMapping.selectionNote")}
+        </span>
+      </p>
+
+      {/* Error */}
+      {exportError && (
+        <div
+          className="flex items-start gap-2 rounded-control border border-error/40 bg-error/8 px-3 py-2"
+          role="alert"
+          aria-live="assertive"
+        >
+          <AlertCircle size={14} className="mt-0.5 flex-shrink-0 text-error" aria-hidden="true" />
+          <p className="text-caption text-error">{exportError}</p>
+        </div>
+      )}
+
+      {/* Success */}
+      {lastExportPath && !exportError && (
+        <div className="rounded-control border border-success/40 bg-success/8 px-3 py-2">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 size={13} className="text-success" aria-hidden="true" />
+            <span className="text-caption font-medium text-success">
+              {t("mame.dialogs.janusMapping.exported")}
+            </span>
+          </div>
+          <p className="mt-1 text-caption font-mono text-foreground break-all">
+            {lastExportPath}
+          </p>
+        </div>
+      )}
+
+      <div className="flex justify-end">
+        <Button
+          size="sm"
+          onClick={() => void doExport()}
+          disabled={!canExport}
+          className="gap-2"
+        >
+          <Download size={14} aria-hidden="true" />
+          {isExporting ? t("mame.dialogs.janusMapping.exporting") : t("mame.dialogs.janusMapping.exportJanus")}
+        </Button>
+      </div>
+    </section>
+  );
+}

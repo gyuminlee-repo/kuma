@@ -1,0 +1,1005 @@
+import type { StateCreator } from "zustand";
+import { notifyJobComplete } from "../../lib/notify";
+import { notifyJobDone, notifyJobError } from "../../lib/toast";
+import { startKeepAwake, stopKeepAwake } from "../../lib/keepAwake";
+import { cancelAndRespawn, sendRequest } from "../../lib/ipc-kuro";
+import { wellName } from "../../lib/plate-utils";
+import { clampMaxPrimers } from "../../lib/inputThresholds";
+import { resizeEvolveproSelection } from "../../lib/evolveproSelection";
+import { formatError } from "../../lib/utils";
+import { buildKuroDesignInputPatch, buildKuroResultResetPatch } from "../../lib/kuroResultReset";
+import { suggestRetryParams, getStageParams } from "../../lib/primerSuggestion";
+import {
+  DEFAULT_POLYMERASE,
+  resolvePolymeraseName,
+  retiredPolymeraseNotice,
+} from "../../lib/polymeraseAliases";
+import type { AppState } from "../types";
+import type {
+  DesignRunOutcome,
+  DesignRunRecord,
+  SdmPrimerResult,
+  PolymeraseProfile,
+  RescuedMutation,
+} from "../../types/models";
+import {
+  addDesignResultState,
+  applyCustomPrimerToResults,
+  applyReversePropagation,
+  buildIncludedPlateState,
+  buildDesignRequestPayload,
+  buildPrimerLengthBounds,
+  EMPTY_RESCUE_STATS,
+  prepareDesignInput,
+  processDesignResult,
+  rebuildPlateStateFromResults,
+  removeDesignResultState,
+} from "./designSlice.helpers";
+
+import type { DesignSlice } from "../slice-interfaces";
+export type { DesignSlice };
+
+function requireNumericRetryBound(value: number | string, field: string): number {
+  if (typeof value !== "number") {
+    throw new TypeError(`Retry ${field} must be numeric`);
+  }
+  return value;
+}
+
+export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (set, get) => ({
+  isDesigning: false,
+  backendDesignStateSynced: false,
+  designResults: [],
+  successCount: 0,
+  totalCount: 0,
+  failedMutations: [],
+  polymerases: [],
+  selectedPolymerase: DEFAULT_POLYMERASE,
+  // @deprecated Phase C (v0.9.2): legacy popup mount removed; slice kept for
+  // DesignReport.tsx Dialog wrapper only. Always init false; never persist.
+  showReport: false,
+  setShowReport: (show: boolean) => set({ showReport: show }),
+  codonStrategy: "closest",
+  maxPrimers: 95,
+  tmFwdTarget: 62,
+  tmRevTarget: 58,
+  tmOverlapTarget: 42,
+  gcMin: 40,
+  gcMax: 60,
+  primerLenEnabled: true,
+  fwdLenMin: 18,
+  fwdLenMax: 39,
+  revLenMin: 19,
+  revLenMax: 27,
+  fillOnFailure: true,
+  tmTolerance: 4.0,
+  overlapMode: "partial",
+  randomSeed: null,
+  manuallySwapped: {},
+  customCandidates: {},
+  alternativesCache: {},
+  rescuedMutations: [],
+  rescueStats: EMPTY_RESCUE_STATS,
+  rescuedMutationDetails: [],
+  lastDesignRun: null,
+
+  loadPolymerases: async () => {
+    try {
+      const polymerases = await sendRequest("list_polymerases", {});
+      const state = get();
+      const current = state.selectedPolymerase;
+      const names = polymerases.map((p) => p.name);
+
+      if (!names.includes(current)) {
+        // A retired profile (e.g. the removed "Benchling" scale) is remapped
+        // without routing through setSelectedPolymerase, so the GC range and
+        // overlap mode restored from the saved state survive the migration.
+        const { name: aliased, retiredFrom } = resolvePolymeraseName(current);
+        if (retiredFrom && names.includes(aliased)) {
+          set({
+            polymerases,
+            selectedPolymerase: aliased,
+            statusMessage: retiredPolymeraseNotice(retiredFrom, aliased, state.gcMin, state.gcMax),
+          });
+          return;
+        }
+      }
+
+      const next = names.includes(current) ? current : polymerases[0]?.name ?? current;
+      set({ polymerases });
+      // Only re-apply profile defaults when the selection actually changed.
+      // Re-running it for an unchanged selection would overwrite gcMin/gcMax and
+      // overlapMode, silently discarding a GC range restored from a saved state
+      // whenever this runs after a workspace or autosave load.
+      if (next && next !== current) {
+        await get().setSelectedPolymerase(next);
+      }
+    } catch (err) {
+      set({ statusMessage: `Polymerase list load failed: ${formatError(err)}` });
+    }
+  },
+
+  setSelectedPolymerase: async (name: string) => {
+    try {
+      const profile = await sendRequest("get_polymerase_details", { name });
+      const prev = get();
+      const isSwitch = prev.selectedPolymerase !== name;
+      const nextOverlapMode = profile.default_overlap_mode ?? "partial";
+      const gcChanged = prev.gcMin !== profile.min_gc || prev.gcMax !== profile.max_gc;
+      const overlapChanged = prev.overlapMode !== nextOverlapMode;
+      const changes: string[] = [];
+      if (gcChanged) changes.push(`GC range set to ${profile.min_gc}-${profile.max_gc}%`);
+      if (overlapChanged) changes.push(`overlap mode set to ${nextOverlapMode}`);
+      const notice =
+        isSwitch && changes.length > 0 ? `Polymerase changed: ${changes.join(", ")}` : null;
+      set(buildKuroDesignInputPatch(prev, {
+        selectedPolymerase: name,
+        ...(notice ? { statusMessage: notice } : {}),
+        // Method-level SDM targets (Landwehr et al. 2025 SI Fig. S4), mirroring
+        // the engine fallback in sdm_engine.py. Never derive from opt_tm.
+        tmFwdTarget: profile.opt_tm_fwd ?? 62,
+        tmRevTarget: profile.opt_tm_rev ?? 58,
+        tmOverlapTarget: profile.opt_tm_overlap ?? 42,
+        gcMin: profile.min_gc,
+        gcMax: profile.max_gc,
+        overlapMode: nextOverlapMode,
+      }));
+    } catch (err) {
+      set({ statusMessage: `Polymerase load failed: ${formatError(err)}` });
+    }
+  },
+
+  saveCustomPolymerase: async (profile: PolymeraseProfile) => {
+    try {
+      await sendRequest("save_custom_polymerase", { ...profile });
+      await get().loadPolymerases();
+      await get().setSelectedPolymerase(profile.name);
+      set({ statusMessage: `Saved custom polymerase: ${profile.name}` });
+    } catch (err) {
+      set({ statusMessage: `Custom polymerase save failed: ${formatError(err)}` });
+      throw err;
+    }
+  },
+
+  designPrimers: async () => {
+    const state = get();
+    const {
+      fastaPath,
+      selectedGene,
+      codonStrategy,
+      organism,
+      maxPrimers,
+      tmFwdTarget,
+      tmRevTarget,
+      tmOverlapTarget,
+      gcMin,
+      gcMax,
+      primerLenEnabled,
+      fwdLenMin,
+      fwdLenMax,
+      revLenMin,
+      revLenMax,
+      fillOnFailure,
+      overlapMode,
+      mutationInputMode,
+      selectedPolymerase,
+      randomSeed,
+    } = state;
+
+    if (!fastaPath) {
+      set({ statusMessage: "Sequence file not loaded" });
+      return;
+    }
+    if (!state.mutationText.trim()) {
+      set({ statusMessage: "No mutations entered" });
+      return;
+    }
+
+    const initialPrep = prepareDesignInput({
+      mutationText: state.mutationText,
+      maxPrimers,
+      fillOnFailure,
+      mutationInputMode,
+      selectedGene: selectedGene ?? "",
+      poolVariants: state.poolVariants,
+      evolveproSelectedVariants: state.evolveproSelectedVariants,
+      evolveproRankedCandidates: state.evolveproRankedCandidates,
+    });
+    const { sendCount, isEvolveMode } = initialPrep;
+
+    const activeEvolveproPath = state.evolveproCsvPath;
+    if (isEvolveMode && activeEvolveproPath) {
+      state.cancelDiversityReload();
+      try {
+        await state.loadEvolveproCsv(
+          activeEvolveproPath,
+          fillOnFailure ? sendCount * 2 : undefined,
+          false,
+          true,
+        );
+      } catch {
+        return;
+      }
+    }
+
+    const prepared = prepareDesignInput({
+      mutationText: get().mutationText,
+      maxPrimers,
+      fillOnFailure,
+      mutationInputMode,
+      selectedGene: selectedGene ?? "",
+      poolVariants: get().poolVariants,
+      evolveproSelectedVariants: get().evolveproSelectedVariants,
+      evolveproRankedCandidates: get().evolveproRankedCandidates,
+    });
+    if (!prepared.limitedText.trim()) {
+      set({ statusMessage: "No valid EVOLVEpro variants loaded" });
+      return;
+    }
+
+    // The reset patch, not a hand-picked subset: a previous run left
+    // successCount/totalCount/failedMutations behind, so a second run that
+    // ended without results showed an empty table beside the old counters.
+    set({
+      ...buildKuroResultResetPatch(),
+      isDesigning: true,
+      progress: 0,
+      statusMessage: "Designing primers...",
+      alternativesCache: {},
+    });
+
+    // Every exit from this run writes one of these, so an empty result table
+    // can always tell "never ran" from "ran and the results are gone".
+    const runRecord = (
+      outcome: DesignRunOutcome,
+      detail: string | null,
+      counts?: { successCount: number; totalCount: number; failedCount: number },
+    ): DesignRunRecord => ({
+      outcome,
+      finishedAt: Date.now(),
+      successCount: counts?.successCount ?? 0,
+      totalCount: counts?.totalCount ?? prepared.intendedMuts.size,
+      failedCount: counts?.failedCount ?? 0,
+      detail,
+    });
+
+    const _designStartedAt = Date.now();
+    void startKeepAwake("KURO design running");
+    try {
+      const payload = buildDesignRequestPayload({
+        fastaPath,
+        targetStart: prepared.targetStart,
+        limitedText: prepared.limitedText,
+        selectedPolymerase,
+        codonStrategy,
+        organism,
+        tmFwdTarget,
+        tmRevTarget,
+        tmOverlapTarget,
+        gcMin,
+        gcMax,
+        primerLenEnabled,
+        fwdLenMin,
+        fwdLenMax,
+        revLenMin,
+        revLenMax,
+        overlapMode,
+        rescuePool: prepared.rescuePool,
+        tolMax: state.tmTolerance,
+        randomSeed,
+        fillOnFailure,
+      });
+      const result = await sendRequest("design_sdm_primers", payload, 300_000);
+      if (result.cancelled) {
+        set({
+          backendDesignStateSynced: false,
+          statusMessage: "Design cancelled",
+          lastDesignRun: runRecord("cancelled", null),
+        });
+        return;
+      }
+      const processed = processDesignResult({
+        result,
+        maxPrimers,
+        intendedMuts: prepared.intendedMuts,
+      });
+      const plateState = rebuildPlateStateFromResults({
+        designResults: processed.capped,
+        wellName,
+      });
+
+      set({
+        backendDesignStateSynced: true,
+        designResults: processed.capped,
+        successCount: processed.capped.length,
+        totalCount: prepared.intendedMuts.size,
+        failedMutations: processed.intendedFailed,
+        rescueStats: processed.rescueStats,
+        rescuedMutationDetails: processed.rescuedMutationDetails,
+        rescuedMutations: processed.rescuedMutations,
+        plateMappings: plateState.plateMappings,
+        dedupInfo: plateState.dedupInfo,
+        statusMessage: processed.statusMessage,
+        lastDesignRun: runRecord("success", null, {
+          successCount: processed.capped.length,
+          totalCount: prepared.intendedMuts.size,
+          failedCount: processed.intendedFailed.length,
+        }),
+      });
+
+      const fillSourcePath = get().evolveproCsvPath;
+      if (fillOnFailure && isEvolveMode && fillSourcePath) {
+        // preserveDesignResults=true. Without it this reload rewrites
+        // mutationText (the first load above asked for sendCount*2 variants,
+        // this one for maxPrimers) and buildKuroDesignInputPatch reads that as
+        // a design-input change, so the results set two statements earlier were
+        // discarded on every successful run. Same argument as the
+        // autosave restore call in useAutosaveHydration.ts.
+        await get().loadEvolveproCsv(fillSourcePath, undefined, true, true);
+      }
+
+      const postFailed = get().failedMutations;
+      if (postFailed.length === 0 || get().designResults.length === 0) {
+        // nothing to retry
+      } else if (fillOnFailure && get().evolveproMode !== "topN") {
+        await get().cascadeFailedRetry("pipeline-fill");
+      } else if (fillOnFailure && get().evolveproMode === "topN") {
+        await get().cascadeFailedRetry("topn-fill");
+      }
+      // fillOnFailure=false: no auto-retry; mutations remain as failed
+
+      // Re-stamp with the post-cascade counts so the record matches the table.
+      set({
+        lastDesignRun: runRecord("success", null, {
+          successCount: get().designResults.length,
+          totalCount: get().totalCount,
+          failedCount: get().failedMutations.length,
+        }),
+      });
+      // §13: Notify if job took long enough.
+      void notifyJobComplete({
+        title: "Design complete",
+        body: `${get().successCount} primer(s) designed`,
+        startedAt: _designStartedAt,
+      });
+      // §8: In-app toast (always fires, regardless of duration).
+      notifyJobDone({
+        title: "Design complete",
+        description: `${get().successCount} primer(s) designed`,
+        durationMs: Date.now() - _designStartedAt,
+      });
+    } catch (err) {
+      const message = formatError(err);
+      if (message.includes("Sidecar killed")) {
+        // The sidecar was killed under the request (menu restart or an update
+        // install). The design may have finished on the backend, but nothing
+        // came back, so say so instead of returning in silence.
+        set({
+          backendDesignStateSynced: false,
+          statusMessage: "Design interrupted: the sidecar restarted before results arrived. Run design again.",
+          lastDesignRun: runRecord("interrupted", message),
+        });
+        notifyJobError("Design interrupted", "The sidecar restarted before results arrived.");
+        return;
+      }
+      set({
+        statusMessage: `Design failed: ${message}`,
+        lastDesignRun: runRecord("failed", message),
+      });
+      notifyJobError("Design failed", err);
+    } finally {
+      void stopKeepAwake();
+      // Guard kept: resetAll() sets isDesigning false, so a run whose project
+      // was reset mid-flight must not land its state or navigate the new one.
+      if (get().isDesigning) {
+        const hasResults = get().designResults.length > 0;
+        set({
+          isDesigning: false,
+          progress: hasResults ? 100 : 0,
+        });
+        // Spec #2/#16: auto-advance to output.summary on success.
+        // Legacy popup mount (showReport) removed from AppLayout; report now
+        // renders in the right inspector via DesignReportInspector (Phase C).
+        if (hasResults) {
+          get().setSubStep("output.summary");
+        }
+      }
+    }
+  },
+
+  cancelDesign: async () => {
+    try {
+      await sendRequest("cancel_design", {});
+      set({
+        statusMessage: "Cancelling design...",
+      });
+    } catch (err) {
+      try {
+        await cancelAndRespawn();
+        set({
+          statusMessage: `Design cancelled (reconnected after: ${formatError(err)})`,
+        });
+      } catch (reconnectErr) {
+        set({
+          isDesigning: false,
+          progress: 0,
+          backendDesignStateSynced: false,
+          statusMessage: `Design cancel failed: ${formatError(reconnectErr)}`,
+        });
+      }
+    }
+  },
+
+  getAlternatives: async (mutation: string) => {
+    if (!get().backendDesignStateSynced) {
+      throw new Error("Re-design the current workspace to load backend alternatives.");
+    }
+    const cached = get().alternativesCache[mutation];
+    if (cached) {
+      return cached;
+    }
+    const result = await sendRequest(
+      "get_alternatives",
+      { mutation },
+    );
+    set({
+      alternativesCache: {
+        ...get().alternativesCache,
+        [mutation]: result.candidates,
+      },
+    });
+    return result.candidates;
+  },
+
+  swapPrimer: async (mutation: string, candidateIdx: number, swapType: "both" | "fwd" | "rev" = "both") => {
+    if (!get().backendDesignStateSynced) {
+      set({ statusMessage: "Re-design the current workspace before swapping primers." });
+      return;
+    }
+    const updated = await sendRequest(
+      "swap_primer",
+      { mutation, candidate_idx: candidateIdx, swap_type: swapType },
+    );
+    const { designResults, manuallySwapped } = get();
+    const targetPos = updated.aa_position;
+    const revChanged = swapType === "rev" || swapType === "both";
+
+    const newSwapped = { ...manuallySwapped };
+    if (candidateIdx === 0) {
+      delete newSwapped[mutation];
+    } else {
+      newSwapped[mutation] = swapType === "both"
+        ? "both"
+        : (
+            manuallySwapped[mutation] === "both"
+            ? "both"
+            : manuallySwapped[mutation] && manuallySwapped[mutation] !== swapType
+              ? "both"
+              : swapType
+          );
+    }
+
+    const nextDesignResults = designResults.map((r) => {
+      if (r.mutation === mutation) return updated;
+      if (revChanged && r.aa_position === targetPos) {
+        return applyReversePropagation(r, updated);
+      }
+      return r;
+    });
+    const plateState = buildIncludedPlateState({
+      designResults: nextDesignResults,
+      wellName,
+    });
+
+    set({
+      backendDesignStateSynced: true,
+      designResults: nextDesignResults,
+      plateMappings: plateState.plateMappings,
+      dedupInfo: plateState.dedupInfo,
+      manuallySwapped: newSwapped,
+    });
+  },
+
+  applyCustomPrimer: (mutation: string, result: SdmPrimerResult) => {
+    const { designResults, manuallySwapped } = get();
+    const nextDesignResults = applyCustomPrimerToResults({ mutation, result, designResults });
+    const plateState = buildIncludedPlateState({
+      designResults: nextDesignResults,
+      wellName,
+    });
+
+    set({
+      backendDesignStateSynced: false,
+      designResults: nextDesignResults,
+      plateMappings: plateState.plateMappings,
+      dedupInfo: plateState.dedupInfo,
+      manuallySwapped: { ...manuallySwapped, [mutation]: "both" },
+    });
+  },
+
+  addCustomCandidate: (mutation: string, result: SdmPrimerResult) => {
+    const { customCandidates } = get();
+    const existing = customCandidates[mutation] ?? [];
+    set({
+      customCandidates: { ...customCandidates, [mutation]: [...existing, result] },
+    });
+  },
+
+  removeCustomCandidate: (mutation: string, index: number) => {
+    const { customCandidates } = get();
+    const existing = customCandidates[mutation] ?? [];
+    set({
+      customCandidates: {
+        ...customCandidates,
+        [mutation]: existing.filter((_, i) => i !== index),
+      },
+    });
+  },
+
+
+  setCodonStrategy: (strategy) => {
+    const state = get();
+    set(buildKuroDesignInputPatch(state, { codonStrategy: strategy }));
+  },
+  setMaxPrimers: (n) => {
+    const clamped = clampMaxPrimers(n);
+    const state = get();
+    const prev = state.maxPrimers;
+    // A selection seeded from the design count follows it, from the
+    // candidates already loaded; no reload. Without this a CSV loaded at 95
+    // kept 95 selected however far the count was raised, and Run Design
+    // designed 95. A hand-set selection is the operator's and stays.
+    const resizeSelection =
+      state.mutationInputMode === "evolvepro" &&
+      !state.evolveproSelectionManual &&
+      state.evolveproRankedCandidates.length > 0 &&
+      clamped !== prev;
+    set(
+      buildKuroDesignInputPatch(state, {
+        maxPrimers: clamped,
+        ...(resizeSelection
+          ? {
+              evolveproSelectedVariants: resizeEvolveproSelection(
+                state.evolveproSelectedVariants,
+                state.evolveproRankedCandidates,
+                clamped,
+              ),
+            }
+          : {}),
+      }),
+    );
+    // If an EVOLVEpro CSV failed to load (mutationText cleared but path retained),
+    // re-trigger load so user can recover by adjusting the mutation count.
+    const isEvolvepro = state.mutationInputMode === "evolvepro";
+    const activeEvolveproPath = state.evolveproCsvPath;
+    const loadFailed =
+      isEvolvepro && !!activeEvolveproPath && state.evolveproTotalCount === 0 &&
+      !state.mutationText.trim();
+    if (loadFailed && clamped !== prev) {
+      void state.loadEvolveproCsv(activeEvolveproPath);
+    }
+  },
+
+  setTmTargets: (fwd: number, rev: number, ov: number) => {
+    const state = get();
+    set(buildKuroDesignInputPatch(state, {
+      tmFwdTarget: fwd, tmRevTarget: rev, tmOverlapTarget: ov,
+    }));
+  },
+
+  setGcRange: (min: number, max: number) => {
+    const state = get();
+    set(buildKuroDesignInputPatch(state, { gcMin: min, gcMax: max }));
+  },
+
+  setPrimerLenEnabled: (enabled: boolean) => {
+    const state = get();
+    set(buildKuroDesignInputPatch(state, { primerLenEnabled: enabled }));
+  },
+
+  setPrimerLenRange: (fwdMin: number, fwdMax: number, revMin: number, revMax: number) => {
+    const state = get();
+    set(buildKuroDesignInputPatch(state, {
+      fwdLenMin: fwdMin,
+      fwdLenMax: fwdMax,
+      revLenMin: revMin,
+      revLenMax: revMax,
+    }));
+  },
+
+  setFillOnFailure: (enabled: boolean) => {
+    const state = get();
+    set(buildKuroDesignInputPatch(state, { fillOnFailure: enabled }));
+  },
+
+  setTmTolerance: (value: number) => {
+    const clamped = Math.min(10.0, Math.max(0.5, Math.round(value * 2) / 2));
+    const state = get();
+    set(buildKuroDesignInputPatch(state, { tmTolerance: clamped }));
+  },
+
+  setOverlapMode: (mode) => {
+    const state = get();
+    set(buildKuroDesignInputPatch(state, { overlapMode: mode }));
+  },
+
+  setRandomSeed: (seed: number | null) => {
+    const state = get();
+    set(buildKuroDesignInputPatch(state, { randomSeed: seed }));
+  },
+
+  evaluateCustomPrimer: async (mutation: string, fwdSeq: string, revSeq: string, overlapLen?: number) => {
+    try {
+      const { fastaPath, selectedGene } = get();
+      const targetStart = selectedGene ? parseInt(selectedGene, 10) : 0;
+      const result = await sendRequest("evaluate_primer", {
+        mutation,
+        fasta_path: fastaPath,
+        target_start: targetStart,
+        forward_seq: fwdSeq,
+        reverse_seq: revSeq,
+        overlap_len: overlapLen ?? 18,
+      });
+      return result;
+    } catch (err) {
+      set({ statusMessage: `Evaluate failed: ${formatError(err)}` });
+      throw err;
+    }
+  },
+
+  cascadeFailedRetry: async (mode) => {
+    const startState = get();
+    if (startState.failedMutations.length === 0 || startState.designResults.length === 0) return;
+
+    const baseTol = startState.tmTolerance ?? 4.0;
+    const baseInput = {
+      tmFwd: startState.tmFwdTarget,
+      tmRev: startState.tmRevTarget,
+      tmOverlap: startState.tmOverlapTarget,
+      gcMin: startState.gcMin,
+      gcMax: startState.gcMax,
+      fwdLenMin: startState.fwdLenMin,
+      fwdLenMax: startState.fwdLenMax,
+      revLenMin: startState.revLenMin,
+      revLenMax: startState.revLenMax,
+      baseTol,
+    };
+
+    const stages: Array<{
+      kind: "same_position" | "diff_position" | "relax";
+      relaxStage?: 1 | 2 | 3 | 4;
+      label: string;
+      badgeType: RescuedMutation["type"];
+    }> =
+      mode === "pipeline-fill"
+        ? [
+            { kind: "same_position", label: "Stage 1/6 same-position", badgeType: "same_position" },
+            { kind: "diff_position", label: "Stage 2/6 diff-position", badgeType: "diff_position" },
+            { kind: "relax", relaxStage: 1, label: "Stage 3/6 length", badgeType: "auto_suggestion_l1" },
+            { kind: "relax", relaxStage: 2, label: "Stage 4/6 +GC", badgeType: "auto_suggestion_l2" },
+            { kind: "relax", relaxStage: 3, label: "Stage 5/6 +mild Tm", badgeType: "auto_suggestion_l3" },
+            { kind: "relax", relaxStage: 4, label: "Stage 6/6 strong", badgeType: "auto_suggestion_l4" },
+          ]
+        : [
+            { kind: "relax", relaxStage: 1, label: "Stage 1/4 length", badgeType: "auto_suggestion_l1" },
+            { kind: "relax", relaxStage: 2, label: "Stage 2/4 +GC", badgeType: "auto_suggestion_l2" },
+            { kind: "relax", relaxStage: 3, label: "Stage 3/4 +mild Tm", badgeType: "auto_suggestion_l3" },
+            { kind: "relax", relaxStage: 4, label: "Stage 4/4 strong", badgeType: "auto_suggestion_l4" },
+          ];
+
+    const targets = [...startState.failedMutations];
+    let totalRescued = 0;
+
+    const poolVariants = get().poolVariants;
+    const usedMutations = new Set<string>(get().designResults.map((r) => r.mutation));
+    const usedSubstitutes = new Set<string>();
+
+    for (const stageDef of stages) {
+      if (!get().isDesigning) break;
+      const remaining = get().failedMutations;
+      if (remaining.length === 0) break;
+
+      set({ statusMessage: `Auto-retry: ${stageDef.label} (${remaining.length} remaining)` });
+
+      if (stageDef.kind === "relax" && stageDef.relaxStage) {
+        const params = getStageParams(baseInput, stageDef.relaxStage);
+        const requestParams = {
+          tm_fwd_target: params.tmFwd,
+          tm_rev_target: params.tmRev,
+          tm_overlap_target: params.tmOverlap,
+          gc_min: params.gcMin,
+          gc_max: params.gcMax,
+          ...buildPrimerLengthBounds(get().primerLenEnabled, get().overlapMode, params),
+          tol_max: params.tolMax,
+          codon_strategy: get().codonStrategy,
+        };
+        for (const failed of [...remaining]) {
+          if (!get().failedMutations.some((f) => f.mutation === failed.mutation)) continue;
+          try {
+            const candidates = await get().retryFailedMutation(failed.mutation, requestParams);
+            if (candidates.length > 0) {
+              const best = candidates[0];
+              get().addDesignResult(failed.mutation, best);
+              await get().commitDesignResult(failed.mutation, 0);
+              set((s) => ({
+                rescuedMutationDetails: [
+                  ...s.rescuedMutationDetails,
+                  {
+                    original: failed.mutation,
+                    rescued_by: failed.mutation,
+                    type: stageDef.badgeType,
+                    stage: stageDef.relaxStage,
+                    penalty: typeof best.penalty === "number" ? best.penalty : undefined,
+                    tolerance_used: typeof best.tolerance_used === "number" ? best.tolerance_used : undefined,
+                  },
+                ],
+              }));
+              totalRescued += 1;
+            }
+          } catch (err) {
+            // Intentional: individual mutation failure must not abort cascade for remaining mutations
+            console.warn(`[cascade] retry failed for ${failed.mutation}:`, err);
+          }
+        }
+      } else {
+        // same_position / diff_position substitution (Task 5)
+        for (const failed of [...remaining]) {
+          if (!get().failedMutations.some((f) => f.mutation === failed.mutation)) continue;
+          const m = failed.mutation.match(/^[A-Z](\d+)[A-Z]$/);
+          if (!m) continue;
+          const targetPos = parseInt(m[1], 10);
+
+          const candidate = poolVariants.find((v) => {
+            if (usedMutations.has(v) || usedSubstitutes.has(v)) return false;
+            const vm = v.match(/^[A-Z](\d+)[A-Z]$/);
+            if (!vm) return false;
+            const vpos = parseInt(vm[1], 10);
+            if (stageDef.kind === "same_position") return vpos === targetPos;
+            if (stageDef.kind === "diff_position") return vpos !== targetPos;
+            return false;
+          });
+          if (!candidate) continue;
+
+          try {
+            // Substitution changes only the mutation identity. Sending fewer
+            // fields here makes the sidecar fall back to 62/58/42, 40/60, and
+            // partial overlap instead of the constraints that failed request used.
+            const candidates = await get().retryFailedMutation(candidate, {
+              tm_fwd_target: baseInput.tmFwd,
+              tm_rev_target: baseInput.tmRev,
+              tm_overlap_target: baseInput.tmOverlap,
+              gc_min: baseInput.gcMin,
+              gc_max: baseInput.gcMax,
+              ...buildPrimerLengthBounds(get().primerLenEnabled, get().overlapMode, baseInput),
+              codon_strategy: get().codonStrategy,
+              tol_max: baseTol,
+            });
+            if (candidates.length > 0) {
+              const best = candidates[0];
+              get().addDesignResult(candidate, best);
+              await get().commitDesignResult(candidate, 0);
+              usedSubstitutes.add(candidate);
+              usedMutations.add(candidate);
+              set((s) => ({
+                rescuedMutationDetails: [
+                  ...s.rescuedMutationDetails,
+                  {
+                    original: failed.mutation,
+                    rescued_by: candidate,
+                    type: stageDef.badgeType,
+                    stage: stageDef.kind === "same_position" ? 1 : 2,
+                    substitute: candidate,
+                    penalty: typeof best.penalty === "number" ? best.penalty : undefined,
+                  },
+                ],
+                failedMutations: s.failedMutations.filter((f) => f.mutation !== failed.mutation),
+              }));
+              totalRescued += 1;
+            }
+          } catch (err) {
+            // Intentional: individual substitution failure must not abort cascade for remaining mutations
+            console.warn(`[cascade] substitution failed for ${candidate}:`, err);
+          }
+        }
+      }
+    }
+
+    set({
+      statusMessage:
+        totalRescued > 0
+          ? `Auto-retry cascade rescued ${totalRescued}/${targets.length}`
+          : `Auto-retry cascade found no candidates · ${get().failedMutations.length} still failed`,
+    });
+  },
+
+  autoRetryFailedWithSuggestion: async () => {
+    const state = get();
+    const { designResults, failedMutations, codonStrategy } = state;
+    if (failedMutations.length === 0 || designResults.length === 0) return;
+
+    const suggestion = suggestRetryParams(designResults, {
+      tmFwd: state.tmFwdTarget,
+      tmRev: state.tmRevTarget,
+      tmOverlap: state.tmOverlapTarget,
+      gcMin: state.gcMin,
+      gcMax: state.gcMax,
+      fwdLenMin: state.fwdLenMin,
+      fwdLenMax: state.fwdLenMax,
+      revLenMin: state.revLenMin,
+      revLenMax: state.revLenMax,
+    });
+
+    const params = {
+      tm_fwd_target: suggestion.tmFwd,
+      tm_rev_target: suggestion.tmRev,
+      tm_overlap_target: suggestion.tmOverlap,
+      gc_min: suggestion.gcMin,
+      gc_max: suggestion.gcMax,
+      ...buildPrimerLengthBounds(get().primerLenEnabled, get().overlapMode, suggestion),
+      tol_max: suggestion.tolMax,
+      codon_strategy: codonStrategy,
+    };
+
+    const targets = [...failedMutations];
+    set({
+      statusMessage: `Auto-retry: trying ${targets.length} failed mutation${targets.length > 1 ? "s" : ""} with suggested parameters...`,
+    });
+
+    let rescued = 0;
+    for (const failed of targets) {
+      // Mutation may already be moved out of failedMutations by a concurrent
+      // user action; skip if so.
+      if (!get().failedMutations.some((f) => f.mutation === failed.mutation)) continue;
+      try {
+        const candidates = await get().retryFailedMutation(failed.mutation, params);
+        if (candidates.length > 0) {
+          const best = candidates[0];
+          get().addDesignResult(failed.mutation, best);
+          await get().commitDesignResult(failed.mutation, 0);
+          // Annotate this mutation as auto-suggestion-rescued so the result
+          // table renders a distinct badge instead of the generic remove pill.
+          set((s) => ({
+            rescuedMutationDetails: [
+              ...s.rescuedMutationDetails,
+              {
+                original: failed.mutation,
+                rescued_by: failed.mutation,
+                type: "auto_suggestion" as const,
+                penalty: typeof best.penalty === "number" ? best.penalty : undefined,
+                tolerance_used: typeof best.tolerance_used === "number" ? best.tolerance_used : undefined,
+              },
+            ],
+          }));
+          rescued += 1;
+        }
+      } catch {
+        // skip — original failed entry stays untouched
+      }
+    }
+
+    const remaining = get().failedMutations.length;
+    set({
+      statusMessage:
+        rescued > 0
+          ? `Auto-retry: rescued ${rescued}/${targets.length} with suggested parameters · ${remaining} still failed`
+          : `Auto-retry found no candidates · ${remaining} still failed`,
+    });
+  },
+
+  retryFailedMutation: async (mutation: string, params: Record<string, number | string>) => {
+    try {
+      const {
+        fastaPath,
+        selectedGene,
+        selectedPolymerase,
+        organism,
+        primerLenEnabled,
+        overlapMode,
+        fwdLenMin,
+        fwdLenMax,
+        revLenMin,
+        revLenMax,
+      } = get();
+      const targetStart = selectedGene ? parseInt(selectedGene, 10) : 0;
+      const {
+        fwd_len_min = fwdLenMin,
+        fwd_len_max = fwdLenMax,
+        rev_len_min = revLenMin,
+        rev_len_max = revLenMax,
+        ...retryParams
+      } = params;
+      const result = await sendRequest(
+        "retry_failed_mutation",
+        {
+          mutation,
+          fasta_path: fastaPath,
+          target_start: targetStart,
+          polymerase: selectedPolymerase,
+          organism,
+          // RetryFailedParams requires overlap_mode; every retry must carry
+          // the originating geometry or request validation fails.
+          overlap_mode: overlapMode,
+          ...retryParams,
+          ...buildPrimerLengthBounds(primerLenEnabled, overlapMode, {
+            fwdLenMin: requireNumericRetryBound(fwd_len_min, "fwd_len_min"),
+            fwdLenMax: requireNumericRetryBound(fwd_len_max, "fwd_len_max"),
+            revLenMin: requireNumericRetryBound(rev_len_min, "rev_len_min"),
+            revLenMax: requireNumericRetryBound(rev_len_max, "rev_len_max"),
+          }),
+        },
+      );
+      set({
+        alternativesCache: {
+          ...get().alternativesCache,
+          [mutation]: result.candidates,
+        },
+      });
+      return result.candidates;
+    } catch (err) {
+      set({ statusMessage: `Retry failed: ${formatError(err)}` });
+      throw err;
+    }
+  },
+
+  addDesignResult: (mutation: string, result: SdmPrimerResult) => {
+    const state = get();
+    const { designResults, failedMutations, rescuedMutations, maxPrimers } = state;
+    // The rows to keep when trimming past the design count are the ones the
+    // design run was sent. In EVOLVEpro mode that is the selection, not the
+    // top lines of mutationText, so this is the same call designPrimers and
+    // DesignSummaryCard make.
+    const preferredMutations = prepareDesignInput({
+      mutationText: state.mutationText,
+      maxPrimers,
+      fillOnFailure: state.fillOnFailure,
+      mutationInputMode: state.mutationInputMode,
+      selectedGene: state.selectedGene ?? "",
+      poolVariants: state.poolVariants,
+      evolveproSelectedVariants: state.evolveproSelectedVariants,
+      evolveproRankedCandidates: state.evolveproRankedCandidates,
+    }).intendedMuts;
+    set(addDesignResultState({
+      mutation,
+      result,
+      designResults,
+      failedMutations,
+      rescuedMutations,
+      wellName,
+      maxPrimers,
+      preferredMutations,
+    }));
+  },
+
+  commitDesignResult: async (mutation: string, candidateIdx = 0) => {
+    // Sync the cascade-rescue candidate into backend _state.results so that
+    // Excel export (expected_mutations sheet) includes it.
+    try {
+      await sendRequest("commit_design_result", {
+        mutation,
+        candidate_idx: candidateIdx,
+      });
+      set({ backendDesignStateSynced: true });
+    } catch (err) {
+      // Commit failure must not roll back frontend state — user already sees
+      // the result. Keep backendDesignStateSynced: false so subsequent
+      // swap/alternatives calls warn the user to re-design.
+      set({ backendDesignStateSynced: false });
+      console.warn("[commitDesignResult] backend commit failed for", mutation, err);
+    }
+  },
+
+  removeDesignResult: (mutation: string, reason: string) => {
+    const { designResults, failedMutations, successCount, rescuedMutations } = get();
+    const nextState = removeDesignResultState({
+      mutation,
+      reason,
+      designResults,
+      failedMutations,
+      successCount,
+      rescuedMutations,
+      wellName,
+    });
+    if (!nextState) return;
+    set(nextState);
+  },
+});

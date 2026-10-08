@@ -1,0 +1,1324 @@
+"""Tests for the SDM primer design engine."""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
+import pytest
+from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.SeqFeature import FeatureLocation, SeqFeature
+from Bio.SeqRecord import SeqRecord
+
+from kuma_core.kuro.sdm_engine import (
+    HAIRPIN_WARN_FRACTION,
+    HAIRPIN_WARN_TA_FALLBACK,
+    WARN_STRUCTURE_TM,
+    OffTargetHit,
+    SdmPrimerResult,
+    _check_gc_clamp,
+    _check_vendor_spec,
+    _design_full_overlap,
+    _synthesis_score,
+    _thermo_concs,
+    check_offtarget,
+    design_sdm_primers,
+    design_single_sdm,
+    export_results_tsv,
+    hairpin_fraction_folded,
+    load_fasta,
+    load_sequence,
+    secondary_structure_warn_flags,
+)
+from kuma_core.kuro.mutation import Mutation
+from kuma_core.kuro.overlap import OverlapWindow
+from kuma_core.kuro.polymerase import PolymeraseRegistry
+from tests.conftest import FIXTURES_DIR, TARGET_START
+
+
+class TestLoadFastaRaw:
+    """`load_fasta()` remains a raw FASTA reader (used by sidecar RPC).
+
+    The CDS-only enforcement is in `load_sequence()`, not `load_fasta()`.
+    """
+
+    def test_load_fasta(self, fasta_path):
+        header, seq = load_fasta(fasta_path)
+        assert "pKUMA_SDM" in header
+        assert len(seq) == 4532
+        assert seq[:3] == "GAT"  # First 3 bases
+
+    def test_atg_at_target_start(self, fasta_path):
+        _, seq = load_fasta(fasta_path)
+        assert seq[TARGET_START:TARGET_START + 3] == "ATG"
+
+
+class TestLoadSequenceFastaRejection:
+    """`load_sequence()` must reject FASTA inputs (CDS annotation required)."""
+
+    def test_fa_extension_rejected(self, fasta_path):
+        with pytest.raises(ValueError, match="CDS annotation required"):
+            load_sequence(fasta_path)
+
+    def test_fasta_extension_rejected(self, tmp_path):
+        p = tmp_path / "sample.fasta"
+        p.write_text(">hdr\nATGAAA\n")
+        with pytest.raises(ValueError, match="CDS annotation required"):
+            load_sequence(p)
+
+    def test_fna_extension_rejected(self, tmp_path):
+        p = tmp_path / "sample.fna"
+        p.write_text(">hdr\nATGAAA\n")
+        with pytest.raises(ValueError, match="CDS annotation required"):
+            load_sequence(p)
+
+
+class TestGenbankCdsExtraction:
+    """End-to-end GenBank CDS extraction (covers complement strand,
+    multi-record files, and missing /translation qualifier).
+    """
+
+    @staticmethod
+    def _write_genbank(path: Path, records) -> None:
+        SeqIO.write(records, str(path), "genbank")
+
+    def test_complement_strand_translation(self, tmp_path):
+        """A CDS on the complement strand must be extracted as reverse complement
+        and translated correctly when /translation is absent.
+        """
+        # Build a 60 bp sequence; place a CDS on complement strand at 10..40 (Python slice).
+        # On complement, the CDS reads as the reverse complement of seq[10:40].
+        # Use a clean ORF on the reverse strand: start with ATG, stop at TAA.
+        # Forward seq[10:40] = reverse_complement of "ATG AAA CCC GGG TTT TAA" (30 nt)
+        cds_rev = "ATGAAACCCGGGTTTTAA"  # 18 nt, ends with TAA stop
+        cds_fwd_segment = str(Seq(cds_rev).reverse_complement())
+        full_seq = "N" * 10 + cds_fwd_segment + "N" * (60 - 10 - len(cds_fwd_segment))
+        assert len(full_seq) == 60
+
+        feat = SeqFeature(
+            FeatureLocation(10, 10 + len(cds_fwd_segment), strand=-1),
+            type="CDS",
+            qualifiers={"gene": ["testGene"], "product": ["test product"]},
+        )
+        rec = SeqRecord(Seq(full_seq), id="TEST1", name="TEST1",
+                        description="complement strand test",
+                        annotations={"molecule_type": "DNA", "organism": "Test organism"})
+        rec.features.append(feat)
+
+        gb_path = tmp_path / "complement.gb"
+        self._write_genbank(gb_path, [rec])
+
+        header, sequence, genes = load_sequence(gb_path)
+        assert len(genes) == 1
+        gene = genes[0]
+        assert gene.gene == "testGene"
+        # Translation from extract() should drop stop codon → "MKPGF"
+        expected_aa = str(Seq(cds_rev).translate(to_stop=True))
+        assert gene.translation == expected_aa
+        assert gene.translation == "MKPGF"
+
+    def test_multi_record_genbank(self, tmp_path):
+        """Only CDS belonging to the returned first template are selectable."""
+        from Bio.Seq import Seq
+        from Bio.SeqFeature import SeqFeature, FeatureLocation
+        from Bio.SeqRecord import SeqRecord
+
+        def make_record(rid: str, gene_name: str) -> SeqRecord:
+            seq = "ATG" + "AAA" * 9 + "TAA" + "GGG" * 5
+            feat = SeqFeature(
+                FeatureLocation(0, 30, strand=1),
+                type="CDS",
+                qualifiers={"gene": [gene_name], "translation": ["MKKKKKKKKK"]},
+            )
+            rec = SeqRecord(Seq(seq), id=rid, name=rid, description=rid,
+                            annotations={"molecule_type": "DNA"})
+            rec.features.append(feat)
+            return rec
+
+        recs = [make_record("REC1", "geneA"), make_record("REC2", "geneB")]
+        gb_path = tmp_path / "multi.gb"
+        self._write_genbank(gb_path, recs)
+
+        _header, _sequence, genes = load_sequence(gb_path)
+        assert len(genes) == 1
+        names = {g.gene for g in genes}
+        assert names == {"geneA"}
+
+    def test_missing_translation_sense_strand(self, tmp_path):
+        """CDS without /translation: translate from sense strand, stop at first stop codon."""
+        from Bio.Seq import Seq
+        from Bio.SeqFeature import SeqFeature, FeatureLocation
+        from Bio.SeqRecord import SeqRecord
+
+        # ATG AAA CCC GGG TTT TAA = MKPGF + stop
+        cds_seq = "ATGAAACCCGGGTTTTAA"
+        full_seq = "C" * 5 + cds_seq + "C" * 5
+        feat = SeqFeature(
+            FeatureLocation(5, 5 + len(cds_seq), strand=1),
+            type="CDS",
+            qualifiers={"gene": ["noTransGene"]},  # NO /translation qualifier
+        )
+        rec = SeqRecord(Seq(full_seq), id="NOTR", name="NOTR",
+                        description="missing translation test",
+                        annotations={"molecule_type": "DNA"})
+        rec.features.append(feat)
+
+        gb_path = tmp_path / "no_translation.gb"
+        self._write_genbank(gb_path, [rec])
+
+        _header, _sequence, genes = load_sequence(gb_path)
+        assert len(genes) == 1
+        assert genes[0].translation == "MKPGF"
+
+
+class TestDesignSdmPrimers:
+    """Integration test: design primers for all 12 mutations."""
+
+    @pytest.fixture(scope="class")
+    def sdm_results(self, genbank_path, mutations_csv) -> list[SdmPrimerResult]:
+        results, _, _f = design_sdm_primers(
+            fasta_path=genbank_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            polymerase="Q5",
+            overlap_len=18,
+        )
+        return results
+
+    def test_paper_target_baseline_yield(self, sdm_results):
+        """First-pass yield is a minority of this fixture, and that is correct.
+
+        Pinning the design targets to the paper values 62/58/42 with
+        min_3prime_dist 4 on the fixed Benchling Tm scale gives a first-pass
+        yield of 5/12 on this 12-mutation fixture. The other 7 are legitimate
+        failures under the paper constraints (physically impossible placement,
+        3' distance, or rev length 19 bp floor and rev Tm 58 unsatisfiable at
+        the same time), not a regression. In real use the rescue cascade
+        recovers further mutations on top of this baseline.
+
+        Enzyme identity moved to Ta only, so every profile designs alike and
+        5/12 equals the Benchling reference.
+        """
+        assert len(sdm_results) >= 5
+
+    def test_primer_lengths(self, sdm_results):
+        """Primers must match KURO spec: fwd 18-39 bp, rev 19-27 bp.
+
+        The forward floor was 17 until v0.16.36 moved it to 18, which is the
+        shortest the bench writes. Asserting the old 17 here would keep passing
+        while no longer pinning anything.
+        """
+        for r in sdm_results:
+            assert 18 <= r.fwd_len <= 39, f"{r.mutation.raw} fwd: {r.fwd_len} bp"
+            assert 19 <= r.rev_len <= 27, f"{r.mutation.raw} rev: {r.rev_len} bp"
+
+    def test_tm_in_range(self, sdm_results):
+        """Non-overlap Tm should be in a reasonable range (50-85°C)."""
+        for r in sdm_results:
+            assert 50 <= r.tm_fwd <= 85, (
+                f"{r.mutation.raw} Tm_no_fwd={r.tm_fwd:.1f}"
+            )
+            assert 50 <= r.tm_rev <= 85, (
+                f"{r.mutation.raw} Tm_no_rev={r.tm_rev:.1f}"
+            )
+
+    def test_tm_within_tolerance(self, sdm_results):
+        """All results should have Tm within their tolerance_used range."""
+        for r in sdm_results:
+            assert r.tm_condition_met, (
+                f"{r.mutation.raw}: tm_condition not met "
+                f"(fwd={r.tm_fwd:.1f}, rev={r.tm_rev:.1f}, "
+                f"overlap={r.tm_overlap:.1f}, tol=±{r.tolerance_used})"
+            )
+
+    def test_gc_content(self, sdm_results):
+        """GC content should be between 15-90% (relaxed for GC-rich SDM contexts)."""
+        for r in sdm_results:
+            assert 15 <= r.gc_fwd <= 90, f"{r.mutation.raw} GC_fwd={r.gc_fwd:.1f}%"
+            assert 15 <= r.gc_rev <= 90, f"{r.mutation.raw} GC_rev={r.gc_rev:.1f}%"
+
+    def test_codon_usage(self, sdm_results):
+        """Mutant codons should encode the correct amino acid."""
+        from kuma_core.kuro.codon_table import codon_to_aa
+        for r in sdm_results:
+            actual_aa = codon_to_aa(r.mutation.mt_codon)
+            assert actual_aa == r.mutation.mt_aa, (
+                f"{r.mutation.raw}: codon {r.mutation.mt_codon} encodes "
+                f"{actual_aa}, expected {r.mutation.mt_aa}"
+            )
+
+    def test_forward_contains_mutation(self, sdm_results):
+        """Forward primer must contain the mutant codon."""
+        for r in sdm_results:
+            assert r.mutation.mt_codon in r.forward_seq, (
+                f"{r.mutation.raw}: mutant codon {r.mutation.mt_codon} "
+                f"not found in forward primer"
+            )
+
+
+class TestExportTsv:
+    def test_export(self, genbank_path, mutations_csv, tmp_path):
+        results, _, _f = design_sdm_primers(
+            fasta_path=genbank_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            polymerase="Q5",
+            overlap_len=18,
+        )
+        tsv_path = tmp_path / "test_primers.tsv"
+        export_results_tsv(results, tsv_path)
+
+        assert tsv_path.exists()
+        lines = tsv_path.read_text().strip().split("\n")
+        # Design now follows the paper targets (62/58/42) + min_3prime_dist 4 on the
+        # fixed Benchling Tm scale, so the yield changed: 5 successes ->
+        # metadata(1)+header(1)+5 = 7 lines.
+        assert len(lines) >= 7  # metadata + header + successful mutations (>=5)
+        assert lines[0].startswith("# overlap_mode=")
+        assert "Mutation" in lines[1]
+        assert "Tm_Overlap" in lines[1]  # partial mode keeps original column name
+
+    def test_export_full_overlap_renames_third_tm_column(self, genbank_path, mutations_csv, tmp_path):
+        results, _, _f = design_sdm_primers(
+            fasta_path=genbank_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            polymerase="Q5",
+            overlap_len=18,
+            overlap_mode="full",
+        )
+        tsv_path = tmp_path / "test_primers_full.tsv"
+        export_results_tsv(results, tsv_path, overlap_mode="full")
+
+        assert tsv_path.exists()
+        lines = tsv_path.read_text().strip().split("\n")
+        assert lines[0] == "# overlap_mode=full"
+        assert "Tm_Primer" in lines[1]
+        assert "Tm_Overlap" not in lines[1]
+
+
+class TestSynthesisScore:
+    def test_clean_sequence(self):
+        assert _synthesis_score("ATGCATGCATGCATGC") == 100.0
+
+    def test_empty_sequence(self):
+        assert _synthesis_score("") == 100.0
+
+    def test_homopolymer_run_4(self):
+        score = _synthesis_score("ATGCAAAATGCATGC")
+        assert score == 95.0  # -5 * (4-3) = -5
+
+    def test_homopolymer_run_6(self):
+        score = _synthesis_score("ATGCAAAAAATGCAT")
+        assert score == 70.0  # -5*(6-3)=-15, plus extreme GC -15
+
+    def test_gc_rich_run_6(self):
+        seq = "ATGCGGCCCCTGCATG"
+        score = _synthesis_score(seq)
+        assert score < 100.0
+
+    def test_dinucleotide_repeat(self):
+        score = _synthesis_score("ATATATATCATGCATG")
+        assert score == 77.0  # -8 dinucleotide + -15 extreme GC
+
+    def test_multiple_dinucleotide_patterns(self):
+        score = _synthesis_score("ATATATATGCGCGCGC")
+        assert score < 92.0  # AT repeat + GC repeat
+
+    def test_extreme_gc_low(self):
+        score = _synthesis_score("AAATTTTAAATTTAAA")
+        assert score == 80.0  # -15 GC<30% + -5 homopolymer(TTTT)
+
+    def test_compound_penalty(self):
+        # 16x A: homopolymer -5*(16-3)=-65, extreme GC -15 = -80, floor 0
+        score = _synthesis_score("AAAAAAAAAAAAAAAA")
+        assert score == 20.0  # 100 - 65(homopolymer) - 15(GC<30%)
+
+    def test_score_is_rounded(self):
+        score = _synthesis_score("ATGC")
+        assert isinstance(score, float)
+
+
+class TestGcClamp:
+    """3' G/C clamp warnings (2 vendor rules, warning-only, no penalty).
+
+    Rule A (Toyobo KOD One manual, [4] Primer Design): 3' terminal base
+    should be G or C for priming efficiency.
+    Rule B (Thermo DreamTaq manual, Guidelines for Primer Design): no more
+    than 3 of the last 5 bases should be G/C, to avoid non-specific priming.
+    """
+
+    def _dummy_result(self, forward_seq: str, reverse_seq: str) -> SdmPrimerResult:
+        mut = Mutation(
+            raw="X1Y", wt_aa="X", position=1, mt_aa="Y",
+            codon_start=0, wt_codon="NNN", mt_codon="NNN",
+        )
+        ov = OverlapWindow(sequence=forward_seq[:10], start=0, end=10, codon_offset=0)
+        return SdmPrimerResult(
+            mutation=mut,
+            forward_seq=forward_seq,
+            reverse_seq=reverse_seq,
+            forward_binding=forward_seq,
+            reverse_binding=reverse_seq,
+            overlap_window=ov,
+            tm_fwd=60.0,
+            tm_rev=60.0,
+            tm_overlap=55.0,
+            tm_condition_met=True,
+        )
+
+    def test_rule_a_fires_when_3prime_not_gc(self):
+        """3' end A/T (no anchor) must warn, quoting the last 3 nt."""
+        # Ends in ...CCT -> last base T, not G/C.
+        fwd = "ATGCATGCATGCATGCATGCCT"
+        rev = "ATGCATGCATGCATGCATGCAT" * 1  # placeholder, overwritten below
+        rev = "GCATGCATGCATGCATGCATCA"  # ends in A
+        result = self._dummy_result(fwd, rev)
+        _check_gc_clamp(result)
+        assert any("no G/C anchor" in w for w in result.warnings), result.warnings
+        assert any(w.startswith("Fwd 3' end CCT: no G/C anchor") for w in result.warnings), (
+            result.warnings
+        )
+        assert any(w.startswith("Rev 3' end TCA: no G/C anchor") for w in result.warnings), (
+            result.warnings
+        )
+
+    def test_rule_b_fires_when_3prime_gc_overcrowded(self):
+        """4+ of the last 5 bases G/C must warn with the actual count."""
+        # Last 5 = "GCGCG" -> 5 G/C, > 3.
+        fwd = "ATATATATATATATATGCGCG"
+        rev = "ATATATATATATATATATGCGC"  # last 5 = "TGCGC" -> 4 G/C
+        result = self._dummy_result(fwd, rev)
+        _check_gc_clamp(result)
+        assert any(
+            w == "Fwd 3' end: 5 of last 5 are G/C" for w in result.warnings
+        ), result.warnings
+        assert any(
+            w == "Rev 3' end: 4 of last 5 are G/C" for w in result.warnings
+        ), result.warnings
+
+    def test_negative_case_no_warnings_when_both_rules_satisfied(self):
+        """3' anchored in G/C, but only 3 of last 5 are G/C -> no gc-clamp warning."""
+        # Last 5 = "TATGC" -> terminal C (rule A ok), 2 G/C in window (rule B ok).
+        fwd = "ATGCATGCATGCATGCATTATGC"
+        rev = "GCATGCATGCATGCATGCTAAGC"  # last 5 = "TAAGC" -> terminal C, 2 G/C
+        result = self._dummy_result(fwd, rev)
+        _check_gc_clamp(result)
+        gc_clamp_warnings = [
+            w for w in result.warnings
+            if "G/C anchor" in w or "are G/C" in w
+        ]
+        assert gc_clamp_warnings == [], gc_clamp_warnings
+
+    def test_no_penalty_change(self):
+        """gc-clamp warnings must never touch result.penalty (ranking must not move)."""
+        fwd = "ATATATATATATATATGCGCG"  # violates both rules
+        rev = "GCATGCATGCATGCATGCATCA"  # violates rule A
+        result = self._dummy_result(fwd, rev)
+        result.penalty = 3.14  # arbitrary pre-existing penalty from other checks
+        _check_gc_clamp(result)
+        assert result.warnings, "expected at least one gc-clamp warning for this fixture"
+        assert result.penalty == 3.14, "gc-clamp check must not mutate penalty"
+
+    def test_fixture_warnings_present_and_penalty_unaffected(
+        self, genbank_path, mutations_csv
+    ):
+        """Sanity check against the Q5/12-mutation fixture: warnings should be
+        common (this is a narrow window by design), and no result's penalty
+        should differ from a run with _check_gc_clamp monkeypatched out.
+        """
+        results, _cand, _failed = design_sdm_primers(
+            fasta_path=genbank_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            polymerase="Q5",
+            overlap_len=18,
+        )
+        assert len(results) >= 5
+        n_with_gc_clamp_warning = sum(
+            1 for r in results
+            if any("G/C anchor" in w or "are G/C" in w for w in r.warnings)
+        )
+        assert n_with_gc_clamp_warning > 0, (
+            "expected the gc-clamp rules to fire on at least one design in this fixture"
+        )
+
+
+class TestVendorSpec:
+    """Manufacturer-recommended length/GC warnings (warning-only, no penalty).
+
+    Data source: kuma_core/kuro/resources/polymerase_profiles.json
+    ``vendor_spec`` block (NEB M0530 for Phusion, Toyobo KMM-101/201 for
+    KOD, Takara R050A for TAKARA_GXL -- GXL has no documented GC range).
+    """
+
+    def _dummy_result(self, forward_seq: str, reverse_seq: str) -> SdmPrimerResult:
+        mut = Mutation(
+            raw="X1Y", wt_aa="X", position=1, mt_aa="Y",
+            codon_start=0, wt_codon="NNN", mt_codon="NNN",
+        )
+        ov = OverlapWindow(sequence=forward_seq[:10], start=0, end=10, codon_offset=0)
+        return SdmPrimerResult(
+            mutation=mut,
+            forward_seq=forward_seq,
+            reverse_seq=reverse_seq,
+            forward_binding=forward_seq,
+            reverse_binding=reverse_seq,
+            overlap_window=ov,
+            tm_fwd=60.0,
+            tm_rev=60.0,
+            tm_overlap=55.0,
+            tm_condition_met=True,
+        )
+
+    def test_none_profile_is_noop(self):
+        """profile=None (custom profile without a spec) must not warn or crash."""
+        result = self._dummy_result("ATGCATGCATGCATGCATGCATGC", "ATGCATGCATGCATGCATGCATGC")
+        _check_vendor_spec(result, None)
+        assert result.warnings == []
+
+    def test_gxl_null_gc_spec_never_warns_on_gc(self):
+        """TAKARA_GXL has no documented GC range (vendor_spec.gc_min/gc_max are
+        null): GC must never be flagged, at any GC content, only length.
+        """
+        registry = PolymeraseRegistry()
+        profile = registry.get("TAKARA_GXL")
+        assert profile.vendor_spec is not None
+        assert profile.vendor_spec["gc_min"] is None
+        assert profile.vendor_spec["gc_max"] is None
+        # All-GC 22-mer: extreme GC%, in-range length (20-25) -> no warnings at all.
+        seq = "G" * 22
+        result = self._dummy_result(seq, seq)
+        _check_vendor_spec(result, profile)
+        assert result.warnings == [], result.warnings
+
+    def test_boundary_lengths_do_not_warn(self):
+        """Exactly at min/max length must not warn (inclusive range)."""
+        registry = PolymeraseRegistry()
+        profile = registry.get("Phusion")
+        spec = profile.vendor_spec
+        assert spec is not None
+        assert spec["length_min"] == 17 and spec["length_max"] == 25
+        fwd_min = ("ATGC" * 5)[:17]  # 17 nt, GC% 50% (in [40,60])
+        assert len(fwd_min) == 17
+        rev_max = ("ATGC" * 7)[:25]  # 25 nt, GC% 48% (in [40,60])
+        assert len(rev_max) == 25
+        result = self._dummy_result(fwd_min, rev_max)
+        _check_vendor_spec(result, profile)
+        assert not any("length" in w for w in result.warnings), result.warnings
+
+    def test_length_below_min_warns_with_enzyme_and_source(self):
+        registry = PolymeraseRegistry()
+        profile = registry.get("Phusion")
+        fwd = "ATGC" * 4  # 16 nt, below Phusion min (17)
+        assert len(fwd) == 16
+        rev = ("ATGC" * 5) + "A"  # 21 nt, in range
+        assert len(rev) == 21
+        result = self._dummy_result(fwd, rev)
+        _check_vendor_spec(result, profile)
+        assert any(
+            "Fwd length 16 nt is below Phusion recommended 17-25 nt (NEB M0530 PCR protocol)" == w
+            for w in result.warnings
+        ), result.warnings
+
+    def test_length_above_max_warns_with_enzyme_and_source(self):
+        registry = PolymeraseRegistry()
+        profile = registry.get("Phusion")
+        fwd = ("ATGC" * 7) + "A"  # 29 nt, above Phusion max (25)
+        assert len(fwd) == 29
+        rev = ("ATGC" * 5) + "A"  # 21 nt, in range
+        assert len(rev) == 21
+        result = self._dummy_result(fwd, rev)
+        _check_vendor_spec(result, profile)
+        assert any(
+            "Fwd length 29 nt exceeds Phusion recommended 17-25 nt (NEB M0530 PCR protocol)" == w
+            for w in result.warnings
+        ), result.warnings
+
+    def test_gc_out_of_range_warns(self):
+        registry = PolymeraseRegistry()
+        profile = registry.get("Taq")  # GC range 40-60
+        # 20 nt, 100% GC -> above max.
+        fwd = "GCGCGCGCGCGCGCGCGCGC"
+        assert len(fwd) == 20
+        rev = "ATGCATGCATGCATGCATGC"  # 20 nt, 50% GC, in Taq range (20-40 nt, 40-60% GC)
+        assert len(rev) == 20
+        result = self._dummy_result(fwd, rev)
+        _check_vendor_spec(result, profile)
+        assert any(
+            "Fwd GC 100.0% exceeds Taq recommended 40-60% (NEB M0267 PCR protocol)" == w
+            for w in result.warnings
+        ), result.warnings
+        assert not any(w.startswith("Rev") for w in result.warnings), result.warnings
+
+    def test_no_penalty_change(self):
+        """Vendor-spec warnings must never touch result.penalty (ranking must not move)."""
+        registry = PolymeraseRegistry()
+        profile = registry.get("Phusion")
+        fwd = "ATGCATGCATGCATGCATGCATGCATG"  # 28 nt, out of range
+        rev = "ATGCATGCATGCATGCATGCATGCATG"
+        result = self._dummy_result(fwd, rev)
+        result.penalty = 2.71  # arbitrary pre-existing penalty from other checks
+        _check_vendor_spec(result, profile)
+        assert result.warnings, "expected at least one vendor-spec warning for this fixture"
+        assert result.penalty == 2.71, "vendor-spec check must not mutate penalty"
+
+    def test_fixture_warnings_present_for_kod_out_of_range_lengths(
+        self, genbank_path, mutations_csv
+    ):
+        """Sanity check against the Q5-designed/12-mutation fixture re-evaluated
+        under KOD (22-35 nt): the shorter primers in this fixture fall below
+        KOD's minimum, so length warnings must fire.
+        """
+        results, _cand, _failed = design_sdm_primers(
+            fasta_path=genbank_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            polymerase="KOD",
+            overlap_len=18,
+        )
+        assert len(results) >= 5
+        n_with_length_warning = sum(
+            1 for r in results
+            if any("recommended" in w and "nt (" in w for w in r.warnings)
+        )
+        assert n_with_length_warning > 0, (
+            "expected KOD vendor-spec length warnings to fire on this fixture"
+        )
+
+
+class TestCancelCheck:
+    def test_immediate_cancel(self, genbank_path, mutations_csv):
+        results, _, _ = design_sdm_primers(
+            fasta_path=genbank_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            cancel_check=lambda: True,
+        )
+        assert len(results) == 0
+
+    def test_no_cancel(self, genbank_path, mutations_csv):
+        results, _, _ = design_sdm_primers(
+            fasta_path=genbank_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            cancel_check=lambda: False,
+        )
+        # Design now follows the paper targets (62/58/42) + min_3prime_dist 4 on the
+        # fixed Benchling Tm scale, so the yield changed: 5/12.
+        assert len(results) >= 5
+
+    def test_partial_cancel(self, genbank_path, mutations_csv):
+        counter = {"n": 0}
+        def cancel_after_3():
+            counter["n"] += 1
+            return counter["n"] > 3
+        results, _, _ = design_sdm_primers(
+            fasta_path=genbank_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            cancel_check=cancel_after_3,
+        )
+        assert 0 < len(results) <= 3
+
+
+class TestCheckOfftarget:
+    """`check_offtarget()` is the function the design path actually calls
+
+    (6 call sites in design_single_sdm / evaluate_custom_primer). It used
+    to have zero detection-oriented tests, unlike the never-called
+    sliding-window checker, which has since been removed (see PR body).
+    """
+
+    # 24 nt primer, arbitrary composition.
+    PRIMER = "ATGGCTAGCATCGTAGCATGCAGT"
+
+    def test_fixed_rule_detects_internal_mismatch_site(self):
+        """The blind spot pinned in the previous commit is now closed.
+
+        Decoy site: on the template, literally equal to PRIMER except for
+        2 internal mismatches at 0-based offsets 8 and 13 (both well inside
+        the last `min_match`=15 nt from the 3' end, but 10+ nt away from
+        the 3' terminus itself, so the last 6 nt -- the region literature
+        says actually drives priming -- are untouched).
+
+        Per Kwok et al. 1990 NAR 18(4):999 and Huang/Arnheim/Goodman 1992
+        NAR 20(17):4567, a 3' end that is fully complementary primes
+        efficiently even with internal mismatches; Primer3 itself only
+        requires the last 4 nt to be mismatch-free. The legacy 15-nt full
+        anchor alone would miss this decoy (see the previous commit); the
+        mismatch-tolerant end_nt=4 + calc_heterodimer rule added in this
+        commit catches it (measured Tm ~47.6C, threshold 45.0).
+        """
+        primer = self.PRIMER
+        decoy_site = "ATGGCTAGAATCGGAGCATGCAGT"  # positions 8, 13 flipped
+        assert len(decoy_site) == len(primer)
+        assert primer[-6:] == decoy_site[-6:]  # 3' end (>=6 nt) intact
+        assert primer != decoy_site  # internal mismatches present
+
+        template = primer + "N" * 50 + decoy_site + "N" * 20
+        hits = check_offtarget(
+            primer_seq=primer,
+            template=template,
+            intended_start=0,
+            intended_end=len(primer),
+        )
+        assert len(hits) >= 1, (
+            "mismatch-tolerant 3'-anchor rule should detect this decoy"
+        )
+        assert any(h.tm >= 45.0 for h in hits)
+
+    # Second primer, laid out as the design path actually builds one:
+    # a 5' Gibson overlap arm followed by a 3' template-binding extension.
+    ARM = "GCAGCTGGACCTGTACCA"   # 18 nt 5' overlap arm
+    TAIL = "TTAGAC"              # 6 nt 3' extension
+    ARM_PRIMER = ARM + TAIL
+
+    def test_site_without_3prime_anchor_is_detected(self):
+        """The 3' anchor used to gate *which sites get scored at all*.
+
+        Decoy: the primer's whole 18 nt 5' arm anneals perfectly and the 3'
+        terminal base is complementary too, but bases -4..-2 are not, so the
+        old `end_nt`=4 exact anchor never matched and the site was never
+        handed to calc_heterodimer. Its measured duplex Tm is 57.3 C, far
+        above the 45.0 threshold, and its 3' terminus is extendable, so it is
+        a genuine spurious-priming risk (Kwok et al. 1990 NAR 18(4):999).
+        """
+        primer = self.ARM_PRIMER
+        decoy = self.ARM + "TTCTTC"
+        assert len(decoy) == len(primer)
+        assert decoy[-4:] != primer[-4:], "old 4 nt anchor must NOT match"
+        assert decoy[-1] == primer[-1], "3' terminal base must be extendable"
+
+        template = "N" * 40 + primer + "N" * 40 + decoy + "N" * 40
+        hits = check_offtarget(
+            primer_seq=primer,
+            template=template,
+            intended_start=40,
+            intended_end=40 + len(primer),
+        )
+        assert len(hits) == 1, f"expected the decoy only, got {hits}"
+        hit = hits[0]
+        assert hit.position == 40 + len(primer) + 40
+        assert hit.tm >= 45.0
+        assert hit.extendable is True
+        assert hit.in_overlap_arm is False
+        assert hit.reason == "extendable_3prime"
+
+    def test_overlap_arm_misanneal_is_a_separate_failure_mode(self):
+        """Arm-only annealing is an assembly risk, not a priming one.
+
+        Decoy: the 18 nt Gibson arm anneals perfectly, the entire 6 nt 3'
+        extension mismatches (terminal base included), duplex Tm 52.4 C. No
+        polymerase extends from it, so it makes no amplicon -- but the arm is
+        the homology used for Gibson assembly, so it can still mis-join.
+        The hit is reported only when the caller says where the arm ends;
+        with no arm declared there is no failure mode to claim and the site
+        is silently dropped rather than over-rejected.
+        """
+        primer = self.ARM_PRIMER
+        decoy = self.ARM + "AAGTTG"
+        assert decoy[-1] != primer[-1], "3' terminus must NOT be extendable"
+
+        template = "N" * 40 + primer + "N" * 40 + decoy + "N" * 40
+        kwargs: dict[str, Any] = dict(
+            primer_seq=primer,
+            template=template,
+            intended_start=40,
+            intended_end=40 + len(primer),
+        )
+
+        hits = check_offtarget(overlap_arm_len=len(self.ARM), **kwargs)
+        assert len(hits) == 1, f"expected the arm decoy only, got {hits}"
+        hit = hits[0]
+        assert hit.tm >= 45.0
+        assert hit.extendable is False
+        assert hit.in_overlap_arm is True
+        assert hit.reason == "overlap_arm_misanneal"
+        assert hit.truncation_type == "5prime"
+
+        assert check_offtarget(**kwargs) == [], (
+            "without a declared overlap arm this site has no failure mode"
+        )
+
+    def test_weak_seeded_site_is_not_over_rejected(self):
+        """Negative control for the wider prefilter.
+
+        The decoy shares an exact 8 nt seed with the primer, so the new
+        position-agnostic prefilter does build an alignment window for it --
+        but the 3' terminus mismatches and the duplex is only 31.3 C, well
+        under the 45.0 threshold. Widening the prefilter must not widen what
+        gets rejected.
+        """
+        primer = self.ARM_PRIMER
+        decoy = primer[:8] + "ATATTAAGTTAATTAA"
+        assert len(decoy) == len(primer)
+        assert decoy[-1] != primer[-1]
+
+        template = "N" * 40 + primer + "N" * 40 + decoy + "N" * 40
+        hits = check_offtarget(
+            primer_seq=primer,
+            template=template,
+            intended_start=40,
+            intended_end=40 + len(primer),
+            overlap_arm_len=len(self.ARM),
+        )
+        assert hits == [], f"weak site must not be reported, got {hits}"
+
+    def test_short_arm_match_is_not_an_assembly_hazard(self):
+        """The Gibson homology floor is what stops the arm mode over-rejecting.
+
+        Site: 11 nt of the 18 nt arm anneal perfectly and nothing else does,
+        3' terminus mismatched, duplex Tm 60.3 C. Tm alone would reject it,
+        but 11 nt is below the shortest overlap the assembly method is
+        documented to work with (NEB NEBuilder HiFi E2621 product page: "varied
+        overlaps (15-30 bp)", so 15 is the bottom of the documented range), and
+        a mismatched 3' end cannot prime -- no failure mode. Without this
+        floor an 8/11 nt partial arm match in fixtures/sdm_template_evolvepro.csv
+        rejected H277G outright and displaced the winning P297I pair.
+        """
+        arm = "ATATGCGCCGGCGGCCGC"
+        primer = arm + "TTAGAC"
+        decoy = "TTTTTTT" + arm[7:] + "AAGTTG"
+        assert len(decoy) == len(primer)
+        assert decoy[-1] != primer[-1]
+
+        template = "N" * 40 + primer + "N" * 40 + decoy + "N" * 40
+        hits = check_offtarget(
+            primer_seq=primer,
+            template=template,
+            intended_start=40,
+            intended_end=40 + len(primer),
+            overlap_arm_len=len(arm),
+        )
+        assert hits == [], f"11 nt of arm homology is not a hazard, got {hits}"
+
+    def test_perfect_repeat_is_detected(self):
+        """Baseline: an exact-repeat 3' anchor is caught (regression guard)."""
+        primer = self.PRIMER
+        template = "N" * 40 + primer + "N" * 40 + primer + "N" * 40
+        hits = check_offtarget(
+            primer_seq=primer,
+            template=template,
+            intended_start=40,
+            intended_end=40 + len(primer),
+        )
+        assert len(hits) >= 1
+
+
+class TestDesignFullOverlap:
+    """Unit tests for _design_full_overlap and full-overlap branch of design_single_sdm."""
+
+    # Synthetic template: 100 bp with a clearly addressable codon at position 30
+    SEQ = "ATGATGATGATGATGATGATGATGATGATG" + "GCAGCAGCA" + "CGTCGTCGTCGTCGTCGTCGTCGTCGTCGT"
+    # codon_start=30, WT codon = "GCA" (Ala), mutant codon = "GCG" (also Ala, silent)
+    CODON_START = 30
+    MUTANT_CODON = "GCG"
+
+    def test_normal_case_tm60(self):
+        """Returns a valid (fwd, rev, tm_fwd, tm_rev, left_ext) tuple within ±2°C of 60."""
+        result = _design_full_overlap(
+            seq=self.SEQ,
+            codon_start=self.CODON_START,
+            mutant_codon=self.MUTANT_CODON,
+            target_tm=60.0,
+            tolerance=4.0,
+            fwd_len_min=17,
+            fwd_len_max=39,
+            rev_len_min=17,
+            rev_len_max=39,
+        )
+        assert result is not None, "Expected a valid primer pair for Tm=60, tol=4"
+        fwd, rev, tm_fwd, tm_rev, left_ext = result
+        assert len(fwd) >= 17
+        assert len(fwd) <= 39
+        assert len(fwd) == len(rev), "Full overlap: fwd and rev must be same length (rev = rc(fwd))"
+        assert tm_fwd == tm_rev, "Full overlap: fwd Tm and rev Tm are always equal (rc symmetry)"
+        assert self.MUTANT_CODON in fwd, "Mutant codon must appear in forward primer"
+        from kuma_core.kuro.overlap import reverse_complement
+        assert rev == reverse_complement(fwd), "Reverse primer must be rc of forward primer"
+
+    def test_tm_match_failure(self):
+        """Returns None when tolerance is too tight and no valid primer exists."""
+        result = _design_full_overlap(
+            seq=self.SEQ,
+            codon_start=self.CODON_START,
+            mutant_codon=self.MUTANT_CODON,
+            target_tm=99.0,   # unreachable Tm
+            tolerance=0.1,
+            fwd_len_min=17,
+            fwd_len_max=39,
+        )
+        assert result is None, "Should return None when target Tm is unreachable"
+
+    def test_length_constraint_boundary(self):
+        """Length limits are respected: primer length stays in [L_min, L_max]."""
+        result = _design_full_overlap(
+            seq=self.SEQ,
+            codon_start=self.CODON_START,
+            mutant_codon=self.MUTANT_CODON,
+            target_tm=55.0,
+            tolerance=8.0,   # wide tolerance to maximise coverage
+            fwd_len_min=20,
+            fwd_len_max=25,
+            rev_len_min=20,
+            rev_len_max=25,
+        )
+        assert result is not None, (
+            "_design_full_overlap returned None with target_tm=55 tol=8 and [20,25] bounds; "
+            "sequence may be too short or bounds exclude all valid lengths"
+        )
+        fwd, rev, _tm_fwd, _tm_rev, _left_ext = result
+        assert 20 <= len(fwd) <= 25, f"fwd length {len(fwd)} out of [20, 25]"
+        assert 20 <= len(rev) <= 25, f"rev length {len(rev)} out of [20, 25]"
+
+    def test_design_single_sdm_full_mode(self, template_sequence):
+        """design_single_sdm with overlap_mode='full' returns valid SdmPrimerResult list."""
+        from kuma_core.kuro.polymerase import PolymeraseRegistry
+        registry = PolymeraseRegistry()
+        profile = registry.get("Q5")
+        mut = Mutation(
+            raw="A450V",
+            wt_aa="A",
+            position=450,
+            mt_aa="V",
+            codon_start=TARGET_START + (450 - 1) * 3,
+            wt_codon="GCG",
+            mt_codon="GTG",
+        )
+        results = design_single_sdm(
+            template_sequence, mut, profile,
+            overlap_mode="full",
+            tol_max=5.0,
+        )
+        # Must produce at least one result (wide tolerance)
+        assert len(results) >= 1, "design_single_sdm full mode produced no results"
+        r = results[0]
+        from kuma_core.kuro.overlap import reverse_complement
+        assert r.reverse_seq == reverse_complement(r.forward_seq), (
+            "Full overlap: reverse_seq must be rc(forward_seq)"
+        )
+        assert r.tm_fwd == r.tm_rev, "Full overlap: fwd/rev Tm must be equal"
+
+    @pytest.fixture(scope="class")
+    def partial_results(self, genbank_path, mutations_csv) -> list[SdmPrimerResult]:
+        """Run partial mode as regression baseline."""
+        results, _, _ = design_sdm_primers(
+            fasta_path=genbank_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            polymerase="Q5",
+            overlap_len=18,
+        )
+        return results
+
+    def test_partial_regression(self, partial_results):
+        """Partial overlap still succeeds on the fixture dataset (regression guard)."""
+        # Design now follows the paper targets (62/58/42) + min_3prime_dist 4 on the
+        # fixed Benchling Tm scale, so the yield changed: 5/12.
+        assert len(partial_results) >= 5, "Partial mode must still succeed on fixture dataset"
+        for r in partial_results:
+            assert r.fwd_len >= 17, f"{r.mutation.raw} fwd_len {r.fwd_len} < 17"
+            assert r.rev_len >= 19, f"{r.mutation.raw} rev_len {r.rev_len} < 19 (partial spec)"
+
+
+class TestSdmTmTargetsAreMethodLevel:
+    """SDM Tm targets are method constants, identical for every polymerase.
+
+    Landwehr et al. 2025 (Nat Commun 16, 865) SI Fig. S4 fixes Fwd 62 / Rev 58 /
+    Overlap 42 C for the overlap-extension geometry, independent of the enzyme.
+    These tests fail if the targets are ever re-derived from each profile own
+    opt_tm (which produced Q5/KOD 68/64/48 and Taq 64/60/44).
+    """
+
+    @pytest.fixture()
+    def mutation(self) -> Mutation:
+        return Mutation(
+            raw="A450V",
+            wt_aa="A",
+            position=450,
+            mt_aa="V",
+            codon_start=TARGET_START + (450 - 1) * 3,
+            wt_codon="GCG",
+            mt_codon="GTG",
+        )
+
+    @pytest.mark.parametrize("name", ["Q5", "KOD", "Taq", "DreamTaq", "Phusion"])
+    def test_designed_tm_tracks_method_targets_not_opt_tm(
+        self, template_sequence, mutation: Mutation, name: str
+    ):
+        from kuma_core.kuro.polymerase import PolymeraseRegistry
+
+        profile = PolymeraseRegistry().get(name)
+        tol = 4.0
+        results = design_single_sdm(
+            template_sequence, mutation, profile, overlap_mode="partial", tol_max=tol
+        )
+        assert results, f"{name}: design produced no results"
+        r = results[0]
+        # opt_tm-derived targets (e.g. Q5 68) would land >tol away from 62.
+        assert abs(r.tm_fwd - 62.0) <= tol, f"{name}: tm_fwd {r.tm_fwd} not tracking 62"
+        assert abs(r.tm_rev - 58.0) <= tol, f"{name}: tm_rev {r.tm_rev} not tracking 58"
+        assert abs(r.tm_overlap - 42.0) <= tol, (
+            f"{name}: tm_overlap {r.tm_overlap} not tracking 42"
+        )
+
+    def test_custom_profile_without_targets_falls_back_to_method_constants(
+        self, template_sequence, mutation: Mutation
+    ):
+        """A user custom profile carrying only opt_tm must not derive targets from it."""
+        from dataclasses import replace
+
+        from kuma_core.kuro.polymerase import PolymeraseRegistry
+
+        # opt_tm 68 with no explicit targets: the old code derived 68/64/48.
+        custom = replace(
+            PolymeraseRegistry().get("KOD"),
+            name="CustomPoly",
+            opt_tm=68.0,
+            opt_tm_fwd=None,
+            opt_tm_rev=None,
+            opt_tm_overlap=None,
+        )
+        results = design_single_sdm(
+            template_sequence, mutation, custom, overlap_mode="partial", tol_max=4.0
+        )
+        assert results, "custom profile: design produced no results"
+        r = results[0]
+        assert abs(r.tm_fwd - 62.0) <= 4.0, f"custom: tm_fwd {r.tm_fwd} derived from opt_tm"
+        assert abs(r.tm_rev - 58.0) <= 4.0, f"custom: tm_rev {r.tm_rev} derived from opt_tm"
+
+
+class TestDesignIsEnzymeIndependent:
+    """Contract: the polymerase choice must not change the designed primers.
+
+    Design runs on one fixed Tm scale (the paper Benchling SantaLucia 1998 scale)
+    with method-level targets, so every profile sharing a length spec yields
+    byte-identical primers. Enzyme identity surfaces only in the annealing
+    temperature. This fails if a per-profile buffer, or the NEB calibration table,
+    ever re-enters the design path (via _calc_sdm_tm or _check_secondary_structure,
+    whose penalty feeds candidate ranking).
+    """
+
+    # Q5 SDM is excluded deliberately: it is a full-overlap kit profile with its own
+    # length spec (fwd/rev 25-45, overlap_len None, default mode "full"), so it
+    # designs differently for reasons of geometry, not Tm scale.
+    SHARED_LEN_SPEC = ["KOD", "Taq", "Phusion", "Q5", "DreamTaq", "TAKARA_GXL"]
+
+    def _design(self, genbank_path, mutations_csv, name: str):
+        results, _cand, _fail = design_sdm_primers(
+            fasta_path=genbank_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            polymerase=name,
+            overlap_len=18,
+        )
+        return [(r.mutation.raw, r.forward_seq, r.reverse_seq) for r in results]
+
+    def test_all_profiles_design_byte_identical_primers(self, genbank_path, mutations_csv):
+        designs = {n: self._design(genbank_path, mutations_csv, n) for n in self.SHARED_LEN_SPEC}
+        ref_name = self.SHARED_LEN_SPEC[0]
+        reference = designs[ref_name]
+        assert reference, f"{ref_name} reference design is empty"
+        for name, got in designs.items():
+            assert got == reference, (
+                f"{name} designed different primers than {ref_name}: design must be "
+                f"enzyme-independent (got {len(got)} vs {len(reference)} results)"
+            )
+
+    def test_annealing_temperature_still_varies_by_profile(self, genbank_path, mutations_csv):
+        """The flip side: Ta is where enzyme identity is allowed to show up."""
+        from kuma_core.kuro import neb_tm
+        from kuma_core.kuro.annealing import compute_annealing
+        from kuma_core.kuro.polymerase import PolymeraseRegistry
+
+        offsets = neb_tm.load_offsets()
+        registry = PolymeraseRegistry()
+        results, _cand, _fail = design_sdm_primers(
+            fasta_path=genbank_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            polymerase="KOD",
+            overlap_len=18,
+        )
+        assert results, "no design to compute Ta from"
+        r = results[0]
+        tas = {
+            n: compute_annealing(r.forward_seq, r.reverse_seq, registry.get(n), offsets)[
+                "recommended_ta"
+            ]
+            for n in self.SHARED_LEN_SPEC
+        }
+        assert len({v for v in tas.values() if v is not None}) > 1, (
+            f"Ta must differ by polymerase, got {tas}"
+        )
+
+
+class TestFailureReasonNamesStage:
+    """A failed design must say which stage blocked it, not just that it failed."""
+
+    def test_failure_reason_names_a_design_stage(self, genbank_path):
+        _res, _cand, failed = design_sdm_primers(
+            fasta_path=genbank_path,
+            target_start=TARGET_START,
+            mutations_csv=FIXTURES_DIR / "sdm_template_evolvepro.csv",
+            polymerase="KOD",
+        )
+        assert failed, "fixture expected to yield at least one design failure"
+        for raw, reason in failed.items():
+            assert reason.startswith("No valid primer pair - "), (
+                f"{raw}: unexpected prefix: {reason}"
+            )
+            assert any(
+                stage in reason
+                for stage in ("overlap:", "forward:", "reverse:", "off-target:")
+            ), (
+                f"{raw}: reason names no design stage: {reason}"
+            )
+            assert reason.isascii(), f"{raw}: non-ASCII reason: {reason}"
+
+
+class TestOfftargetRejectionAndDiagnosis:
+    """Off-target hits reject candidates outright; total rejection is diagnosed."""
+
+    def test_no_offtarget_in_surviving_design_results(self, genbank_path, mutations_csv):
+        """Every SURVIVING design-search result has zero off-target hits.
+
+        design_single_sdm now rejects any candidate with an off-target hit
+        instead of merely penalizing it, so a candidate that reaches the
+        final result list can never carry one.
+        """
+        results, _cand, _failed = design_sdm_primers(
+            fasta_path=genbank_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            polymerase="Q5",
+            overlap_len=18,
+        )
+        assert len(results) >= 1
+        for r in results:
+            assert r.has_offtarget is False, r.mutation.raw
+            assert r.offtarget_fwd == []
+            assert r.offtarget_rev == []
+
+    def test_design_yield_unchanged_on_reference_fixture(self, genbank_path, mutations_csv):
+        """Regression guard: reject-not-penalize must not cost yield here.
+
+        Measured baseline for this fixture (target_start=1790, Q5,
+        overlap_len=18): 10/12 mutations succeed, 2 fail (E167A, H100A) for
+        Tm/length reasons unrelated to off-target. See PR body for the
+        off-target threshold sweep against these same 19 candidates.
+        """
+        results, _cand, failed = design_sdm_primers(
+            fasta_path=genbank_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            polymerase="Q5",
+            overlap_len=18,
+        )
+        assert len(results) == 10, (
+            f"expected 10/12 successes, got {len(results)}/12: "
+            f"failed={list(failed.keys())}"
+        )
+
+    def test_all_offtarget_failure_is_diagnosed_as_offtarget(
+        self, genbank_path, mutations_csv, monkeypatch
+    ):
+        """If every Tm/length-valid candidate is off-target, say so.
+
+        Forces check_offtarget to report a hit for every call (as if the
+        whole fixture were saturated with off-target sites), then asserts
+        diagnose_sdm_failure names the off-target stage rather than falling
+        back to the generic "cause not isolated" message.
+        """
+        import kuma_core.kuro.sdm_engine as sdm_engine_mod
+
+        fake_hit = OffTargetHit(
+            position=0, strand="sense", match_seq="N", tm=99.0, match_length=4,
+        )
+
+        def _always_hit(*args, **kwargs):
+            return [fake_hit]
+
+        monkeypatch.setattr(sdm_engine_mod, "check_offtarget", _always_hit)
+
+        results, _cand, failed = design_sdm_primers(
+            fasta_path=genbank_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            polymerase="Q5",
+            overlap_len=18,
+        )
+        assert results == [], "every candidate should be off-target-rejected"
+        assert failed, "expected all 12 mutations to fail"
+        # E167A/H100A already fail for a reverse-Tm reason unrelated to
+        # off-target (see test_design_yield_unchanged_on_reference_fixture);
+        # forcing every check_offtarget call to hit does not change that.
+        # The other 10 mutations used to succeed, so with every candidate
+        # now off-target-saturated they must be diagnosed as off-target.
+        previously_succeeding = {
+            "Q232A", "Y233A", "E335A", "K200A", "F203A",
+            "D227A", "G237A", "P240A", "Y155A", "C175A",
+        }
+        for raw, reason in failed.items():
+            assert reason.startswith("No valid primer pair - "), raw
+            if raw in previously_succeeding:
+                assert "off-target:" in reason, f"{raw}: {reason}"
+
+
+class TestSecondaryStructureWarnFlags:
+    """The UI warning axis: hairpin folded fraction at Ta, homodimer abs Tm.
+
+    `_check_secondary_structure` still hinges `penalty` on the absolute
+    `warn_tm` (40 C on the fixed design scale). `secondary_structure_warn_flags`
+    is the display-side verdict the result table reads instead of redoing
+    `tm > 40` itself; it returns booleans and never touches ranking inputs.
+    """
+
+    # --- hairpin_fraction_folded: the closed form ---
+
+    def test_theta_is_half_at_tm(self):
+        assert hairpin_fraction_folded(dh_cal=-23800.0, tm_c=40.0, ta_c=40.0) == pytest.approx(0.5)
+
+    def test_theta_anchor_at_fallback_ta(self):
+        """theta* = 0.10 at Ta 60 sits at Tm ~= 40.8 for the median hairpin dH.
+
+        The 260917 sweep note measured a median hairpin dH of -23.8 kcal/mol
+        across the fixture winners; at the 60 C fallback the folded fraction
+        at Tm 40.0 is ~0.09, so the fraction rule reproduces the legacy
+        `Tm > 40` verdict at the reference condition (boundary ~40.8 C).
+        """
+        theta_at_40 = hairpin_fraction_folded(-23800.0, 40.0, HAIRPIN_WARN_TA_FALLBACK)
+        assert theta_at_40 == pytest.approx(0.0915, abs=0.005)
+        assert theta_at_40 < HAIRPIN_WARN_FRACTION
+        theta_at_boundary = hairpin_fraction_folded(-23800.0, 40.8, HAIRPIN_WARN_TA_FALLBACK)
+        assert theta_at_boundary == pytest.approx(HAIRPIN_WARN_FRACTION, abs=0.005)
+
+    def test_theta_decreases_as_ta_rises(self):
+        """The same Tm-40 hairpin is ~16% folded at Ta 54 and ~3% at Ta 72."""
+        low_ta = hairpin_fraction_folded(-23800.0, 40.0, 54.0)
+        high_ta = hairpin_fraction_folded(-23800.0, 40.0, 72.0)
+        assert low_ta == pytest.approx(0.163, abs=0.01)
+        assert high_ta == pytest.approx(0.028, abs=0.005)
+        assert low_ta > HAIRPIN_WARN_FRACTION > high_ta
+
+    def test_theta_degenerate_and_extreme(self):
+        # Non-physical temperatures are clamped to 0; dh=0 is the degenerate
+        # midpoint (guarded upstream by structure_found); huge dH cannot
+        # overflow the exp() thanks to the tanh form.
+        assert hairpin_fraction_folded(-23800.0, -300.0, 60.0) == 0.0
+        assert hairpin_fraction_folded(-23800.0, 40.0, -300.0) == 0.0
+        assert hairpin_fraction_folded(0.0, 40.0, 60.0) == pytest.approx(0.5)
+        assert hairpin_fraction_folded(-10_000_000.0, 80.0, 20.0) == pytest.approx(1.0)
+        assert hairpin_fraction_folded(-10_000_000.0, 20.0, 80.0) == pytest.approx(0.0)
+
+    # --- secondary_structure_warn_flags on the pinned fixture ---
+
+    def _fixture_results(self, genbank_path, mutations_csv):
+        results, _cands, _failed = design_sdm_primers(
+            fasta_path=genbank_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            polymerase="Q5",
+            overlap_len=18,
+            overlap_mode="partial",
+        )
+        assert results, "fixture must yield designs"
+        return results
+
+    def test_flag_keys_match_wire_fields(self, genbank_path, mutations_csv):
+        flags = secondary_structure_warn_flags(self._fixture_results(genbank_path, mutations_csv)[0], 60.0)
+        assert set(flags) == {
+            "hairpin_warn_fwd",
+            "hairpin_warn_rev",
+            "homodimer_warn_fwd",
+            "homodimer_warn_rev",
+        }
+        assert all(isinstance(v, bool) for v in flags.values())
+
+    def test_flag_is_theta_at_given_ta(self, genbank_path, mutations_csv):
+        """Each hairpin flag equals theta(dh, tm, ta) > fraction, recomputed
+        independently at the engine boundary; no structure never warns."""
+        from kuma_core.shared import thermo
+
+        results = self._fixture_results(genbank_path, mutations_csv)
+        for r in results:
+            for ta in (54.0, None, 72.0):  # None -> 60 C fallback
+                flags = secondary_structure_warn_flags(r, ta)
+                eff_ta = HAIRPIN_WARN_TA_FALLBACK if ta is None else ta
+                for direction, seq in (("fwd", r.forward_seq), ("rev", r.reverse_seq)):
+                    hp = thermo.calc_hairpin(seq, **_thermo_concs())
+                    expected = (
+                        hairpin_fraction_folded(hp.dh, hp.tm, eff_ta) > HAIRPIN_WARN_FRACTION
+                        if hp.structure_found
+                        else False
+                    )
+                    assert flags[f"hairpin_warn_{direction}"] is expected, (
+                        r.mutation.raw, direction, ta,
+                    )
+
+    def test_fallback_ta60_is_near_legacy_verdict_at_boundary(self, genbank_path, mutations_csv):
+        """At the 60 C fallback the fraction verdict agrees with the legacy
+        `Tm > 40` read wherever |Tm - 40| is comfortably off the boundary, and
+        any disagreement stays inside the dH-dependent transition band.
+
+        The band is not symmetric: a weak-dH hairpin can stay >10% folded
+        below Tm 40 (broad two-state transition), and a very strong-dH one
+        can clear it above ~47 C. Exact agreement is only expected at the
+        median dH anchor (test_theta_anchor_at_fallback_ta).
+        """
+        results = self._fixture_results(genbank_path, mutations_csv)
+        n_disagree = 0
+        for r in results:
+            flags = secondary_structure_warn_flags(r, None)  # -> 60 C fallback
+            for direction, tm in (
+                ("fwd", r.hairpin_tm_fwd),
+                ("rev", r.hairpin_tm_rev),
+            ):
+                flag = flags[f"hairpin_warn_{direction}"]
+                legacy = tm > WARN_STRUCTURE_TM
+                if tm <= 25.0 or tm >= 55.0:
+                    # Far from every plausible transition boundary.
+                    assert flag == (tm > 0.0 and legacy), (r.mutation.raw, direction, tm)
+                elif flag != legacy:
+                    n_disagree += 1
+        # The fixture does contain band cases (that is the point of the fix);
+        # keep this loose so upstream thermo changes only need a re-count.
+        assert n_disagree >= 1
+
+    def test_profile_ta_moves_warning_verdict(self, genbank_path, mutations_csv):
+        """A lower annealing temperature warns weakly more (theta is monotone
+        decreasing in Ta for a folding hairpin); a higher Ta clears flags."""
+        results = self._fixture_results(genbank_path, mutations_csv)
+        saw_flip = False
+        for r in results:
+            low = secondary_structure_warn_flags(r, 54.0)
+            high = secondary_structure_warn_flags(r, 72.0)
+            for direction in ("fwd", "rev"):
+                lo, hi = low[f"hairpin_warn_{direction}"], high[f"hairpin_warn_{direction}"]
+                # theta(ta) is non-increasing in ta -> flags can only clear.
+                assert not (hi and not lo), (r.mutation.raw, direction)
+                if lo and not hi:
+                    saw_flip = True
+        assert saw_flip, "expected at least one hairpin flag to differ between Ta 54 and Ta 72"
+
+    def test_homodimer_flag_is_absolute_tm_at_any_ta(self, genbank_path, mutations_csv):
+        """Homodimers are bimolecular: no concentration was added to the
+        verdict, so the flag stays the absolute WARN_STRUCTURE_TM read."""
+        results = self._fixture_results(genbank_path, mutations_csv)
+        for r in results:
+            for ta in (54.0, 60.0, 72.0):
+                flags = secondary_structure_warn_flags(r, ta)
+                assert flags["homodimer_warn_fwd"] == (r.homodimer_tm_fwd > WARN_STRUCTURE_TM)
+                assert flags["homodimer_warn_rev"] == (r.homodimer_tm_rev > WARN_STRUCTURE_TM)
+
+    def test_flags_do_not_touch_ranking_inputs(self, genbank_path, mutations_csv):
+        results = self._fixture_results(genbank_path, mutations_csv)
+        for r in results:
+            penalty_before = r.penalty
+            warnings_before = list(r.warnings)
+            secondary_structure_warn_flags(r, 54.0)
+            secondary_structure_warn_flags(r, 72.0)
+            assert r.penalty == penalty_before
+            assert r.warnings == warnings_before

@@ -1,0 +1,448 @@
+/**
+ * TypeScript mirror of the `run_quality` block on the analyze response.
+ *
+ * Keep in sync with:
+ *   - kuma_core/mame/run_quality.py (assess_run_quality, serialise_run_quality)
+ *   - kuma_core/mame/ingest/flow_cell.py (pore counts, reuse ledger)
+ *   - python-core/sidecar_mame/handlers/analyze.py (response assembly)
+ */
+
+/**
+ * `blocking` means no well cleared the depth its own consensus needs, so every
+ * verdict on the screen is an artefact. `warning` means the run stands and
+ * something about it should be known before the next one.
+ */
+export type RunQualitySeverity = "blocking" | "warning"
+
+/** Where a threshold on this block came from, and how much that is worth. */
+export type ThresholdKind =
+  /** A parameter default in a vendor workflow. Not a specification. */
+  | "vendor_default"
+  /** Prose in vendor documentation that says "We recommend". */
+  | "vendor_recommendation"
+  /** A published measurement. */
+  | "literature"
+  /** A replacement guarantee, which is not an operating limit. */
+  | "vendor_warranty"
+  /**
+   * Ours, and advisory only: it decides whether a sentence appears, never
+   * whether a read, a well or a verdict is kept. `reference_edge` is the one
+   * threshold in this block that carries it
+   * (`kuma_core/mame/run_quality.py:612`).
+   */
+  | "self_set"
+
+export interface RunQualityThreshold {
+  value?: number
+  coverage?: number
+  minor_allele_fraction?: number
+  source: string
+  kind: ThresholdKind
+  /** Held pending a calibration of our own. */
+  provisional?: boolean
+  /** False when the number is reported for scale and never gates anything. */
+  enforced?: boolean
+}
+
+export interface RunQualityFinding {
+  code:
+    | "median_depth_below_floor"
+    | "median_depth_below_recommended"
+    | "flow_cell_reused"
+    | "variants_at_reference_edge"
+    | "amplicon_extraction_skipped"
+  severity: RunQualitySeverity
+  [key: string]: unknown
+}
+
+/** The earlier run this project recorded for the same flow cell. */
+export interface FlowCellPreviousUse {
+  flow_cell_id?: string | null
+  product_code?: string | null
+  run_dir?: string | null
+  started?: string | null
+  pore_start?: number | null
+  pore_end?: number | null
+}
+
+/**
+ * One reference position and how the whole plate read it.
+ *
+ * Nothing here is graded. A position forty wells reported is carried exactly as
+ * one two wells reported, and no field on this row is a verdict.
+ */
+export interface RecurringPosition {
+  /** 1-based reference coordinate. */
+  position: number
+  /**
+   * Scored records that reported this position. Replicate plates contribute one
+   * record per plate, so this counts scored records, not distinct wells.
+   */
+  wells: number
+  /**
+   * `wells` over `wells_contributing`, carried on the row so a reader cannot
+   * divide by the wrong denominator.
+   *
+   * Optional, and undefined is NOT 0. A result saved by a sidecar that tallied
+   * recurrence but predates these four columns carries the row without them,
+   * and an absent measurement rendered as a zero would state a finding nobody
+   * made. This is the same rule `shares_unknown` follows one field below.
+   */
+  recurrence_rate?: number
+  /**
+   * The minor-allele fraction over those records, and its spread. The median
+   * alone cannot separate a plate-wide low-fraction site from one well in
+   * genuine mixture at the same position (measured: position 1654, eighteen
+   * wells at median 0.018 with one well at 0.476), so both ends are carried.
+   *
+   * Optional for the same reason as `recurrence_rate`, and never zero-filled.
+   */
+  median_minor_fraction?: number
+  min_minor_fraction?: number
+  max_minor_fraction?: number
+  /**
+   * Weak-strand share of the minor allele over those records, `min(plus, minus)
+   * / (plus + minus)`. Null for all three when no record carried a share, which
+   * is UNKNOWN and never the same as 0.0, the reading "one strand only".
+   */
+  median_weak_strand_share: number | null
+  min_weak_strand_share: number | null
+  max_weak_strand_share: number | null
+  /** How many of `wells` contributed a share, and how many could not. The
+   * unknown ones are left out of the statistics above, not entered as 0.0. */
+  shares_known: number
+  shares_unknown: number
+}
+
+/**
+ * Which reference positions recur across the wells of one run.
+ *
+ * A minor allele at one position in one well is a candidate mixture; the same
+ * position returning well after well is what a sequence-context artifact looks
+ * like, because the context belongs to the amplicon rather than to the clone.
+ * Reported with no threshold, exactly like the pore counts above.
+ *
+ * Every count is a LOWER BOUND (`lower_bound` says so on the block itself):
+ * each well contributes at most ten mix-eligible positions ranked by minor
+ * fraction, so a position ranked eleventh is missing from its tally here.
+ */
+/**
+ * One reference coordinate the plate LOST bases at, over every scored record.
+ *
+ * A separate table from `RecurringPosition` rather than more rows on it. A
+ * decided deletion has no minor-allele fraction and no strand counts, so those
+ * columns would have to be blanked or zeroed, and a zero in the minor-fraction
+ * column is the reading "a clean position".
+ */
+export interface RecurringDeletion {
+  /** 1-based reference coordinate. A contiguous 3 bp deletion is THREE rows:
+   * the evidence is per position and merging runs would invent a grouping the
+   * measurement does not carry. */
+  position: number
+  /** Scored records whose deletion-majority list named this coordinate. */
+  wells: number
+  /**
+   * Distinct expected-mutation sets among those records, which is the axis that
+   * separates the two readings of a repeat. Wells that all expect the SAME
+   * variant share a sample; a basecaller artifact strikes one coordinate
+   * whatever each well was meant to carry.
+   *
+   * Nothing grades it. Three wells with one expectation and thirty wells with
+   * thirty are different events and the screen states both numbers.
+   */
+  expected_variants: number
+}
+
+/** One anchor the plate GAINED bases after, over every scored record. */
+export interface RecurringInsertion {
+  /** 1-based coordinate of the reference base the insertion FOLLOWS. */
+  anchor: number
+  wells: number
+  /** Same axis and same reading as on a deletion row. */
+  expected_variants: number
+  /** Distinct inserted sequences reported at this anchor. One sequence in five
+   * wells and five sequences in five wells are different events, and the anchor
+   * alone cannot tell them apart. */
+  distinct_sequences: number
+}
+
+/**
+ * Deletions and insertions that repeat across one plate, each with its own
+ * denominators.
+ *
+ * `lower_bound` is true here as on `PositionRecurrence`, for a DIFFERENT
+ * cause, which `lower_bound_cause` states. There the floor comes from
+ * TRUNCATION: a well contributes its top ten of a larger pool and its eleventh
+ * is missing from one row. Here it comes from OMISSION: a well past the
+ * reporting budget drops its coordinate list WHOLE and is absent from every
+ * row. A layer that adds the two counters together, or reads either as the
+ * other, reports a floor nobody measured.
+ *
+ * Nothing here grades, for the reason `PositionRecurrence` states. The only
+ * restriction on either table is definitional: a coordinate one record named
+ * has not recurred.
+ *
+ * SCOPE, stated because it is narrow. Only DECIDED deletions reach this block.
+ * A homopolymer where forty percent of the reads drop a base has no field with
+ * position resolution anywhere on the record, so this answers "where did the
+ * consensus lose bases, again and again" and not "where were the reads unsure".
+ */
+export interface IndelRecurrence {
+  lower_bound: boolean
+  /** Why the counts are a floor, distinguishing this block from the
+   * truncation that makes `PositionRecurrence` one. */
+  lower_bound_cause: string
+  /**
+   * Every scored record, reported or not. Carried instead of a per-row rate so
+   * that no layer divides by the contributing few: most wells of an ordinary
+   * plate carry no indel, so three wells of three contributing would print as a
+   * whole plate.
+   */
+  wells_scored: number
+  /** Records that named at least one deletion-majority coordinate. */
+  deletion_wells_contributing: number
+  /**
+   * Records that HAD a deletion majority and reported no coordinates, because
+   * the list exceeded the reporting budget and was dropped whole. Absent from
+   * every row rather than under-counted in one, which is why it is not the same
+   * field as `PositionRecurrence.wells_truncated`.
+   */
+  deletion_wells_omitted: number
+  deletion_positions_seen: number
+  /** Coordinates exactly one record named, left out because "recurrence" means
+   * more than once. Definitional, not a threshold, and counted rather than
+   * silently dropped. */
+  deletion_positions_single_well: number
+  insertion_wells_contributing: number
+  /**
+   * Records that HAD an insertion majority and reported no anchors. Two causes
+   * produce this exact shape and the record cannot separate them: every anchor
+   * tied on which sequence the reads inserted, or the list exceeded the budget.
+   * Named for the shape rather than for a cause nobody established.
+   */
+  insertion_wells_unreported: number
+  /**
+   * Anchors dropped for a TIE, counted only where that cause is certain: a
+   * record reporting some anchors but fewer than it counted is inside the
+   * budget by construction. An ANCHOR count, while the two `wells_` fields are
+   * RECORD counts.
+   */
+  insertion_anchors_tied: number
+  insertion_anchors_seen: number
+  insertion_anchors_single_well: number
+  /** Most-recurrent first, then by coordinate. Never truncated. */
+  deletions: RecurringDeletion[]
+  insertions: RecurringInsertion[]
+}
+
+export interface PositionRecurrence {
+  /** Always true. The counts below are floors, never a census. */
+  lower_bound: boolean
+  /** Records that reported at least one mix-eligible position. */
+  wells_contributing: number
+  /** Of those, how many had their position list truncated. */
+  wells_truncated: number
+  /** Distinct positions seen at all, before the recurrence restriction. */
+  positions_seen: number
+  /**
+   * Positions exactly one well reported, left out because "recurrence" means
+   * more than once. Definitional, not a threshold, and counted rather than
+   * silently dropped.
+   */
+  positions_single_well: number
+  /**
+   * Whether the plate carried strand contrast at all. `absent` means every
+   * reported minor allele was read off the SAME strand, which happens when
+   * reads were normalised to the reference upstream in either direction; the
+   * per-row shares are then all 0.0, and this is the only field that says those
+   * zeros measured no contrast. It annotates the shares and never replaces
+   * them: 0.0 stays "one strand only" and null stays unknown.
+   *
+   * Optional, and undefined is a fourth state distinct from all three named
+   * ones: a result saved before this field existed never determined the
+   * plate's strand contrast. `no_data` says a plate was examined and reported
+   * nothing, which is a measurement; undefined says nobody looked. The screen
+   * must stay silent about strand on such a result rather than claim `absent`.
+   */
+  strand_information?: "absent" | "present" | "no_data"
+  /** Most-recurrent first, then by coordinate. Never truncated. */
+  positions: RecurringPosition[]
+}
+
+/** Where a number on the `read_length` block came from. Not a threshold: these
+ * gate nothing, so they carry `computed` (was it quoted or derived) instead of
+ * the `provisional` a cut would need. */
+export interface ReadLengthProvenance {
+  source: string
+  /** `instrument_report` is MinKNOW's own figure, copied unaltered. `derived`
+   * is ours, computed from those figures and the reference length. */
+  kind: "instrument_report" | "derived"
+  computed: boolean
+  /** Always false. Nothing here decides a verdict, a gate or a severity. */
+  enforced: boolean
+}
+
+/** One binned distribution: parallel arrays, `bucket_values` in BASES. */
+export interface ReadLengthBuckets {
+  bucket_starts: number[]
+  bucket_ends: number[]
+  bucket_values: number[]
+  total: number
+}
+
+/**
+ * One `read_length_histogram` entry as MinKNOW wrote it, plus what it says
+ * against this run's reference.
+ *
+ * A run can report multiple N50 entries. Each is carried with its own
+ * read_length_type label; a missing label stays null rather than being
+ * given an invented name.
+ *
+ * `plot` and `outliers` describe DISJOINT sets of reads (the plot is everything
+ * up to its own upper edge, the outliers are the tail beyond it) even though
+ * their bucket ranges overlap. Never concatenate the two arrays.
+ */
+export interface ReadLengthHistogram {
+  /** `EstimatedBases`, `BasecalledBases`, or null for the unlabelled entry. */
+  read_length_type: string | null
+  /** What the bucket axis counts. The fractions below are null unless this is
+   * `ReadLengths`, the only value type whose bucket semantics were verified. */
+  bucket_value_type: string | null
+  /** MinKNOW's N50 for this entry, quoted rather than recomputed. */
+  n50: number | null
+  plot: ReadLengthBuckets | null
+  /** Null when the entry carried no tail, which is not an empty tail. */
+  outliers: ReadLengthBuckets | null
+  /** N50 divided by the length of the alignment reference. */
+  n50_over_reference: number | null
+  /** Share of BASES within `near_reference_tolerance` of the reference length,
+   * and the share at or beyond `concatemer_multiple` times it. Null, never 0,
+   * whenever the question could not be asked: a 0 here is the reading "no bases
+   * were amplicon length". */
+  near_reference_bases_fraction: number | null
+  over_2x_reference_bases_fraction: number | null
+}
+
+/** One filtered series of a qscore histogram. */
+export interface QScoreSeries {
+  /** The MinKNOW `filtering` pairs, e.g. `{read_type, call_status}`. Carried
+   * because a modal q score whose filter is unstated is unusable. */
+  filtering: Record<string, string>[]
+  modal_q_score: number | null
+  bucket_values: number[]
+}
+
+export interface QScoreHistogram {
+  bucket_value_type: string | null
+  bucket_starts: number[]
+  bucket_ends: number[]
+  series: QScoreSeries[]
+}
+
+/**
+ * Read lengths as the instrument measured them, quoted from `report_*.json`.
+ *
+ * `histograms === null` means NOT READ (no report json, an unreadable one, or a
+ * MinKNOW too old to write `read_length_histogram`). It is never an empty array
+ * standing in for a run whose reads had no lengths, and no number inside is
+ * zero-filled.
+ *
+ * Nothing here grades. An N50 at twice the reference is what a concatemer
+ * population looks like and also what a deliberately long amplicon looks like,
+ * and no cut between the two survives a second run.
+ */
+export interface ReadLengthQC {
+  /** The reference reads were ALIGNED to, so the extracted amplicon on a run
+   * that extracted one. Null when it could not be read. */
+  reference_length_bp: number | null
+  /** Half-width of the "this is the amplicon" window, as a fraction. */
+  near_reference_tolerance: number
+  /** Multiple of the reference at which a read holds at least two copies. */
+  concatemer_multiple: number
+  histograms: ReadLengthHistogram[] | null
+  qscore_histograms: QScoreHistogram[] | null
+  provenance: Record<string, ReadLengthProvenance>
+}
+
+/**
+ * Whether the run could have produced a scorable plate, read before its
+ * verdicts rather than after them.
+ *
+ * Present on every analyze response, including a clean one, where `severity` is
+ * null and `findings` is empty. A block that appeared only for bad runs could
+ * not be told apart from an older sidecar that never graded one.
+ */
+export interface RunQuality {
+  severity: RunQualitySeverity | null
+  /**
+   * Median reads over the wells this run SCORED. A declared selection has
+   * already removed the wells the campaign left empty, so their leaked reads do
+   * not drag this down.
+   */
+  median_well_reads: number | null
+  /** The floor in force, below which a well fails consensus QC. */
+  min_read_count: number | null
+  /** Null when either number is missing, which is not the same as passing. */
+  depth_ok: boolean | null
+  wells_under_floor: number
+  wells_total: number
+  /** The depth the vendor recommends aiming for, reported as a target. */
+  recommended_reads: number
+  flow_cell_id: string | null
+  /** Pores at the first and last mux scan of the run. */
+  pore_start: number | null
+  pore_end: number | null
+  /**
+   * The vendor warranty figure is context, not a per-well coverage gate.
+   */
+  pore_warranty_min: number
+  reused_from: FlowCellPreviousUse | null
+  /**
+   * Expected mutations whose codon sits within `edge_margin_bp` of an end of
+   * the reference that was aligned against, on a run that used the supplied
+   * reference unmodified. Empty whenever an amplicon was extracted, which is
+   * the ordinary case, and empty on results from before v0.16.21.
+   */
+  edge_variants?: string[]
+  edge_margin_bp?: number
+  /**
+   * Whether the amplicon between the primer sites was cut out of the supplied
+   * reference. `false` means the run aligned against the reference as given,
+   * so its amino-acid coordinates and its coverage gate belong to that
+   * reference. `null` on the consensus-directory path, which resolves no
+   * reference, and on results from before this field existed.
+   */
+  amplicon_extracted?: boolean | null
+  /**
+   * Why the extraction was skipped: `not_found`, `not_unique`, `out_of_order`
+   * or `no_shared_tail`. Null whenever an amplicon was extracted.
+   */
+  amplicon_skip_reason?: string | null
+  thresholds: Record<string, RunQualityThreshold>
+  findings: RunQualityFinding[]
+  /**
+   * Optional because a result saved by a sidecar that predates the tally has no
+   * such block, and an absent tally must not read as a plate on which nothing
+   * recurred. Carried on the response and into the store; nothing renders it
+   * yet.
+   */
+  position_recurrence?: PositionRecurrence
+  /**
+   * Deletions and insertions that repeat across the plate, the channel the
+   * substitution tally above cannot see (its eligibility mask is ACGT, so a
+   * deletion token is in neither its numerator nor its denominator).
+   *
+   * Optional for the same reason `position_recurrence` is, and undefined is a
+   * state of its own rather than a plate on which nothing recurred: a result
+   * autosaved before this block existed never asked the question. Never
+   * zero-filled.
+   */
+  indel_recurrence?: IndelRecurrence
+  /**
+   * Optional for the same reason `position_recurrence` is: a result autosaved
+   * by a sidecar that predates this block carries none, and an absent block
+   * must not read as a run whose reads had no lengths. Carried on the response
+   * and into the store; nothing renders it yet.
+   */
+  read_length?: ReadLengthQC
+}

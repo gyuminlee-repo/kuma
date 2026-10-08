@@ -1,0 +1,201 @@
+{
+  "schema_version": "1.0",
+  "method": "export_all",
+  "kuma_version": "0.16.73",
+  "kuro_module_version": "0.1.0",
+  "python_version": "3.11.15 (main, Mar 24 2026, 22:50:29) [Clang 22.1.1 ]",
+  "platform": "linux",
+  "started_at": "2026-10-07T02:22:12.008411+00:00",
+  "finished_at": "2026-10-07T02:22:12.345156+00:00",
+  "duration_seconds": 0.337,
+  "inputs": {},
+  "params": {
+    "output_dir": "/mnt/d/_workspace/cc/kuma/.claude/worktrees/scrub-lab-data/src-tauri/samples/kuro",
+    "project_name": "sample_kuro",
+    "fwd_plate_name": "SAMPLE_FWD",
+    "rev_plate_name": "SAMPLE_REV"
+  },
+  "seed": null,
+  "extra": {
+    "results_source": "state",
+    "design": null,
+    "interventions": [],
+    "mappings_source": "state"
+  },
+  "exported_at": "2026-10-07T11:22:12.345303",
+  "mappings": [
+    {
+      "well": "A1",
+      "primer_name": "Q232A_F",
+      "sequence": "ACGCAGAGGCATGCATACTGTACG",
+      "primer_type": "forward",
+      "mutation": "Q232A"
+    },
+    {
+      "well": "B1",
+      "primer_name": "Y233A_F",
+      "sequence": "GCAGAGGCATCAAGCTTGTACGCA",
+      "primer_type": "forward",
+      "mutation": "Y233A"
+    },
+    {
+      "well": "C1",
+      "primer_name": "E335A_F",
+      "sequence": "TCGGATACTTCACAAGCGTATAATTTTAACGAGGC",
+      "primer_type": "forward",
+      "mutation": "E335A"
+    },
+    {
+      "well": "D1",
+      "primer_name": "K200A_F",
+      "sequence": "GACACGACAACGATGCGACAGC",
+      "primer_type": "forward",
+      "mutation": "K200A"
+    },
+    {
+      "well": "E1",
+      "primer_name": "F203A_F",
+      "sequence": "ACGATAAGACAGCGGCCTTTCCTTTTGA",
+      "primer_type": "forward",
+      "mutation": "F203A"
+    },
+    {
+      "well": "F1",
+      "primer_name": "D227A_F",
+      "sequence": "CCTATGCCAAGTCAGCTACGCAGAGG",
+      "primer_type": "forward",
+      "mutation": "D227A"
+    },
+    {
+      "well": "G1",
+      "primer_name": "G237A_F",
+      "sequence": "CAATACTGTACGCATGCCTATTATCCCGTAATATGC",
+      "primer_type": "forward",
+      "mutation": "G237A"
+    },
+    {
+      "well": "H1",
+      "primer_name": "P240A_F",
+      "sequence": "ACGCATGGCTATTATGCTGTAATATGCGC",
+      "primer_type": "forward",
+      "mutation": "P240A"
+    },
+    {
+      "well": "A2",
+      "primer_name": "Y155A_F",
+      "sequence": "GCGTACCATGATCATGCTGACTGTTGTTG",
+      "primer_type": "forward",
+      "mutation": "Y155A"
+    },
+    {
+      "well": "B2",
+      "primer_name": "C175A_F",
+      "sequence": "AGCGCCTCCATGCAACAGCA",
+      "primer_type": "forward",
+      "mutation": "C175A"
+    },
+    {
+      "well": "A1",
+      "primer_name": "Q232A_R",
+      "sequence": "ATGCCTCTGCGTATCTGACTTGG",
+      "primer_type": "reverse",
+      "mutation": "Q232A"
+    },
+    {
+      "well": "B1",
+      "primer_name": "Y233A_R",
+      "sequence": "TTGATGCCTCTGCGTATCTGACTT",
+      "primer_type": "reverse",
+      "mutation": "Y233A"
+    },
+    {
+      "well": "C1",
+      "primer_name": "E335A_R",
+      "sequence": "TTGTGAAGTATCCGAAAAAAAGAAGTG",
+      "primer_type": "reverse",
+      "mutation": "E335A"
+    },
+    {
+      "well": "D1",
+      "primer_name": "K200A_R",
+      "sequence": "ATCGTTGTCGTGTCTTACGGC",
+      "primer_type": "reverse",
+      "mutation": "K200A"
+    },
+    {
+      "well": "E1",
+      "primer_name": "F203A_R",
+      "sequence": "CGCTGTCTTATCGTTGTCGTGTC",
+      "primer_type": "reverse",
+      "mutation": "F203A"
+    },
+    {
+      "well": "F1",
+      "primer_name": "D227A_R",
+      "sequence": "TGACTTGGCATAGGGCTTACAGG",
+      "primer_type": "reverse",
+      "mutation": "D227A"
+    },
+    {
+      "well": "G1",
+      "primer_name": "G237A_R",
+      "sequence": "ATGCGTACAGTATTGATGCCTCTG",
+      "primer_type": "reverse",
+      "mutation": "G237A"
+    },
+    {
+      "well": "H1",
+      "primer_name": "P240A_R",
+      "sequence": "ATAATAGCCATGCGTACAGTATTGATG",
+      "primer_type": "reverse",
+      "mutation": "P240A"
+    },
+    {
+      "well": "A2",
+      "primer_name": "Y155A_R",
+      "sequence": "ATGATCATGGTACGCTAGGGGTTTC",
+      "primer_type": "reverse",
+      "mutation": "Y155A"
+    },
+    {
+      "well": "B2",
+      "primer_name": "C175A_R",
+      "sequence": "ATGGAGGCGCTCATCATGATATTCT",
+      "primer_type": "reverse",
+      "mutation": "C175A"
+    }
+  ],
+  "dedup_info": {
+    "ATGCCTCTGCGTATCTGACTTGG": [
+      "Q232A"
+    ],
+    "TTGATGCCTCTGCGTATCTGACTT": [
+      "Y233A"
+    ],
+    "TTGTGAAGTATCCGAAAAAAAGAAGTG": [
+      "E335A"
+    ],
+    "ATCGTTGTCGTGTCTTACGGC": [
+      "K200A"
+    ],
+    "CGCTGTCTTATCGTTGTCGTGTC": [
+      "F203A"
+    ],
+    "TGACTTGGCATAGGGCTTACAGG": [
+      "D227A"
+    ],
+    "ATGCGTACAGTATTGATGCCTCTG": [
+      "G237A"
+    ],
+    "ATAATAGCCATGCGTACAGTATTGATG": [
+      "P240A"
+    ],
+    "ATGATCATGGTACGCTAGGGGTTTC": [
+      "Y155A"
+    ],
+    "ATGGAGGCGCTCATCATGATATTCT": [
+      "C175A"
+    ]
+  },
+  "result_count": 10
+}

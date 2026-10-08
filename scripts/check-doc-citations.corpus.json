@@ -1,0 +1,214 @@
+{
+  "_comment": [
+    "Labelled corpus for scripts/check-doc-citations.mjs (--selftest).",
+    "Every `line` is copied verbatim from a tracked file in this repo; `source` records where.",
+    "`tracked` is a synthetic tracked-file set, NOT live `git ls-files`, so an unrelated docs",
+    "rename cannot silently break the selftest.",
+    "`expect` lists the references the extractor must produce, in order, each with the",
+    "resolution rule that must accept it: exact | relative | docs, or null when unresolved.",
+    "Written before the regex, per the label-corpus-first rule in persistent-rules.md.",
+    "",
+    "`allowlistCases` covers the other half of the checker: whether an allowlist entry still",
+    "earns its place. Each case pairs a synthetic allowlist with the set of references a scan",
+    "left unresolved, and states which entries should come back as no longer cited.",
+    "Both directions are measured, because a rule that only ever reports failures and a rule",
+    "that only ever reports success are indistinguishable from a single passing case."
+  ],
+  "tracked": [
+    "AGENTS.md",
+    "CHANGELOG.md",
+    "NOTICE-bundled.md",
+    "README.md",
+    "UPDATE-NOTES.ko.md",
+    "UPDATE-NOTES.md",
+    "docs/2026-06-08-mame-transition-backtest.md",
+    "docs/README.md",
+    "docs/debug-findings.md",
+    "docs/en/contributing.md",
+    "docs/en/faq.md",
+    "docs/index.md",
+    "docs/ko/faq.md",
+    "docs/kuro/01-load.md",
+    "docs/mame/02-review.md",
+    "docs/mame/04-activity.md",
+    "mkdocs.yml",
+    "notes/perf/memory-bound.md",
+    "src-tauri/tauri.conf.json"
+  ],
+  "cases": [
+    {
+      "id": "pos-internal-spec-path",
+      "why": "positive: internal spec under notes/, cited as a repo-root path, never tracked",
+      "source": "kuma_core/mame/activity/join.py",
+      "line": "Spec: notes/specs/2026-05-04-mame-activity-integration.md §2.4, §3.4",
+      "expect": [{ "ref": "notes/specs/2026-05-04-mame-activity-integration.md", "via": null }]
+    },
+    {
+      "id": "pos-lost-bare-filename",
+      "why": "positive: a lost document cited with no directory segment at all, so the extractor must not require a slash",
+      "source": "src/components/inspectors/kuro/ExportInspector.tsx",
+      "line": " * [source: v5-strategy.md §6.1 row 6]",
+      "expect": [{ "ref": "v5-strategy.md", "via": null }]
+    },
+    {
+      "id": "pos-generated-parent-relative",
+      "why": "positive: build-time generated NOTICE written one level above the citing workflow, unresolvable from any rule",
+      "source": ".github/workflows/build.yml",
+      "line": "        run: cargo about generate -m Cargo.toml about.hbs > ../NOTICE-rust.md",
+      "expect": [{ "ref": "../NOTICE-rust.md", "via": null }]
+    },
+    {
+      "id": "pos-external-sibling-repo-table",
+      "why": "positive: a table row naming artefacts of a sibling repository outside kuma; docs-relative must not rescue it",
+      "source": "docs/2026-06-08-mame-transition-backtest.md",
+      "line": "| 합성 ρ-sweep | `rho_sweep.py`, `rho_sweep_results.tsv`, `report2.md` |",
+      "expect": [{ "ref": "report2.md", "via": null }]
+    },
+    {
+      "id": "pos-external-sibling-repo-final",
+      "why": "positive: same table, the row the strategy code actually cites as its evidence",
+      "source": "docs/2026-06-08-mame-transition-backtest.md",
+      "line": "| 통합 | `report_final.md` |",
+      "expect": [{ "ref": "report_final.md", "via": null }]
+    },
+    {
+      "id": "pos-prose-bare-docs-filenames",
+      "why": "positive trap: docs pages named by filename only in changelog prose. docs/en/faq.md and docs/ko/faq.md are tracked, yet neither faq.md nor docs/faq.md is, so every one of these stays unresolved",
+      "source": "CHANGELOG.md",
+      "line": "- `~/.kuro/` corrected to `~/.kuma/kuro/` across `docs/en/` and `docs/ko/`, 22 occurrences in 14 files: `configuration.md`, `contributing.md`, `custom-polymerase-editor.md`, `faq.md`, `troubleshooting.md`, `uniprot-and-alphafold.md`, `workspace-save-load.md`.",
+      "expect": [
+        { "ref": "configuration.md", "via": null },
+        { "ref": "contributing.md", "via": null },
+        { "ref": "custom-polymerase-editor.md", "via": null },
+        { "ref": "faq.md", "via": null },
+        { "ref": "troubleshooting.md", "via": null },
+        { "ref": "uniprot-and-alphafold.md", "via": null },
+        { "ref": "workspace-save-load.md", "via": null }
+      ]
+    },
+    {
+      "id": "pos-zip-member-not-a-citation",
+      "why": "positive trap: a zip member name inside a test literal. The extractor cannot tell it from a citation, so the allowlist is what absorbs it",
+      "source": "tests/test_structure_file.py",
+      "line": "    path = _make_zip(tmp_path, \"empty.zip\", {\"terms_of_use.md\": \"text\"})",
+      "expect": [{ "ref": "terms_of_use.md", "via": null }]
+    },
+    {
+      "id": "pos-non-ascii-truncates-match",
+      "why": "positive trap: a Korean filename truncates to its ASCII tail, so the extracted reference is a fragment rather than the real name",
+      "source": "tests/mame/create_fixtures.py",
+      "line": "\"\"\"Materialize the on-disk test fixtures described in 030_테스트_fixture.md.",
+      "expect": [{ "ref": "_fixture.md", "via": null }]
+    },
+    {
+      "id": "neg-mkdocs-nav-docs-relative",
+      "why": "negative discriminator: mkdocs nav is written against docs_dir. Citing-file-relative gives kuro/01-load.md at the repo root and fails; only the docs-relative rule resolves it",
+      "source": "mkdocs.yml",
+      "line": "    - 1. Sequence Load: kuro/01-load.md",
+      "expect": [{ "ref": "kuro/01-load.md", "via": "docs" }]
+    },
+    {
+      "id": "neg-mkdocs-exclude-docs-bare",
+      "why": "negative: exclude_docs entry, a bare filename that only the docs-relative rule can resolve",
+      "source": "mkdocs.yml",
+      "line": "  debug-findings.md",
+      "expect": [{ "ref": "debug-findings.md", "via": "docs" }]
+    },
+    {
+      "id": "neg-mkdocs-nav-index",
+      "why": "negative: bare index.md in nav. Exact and citing-file-relative both miss at the repo root, docs-relative hits docs/index.md",
+      "source": "mkdocs.yml",
+      "line": "    - index.md",
+      "expect": [{ "ref": "index.md", "via": "docs" }]
+    },
+    {
+      "id": "neg-sibling-page-relative",
+      "why": "negative discriminator in the other direction: citing-file-relative resolves docs/mame/04-activity.md while docs-relative would look for docs/04-activity.md and fail",
+      "source": "docs/mame/02-review.md",
+      "line": "→ [Step 4. Activity Data](04-activity.md)",
+      "expect": [{ "ref": "04-activity.md", "via": "relative" }]
+    },
+    {
+      "id": "neg-parent-relative-to-root",
+      "why": "negative: ../README.md from docs/README.md walks up to the tracked root README",
+      "source": "docs/README.md",
+      "line": "Both tabs share a project workspace; a hidden `__kuma_meta__` sheet in every Kuro xlsx export lets Mame auto-match sequencing reads back to the originating project weeks later. See the [project README](../README.md) for installation and architecture.",
+      "expect": [{ "ref": "../README.md", "via": "relative" }]
+    },
+    {
+      "id": "neg-url-label-kept-target-dropped",
+      "why": "negative: the link label is a real reference and must survive, while the .md inside the https target must not be extracted",
+      "source": "docs/en/release-notes-index.md",
+      "line": "- **English**: [UPDATE-NOTES.md](https://github.com/gyuminlee-repo/KURO/blob/main/UPDATE-NOTES.md)",
+      "expect": [{ "ref": "UPDATE-NOTES.md", "via": "exact" }]
+    },
+    {
+      "id": "neg-url-only-yields-nothing",
+      "why": "negative: a bare external URL whose path ends in .md must produce no reference at all",
+      "source": "docs/2026-06-18-polymerase-tm-method-research.md",
+      "line": "- phiweger/prime (primer3 vs NEB 노트): https://github.com/phiweger/prime/blob/master/notes.md",
+      "expect": []
+    },
+    {
+      "id": "neg-two-exact-root-files",
+      "why": "negative: two tracked root files on one line, both resolved by exact match",
+      "source": "docs/en/contributing.md",
+      "line": "2. `UPDATE-NOTES.md` / `UPDATE-NOTES.ko.md` updated",
+      "expect": [
+        { "ref": "UPDATE-NOTES.md", "via": "exact" },
+        { "ref": "UPDATE-NOTES.ko.md", "via": "exact" }
+      ]
+    },
+    {
+      "id": "neg-tracked-notes-path",
+      "why": "negative: notes/ is gitignored but a handful of files under it are force-added and tracked, so a notes/ citation is not automatically unresolved",
+      "source": "tests/mame/test_memory_budget_derivation.py",
+      "line": "    ``notes/perf/memory-bound.md`` was taken at 512 / 32, so a formula that does",
+      "expect": [{ "ref": "notes/perf/memory-bound.md", "via": "exact" }]
+    },
+    {
+      "id": "neg-no-md-reference",
+      "why": "negative: a line about markdown that contains no reference; the extractor must stay quiet",
+      "source": "scripts/check-doc-citations.mjs",
+      "line": "const DOC_EXTENSIONS = new Set([\".py\", \".ts\", \".tsx\", \".rs\", \".mjs\"]);",
+      "expect": []
+    }
+  ],
+  "allowlistCases": [
+    {
+      "id": "allow-every-entry-still-cited",
+      "why": "negative: nothing is reported while each entry answers for a citation the scan could not resolve. Without this case a rule that always reports every entry would look correct",
+      "allow": ["NOTICE.md", "v5-strategy.md", "report_final.md"],
+      "unresolvedRefs": ["NOTICE.md", "report_final.md", "v5-strategy.md"],
+      "expectUnused": []
+    },
+    {
+      "id": "allow-entry-citation-deleted",
+      "why": "positive: the last citation to a lost document was removed, so its entry answers for nothing and must be reported",
+      "allow": ["NOTICE.md", "v5-audit.md"],
+      "unresolvedRefs": ["NOTICE.md"],
+      "expectUnused": ["v5-audit.md"]
+    },
+    {
+      "id": "allow-entry-citation-now-resolves",
+      "why": "positive: the real case behind the stale category. The citation text still exists but was corrected to a tracked path, so the reference stops appearing among the unresolved and the entry is stranded",
+      "allow": ["REPORT.md", "v5-strategy.md"],
+      "unresolvedRefs": ["v5-strategy.md"],
+      "expectUnused": ["REPORT.md"]
+    },
+    {
+      "id": "allow-several-stranded-entries-sorted",
+      "why": "positive: more than one stranded entry, reported in sorted order rather than allowlist order so the output is stable across edits",
+      "allow": ["v5-strategy.md", "docs/mame-pipeline.md", "NOTICE.md", "consensus-depth.md"],
+      "unresolvedRefs": ["NOTICE.md"],
+      "expectUnused": ["consensus-depth.md", "docs/mame-pipeline.md", "v5-strategy.md"]
+    },
+    {
+      "id": "allow-empty-allowlist",
+      "why": "negative: an empty allowlist strands nothing, even when the scan left references unresolved. Those are reported as unaccounted for by the other half of the check, not here",
+      "allow": [],
+      "unresolvedRefs": ["v5-strategy.md"],
+      "expectUnused": []
+    }
+  ]
+}

@@ -1,0 +1,183 @@
+#!/usr/bin/env node
+// sync-check-groups.mjs - co-evolve hygiene for .cross-layer-sync.json groups[].
+//
+// Assumptions:
+//   - Vendored scripts/sync-check.mjs already validates each group's files
+//     and symbols exist on disk. This script adds COMMIT-HYGIENE checks that
+//     complement (not duplicate) that runner.
+//   - Generated-file freshness (e.g. models.generated.ts) is owned by
+//     `node scripts/gen-models.mjs --check`. Not re-checked here.
+//
+// Two checks per blocking group (warning-severity groups are reported as WARN):
+//   1) PARTIAL-STAGE: user has staged one file in the group while another
+//      group sibling has unstaged modifications. Almost always a mistake.
+//      -> FAIL (blocking) / WARN (warning).
+//   2) HEAD-PARTIAL: the last commit (HEAD) modified some but not all
+//      non-glob files in the group. Heuristic; emitted as WARN regardless
+//      of severity to keep CI signal high.
+//
+// Plus one group-specific check that has no generic form (see UNDECLARED
+// BUNDLE RESOURCES near the bottom): the tauri-samples group states a rule
+// the vendored runner cannot express, because that runner only walks the
+// files a group names.
+//
+// External deps: none (Node fs + child_process only). Exit 1 on any FAIL.
+
+import { spawnSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
+
+const ROOT = process.cwd();
+const CONFIG_PATH = path.join(ROOT, ".cross-layer-sync.json");
+
+if (!fs.existsSync(CONFIG_PATH)) {
+  console.log("[sync-check-groups] no .cross-layer-sync.json, skip");
+  process.exit(0);
+}
+
+const config = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8"));
+const groups = Array.isArray(config.groups) ? config.groups : [];
+if (groups.length === 0) {
+  console.log("[sync-check-groups] no groups declared, skip");
+  process.exit(0);
+}
+
+function git(args) {
+  const res = spawnSync("git", args, { cwd: ROOT, encoding: "utf-8" });
+  if (res.status !== 0) return null;
+  return res.stdout;
+}
+
+// Confirm we are inside a git repo; if not, nothing to check.
+if (git(["rev-parse", "--is-inside-work-tree"]) == null) {
+  console.log("[sync-check-groups] not a git work tree, skip");
+  process.exit(0);
+}
+
+const isGlob = (p) => /[*?[]/.test(p);
+
+const headFiles = new Set(
+  (git(["diff", "--name-only", "HEAD~1", "HEAD"]) || "")
+    .split("\n").map((s) => s.trim()).filter(Boolean),
+);
+const stagedFiles = new Set(
+  (git(["diff", "--name-only", "--cached"]) || "")
+    .split("\n").map((s) => s.trim()).filter(Boolean),
+);
+const unstagedFiles = new Set(
+  (git(["diff", "--name-only"]) || "")
+    .split("\n").map((s) => s.trim()).filter(Boolean),
+);
+
+const fails = [];
+const warns = [];
+const passes = [];
+
+for (const g of groups) {
+  const id = g?.id ?? "<no-id>";
+  const sev = g?.severity ?? "blocking";
+  const files = (g.files ?? []).filter((f) => typeof f === "string" && !isGlob(f));
+  if (files.length < 2) {
+    passes.push(`${id} skipped (single concrete file)`);
+    continue;
+  }
+
+  // (1) Partial-stage check.
+  const stagedInGroup = files.filter((f) => stagedFiles.has(f));
+  const unstagedSiblings = files.filter(
+    (f) => !stagedFiles.has(f) && unstagedFiles.has(f),
+  );
+  if (stagedInGroup.length > 0 && unstagedSiblings.length > 0) {
+    const msg = `${id} partial-stage: staged=[${stagedInGroup.join(", ")}] but sibling has unstaged edits=[${unstagedSiblings.join(", ")}]`;
+    if (sev === "blocking") fails.push(msg);
+    else warns.push(msg);
+    continue;
+  }
+
+  // (2) HEAD-partial check (advisory warning).
+  const touched = files.filter((f) => headFiles.has(f));
+  if (touched.length > 0 && touched.length < files.length) {
+    const untouched = files.filter((f) => !headFiles.has(f));
+    warns.push(
+      `${id} HEAD touched ${touched.length}/${files.length} (missing: ${untouched.join(", ")})`,
+    );
+    continue;
+  }
+
+  passes.push(`${id} OK`);
+}
+
+// ---- UNDECLARED BUNDLE RESOURCES -----------------------------------------
+// The vendored tauri-resources check runs one direction only: every path
+// DECLARED in bundle.resources must exist on disk. A sample file nobody
+// declared is structurally invisible to it, which is how
+// src-tauri/samples/mame/sample_analysis_result.json stayed out of every
+// packaged build from the day it landed while sync:check stayed green (in a
+// packaged build resolveResource then rejects and the sample run silently
+// loses its run-health payload). This is the other direction, and it is the
+// enforcement half of the tauri-samples group note, which already states the
+// rule that was broken.
+//
+// Scope is deliberately small:
+//   - git-tracked files only. An untracked scratch file under samples/ is not
+//     a shipping decision and must not fail someone's pre-push.
+//   - samples/kuro/ is exempt, and that exemption is a real gap, not a
+//     formality: those 9 files are a materialised KURO export_all bundle
+//     regenerated by scripts/generate_kuro_samples.py, and no runtime code
+//     resolves them (the only resolveResource call sites are
+//     src/store/slices/inputSlice.ts, src/store/mame/slices/analysisSlice.ts
+//     and src/components/layout/SharedAboutDialog.tsx). Whether that subtree
+//     should ship is an open question; deciding it by making this check fail
+//     until someone declares 9 files would answer it by accident.
+const SAMPLES_GROUP_ID = "tauri-samples";
+const SAMPLES_DIR = "src-tauri/samples";
+const SAMPLES_MANIFEST = "src-tauri/tauri.conf.json";
+const SAMPLES_EXEMPT_PREFIXES = ["samples/kuro/"];
+
+const samplesGroup = groups.find((g) => g?.id === SAMPLES_GROUP_ID);
+const samplesManifestPath = path.join(ROOT, SAMPLES_MANIFEST);
+if (samplesGroup && fs.existsSync(samplesManifestPath)) {
+  const resources =
+    JSON.parse(fs.readFileSync(samplesManifestPath, "utf-8"))?.bundle?.resources ?? {};
+  // tauri accepts both the array and the source-to-target map form.
+  const declared = new Set(
+    Array.isArray(resources) ? resources : Object.keys(resources),
+  );
+  // bundle.resources keys are relative to src-tauri/ (checks[].base).
+  const tracked = (git(["ls-files", SAMPLES_DIR]) || "")
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((f) => f.replace(/^src-tauri\//, ""));
+  const exempt = tracked.filter((rel) =>
+    SAMPLES_EXEMPT_PREFIXES.some((prefix) => rel.startsWith(prefix)),
+  );
+  const undeclared = tracked.filter(
+    (rel) => !declared.has(rel) && !exempt.includes(rel),
+  );
+  if (undeclared.length > 0) {
+    const msg = `${SAMPLES_GROUP_ID} tracked but not declared in ${SAMPLES_MANIFEST} bundle.resources: ${undeclared.join(", ")}`;
+    if ((samplesGroup.severity ?? "blocking") === "blocking") fails.push(msg);
+    else warns.push(msg);
+  } else {
+    passes.push(
+      `${SAMPLES_GROUP_ID} all ${tracked.length - exempt.length} tracked file(s) under ${SAMPLES_DIR}/ declared (${exempt.length} exempt)`,
+    );
+  }
+}
+
+const useColor = process.stdout.isTTY && !process.env.NO_COLOR;
+const RESET = useColor ? "\x1b[0m" : "";
+const RED = useColor ? "\x1b[31m" : "";
+const GREEN = useColor ? "\x1b[32m" : "";
+const YELLOW = useColor ? "\x1b[33m" : "";
+const DIM = useColor ? "\x1b[2m" : "";
+
+for (const m of passes) console.log(`${GREEN}PASS${RESET} [groups] ${DIM}${m}${RESET}`);
+for (const m of warns) console.log(`${YELLOW}WARN${RESET} [groups] ${m}`);
+for (const m of fails) console.log(`${RED}FAIL${RESET} [groups] ${m}`);
+
+console.log(
+  `\n${fails.length === 0 ? GREEN : RED}${passes.length} passed, ${warns.length} warned, ${fails.length} failed${RESET}`,
+);
+process.exit(fails.length === 0 ? 0 : 1);

@@ -1,0 +1,92 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  darkMode: ["class"],
+  theme: {
+    extend: {
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+        container: "var(--radius-container)",
+        control: "var(--radius-control)",
+      },
+      height: {
+        header: "var(--header-h)",
+        menubar: "var(--menubar-h)",
+        statusbar: "var(--statusbar-h)",
+        control: "var(--control-h)",
+        "control-primary": "var(--control-h-primary)",
+      },
+      minWidth: {
+        popover: "420px",
+      },
+      fontSize: {
+        title: "var(--text-title)",
+        body: "var(--text-body)",
+        caption: "var(--text-caption)",
+        meta: "var(--text-meta)",
+        plate: "var(--text-plate)",
+        "plate-tiny": "var(--text-plate-tiny)",
+      },
+      colors: {
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+        success: "oklch(var(--color-success) / <alpha-value>)",
+        warning: "oklch(var(--color-warning) / <alpha-value>)",
+        error: "oklch(var(--color-error) / <alpha-value>)",
+        info: "oklch(var(--color-info) / <alpha-value>)",
+      },
+      transitionDuration: {
+        fast: "var(--duration-fast)",
+        base: "var(--duration-base)",
+      },
+      opacity: {
+        // 8% step used by 33 usages (bg-error/8, bg-warning/8, bg-success/8,
+        // bg-destructive/8, bg-info/8) that the default opacity scale lacks.
+        8: "0.08",
+      },
+      keyframes: {
+        indeterminate: {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(400%)" },
+        },
+      },
+      animation: {
+        indeterminate: "indeterminate 1.5s ease-in-out infinite",
+      },
+    },
+  },
+  plugins: [require("tailwindcss-animate")],
+};

@@ -1,0 +1,303 @@
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, it, expect } from "vitest";
+import { PLATE_FILL_RESERVED } from "@/lib/platePreviewStyles";
+import { EchoPlateView } from "./EchoPlateView";
+import { PLATE_FILL_FORWARD, PLATE_FILL_REVERSE, PLATE_PREVIEW_FRAME } from "@/lib/platePreviewStyles";
+import {
+  expectCellSizeClass,
+  expectFramedScroller,
+  expectGridSemantics,
+  expectGridTemplate,
+} from "@/test-utils/platePreviewGrid";
+
+const ECHO_TEMPLATE =
+  "auto repeat(24, minmax(var(--plate-preview-cell-min-tiny), var(--plate-preview-cell-cap)))";
+
+const FILLED_CELL = {
+  well: "A01",
+  rowLetter: "A",
+  colNumber: 1,
+  isFwd: true,
+  sourceWellName: "Q232A_F",
+  destPlate: "Destination [1]",
+  destWell: "A1",
+  transferVolNl: 100,
+  mutation: "Q232A",
+};
+
+
+describe("EchoPlateView", () => {
+  it("frames the grid and keeps the scroll inside that frame", () => {
+    const { container } = render(<EchoPlateView cells={[]} />);
+    expectFramedScroller(
+      container.firstElementChild as HTMLElement,
+      PLATE_PREVIEW_FRAME,
+      "min-w-[700px]",
+    );
+  });
+
+  it("renders the title caption it is given", () => {
+    render(<EchoPlateView cells={[]} title="Echo source plate" />);
+    expect(screen.getByText("Echo source plate")).toBeInTheDocument();
+  });
+
+  it("fills a forward well from the shared colour constant", () => {
+    const { container } = render(
+      <EchoPlateView
+        cells={[
+          {
+            well: "A01",
+            rowLetter: "A",
+            colNumber: 1,
+            isFwd: true,
+            sourceWellName: "P1-fw",
+            destPlate: "D1",
+            destWell: "A1",
+            transferVolNl: 100,
+            mutation: "P1",
+          },
+        ]}
+      />,
+    );
+    const filled = container.querySelector("button[data-testid='echo-cell']") as HTMLElement;
+    expect(filled.className).toContain(PLATE_FILL_FORWARD);
+  });
+
+  it("renders 16 rows x 24 cols (384 cells)", () => {
+    const { container } = render(<EchoPlateView cells={[]} />);
+    expect(container.querySelectorAll("[data-testid='echo-cell']")).toHaveLength(384);
+  });
+
+  it("applies fwd stripe to odd rows (row A)", () => {
+    const { container } = render(<EchoPlateView cells={[]} />);
+    const rowACells = container.querySelectorAll("[data-row='A']");
+    expect(rowACells.length).toBeGreaterThan(0);
+    const className = (rowACells[0] as HTMLElement).className;
+    expect(className).toMatch(/blue/);
+  });
+
+  it("applies rev stripe to even rows (row B)", () => {
+    const { container } = render(<EchoPlateView cells={[]} />);
+    const rowBCells = container.querySelectorAll("[data-row='B']");
+    expect(rowBCells.length).toBeGreaterThan(0);
+    const className = (rowBCells[0] as HTMLElement).className;
+    expect(className).toMatch(/orange/);
+  });
+
+  it("renders cell tooltip for filled well A01", () => {
+    render(
+      <EchoPlateView
+        cells={[
+          {
+            well: "A01",
+            rowLetter: "A",
+            colNumber: 1,
+            isFwd: true,
+            sourceWellName: "P1-fw",
+            destPlate: "D1",
+            destWell: "A1",
+            transferVolNl: 100,
+            mutation: "P1",
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByTitle(/P1-fw/)).toBeInTheDocument();
+  });
+
+  it("renders boundary well P24 (last cell)", () => {
+    const { container } = render(<EchoPlateView cells={[]} />);
+    const rowPCells = container.querySelectorAll("[data-row='P']");
+    expect(rowPCells).toHaveLength(24);
+  });
+
+  it("renders mutation code inside well cell", () => {
+    const cells = [
+      {
+        well: "A01",
+        rowLetter: "A",
+        colNumber: 1,
+        isFwd: true,
+        sourceWellName: "Q232A_F",
+        destPlate: "Destination [1]",
+        destWell: "A1",
+        transferVolNl: 100,
+        mutation: "Q232A",
+      },
+    ];
+    render(<EchoPlateView cells={cells} />);
+    expect(screen.getByText("Q232A")).toBeInTheDocument();
+  });
+
+  it("opens popover with primer details on cell click", async () => {
+    const cells = [
+      {
+        well: "A01",
+        rowLetter: "A",
+        colNumber: 1,
+        isFwd: true,
+        sourceWellName: "Q232A_F",
+        destPlate: "Destination [1]",
+        destWell: "A1",
+        transferVolNl: 100,
+        mutation: "Q232A",
+      },
+    ];
+    render(<EchoPlateView cells={cells} />);
+    await userEvent.click(screen.getByText("Q232A"));
+    expect(await screen.findByText(/Q232A_F/)).toBeInTheDocument();
+    expect(screen.getByText(/Destination \[1\] A1/)).toBeInTheDocument();
+    expect(screen.getByText(/100 nL/)).toBeInTheDocument();
+  });
+
+  it("wraps every well in a gridcell and labels its row header", () => {
+    const { container } = render(<EchoPlateView cells={[FILLED_CELL]} />);
+    expectGridSemantics(container, "echo-cell");
+  });
+
+  it("keeps exactly one query container, on the frame", () => {
+    const { container } = render(<EchoPlateView cells={[]} />);
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.className).toContain("plate-preview-grid");
+    expect(container.querySelectorAll(".plate-preview-grid")).toHaveLength(1);
+  });
+
+  it("keeps the tuned 24-column track template", () => {
+    const { container } = render(<EchoPlateView cells={[]} />);
+    expectGridTemplate(container, ECHO_TEMPLATE);
+  });
+
+  it("keeps its own cell size class after the shared-cell refactor", () => {
+    const { container } = render(<EchoPlateView cells={[FILLED_CELL]} />);
+    const filled = container.querySelector<HTMLElement>("button[data-testid='echo-cell']");
+    expect(filled).not.toBeNull();
+    expectCellSizeClass(filled!, "plate-preview-cell-tiny", [
+      "plate-preview-cell",
+      "plate-preview-cell-narrow",
+    ]);
+  });
+
+  it("renders its popover through the shared popover component", async () => {
+    render(<EchoPlateView cells={[FILLED_CELL]} />);
+    await userEvent.click(screen.getByText("Q232A"));
+    expect(await screen.findByTestId("plate-popover-body")).toBeInTheDocument();
+  });
+
+  // Direction is 384 row parity in either round: a forward primer sits at row
+  // 2r and its reverse at 2r+1, and the round shifts columns only. These cases
+  // pin that the stripe does not move when the selected round does, which is
+  // what the v0.14.0 row axis got wrong.
+  describe("direction colouring under a selected round", () => {
+    const A2_FORWARD = {
+      well: "A02",
+      rowLetter: "A",
+      colNumber: 2,
+      isFwd: true,
+      sourceWellName: "Q232A_F",
+      destPlate: "Destination [1]",
+      destWell: "A1",
+      transferVolNl: 100,
+      mutation: "Q232A",
+    };
+
+    /** The rendered cell for a well, in row-major order (A01 first). */
+    function cellAt(container: HTMLElement, well: string): HTMLElement {
+      const row = "ABCDEFGHIJKLMNOP".indexOf(well[0]);
+      const idx = row * 24 + (Number(well.slice(1)) - 1);
+      return container.querySelectorAll("[data-testid='echo-cell']")[idx] as HTMLElement;
+    }
+
+    it("paints an even-row forward well with the forward colour under A2", () => {
+      const { container } = render(<EchoPlateView cells={[A2_FORWARD]} quadrant="A2" />);
+      const filled = container.querySelector("button[data-testid='echo-cell']") as HTMLElement;
+      expect(filled.className).toContain(PLATE_FILL_FORWARD);
+      expect(filled.className).not.toContain(PLATE_FILL_REVERSE);
+    });
+
+    it("keeps the same stripe under A2 as under A1", () => {
+      const { container } = render(<EchoPlateView cells={[]} quadrant="A2" />);
+      expect(cellAt(container, "A02").className).toMatch(/blue/);
+      expect(cellAt(container, "B02").className).toMatch(/orange/);
+    });
+
+    it("keeps the A1 stripe as it was (negative control)", () => {
+      const { container } = render(<EchoPlateView cells={[]} quadrant="A1" />);
+      expect(cellAt(container, "A01").className).toMatch(/blue/);
+      expect(cellAt(container, "B01").className).toMatch(/orange/);
+    });
+
+    it("says forward in the popover of the cell it painted forward", async () => {
+      render(<EchoPlateView cells={[A2_FORWARD]} quadrant="A2" />);
+      await userEvent.click(screen.getByText("Q232A"));
+      expect(await screen.findByTestId("plate-popover-body")).toBeInTheDocument();
+      expect(screen.getByText("Forward")).toBeInTheDocument();
+      expect(screen.queryByText("Reverse")).toBeNull();
+    });
+  });
+
+  // A round is one column parity holding both the forward wells and their
+  // reverses, so "this run can reach it" is a column-parity question. The A1
+  // and A2 cases below disagree on exactly the wells that separate a parity
+  // rule from a contiguous-range one, which called column 13 another round's
+  // while claiming column 2 for this one.
+  describe("empty-well classification", () => {
+    function stateOf(container: HTMLElement, well: string): string | null {
+      const idx = wellIndex(well);
+      const cells = container.querySelectorAll("[data-testid='echo-cell']");
+      return (cells[idx] as HTMLElement).getAttribute("data-state");
+    }
+
+    /** Index of a 384 well in render order (row-major, A01 first). */
+    function wellIndex(well: string): number {
+      const row = "ABCDEFGHIJKLMNOP".indexOf(well[0]);
+      const col = Number(well.slice(1));
+      return row * 24 + (col - 1);
+    }
+
+    it("marks the odd columns free and the even ones reserved for A1", () => {
+      const { container } = render(<EchoPlateView cells={[]} quadrant="A1" />);
+      // A01 is a forward well and B01 its reverse, one row below in the same
+      // column, so both are this run's. A02 is not: the stamp skips every
+      // other column, which is what the v0.16.61 half layout got wrong.
+      expect(stateOf(container, "A01")).toBe("free");
+      expect(stateOf(container, "B01")).toBe("free");
+      expect(stateOf(container, "A02")).toBe("reserved");
+      expect(stateOf(container, "A13")).toBe("free");
+      expect(stateOf(container, "A12")).toBe("reserved");
+    });
+
+    it("flips that split for round A2", () => {
+      const { container } = render(<EchoPlateView cells={[]} quadrant="A2" />);
+      expect(stateOf(container, "A02")).toBe("free");
+      expect(stateOf(container, "B02")).toBe("free");
+      expect(stateOf(container, "A24")).toBe("free");
+      expect(stateOf(container, "A01")).toBe("reserved");
+      expect(stateOf(container, "A13")).toBe("reserved");
+    });
+
+    it("draws the two empty kinds with different classes, not colour alone", () => {
+      const { container } = render(<EchoPlateView cells={[]} quadrant="A1" />);
+      const reserved = container.querySelector<HTMLElement>("[data-state='reserved']");
+      const free = container.querySelector<HTMLElement>("[data-state='free']");
+      expect(reserved).not.toBeNull();
+      expect(free).not.toBeNull();
+      expect(reserved!.className).toContain(PLATE_FILL_RESERVED);
+      expect(reserved!.className).toContain("border-dashed");
+      expect(free!.className).not.toContain("border-dashed");
+      expect(free!.className).not.toBe(reserved!.className);
+    });
+
+    it("says in the tooltip which round a reserved well is held for", () => {
+      const { container } = render(<EchoPlateView cells={[]} quadrant="A1" />);
+      const reserved = container.querySelector<HTMLElement>("[data-state='reserved']");
+      expect(reserved!.getAttribute("title")).toContain("A2");
+    });
+
+    it("claims nothing about rounds when none is selected", () => {
+      const { container } = render(<EchoPlateView cells={[]} />);
+      expect(container.querySelectorAll("[data-state='reserved']")).toHaveLength(0);
+      expect(container.querySelectorAll("[data-state='free']")).toHaveLength(0);
+    });
+  });
+});

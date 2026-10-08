@@ -1,0 +1,475 @@
+import type { EchoQuadrant, PlateMapping, RpcMethodResult } from "@/types/models";
+import type { RoundLabel } from "@/lib/plateRounds";
+import { open, save } from "@tauri-apps/plugin-dialog";
+import { mkdir } from "@tauri-apps/plugin-fs";
+import { sendRequest } from "../../lib/ipc-kuro";
+import {
+  ensureWorkspaceFromExportPath,
+  getActiveWorkspace,
+  registerArtifacts,
+} from "../../lib/workspace";
+import type { ArtifactType } from "../../lib/workspace/types";
+import { useAppStore } from "../../store/appStore";
+import { useMameAppStore } from "../../store/mame/mameAppStore";
+import { defaultExportFilename } from "../../lib/filename";
+import type { BenchmarkResult, WorkspaceData } from "../../types/models";
+import {
+  migrateWorkspace,
+} from "../../lib/workspaceMigrate";
+import { MIGRATE_DIALOG_CLOSED } from "../dialogs/WorkspaceMigrateDialog";
+import { revealInOSFolder } from "../../lib/openFolder";
+import { fileExists, requestOverwriteConfirm } from "../../lib/overwriteConfirm";
+import { getSortedMutations, reorderMappings } from "../../lib/plate-utils";
+import { toast } from "sonner";
+
+/**
+ * Core export: writes sdm_primers.xlsx to `targetPath` via the store action.
+ * Auto-overwrite without confirmation (caller is responsible for path selection).
+ */
+async function exportSdmPrimersExcel(targetPath: string, projectId?: string): Promise<void> {
+  await useAppStore.getState().exportExcel(targetPath, projectId);
+}
+
+export async function handleExportExcel(projectId?: string) {
+  const path = await save({
+    filters: [{ name: "Excel", extensions: ["xlsx"] }],
+    defaultPath: defaultExportFilename({ target: "KURO", ext: "xlsx" }),
+  });
+  if (!path) return;
+
+  // §5 덮어쓰기 confirm (OS dialog 외 앱 레벨 추가 검사)
+  if (await fileExists(path)) {
+    const decision = await requestOverwriteConfirm(path);
+    if (decision === "cancel") return;
+  }
+
+  await exportSdmPrimersExcel(path, projectId);
+
+  // §5 Open folder 버튼이 있는 toast
+  toast.success("Export saved", {
+    description: "Run sequencing, then switch to Mame tab to verify →",
+    duration: 6000,
+    action: {
+      label: "Open folder",
+      onClick: () => void revealInOSFolder(path),
+    },
+  });
+}
+
+/**
+ * §14 Execute the migration after user confirms in the dialog.
+ * 1. Backup the original file as `<path>.backup-<ISO>.json`
+ * 2. Apply migration
+ * 3. Overwrite original with migrated data
+ * 4. Load into store
+ *
+ * Throws on backup failure (safety-first: never migrate without backup).
+ */
+export async function executeMigrateAndLoad(
+  filePath: string,
+  rawWs: Record<string, unknown>,
+  fromVer: string,
+  toVer: string,
+): Promise<void> {
+  // Build backup path: same dir, timestamp suffix.
+  const ts = new Date().toISOString().replace(/[:.]/g, "-");
+  const backupPath = filePath.replace(/\.json$/i, "") + `.backup-${ts}.json`;
+
+  // Step 1: backup via sidecar (Tauri sandboxing — use save_json RPC).
+  await sendRequest("save_json", { filepath: backupPath, data: rawWs });
+
+  // Step 2: migrate.
+  const migrated = migrateWorkspace(rawWs, fromVer, toVer);
+
+  // Step 3: overwrite original.
+  await sendRequest("save_json", { filepath: filePath, data: migrated });
+
+  // Step 4: load.
+  await useAppStore.getState().restoreWorkspace(migrated as unknown as WorkspaceData);
+}
+
+// Re-export for backward-compat callers that only need the closed sentinel.
+export { MIGRATE_DIALOG_CLOSED };
+
+export async function handleSaveBenchmarkJson(data: unknown) {
+  const path = await save({
+    filters: [{ name: "Benchmark JSON", extensions: ["json"] }],
+    defaultPath: defaultExportFilename({ target: "benchmark", ext: "json" }),
+  });
+  if (!path) return;
+
+  if (await fileExists(path)) {
+    const decision = await requestOverwriteConfirm(path);
+    if (decision === "cancel") return;
+  }
+
+  useAppStore.setState({ isExporting: true });
+  try {
+    await sendRequest("save_json", { filepath: path, data });
+    useAppStore.getState().setStatus(`Benchmark JSON saved: ${path}`);
+    toast.success("Benchmark JSON saved", {
+      description: path,
+      duration: 6000,
+      action: { label: "Open folder", onClick: () => void revealInOSFolder(path) },
+    });
+  } catch (err) {
+    useAppStore.getState().setStatus(`Benchmark JSON save failed: ${err instanceof Error ? err.message : String(err)}`);
+  } finally {
+    useAppStore.setState({ isExporting: false });
+  }
+}
+
+export async function handleExportBenchmarkCsv(results: Record<string, BenchmarkResult>) {
+  const path = await save({
+    filters: [{ name: "CSV", extensions: ["csv"] }],
+    defaultPath: defaultExportFilename({ target: "benchmark", ext: "csv" }),
+  });
+  if (!path) return;
+
+  if (await fileExists(path)) {
+    const decision = await requestOverwriteConfirm(path);
+    if (decision === "cancel") return;
+  }
+
+  useAppStore.setState({ isExporting: true });
+  try {
+    await sendRequest("export_benchmark_csv", { filepath: path, results });
+    useAppStore.getState().setStatus(`Benchmark CSV exported: ${path}`);
+    toast.success("Benchmark CSV exported", {
+      description: path,
+      duration: 6000,
+      action: { label: "Open folder", onClick: () => void revealInOSFolder(path) },
+    });
+  } catch (err) {
+    useAppStore.getState().setStatus(`Benchmark CSV export failed: ${err instanceof Error ? err.message : String(err)}`);
+  } finally {
+    useAppStore.setState({ isExporting: false });
+  }
+}
+
+export async function handleOpenSequence() {
+  const path = await open({
+    filters: [
+      { name: "Sequence (GenBank/SnapGene)", extensions: ["gb", "gbff", "gbk", "dna"] },
+      { name: "FASTA", extensions: ["fa", "fasta"] },
+      { name: "All Files", extensions: ["*"] },
+    ],
+    multiple: false,
+  });
+  if (typeof path === "string") {
+    await useAppStore.getState().loadSequence(path);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Export All + Macrogen (spec 2026-05-13)
+// ---------------------------------------------------------------------------
+
+/**
+ * Maps an export_all output filename to the artifact type it registers as.
+ * The backend names every file `<prefix>_<role>.<ext>`, so the suffix is the
+ * only stable discriminator. Unknown suffixes are skipped rather than guessed.
+ */
+const EXPORT_ALL_ARTIFACT_TYPES: ReadonlyArray<readonly [string, ArtifactType]> = [
+  ["_echo.csv", "kuro_echo_csv"],
+  ["_echo.xlsx", "kuro_echo_xlsx"],
+  ["_janus.csv", "kuro_janus_csv"],
+  ["_janus.xlsx", "kuro_janus_xlsx"],
+  ["_macrogen.xls", "kuro_macrogen_xls"],
+  ["_platemap.xlsx", "kuro_platemap_xlsx"],
+  ["_primers.fasta", "kuro_primers_fasta"],
+  ["_run.json", "kuro_run_json"],
+];
+
+function artifactTypeForExportAllFile(filename: string): ArtifactType | null {
+  for (const [suffix, type] of EXPORT_ALL_ARTIFACT_TYPES) {
+    if (filename.endsWith(suffix)) return type;
+  }
+  return null;
+}
+
+function joinPath(dir: string, name: string): string {
+  const sep = dir.includes("\\") ? "\\" : "/";
+  return `${dir.replace(/[\\/]+$/, "")}${sep}${name}`;
+}
+
+/**
+ * Hand a freshly written plate map to MAME as its expected list.
+ *
+ * `<prefix>_platemap.xlsx` carries the `expected_mutations` sheet MAME reads.
+ * MAME used to pick a KURO workbook up only while a project was being opened,
+ * so an export made during the session never reached Step 2. Fills an empty
+ * input only: a workbook the operator chose is theirs. Goes through
+ * `chooseExpectedPath` so plate order and the variant source are checked the
+ * same way a Browse would.
+ */
+function offerPlateMapToMame(platemapPath: string): void {
+  const mame = useMameAppStore.getState();
+  if (mame.expectedPath) return;
+  mame.chooseExpectedPath(platemapPath);
+}
+
+export interface ExportAllUiParams {
+  projectId?: string;
+  /**
+   * Active project folder. When set, the directory picker opens there and the
+   * produced files are recorded in the workspace manifest, mirroring how MAME
+   * routes its artifacts through the project.
+   */
+  projectPath?: string;
+  projectName?: string;
+  fwdPlateName?: string;
+  rvsPlateName?: string;
+  amount: "0.05" | "0.2";
+  echoTransferVol: number;
+  janusTransferVol: number;
+  bom: boolean;
+  /**
+   * Column parity of the 384 Echo source plate this round occupies: "A1" is
+   * the odd columns and "A2" the even ones. Omitted keeps the row-doubled
+   * layout that skips no column.
+   */
+  quadrant?: EchoQuadrant | null;
+  /** Rounds already spent on a part-used plate, stated by the operator. */
+  usedQuadrants?: EchoQuadrant[];
+  /**
+   * Also write one GenBank map per clone into the sibling
+   * `<prefix>_vectormaps/` folder. Those files are not bundle artefacts: they
+   * come back under `vectormaps`, not in `success`.
+   */
+  vectormaps?: boolean;
+  /**
+   * One round of a design split past one plate (`splitIntoRounds`). When set,
+   * these mappings are sent instead of the full store order, and the sidecar
+   * names the folder `<base>_R<n>` and refuses a payload that is not one
+   * plate, a parity already spent, or has no source plate.
+   */
+  round?: {
+    label: RoundLabel;
+    /** Echo source plate (1-based) the operator picked for this round. */
+    sourcePlate: number;
+    mappings: PlateMapping[];
+    dedupInfo: Record<string, string[]>;
+  };
+}
+
+type ExportAllResult = RpcMethodResult<"export_all">;
+
+/**
+ * Prompt user for an output directory and invoke the kuro sidecar `export_all`
+ * RPC. Returns null when the directory picker is cancelled.
+ */
+export async function handleExportAll(
+  params: ExportAllUiParams,
+): Promise<ExportAllResult | null> {
+  // Read before ensureWorkspaceFromExportPath can open one: a project session
+  // has its own folder as the workspace from the moment it opened, a scratch
+  // session has none (its `projectPath` is a synthetic app-data path). Only a
+  // project session hands its export to MAME.
+  const projectSession =
+    params.projectPath !== undefined && getActiveWorkspace() === params.projectPath;
+  // Default the picker to the project folder so exports land inside the
+  // project by default, the way MAME routes its artifacts. The folder is
+  // created first, otherwise the dialog silently ignores a missing defaultPath.
+  let projectExportDir = params.projectPath
+    ? joinPath(params.projectPath, "design")
+    : undefined;
+  if (projectExportDir) {
+    try {
+      await mkdir(projectExportDir, { recursive: true });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.warning("Project export folder unavailable", {
+        description: `${projectExportDir}: ${msg}. Choose a destination manually.`,
+        duration: 8000,
+      });
+      projectExportDir = undefined;
+    }
+  }
+  const dir = await open({
+    directory: true,
+    multiple: false,
+    ...(projectExportDir ? { defaultPath: projectExportDir } : {}),
+  });
+  if (!dir || typeof dir !== "string") {
+    return null;
+  }
+  try {
+    // Mirror exportExcel: pass UI-capped mappings so Export All respects
+    // maxPrimers cap (frontend designResults is the source of truth, backend
+    // state may contain uncapped plate_mappings).
+    const state = useAppStore.getState();
+    const { designResults, plateMappings, tableSorting } = state;
+    const dedupInfo = params.round ? params.round.dedupInfo : state.dedupInfo;
+    const ordered = params.round
+      ? params.round.mappings
+      : reorderMappings(
+          plateMappings,
+          dedupInfo,
+          getSortedMutations(designResults, tableSorting, {
+            yPredMap: state.yPredMap,
+            customCandidates: state.customCandidates,
+          }),
+        );
+    const resultByMut = new Map(designResults.map((r) => [r.mutation, r]));
+    const enriched = ordered.map((m) => {
+      const r = resultByMut.get(m.mutation);
+      if (!r) return m;
+      return {
+        ...m,
+        tm: m.primer_type === "forward" ? r.tm_no_fwd : r.tm_no_rev,
+        tm_overlap: r.tm_overlap,
+        wt_codon: r.wt_codon,
+        mt_codon: r.mt_codon,
+      };
+    });
+
+    const result = (await sendRequest("export_all", {
+      project_id: params.projectId,
+      project_name: params.projectName || null,
+      output_dir: dir,
+      fwd_plate_name: params.fwdPlateName ?? "",
+      rev_plate_name: params.rvsPlateName ?? "",
+      amount: params.amount,
+      echo_transfer_vol: params.echoTransferVol,
+      quadrant: params.quadrant ?? null,
+      used_quadrants: params.usedQuadrants ?? [],
+      janus_transfer_vol: params.janusTransferVol,
+      bom: params.bom,
+      mappings: enriched,
+      dedup_info: dedupInfo,
+      vectormaps: params.vectormaps ?? false,
+      round_label: params.round?.label ?? null,
+      source_plate: params.round?.sourcePlate ?? null,
+    })) as ExportAllResult;
+
+    const successCount = result.success?.length ?? 0;
+    const failedCount = result.failed?.length ?? 0;
+    const totalCount = successCount + failedCount;
+    const outputDir = result.output_dir ?? dir;
+
+    // Record the produced files so the manifest can hand them to later steps,
+    // the way MAME registers its build outputs. A registry failure must never
+    // turn a successful export into a user-visible error, so it is reported
+    // separately instead of being swallowed.
+    if (successCount > 0) {
+      const artifacts = result.success
+        .map((filename) => {
+          const type = artifactTypeForExportAllFile(filename);
+          return type
+            ? {
+                app: "kuro" as const,
+                step: "export",
+                type,
+                absolutePath: joinPath(outputDir, filename),
+              }
+            : null;
+        })
+        .filter((a): a is NonNullable<typeof a> => a !== null);
+      if (artifacts.length > 0) {
+        try {
+          await ensureWorkspaceFromExportPath(joinPath(outputDir, result.success[0]));
+          await registerArtifacts(artifacts);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          toast.warning("Export saved, but not recorded in the project", {
+            description: `${msg}. Later steps will not auto-fill from these files.`,
+            duration: 8000,
+          });
+        }
+      }
+    }
+
+    const platemapFile = projectSession
+      ? result.success?.find((filename) => filename.endsWith("_platemap.xlsx"))
+      : undefined;
+    if (platemapFile) {
+      offerPlateMapToMame(joinPath(outputDir, platemapFile));
+    }
+
+    if (failedCount === 0 && successCount > 0) {
+      toast.success("Export all complete", {
+        description: `${successCount} of ${totalCount} files exported to ${outputDir}`,
+        duration: 6000,
+        action: { label: "Open folder", onClick: () => void revealInOSFolder(outputDir) },
+      });
+    } else if (successCount > 0 && failedCount > 0) {
+      const firstFailed = result.failed
+        .slice(0, 3)
+        .map((f) => f.path)
+        .join(", ");
+      toast.warning("Export all: partial success", {
+        description: `${successCount} of ${totalCount} files exported to ${outputDir}. Failed: ${firstFailed}${failedCount > 3 ? ` (+${failedCount - 3} more)` : ""}`,
+        duration: 8000,
+        action: { label: "Open folder", onClick: () => void revealInOSFolder(outputDir) },
+      });
+    } else if (failedCount > 0) {
+      const firstFailed = result.failed
+        .slice(0, 3)
+        .map((f) => `${f.path}: ${f.reason}`)
+        .join("; ");
+      toast.error("Export all failed", {
+        description: `0 of ${totalCount} files exported. ${firstFailed}${failedCount > 3 ? ` (+${failedCount - 3} more)` : ""}`,
+        duration: 8000,
+      });
+    } else {
+      toast.info("Export all: nothing to export", {
+        description: `No files were generated in ${outputDir}.`,
+        duration: 6000,
+      });
+    }
+
+    const vm = result.vectormaps;
+    if (vm) {
+      const vmFailed = vm.failed?.length ?? 0;
+      const vmOk = vm.success?.length ?? 0;
+      if (vm.skipped_reason) {
+        toast.warning("Vector maps skipped", {
+          description: vm.skipped_reason,
+          duration: 8000,
+        });
+      } else if (vmFailed > 0) {
+        toast.warning("Vector maps: partial success", {
+          description: `${vmOk} of ${vmOk + vmFailed} clones written to ${vm.output_dir}. Failed: ${vm.failed
+            .slice(0, 3)
+            .map((f) => `${f.path}: ${f.reason}`)
+            .join("; ")}${vmFailed > 3 ? ` (+${vmFailed - 3} more)` : ""}`,
+          duration: 8000,
+        });
+      } else if (vmOk > 0) {
+        toast.success("Vector maps written", {
+          description: `${vmOk} GenBank files in ${vm.output_dir}`,
+          duration: 6000,
+          action: { label: "Open folder", onClick: () => void revealInOSFolder(vm.output_dir) },
+        });
+      }
+    }
+
+    return result;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    toast.error("Export all failed", { description: msg, duration: 8000 });
+    return null;
+  }
+}
+
+/**
+ * Invoke kuro sidecar `export_macrogen` RPC. Caller is responsible for the
+ * output path (typically via the save dialog).
+ */
+export async function handleExportMacrogen(args: {
+  projectId?: string;
+  outputPath: string;
+  fwdPlateName?: string;
+  rvsPlateName?: string;
+  amount?: "0.05" | "0.2";
+}): Promise<{ ok: true; path: string }> {
+  return sendRequest("export_macrogen", {
+    project_id: args.projectId,
+    output_path: args.outputPath,
+    fwd_plate_name: args.fwdPlateName ?? "",
+    rev_plate_name: args.rvsPlateName ?? "",
+    amount: args.amount ?? "0.05",
+    purification: "MOPC",
+  });
+}

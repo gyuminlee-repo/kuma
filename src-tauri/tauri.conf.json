@@ -1,0 +1,90 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicedoc/schemas/main/tauri-v2.json",
+  "productName": "kuma",
+  "version": "0.16.73",
+  "identifier": "com.gyuminlee.kuma",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1421",
+    "beforeDevCommand": "node node_modules/vite/bin/vite.js",
+    "beforeBuildCommand": "node node_modules/typescript/bin/tsc && node node_modules/vite/bin/vite.js build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "kuma",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 900,
+        "minHeight": 600,
+        "resizable": true,
+        "maximized": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.github.com https://github.com https://*.githubusercontent.com"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "dialog": false,
+      "endpoints": [
+        "https://github.com/gyuminlee-repo/kuma/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDg4NERCRUFERTZFRDEzQUEKUldTcUUrM21yYjVOaVB5VGk1enh6YTA3bUhCOGtNQmVMZDVuUklqYldCQWdnL3YxZlBMc0h1TUsK",
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "createUpdaterArtifacts": true,
+    "targets": [
+      "nsis",
+      "deb",
+      "appimage",
+      "dmg"
+    ],
+    "macOS": {
+      "signingIdentity": "-",
+      "minimumSystemVersion": "11.0"
+    },
+    "resources": {
+      "samples/sample_evolvepro.csv": "samples/sample_evolvepro.csv",
+      "samples/sample_plasmid.gb": "samples/sample_plasmid.gb",
+      "samples/mame/reference.fasta": "samples/mame/reference.fasta",
+      "samples/mame/egfp_with_flanks.fa": "samples/mame/egfp_with_flanks.fa",
+      "samples/mame/02_mame_barcode_seeds.xlsx": "samples/mame/02_mame_barcode_seeds.xlsx",
+      "samples/mame/03_mame_expected_mutations.xlsx": "samples/mame/03_mame_expected_mutations.xlsx",
+      "samples/mame/04_mame_custom_barcodes.xlsx": "samples/mame/04_mame_custom_barcodes.xlsx",
+      "samples/mame/06_mame_plate_layout.xlsx": "samples/mame/06_mame_plate_layout.xlsx",
+      "samples/mame/07_mame_activity_long.csv": "samples/mame/07_mame_activity_long.csv",
+      "samples/mame/07_mame_activity_long.xlsx": "samples/mame/07_mame_activity_long.xlsx",
+      "samples/mame/08_mame_evolvepro_raw.xlsx": "samples/mame/08_mame_evolvepro_raw.xlsx",
+      "samples/mame/09_mame_agilent_rep_batch.xlsx": "samples/mame/09_mame_agilent_rep_batch.xlsx",
+      "samples/mame/10_mame_gc_prenormalised.xlsx": "samples/mame/10_mame_gc_prenormalised.xlsx",
+      "samples/mame/11_mame_gc_fid_round1_raw.xlsx": "samples/mame/11_mame_gc_fid_round1_raw.xlsx",
+      "samples/mame/12_mame_agilent_numeric_index.xlsx": "samples/mame/12_mame_agilent_numeric_index.xlsx",
+      "samples/mame/13_mame_verdict.xlsx": "samples/mame/13_mame_verdict.xlsx",
+      "samples/mame/14_mame_activity_long_raw.csv": "samples/mame/14_mame_activity_long_raw.csv",
+      "samples/mame/15_mame_activity_variant.csv": "samples/mame/15_mame_activity_variant.csv",
+      "samples/mame/16_mame_agilent_numeric_confirmation.xlsx": "samples/mame/16_mame_agilent_numeric_confirmation.xlsx",
+      "samples/mame/sample_analysis_result.json": "samples/mame/sample_analysis_result.json",
+      "resources/NOTICE.md": "resources/NOTICE.md",
+      "sidecar-hashes.json": "sidecar-hashes.json"
+    },
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "externalBin": [
+      "binaries/kuro-sidecar",
+      "binaries/mame-sidecar"
+    ]
+  }
+}

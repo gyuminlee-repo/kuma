@@ -1,0 +1,97 @@
+[
+  {
+    "id": "ispS_full",
+    "name": "Populus alba isoprene synthase (ispS) — full CDS",
+    "accession": "AB198180.1",
+    "organism": "Populus alba",
+    "length": 1788,
+    "gc_percent": 41.7,
+    "sequence": "ATGGCAACTGAATTATTGTGCTTGCACCGTCCAATCTCACTGACACACAAACTTTTCAGAAATCCCTTACCTAAAGTCATCCAGGCCACTCCCTTAACTTTGAAACTCAGATGTTCTGTAAGCACAGAAAACGTCAGCTTCACAGAAACAGAAACAGAAGCCAGACGGTCTGCCAATTATGAACCAAATAGCTGGGATTATGATTATTTGCTGTCTTCAGACACTGACGAATCGATTGAGGTATACAAAGACAAGGCCAAAAAGCTGGAGGCTGAGGTGAGAAGAGAGATTAACAATGAAAAGGCAGAGTTTTTGACTCTGCTTGAACTGATAGATAATGTCCAAAGGTTTAGGATTGGGTTACCGGTTCGAGAGTGACATAAGGGGAGCCCTTGATAGATTTGTTTCTTCAGGAGGATTTGATGCTGTTACAAAAACTAGCCTTCATGGTACTGCTCTTAGCTTCAGGCTTCTCAGACAGCATGGTTTTGAGGTCTCTCAAGAAGCGTTCAGTGGATTCAAGGATCAAAATGGCAATTTCTTGGAAAACCTTAAGGAGGACATCAAGGCAATACTAAGCCTATATGAAGCTTCATTTCTTGCATTAGAAGGAGAAAATATCTTGGATGAGGCCAAGGTGTTTGCAATATCACATCTAAAAGAGCTCAGCGAAGAAAAGATTGGAAAAGAGCTGGCCGAACAGGTGAATCATGCATTGGAGCTTCCATTGCATCGCAGGACGCAAAGACTAGAAGCTGTTTGGAGCATTGAAGCATACCGTAAAAAGGAAGATGCAAATCAAGTACTGCTAGAACTTGCTATATTGGACTACAACATGATTCAATCAGTATACCAAAGAGATCTTCGCGAGACATCAAGGTGGTGGAGGCGAGTGGGTCTTGCAACAAAGTTGCATTTTGCTAGAGACAGGTTAATTGAAAGCTTTTACTGGGCAGTTGGAGTTGCGTTCGAGCCTCAATACAGTGATTGCCGTAATTCAGTAGCAAAAATGTTTTCATTTGTAACAATCATTGATGATATCTATGATGTTTATGGTACTCTGGACGAGTTGGAGCTATTTACAGATGCTGTTGAGAGATGGGATGTTAATGCCATCAATGATCTTCCGGATTATATGAAGCTCTGCTTCCTAGCTCTCTACAACACTATCAATGAGATAGCTTATGACAATCTGAAGGACAAGGGGGAAAACATTCTTCCATACCTAACAAAAGCGTGGGCAGATTTATGCAATGCATTCCTACAAGAAGCAAAATGGTTGTACAATAAGTCCACACCAACATTTGATGACTATTTCGGAAATGCATGGAAATCATCCTCAGGGCCTCTTCAACTAGTTTTTGCCTACTTTGCCGTGGTTCAAAACATCAAGAAAGAGGAAATTGAAAACTTACAAAAGTATCATGATACCATCAGTAGGCCTTCCCACATCTTTCGTCTTTGCAACGACCTGGCTTCAGCATCGGCTGAGATAGCGAGAGGTGAAACAGCGAATTCTGTATCATGCTACATGCGTACAAAAGGCATTTCTGAGGAGCTTGCTACTGAATCCGTAATGAACTTGATCGACGAAACCTGGAAAAAGATGAACAAAGAAAAGCTTGGTGGCTCTTTGTTTGCAAAACCTTTTGTCGAAACAGCTATTAACCTTGCACGGCAATCCCATTGCACTTATCATAACGGAGATGCGCATACTTCACCAGACGAGCTAACTAGGAAACGTGTCCTGTCAGTAATCACAGAGCCTATTCTACCCTTTGAGAGATAA",
+    "targets": [
+      {
+        "name": "full_cds",
+        "description": "Full CDS amplification",
+        "target_start": 0,
+        "target_length": 1788,
+        "polymerase": "Q5 High-Fidelity",
+        "use_case": "Full gene cloning"
+      },
+      {
+        "name": "catalytic_domain",
+        "description": "C-terminal catalytic domain (~aa 266-590)",
+        "target_start": 798,
+        "target_length": 750,
+        "polymerase": "Q5 High-Fidelity",
+        "use_case": "Domain subcloning"
+      },
+      {
+        "name": "colony_pcr_check",
+        "description": "Internal fragment for colony PCR verification",
+        "target_start": 400,
+        "target_length": 300,
+        "polymerase": "Taq (NEB)",
+        "use_case": "Colony PCR screening"
+      }
+    ],
+    "cloning_scenarios": [
+      {
+        "name": "gibson_pET28a",
+        "description": "Gibson Assembly into pET-28a(+) NcoI/XhoI site",
+        "target_start": 0,
+        "target_length": 1788,
+        "polymerase": "Q5 High-Fidelity",
+        "hr_method": "Gibson Assembly",
+        "fwd_overhang": "CAGCAAATGGGTCGCGGATCC",
+        "rev_overhang": "GTGGTGGTGGTGGTGCTCGAG"
+      },
+      {
+        "name": "infusion_pUC19",
+        "description": "In-Fusion cloning into pUC19 EcoRI/HindIII",
+        "target_start": 0,
+        "target_length": 1788,
+        "polymerase": "Q5 High-Fidelity",
+        "hr_method": "In-Fusion",
+        "fwd_overhang": "CGACTCACTATAGGGAATTC",
+        "rev_overhang": "GTCGACGGTATCGATAAGCTT"
+      }
+    ]
+  },
+  {
+    "id": "ispS_short",
+    "name": "ispS N-terminal transit peptide region",
+    "accession": "AB198180.1",
+    "organism": "Populus alba",
+    "length": 150,
+    "gc_percent": 38.7,
+    "sequence": "ATGGCAACTGAATTATTGTGCTTGCACCGTCCAATCTCACTGACACACAAACTTTTCAGAAATCCCTTACCTAAAGTCATCCAGGCCACTCCCTTAACTTTGAAACTCAGATGTTCTGTAAGCACAGAAAACGTCAGCTTCACAGAAACA",
+    "targets": [
+      {
+        "name": "transit_peptide",
+        "description": "Chloroplast transit peptide — often removed for bacterial expression",
+        "target_start": 0,
+        "target_length": 150,
+        "polymerase": "Taq (NEB)",
+        "use_case": "Transit peptide truncation verification"
+      }
+    ]
+  },
+  {
+    "id": "ispS_codon_opt_fragment",
+    "name": "ispS codon-optimized fragment for E. coli (synthetic)",
+    "accession": "synthetic",
+    "organism": "Populus alba (codon-optimized for E. coli)",
+    "length": 300,
+    "gc_percent": 52.3,
+    "sequence": "ATGGCGACCGAACTGCTGTGCCTGCACCGTCCGATCTCACTGACCCACAAACTGTTCAGAAACCCGCTGCCGAAAGTGATCCAGGCGACCCCTCTGACCCTGAAACTGCAGATGCTGTGCAGCACCGAAAACGTGAGCTTCACCGAAACCGAAACCGAAGCGCGTCGTTCTGCCAACTATGAACCGAATAGCTGGGATTACGATTATCTGCTGTCTTCCGACACCGACGAAAGCATTGAAGTGTACAAAGACAAAGCGAAAAAGCTGGAAGCGGAAGTGCGTCGTGAAATTAACAACGAAAAAGCG",
+    "targets": [
+      {
+        "name": "codon_opt_check",
+        "description": "Verify codon-optimized construct by sequencing PCR",
+        "target_start": 50,
+        "target_length": 200,
+        "polymerase": "Q5 High-Fidelity",
+        "use_case": "Construct verification"
+      }
+    ]
+  }
+]

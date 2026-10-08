@@ -1,0 +1,119 @@
+/**
+ * runManifest.ts — §12 Reproducibility: run manifest 타입 + 로더
+ *
+ * 백엔드 `kuma_core/shared/run_manifest.py` 와 스키마를 공유한다.
+ * `SCHEMA_VERSION` 상수를 이 파일 한 곳에만 정의하며,
+ * 백엔드 schema_version 변경 시 이 상수도 동기화해야 한다.
+ * 손으로 맞추는 대신 `.cross-layer-sync.json` 의 `run-manifest-schema-version`
+ * 검사가 `kuma_core/shared/run_manifest.py` 의 상수와 이 값을 대조한다.
+ *
+ * 관련: docs/standards/common-frontend-standards.md §12
+ */
+
+import { readTextFile } from "@tauri-apps/plugin-fs";
+import i18next from "i18next";
+
+// ── 스키마 버전 (backend 동기화 단일 포인트) ─────────────────────────────────
+export const SCHEMA_VERSION = "1.0";
+
+// ── 입력 파일 메타 ────────────────────────────────────────────────────────────
+
+export interface RunManifestInput {
+  /** 절대 경로 */
+  path: string;
+  /**
+   * SHA-256 hex digest.
+   *
+   * null 이면 파일은 공급됐고 실행이 소비했으나 digest 를 못 뜬 경우다
+   * (Windows 에서 Excel 이 열어 둔 xlsx 등). 백엔드가 이 키를 통째로
+   * 빼면 "공급 안 됨"과 구별이 사라지므로 null 로 남긴다.
+   * `unreadable` 에 사유가 들어간다.
+   */
+  sha256: string | null;
+  /** 파일 크기 (bytes). digest 를 못 뜬 경우 null. */
+  size_bytes: number | null;
+  /** 읽기 실패 사유. 정상 입력에는 없다. */
+  unreadable?: string;
+}
+
+// ── manifest 루트 타입 ────────────────────────────────────────────────────────
+
+export interface RunManifest {
+  schema_version: string;
+  /** 백엔드 RPC method 이름 */
+  method: string;
+  kuma_version: string;
+  kuro_module_version?: string;
+  python_version: string;
+  /** "linux" | "macos" | "win32" */
+  platform: string;
+  started_at: string;
+  finished_at: string;
+  duration_seconds: number;
+  inputs: Record<string, RunManifestInput>;
+  params: Record<string, unknown>;
+  seed: number | null;
+  extra?: Record<string, unknown>;
+}
+
+// ── type guard ────────────────────────────────────────────────────────────────
+
+/**
+ * value 가 RunManifest 구조인지 확인하는 type guard.
+ * 필수 최상위 필드만 검사한다 (과도한 재귀 검증 회피).
+ */
+export function isRunManifest(value: unknown): value is RunManifest {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v["schema_version"] === "string" &&
+    typeof v["method"] === "string" &&
+    typeof v["kuma_version"] === "string" &&
+    typeof v["python_version"] === "string" &&
+    typeof v["platform"] === "string" &&
+    typeof v["started_at"] === "string" &&
+    typeof v["finished_at"] === "string" &&
+    typeof v["duration_seconds"] === "number" &&
+    typeof v["inputs"] === "object" &&
+    v["inputs"] !== null &&
+    typeof v["params"] === "object" &&
+    v["params"] !== null &&
+    (v["seed"] === null || typeof v["seed"] === "number")
+  );
+}
+
+// ── 로더 ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Tauri plugin-fs 로 경로를 읽고 JSON 파싱 + 스키마 검증을 수행한다.
+ *
+ * @throws 파일 읽기 실패, JSON 파싱 오류, 스키마 불일치 시 Error
+ */
+export async function loadManifestFromFile(path: string): Promise<RunManifest> {
+  let text: string;
+  try {
+    text = await readTextFile(path);
+  } catch (cause) {
+    throw new Error(i18next.t("runManifest.readFailed", { path, cause: String(cause) }));
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text) as unknown;
+  } catch (cause) {
+    throw new Error(i18next.t("runManifest.parseFailed", { path, cause: String(cause) }));
+  }
+
+  if (!isRunManifest(parsed)) {
+    throw new Error(i18next.t("runManifest.invalidStructure", { path }));
+  }
+
+  if (parsed.schema_version !== SCHEMA_VERSION) {
+    throw new Error(i18next.t("runManifest.unsupportedSchema", {
+      version: parsed.schema_version,
+      supported: SCHEMA_VERSION,
+    }));
+  }
+
+  return parsed;
+}

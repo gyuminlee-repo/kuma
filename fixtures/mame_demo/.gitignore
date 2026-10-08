@@ -1,0 +1,4 @@
+# Generated fixture data — regenerate locally via:
+#   python3 fixtures/mame_demo/generate.py
+# Reproducible with random.seed(42), so version-control of generate.py is enough.
+consensus/

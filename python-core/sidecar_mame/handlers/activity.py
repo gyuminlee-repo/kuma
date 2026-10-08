@@ -1,0 +1,678 @@
+"""``activity.*`` JSON-RPC handlers for MAME activity integration.
+
+Spec: notes/specs/2026-05-04-mame-activity-integration.md §3.2
+
+State model
+-----------
+Round objects are stored in the module-level ``_rounds`` dict, keyed by
+``round_id``. Each entry is a plain dict matching the workspace schema
+(§2.1). Callers (dispatcher, tests) interact with this state via the
+four handler functions below.
+
+Dispatcher registration is in ``sidecar_mame.dispatcher``.
+"""
+
+from __future__ import annotations
+
+import threading
+from datetime import datetime, timezone
+from typing import Any
+
+from sidecar_mame.core import (
+    _validate_filepath,
+    _validate_output_path,
+)
+from kuma_core.shared.sidecar import parse_finite_float
+
+# ---------------------------------------------------------------------------
+# Module-level round state (activity handlers only)
+# ---------------------------------------------------------------------------
+_rounds: dict[str, dict[str, Any]] = {}
+_rounds_lock = threading.Lock()
+
+_ALLOWED_ACTIVITY_EXTENSIONS = {".csv", ".xlsx", ".xls"}
+_ALLOWED_EXPORT_XLSX_EXTENSIONS = {".xlsx"}
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+def _get_round(round_id: str) -> dict:
+    """Return the round dict or raise RuntimeError (-32002 in dispatcher).
+
+    Raises ValueError for empty/missing round_id (-32602 in dispatcher).
+    """
+    if not round_id:
+        raise ValueError("round_id is required")
+    rd = _rounds.get(round_id)
+    if rd is None:
+        raise RuntimeError(f"Round not found: {round_id}")
+    return rd
+
+
+def _ensure_round(round_id: str, *, n: int = 1) -> dict:
+    """Return the round dict, lazily creating it with defaults if missing.
+
+    Frontend ``addRound`` only mutates the React Zustand store; the sidecar
+    has no corresponding state until an activity.* RPC is called. Without
+    lazy-init, the first ``activity.upload`` call after entering the Activity
+    phase fails with ``Round not found`` because no prior RPC seeded
+    ``_rounds[round_id]``. Lazy-init keeps the dispatcher API ergonomic
+    (frontend does not need a separate ``round.create`` RPC) without breaking
+    tests that pre-populate ``_rounds`` directly.
+
+    Caller must hold ``_rounds_lock``.
+    """
+    if not round_id:
+        raise ValueError("round_id is required")
+    rd = _rounds.get(round_id)
+    if rd is None:
+        rd = {
+            "round_id": round_id,
+            "n": n,
+            "status": "design",
+            "plate_meta": {"plates": []},
+        }
+        _rounds[round_id] = rd
+    return rd
+
+def reset_activity_state() -> None:
+    """Clear cached round/activity state for a new project or explicit reset."""
+    with _rounds_lock:
+        _rounds.clear()
+
+
+def _extract_kuro_design(design: dict) -> dict[tuple[str, str], str]:
+    """Extract (plate_id, well_id) → mutation from a design snapshot dict.
+
+    Expects ``design["plateMap"]`` to be a list of
+    ``{plate_id, well_id, mutation}`` dicts. Unknown/missing keys return an
+    empty mapping (graceful degradation for rounds where design is not yet
+    populated).
+    """
+    plate_map = design.get("plateMap", [])
+    result: dict[tuple[str, str], str] = {}
+    for item in plate_map:
+        pid = item.get("plate_id")
+        wid = item.get("well_id")
+        mut = item.get("mutation")
+        if pid and wid and mut:
+            result[(pid, wid)] = mut
+    return result
+
+
+def _extract_mame_genotype(genotype: dict) -> dict[tuple[str, str], str]:
+    """Extract (plate_id, well_id) → called_mutation from a genotype snapshot dict.
+
+    Expects ``genotype["verdict"]`` to be a list of
+    ``{plate_id, well_id, called_mutation}`` dicts.
+    """
+    verdicts = genotype.get("verdict", [])
+    result: dict[tuple[str, str], str] = {}
+    for v in verdicts:
+        pid = v.get("plate_id")
+        wid = v.get("well_id")
+        called = v.get("called_mutation")
+        if pid and wid and called:
+            result[(pid, wid)] = called
+    return result
+
+
+def _is_wt_key(key: str) -> bool:
+    """Return True if *key* represents a WT entry.
+
+    Covers both plain 'WT' (EVOLVEpro convention) and 'WT_1'/'WT1' patterns
+    (well-level replicate names from normalize.WT_PATTERN).
+    Plain 'WT' is not matched by WT_PATTERN (which requires a numeric suffix),
+    so this function unions both checks.
+    """
+    from kuma_core.mame.activity.normalize import WT_PATTERN
+    return key == "WT" or bool(WT_PATTERN.match(key))
+
+
+# ---------------------------------------------------------------------------
+# Handlers
+# ---------------------------------------------------------------------------
+
+def handle_activity_upload(params: dict) -> dict:
+    """``activity.upload`` — ingest a long-format CSV/Excel file.
+
+    Params: ``{round_id, file_path, format}``
+
+    Returns: ``{records: ActivityRecord[], warnings: string[],
+    dropped_rows: DroppedRow[]}``
+
+    Raises:
+        RuntimeError: round_id not found in state.
+        FileNotFoundError: file_path missing or unresolvable.
+        ValueError: unsupported file extension or missing required columns.
+    """
+    from kuma_core.mame.activity.ingest_long_csv import ingest_long_csv
+
+    round_id: str = params["round_id"]
+
+    with _rounds_lock:
+        # Lazy-init: frontend addRound only mutates Zustand; sidecar would
+        # otherwise raise "Round not found" on the first upload call.
+        rd = _ensure_round(round_id)
+
+        resolved = _validate_filepath(
+            params.get("file_path"),
+            allowed_extensions=_ALLOWED_ACTIVITY_EXTENSIONS,
+        )
+
+        pmeta_raw: dict = rd["plate_meta"]
+        wt_lookup: dict[str, list[str]] = {
+            p["plate_id"]: p["wt_wells"]
+            for p in pmeta_raw.get("plates", [])
+        }
+
+        table = ingest_long_csv(resolved, wt_lookup)
+
+        # Persist raw records into round state for downstream merge.
+        # wt_records holds dedicated 'WT_1'-style replicate rows and must survive
+        # to merge time; they define the WT denominator when present.
+        # dropped_rows names every source row the parser skipped and why, so a
+        # lost measurement is visible instead of silently missing.
+        rd["activity"] = {
+            "raw_records": [r.model_dump() for r in table.records],
+            "wt_records": [r.model_dump() for r in table.wt_records],
+            "dropped_rows": [d.model_dump() for d in table.dropped_rows],
+        }
+
+    serialised = [r.model_dump() for r in table.records]
+    return {
+        "records": serialised,
+        "plate_meta": pmeta_raw,
+        "warnings": [],
+        "dropped_rows": [d.model_dump() for d in table.dropped_rows],
+    }
+
+
+def handle_activity_set_plate_meta(params: dict) -> dict:
+    """``activity.set_plate_meta`` — update plate metadata for a round.
+
+    Params: ``{round_id, plate_meta}``
+
+    Returns: ``{ok: true}``
+
+    Raises:
+        RuntimeError: round_id not found.
+        KeyError: plate_meta key missing from params.
+    """
+    round_id: str = params["round_id"]
+    new_meta: dict = params["plate_meta"]  # KeyError if missing — maps to -32602
+
+    with _rounds_lock:
+        # Lazy-init so the very first frontend call after addRound succeeds.
+        rd = _ensure_round(round_id)
+        rd["plate_meta"] = new_meta
+
+    return {"ok": True}
+
+
+def handle_activity_merge(params: dict) -> dict:
+    """``activity.merge`` — merge design, genotype, and activity by (plate_id, well_id).
+
+    Params: ``{round_id}``
+
+    Returns: ``{merged: MergedRow[], stats: MergeStats}``
+
+    Raises:
+        RuntimeError: round_id not found.
+    """
+    from kuma_core.mame.activity.join import merge_activity_with_genotype
+    from kuma_core.mame.activity.models import (
+        ActivityRecord,
+        PlateMeta,
+        WtReplicateRecord,
+    )
+
+    round_id: str = params["round_id"]
+
+    with _rounds_lock:
+        rd = _get_round(round_id)
+
+        kuro_design = _extract_kuro_design(rd.get("design") or {})
+        mame_genotype = _extract_mame_genotype(rd.get("genotype") or {})
+
+        plate_meta = PlateMeta(**rd["plate_meta"])
+
+        activity_data = rd.get("activity") or {}
+        raw_dicts: list[dict] = activity_data.get("raw_records", [])
+        activity_records: list[ActivityRecord] = [
+            ActivityRecord(**r) for r in raw_dicts
+        ]
+
+        wt_records: list[WtReplicateRecord] = [
+            WtReplicateRecord(**r) for r in activity_data.get("wt_records", [])
+        ]
+
+        rows, stats = merge_activity_with_genotype(
+            kuro_design, mame_genotype, activity_records, plate_meta, wt_records
+        )
+
+        merged_dicts = [r.model_dump() for r in rows]
+        rd["merged_table"] = merged_dicts
+        rd["status"] = "activity_linked"
+
+    return {
+        "merged": merged_dicts,
+        "stats": stats.model_dump(),
+    }
+
+
+def handle_activity_export_evolvepro_xlsx(params: dict) -> dict:
+    """``activity.export_evolvepro_xlsx`` — write EVOLVEpro-compatible xlsx.
+
+    Spec: notes/specs/2026-05-06-mame-activity-v0.3-xlsx-pipeline.md §1, §2.4
+
+    Params: ``{round_id, path}``
+
+    Returns: ``{written_rows: int, columns: str[], manifest_path: str}``
+
+    Raises:
+        RuntimeError: round_id not found.
+        FileNotFoundError: parent directory of path does not exist.
+        ValueError: unsupported output extension.
+    """
+    from kuma_core.mame.activity.export_evolvepro import export_evolvepro_xlsx
+    from kuma_core.mame.activity.models import MergedRow
+    from kuma_core.shared.run_manifest import build_run_manifest, write_run_manifest
+    from kuma_core.shared.output_hash import write_output_checksum
+
+    started_at = datetime.now(timezone.utc)
+
+    round_id: str = params["round_id"]
+
+    with _rounds_lock:
+        rd = _get_round(round_id)
+        if rd.get("export_blocked", False):
+            raise ExportBlockedError(
+                "Export blocked: resolve label-swap errors and successfully "
+                "re-run merge_for_evolvepro before exporting."
+            )
+        merged_dicts: list[dict] = rd.get("merged_table") or []
+
+    out_path = _validate_output_path(
+        params.get("path"),
+        allowed_extensions=_ALLOWED_EXPORT_XLSX_EXTENSIONS,
+    )
+
+    rows: list[MergedRow] = [MergedRow(**r) for r in merged_dicts]
+    written, excluded = export_evolvepro_xlsx(rows, out_path)
+
+    finished_at = datetime.now(timezone.utc)
+
+    manifest = build_run_manifest(
+        method="activity.export_evolvepro_xlsx",
+        inputs={},
+        params={"round_id": round_id, "path": params.get("path")},
+        started_at=started_at,
+        finished_at=finished_at,
+    )
+    mpath = out_path.parent / (out_path.stem + ".run.json")
+    write_run_manifest(mpath, manifest)
+    cpath = write_output_checksum(out_path)
+
+    return {
+        "written_rows": written,
+        "columns": ["Variant", "activity"],
+        "excluded": [{"label": label, "reason": reason} for label, reason in excluded],
+        "manifest_path": str(mpath),
+        "checksum_path": str(cpath),
+    }
+
+
+# ---------------------------------------------------------------------------
+# B-5: New handler — merge + label-swap guard + EVOLVEpro export preparation
+# ---------------------------------------------------------------------------
+
+class ExportBlockedError(RuntimeError):
+    """Raised when label-swap guard blocks export (-32004)."""
+
+
+def handle_merge_for_evolvepro(params: dict) -> dict:
+    """``mame.activity.merge_for_evolvepro`` — merge replicates + label-swap guard.
+
+    This handler integrates Phase A xlsx adapters with Phase B merge logic.
+    It does NOT replace ``activity.merge`` (5/12 demo path — unchanged).
+
+    Params:
+        round_id (str): Round identifier. Must exist in _rounds state.
+        prev_round_evolvepro (dict): {short_variant: activity} from round N-1.
+            Pass {} for round 1.
+        authoritative_measurements (dict, optional): Phase B. short_variant →
+            list[float] re-measurement data. Empty dict skips replicate merge.
+        fallback_measurements (dict, optional): Phase B. short_variant →
+            list[float] primary measurement data.
+        mismatch_threshold (float, optional): Mean difference threshold for
+            mismatch flagging. Default 0.1.
+        ref_seq (str, optional): WT reference sequence for from_evolvepro
+            conversion. Required when non-WT authoritative or fallback
+            measurements remain after WT-key filtering. WT-only input
+            does not require ref_seq.
+
+    Returns:
+        {
+          "merged": MergedRow[],
+          "stats": MergeStats (includes warnings),
+          "replicate_stats": MergeReplicatesStats | null,
+          "export_blocked": bool
+        }
+
+    Raises:
+        RuntimeError(-32002): round_id not found.
+        ExportBlockedError(-32004): SwapWarning with severity="error" detected.
+        KeyError(-32602): required parameter missing.
+        ValueError(-32602): ref_seq missing when non-WT replicate data
+            provided; empty measurement list; from_evolvepro parse failure.
+    """
+    from kuma_core.mame.activity.join import merge_activity_with_genotype
+    from kuma_core.mame.activity.merge import merge_replicates_priority
+    from kuma_core.mame.activity.models import (
+        ActivityRecord,
+        MergeReplicatesStats,
+        MergeStats,
+        PlateMeta,
+        Variant,
+        WtReplicateRecord,
+    )
+    from kuma_core.mame.activity.sanity_check import detect_label_swap
+    from kuma_core.mame.activity.variant_notation import from_evolvepro
+    round_id: str = params["round_id"]  # KeyError → -32602 via dispatcher
+    prev_round_evolvepro: dict[str, float] = params.get("prev_round_evolvepro", {})
+    authoritative_measurements: dict[str, list[float]] = params.get(
+        "authoritative_measurements", {}
+    ) or {}
+    fallback_measurements: dict[str, list[float]] = params.get(
+        "fallback_measurements", {}
+    ) or {}
+    # The same rule models.py:BuildEvolveproInputParams states for this
+    # parameter (gt=0.0), applied here too. Both handlers feed the value to
+    # merge_replicates_priority, and only the other one went through pydantic,
+    # so a NaN or a non-positive threshold arriving on this path reached
+    # ``if diff > mismatch_threshold`` and made it False for every replicate:
+    # no mismatch was ever flagged and the export-blocked judgement went quiet.
+    mismatch_threshold = parse_finite_float(
+        params.get("mismatch_threshold", 0.1), field="mismatch_threshold"
+    )
+    if mismatch_threshold <= 0.0:
+        raise ValueError(
+            f"mismatch_threshold must be greater than 0 (got "
+            f"{mismatch_threshold}). A threshold at or below zero flags every "
+            "replicate pair or none of them, depending on the comparison, "
+            "rather than the ones that actually disagree."
+        )
+    ref_seq: str | None = params.get("ref_seq")
+
+    # WT key filtering: remove WT entries before deciding whether a reference is
+    # required. WT is reference baseline, not a variant.
+    # Covers plain 'WT' (EVOLVEpro convention) and 'WT_N'/'WTN' patterns.
+    has_replicate_data = bool(authoritative_measurements or fallback_measurements)
+    if has_replicate_data:
+        authoritative_measurements = {
+            k: v for k, v in authoritative_measurements.items()
+            if not _is_wt_key(k)
+        }
+        fallback_measurements = {
+            k: v for k, v in fallback_measurements.items()
+            if not _is_wt_key(k)
+        }
+        # Re-evaluate after WT filtering: both may be empty now.
+        has_replicate_data = bool(authoritative_measurements or fallback_measurements)
+
+    if has_replicate_data:
+        if not isinstance(ref_seq, str) or not ref_seq.strip():
+            raise ValueError(
+                "ref_seq is required when non-WT replicate measurements are provided"
+            )
+        ref_seq = ref_seq.strip()
+
+    with _rounds_lock:
+        rd = _get_round(round_id)  # RuntimeError → -32002 via dispatcher
+
+        kuro_design = _extract_kuro_design(rd.get("design") or {})
+        mame_genotype = _extract_mame_genotype(rd.get("genotype") or {})
+
+        plate_meta = PlateMeta(**rd["plate_meta"])
+
+        activity_data = rd.get("activity") or {}
+        raw_dicts: list[dict] = activity_data.get("raw_records", [])
+        activity_records: list[ActivityRecord] = [
+            ActivityRecord(**r) for r in raw_dicts
+        ]
+
+        wt_records: list[WtReplicateRecord] = [
+            WtReplicateRecord(**r) for r in activity_data.get("wt_records", [])
+        ]
+
+        rows, stats = merge_activity_with_genotype(
+            kuro_design, mame_genotype, activity_records, plate_meta, wt_records
+        )
+
+        # Phase B replicate merge (skipped when no replicate data provided).
+        replicate_stats: MergeReplicatesStats | None = None
+        if has_replicate_data:
+            # Convert short EVOLVEpro notation → internal notation.
+            # ValueError from from_evolvepro (bad notation) → -32602 via dispatcher.
+            # ref_seq is a validated, non-empty string here: the earlier
+            # has_replicate_data block raised unless it was one, and neither it
+            # nor has_replicate_data is reassigned in between.
+            assert ref_seq is not None
+            authoritative_internal: dict[Variant, list[float]] = {
+                Variant(from_evolvepro(k, ref_seq)): v
+                for k, v in authoritative_measurements.items()
+            }
+            fallback_internal: dict[Variant, list[float]] = {
+                Variant(from_evolvepro(k, ref_seq)): v
+                for k, v in fallback_measurements.items()
+            }
+
+            # ValueError (empty list) → -32602 via dispatcher.
+            merged_dict, replicate_stats = merge_replicates_priority(
+                authoritative_internal,
+                fallback_internal,
+                mismatch_threshold=mismatch_threshold,
+            )
+
+            # Map merged values onto MergedRow.activity_merged_mean.
+            for row in rows:
+                if row.mutation is not None:
+                    v_key = Variant(row.mutation)
+                    if v_key in merged_dict:
+                        row.activity_merged_mean = merged_dict[v_key]
+
+        # Build activity_map: well_id → mean activity (for swap detection).
+        # activity_raw_mean is used per D-2 decision (OQ-2: no change).
+        activity_map: dict[str, float] = {}
+        for row in rows:
+            if row.activity_raw_mean is not None:
+                activity_map[row.well_id] = row.activity_raw_mean
+
+        # Build layout from merged rows that have a mutation assigned.
+        layout: list[tuple[str, str]] = []
+        for row in rows:
+            if row.mutation is not None:
+                layout.append((row.mutation, row.well_id))
+
+        # Label-swap detection (round 1 → prev_round_evolvepro={} → returns []).
+        swap_warnings = detect_label_swap(
+            layout,
+            activity_map,
+            prev_round_evolvepro,
+        )
+
+        # Attach warnings to stats.
+        stats_with_warnings = MergeStats(
+            **{
+                **stats.model_dump(exclude={"warnings"}),
+                "warnings": swap_warnings,
+            }
+        )
+
+        merged_dicts = [r.model_dump() for r in rows]
+        rd["merged_table"] = merged_dicts
+        export_blocked = any(w.severity == "error" for w in swap_warnings)
+        rd["export_blocked"] = export_blocked
+        rd["status"] = "error" if export_blocked else "activity_linked"
+
+    result: dict[str, Any] = {
+        "merged": merged_dicts,
+        "stats": stats_with_warnings.model_dump(),
+        "replicate_stats": (
+            replicate_stats.__dict__ if replicate_stats is not None else None
+        ),
+        "export_blocked": export_blocked,
+    }
+
+    if export_blocked:
+        # Raise so the dispatcher maps this to error code -32004.
+        raise ExportBlockedError(
+            f"Export blocked: {sum(1 for w in swap_warnings if w.severity == 'error')} "
+            "label-swap error(s) detected. Resolve warnings before exporting. "
+            f"Affected variants: "
+            f"{[v for w in swap_warnings if w.severity == 'error' for v in w.variants]}"
+        )
+
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Unified Step 3 EVOLVEpro input build
+# ---------------------------------------------------------------------------
+
+def _serialise_label_audit(audit: Any) -> dict | None:
+    if audit is None:
+        return None
+    return {
+        "discordant": [
+            {
+                "well": finding.well,
+                "expected": finding.expected,
+                "observed": list(finding.observed),
+                "category": finding.category,
+                "verdict": finding.verdict,
+            }
+            for finding in audit.discordant
+        ],
+        "n_checked": audit.n_checked,
+        "n_unevaluable": audit.n_unevaluable,
+        "is_closed_permutation": audit.is_closed_permutation,
+        "cycles": [list(cycle) for cycle in audit.cycles],
+        "geometry": audit.geometry,
+    }
+
+
+def handle_build_evolvepro_input(params: dict) -> dict:
+    """Build the strict single-path MAME Step 3 EVOLVEpro input workbook."""
+    from kuma_core.mame.activity.build_evolvepro_input import build_evolvepro_input
+    from sidecar_mame.models import BuildEvolveproInputParams
+
+    p = BuildEvolveproInputParams.model_validate(params)
+    try:
+        result = build_evolvepro_input(
+            p.output_xlsx,
+            activity_path=p.activity_path,
+            activity_scale=p.activity_scale,
+            gc_data_xlsx=p.gc_data_xlsx,
+            round1_report_xlsx=p.round1_report_xlsx,
+            numeric_report_xlsx=p.numeric_report_xlsx,
+            remeasure_report_xlsx=p.remeasure_report_xlsx,
+            remeasure_numeric_xlsx=p.remeasure_numeric_xlsx,
+            verdict_xlsx=p.verdict_xlsx,
+            layout_xlsx=p.layout_xlsx,
+            expected_xlsx=p.expected_xlsx,
+            mismatch_threshold=p.mismatch_threshold,
+            gc_export_xlsx=p.gc_export_xlsx,
+            allow_label_mismatch=p.allow_label_mismatch,
+        )
+    except ValueError as exc:
+        # The core owns the audit decision, while this adapter owns the GUI
+        # contract. Replace only its stable blocked-export message so a GUI
+        # operator is directed to the acknowledgement control rather than an
+        # unreachable JSON-RPC parameter.
+        if str(exc) == (
+            "Label swap detected; export blocked. Review the layout and verdict labels "
+            "or set allow_label_mismatch=True after review."
+        ):
+            raise ValueError(
+                "errors.mame.labelMismatchBlocked"
+            ) from exc
+        raise
+    return {
+        "output_path": str(result.output_path),
+        "n_variants": result.n_variants,
+        "n_authoritative": result.n_authoritative,
+        "n_fallback_only": result.n_fallback_only,
+        "warnings": result.warnings,
+        "mismatched": result.mismatched,
+        "n_ngs_excluded": result.n_ngs_excluded,
+        "ngs_excluded": result.ngs_excluded,
+        "gc_export_path": str(result.gc_export_path) if result.gc_export_path else "",
+        "label_audit": _serialise_label_audit(result.label_audit),
+        "manifest_path": str(result.manifest_path) if result.manifest_path else "",
+        "primary_format": result.primary_format,
+        "input_count": result.input_count,
+        "evaluable_count": result.evaluable_count,
+        "exclusion_reason_counts": result.exclusion_reason_counts,
+        "normalization_sources": result.normalization_sources,
+        "evidence_hash": result.evidence_hash,
+        "artifact_hashes": result.artifact_hashes,
+        # The wild-type replicates behind this workbook, on the scale of its
+        # activity column. The workbook drops the WT rows, so this response is
+        # the only place step 4.2 can pick them up from.
+        "wt_values": result.wt_values,
+        # The replicates behind each exported activity, keyed by the variant as
+        # the workbook writes it. The workbook states one mean per variant, so
+        # without this a reader cannot tell how many measurements produced it,
+        # and that count is what says how much weight the mean carries.
+        "variant_replicates": result.variant_replicates,
+    }
+
+
+def handle_detect_measurement_source(params: dict) -> dict:
+    """Report which step 4.1 measurement sources the given file could be.
+
+    Step 4.1 asked the operator to pick one of four formats.  The file states
+    which ones it can be, so this reads it instead.  The answer is a list: a
+    pre-normalised GC sheet is also a valid long-format file, and the two
+    readings differ in what they do with the wild-type rows, which is the
+    round's decision rather than the file's.  An unrecognised file comes back
+    with an empty ``candidates`` and a ``reason``, not an error, because "not
+    one of the four" is an answer the caller shows.
+    """
+    from kuma_core.mame.activity.detect_measurement_source import (
+        detect_measurement_source,
+    )
+    from sidecar_mame.models import (
+        DetectMeasurementSourceParams,
+        DetectMeasurementSourceResult,
+    )
+
+    p = DetectMeasurementSourceParams.model_validate(params)
+    path = _validate_filepath(
+        p.measurement_path, allowed_extensions=_ALLOWED_ACTIVITY_EXTENSIONS
+    )
+    detection = detect_measurement_source(path, sheet_index=p.sheet_index)
+    return DetectMeasurementSourceResult(
+        path=detection.path,
+        candidates=detection.candidates,
+        ambiguous=detection.ambiguous,
+        evidence=detection.evidence,
+        reason=detection.reason,
+    ).model_dump()
+
+
+__all__ = [
+    "handle_activity_upload",
+    "handle_activity_set_plate_meta",
+    "handle_activity_merge",
+    "handle_activity_export_evolvepro_xlsx",
+    "handle_merge_for_evolvepro",
+    "handle_build_evolvepro_input",
+    "handle_detect_measurement_source",
+    "ExportBlockedError",
+    "_rounds",
+]

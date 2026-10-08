@@ -1,0 +1,254 @@
+# Changelog
+
+> **주의 (2026-08-07)**: 아래는 각 버전 시점의 기록이며 그대로 둔다. JANUS 관련 항목(v0.9.9.0 의 "JANUS (96-well, 2 rack) 매핑 미리보기", v0.9.9.3 의 "JANUS 어댑터 rack 할당")은 그 뒤 두 번 무너졌으므로 현재 동작으로 읽지 말 것. 어댑터는 `asp_rack` 을 되읽지 않고 `role` 로 분기하며(`src/lib/echoJanusAdapter.ts:79-101`), rack 값은 정수 deck 번호가 아니라 플레이트 이름 문자열이다. 현재 형식의 정본은 `kuma_core/shared/janus_deck.py:37-46` (8열 헤더) 과 [MAME step 3 문서](../mame/03-janus.md) 다.
+
+## v0.13.12: reference-sequence domains, guided onboarding, update recommendations
+
+- 새 프로젝트 최초 진입 시 공통 내비게이션과 Kuro의 워크플로·작업 영역·인스펙터를 순서대로 강조하는 spotlight 투어가 표시됩니다. Mame은 처음 진입할 때 별도 투어를 제공합니다.
+- **모든 투어 건너뛰기**는 프로젝트별로 영속되며, `Esc`는 현재 투어만 닫습니다. 기존 프로젝트에는 자동 표시되지 않고, **도움말 → 가이드 투어 보기**에서 현재 도구의 투어를 재실행할 수 있습니다.
+- 앱 시작 시 GitHub 최신 공개 릴리스를 확인하여 설치 버전보다 새로운 경우에만 업데이트를 권장합니다. 네트워크 실패는 시작을 막지 않으며 **도움말 → 업데이트 확인**에서 수동 확인할 수 있습니다.
+- Kuro domain allocation now supports direct reference-sequence InterProScan annotation with sequence-hash caching and keeps reference-frame selection domains separate from UniProt accession-frame 3D domains.
+
+---
+
+## KURO 3D structure analysis (2026-07-01)
+
+v0.13.7 ~ v0.13.10 KURO 관련 변경 사항입니다.
+
+### Kuro
+
+- Output 단계에 **Candidate 3D structure analysis** 패널 추가: 3Dmol 뷰어, active/binding-site 강조, 공간 분산(무작위 matched-size null 대비, 백분위 `P1`/`P99`), Color legend(항목 클릭으로 3D 레이어 토글), surface, PNG export. dispersion·pLDDT·site 오버레이는 선정 필터가 아니라 해석·QC 보조이고, 무엇을 설계할지는 EVOLVEpro `y_pred` 랭킹이 결정. (v0.13.7~v0.13.8)
+- 매핑 서열을 로드된 구조에서 직접 파싱하도록 수정 — UniProt 서열 조회 실패 시 전부 dropped 되던 문제 해결. 패키지 앱의 `BLOSUM62` 데이터 부재 오류도 수정. (v0.13.8~v0.13.9)
+- 마젠타 오버레이 라벨을 "Interface" → **"Binding site"**(UniProt Binding site)로 정정, 히스토그램 백분위 `P1`/`P99` 표기, 3D 뷰어-우선 레이아웃. (v0.13.8)
+- 3D **Surface**(CSP blob worker 허용) 및 **Export PNG**(Tauri save 다이얼로그+fs) 동작 수정. (v0.13.10)
+
+### Releases
+
+- GitHub 릴리즈에 `SHA256SUMS.txt` 첨부 + Windows SmartScreen/체크섬/ macOS Gatekeeper 안내. 코드 서명이 없어 SmartScreen 경고 자체는 계속 뜸(무결성은 체크섬으로 검증). (v0.13.9)
+
+---
+## MAME v0.13 update (2026-06-10)
+
+2026-06-10 MAME v0.13.0.1 ~ v0.13.3.0 변경 사항입니다.
+
+### MAME
+
+- verdict depth gate가 consensus header의 실제 read depth(`depth=N`, `min_read_count` 기본 30)로 LOWDEPTH를 판정합니다. file-size 검사는 depth header가 없을 때만 동작하는 fallback으로 강등되어, 동일 앰플리콘 well의 유전자 길이 consensus FASTA가 raw-read file-size 기준을 못 넘겨 모든 well이 LOWDEPTH로 잘못 분류되던 문제를 수정했습니다. (v0.13.0.1)
+- analyze가 record 단위 sub-progress와 30초 keep-alive 신호를 보내, ETA가 60% 부근에서 멈추거나 정상적인 장시간 analyze에서 300초 "응답 없음" 창이 뜨던 문제를 수정했습니다. (v0.13.1.0)
+- raw-run demux step 2.1 쓰기가 atomic이고 barcode group마다 완료 마커를 기록합니다. 재실행은 완료된 group을 건너뛰고, 존재하지만 무효한 마커는 fail-fast로 거부하되 마커가 없는 legacy·외부 정렬 디렉토리는 그대로 로드합니다. 중단 시 orphan 가드가 `.fa`/`.fas`도 감지하고, 재개 실행은 완료 마커에서 입력·미할당 read 수를 복원합니다. (v0.13.2.1, v0.13.2.4) 재실행 시 건너뛰기는 raw_run 경로(`run_combinatorial_demux`)에도 적용되어, 완료 마커가 있는 폴더를 다시 돌리면 끝난 native barcode를 건너뜁니다. (v0.13.2.6)
+- Janus mapping, Run report, Barcode package export가 기존 출력을 덮어쓰기 전에 확인합니다(Barcode package는 `design/` 디렉토리 단위 확인). (v0.13.2.2)
+- consensus N-fraction 허용치(`max_consensus_n_fraction`)를 MAME analyze 파라미터 패널에서 조절할 수 있습니다(기본 0.0, 엄격). (v0.13.3.0)
+- macOS minimap2를 CI에서 소스로 컴파일해 macOS sidecar에 번들하므로(Windows MinGW 단계 대응) macOS 앱에서 raw-run 정렬이 동작합니다. (v0.13.2.5)
+
+---
+
+## MAME native consensus QC update (2026-06-07)
+
+2026-06-07 MAME는 외부 TFP-SEQ/seq_cons 호환층을 추가하지 않고, 자체 raw FASTQ → demux → consensus → verdict 경로를 강화했습니다.
+
+### MAME
+
+- raw FASTQ demux 경로에서 read ID와 Phred quality string을 보존하여, 저품질 base call이 consensus 투표를 이기지 못하게 했습니다.
+- MAME가 생성하는 consensus FASTA header에 `depth=N`, `low_depth_positions`, `consensus_n_fraction`, `low_quality_bases`, `mixed_positions`, `max_minor_allele_fraction` 등의 QC metadata를 기록합니다.
+- verdict의 `read_count`는 파일 크기 대리지표가 아니라 consensus header의 실제 depth를 우선 사용합니다.
+- consensus N signal은 기본적으로 `LOWDEPTH`, within-well mixed-read evidence는 `AMBIGUOUS`로 분류되어 51:49 다수결 well이 조용히 PASS하지 않도록 했습니다.
+- verdict table, JSON payload, 96-well Excel export에 read depth, N fraction, low-depth 위치, low-quality base 제외 수, MAPQ/span drop counter를 노출합니다.
+
+### 전략 메모
+
+- 사용자 요구에 따라 TFP-SEQ 산출물을 받아 공존하는 interop 방향은 폐기했습니다. MAME는 KURO-linked directed-evolution decision layer를 유지하면서, 겹치는 sequencing consensus 층의 정확성 구멍을 자체 보강하는 방향으로 업데이트되었습니다.
+
+---
+
+## 주간 업데이트 (2026-05-22)
+
+2026-05-20 부터 2026-05-22 까지 출시된 KUMA v0.10.0.08 ~ v0.10.0.19 주요 변경 사항입니다.
+
+### 신규 기능
+
+- **워크스페이스 경로 자동 저장 (v0.10.0.19)**: 프로젝트 번들의 마지막 저장 위치가 기억되어 다음 실행 시 같은 경로로 다시 열 수 있습니다. 매번 폴더를 다시 찾아갈 필요 없이 작업을 이어갈 수 있습니다. → [`workspace-format`](workspace-format.md)
+- **Macrogen 발주처 툴팁 (v0.10.0.19)**: KURO Export 탭의 *Order vendor* 항목에 발주 흐름과 Export All 결과물 (timestamp prefix Macrogen `.xls`) 을 설명하는 툴팁이 추가되어 처음 발주하는 사용자가 흐름을 즉시 파악할 수 있습니다. → [`kuro/06-export`](../kuro/06-export.md)
+
+### 업데이트
+
+- **Mutation pool 자동 확장 (v0.10.0.19)**: 선택한 top-N 이 현재 풀 크기를 초과할 때 mutation pool 이 자동으로 확장되어, 사용자가 풀 크기를 수동으로 조정하지 않아도 다양성 선택이 항상 요청한 만큼의 후보를 반환합니다. → [`kuro/02-mutation`](../kuro/02-mutation.md)
+
+### 이번 주 출시된 버전
+
+| 버전 | 날짜 | 요약 |
+|---|---|---|
+| v0.10.0.19 | 2026-05-22 | 워크스페이스 경로 자동 저장, mutation pool 자동 확장, Macrogen 발주처 툴팁 |
+
+---
+
+## 주간 업데이트 (2026-05-19)
+
+2026-05-18 부터 2026-05-19 까지 출시된 KUMA v0.9.9.4 ~ v0.10.0.07 주요 변경 사항입니다.
+
+### 신규 기능
+
+- **EVOLVEpro Others 모드 (v0.9.10)**: EVOLVEpro 결과 CSV/XLSX 의 컬럼 이름이 기본 스키마와 다른 경우를 위한 사용자 정의 컬럼 매핑 모드가 추가되었습니다. `EvolveproOthersPanel` 컴포넌트, `preview_evolvepro_source` 핸들러, `load_evolvepro_params` 확장으로 mutation/score/구분자 컬럼을 직접 지정할 수 있습니다.
+- **Macrogen 발주 Card 와 Project name 입력 (v0.9.10)**: Export 탭 상단에 Macrogen 주문 Card 가 추가되고, Export All 전에 `project_name` 을 직접 입력하면 해당 이름의 폴더 아래에 8개 파일 (Macrogen xls, FASTA, Echo CSV/XLSX, JANUS CSV/XLSX, plate map XLSX, run JSON) 이 평면 구조로 출력됩니다. `ExportAllParams.project_name` 필드와 validator 가 추가되었습니다.
+- **Echo, Janus 플레이트 셀 mutation 정보 (v0.9.10)**: Echo 384-well 미리보기 셀에 mutation code, Janus 96-well 셀에 `mutation + F/R` 가 표시되고, hover 시 Popover 로 상세 정보를 확인할 수 있습니다. shadcn `Popover` primitive 가 신규 도입되었습니다.
+- **MAME parse_reference 핸들러 (v0.9.12)**: FASTA / GenBank / SnapGene `.dna` 파일에서 CDS 후보를 자동으로 추출하여 사용자에게 선택지를 제시하는 핸들러가 추가되었습니다. `python-core/sidecar_mame/handlers/ingest.py` 의 `parse_reference` 가 multi-CDS 파일에서도 동작하며, 단일 CDS 검출 시 i18n 메시지로 안내합니다.
+- **EGFP 중심 합성 plasmid 샘플 (v0.10.0)**: 기존 `egfp.fa` 가 제거되고 EGFP 를 중심으로 한 합성 plasmid GenBank (`sample_plasmid.gb`) 로 단일화되었습니다. MAME 샘플 fixture 와 로케일 문자열도 IspS 에서 EGFP 로 일괄 이전되었습니다.
+
+### 업데이트
+
+- **Export All 평면 8-file 출력 (v0.9.10)**: Export All 이 입력된 project name 폴더 아래 8개 파일을 평면으로 배치하도록 변경되었습니다. 기존 하위 폴더 분리 구조는 제거되었습니다.
+- **MAME UI 라벨 및 WT 자동 제안 (v0.9.11)**: MAME Step 의 UI 라벨이 정리되고, WT (wild-type) 위치 자동 제안이 도입되었습니다. `WtWellGrid`, `BarcodeSetupPanel`, `ParameterPanel` 이 갱신되었습니다.
+- **ExportPlatePreview 색상 범례와 리프레시 (v0.9.9.5)**: ExportPlatePreview 가 design 변경 시 자동 refetch 하고, Echo/Janus 셀 색상 범례를 위한 `PlateLegendsPanel` 이 추가되었습니다. WorkflowRail sideCard 의 *Tip* 라벨도 10개 로케일에 번역되었습니다.
+- **Polymerase profile EVOLVEpro 가중치 정리 (v0.9.10 ~ v0.10.0)**: `kuma_core/kuro/evolvepro.py` 와 `python-core/sidecar_kuro/handlers/export.py`, `models.py` 의 EVOLVEpro 핸들러가 정리되었습니다.
+
+### 버그 수정
+
+- **6 건 MAME UX 회귀 (v0.9.9.8)**: Clear All, kuro/mame cross-app 동기화, Length 입력, WellPlate 렌더, Sample Data 로드, Round 라벨의 6 가지 UX 회귀가 한 번에 수정되었습니다.
+- **EVOLVEpro Load Sample 및 Export All maxPrimers cap (v0.9.9.6 ~ v0.9.9.7)**: evolvepro 모드에서 Load Sample Data 가 EVOLVEpro CSV 까지 채우지 못하던 회귀와, Export All 의 maxPrimers cap 누락이 수정되었습니다.
+
+### 문서
+
+- **build-version 와 sidecar-hash 구현 문서 (v0.9.9.4)**: `docs/troubleshooting/build-version.md`, `docs/getting-started/sidecar-binaries.md` 가 추가/갱신되어 4-part 버전 추출과 sidecar hash 무결성 검증 흐름이 기술되었습니다.
+- **design-report / export-orders 갱신 (v0.9.9.4)**: Echo/Janus 매핑 미리보기가 Export 탭으로 이동한 사실을 design-report 에 반영하고, export-orders 에 legacy notice (Export All since v0.8.4) 가 추가되었습니다.
+
+### 이번 주 출시된 버전
+
+| 버전 | 날짜 | 요약 |
+|---|---|---|
+| v0.10.0.07 | 2026-05-19 | CDS picker detected 메시지 i18n, report run_meta typing |
+| v0.10.0.06 | 2026-05-19 | parse_reference 테스트 docstring 정리, 예외 타입 좁힘 |
+| v0.10.0 | 2026-05-19 | egfp.fa 제거, EGFP 중심 합성 plasmid GenBank 로 단일화 |
+| v0.9.12 | 2026-05-19 | MAME parse_reference 핸들러 (FASTA/GenBank/SnapGene CDS picker) |
+| v0.9.11 | 2026-05-19 | MAME UI 라벨, 샘플 fixture, WT 자동 제안 |
+| v0.9.10 | 2026-05-19 | mapping-preview-excel, EVOLVEpro Others 모드, Macrogen Card, Project name 입력 |
+| v0.9.9.9 | 2026-05-18 | MAME 샘플 fixture / 로케일 IspS → EGFP 이전 |
+| v0.9.9.8 | 2026-05-18 | 6 건 MAME UX 회귀 수정 |
+| v0.9.9.7 | 2026-05-18 | Load Sample 이 evolvepro 모드 EVOLVEpro CSV 채움 |
+| v0.9.9.6 | 2026-05-18 | EVOLVEpro Load Sample + Export All maxPrimers cap fix |
+| v0.9.9.5 | 2026-05-18 | ExportPlatePreview 색상 범례 / refetch, Tip 라벨 i18n |
+| v0.9.9.4 | 2026-05-18 | build-version, sidecar-hash 문서화, 주간 changelog 정리 |
+
+---
+
+## 주간 업데이트 (2026-05-18)
+
+2026-05-16 부터 2026-05-18 까지 출시된 KUMA v0.9.8.1 ~ v0.9.9.3 주요 변경 사항입니다.
+
+### 신규 기능
+
+- **Home 프로젝트 카드 휴지통 삭제 (v0.9.8.5)**: Home 화면의 최근 프로젝트 카드에서 휴지통 아이콘으로 항목을 제거할 수 있습니다. Rust 측 `remove_recent_project_cmd` 가 인덱스 항목만 지우고 디스크 파일은 보존합니다.
+- **Echo, JANUS 플레이트 미리보기 (v0.9.9.0)**: Design Report 다이얼로그 안에 있던 Echo (384-well) 및 JANUS (96-well, 2 rack) 매핑 미리보기를 KURO Export 탭 상단으로 이전했습니다. `EchoPlateView`, `JanusPlateView`, `ExportPlatePreview` (ToggleGroup) 컴포넌트가 신규 도입되었습니다. 9개 locale 의 Export tooltip 문구도 실제 Macrogen 발주 흐름에 맞춰 갱신되었습니다.
+- **InlineHelp ? 아이콘 1차 도입 (v0.9.9.1)**: KURO 와 MAME 파라미터 입력 약 40 곳에 `InlineHelp` ? 아이콘이 추가되어 각 옵션의 의미를 즉시 확인할 수 있습니다. en/ko 키가 신규 정의되었고, 나머지 8개 언어는 영문 fallback 으로 동작합니다.
+
+### 업데이트
+
+- **MAME Well Grid 단일 선택 (v0.9.8.5)**: `WtWellGrid` 가 다중 선택에서 단일 선택 모드로 변경되었습니다.
+- **KURO 샘플 데이터 96-well 보장 (v0.9.8.5)**: 샘플 데이터를 120개로 확장하고, 디폴트 파라미터로도 96-well 플레이트가 가득 차도록 조정되었습니다.
+- **MAME Step 2.2 Review 정렬 (v0.9.9.2)**: Step 2.2 Review 콘텐츠의 수직 정렬이 다른 단계와 통일되었습니다.
+- **vite 4-part 버전 추출 (v0.9.9.2)**: `vite.config.ts` 가 `git describe` 결과에서 4-part 버전 (예: 0.9.9.2) 을 추출하도록 보강되었습니다.
+- **Polymerase profile 메타데이터 (v0.9.9.3)**: TAKARA_GXL (Takara high) 과 Q5 SDM (NEB high) 두 항목이 polymerase profile 에 추가되었습니다.
+
+### 버그 수정
+
+- **Windows installer sidecar hash 무결성 (v0.9.8.1)**: cross-platform 환경에서 sidecar hash 검증이 재발하던 회귀를 merge mode 및 fail-fast 정책으로 수정했습니다. 동시에 KURO `MajorSubnav` 와 MAME `MameAppLayout` subnav 의 outline *Clear All* 버튼이 복원되었습니다.
+- **sidecar-hashes.json 3 플랫폼 hash 완전 포함 (v0.9.9.2)**: macOS, Windows, Linux 세 플랫폼 hash 가 모두 포함되었습니다. 이전에 남아 있던 conflict marker 가 빌드에 번들되어 Windows installer 가 크래시하던 문제를 수정합니다. v0.9.8.1, 0.9.8.5, 0.9.9.0, 0.9.9.1, 0.9.9.2 git tag 가 새로 생성되었습니다.
+- **JANUS 어댑터 rack 할당 (v0.9.9.3)**: JANUS 어댑터가 `asp_rack` 값 기반으로 분기하도록 P0 수정을 적용하여 실험실 JANUS spec 과 일치시켰습니다.
+
+### 이번 주 출시된 버전
+
+| 버전 | 날짜 | 요약 |
+|---|---|---|
+| v0.9.9.3 | 2026-05-18 | polymerase profile 메타데이터 추가, JANUS rack 할당 fix |
+| v0.9.9.2 | 2026-05-18 | sidecar-hashes.json 3 플랫폼 완전 포함, 4-part 버전 추출, MAME Step 2.2 정렬 |
+| v0.9.9.1 | 2026-05-17 | InlineHelp ? 아이콘 약 40곳 도입 (Phase 1) |
+| v0.9.9.0 | 2026-05-17 | Echo, JANUS 플레이트 미리보기를 Export 탭 상단으로 이전 |
+| v0.9.8.5 | 2026-05-16 | Home 카드 휴지통 삭제, MAME 단일 선택, 96-well 보장 |
+| v0.9.8.1 | 2026-05-16 | Windows installer sidecar hash 회귀 fix, Clear All 복원 |
+
+---
+
+## 주간 업데이트 — 2026-05-15
+
+이번 주(2026-05-13 ~ 2026-05-15) 출시된 KUMA v0.8.4 → v0.9.6.0 주요 변경 사항입니다.
+
+### 신규 기능
+
+- **EVOLVEpro 통합 (v0.9.6.0)** — 사용자가 직접 설치한 EVOLVEpro conda 환경을 KUMA에서 별도 탭으로 호출할 수 있습니다. 단백질 변이 점수화 결과를 GUI에서 바로 확인하세요. → [`inputs/mutations`](../inputs/mutations.md)
+- **Settings 대화상자 (v0.9.0.0)** — General · Network · Sidecar · Telemetry 네 개 탭에서 설정을 관리하고, 변경 사항은 0.5초 디바운스로 자동 저장됩니다. 테마 토글도 동일 화면에서 사용할 수 있습니다. → [`settings`](settings.md)
+- **KURO Inspector — 6개 서브스텝 전체 지원 (v0.9.1.0)** — Source / Variant / Parameter / Current Mutation / Primer / Export 각 단계마다 전용 인스펙터 패널이 추가되어 우측 패널에서 컨텍스트 정보를 바로 볼 수 있습니다.
+- **MAME 7-스크린 위젯 + Plate cluster 경고 (v0.9.0.0)** — MAME 모든 서브스텝에 워크플로 레일·인스펙터·드로어가 채워지고, 인접 웰이 동시에 실패할 때 `B03-B04 may indicate a pipetting issue` 형식의 경고가 표시됩니다. JANUS export는 메인 패널의 *Open JANUS export…* CTA로 열립니다.
+- **Export All 단일 버튼 + Macrogen 발주 (v0.8.4)** — IDT / Twist 분기를 합친 단일 *Export All* 버튼으로 대체되었고, 신규 Macrogen xls 발주 양식이 추가되었습니다. → [`kuro/06-export`](../kuro/06-export.md)
+- **사이드바 리사이즈 (v0.8.4)** — 사이드바 폭을 마우스 드래그 또는 키보드로 조절할 수 있고, 폭은 다음 실행에도 유지됩니다.
+- **Keyboard Shortcuts 대화상자 (v0.8.5)** — `Ctrl/Cmd + /` 로 검색·카테고리 그룹화가 지원되는 단축키 목록을 띄울 수 있습니다. → [`keybindings`](keybindings.md)
+- **Edit / Run 메뉴 (v0.8.5)** — 메뉴바에 *Edit* (Preferences, `Ctrl/Cmd + ,`), *Run* (Sidecar diagnostics, Check sidecar status) 메뉴가 추가되었습니다. Help 메뉴에서는 *Report issue*, *Check for updates* 도 사용할 수 있습니다.
+- **Workspace 아티팩트 핸드오프 (v0.8.3 → v0.8.4)** — KURO/MAME 엑셀 export 결과가 워크스페이스 매니페스트에 자동 등록되어 다음 단계에서 곧바로 불러올 수 있습니다. → [`workspace-format`](workspace-format.md)
+
+### 업데이트
+
+- **메뉴바 첫 메뉴가 도구명 (v0.8.6)** — 컨텍스트에 따라 첫 메뉴가 **`kuro`** 또는 **`mame`** 로 표시되고, *Close window* (`Ctrl/Cmd + W`) / *Quit kuma* (`Ctrl/Cmd + Q`) 항목이 포함됩니다.
+- **Settings 의 단축키 표 제거 (v0.8.6)** — 단축키 목록은 전용 *Keyboard Shortcuts* 대화상자로 일원화되었습니다.
+- **PrimerInspector i18n 보강 (v0.9.1.1)** — 하드코딩되어 있던 *Plate* 레이블이 로케일 키로 전환되었고, 결과가 준비되면 인스펙터가 첫 디자인 결과를 자동 선택합니다.
+- **변이 입력 — multi-evolve 옵션 제거 (v0.9.4.0)** — 휴면 상태였던 multi-evolve 옵션이 EVOLVEpro 워크플로로 통합되었습니다. CSV에서 top-N = 0 으로 두면 모든 변이가 로드됩니다.
+- **EVOLVEpro CSV 상한 확대** — 변이 후보 상한이 960 → 10,000 으로 늘어났고, 카운트 변경 시 자동 복구가 동작합니다.
+- **자동 export 파일명** — 날짜 / 유전자 / 변이 개수를 포함한 파일명이 기본값으로 적용됩니다.
+- **로케일 톤 정리 (v0.8.4)** — `The job may be stuck.` → `The job is stuck.` (한국어: `작업이 멈춘 것 같습니다.` → `작업이 멈췄습니다.`). `Require GC clamp (3-prime end)` → `Require GC clamp (3' end)`. 일부 한국어 라벨이 영문 용어로 통일되었습니다.
+
+### 버그 수정
+
+- **Workspace 매니페스트 런타임 오류 (v0.9.1.2)** — 매니페스트가 브라우저 측 웹뷰에서 `readFile` / `randomUUID` 호출 시 실패하던 문제를 수정했습니다. 이제 export · 자동 prefill 이 실제 동작합니다.
+- **테마 설정 초기화 회귀 (v0.9.0.0)** — 업그레이드 후 첫 실행에서 `localStorage` 의 테마 선택이 초기화되던 문제를 수정했습니다.
+- **Load Sample Data 무음 실패 (v0.8.4)** — `loadSequence` 단계 오류가 조용히 삼켜져 이후 단계가 빈 상태로 남던 문제를 수정했습니다. 이제 오류가 그대로 전파됩니다.
+- **Windows 빌드 / Python 3.11 사이드카** — `plugin-dialog` 버전 불일치로 Windows 빌드가 실패하던 문제와 `typing_extensions.TypedDict` 관련 Python 3.11 호환성 문제가 해결되었습니다.
+- **UniProt 고-동일성 매치 복원** — 기본 BLAST 연락처 이메일이 복원되어 UniProt 가 다시 고-동일성 결과를 반환합니다.
+
+### 이번 주 출시된 버전
+
+| 버전 | 날짜 | 요약 |
+|---|---|---|
+| v0.9.6.0 | 2026-05-15 | EVOLVEpro GUI 래퍼 추가 |
+| v0.9.4.0 | 2026-05-15 | multi-evolve 옵션 제거(EVOLVEpro 로 통합) |
+| v0.9.1.2 | 2026-05-14 | Workspace 매니페스트 런타임 오류 수정 |
+| v0.9.1.1 | 2026-05-14 | PrimerInspector i18n / 결과 자동 선택 |
+| v0.9.1.0 | 2026-05-14 | KURO 6 서브스텝 인스펙터 내용 채움 |
+| v0.9.0.1 | 2026-05-14 | 정리 작업 |
+| v0.9.0.0 | 2026-05-14 | Settings 대화상자 · KURO chrome · MAME 7-스크린 |
+| v0.8.6   | 2026-05-13 | 메뉴바 첫 메뉴 도구명 · Settings 단축키 표 제거 |
+| v0.8.5   | 2026-05-13 | Edit / Run 메뉴 · Keyboard Shortcuts 대화상자 |
+| v0.8.4   | 2026-05-13 | Export All · Macrogen · 사이드바 리사이즈 · Load Sample Data 강화 |
+
+---
+
+# Changelog — v0.9.2.x patch series
+
+본 사용자 가이드 발행 시점 기준. 자세한 git log 는 `git log v0.9.1.6..HEAD` 참조.
+
+| 버전 | 요약 |
+|---|---|
+| v0.9.2.01 | sidecar `-32601 Method not found` 친화 메시지 + i18n key `errors.sidecar.methodNotFound` |
+| v0.9.2.02 | KURO `TOTAL_KURO_STEPS = 6` 상수 도입, `src/components/steps/constants.ts` 신설 |
+| v0.9.2.03 | OutputStepView / ExportStepView step 번호 5/6 로 정정 |
+| v0.9.2.04 | MAME Major.Sub label 표기 (`stepLabel` / `progressLabel` props) |
+| v0.9.2.05 | KURO sidebar prerequisite guard 제거 — 자유 navigate |
+| v0.9.2.06 | MAME sidebar guard 제거 + sub-step default empty state |
+| v0.9.2.07 | WizardContainer `validateBeforeNext` props 전 step 채움 |
+| v0.9.2.08 | KURO 4 substep + MAME 3 step validation Dialog 표준화 |
+| v0.9.2.09 | Sidebar/탭 disabled 시각 상태 제거 (lock → pending) |
+| v0.9.2.10 | DesignReportInspector 신설 (`src/components/inspectors/kuro/`) |
+| v0.9.2.11 | DesignReport 본문 → 재사용 `DesignReportContent` 분리 |
+| v0.9.2.12 | AppLayout 에서 DesignReport popup mount 제거 |
+| v0.9.2.13 | KuroChrome inspector switch `output.summary` → DesignReportInspector mount |
+| v0.9.2.14 | DesignSummaryCard 신설 (Submit step 상단 요약) |
+| v0.9.2.15 | `useRunDesign` 성공 콜백에서 popup 제거 + `goToNextStep` auto-advance |
+| v0.9.2.16 | Submit footer button "Run Design" + 예외 시 "Next" fallback |
+| v0.9.2.17 | Wizard step 전역 store-flush 헬퍼 (local state → zustand) |
+| v0.9.2.18 | react-resizable-panels Output splitter + inspector toggle |
+| v0.9.2.19 | Plate plan `overflow-auto min-h-0` chain 가드 |
+| v0.9.2.20 | MAME Sequencing Review grid min-height 480 / 360 |
+| v0.9.2.21 | MkDocs user guide 추가 (본 문서) |
+
+## v0.9.1.x 와의 차이 요약
+
+- KURO 6-step 명시화 (load·mutation·params·submit·output·export)
+- MAME Major.Sub 계층 표기
+- Sidebar 자유 navigate + Next validation Dialog 분리 정책
+- Run Design popup 제거 → Output 우측 DesignReportInspector
+- Output 영역 splitter + 우측 inspector toggle

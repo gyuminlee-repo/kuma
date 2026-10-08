@@ -1,0 +1,302 @@
+# AGENTS.md
+
+## Incremental audit entry point (debugging / refactoring)
+
+Start repeated code-health work with `python scripts/plan_incremental_audit.py`.
+Read `docs/audit/incremental-review.md` and the generated plan before a fresh
+whole-repository sweep. `docs/audit/registry.json` records bounded prior reviews,
+immutable commits, tests, dependency watches and remaining unverified work.
+Reuse unchanged explanations only after reviewing unrecorded/new changes and
+checking dependency-map completeness. A `reuse_candidate` is NOT a passing
+test or approval. Missing history/evidence requires broader review, not a skip.
+Re-run regressions and the existing full CI on the final head before merge.
+Never automatically advance all baselines, promote skipped real-data tests,
+or remove final gates to save time. State reused/rechecked/unverified scopes
+in the PR summary. The detailed procedure includes safe ledger updates.
+
+이 저장소에서 코딩 에이전트가 따라야 할 규칙을 정의한다. Claude Code 는 CLAUDE.md 의 import 로 이 파일을 읽는다.
+
+## Project Overview
+
+kuma is a cross-platform desktop app that integrates KURO batch SDM primer design,
+MAME NGS verification, and EVOLVEpro execution. It uses a **Tauri v2 + React 19 +
+Python sidecar** architecture: the GUI is TypeScript/React, scientific behavior is
+implemented in Python, and the layers communicate through JSON-RPC.
+
+## Architecture
+
+```
+Frontend (React 19 + Zustand + TailwindCSS)
+  └── src/lib/ipc.ts + src/lib/ipc-mame/
+        ↕  (Tauri commands route JSON-RPC requests to sidecar processes)
+Rust Shell (src-tauri/)
+  └── Desktop host: window, project config, progress cache, sidecar lifecycle
+Python Sidecars (PyInstaller binaries)
+  ├── python-core/sidecar_kuro/      → kuma_core/kuro/
+  └── python-core/sidecar_mame/      → kuma_core/mame/
+```
+
+### Key layers
+
+- **`kuma_core/`** — Installable Python domain package. `kuro/` handles primer design, `mame/` handles NGS verification, and `shared/` contains common helpers.
+- **`python-core/`** — JSON-RPC adapters and PyInstaller packaging. `sidecar_{kuro,mame}/dispatcher.py` route methods to handlers; Pydantic models validate requests. `build_sidecar.py` builds the sidecar binaries.
+- **`src/`** — React 19 frontend. KURO and MAME each have dedicated state and UI areas. IPC clients live under `src/lib/ipc.ts` and `ipc-mame/`.
+- **`src-tauri/`** — Rust desktop host: Tauri commands, windowing, project config, progress cache, integrity verification, and sidecar lifecycle. Scientific logic does not belong here.
+- **`tests/`** — Python and cross-layer tests. Frontend Vitest files are colocated under `src/`; Rust host tests live under `src-tauri/tests/`.
+
+### KURO store slice dependency graph
+```
+sequenceSlice → diversitySlice.searchUniprot
+diversitySlice → inputSlice.loadEvolveproCsv, sequenceSlice.seqInfo
+inputSlice → diversitySlice.pipelineMode/domains/disabledDomains
+designSlice → inputSlice.mutationText, diversitySlice.cancelDiversityReload
+exportSlice → all slices (read-only for workspace save/load)
+```
+
+### Frontend ↔ Sidecar communication
+- `src/lib/ipc.ts` and `src/lib/ipc-mame/` call Tauri commands for their respective channels.
+- Rust manages the packaged sidecar processes and routes JSON-RPC requests over stdin/stdout.
+- Sidecars write JSON-RPC responses plus `progress` notifications to stdout.
+- TypeScript types in `src/types/models.ts` must match Pydantic models in `python-core/sidecar_kuro/models.py`.
+
+## Common Commands
+
+### Development
+```bash
+pnpm dev                  # Vite dev server (frontend only)
+pnpm tauri dev            # Full Tauri dev mode (frontend + Rust + sidecar)
+pnpm run sidecar:build    # Build Python sidecar (PyInstaller --onefile)
+pnpm run build:all        # sidecar:build + tauri build (full release)
+```
+
+### macOS Build Recovery
+DMG bundle 단계 실패 시 `pnpm run sidecar:hash:postbuild` 단독 실행으로 sidecar 재서명 + manifest 갱신 + DMG 재생성. 풀 재빌드 불필요. integrity check 자체는 비활성 금지 (공급망 방어).
+
+### Git hooks (new machine setup)
+`bash bin/install-git-hooks.sh` 가 `git config core.hooksPath .githooks` 를 걸어 `.githooks/pre-push` 를 활성화한다. 훅은 세 단계를 전부 `node` 로 돌린다: `node scripts/sync-check-all.mjs`, 체크아웃 안에서 찾은 `node_modules/typescript/bin/tsc --noEmit`, 그리고 `node scripts/i18n-lint.mjs` 와 `node scripts/i18n-parity.mjs`. 패키지 매니저도 온디맨드 실행기도 부르지 않으므로 공유 폴더 WSL 체크아웃에서도 안전하다. worktree 는 자체 의존성이 없어 main checkout 의 `node_modules` 로 폴백하고, 양쪽 어디에도 typescript 가 없으면 훅이 그 두 경로를 출력하고 exit 1 한다. 긴급 우회: `git push --no-verify`. 같은 설정이 `.githooks/commit-msg` 도 켠다. 이 훅은 작성자와 일치하는 `Signed-off-by` 트레일러가 없는 커밋을 거부하고 서명을 대신 붙이지 않는다. 판정 기준은 `.github/workflows/dco.yml` 과 같다(내용 없는 병합 커밋 면제 포함). 커밋 때 `git commit -s` 를 쓴다.
+
+### Pre-commit checks (must pass before tagging)
+```bash
+node node_modules/typescript/bin/tsc --noEmit   # TypeScript typecheck
+cd src-tauri && cargo check         # Rust compile check
+pnpm sync:check                     # cross-layer + groups + What's New drift
+```
+
+`sync:check` 는 세 스크립트를 이어 돌린다: `sync-check.mjs`, `sync-check-groups.mjs`, `gen-whatsnew.mjs --check`. **첫 번째만 돌리고 통과로 판단하지 말 것.** 세 번째가 `src/locales/en.json` 의 `whatsNewDialog.highlights` 가 CHANGELOG 최신 섹션의 `### Highlights` 블록과 어긋났는지 잡으며, 이걸 빠뜨려 v0.13.30 첫 태그 빌드가 quality-gates 에서 실패했다 (그 결과 `build` 와 `release` 가 skip). WSL 에서는 `pnpm` 대신 세 스크립트를 `node` 로 직접 실행한다.
+
+여기에 What's New 모달 때문에 네 가지 강제 사항이 붙는다.
+
+- **CHANGELOG 최상단(최신) 릴리스 섹션은 `### Highlights` 블록을 가져야 한다.** `gen-whatsnew.mjs` 는 첫 `## ` 헤딩부터 다음 `## ` 직전까지 한 섹션만 잘라 읽으므로(`scripts/gen-whatsnew.mjs:107-131`) 그 아래 과거 섹션은 검사 대상이 아니다. 최상단 섹션에 블록이 없거나 불릿이 0개면 `gen-whatsnew.mjs` 가 exit 2 로 생성을 거부하고 `sync:check` 도 같이 실패한다. 블록 규칙은 불릿 5개 이하, 각 140자 이하, 백틱 금지, `vX.Y.Z:` 접두사 금지이고 위반은 exit 1 이다 (불릿은 모달에 그대로 표시되고 잘리지 않으므로 다듬지 않고 실패시킨다). `### Highlights` 를 고쳤으면 `node scripts/gen-whatsnew.mjs` 로 en.json 을 재생성해 함께 커밋한다.
+- **하이라이트를 바꾸면 9개 로케일 번역과 스탬프를 같이 갱신해야 한다.** `gen-whatsnew.mjs` 는 en.json 에 `whatsNewDialog.highlightsStamp` 도 쓴다. 값은 `<version>+<digest8>` 이고 digest8 은 영문 highlights 배열을 `JSON.stringify` 한 문자열의 sha256 앞 8자리다(배열 순서가 의미를 가지므로 정렬하지 않는다). 나머지 로케일은 `whatsNewDialog.highlights` 를 손으로 번역한 뒤 각 파일의 `highlightsStamp` 를 같은 값으로 맞춰야 `node scripts/i18n-parity.mjs` 가 통과한다. 이 검사는 `sync:check` 밖에서 돈다: 로컬에서는 `.githooks/pre-push` 3단계(`node scripts/i18n-lint.mjs` + `node scripts/i18n-parity.mjs`), CI 에서는 `ci.yml` 이 두 스크립트를 각각 `node` 로, `build.yml` 이 `i18n:check` 패키지 스크립트로 부른다. 스탬프가 없으면 낡은 번역을 아무도 못 잡는다: `gen-whatsnew.mjs --check` 는 en.json 만 보고, parity 는 평탄화 키 집합을 비교하므로 배열에서는 원소 개수와 빈 문자열만 보인다. 지난 릴리스 문구가 그대로 남아 있어도 개수와 값이 멀쩡해 모든 게이트가 초록으로 통과한다. 스탬프에 내용 해시를 넣은 이유는 버전만으로는 **같은 버전 안의 문구 수정**을 못 잡기 때문이다(v0.15.6 하이라이트 2번과 5번을 릴리스 사이에 고친 전례). 한 글자만 고쳐도 digest 가 바뀌어 9개 로케일이 전부 불일치로 잡힌다.
+- **모달은 최신 릴리스 하나가 아니라 사용자가 마지막으로 쓴 버전부터 지금 버전까지를 전부 보여준다.** 그래서 `gen-whatsnew.mjs` 는 `### Highlights` 블록이 있는 **모든** CHANGELOG 섹션을 읽어 `whatsNewDialog.releases`(버전별 배열)와 `whatsNewDialog.releaseStamps`(버전별 digest8)를 en.json 에 쓰고, 최신 항목을 기존 `highlights`/`highlightsStamp` 에도 그대로 둔다. 아카이브는 en.json 에 누적하지 않고 매번 CHANGELOG 에서 다시 만든다. 그래야 **과거 섹션 문구를 고치면** 그 버전 digest 만 움직여 해당 릴리스 번역이 낡았다는 사실이 드러난다. 9개 로케일은 `releases` 의 각 버전을 번역하고 `releaseStamps` 를 그대로 복사해야 하며, `i18n-parity.mjs` 가 버전 단위로 대조해 어긋난 버전 번호를 지목한다. 번역이 아예 없는 아카이브는 손으로 채우지 말고 `node scripts/backfill-whatsnew-archive.mjs` 로 복구한다. 각 릴리스가 en.json 을 덮어쓰기 전에 그 로케일 파일이 무엇을 담고 있었는지가 git 히스토리에 남아 있어, 과거 번역을 그대로 되살린다(2026-08-08 도입 시 9개 로케일 × 18개 릴리스를 전량 복구, 영어 폴백 0건). 작성 규칙(불릿 5개, 140자, 백틱 금지)은 과거 섹션에도 그대로 적용되므로, 옛 섹션의 `### Highlights` 를 고칠 때도 같은 제약을 지켜야 한다.
+- **평상시 릴리스 절차는 달라지지 않는다.** 새 섹션에 `### Highlights` 를 쓰고 `node scripts/gen-whatsnew.mjs` 를 돌린 뒤 그 버전만 9개 로케일에 번역해 넣으면 된다. 과거 버전 항목은 이미 채워져 있으므로 건드릴 일이 없다.
+- **번역 문구에도 규칙이 걸린다.** `i18n-parity.mjs` 가 9개 로케일의 `highlights` 원소마다 백틱 금지와 200자 상한(영문 140자보다 느슨, 번역은 길어진다)을 검사하고 위반 시 로케일과 인덱스를 지목하며 exit 1 한다.
+- **CHANGELOG 불릿은 여러 줄로 감아도 된다.** 이어지는 줄은 공백 하나로 합쳐져 한 불릿이 되고, 빈 줄이나 다음 `- ` 또는 `###` 에서 끝난다. 합친 뒤에 140자·백틱 규칙이 적용되므로 두 줄로 나눠 길이 제한을 우회할 수는 없다.
+
+### 프런트엔드 테스트를 WSL 에서 돌리는 법
+
+`tsc` 는 순수 JS 라 위 pre-commit 명령대로 `node` 로 직접 돌아가고, worktree 에 `node_modules` 가 없으면 main checkout 것으로 폴백한다. **vitest 는 그렇지 않다.** 네이티브 esbuild 바이너리가 필요한데 공유 폴더의 `node_modules` 는 Windows 설치본이라 WSL 에서 실행되지 않는다.
+
+그래서 vitest 는 Windows 쪽에서 돌린다. `wsl-pnpm-guard.sh` 가 이 경로만 예외로 통과시킨다.
+
+```bash
+W=$HOME/.claude/skills/win-build/scripts/win-build.sh
+bash $W pnpm install --frozen-lockfile --cwd <워크트리 절대경로>
+bash $W pnpm exec vitest run --cwd <워크트리 절대경로>
+
+# 전량 실행은 이 형태로. 기본 리포터는 테스트가 찍는 stderr 를 그대로 흘려보내
+# (act(...) 경고, Tauri bridge unavailable, 사이드카 로그) 출력이 잘려 나가고,
+# 정작 마지막 Test Files / Tests 요약이 사라진다.
+bash $W pnpm exec vitest run --silent --reporter=dot --cwd <워크트리 절대경로>
+```
+
+`--reporter=basic` 은 vitest 4 에 없다. 지정하면 실행 전에 `Failed to load custom Reporter from basic` 으로 죽으므로 `dot` 을 쓴다.
+
+worktree 의 `node_modules` 는 main checkout 과 경로가 달라 Windows 설치본을 덮지 않는다(설치 전후로 main checkout 의 mtime 과 `.bin/*.CMD` 가 그대로인 것을 확인했다). 2026-08-06 에 이 경로를 모르고 vitest 를 CI 에만 맡겼다가 타입 오류 4건과 테스트 실패 9건을 push 두 번으로 나눠 받았다.
+
+브랜치를 새 `main` 위로 옮긴 뒤 pre-push 의 `tsc` 가 모듈 미해결(`Cannot find module`)로 떨어지면 그 사이 `main` 이 의존성을 추가한 것이다. worktree 의 `node_modules` 는 그때 설치한 시점에 묶여 있으므로 위 설치 명령을 다시 돌린다. 2026-09-16 에 v0.16.63 이 더한 `react-markdown` 과 `remark-gfm` 이 없어 `HelpMarkdown.tsx` 에서 오류 5건이 났고 같은 커밋의 CI `frontend-typecheck` 는 success 였다. 코드가 아니라 설치본이 낡은 경우이므로 `--no-verify` 로 넘기지 말고 재설치한다.
+
+로컬에서 `sync-check.mjs` 의 `tauri-resources` 가 `resources/NOTICE.md` 부재로 실패하는 것은 환경 문제가 아니라 구조다. 그 파일은 `scripts/build-notice.mjs` 가 릴리스 빌드 때 만들고 `.gitignore` 에 있으므로 새 체크아웃에는 절대 없다. pre-push 는 `scripts/pre-push-sync.mjs` 를 거쳐 이 한 건만 경고로 낮추고 나머지는 그대로 막는다. CI 는 빌드 후 검사하므로 `pnpm sync:check` 를 엄격하게 그대로 쓴다.
+
+`generated-models` 실패는 false-positive 가 아니다. `json2ts` 를 실행하지 못한다는 뜻이며, 보통 원인은 node_modules 가 없는 worktree 에서 돌린 것이다. 정상 체크아웃에서 실패하면 진짜 drift 이므로 `pnpm gen:models` 로 재생성해 함께 커밋한다. (2026-08-05 정정: 이전 판은 두 건 모두 "dev false-positive" 로 적어 두어, pre-push 를 `--no-verify` 로 넘기는 것이 관행이 돼 있었다.)
+
+태그를 찍기 직전 두 가지를 더 확인한다.
+
+- 매니페스트 3종(`package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`)의 버전이 새 태그와 일치하는가. `pnpm sync:check` 의 `version-sync` 가 정본이다. 실제 검사 대상은 6곳이며(위 3종 + `pyproject.toml` + `src-tauri/Cargo.lock` + `kuma_core/shared/version.py`) 손으로 맞추지 말고 제목이 `vX.Y.Z:` 인 커밋을 만들어 `scripts/sync-version.sh` post-commit 훅이 전부 쓰게 한다. 그 훅은 `gen-whatsnew.mjs` 까지 이어 돌려 `en.json` 하이라이트와 스탬프를 갱신하므로, 매니페스트를 먼저 손으로 올리면 `gen-whatsnew` 가 "CHANGELOG 최신 섹션이 현재 버전을 언급하지 않는다" 며 거부한다.
+- `git tag --sort=-creatordate | head -1` 이 직전 릴리스인가. 뒤처져 있으면 그 사이 버전들이 한 태그에 묶여 나가므로 태그 메시지에 그 구간을 적는다.
+
+**버전 라벨 경합은 `git fetch --all` 로 판정하지 않는다. 원격 main 의 SHA 를 API 로 직접 읽어 대조한다.**
+
+```
+gh api repos/<owner>/<repo>/branches/main --jq '.commit.sha'
+gh pr view <N> --json baseRefOid,mergeable,mergeStateStatus
+```
+
+두 SHA 가 같고 `mergeable` 이 `MERGEABLE` 이어야 라벨이 안전하다. `git fetch --all` 다음의 `git log origin/main` 만 보면 안 되는 이유는 그 조합이 실제로 진행분을 놓친 적이 있기 때문이다. 2026-08-11 에 `fetch --all` 후 `origin/main` 이 `4c07cdf5` 로 보여 v0.16.21 이 비어 있다고 판정하고 그 라벨로 CHANGELOG·매니페스트·로케일 10개를 커밋했는데, 원격 main 은 이미 `403280a4`(#296, v0.16.21 선점)였다. 증상은 로컬에서 `git merge-base --is-ancestor origin/main HEAD` 가 통과하고 `git merge-tree` 가 충돌 0 을 내는데 `gh pr merge` 만 `Pull Request has merge conflicts` 로 거부되는 형태다. 로컬 판정과 원격 판정이 어긋나면 로컬이 낡은 것이므로 API 를 믿는다. PR 을 닫고 다시 열어도 해소되지 않는다(mergeability 재계산 문제가 아니다).
+
+경합이 확인되면 라벨만 올려서는 안 된다. CHANGELOG 최상단 섹션과 로케일 10개의 `whatsNewDialog` 가 같은 자리를 놓고 충돌하므로 다음 순서로 되돌린다.
+
+1. 현재 상태를 백업 브랜치로 보존한다(`git branch backup/<name> HEAD`).
+2. 릴리스 커밋(CHANGELOG + 훅이 만든 매니페스트)과 로케일 번역 커밋을 버리고 **코드 커밋만** 새 `origin/main` 위로 리베이스한다. 코드와 릴리스 메타를 분리해 커밋해 두면 이 단계가 충돌 없이 끝난다. 한 커밋에 섞으면 리베이스가 로케일 충돌을 그대로 떠안는다.
+3. 새 라벨로 CHANGELOG 섹션을 다시 쓰고, `vX.Y.Z:` 제목 커밋으로 훅이 매니페스트를 다시 정렬하게 한다.
+4. 9개 로케일에 `whatsNewDialog.releases[<새 버전>]` 과 `releaseStamps[<새 버전>]` 을 넣고 `highlights`·`highlightsStamp` 를 새 버전으로 바꾼다. 영문 하이라이트 문구를 그대로 두면 digest 가 같아 번역을 재사용할 수 있다(버전 키만 바뀐다).
+5. `--force-push` 는 `careful-check.sh` 가 차단하고 우회하지 않는다. 새 브랜치로 푸시해 새 PR 을 열고, 이전 PR 은 대체 사유를 코멘트로 남기고 닫는다. 이때 이전 PR 의 head 브랜치도 원격에서 지운다(머지되지 않아 자동 삭제 대상이 아니다).
+
+**라벨 커밋은 브랜치의 마지막 커밋이어야 한다.** `check-version-label.mjs` 는 `git log -50` 에서 처음 만난 `vA.BB.CC` 제목을 매니페스트와 대조하는데(`scripts/check-version-label.mjs:44,60`), CI 는 `fetch-depth: 2` 로 PR 병합 ref 를 받는다(`.github/workflows/ci.yml`). 그 체크아웃에 존재하는 커밋은 병합 커밋과 **부모 둘뿐**이다. 하나는 `main` 팁이고 다른 하나는 브랜치 팁이다. 그래서 브랜치 팁이 라벨 없는 커밋이면 검사가 `main` 쪽 부모로 넘어가 그 라벨을 읽고, 내 매니페스트와 어긋난다고 판정한다.
+
+증상이 헷갈린다. 로컬에서는 전체 히스토리가 있어 `node scripts/check-version-label.mjs` 가 통과하고, CI 만 "the commit says v0.16.30 and the manifests say 0.16.31" 로 떨어진다. 인용된 커밋이 내 것이 아니라 `main` 의 것이면 이 경우다. 2026-08-19 에 `vX.Y.Z:` 라벨 커밋 뒤에 로케일 번역 커밋을 얹어 이 모양이 됐다.
+
+**base 가 뒤로 밀렸을 때 반사적으로 `main` 을 병합하지 마라.** 병합하면 같은 검사가 거짓으로 실패한다. 검사는 `git log -50` 에서 **처음 만난** 라벨을 읽는데, 병합 후 히스토리 순서로는 그 사이 `main` 에 올라온 남의 라벨이 내 라벨보다 최신이라 그쪽이 먼저 걸린다. 내 매니페스트는 이미 다음 번호이므로 어긋난다고 판정한다. squash 머지는 브랜치를 `main` 팁 위의 커밋 하나로 접으므로 순서가 저절로 바로잡힌다. 그러니 파일 충돌이 없고 `gh pr view <N> --json mergeable,mergeStateStatus` 가 `MERGEABLE`·`CLEAN` 이면 병합하지 말고 그대로 squash 한다.
+
+2026-08-25 에 PR #351 머지 직전 `main` 이 `218c26ac` 에서 `7d93003c` 로 움직였다. 다른 세션이 올린 `v0.16.36.01` 은 DD 단위라 매니페스트를 건드리지 않았고 라벨 번호도 겹치지 않았으며 파일도 겹치지 않았는데, `main` 을 병합하자마자 로컬 검사가 `the commit says v0.16.36 and the manifests say 0.16.37` 로 떨어졌다. 병합을 `git reset --keep` 으로 되돌리고(`--force-push` 는 `careful-check.sh` 가 막고 우회하지 않는다) 그대로 squash 하니 `main` 에서 `manifests and label both say 0.16.37` 로 통과했다. 진짜 충돌이 있어 병합이 불가피하면 위 경합 절차대로 새 브랜치를 `origin/main` 에서 세우고 코드 커밋만 체리픽한 뒤 릴리스 메타를 팁에 다시 올린다.
+
+따라서 **릴리스 메타는 커밋 하나로 만들고 그 커밋을 브랜치 팁에 둔다.** CHANGELOG 섹션, 훅이 쓰는 매니페스트 6곳, 로케일 10개가 전부 그 한 커밋 안에 있어야 한다. 나누면 뒤에 오는 쪽이 라벨 없는 팁이 되어 위 판정에 걸린다.
+
+순서를 로케일 먼저로 뒤집을 수는 없다. `gen-whatsnew.mjs` 가 `whatsNewDialog.highlightsStamp` 를 `en.json` 에 쓰는 시점이 라벨 커밋의 post-commit 훅이고, 나머지 9개 로케일은 그 스탬프를 복사해야 하므로 라벨 커밋보다 먼저 쓸 값이 없다. 실제로 도는 절차는 이것뿐이다.
+
+1. CHANGELOG 섹션을 쓰고 `vX.Y.Z:` 제목으로 커밋한다. 훅이 매니페스트와 `en.json` 을 같은 커밋에 넣는다.
+2. 9개 로케일을 번역한다. 스탬프는 번역하지 말고 `en.json` 값을 그대로 복사한다.
+3. `git commit --amend --no-edit` 로 로케일을 같은 커밋에 접는다.
+
+**CHANGELOG 새 섹션은 이 1단계에서 쓴다. 코드 커밋을 push 하기 전에 미리 써 두지 마라.** pre-push 의 `sync:check` 는 커밋이 아니라 **워킹트리** 를 읽으므로, 다음 버전 섹션이 커밋되지 않은 채 남아 있으면 `gen-whatsnew` 가 `CHANGELOG.md's latest section is vX.Y.Z, but package.json is at <이전>` 로 코드 커밋 push 자체를 거절한다. 매니페스트는 아직 라벨 커밋을 받지 않았으니 그 판정은 맞다. 미리 써 버렸으면 stash 로 워킹트리에서 빼고 push 한 뒤 되돌리는 수밖에 없다 (2026-08-27 v0.16.41 에서 겪음).
+
+**두 훅이 서로 반대로 걸리는 교착이 있다.** `commit-msg-version-collision.sh` 는 PR 의 CI 가 적색이면 라벨 커밋을 거부하고, pre-push 의 `check-version-label` 은 매니페스트를 되돌린 브랜치의 push 를 거부한다(히스토리에 라벨이 남아 있으므로). 라벨을 잘못 쌓아 CI 가 적색이 되면 고치는 커밋도 되돌리는 push 도 둘 다 막힌다. 탈출 경로는 브랜치를 다시 세우는 것 하나다.
+
+1. `origin/main` 에서 새 브랜치를 만들어 **코드 커밋만** 체리픽한다.
+2. push 하고 PR 을 연다. 릴리스 메타가 없으므로 매니페스트는 `main` 과 같고 CI 가 초록이 된다.
+3. 그 뒤에 위 3단계로 릴리스 메타 한 커밋을 팁에 올린다. 이 시점에는 PR 이 있고 CI 가 초록이라 두 훅이 모두 만족된다.
+4. 이전 PR 은 대체 사유를 코멘트로 남기고 닫고, head 브랜치를 원격에서 지운다.
+
+2026-08-19 에 이 교착을 그대로 겪어 #319 를 폐기하고 #323 으로 다시 열었다.
+
+### Python Sidecar Environment
+PyInstaller + biopython wheel 빌드 호환을 위해 `.venv` (Python 3.11) 사용. 시스템 Python 3.14는 PEP 668 + 일부 wheel 부재로 sidecar 빌드 실패. 새 머신·새 세션에서 `python3.11 -m venv .venv && .venv/bin/pip install -e ".[build]"` 선행. MAME raw_run 정렬은 사이드카에 번들된 minimap2 CLI 가 수행(mappy 제거, Windows wheel 부재). 빌드 전 vendor 채우기: python-core/scripts/vendor-minimap2.py(Linux/macOS) 또는 Windows MSYS2/MinGW 정적 빌드(build.yml). 로컬 테스트는 KURO_MINIMAP2 로 바이너리 지정, mame 테스트는 바이너리 부재 시 skip.
+
+### Python tests
+```bash
+pip install -e . pytest             # One-time setup
+python -m pytest tests/ -v          # Run all tests
+python -m pytest tests/test_sdm_engine.py -v          # Single file
+python -m pytest tests/test_sdm_engine.py::test_name  # Single test
+```
+
+하위 디렉터리만 돌린 결과로 통과를 선언하지 말 것. 완료 선언 전에는 `tests/` 전체를 돌린다. 2026-08-06 에 `tests/mame` 만 돌려 1105 통과를 받고 보고했는데, `analyze` 응답에 키 두 개를 더한 변경이 응답 키 집합을 정확히 대조하는 `tests/sidecar_mame/test_analyze_raw_run.py` 를 깨고 있었다. 뒤이어 그 실패를 본 서브에이전트도 자기 변경 이전부터 있었다는 이유로 "pre-existing" 이라 분류했다. 기준선을 `tests/` 전체로 잡았으면 둘 다 없었을 오판이다.
+
+### CI (`ci.yml`)
+- Runs on every pull request against `main`, on `v*` tags, and on manual dispatch. Before 2026-08 it fired on tags only, so cross-layer drift could reach `main` unchecked and surface as a failed tagged build.
+- A push to `main` runs one job, `main-label` (`node scripts/check-version-label.mjs`), and skips the rest. The pull request already tested that tree; what a squash merge can still change is the commit subject, and that job reads it against the manifests.
+- Python tests: a pull request runs `{ubuntu, windows} × {3.11}`. A tag or a manual dispatch runs the full `{ubuntu, windows, macos} × {3.11, 3.12}`. A macOS-only or 3.12-only failure therefore first shows on the tag run, so when a change touches paths, subprocesses or anything platform-specific, dispatch the workflow on the branch (`gh workflow run ci.yml --ref <branch>`) before merging.
+- A new push to a pull request cancels the run before it (`concurrency`). Tag, `main` and manual runs are never cancelled.
+- Sized this way on 2026-10-06: September 2026 was 301 CI runs at about 59 runner minutes each, 18,812 minutes for this repository on a plan that includes 2,000.
+- TypeScript typecheck: `npx tsc --noEmit`
+- Rust check: `cd src-tauri && cargo check` (requires frontend build first + sidecar stub)
+
+## Cross-layer Change Checklist
+
+cross-layer 의존은 **`.cross-layer-sync.json` `groups[]`** 로 관리. 단일 source-of-truth.
+
+**자동 인지**: 파일 Edit·Write·MultiEdit 시 PostToolUse hook (`scripts/kuma-deps-notify.mjs`) 이 변경 파일이 속한 그룹의 다른 파일을 stdout으로 보고 → Claude 다음 턴 컨텍스트 주입. 매칭 0건 무음.
+
+**CI 검증**: `pnpm sync:check` 가 vendored `sync-check.mjs` (기존 4 체크) + `sync-check-groups.mjs` (groups[] 정합성) 를 순차 실행. severity `blocking` 그룹에서 drift 발생 시 CI fail, `warning` 그룹은 WARN 로그만.
+
+**그룹 스키마**: `{ id, files[], symbols?, note, severity: "blocking"|"warning" }`. 한 파일이 여러 그룹에 속할 수 있음. 위 스키마가 정본이고 실제 항목은 `.cross-layer-sync.json` 을 직접 읽는다. 예전에 여기 걸려 있던 `notes/specs/2026-05-13-kuma-deps.md` 는 소실됐다 (`docs/design-records.md`).
+
+**신규 의존 추가**: `.cross-layer-sync.json` `groups[]` 에 항목 추가 → `pnpm sync:check:groups` 로 검증.
+
+**기존 자동 체크** (`checks[]`, vendored):
+- 3-way version sync (package.json, tauri.conf.json, Cargo.toml)
+- tauri.conf 리소스 존재 검증
+- kuro dispatcher `_METHODS` ↔ TS `RpcMethodMap` registry match
+- Pydantic→TS generated file freshness (`pnpm gen:models:check`)
+
+**Pydantic → TS 생성**: `pnpm gen:models` 가 `src/types/models.generated.ts` 를 `python-core/sidecar_kuro/models.py` 에서 재생성. 손작성 `src/types/models.ts` 는 미교체 (RpcMethodMap, validators 보유). 생성 파일 drift 시 CI fail.
+
+**vendored 본체**: `scripts/sync-check.mjs` 는 cross-layer-sync skill vendored. 직접 수정 금지. groups 검증은 별도 `scripts/sync-check-groups.mjs` 에서 처리하여 upstream refresh 안전.
+
+## Rules
+- 절대 경로 하드코딩 금지 — 상대 경로 또는 환경변수 사용
+- **값 하드코딩 금지** — 상태 메시지·임계값·레이블은 백엔드 응답 필드 직접 참조. 예: identity % 를 "100%"로 고정하지 말고 `top.identity.toFixed(1)` 사용
+- 커밋 형식: `vX.X.X: summary in English`
+- Windows 타겟 빌드 시 WSL 내 `npm install` 금지 — Windows 네이티브 터미널에서 실행
+
+## Common Frontend Standards (kuro · mame · primerbench)
+독립 프로그램 빌드·릴리스·UI 신규 기능 작업 시 다음 헌장을 **항상 참조**한다:
+
+- **헌장 위치**: `docs/standards/common-frontend-standards.md` (tracked 정본). 옵시디언 정본은 `$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/260507_KUMA_Common_Frontend_Standards_헌장.md` (사람용).
+- **22 카테고리**: Recovery / Observability / Input Guards / Error UX / Output Persistence / Settings / UI Safety / A11y / Versioning / Telemetry / Build / Reproducibility / Long-running Jobs / Data Integrity / Onboarding / Local Diagnostics / Cross-platform / Partial Success / Performance / Citation / Multi-workspace / Graceful Shutdown
+- **자동 참조 트리거**:
+  - kuro/mame/primerbench `src/` 또는 `src-tauri/` 신규 컴포넌트·페이지 추가
+  - 릴리스 작업 (`/push`, `/release`, version bump)
+  - Export·Reset·Cancel·About·Settings 관련 UI 변경
+  - 에러 처리·진행 상태 UI 작업
+- **필수 vs 권장**: 헌장의 [필수] 미준수는 릴리스 차단. [권장]은 차기 마이너까지 충족.
+- **Per-app status**: 헌장 Appendix D 매트릭스 참조 (별도 audit 작업으로 갱신).
+- **변경**: 헌장 자체 수정 시 옵시디언 정본 (`$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/260507_KUMA_Common_Frontend_Standards_헌장.md`) 과 본 사본 동시 갱신, changelog 항목 추가.
+
+## CI Actions
+- `actions/checkout@v5`, `actions/setup-node@v5`, `actions/setup-python@v6` 사용
+- @v4 이하 버전 사용 금지
+
+## Important Conventions
+
+### TypeScript
+- No `as any` or `@ts-ignore` — currently at 0 occurrences, keep it that way
+- Avoid module-level `let` + async reassignment — TS narrows incorrectly. Use local `const` with explicit types
+- Minimize `!` non-null assertions — prefer null guards or early returns
+
+### UI — Flex overflow
+- `flex-1` on `<select>` or text-heavy children **must** include `min-w-0` — without it the element expands past the flex parent (fixed-width sidebars, panels)
+- Fixed-width panels (sidebar 340 px) should have `overflow-x-hidden` as a second layer of defense
+- Applies especially to dropdowns with long option text (polymerase, codon strategy)
+
+### UI, Tailwind theme colours
+- Colours in `tailwind.config.js` **must** carry an `<alpha-value>` placeholder: `oklch(var(--color-x) / <alpha-value>)`. A literal such as `oklch(0.6 0.12 250)` has nowhere to put a transparency, so Tailwind silently drops every opacity variant of it rather than warning. It shipped that way: 163 uses of `bg-info/10`, `border-warning/40` and friends produced no CSS at all, and the built sheet held 12 semantic selectors where 43 belong (v0.16.17).
+- A literal also bypasses the variables, so the dark-mode block in `src/index.css` never reaches anything that goes through a theme class. Only code reading `var(--color-*)` directly followed the dark values, which is why one panel looked different from the rest of the screen.
+- Variables consumed this way hold **bare components** (`0.6 0.12 250`, no `oklch()` wrapper) because the caller supplies the wrapper. Anything reading them directly wraps them itself.
+- Opacity steps outside the default scale do not exist until declared. `/8` produced no CSS on any colour, including `bg-primary/8`, until `theme.extend.opacity` opened it (33 uses).
+- **None of this is caught by tsc, vitest, the linters or `sync:check`.** jsdom does not compute style. Verify colour and style changes by building the sheet (`node node_modules/tailwindcss/lib/cli.js -i src/index.css -o /tmp/out.css`) and reading the selectors, or by measuring `getComputedStyle` in the running app. A missing library prop (a `theme` never passed to a provider) survives even the sheet comparison and needs the running app.
+
+### MAME UX workflow
+- Raw MinKNOW run folders are the primary user-facing input for MAME. Sorted barcode directories are intermediate outputs or advanced/debug inputs; do not make users pre-sort manually unless explicitly requested.
+- MinKNOW run folder inventory MAME actually reads (everything else, including `pod5/`, `fast5/`, `bam_pass/`, `other_reports/`, `report_*.html`, is ignored):
+  - Required: `fastq_pass/<barcode*|NB*>/*.fastq` or `*.fastq.gz`, primary pipeline input (`kuma_core/mame/ingest/sort_barcode.py`, `ingest/demux.py`). Both extensions are read: `demux.py` `FASTQ_PATTERNS` is `("*.fastq", "*.fastq.gz")` and `quality_filter.py` and `amplicon_reference.py` match the same pair. Uncompressed runs are not a corner case, older MinKNOW wrote them by default and lab archives are full of them.
+  - Run metadata (auto-detected if present): `final_summary_*.txt`, `sample_sheet_*.csv` (`kuma_core/mame/ingest/run_meta.py`).
+  - QC / Health (auto-detected if present): `sequencing_summary*.{txt,tsv}` incl. `_passed_` variants (`cross_talk.py`, `ingest/quality_filter.py`), `pore_activity_*.csv`, `throughput_*.csv`, `barcode_alignment_passed*.tsv` or `barcode_alignment*.tsv` (`health.py`).
+  - Flow cell identity and pore counts (auto-detected if present): `report_*.json` (`kuma_core/mame/ingest/flow_cell.py`). Read since v0.16.19; this file used to be on the ignored list. Only two paths inside it are used, `protocol_run_info.flow_cell` and `acquisitions[].acquisition_run_info.bream_info.mux_scan_results[].counts.single_pore`, and the first and last scan are the starting and ending pore counts an operator reads. Searched in the run folder and then one level up, because a raw run is analysed with the run folder as its input while a consensus-directory run is analysed with a directory inside it. Absent or unreadable leaves every pore field null, which is not zero and must not render as one.
+- MAME file path controls should follow the Kuro-style Browse button + selected filename preview pattern. Avoid editable path text fields for normal `.csv`/`.xlsx` file selection.
+- Export destination controls must use a save-file dialog, not an open-file dialog.
+- Pre-run MAME result tables should render an empty state instead of surfacing an error boundary.
+- If a Tauri close handler calls `preventDefault()`, shutdown/autosave work must be bounded by timeouts and the window must still close in a `finally` path.
+- MAME major steps are 1. Barcode Setup / 2. Analyze / 3. Janus instrument settings / 4. Activity Data. Step 3 is optional: an operator who only wants a sequencing verdict stops at step 2, so no Janus value may gate a run, step 2, or step 4, and Janus controls do not belong on the analyze screens. Nothing about Janus belongs there, including notices about what a run wrote.
+- An analyze run writes the pick list (`..._picks.csv`, `legacy5`) automatically and nothing else for the instrument. The 8-column robot sheet (`..._janus.csv`, `device`) is written only by a manual `export_janus_mapping` call from the step 3 mapping panel, because a worklist states a deck that describes the room at export time and must not be reasserted by every re-run. Its two rack columns carry plate NAMES rather than deck numbers, and it has no liquid class column at all: the operator still sets a liquid class and it is recorded with the run, but no file carries it. `device9` is the former name of that schema, kept only so a project saved before the rename still loads (`SCHEMA_DEVICE_FORMER_NAME`, folded into `device` on the way in); never write it as the current name.
+- Step 3 renders its mapping panel inline on the page. Do not reintroduce a dialog for it: step 3 is already a dedicated screen.
+- The declared well selection narrows a run, it does not rearrange it. Each variant keeps the well `build_draft_layout` gave it in plate order and selecting wells never moves it (v0.16.11 replaced a rule that re-seated occupant *i* onto the *i*th declared well, under which deselecting one well slid every later variant up). An undeclared well is a well the campaign did not fill: what the draft put there is reported in `layout_provenance.excluded_occupants` and named on the review screen, and since v0.16.16 it is not scored at all. Before that the verdict loop walked every well with reads and an unlisted one fell back to the FULL expected list, which nothing matches, so declaring ten wells of ninety-six returned ten passes and eighty-six false WRONG_AA. Reads still arriving from those wells are counted as `off_layout_records`. A selection shorter than the occupant list is therefore an ordinary partly filled plate and not a refusal; the only declaration still refused is an empty one.
+- Changing an analyze input (run folder, expected workbook, reference FASTA, the declared well selection, or any parameter sent to the sidecar) clears the previous run outputs. The sample map is not an analyze input: v0.16.0 removed it, and the file a legacy project still carries is compared against the computed placement rather than read as input. Re-picking the same value changes nothing, and the output path is a destination rather than an input, so it does not clear anything.
+
+### Tauri fs 스코프와 점으로 시작하는 경로
+프런트엔드가 `@tauri-apps/plugin-fs` 로 쓰는 경로 중 **점으로 시작하는 구성요소가 있으면 `capabilities/default.json` 의 `fs:scope` 에 그 점을 리터럴로 적은 항목을 따로 넣어야 한다.** `tauri-plugin-fs` 는 스코프 매칭에 `require_literal_leading_dot` 를 쓰고 기본값이 `cfg!(unix)` 다(2.5.0 `src/commands.rs`, `src/config.rs` 의 Config 주석: "Defaults to `true` on Unix systems and `false` on Windows"). 그래서 `$HOME/**` 도, 심지어 `**` 도 macOS·Linux 에서는 `.autosave/kuro.json` 을 매칭하지 못하고 Windows 에서만 매칭한다. 실측(glob 0.3.3, `require_literal_separator: true`): `**` 대 `/Users/x/Documents/kuma/p/.autosave/kuro.json` 은 dot=true 에서 false 이고 dot=false 에서 true 이며, 점이 없는 형제 파일은 양쪽 다 true 다.
+
+이 때문에 v0.16.9 까지 macOS 에서 자동 저장이 **한 번도** 성공하지 못했다. 프런트엔드가 쓰는 점 경로는 `.autosave/`(양쪽 앱 스냅샷과 세대 파일)와 `.kuma-workspace.json` 둘뿐이다. 그 둘이 앱 영속성의 전부라서 프로젝트를 저장해도 아무것도 남지 않고 다시 열어도 복원할 것이 없었다. 실패는 조용했다. Rust 가 쓰는 `~/.kuma/config.json` 과 사이드카가 쓰는 `mame_context.json` 은 점 경로가 아니라 정상 동작했기 때문에 "프로젝트는 열리는데 상태만 사라지는" 모습으로 보였다. 증거: macOS 빌드가 만든 어느 프로젝트 폴더에도 두 이름이 없었다.
+
+`src-tauri/tests/fs_scope_test.rs` 가 실제 capability 파일을 읽어 unix 규칙으로 판정한다. 새로 점 경로에 쓰기 시작하면 그 경로를 `DOT_PATHS` 에 추가하고 대응하는 allow 항목을 넣는다. 전역 완화(`plugins.fs.requireLiteralLeadingDot: false`)는 쓰지 않았다. 모든 dotfile 을 한꺼번에 여는 대신 앱이 실제로 쓰는 두 이름만 열기 위해서다. 디렉터리 자체와 그 하위는 별개 패턴이 필요하다(`**/.autosave` 는 디렉터리, `**/.autosave/**` 는 그 안이며 서로를 대신하지 못한다. `mkdir`·`exists` 가 디렉터리 경로로 먼저 걸린다).
+
+### Tauri resource bundling
+- No glob patterns (`**`) in `tauri.conf.json` resources — use explicit file-to-file mappings
+- No `--target` flag with `npx tauri build` — breaks resource path resolution
+- Bundle files must live under `src-tauri/`
+
+### Version sync
+Three files must have matching version on release:
+- `package.json` → `"version"`
+- `src-tauri/tauri.conf.json` → `"version"`
+- `src-tauri/Cargo.toml` → `version`
+
+### Git
+- Commit format: `vX.X.X: summary in English`
+- **shipped 동작이 바뀌지 않는 커밋에는 라벨을 달지 않는다.** 개발 스크립트, CI 워크플로, 문서만 건드리는 변경에 `vX.Y.Z:` 제목을 붙이면 `scripts/sync-version.sh:13` 이 제목에서 버전을 읽어 매니페스트를 전부 올리고, 그 순간 CHANGELOG 최상단이 옛 버전으로 남아 `gen-whatsnew.mjs --check` 가 exit 2 로 `sync:check` 를 떨어뜨린다. 통과시키려면 새 CHANGELOG 섹션과 `### Highlights`, 로케일 9개 번역이 전부 따라붙고, 정작 사용자는 What's New 에서 자기와 무관한 내부 수정을 읽게 된다. 라벨 없는 `chore(...)` 제목이면 `sync-version.sh` 가 15~17행에서 그대로 exit 0 하므로 아무것도 끌려오지 않는다 (2026-08-10, perf 하네스 폴더 위생 수정에 `v0.16.11` 을 붙였다가 이 게이트에 막혀 되돌리고 `chore(perf):` 로 재커밋해 통과시켰다, #278). 예외는 하나다. main 이 라벨을 잃어 아래 항목의 복구 커밋을 올릴 때는 매니페스트와 같은 버전의 DD 라벨(`vX.Y.Z.01:`)을 단다. `sync-version.sh` 는 넷째 자리를 떼고 읽으므로 매니페스트는 그대로이고, CHANGELOG 최상단도 이미 그 버전이라 What's New 재생성도 같은 결과를 낸다.
+- Tags: `vX.X.X` (semver)
+- Version bump 시 `git tag` 최신값뿐 아니라 `git log --oneline -5`의 커밋 메시지 `vX.X.X.YY` 시퀀스도 함께 확인 (태그 없이 커밋만 진행된 구간이 있으면 역행 위험)
+- **오래 열려 있던 PR 을 개번했으면 squash 제목까지 바꾼다.** squash 머지는 브랜치 원본 커밋의 제목을 그대로 쓴다. PR 제목만 고치고 머지하면 main 로그에 옛 라벨이 남고, 그 라벨이 이미 발행된 버전이면 `git log` 에 같은 번호가 두 번 보인다. 머지 시 `gh pr merge <N> --squash --subject "vX.Y.Z: ..."` 로 제목을 명시할 것. 브랜치 커밋을 `--amend` 하는 방법도 있으나 이미 push 된 브랜치를 다시 쓰게 되므로 `--subject` 가 낫다. 커밋 메시지는 API 로 수정 불가이고 main 재작성은 금지이므로 이미 들어간 제목은 고칠 수 없다. 번호가 겹친 경우는 `git notes` 로 정정 사실을 붙인다 (2026-08-06, #246 이 v0.15.12, #251 이 v0.15.14 로 남아 둘 다 이미 발행된 번호와 겹쳤다. 정본은 각각 v0.15.16, v0.15.17 이고 매니페스트와 CHANGELOG 는 정확하다). **릴리스 PR 의 squash 제목이 라벨을 잃은 경우는 다르다.** 매니페스트는 새 버전인데 main 에서 가장 가까운 라벨은 이전 버전이라 `scripts/check-version-label.mjs` 가 main 과 그 위의 모든 PR 을 적색으로 만든다. `check-landing-label.mjs` 는 제목에 라벨이 없으면 보고만 하고 통과시키므로 머지 전에 걸러지지 않는다. 복구는 제목에 그 버전의 DD 라벨을 단 후속 커밋 하나를 main 에 올리는 것이다(검사기 메시지가 이 방법을 직접 안내한다). 2026-09-28 에 v0.16.70 릴리스 메타를 담은 #456 이 `feat(kuro): ...` 제목으로 squash 되었다. 그 뒤 `b2259b30`, `d381b3ac`, `eb61c405` 의 main CI 가 `the commit says v0.16.69 and the manifests say 0.16.70` 으로 떨어졌다. 그 위에서 도는 #454 의 CI 도 같은 이유로 적색이 됐다.
+- `Cargo.lock` is committed (binary app needs reproducible builds)
+- CI pins `ubuntu-22.04` (not `ubuntu-latest`) for WebKit dependency compatibility
+

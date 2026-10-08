@@ -1,0 +1,1052 @@
+/**
+ * BarcodeSetupPanel: MAME Phase 1 (Barcode Setup) 입력 패널.
+ *
+ * 사용자가 CDS FASTA, 바코드 시드 xlsx, 프라이머 파라미터를 입력하고
+ * generate_mame_package RPC를 호출해 design/ 폴더에 패키지를 생성한다.
+ *
+ * 상태: 컴포넌트 local useState. 값은 프로젝트별 localStorage 행에 영속화한다
+ * (barcodeSetupFormStorage.ts). 프로젝트를 다시 열면 그 프로젝트의 값이 돌아오고
+ * Clear All 만 지운다.
+ */
+
+import { useState, useCallback, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
+import { open } from "@tauri-apps/plugin-dialog";
+import { readTextFile } from "@tauri-apps/plugin-fs";
+import { CheckCircle2, FolderOpen, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import {
+  autoDetectCdsCandidates,
+  deriveAnnotationGeneName,
+  type CdsCandidate,
+} from "@/lib/sequence/autoDetectCds";
+import { useKumaProject } from "@/state/projectContext";
+import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { sendRequest as sendKuroRequest } from "@/lib/ipc-kuro";
+import { sendRequest as sendMameRequest } from "@/lib/ipc-mame";
+import { describeRpcError, extractMissingMethod } from "@/lib/errors";
+import { revealInOSFolder } from "@/lib/openFolder";
+import { fileExists, requestOverwriteConfirm } from "@/lib/overwriteConfirm";
+import { registerArtifacts } from "@/lib/workspace";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { InlineHelp } from "@/components/ui/InlineHelp";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { GenerateMamePackageParams, MamePackageResult } from "@/types/mame/barcode_package";
+import { validateGenerateBarcodePackage } from "@/store/validation";
+import { AdvancedSection } from "@/components/ui/AdvancedSection";
+import { FileField } from "./FileField";
+import { FormatPreviewHelp } from "@/components/ui/FormatPreviewHelp";
+import {
+  loadBarcodeSetupForm,
+  saveBarcodeSetupForm,
+  type BarcodeSetupFormState,
+} from "@/lib/mame/barcodeSetupFormStorage";
+
+// ─── localStorage 영속화 ─────────────────────────────────────────────────────
+// 프로젝트 경로별로 저장한다(barcodeSetupFormStorage.ts). 예전 전역 키는 프로젝트를
+// 열 때마다 resetMameAll 이 지워 다시 연 프로젝트의 폼이 늘 비어 있었다.
+
+type SetupFormState = BarcodeSetupFormState;
+
+// ─── 헬퍼 ────────────────────────────────────────────────────────────────────
+
+function getFilename(p: string): string {
+  if (!p) return "";
+  const parts = p.split(/[/\\]/);
+  return parts[parts.length - 1] ?? p;
+}
+
+function toSinglePath(result: string | string[] | null): string | null {
+  return typeof result === "string" ? result : null;
+}
+
+// Extensions Biopython/SnapGene-annotated: routed to the kuro load_fasta RPC,
+// which returns real gene annotations instead of a naive text ORF scan.
+const ANNOTATED_EXTENSIONS = new Set(["dna", "gb", "gbk", "gbff"]);
+
+function getExtension(p: string): string {
+  const m = /\.([A-Za-z0-9]+)$/.exec(p);
+  return m ? m[1].toLowerCase() : "";
+}
+
+// ─── 메인 컴포넌트 ────────────────────────────────────────────────────────────
+
+/**
+ * group prop: sub-step 전용 섹션 필터.
+ * - "files":  section-files + section-coords + section-meta (setup.files)
+ * - "design": section-flank + section-binding + section-output + 생성 버튼 (setup.design)
+ * - undefined: 전체 렌더 (mame Sidebar 호환)
+ */
+export type BarcodeSetupGroup = "files" | "design";
+
+interface BarcodeSetupPanelProps {
+  group?: BarcodeSetupGroup;
+  /** When true, suppress the panel's own header (wizard supplies the heading). */
+  embedded?: boolean;
+}
+
+export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = {}) {
+  const { t } = useTranslation();
+  const project = useKumaProject();
+  const projectPath = project?.path ?? null;
+  const [form, setFormRaw] = useState<SetupFormState>(() => loadBarcodeSetupForm(projectPath));
+  // setForm 과 비동기 CDS 탐지가 최신 값을 읽도록 둔다. 클로저에 잡힌 옛 프로젝트
+  // 경로나 옛 폼으로 저장하거나 판단하지 않기 위해서다.
+  const projectPathRef = useRef(projectPath);
+  projectPathRef.current = projectPath;
+  const formRef = useRef(form);
+  formRef.current = form;
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [result, setResult] = useState<MamePackageResult | null>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [fastaLoadError, setFastaLoadError] = useState<string | null>(null);
+  const [seqLength, setSeqLength] = useState<number | null>(null);
+  const setParams = useMameAppStore((s) => s.setParams);
+  const setReferencePath = useMameAppStore((s) => s.setReferencePath);
+  const cdsCandidates = useMameAppStore((s) => s.cdsCandidates);
+  const selectedCdsIndex = useMameAppStore((s) => s.selectedCdsIndex);
+  const setCdsCandidates = useMameAppStore((s) => s.setCdsCandidates);
+  const setSelectedCdsIndex = useMameAppStore((s) => s.setSelectedCdsIndex);
+  const samplePrefill = useMameAppStore((s) => s.mameSamplePrefill);
+  const consumeSamplePrefill = useMameAppStore((s) => s.consumeMameSamplePrefill);
+  const sampleDataLoaded = useMameAppStore((s) => s.sampleDataLoaded);
+  const resetEpoch = useMameAppStore((s) => s.resetEpoch);
+  const sharedFastaPath = useMameAppStore((s) => s.sharedFastaPath);
+
+  function setForm(partial: Partial<SetupFormState>) {
+    setFormRaw((prev) => {
+      const next = { ...prev, ...partial };
+      saveBarcodeSetupForm(next, projectPathRef.current);
+      return next;
+    });
+  }
+
+  // ─── fastaPath 변경 시 CDS 후보 자동 추출 ────────────────────────────────
+
+  useEffect(() => {
+    if (!form.fastaPath) {
+      setCdsCandidates([]);
+      setFastaLoadError(null);
+      setSeqLength(null);
+      return;
+    }
+    let cancelled = false;
+    setFastaLoadError(null);
+
+    function applyBest(candidates: CdsCandidate[]) {
+      setCdsCandidates(candidates);
+      // A range already in the form was chosen for this file: every path that
+      // points the form at another file (Browse, sample, KURO share) clears the
+      // range first. So a filled range is a saved or typed choice, and the
+      // longest candidate must not replace it when the form is reloaded.
+      const current = formRef.current;
+      if (candidates.length > 0 && current.geneStart !== "" && current.geneEnd !== "") {
+        const idx = candidates.findIndex(
+          (c) => String(c.start) === current.geneStart && String(c.end) === current.geneEnd,
+        );
+        if (idx !== -1) setSelectedCdsIndex(idx);
+        return;
+      }
+      if (candidates.length > 0) {
+        let best = candidates[0];
+        for (const c of candidates) {
+          if (c.aa_length > best.aa_length) best = c;
+        }
+        setSelectedCdsIndex(candidates.indexOf(best));
+        const update: Partial<SetupFormState> = {
+          geneStart: String(best.start),
+          geneEnd: String(best.end),
+        };
+        if (best.source === "genbank-cds") {
+          update.geneName = best.gene_name ?? "";
+        }
+        setForm(update);
+      }
+    }
+
+    const ext = getExtension(form.fastaPath);
+    if (ANNOTATED_EXTENSIONS.has(ext)) {
+      // Binary/annotated formats (SnapGene .dna, GenBank .gb/.gbk/.gbff): route
+      // through the kuro sidecar's load_fasta RPC (Biopython-backed), which
+      // returns real gene annotations. Text-parsing binary content here is
+      // exactly what produced junk ORF candidates before this fix.
+      sendKuroRequest("load_fasta", { filepath: form.fastaPath })
+        .then((info) => {
+          if (cancelled) return;
+          const candidates: CdsCandidate[] = info.genes.map((g) => {
+            const geneName = deriveAnnotationGeneName(g.gene, undefined, g.product);
+            return {
+              start: g.cds_start,
+              end: g.cds_end,
+              source: "genbank-cds",
+              label: geneName,
+              // The sidecar counts the stop codon as a residue ((end-start)/3),
+              // while CdsCandidate excludes it, matching parseGenbankCds and
+              // parseFastaOrfs in autoDetectCds.ts. Recompute so annotated and
+              // ORF-derived candidates report the same protein length.
+              aa_length: Math.floor((g.cds_end - g.cds_start - 3) / 3),
+              gene_name: geneName,
+            };
+          });
+          applyBest(candidates);
+          setSeqLength(info.seq_length);
+        })
+        .catch((err) => {
+          if (cancelled) return;
+          setCdsCandidates([]);
+          setSeqLength(null);
+          const descRaw = describeRpcError(err, "kuro");
+          const description = descRaw.startsWith("errors.")
+            ? t(descRaw, { method: extractMissingMethod(err) || "load_fasta" })
+            : descRaw;
+          setFastaLoadError(description);
+        });
+    } else {
+      readTextFile(form.fastaPath)
+        .then((content) => {
+          if (cancelled) return;
+          applyBest(autoDetectCdsCandidates(content));
+          const plainLength = content.replace(/^>.*$/gm, "").replace(/\s/g, "").length;
+          setSeqLength(plainLength > 0 ? plainLength : null);
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setCdsCandidates([]);
+            setSeqLength(null);
+          }
+        });
+    }
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.fastaPath]);
+
+  // ─── Sample-data prefill (Help → Load Sample Data 트리거) ────────────────
+  // analysisSlice.loadSampleData가 fastaPath + barcodeSeedsPath를 publish하면
+  // 폼에 주입하고 즉시 consume. geneStart/geneEnd는 위 fastaPath effect가
+  // autoDetectCdsCandidates를 통해 채움.
+
+  useEffect(() => {
+    if (!samplePrefill) return;
+    setForm({
+      fastaPath: samplePrefill.fastaPath,
+      topology: "linear",
+      barcodeSeedsPath: samplePrefill.barcodeSeedsPath,
+      geneStart: "",
+      geneEnd: "",
+      geneName: "",
+    });
+    consumeSamplePrefill();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [samplePrefill]);
+
+  // ─── Reload on reset or project change ───────────────────────────────────
+  // resetMameAll bumps the epoch both for Clear All (which removed this
+  // project's row first, so this yields the defaults) and for opening a
+  // project (which keeps the row, so the saved form comes back). One reload
+  // covers both. A different project path reads that project's row.
+  const seenResetEpoch = useRef(resetEpoch);
+  const seenProjectPath = useRef(projectPath);
+  useEffect(() => {
+    if (seenResetEpoch.current === resetEpoch && seenProjectPath.current === projectPath) return;
+    seenResetEpoch.current = resetEpoch;
+    seenProjectPath.current = projectPath;
+    setFormRaw(loadBarcodeSetupForm(projectPath));
+    setResult(null);
+  }, [resetEpoch, projectPath]);
+
+  // ─── KURO ↔ MAME shared file auto-load ───────────────────────────────────
+  // When KURO loadSequence succeeds it dual-writes sharedFastaPath. Populate
+  // this panel only if the user has not already provided a fastaPath, to avoid
+  // overwriting manual input.
+  useEffect(() => {
+    if (!sharedFastaPath) return;
+    if (form.fastaPath) return;
+    setForm({
+      fastaPath: sharedFastaPath,
+      topology: "linear",
+      geneStart: "",
+      geneEnd: "",
+      geneName: "",
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sharedFastaPath]);
+
+  // ─── 파일 브라우저 ───────────────────────────────────────────────────────
+
+  const browseFasta = useCallback(async () => {
+    const selected = toSinglePath(
+      await open({
+        directory: false,
+        filters: [
+          {
+            name: "Sequence",
+            extensions: ["fa", "fasta", "fna", "gb", "gbk", "gbff", "dna"],
+          },
+        ],
+        title: "Select CDS sequence file",
+      }),
+    );
+    if (selected) {
+      setForm({
+        fastaPath: selected,
+        topology: "linear",
+        geneStart: "",
+        geneEnd: "",
+        geneName: "",
+      });
+    }
+  }, []);
+
+  const browseBarcodeSeeds = useCallback(async () => {
+    const selected = toSinglePath(
+      await open({
+        directory: false,
+        filters: [{ name: "Excel", extensions: ["xlsx"] }],
+        title: "Select barcode seeds xlsx",
+      }),
+    );
+    if (selected) setForm({ barcodeSeedsPath: selected });
+  }, []);
+
+  const browseOutputDir = useCallback(async () => {
+    const selected = toSinglePath(
+      await open({
+        directory: true,
+        title: "Select output folder",
+      }),
+    );
+    if (selected) setForm({ outputDir: selected });
+  }, []);
+
+  // ─── 검증 ────────────────────────────────────────────────────────────────
+
+  const geneStartNum = parseInt(form.geneStart, 10);
+  const geneEndNum = parseInt(form.geneEnd, 10);
+  const isStartValid = form.geneStart !== "" && !isNaN(geneStartNum) && geneStartNum >= 0;
+  const isEndValid = form.geneEnd !== "" && !isNaN(geneEndNum) && geneEndNum >= 1;
+  const isRangeValid = isStartValid && isEndValid && geneEndNum > geneStartNum;
+
+  // PI 2026-05-15 (Item 2): 입력 누락 시에도 버튼은 클릭 가능. 핸들러에서
+  // validate → 누락이면 toast.warning. isGenerating 상태만 hard disable.
+  // isStartValid·isEndValid는 NumberField hasError 표시용으로 유지.
+  void isStartValid;
+  void isEndValid;
+  const canGenerate = !isGenerating;
+  const isPlainFasta =
+    Boolean(form.fastaPath) && !ANNOTATED_EXTENSIONS.has(getExtension(form.fastaPath));
+
+  // ─── 플랭크 preflight 경고 ────────────────────────────────────────────────
+  // 경고일 뿐 차단하지 않는다. 백엔드는 linear 탐색창을 서열 경계로 클램프하므로
+  // 실제 물리적 최소 요구는 overhang_max 가 아니라 도달 가능한 최소 overhang 이다.
+  // overhang = gap + binding_len 이고 gap >= 0 이라 binding_min_len 보다 작은
+  // overhang 에는 결합 부위가 들어가지 못한다. 그래서 needed 는 그냥
+  // overhang_min 이 아니라 max(overhang_min, binding_min_len) 이다.
+  const overhangMinNum = parseInt(form.overhangMin, 10);
+  const bindingMinLenNum = parseInt(form.bindingMinLen, 10);
+  const flankNeeded = Math.max(overhangMinNum, bindingMinLenNum);
+  const flankWarnings: string[] = [];
+  if (
+    isPlainFasta &&
+    form.topology === "linear" &&
+    isRangeValid &&
+    seqLength !== null &&
+    Number.isFinite(overhangMinNum) &&
+    Number.isFinite(bindingMinLenNum)
+  ) {
+    const upstreamAvailable = geneStartNum;
+    const downstreamAvailable = seqLength - geneEndNum;
+    const upstreamShortfall = flankNeeded - upstreamAvailable;
+    const downstreamShortfall = flankNeeded - downstreamAvailable;
+    if (upstreamShortfall > 0) {
+      flankWarnings.push(
+        t("mame.barcodeSetup.flankWarningUpstream", {
+          needed: flankNeeded,
+          available: Math.max(upstreamAvailable, 0),
+          shortfall: upstreamShortfall,
+        }),
+      );
+    }
+    if (downstreamShortfall > 0) {
+      flankWarnings.push(
+        t("mame.barcodeSetup.flankWarningDownstream", {
+          needed: flankNeeded,
+          available: Math.max(downstreamAvailable, 0),
+          shortfall: downstreamShortfall,
+        }),
+      );
+    }
+  }
+
+  // ─── RPC 호출 ─────────────────────────────────────────────────────────────
+
+  async function handleGenerate() {
+    const check = validateGenerateBarcodePackage({
+      fastaPath: form.fastaPath,
+      barcodeSeedsPath: form.barcodeSeedsPath,
+      geneName: form.geneName,
+      geneStart: form.geneStart,
+      geneEnd: form.geneEnd,
+      isRangeValid,
+      projectPath: project?.path,
+    });
+    if (!check.ok) {
+      toast.warning(t("validation.actionBlockedTitle"), {
+        description: check.missing.map((k) => t(k)).join("\n"),
+      });
+      return;
+    }
+    if (!project?.path) return;
+
+    const destDir = form.outputDir.trim() || `${project.path}/design`;
+    // §5 directory-level overwrite confirm. generate_mame_package writes multiple
+    // files (primer CSV, barcode XLSX, amplicon FASTA) into design/, so there is no
+    // single output path. Confirm before regenerating into an existing design/ dir.
+    if (await fileExists(destDir)) {
+      const decision = await requestOverwriteConfirm(
+        destDir,
+        t("mame.barcodeSetup.overwriteConfirmDir", { dir: getFilename(destDir) }),
+      );
+      if (decision === "cancel") return;
+    }
+    setIsGenerating(true);
+    setResult(null);
+
+    function optInt(s: string): number | undefined {
+      const n = parseInt(s, 10);
+      return Number.isFinite(n) ? n : undefined;
+    }
+    function optFloat(s: string): number | undefined {
+      const n = parseFloat(s);
+      return Number.isFinite(n) ? n : undefined;
+    }
+
+    const params: GenerateMamePackageParams = {
+      fasta_path: form.fastaPath,
+      gene_start: geneStartNum,
+      gene_end: geneEndNum,
+      barcode_seeds_path: form.barcodeSeedsPath,
+      output_dir: destDir,
+      project_root: project.path,
+      gene_name: form.geneName.trim(),
+      polymerase: form.polymerase,
+      overhang_min: optInt(form.overhangMin),
+      overhang_max: optInt(form.overhangMax),
+      binding_min_len: optInt(form.bindingMinLen),
+      binding_max_len: optInt(form.bindingMaxLen),
+      tm_min: optFloat(form.tmMin),
+      tm_max: optFloat(form.tmMax),
+      require_gc_clamp: form.requireGcClamp,
+      // Annotated formats carry topology in their record annotations, so an
+      // override would discard the source of truth. Plain FASTA has no such
+      // annotation (kuma_core.kuro.sdm_engine.detect_topology), therefore it
+      // must state the operator's template topology explicitly.
+      ...(isPlainFasta ? { topology: form.topology } : {}),
+    };
+
+    try {
+      // generate_mame_package는 프라이머 설계 작업으로 시간이 걸릴 수 있다.
+      const res = await sendMameRequest<MamePackageResult>(
+        "generate_mame_package",
+        params as unknown as Record<string, unknown>,
+      );
+      setResult(res);
+      setReferencePath(res.amplicon_fa);
+      setParams({
+        cdsStart: 0,
+        cdsEnd: geneEndNum - geneStartNum,
+        rawRunParams: {
+          customBarcodesPath: res.barcodes_xlsx,
+        },
+      });
+      await registerArtifacts([
+        {
+          app: "mame",
+          step: "setup",
+          type: "mame_barcodes_xlsx",
+          absolutePath: res.barcodes_xlsx,
+        },
+        {
+          app: "mame",
+          step: "setup",
+          type: "mame_reference_fasta",
+          absolutePath: res.amplicon_fa,
+        },
+        {
+          app: "mame",
+          step: "setup",
+          type: "mame_context_json",
+          absolutePath: res.context_json,
+        },
+      ]).catch((err) => {
+        console.warn("[workspace] mame setup artifact registration failed", err);
+      });
+      const destName = getFilename(destDir);
+      const lengthDesc = res.amplicon_length != null
+        ? t("mame.barcodeSetup.toastSuccessDescWithLength", { length: res.amplicon_length, dir: destName })
+        : t("mame.barcodeSetup.toastSuccessDesc", { dir: destName });
+      toast.success(t("mame.barcodeSetup.toastSuccess"), {
+        description: lengthDesc,
+        duration: 4000,
+      });
+    } catch (err) {
+      // describeRpcError가 i18n 키를 돌려주면 t()로 번역, 그렇지 않으면 원본 메시지 사용.
+      const descRaw = describeRpcError(err, "mame");
+      const description = descRaw.startsWith("errors.")
+        ? t(descRaw, { method: extractMissingMethod(err) || "generate_mame_package" })
+        : descRaw;
+      toast.error(t("mame.barcodeSetup.toastError"), {
+        description,
+        duration: 6000,
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
+  // ─── 렌더링 ──────────────────────────────────────────────────────────────
+
+  return (
+    <div className="h-full overflow-y-auto">
+      <div className="mx-auto max-w-2xl space-y-6 p-4">
+        {/* group prop이 없을 때만 최상단 heading을 표시한다.
+            group이 전달되면 WizardContainer가 step 헤딩을 이미 제공하므로 숨긴다. */}
+        {group === undefined && !embedded && (
+          <header>
+            <h2 className="text-base font-semibold text-foreground">{t("mame.barcodeSetup.title")}</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t("mame.barcodeSetup.subtitle")}
+            </p>
+          </header>
+        )}
+
+        {/* 섹션 1: 입력 파일 (group: files 또는 undefined) */}
+        {(!group || group === "files") && <section aria-labelledby="section-files">
+          <h3 id="section-files" className="mb-3 text-sm font-medium text-foreground">
+            {t("mame.barcodeSetup.inputFiles")}
+          </h3>
+          <div className="space-y-4">
+            <FileField
+              label={t("mame.barcodeSetup.cdsFasta")}
+              value={form.fastaPath}
+              onChange={(v) => setForm({
+                fastaPath: v,
+                topology: "linear",
+                geneStart: "",
+                geneEnd: "",
+                geneName: "",
+              })}
+              onBrowse={browseFasta}
+              placeholder={t("mame.barcodeSetup.cdsFastaPlaceholder")}
+              stateLabel={t("mame.barcodeSetup.requiredStateLabel")}
+              filled={Boolean(form.fastaPath)}
+              helperText={t("mame.barcodeSetup.cdsFastaHelper")}
+              noPathLabel={t("mame.inputPanel.noPathSelected")}
+              readyLabel={t("mame.inputPanel.fileReady")}
+              browseAriaLabel={t("mame.inputPanel.browseFolderAriaLabel", { label: t("mame.barcodeSetup.cdsFasta") })}
+            />
+            {isPlainFasta && (
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="template-topology"
+                  className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                >
+                  {t("mame.barcodeSetup.templateTopology")}
+                </Label>
+                <Select
+                  value={form.topology}
+                  onValueChange={(v) => setForm({ topology: v as "linear" | "circular" })}
+                >
+                  <SelectTrigger id="template-topology" className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="linear">{t("mame.barcodeSetup.topologyLinear")}</SelectItem>
+                    <SelectItem value="circular">{t("mame.barcodeSetup.topologyCircular")}</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground/90">
+                  {t("mame.barcodeSetup.templateTopologyHelper")}
+                </p>
+              </div>
+            )}
+            {fastaLoadError && (
+              <p role="alert" className="text-xs text-destructive">
+                {t("mame.barcodeSetup.cdsFastaLoadError", { error: fastaLoadError })}
+              </p>
+            )}
+
+            <FileField
+              label={t("mame.barcodeSetup.barcodeSeedsXlsx")}
+              value={form.barcodeSeedsPath}
+              onChange={(v) => setForm({ barcodeSeedsPath: v })}
+              onBrowse={browseBarcodeSeeds}
+              placeholder={t("mame.barcodeSetup.barcodeSeedsXlsxPlaceholder")}
+              stateLabel={t("mame.barcodeSetup.requiredStateLabel")}
+              filled={Boolean(form.barcodeSeedsPath)}
+              helperText={t("mame.barcodeSetup.barcodeSeedsXlsxHelper")}
+              help={
+                <FormatPreviewHelp
+                  testId="format-preview-barcode-seeds"
+                  fieldLabel={t("mame.barcodeSetup.barcodeSeedsXlsx")}
+                  entries={[
+                    {
+                      id: "barcodeSeeds",
+                      title: t("mame.barcodeSetup.barcodeSeedsXlsx"),
+                    },
+                  ]}
+                />
+              }
+              noPathLabel={t("mame.inputPanel.noPathSelected")}
+              readyLabel={t("mame.inputPanel.fileReady")}
+              browseAriaLabel={t("mame.inputPanel.browseFolderAriaLabel", { label: t("mame.barcodeSetup.barcodeSeedsXlsx") })}
+            />
+          </div>
+        </section>}
+
+        {/* 섹션 2: 유전자 좌표 (group: files 또는 undefined) */}
+        {(!group || group === "files") && <section aria-labelledby="section-coords">
+          <h3 id="section-coords" className="mb-3 text-sm font-medium text-foreground">
+            {t("mame.barcodeSetup.geneCoordinates")}
+          </h3>
+
+          {cdsCandidates.length > 0 ? (
+            /* CDS 후보 dropdown (kuro Target Gene 패턴) */
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="cds-candidate"
+                className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+              >
+                {t("mame.barcodeSetup.cdsCandidate")}
+              </Label>
+              <Select
+                value={String(selectedCdsIndex)}
+                onValueChange={(v) => {
+                  const i = Number(v);
+                  setSelectedCdsIndex(i);
+                  const cand = cdsCandidates[i];
+                  if (cand) {
+                    const selUpdate: Partial<SetupFormState> = {
+                      geneStart: String(cand.start),
+                      geneEnd: String(cand.end),
+                    };
+                    if (cand.source === "genbank-cds") {
+                      selUpdate.geneName = cand.gene_name ?? "";
+                    }
+                    setForm(selUpdate);
+                  }
+                }}
+              >
+                <SelectTrigger id="cds-candidate" className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {cdsCandidates.map((c, i) => {
+                    const labelPart = c.label ? `[${c.label}] ` : "";
+                    const tooltip = [
+                      c.label ? t("mame.barcodeSetup.cdsTooltipLabel", { label: c.label }) : "",
+                      t("mame.barcodeSetup.cdsTooltipRange", { start: c.start, end: c.end }),
+                      t("mame.barcodeSetup.cdsTooltipLength", { length: c.aa_length }),
+                      t("mame.barcodeSetup.cdsTooltipSource", { source: c.source }),
+                    ]
+                      .filter(Boolean)
+                      .join("\n");
+                    return (
+                      <SelectItem key={i} value={String(i)} title={tooltip}>
+                        {labelPart}{c.start}-{c.end} ({c.aa_length} aa)
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground/90">
+                {t("mame.barcodeSetup.cdsFastaHelper")}
+              </p>
+            </div>
+          ) : (
+            /* 후보 없음 — 직접 입력 fallback */
+            <>
+              {form.fastaPath && (
+                <p className="mb-2 text-xs text-muted-foreground">
+                  {t("mame.barcodeSetup.cdsCandidateNoneDetected")}
+                </p>
+              )}
+              <div className="grid grid-cols-2 gap-3">
+                <NumberField
+                  id="gene-start"
+                  label="gene_start"
+                  value={form.geneStart}
+                  onChange={(v) => setForm({ geneStart: v })}
+                  min={0}
+                  step={1}
+                  placeholder="0"
+                  helperText={t("mame.barcodeSetup.geneStartHelper")}
+                  hasError={form.geneStart !== "" && (!isStartValid || !isRangeValid)}
+                />
+                <NumberField
+                  id="gene-end"
+                  label="gene_end"
+                  value={form.geneEnd}
+                  onChange={(v) => setForm({ geneEnd: v })}
+                  min={1}
+                  step={1}
+                  placeholder="e.g. 534"
+                  helperText={t("mame.barcodeSetup.geneEndHelper")}
+                  hasError={form.geneEnd !== "" && (!isEndValid || !isRangeValid)}
+                />
+              </div>
+            </>
+          )}
+
+          {form.geneStart !== "" && form.geneEnd !== "" && !isRangeValid && (
+            <p role="alert" className="mt-1 text-xs text-destructive">
+              {t("mame.barcodeSetup.geneEndError")}
+            </p>
+          )}
+
+          {flankWarnings.length > 0 && (
+            <div role="status" className="mt-2 space-y-1">
+              {flankWarnings.map((w, i) => (
+                <p key={i} className="text-xs text-amber-700 dark:text-amber-400">
+                  {w}
+                </p>
+              ))}
+            </div>
+          )}
+        </section>}
+
+        {/* 섹션 3: 프로젝트 메타 (group: files 또는 undefined) */}
+        {(!group || group === "files") && <section aria-labelledby="section-meta">
+          <h3 id="section-meta" className="mb-3 text-sm font-medium text-foreground">
+            {t("mame.barcodeSetup.projectMetadata")}
+          </h3>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="gene-name" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {t("mame.barcodeSetup.geneName")}
+              </Label>
+              <Input
+                id="gene-name"
+                value={form.geneName}
+                onChange={(e) => setForm({ geneName: e.target.value })}
+                className="h-8 text-xs font-mono"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="polymerase" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {t("mame.barcodeSetup.polymerase")}
+              </Label>
+              <Select
+                value={form.polymerase}
+                onValueChange={(v) =>
+                  setForm({ polymerase: v as "Q5" | "Taq" | "Phusion" | "KOD" })
+                }
+              >
+                <SelectTrigger id="polymerase" className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Q5" title={t("mame.barcodeSetup.polymeraseQ5Title")}>Q5</SelectItem>
+                  <SelectItem value="Taq" title={t("mame.barcodeSetup.polymeraseTaqTitle")}>Taq</SelectItem>
+                  <SelectItem value="Phusion" title={t("mame.barcodeSetup.polymerasePhusionTitle")}>Phusion</SelectItem>
+                  <SelectItem value="KOD" title={t("mame.barcodeSetup.polymeraseKODTitle")}>KOD</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </section>}
+
+        {/* 고급 파라미터 (플랭크 + 바인딩) — group: design 또는 undefined, 접이식 */}
+        {(!group || group === "design") && (
+          <AdvancedSection
+            title={t("mame.barcodeSetup.advancedParameters")}
+            open={showAdvanced}
+            onToggle={() => setShowAdvanced((v) => !v)}
+            id="barcode-setup-advanced"
+          >
+            <div className="space-y-6">
+        {/* 섹션 4: 플랭크 파라미터 */}
+        <section aria-labelledby="section-flank">
+          <h3 id="section-flank" className="mb-3 text-sm font-medium text-foreground">
+            {t("mame.barcodeSetup.flankParameters")}
+          </h3>
+          <div className="grid grid-cols-2 gap-3">
+            <NumberField
+              id="overhang-min"
+              label="overhang_min (nt)"
+              tooltip={t("mame.parameters.tooltips.overhangMin")}
+              value={form.overhangMin}
+              onChange={(v) => setForm({ overhangMin: v })}
+              min={0}
+              step={1}
+              placeholder="20"
+            />
+            <NumberField
+              id="overhang-max"
+              label="overhang_max (nt)"
+              tooltip={t("mame.parameters.tooltips.overhangMax")}
+              value={form.overhangMax}
+              onChange={(v) => setForm({ overhangMax: v })}
+              min={1}
+              step={1}
+              placeholder="60"
+            />
+          </div>
+        </section>
+
+        {/* 섹션 5: 바인딩 파라미터 */}
+        <section aria-labelledby="section-binding">
+          <h3 id="section-binding" className="mb-3 text-sm font-medium text-foreground">
+            {t("mame.barcodeSetup.bindingParameters")}
+          </h3>
+          <div className="grid grid-cols-2 gap-3">
+            <NumberField
+              id="binding-min-len"
+              label="binding_min_len (nt)"
+              tooltip={t("mame.parameters.tooltips.bindingMinLen")}
+              value={form.bindingMinLen}
+              onChange={(v) => setForm({ bindingMinLen: v })}
+              min={1}
+              step={1}
+              placeholder="18"
+            />
+            <NumberField
+              id="binding-max-len"
+              label="binding_max_len (nt)"
+              tooltip={t("mame.parameters.tooltips.bindingMaxLen")}
+              value={form.bindingMaxLen}
+              onChange={(v) => setForm({ bindingMaxLen: v })}
+              min={1}
+              step={1}
+              placeholder="35"
+            />
+            <NumberField
+              id="tm-min"
+              label="Tm min (°C)"
+              tooltip={t("mame.parameters.tooltips.tmMin")}
+              value={form.tmMin}
+              onChange={(v) => setForm({ tmMin: v })}
+              min={0}
+              step={0.5}
+              placeholder="55.0"
+            />
+            <NumberField
+              id="tm-max"
+              label="Tm max (°C)"
+              tooltip={t("mame.parameters.tooltips.tmMax")}
+              value={form.tmMax}
+              onChange={(v) => setForm({ tmMax: v })}
+              min={0}
+              step={0.5}
+              placeholder="68.0"
+            />
+          </div>
+
+          <div className="mt-3 flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="require-gc-clamp"
+              checked={form.requireGcClamp}
+              onChange={(e) => setForm({ requireGcClamp: e.target.checked })}
+              className="h-4 w-4 cursor-pointer accent-primary"
+              aria-label={t("mame.barcodeSetup.requireGcClampAriaLabel")}
+            />
+            <Label
+              htmlFor="require-gc-clamp"
+              className="cursor-pointer text-sm text-foreground"
+            >
+              {t("mame.barcodeSetup.requireGcClamp")}
+            </Label>
+          </div>
+        </section>
+            </div>
+          </AdvancedSection>
+        )}
+
+        {/* 프로젝트 없음 안내 + 생성 버튼 + 출력 섹션 (group: design 또는 undefined) */}
+        {(!group || group === "design") && <>
+        {/* 출력 위치 선택 */}
+        <section aria-labelledby="section-output-loc">
+          <h3 id="section-output-loc" className="mb-3 text-sm font-medium text-foreground">
+            {t("mame.barcodeSetup.outputLocation")}
+          </h3>
+          <FileField
+            label={t("mame.barcodeSetup.outputLocation")}
+            value={form.outputDir}
+            onChange={(v) => setForm({ outputDir: v })}
+            onBrowse={browseOutputDir}
+            placeholder={t("mame.barcodeSetup.outputLocationPlaceholder")}
+            stateLabel={t("mame.barcodeSetup.outputLocationStateLabel")}
+            filled={Boolean(form.outputDir)}
+            helperText={t("mame.barcodeSetup.outputLocationHelper")}
+            noPathLabel={
+              // outputDir is a save destination the operator chooses;
+              // loadSampleData never seeds it (samplePrefill only carries
+              // fastaPath + barcodeSeedsPath), so the default "No path
+              // selected" would misread as an unfinished pick after Load
+              // Sample Data instead of a field sample data never fills.
+              sampleDataLoaded && !form.outputDir
+                ? t("mame.inputPanel.sampleNoOutputDest")
+                : t("mame.inputPanel.noPathSelected")
+            }
+            readyLabel={t("mame.inputPanel.fileReady")}
+            browseAriaLabel={t("mame.inputPanel.browseFolderAriaLabel", { label: t("mame.barcodeSetup.outputLocation") })}
+          />
+        </section>
+        {!project?.path && (
+          <p role="status" className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+            {t("mame.barcodeSetup.noProjectWarning")}
+          </p>
+        )}
+
+        {/* 생성 버튼 */}
+        <Button
+          type="button"
+          className="w-full"
+          disabled={!canGenerate || !project?.path}
+          onClick={() => void handleGenerate()}
+          aria-busy={isGenerating}
+        >
+          {isGenerating ? (
+            <>
+              <Loader2 size={14} className="mr-2 animate-spin" aria-hidden="true" />
+              {t("mame.barcodeSetup.generating")}
+            </>
+          ) : (
+            t("mame.barcodeSetup.generateBarcodePackage")
+          )}
+        </Button>
+
+        {/* 출력 섹션 */}
+        {result && (
+          <section aria-labelledby="section-output" aria-live="polite">
+            <h3 id="section-output" className="mb-3 text-sm font-medium text-foreground">
+              {t("mame.barcodeSetup.generatedFiles")}
+            </h3>
+            <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2">
+              {(
+                [
+                  { label: t("mame.barcodeSetup.generatedFileLabels.barcodes"), path: result.barcodes_xlsx },
+                  { label: t("mame.barcodeSetup.generatedFileLabels.amplicon"), path: result.amplicon_fa },
+                  { label: t("mame.barcodeSetup.generatedFileLabels.contextJson"), path: result.context_json },
+                ] as const
+              ).map(({ label, path }) => (
+                <div key={path} className="flex items-start gap-2">
+                  <CheckCircle2
+                    size={14}
+                    className="mt-0.5 shrink-0 text-green-600 dark:text-green-400"
+                    aria-hidden="true"
+                  />
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-foreground">{label}</p>
+                    <p
+                      className="truncate font-mono text-xs text-muted-foreground"
+                      title={path}
+                    >
+                      {getFilename(path)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {result.warnings.length > 0 && (
+              <div
+                role="status"
+                aria-label={t("mame.barcodeSetup.warningsAriaLabel")}
+                className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 space-y-1"
+              >
+                <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
+                  {t("mame.barcodeSetup.warningsLabel")}
+                </p>
+                {result.warnings.map((w, i) => (
+                  <p key={i} className="text-xs text-amber-700 dark:text-amber-400">
+                    {w}
+                  </p>
+                ))}
+              </div>
+            )}
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-3"
+              onClick={() =>
+                void revealInOSFolder(result.barcodes_xlsx).catch((e) =>
+                  toast.error(t("mame.barcodeSetup.openFolderError"), {
+                    description: String(e),
+                  }),
+                )
+              }
+            >
+              <FolderOpen size={12} className="mr-1.5" aria-hidden="true" />
+              {t("common.openFolder")}
+            </Button>
+          </section>
+        )}
+        </>}
+      </div>
+    </div>
+  );
+}
+
+// ─── 서브 컴포넌트 ────────────────────────────────────────────────────────────
+
+function NumberField({
+  id,
+  label,
+  tooltip,
+  value,
+  onChange,
+  min,
+  step,
+  placeholder,
+  helperText,
+  hasError = false,
+}: {
+  id: string;
+  label: string;
+  tooltip?: string;
+  value: string;
+  onChange: (v: string) => void;
+  min?: number;
+  step?: number;
+  placeholder?: string;
+  helperText?: string;
+  hasError?: boolean;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label
+        htmlFor={id}
+        className="text-xs font-medium normal-case tracking-wide text-muted-foreground"
+      >
+        <span className="inline-flex items-center gap-1.5">
+          {label}
+          {tooltip && <InlineHelp text={tooltip} />}
+        </span>
+      </Label>
+      <Input
+        id={id}
+        type="number"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        min={min}
+        step={step}
+        placeholder={placeholder}
+        className={`h-8 text-xs font-mono ${hasError ? "border-destructive focus-visible:ring-destructive" : ""}`}
+        aria-label={label}
+        aria-invalid={hasError}
+      />
+      {helperText && <p className="text-xs text-muted-foreground/90">{helperText}</p>}
+    </div>
+  );
+}

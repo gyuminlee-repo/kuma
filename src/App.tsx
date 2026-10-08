@@ -1,0 +1,182 @@
+import { useEffect, useState } from "react";
+import { toast, Toaster } from "sonner";
+import { getConfig, loadProject, type Config } from "./lib/project";
+import { MainShell } from "./screens/MainShell";
+import { Home } from "./screens/Home";
+import { Onboarding } from "./screens/Onboarding";
+import { ProjectProvider, type KumaProject } from "./state/projectContext";
+import { initTheme, useResolvedTheme } from "./components/ui/ThemeToggle";
+import i18n from "./lib/i18n";
+
+// React 마운트 이전에 즉시 실행 — FOUC(플래시) 방지
+initTheme();
+
+type AppScreen = "loading" | "onboarding" | "home" | "workspace";
+
+function basename(path: string): string {
+  return path.split(/[\\/]/).pop() ?? path;
+}
+
+function stem(path: string): string {
+  return basename(path).replace(/\.[^.]+$/, "");
+}
+
+export function App() {
+  const [screen, setScreen] = useState<AppScreen>("loading");
+  const [prevScreen, setPrevScreen] = useState<AppScreen>("home");
+  const [config, setConfig] = useState<Config | null>(null);
+  const [project, setProject] = useState<KumaProject>(null);
+  const resolvedTheme = useResolvedTheme();
+  const toaster = <Toaster position="top-right" richColors theme={resolvedTheme} />;
+
+  // #4-1 첫 실행 maximize toast: localStorage 플래그가 없으면 toast 한 번 표시 후 플래그 set.
+  useEffect(() => {
+    const FLAG_KEY = "kuma.onboarding.maximizeShown";
+    if (!localStorage.getItem(FLAG_KEY)) {
+      // Sonner는 DOM mount 직후 바로 호출 가능. 언어 초기화 완료 후 렌더되도록 requestAnimationFrame 사용.
+      requestAnimationFrame(() => {
+        toast.info(i18n.t("onboarding.maximizeHint"), { duration: 6000 });
+      });
+      localStorage.setItem(FLAG_KEY, "1");
+    }
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    void getConfig()
+      .then((cfg) => {
+        if (!isMounted) {
+          return;
+        }
+        setConfig(cfg);
+        setScreen("home");
+      })
+      .catch(() => {
+        if (isMounted) {
+          setScreen("onboarding");
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const custom = event as CustomEvent<{ path?: string }>;
+      const path = custom.detail?.path;
+      if (!path) {
+        return;
+      }
+      void handleOpenWorkspace(path, false);
+    };
+
+    window.addEventListener("kuma:project-load-request", handler as EventListener);
+    return () => {
+      window.removeEventListener("kuma:project-load-request", handler as EventListener);
+    };
+  }, []);
+
+  // Item 5: Show onboarding on demand from Help menu
+  useEffect(() => {
+    function handleShowOnboarding() {
+      setPrevScreen(screen);
+      setScreen("onboarding");
+    }
+    window.addEventListener("kuma:show-onboarding", handleShowOnboarding);
+    return () => {
+      window.removeEventListener("kuma:show-onboarding", handleShowOnboarding);
+    };
+  }, [screen]);
+
+  // File menu: Return to project picker (Home screen)
+  useEffect(() => {
+    function handleReturnHome() {
+      setProject(null);
+      setScreen("home");
+    }
+    window.addEventListener("kuma:return-to-home", handleReturnHome);
+    return () => {
+      window.removeEventListener("kuma:return-to-home", handleReturnHome);
+    };
+  }, []);
+
+  function handleDone(cfg: Config) {
+    setConfig(cfg);
+    // If re-opened from workspace/home, return there instead of forcing home
+    setScreen(prevScreen === "workspace" || prevScreen === "home" ? prevScreen : "home");
+  }
+
+  async function handleOpenWorkspace(path: string, scratch: boolean, newlyCreated = false) {
+    if (scratch) {
+      setProject({
+        path,
+        name: stem(path),
+        scratch: true,
+      });
+      setScreen("workspace");
+      return;
+    }
+
+    const fallbackProject: Exclude<KumaProject, null> = {
+      path,
+      name: stem(path),
+      scratch: false,
+      newlyCreated,
+    };
+
+    try {
+      const loadedProject = await loadProject(path);
+      setProject({
+        ...fallbackProject,
+        name: loadedProject.name,
+        ...(typeof loadedProject.project_id === "string" ? { project_id: loadedProject.project_id } : {}),
+        ...(typeof loadedProject.stage === "string" ? { stage: loadedProject.stage } : {}),
+      });
+    } catch {
+      setProject(fallbackProject);
+    }
+
+    setScreen("workspace");
+  }
+
+  if (screen === "loading") {
+    return (
+      <>
+        <div className="flex min-h-screen items-center justify-center bg-muted text-sm text-muted-foreground">Loading…</div>
+        {toaster}
+      </>
+    );
+  }
+
+  if (screen === "onboarding") {
+    return (
+      <>
+        <Onboarding initialPath={config?.projects_root} onDone={handleDone} />
+        {toaster}
+      </>
+    );
+  }
+
+  if (screen === "home") {
+    return (
+      <>
+        <Home
+          onOpenProject={(path, options) => void handleOpenWorkspace(path, false, options?.newlyCreated)}
+          onOpenScratch={(path) => void handleOpenWorkspace(path, true)}
+          onOpenSettings={() => setScreen("onboarding")}
+        />
+        {toaster}
+      </>
+    );
+  }
+
+  return (
+    <ProjectProvider value={project}>
+      <MainShell />
+      {toaster}
+    </ProjectProvider>
+  );
+}

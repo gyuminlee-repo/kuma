@@ -1,0 +1,117 @@
+[build-system]
+requires = ["setuptools>=77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kuma"
+version = "0.16.73"
+description = "kuma - integrated primer design (KURO) + NGS verification (mame) tool"
+requires-python = ">=3.11"
+license = "GPL-2.0-or-later"
+dependencies = [
+    "primer3-py==2.3.0",
+    "biopython==1.84",
+    "openpyxl==3.1.5",
+    "xlwt==1.3.0",
+    "xlrd==1.2.0",
+    "pydantic>=2.0",
+    "pandas>=2.0",
+    "python-calamine==0.6.2",
+    "psutil>=5.9",
+    # edlib: C-level edit-distance with HW (infix) mode for barcode matching.
+    # Wheels are available for Linux/macOS/Windows on all supported Python
+    # versions, so no platform restriction is needed.
+    "edlib==1.3.9.post1",
+    "certifi>=2024.2.2",
+    # truststore: verify TLS against the OS trust store (macOS Keychain,
+    # Windows cert store, OpenSSL on Linux). Floor is the version verified
+    # here (0.10.4), whose metadata declares Requires-Python >=3.10; local
+    # dev runs 3.11 and the frozen build 3.12, so both satisfy it.
+    "truststore>=0.10.4",
+]
+
+[project.optional-dependencies]
+build = [
+    "pyinstaller==6.16.0",
+]
+# test: optional tools needed for the full MAME demux regression harness.
+# cutadapt is an optional runtime dependency (PATH-based, with a Python
+# fallback), so it is not a hard package dep; the test extra pins it so CI
+# and other machines can reproduce the native-barcode identity gate.
+test = [
+    "cutadapt>=5.0",
+    "pytest",
+]
+
+# benchmark: what benchmark/al/ needs, kept out of `test` on purpose.
+#
+# That tree is research code for a paper rather than part of the product, and
+# its suite runs in its own non-blocking job. Folding these into `test` would
+# put scikit-learn and scipy on all six python-tests legs, which installs them
+# on Windows and macOS runners that have no use for them and puts research
+# libraries on the path the desktop app is built from.
+#
+# Until this extra existed the imports were satisfied by whatever happened to
+# be on the developer machine, so the suite passed locally and could not have
+# run anywhere else.
+benchmark = [
+    "pytest",
+    "scikit-learn",
+    "scipy",
+]
+
+# typecheck: the Python type gate CI runs, and the one an editor should match.
+#
+# basedpyright rather than pyright because pyright ships as an npm package, and
+# on the shared-folder WSL checkout a Linux npm install replaces the Windows
+# node_modules and breaks the desktop build. basedpyright is a pyright fork
+# published to PyPI, so the same command runs in CI and on every developer
+# machine without touching node at all.
+#
+# PINNED EXACTLY, and that is the point: a type checker adds rules between
+# releases, so an unpinned one turns an unrelated upgrade into a red build on a
+# branch that changed nothing. Moving this pin is its own commit, with the new
+# findings looked at.
+#
+# `typeCheckingMode` is set to "standard" under [tool.pyright] below, because
+# basedpyright defaults to a stricter mode of its own. Standard is what real
+# pyright runs, so an editor reading [tool.pyright] and CI reading this pin
+# report the same thing.
+typecheck = [
+    "basedpyright==1.39.10",
+]
+
+[project.scripts]
+kuro = "kuma_core.kuro.cli:main"
+mame = "kuma_core.mame.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["kuma_core*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".", "python-core"]
+
+[tool.pyright]
+# Real pyright standard mode. Named explicitly so that basedpyright (what
+# CI installs) and pyright (what an editor usually runs) apply the same
+# rule set instead of each falling back to its own default.
+typeCheckingMode = "standard"
+extraPaths = [".", "python-core"]
+include = ["kuma_core", "python-core", "tests", "scripts"]
+exclude = [
+    "**/__pycache__",
+    "**/.pytest_cache",
+    "node_modules",
+    "dist",
+    "src-tauri/target",
+    "python-core/build",
+    "python-core/dist",
+]
+reportMissingImports = "warning"
+reportUnusedParameter = "none"
+
+[tool.ruff]
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101"]

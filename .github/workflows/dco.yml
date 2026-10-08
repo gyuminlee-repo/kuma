@@ -1,0 +1,126 @@
+name: DCO
+
+# Every commit a pull request adds must carry a Signed-off-by trailer that
+# matches its own author, certifying the Developer Certificate of Origin 1.1
+# stored in the DCO file at the repository root. A merge commit is exempt only
+# when it adds no content of its own; one that resolved a conflict is checked
+# like any other commit. Holding provenance in the
+# commit history is what keeps relicensing and dual licensing possible later.
+#
+# No third-party action runs here on purpose. The check is a checkout and a
+# handful of git commands, so pulling in an external action would add supply
+# chain exposure for nothing.
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  sign-off:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # Full history. The range below walks from the base sha to the head
+          # sha, and a shallow checkout leaves those commits unreachable.
+          fetch-depth: 0
+
+      - name: Check the sign-off on every commit this pull request adds
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          # The two-dot range excludes everything already reachable from the
+          # base, so commits that landed on main before this branch are never
+          # inspected.
+          commits=$(git rev-list "$BASE_SHA".."$HEAD_SHA")
+
+          checked=0
+          missing=0
+          merges_skipped=0
+          report=""
+
+          for sha in $commits; do
+            # A merge whose result matches its parents carries no content of
+            # its own, so there is nothing for its author to certify and the
+            # parents are covered on their own pull requests. A merge that
+            # resolved a conflict, or that was edited during the merge, holds
+            # lines present in no parent, and that content needs a sign-off
+            # like any other. git show --cc prints only the hunks that differ
+            # from every parent, so an empty combined diff is exactly the
+            # first case and a non-empty one is exactly the second.
+            parents=$(git show -s --format=%P "$sha")
+            parent_count=$(printf '%s\n' "$parents" | wc -w)
+            if [ "$parent_count" -gt 1 ]; then
+              combined=$(git show --format= --cc "$sha")
+              if [ -z "$combined" ]; then
+                merges_skipped=$((merges_skipped + 1))
+                continue
+              fi
+            fi
+
+            checked=$((checked + 1))
+            author_name=$(git show -s --format=%an "$sha")
+            author_email=$(git show -s --format=%ae "$sha")
+            subject=$(git show -s --format=%s "$sha")
+
+            trailers=$(git show -s --format=%B "$sha" \
+              | git interpret-trailers --parse \
+              | grep -i '^Signed-off-by:' || true)
+
+            ok=0
+            while IFS= read -r line; do
+              [ -n "$line" ] || continue
+              value=${line#*:}
+              value=${value# }
+              signer_name=${value%% <*}
+              signer_email=${value##*<}
+              signer_email=${signer_email%>}
+              # The name is compared as written; the address is compared
+              # case-insensitively, because mail addresses are not case
+              # sensitive in the part that identifies a mailbox host and git
+              # clients disagree on how they store it.
+              if [ "$signer_name" = "$author_name" ] \
+                && [ "${signer_email,,}" = "${author_email,,}" ]; then
+                ok=1
+              fi
+            done < <(printf '%s\n' "$trailers")
+
+            if [ "$ok" -eq 0 ]; then
+              missing=$((missing + 1))
+              report="${report}  ${sha} ${subject}"$'\n'
+              report="${report}    author: ${author_name} <${author_email}>"$'\n'
+              if [ -n "$trailers" ]; then
+                report="${report}    found:  ${trailers}"$'\n'
+              else
+                report="${report}    found:  no Signed-off-by trailer"$'\n'
+              fi
+            fi
+          done
+
+          echo "Commits checked: ${checked}"
+          echo "Merge commits skipped because they add no content: ${merges_skipped}"
+
+          if [ "$missing" -gt 0 ]; then
+            echo "Commits without a matching sign-off: ${missing}"
+            echo ""
+            printf '%s' "$report"
+            echo ""
+            echo "Add the sign-off to the whole branch and push it again:"
+            echo ""
+            echo "  git rebase --signoff ${BASE_SHA}"
+            echo "  git push --force-with-lease"
+            echo ""
+            echo "The trailer has to name the commit author, so set user.name"
+            echo "and user.email to the identity that authored the commits."
+            echo "New commits get the trailer from git commit -s."
+            exit 1
+          fi
+
+          echo "Every commit that adds content carries a Signed-off-by trailer matching its author."

@@ -1,0 +1,141 @@
+/**
+ * §19 Performance Guardrails — input size pre-check constants and functions.
+ *
+ * When a threshold is exceeded, the UI shows an AlertDialog and waits for user confirm.
+ * Execution is never fully blocked — both "warn" and "block" levels offer a continue button.
+ */
+
+import i18next from "i18next";
+import { PLATE_WELL_COUNT } from "./plate-utils";
+
+/**
+ * Mutations a single design run may produce, pinned to one plate.
+ *
+ * Separate name from `PLATE_WELL_COUNT` because they answer different
+ * questions: that one is how many wells a plate has, this one is how many of
+ * them one run is allowed to fill. They are tied to the same number because a
+ * run that designs more primers than a plate holds puts the overflow on a
+ * plate nobody prepared, and the well label for it (`P2-A1`) names a plate
+ * that does not exist in the run.
+ */
+export const MAX_MUTATIONS_PER_RUN = PLATE_WELL_COUNT;
+
+/**
+ * The one place a design count written into `maxPrimers` is normalized.
+ *
+ * Every write into `maxPrimers` calls this, including the ones that bypass
+ * `setMaxPrimers` (workspace restore, autosave rehydration), because a value
+ * that entered through a file is exactly the one nothing else checks. Copies
+ * of a rule have drifted apart in this repo before, so there is no second
+ * implementation anywhere.
+ *
+ * There is no upper bound. `MAX_MUTATIONS_PER_RUN` stays the bound of a
+ * single round: a selection above it is split into rounds of at most that
+ * many before any mapping is built (`splitIntoRounds` in `plateRounds.ts`),
+ * each round on an Echo source plate the operator picks, so `export_all` and
+ * the plate mapper still see one plate per call and the `P2-` overflow labels
+ * are never produced for a file an instrument reads.
+ *
+ * Fractions are truncated: the count indexes an array of designed primers, and
+ * `parseFloat` on a text input accepts `"95.7"`. A value that is not a finite
+ * number falls back to one plate.
+ */
+export function clampMaxPrimers(n: number): number {
+  if (!Number.isFinite(n)) return MAX_MUTATIONS_PER_RUN;
+  return Math.max(1, Math.floor(n));
+}
+
+export const KURO_INPUT_THRESHOLDS = {
+  /** mutation 행 수 경고 임계 */
+  ROW_WARN: 1000,
+  /** mutation 행 수 강권 임계 (계속하면 시간이 매우 길 수 있음) */
+  ROW_BLOCK: 10000,
+  /** reference fasta 파일 크기 경고 임계 (MB) */
+  FASTA_WARN_MB: 50,
+  /** 행당 평균 처리 시간 (초) — 추정치이므로 예상값임을 UI에 명시 */
+  AVG_SECONDS_PER_ROW: 0.5,
+} as const;
+
+export const MAME_INPUT_THRESHOLDS = {
+  /** activity 레코드 수 경고 임계 */
+  ROW_WARN: 5000,
+  /** activity 레코드 수 강권 임계 */
+  ROW_BLOCK: 100000,
+  /** 행당 평균 처리 시간 (초) */
+  AVG_SECONDS_PER_ROW: 0.05,
+} as const;
+
+export type InputSizeLevel = "ok" | "warn" | "block";
+
+export interface InputSizeCheckResult {
+  level: InputSizeLevel;
+  /** 사용자에게 노출할 메시지 (level이 "ok"이면 빈 문자열) */
+  message: string;
+  /** 추정 소요 초 (0이면 계산 불가) */
+  estimatedSeconds: number;
+}
+
+interface KuroCheckParams {
+  rowCount: number;
+  fastaMb?: number;
+}
+
+interface MameCheckParams {
+  rowCount: number;
+}
+
+function formatEstimate(seconds: number): string {
+  if (seconds < 60) return i18next.t("inputThresholds.estimateSec", { sec: Math.ceil(seconds) });
+  const minutes = Math.ceil(seconds / 60);
+  return i18next.t("inputThresholds.estimateMin", { min: minutes });
+}
+
+/** kuro design 실행 전 입력 크기 검사 */
+export function checkKuroInputSize({ rowCount, fastaMb }: KuroCheckParams): InputSizeCheckResult {
+  const estimatedSeconds = rowCount * KURO_INPUT_THRESHOLDS.AVG_SECONDS_PER_ROW;
+  const fastaWarning =
+    fastaMb !== undefined && fastaMb > KURO_INPUT_THRESHOLDS.FASTA_WARN_MB
+      ? `, reference ${fastaMb.toFixed(0)} MB`
+      : "";
+
+  if (rowCount >= KURO_INPUT_THRESHOLDS.ROW_BLOCK) {
+    return {
+      level: "block",
+      message: i18next.t("inputThresholds.kuroLargeBlock", { rowCount, fastaWarning, estimate: formatEstimate(estimatedSeconds) }),
+      estimatedSeconds,
+    };
+  }
+
+  if (rowCount >= KURO_INPUT_THRESHOLDS.ROW_WARN || (fastaMb !== undefined && fastaMb > KURO_INPUT_THRESHOLDS.FASTA_WARN_MB)) {
+    return {
+      level: "warn",
+      message: i18next.t("inputThresholds.kuroLargeWarn", { rowCount, fastaWarning, estimate: formatEstimate(estimatedSeconds) }),
+      estimatedSeconds,
+    };
+  }
+
+  return { level: "ok", message: "", estimatedSeconds };
+}
+
+/** mame activity 분석 전 입력 크기 검사 */
+export function checkMameInputSize({ rowCount }: MameCheckParams): InputSizeCheckResult {
+  const estimatedSeconds = rowCount * MAME_INPUT_THRESHOLDS.AVG_SECONDS_PER_ROW;
+
+  if (rowCount >= MAME_INPUT_THRESHOLDS.ROW_BLOCK) {
+    return {
+      level: "block",
+      message: i18next.t("inputThresholds.mameLargeBlock", { rowCount, estimate: formatEstimate(estimatedSeconds) }),
+      estimatedSeconds,
+    };
+  }
+
+  if (rowCount >= MAME_INPUT_THRESHOLDS.ROW_WARN) {
+    return {
+      level: "warn",
+      message: i18next.t("inputThresholds.mameLargeWarn", { rowCount, estimate: formatEstimate(estimatedSeconds) }),
+      estimatedSeconds,
+    };
+  }
+
+  return { level: "ok", message: "", estimatedSeconds };
+}

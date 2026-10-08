@@ -1,0 +1,56 @@
+{
+  "echo": {
+    "source_file": "Echo primer dispensing workbook.xlsx",
+    "sha256": "61664f71308d19e6966987f8f565b1d740c2bd3e6e337640d728bc47469a0efd",
+    "sheet_names": [
+      "layout",
+      "Echo mapping file"
+    ],
+    "mapping_sheet": "Echo mapping file",
+    "mapping_header": [
+      "Source Plate Name",
+      "Source Well Name",
+      "Source Well",
+      "Dest Plate Name",
+      "Dest Well Name",
+      "Dest Well",
+      "Transfer Vol"
+    ],
+    "layout_anchors": {
+      "title": "Project 2-1. Primer dispensing using Echo525",
+      "labware_label": "labware",
+      "labware_value": "Eco 384PP"
+    }
+  },
+  "janus": {
+    "source_file": "JANUS seeding mapping workbook.xlsx",
+    "sha256": "48910ee0fd276f71cbd6b45ab9016ecebbc0eb9770f79714bb84a1e09b8eed8e",
+    "sheet_names": [
+      "primer_mapping file"
+    ],
+    "mapping_sheet": "primer_mapping file",
+    "mapping_header": [
+      "name",
+      "type",
+      "no",
+      "Asp. Rack",
+      "Asp. Posi",
+      "Dsp. Rack",
+      "Dsp. Posi",
+      "volume"
+    ],
+    "rack_names": {
+      "mame_source_prefix": "Stock plate",
+      "mame_dest": "final culture plate",
+      "kuro_fwd": "fw plate",
+      "kuro_rev": "rv plate",
+      "kuro_dest": "PCR mixture plate"
+    },
+    "kuro_layout_source": {
+      "source_file": "JANUS primer dispensing workbook.xlsx",
+      "sha256": "152d9cf090a3c879464f5a417a6e898f138370892c4069faf63d926ae283d68a",
+      "sheet": "layout",
+      "note": "KURO plate names come from this older workbook layout sheet (C2/C13/C25). The new instrument workbook has no layout sheet, so the three names keep their own provenance here."
+    }
+  }
+}

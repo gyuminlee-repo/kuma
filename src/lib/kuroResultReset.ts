@@ -1,0 +1,85 @@
+/**
+ * kuroResultReset.ts, KURO 파생 결과물 무효화 패치 (순수 함수)
+ *
+ * 자동 저장 스냅샷의 `results` 블록(kuroSnapshot.ts buildKuroSnapshot)과 1:1로
+ * 맞춘 9개 필드 + `backendDesignStateSynced`를 초기값으로 되돌리는 패치를 만든다.
+ * 표(designResults)와 카운터(successCount/totalCount)가 어긋나지 않도록 한 곳에서만
+ * 목록을 관리한다.
+ *
+ * 사용처
+ *   - sequenceSlice.loadSequence, 템플릿이 바뀌면 이전 템플릿 기준 결과물 폐기
+ *   - sequenceSlice.setSelectedGene, 대상 CDS가 바뀌면 잔기 번호 기준이 바뀌므로 동일
+ *   - useAutosaveHydration.discardResultsIfVariantsDiverged, 복원된 결과물 폐기
+ *
+ * store를 import 하지 않는다(타입만 참조). store-coupled leaf util이 module-eval
+ * import cycle을 만든 전례가 있어 순수 모듈로 유지한다.
+ *
+ * 초기값 출처: designSlice.ts(backendDesignStateSynced/designResults/successCount/
+ * totalCount/failedMutations/manuallySwapped/customCandidates/rescuedMutationDetails),
+ * exportSlice.ts(plateMappings/dedupInfo).
+ */
+
+import type { AppState } from "@/store/types";
+
+/** KURO 파생 결과물 필드를 초기값으로 되돌리는 store 패치를 만든다. */
+export function buildKuroResultResetPatch(): Partial<AppState> {
+  return {
+    designResults: [],
+    successCount: 0,
+    totalCount: 0,
+    failedMutations: [],
+    plateMappings: [],
+    dedupInfo: {},
+    manuallySwapped: {},
+    customCandidates: {},
+    rescuedMutationDetails: [],
+    // rescuedMutations/rescueStats derive from the same run as designResults.
+    // Leaving them out let a discarded run keep a rescue badge list and rescue
+    // counters next to an empty table (observed in a user autosave: results 0,
+    // rescuedMutations 6), and the report header counted rescues that had no
+    // rows behind them.
+    rescuedMutations: [],
+    // Literal rather than an import of designSlice.helpers.EMPTY_RESCUE_STATS:
+    // this module keeps the "no store import" invariant above. The two are
+    // pinned together by kuroResultReset.test.ts.
+    rescueStats: { pool_cascade: 0, auto_relax: 0, positions_attempted: 0, pool_variants_tried: 0 },
+    backendDesignStateSynced: false,
+  };
+}
+
+function sameDesignInputValue(current: unknown, next: unknown): boolean {
+  if (Object.is(current, next)) return true;
+  if (Array.isArray(current) && Array.isArray(next)) {
+    return current.length === next.length
+      && current.every((value, index) => sameDesignInputValue(value, next[index]));
+  }
+  if (
+    current !== null
+    && next !== null
+    && typeof current === "object"
+    && typeof next === "object"
+  ) {
+    const currentEntries = Object.entries(current);
+    const nextEntries = Object.entries(next);
+    return currentEntries.length === nextEntries.length
+      && currentEntries.every(([key, value]) =>
+        Object.prototype.hasOwnProperty.call(next, key)
+        && sameDesignInputValue(value, (next as Record<string, unknown>)[key]));
+  }
+  return false;
+}
+
+/**
+ * Applies a design-input update and invalidates derived KURO output only when
+ * its request-relevant value changed. Results have no per-setting provenance,
+ * so retaining them after a payload/input-selection change enables export
+ * under settings that did not produce those primers.
+ */
+export function buildKuroDesignInputPatch(
+  state: AppState,
+  inputPatch: Partial<AppState>,
+): Partial<AppState> {
+  const changed = Object.entries(inputPatch).some(([key, value]) =>
+    !sameDesignInputValue(state[key as keyof AppState], value));
+  return changed ? { ...inputPatch, ...buildKuroResultResetPatch() } : inputPatch;
+}
