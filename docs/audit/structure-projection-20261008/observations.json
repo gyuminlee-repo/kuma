@@ -1,0 +1,254 @@
+{
+  "audited_sha": "9b9fd8682ba97a225a839d00f21b6ec7cc5b50f4",
+  "python": "3.12.14",
+  "biopython": "1.84",
+  "source_sha256": {
+    "kuma_core/kuro/interface.py": "2953e4728732b57d81588e90361d48821700d7388e400dfc5a044564b835931e",
+    "kuma_core/kuro/alphafold.py": "7509d5f22d705af071eeecf1d217d55a0a13f94e55b5b55f9f7efe9c56ffa827",
+    "kuma_core/kuro/evolvepro.py": "99ac085dd12c3bbfb690fb6dc0c11aa9e8c15c8107cd14ef2d060c42bd276610",
+    "kuma_core/kuro/dispersion.py": "84139db007f5de6ba94c3a92ff40c52e320cd6069027c276eefa6148f14ab295",
+    "python-core/sidecar_kuro/handlers/misc.py": "fb13e77221a1c8616c8c52044b138cd7b449d219c2251347d9d5c50d2be8ce9b"
+  },
+  "guard_execution": "unchanged AST-extracted function; cache lookup stubbed; not sidecar integration",
+  "assertions_passed": 14,
+  "results": [
+    {
+      "case": "exact gate",
+      "expected": true,
+      "observed": true
+    },
+    {
+      "case": "one substitution",
+      "expected": [
+        false,
+        true,
+        true
+      ],
+      "observed": [
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "case": "structure N-terminal deletion",
+      "expected": [
+        false,
+        true,
+        true
+      ],
+      "observed": [
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "case": "substitution preserves position correspondence",
+      "expected": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4,
+        "5": 5,
+        "6": 6,
+        "7": 7,
+        "8": 8,
+        "9": 9,
+        "10": 10,
+        "11": 11,
+        "12": 12,
+        "13": 13,
+        "14": 14,
+        "15": 15,
+        "16": 16,
+        "17": 17,
+        "18": 18,
+        "19": 19,
+        "20": 20
+      },
+      "observed": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4,
+        "5": 5,
+        "6": 6,
+        "7": 7,
+        "8": 8,
+        "9": 9,
+        "10": 10,
+        "11": 11,
+        "12": 12,
+        "13": 13,
+        "14": 14,
+        "15": 15,
+        "16": 16,
+        "17": 17,
+        "18": 18,
+        "19": 19,
+        "20": 20
+      }
+    },
+    {
+      "case": "terminal gap is absent, subsequent positions shifted",
+      "expected": [
+        false,
+        1
+      ],
+      "observed": [
+        false,
+        1
+      ]
+    },
+    {
+      "case": "accepted tag does not reindex",
+      "expected": [
+        true,
+        false,
+        999.0,
+        1.0
+      ],
+      "observed": [
+        true,
+        false,
+        999.0,
+        1.0
+      ]
+    },
+    {
+      "case": "empty structure sequence guard is open",
+      "expected": [
+        true,
+        false
+      ],
+      "observed": [
+        true,
+        false
+      ]
+    },
+    {
+      "case": "missing pair CA returns maximum distance",
+      "expected": 1.0,
+      "observed": 1.0
+    },
+    {
+      "case": "dispersion remaps despite selector gate",
+      "expected": [
+        3,
+        [
+          1,
+          9,
+          19
+        ]
+      ],
+      "observed": [
+        3,
+        [
+          1,
+          9,
+          19
+        ]
+      ]
+    },
+    {
+      "case": "mixed fallback loses translation invariance",
+      "expected": [
+        "C2G",
+        "D3G"
+      ],
+      "observed": [
+        "C2G",
+        "D3G"
+      ]
+    },
+    {
+      "case": "complete coverage translation control",
+      "expected": [
+        "C2G",
+        "C2G"
+      ],
+      "observed": [
+        "C2G",
+        "C2G"
+      ]
+    },
+    {
+      "case": "PDB combines chains by residue integer",
+      "expected": [
+        null,
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          200.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "observed": [
+        null,
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          200.0,
+          0.0,
+          0.0
+        ]
+      ]
+    },
+    {
+      "case": "PDB insertion code collapses",
+      "expected": [
+        null,
+        [
+          1.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "observed": [
+        null,
+        [
+          1.0,
+          0.0,
+          0.0
+        ]
+      ]
+    },
+    {
+      "case": "PDB later model fills absent first-model residue",
+      "expected": [
+        null,
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          99.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "observed": [
+        null,
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          99.0,
+          0.0,
+          0.0
+        ]
+      ]
+    }
+  ]
+}
