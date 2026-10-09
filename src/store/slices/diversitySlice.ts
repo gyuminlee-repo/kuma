@@ -166,6 +166,9 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   uniprotSearching: false,
   structuralDiversityEnabled: false,
   structuralKappa: 0.3,
+  strictSpatialEnabled: false,
+  strictSpatialSelection: null,
+  strictSpatialError: null,
   refDomains: [],
   refDomainsLoading: false,
   refDomainHash: "",
@@ -296,6 +299,15 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     set(buildKuroDesignInputPatch(get(), { structuralDiversityEnabled: enabled }));
     debouncedReload();
     if (enabled) maybeBackfillUniprotSearch();
+  },
+
+  setStrictSpatialEnabled: (enabled: boolean) => {
+    set(buildKuroDesignInputPatch(get(), {
+      strictSpatialEnabled: enabled,
+      strictSpatialSelection: null,
+      strictSpatialError: null,
+    }));
+    debouncedReload();
   },
 
   setStructuralKappa: (v: number) => {

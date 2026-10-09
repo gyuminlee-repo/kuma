@@ -8,6 +8,7 @@ alignment — positions come straight from the UniProt JSON response.
 from __future__ import annotations
 
 import json
+import copy
 import logging
 import re
 import urllib.request as _urllib_req
@@ -46,6 +47,7 @@ def fetch_active_site_features(accession: str) -> dict:
             "binding_positions": [],
             "source": "error",
             "has_annotation": False,
+            "features": [], "annotation_status": "error", "sequence_version": None,
         }
 
     url = _UNIPROT_API.format(accession=accession)
@@ -61,17 +63,26 @@ def fetch_active_site_features(accession: str) -> dict:
             "binding_positions": [],
             "source": "error",
             "has_annotation": False,
+            "features": [], "annotation_status": "error", "sequence_version": None,
         }
 
     features = data.get("features", []) if isinstance(data, dict) else []
     active_site_positions: list[int] = []
     binding_positions: list[int] = []
+    records: list[dict] = []
 
     for feat in features:
+        if not isinstance(feat, dict):
+            continue
         feat_type = feat.get("type", "")
+        if feat_type in {"Active site", "Binding site"}:
+            # Retain uncertain/ranged locations and evidence even when they
+            # cannot be represented by the legacy integer-position arrays.
+            records.append({**copy.deepcopy(feat), "source": "uniprot", "source_accession": accession,
+                            "coordinate_frame": "accession"})
         try:
             pos = int(feat.get("location", {}).get("start", {}).get("value", 0))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, AttributeError):
             continue
         if pos <= 0:
             continue
@@ -91,4 +102,8 @@ def fetch_active_site_features(accession: str) -> dict:
         "binding_positions": binding_positions,
         "source": source,
         "has_annotation": has_annotation,
+        "features": records,
+        "annotation_status": "present" if records else "no_matching_features",
+        "sequence_version": (data.get("entryAudit") or {}).get("sequenceVersion") if isinstance(data, dict) else None,
+        "projection_status": "unverified",
     }
