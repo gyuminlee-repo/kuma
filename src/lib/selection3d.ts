@@ -84,6 +84,8 @@ export function selectedRefPositions(rows: SelectedPositionRow[]): number[] {
 }
 
 export interface MappedYpredRow {
+  chainId?: string;
+  insertionCode?: string;
   accPosition: number;
   refPosition: number;
   yPred: number;

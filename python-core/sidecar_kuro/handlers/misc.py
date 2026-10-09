@@ -1,6 +1,7 @@
 """Handlers: polymerase list, organism list, EVOLVEpro CSV, benchmark."""
 
 import csv
+import hashlib
 from dataclasses import asdict
 from pathlib import Path
 
@@ -238,14 +239,12 @@ def _frame_checked_ca_coords(
     structure_accession: str | None,
     ref_seq: str,
 ) -> tuple[list | None, bool]:
-    """Drop cached coordinates that do not cover the reference frame.
+    """Project a unique exact reference interval or report an unavailable frame.
 
-    3D coordinates are indexed by reference-sequence position, so a structure
-    that is not identical to (or a clean substring of) the reference would place
-    Cα coordinates on the wrong residues, silently corrupting any 3D-aware
-    selection. When it does not match, return None so callers fall back to 1-D
-    distance, plus a flag the UI can surface. Both load_evolvepro_csv and
-    run_benchmark share this so their handling cannot diverge.
+    The legacy callers retain their existing fallback policies when coordinates
+    are unavailable. This conservative sequence contract does not estimate
+    homolog geometry or imply that substitutions always change residue indices.
+    Both load_evolvepro_csv and run_benchmark share the offset correction.
 
     A user-supplied structure caches its own sequence, so use that and skip the
     network. Only fall back to fetching when the coordinates came from an
@@ -253,16 +252,25 @@ def _frame_checked_ca_coords(
     """
     if ca_coords is None or not structure_accession or not ref_seq.strip():
         return ca_coords, False
-    from kuma_core.kuro.interface import structure_matches_reference
+    from kuma_core.kuro.interface import exact_reference_offset
 
     structure_seq = _get_cached_ca_seq(structure_accession)
     if structure_seq is None:
         from kuma_core.kuro.alphafold import fetch_ca_seq
 
         structure_seq = fetch_ca_seq(structure_accession)
-    if structure_seq and not structure_matches_reference(structure_seq, ref_seq):
+    offset = exact_reference_offset(structure_seq or "", ref_seq)
+    if offset is None:
         return None, True
-    return ca_coords, False
+    if offset == 0 and len((structure_seq or "").strip().rstrip("*")) == len(ref_seq.strip().rstrip("*")):
+        return ca_coords, False
+    # Coordinates are 1-indexed in the source frame. Preserve missing entries;
+    # never shift a tagged construct's residue 1 onto reference residue 1.
+    length = len(ref_seq.strip().rstrip("*"))
+    return [None] + [
+        ca_coords[p + offset] if p + offset < len(ca_coords) else None
+        for p in range(1, length + 1)
+    ], False
 
 
 def handle_load_evolvepro_csv(params: dict) -> dict:
@@ -273,16 +281,32 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
     resolved = _validate_filepath(p.filepath, allowed_extensions=_ALLOWED_TABLE_EXTENSIONS)
 
     ca_coords = _get_cached_ca_coords(p.structure_accession)
+    strict_context = None
+    if p.strict_spatial:
+        if not p.structural_diversity or not p.structure_accession or p.structure_accession.startswith("file:"):
+            raise ValueError("Strict spatial selection requires an AlphaFold accession and structural mode")
+        from kuma_core.kuro.alphafold import fetch_pdb_text
+        from kuma_core.kuro.strict_spatial import exact_pdb_context
 
-    # Structure-accuracy guard: 3D coordinates are only valid when the loaded
-    # structure exactly covers the reference frame (identity or clean substring).
-    # A near-but-not-exact structure would place Cα coordinates on the wrong
-    # residues, silently corrupting dispersion / structural-diversity selection.
-    # When it does not match, drop to None so those paths fall back to 1-D
-    # distance, and record why for the UI.
-    ca_coords, structure_frame_mismatch = _frame_checked_ca_coords(
-        ca_coords, p.structure_accession, p.ref_seq
-    )
+        strict_accession = p.structure_accession.strip().upper()
+        pdb_text = fetch_pdb_text(strict_accession)
+        if not pdb_text:
+            raise ValueError("Strict spatial source PDB is unavailable")
+        strict_context = exact_pdb_context(pdb_text, p.ref_seq, strict_accession)
+        strict_context["candidate_sha256"] = hashlib.sha256(resolved.read_bytes()).hexdigest()
+        strict_context["score_order"] = p.score_order
+        strict_context["budget_mode"] = p.strict_spatial_budget
+        strict_context["site_cap"] = p.strict_spatial_site_cap
+
+    # Legacy exact-sequence guard with explicit reference-offset projection.
+    # Strict mode validates the actual source PDB independently and never falls
+    # back to sequence distances.
+    if strict_context is None:
+        ca_coords, structure_frame_mismatch = _frame_checked_ca_coords(
+            ca_coords, p.structure_accession, p.ref_seq
+        )
+    else:
+        structure_frame_mismatch = False
     result = load_evolvepro_csv(
         filepath=str(resolved),
         top_n=p.top_n,
@@ -311,8 +335,12 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
         structural_diversity=p.structural_diversity,
         structural_kappa=p.structural_kappa,
         anchor_variants=p.anchor_variants,
+        strict_spatial_context=strict_context,
     )
     result["structure_frame_mismatch"] = structure_frame_mismatch
+    if strict_context is not None:
+        if hashlib.sha256(resolved.read_bytes()).hexdigest() != strict_context["candidate_sha256"]:
+            raise ValueError("Candidate input changed during strict spatial selection; retry")
     return result
 
 
