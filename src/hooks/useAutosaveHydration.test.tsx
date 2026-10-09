@@ -1,3 +1,4 @@
+import { strictSpatialFixture } from "@/test-utils/strictSpatialFixture";
 import { StrictMode } from "react";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -2850,5 +2851,21 @@ describe("useAutosaveHydration: 복원되는 결과 그룹", () => {
     expect(
       hooks.sendMameRequest.mock.calls.filter((c) => c[0] === "load_analyze_result"),
     ).toHaveLength(0);
+  });
+});
+
+
+describe("strict spatial session isolation on restore", () => {
+  it("does not restore a geometry certificate or silently opt a restored workspace in", async () => {
+    useAppStore.getState().resetAll();
+    useAppStore.setState({ strictSpatialEnabled: true,
+      strictSpatialSelection: { result: strictSpatialFixture(), contextKey: "previous session" },
+      strictSpatialError: "previous failure" });
+    const snapshot = buildKuroSnapshot(useAppStore.getState());
+    expect(snapshot.diversity).not.toHaveProperty("strict_spatial_enabled");
+    await applyKuroSnapshot(snapshot as unknown as AutosaveSnapshot);
+    expect(useAppStore.getState().strictSpatialEnabled).toBe(false);
+    expect(useAppStore.getState().strictSpatialSelection).toBeNull();
+    expect(useAppStore.getState().strictSpatialError).toBeNull();
   });
 });

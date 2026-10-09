@@ -1509,6 +1509,24 @@
       ],
       "note": "What the codon-table seed folder ships and what copies it into the user folder. ensure_user_codon_dir writes exactly the names in _CODON_SEED_FILES, so a seed added, renamed or removed without touching that tuple never reaches a user and nothing fails. The README states the built-in key set that cannot be replaced, which is _ORGANISM_ALIASES plus the bundled stems, so the README goes stale the moment the bundled set changes: that is how it kept listing mextorquens after the table became an installable seed. mextorquens_am1.json.txt is a finished table rather than a placeholder and keeps the .json.txt suffix so seeding it is not installing it.",
       "severity": "warning"
+    },
+    {
+      "id": "strict-spatial-context",
+      "files": [
+        "kuma_core/kuro/strict_spatial.py",
+        "kuma_core/kuro/evolvepro.py",
+        "python-core/sidecar_kuro/handlers/misc.py",
+        "python-core/sidecar_kuro/models.py",
+        "src/types/models.ts",
+        "src/types/validators.ts",
+        "src/lib/strictSpatial.ts",
+        "src/store/slices/inputSlice.helpers.ts",
+        "src/store/slices/inputSlice.ts",
+        "src/store/slices/designSlice.ts",
+        "src/components/panels/Selection3DPanel.tsx"
+      ],
+      "note": "Strict opt-in source/reference/candidate certificate and exact selection-to-design identity contract. Functional annotation is explanation only.",
+      "severity": "blocking"
     }
   ]
 }
