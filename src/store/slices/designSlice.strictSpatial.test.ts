@@ -7,7 +7,7 @@ vi.mock("@/lib/notify", () => ({ notifyJobComplete: vi.fn() }));
 vi.mock("@/lib/keepAwake", () => ({ startKeepAwake: vi.fn(), stopKeepAwake: vi.fn() }));
 
 import { useAppStore } from "../appStore";
-import { distinctSpatial95Fixture, strictSpatialFixture } from "@/test-utils/strictSpatialFixture";
+import { distinctSpatial95Fixture, strictSpatialFixture, syntheticFullDfTestFixture } from "@/test-utils/strictSpatialFixture";
 import { strictSpatialContextKey } from "@/lib/strictSpatial";
 
 function loadResponse(report = strictSpatialFixture()) {
@@ -36,27 +36,28 @@ beforeEach(() => {
 afterEach(() => useAppStore.getState().cancelDiversityReload());
 
 describe("strict spatial design identity", () => {
-  it("forwards exactly 95 distinct variants across five sites with no rescue", async () => {
-    const report = distinctSpatial95Fixture();
-    useAppStore.setState({ maxPrimers: 95, strictSpatialBudgetMode: "distinct_variants",
+  it.each([95, 100])("forwards exactly %s distinct variants with no rescue", async (count) => {
+    const report = count === 95 ? distinctSpatial95Fixture() : syntheticFullDfTestFixture(count);
+    useAppStore.setState({ maxPrimers: count, strictSpatialBudgetMode: "distinct_variants",
+      seqInfo: { header: "synthetic fixture", seq_length: 21, genes: [{ gene: "fixture", product: "test", cds_start: 0, cds_end: 21, aa_length: 7, translation: "MAAAAAA" }] },
       evolveproSelectedVariants: report.selected_variants, mutationText: report.selected_variants.join("\n") });
     useAppStore.setState({ strictSpatialSelection: { result: report, contextKey: strictSpatialContextKey(useAppStore.getState()) } });
     mocks.send.mockImplementation(async (method, params) => {
       if (method === "load_evolvepro_csv") return loadResponse(report);
-      if (method === "design_sdm_primers") return { results: [], success_count: 0, total_count: 95,
+      if (method === "design_sdm_primers") return { results: [], success_count: 0, total_count: count,
         failed_mutations: params.mutations_csv_or_text.split("\n").map((mutation: string, rank: number) => ({ mutation, rank, reason: "test failure" })) };
       throw Error(`Unexpected ${method}`);
     });
     await useAppStore.getState().designPrimers();
     expect(mocks.send.mock.calls.find(([method]) => method === "load_evolvepro_csv")?.[1]).toMatchObject({
-      top_n: 95, strict_spatial_budget: "distinct_variants", strict_spatial_site_cap: null,
+      top_n: count, strict_spatial_budget: "distinct_variants", strict_spatial_site_cap: null,
     });
     const designCalls = mocks.send.mock.calls.filter(([method]) => method === "design_sdm_primers");
     expect(designCalls).toHaveLength(1);
     expect(designCalls[0][1].mutations_csv_or_text.split("\n").sort()).toEqual([...report.selected_variants].sort());
     expect(designCalls[0][1].rescue_pool).toBeUndefined();
     expect(designCalls[0][1].auto_relax).toBe(false);
-    expect(useAppStore.getState().evolveproSelectedVariants).toHaveLength(95);
+    expect(useAppStore.getState().evolveproSelectedVariants).toHaveLength(count);
   });
 
   it.each(["budget", "cap"])("invalidates the preview and aborts design when %s changes during reload", async (field) => {

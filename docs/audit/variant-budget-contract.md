@@ -4,6 +4,13 @@ Base: PR #5, `2b9218268cce7cba876742fda8a4ff94369ab505`. This follow-up does not
 
 ## Application slice
 
+Confirmed workflow: select user-specified N from the full supplied EVOLVEpro
+`df_test` unmeasured prediction pool. N is not fixed at 95. Selection never expands
+the input pool. Actual-file provenance/notation still requires validation; the
+strict single-substitution scope does not imply support for multisite rounds.
+Compare score Top-N and spatial selection only after the same eligibility, budget
+and cap policies. Report score/rank and geometry tradeoffs without claiming fitness.
+
 The existing exact-frame single-site mode and legacy defaults remain available. A new explicit `distinct_variants` budget keeps different substitutions at one reference site. N counts distinct canonical variant IDs, not sites. Exact duplicate IDs collapse; conflicting scores, invalid identities and multisite rows fail this opt-in path. Missing/nonfinite coordinates and no-op substitutions are excluded and counted. The prior source parser/start-position policy remains separately reported.
 
 The default cap in this new mode is unlimited. An optional positive per-site cap is a user constraint, checked before selection. Within a site only the highest configured-rank substitutions up to that explicit cap are eligible; equal scores use variant ID. No unseen substitutions are fabricated. Infeasible N fails without shrinking or rescue replacement.

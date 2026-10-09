@@ -290,6 +290,16 @@ describe("strict spatial opt-in requests", () => {
     expect(params).toMatchObject({ top_n: 95, strict_spatial_budget: "distinct_variants", strict_spatial_site_cap: cap });
     expect(params).not.toHaveProperty("max_per_position");
   });
+  it.each([1, 12, 95, 100])("forwards user N=%s from the full df_test pool without a fixed experiment size", (count) => {
+    const params = buildEvolveproLoadParams(makeConfig({ filepath: "/tmp/synthetic_df_test.csv",
+      structuralDiversityEnabled: true, strictSpatialEnabled: true,
+      strictSpatialBudgetMode: "distinct_variants", topN: count }));
+    expect(params).toMatchObject({ filepath: "/tmp/synthetic_df_test.csv", top_n: count,
+      strict_spatial_budget: "distinct_variants", strict_spatial_site_cap: null });
+    for (const key of ["max_per_position", "pool_multiplier", "structural_kappa", "domain_diversity", "pareto_diversity"]) {
+      expect(params).not.toHaveProperty(key);
+    }
+  });
   it("keeps a saved distinct cap inactive under the default site budget", () => {
     const params = buildEvolveproLoadParams(makeConfig({ structuralDiversityEnabled: true, strictSpatialEnabled: true,
       strictSpatialBudgetMode: "unique_sites", strictSpatialSiteCap: 19 }));

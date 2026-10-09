@@ -7,17 +7,17 @@ counts distinct variant IDs and preserves different amino-acid substitutions at
 the same position. A nullable per-site cap is a declared constraint, not an
 automatic diversity or biological threshold.
 
-The intended use is a diversity-aware subset of supplied EVOLVEpro candidates,
-not replacement of EVOLVEpro's predictor. The importer currently treats the whole
-input file as its declared candidate pool. It does not infer whether that file is
-a final recommendation list or a larger scored test universe. Every selected ID
-must already occur in that input. If it contains exactly N eligible distinct
-variants and N are requested, the same variant/site multiset must be retained;
-selection cannot improve its positional distribution. Reselecting from M>N may
-change Top-N membership and model-score rank. No larger recommendation boundary
-or score floor is inferred. Actual EVOLVEpro recommendation-file provenance remains
-a separate applicability gate; the ESM2/DMS pilot below does not reproduce an
-EVOLVEpro recommendation round.
+The confirmed input contract is the complete EVOLVEpro `df_test` unmeasured
+prediction pool, from which the user requests N distinct variants. N is variable;
+95 is an example, not a fixed limit. Every selected ID must already occur in the
+supplied CSV. The importer does not independently authenticate an EVOLVEpro round.
+The strict path currently supports single substitutions only; multisite input
+fails explicitly and remains available through the existing non-strict workflow.
+If M=N eligible variants remain after declared policies, the selected set cannot
+change. For M>N, spatial selection may change score Top-N membership. No larger
+pool, shortlist or score floor is inferred. Actual user `df_test` files have not
+been tested; synthetic compatible CSV checks and the auxiliary ESM2/DMS pilot are
+not an EVOLVEpro recommendation-round reproduction.
 
 ## What is connected to the app
 
@@ -68,9 +68,9 @@ A future confidence-aware comparison can explicitly freeze a new, matching
 model/PAE pair and repeat geometry sensitivity checks. It must not silently replace
 the frozen pilot. Functional-feature projection additionally needs exact or
 explicitly supported sequence correspondence, location qualifiers and evidence;
-feature count is not functional diversity or fitness. The immediate application
-gate is the actual EVOLVEpro candidate-file boundary and intended experimental
-budget. General homolog application integration requires the RPC, certificate,
+feature count is not functional diversity or fitness. The input boundary is now specified as the full `df_test` pool and a user-selected
+N. Validation against an actual file, including its mutation notation and whether
+it contains multisite variants, remains an application evidence gate. General homolog application integration requires the RPC, certificate,
 viewer and design consumers to retain the new full residue identities. Those
 consumers are not yet validated for the offline mapper's broader inputs.
 
@@ -83,7 +83,7 @@ execute because its task quota was unavailable. Component/RPC tests cannot close
 that gate. The task-specific native tools were removed after the failed feasibility
 check.
 
-## Validation record
+## Original budget implementation validation record
 
 - PR #5 starting point: 22 strict/frame focused tests passed in this new checkout.
 - Three new budget regressions first failed on the starting implementation: 95
@@ -114,3 +114,39 @@ check.
 변이를 공간 분산 향상으로 계산하지 않는다. 새 잔기 대응·신뢰도 도구는 오프라인
 검증 단계이며 homolog 앱 지원이나 기능 최적화 완성으로 소개하지 않는다.
 네이티브 화면은 실행 제약으로 검증하지 못했고 자동화 검사와 구분한다.
+
+## Full df_test comparison follow-up
+
+The preview compares the spatial result with configured-score Top-N on exactly the
+same eligible pool after the budget and cap policy. Unique-site mode first retains
+one representative per site; distinct-variant mode retains substitutions subject
+to the explicit cap. Missing-coordinate or parser-rejected rows are not silently
+included only in the baseline. Existing exclusion counts remain separately visible.
+
+Both results report variant count, occupied-site count, maximum site multiplicity,
+minimum distance between occupied sites and mean/max candidate-to-selected distance
+in angstroms. Coverage targets are the eligible unique sites with equal weight per
+site, including selected sites at zero distance; this is not whole-protein coverage.
+A single occupied site has no pair-distance statistic. Integer counts are exact.
+
+With available scores, the preview also reports raw mean score, average tied rank,
+Top-N overlap and `score_gap_to_top_n`: the direction-aware difference in **mean**
+raw score. Positive means a worse average under the configured asc/desc ordering,
+not fitness loss. Tied ranks are averaged within the same effective pool. An
+absent score source yields no score baseline or invented rank. Real zero scores
+remain valid scores. Nonfinite diagnostic arithmetic yields an unavailable value
+without changing selection or emitting invalid JSON.
+
+Follow-up regression cases include variable N=1/12/95/100, M=N and M<N,
+normalised aliases and final-sequence uniqueness, no-op exclusion, malformed/WT/
+multisite rejection, partial missing scores, ascending/descending directions,
+explicit caps and the unique-site representative policy. A hand-calculated example
+checks every displayed comparison independently of the selection implementation.
+Current run results and exact-head CI are recorded in the pull request after they
+complete; these checks do not certify native UI execution or actual EVOLVEpro data.
+
+한국어 추가 요약: 입력은 EVOLVEpro 전체 df_test 예측 후보이며 사용자가 정한 N개의
+서로 다른 변이를 고른다. 같은 예산·위치 상한을 적용한 유효후보의 점수 상위 N개와
+공간 선정 결과를 비교한다. 점수 방향에 따른 평균 차이와 위치 집중·3D coverage를
+함께 표시하며 점수를 실제 기능이나 fitness로 해석하지 않는다. 현재 strict 경로는
+단일 치환만 지원하고 실제 사용자 df_test 및 네이티브 화면 검증은 남아 있다.

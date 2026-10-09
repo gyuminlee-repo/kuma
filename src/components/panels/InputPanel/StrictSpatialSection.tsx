@@ -2,8 +2,47 @@ import { lazy, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "@/store/appStore";
 import { currentStrictSpatialResult } from "@/lib/strictSpatial";
+import type { StrictSpatialResult } from "@/types/models";
 
 const Selection3DPanel = lazy(() => import("../Selection3DPanel").then((module) => ({ default: module.Selection3DPanel })));
+
+function StrictSpatialComparison({ result }: { result: StrictSpatialResult }) {
+  const { t } = useTranslation();
+  const comparison = result.comparison;
+  if (!comparison) return null;
+  const format = (value: number | null | undefined, exact = false) => value == null
+    ? t("strictSpatial.metricUnavailable") : exact ? String(value) : String(Number(value.toPrecision(4)));
+  const rows = [
+    ["comparisonVariants", "variant_count", true], ["comparisonSites", "site_count", true],
+    ["comparisonMaxPerSite", "max_variants_per_site", true], ["comparisonMinDistance", "minimum_site_distance", false],
+    ["comparisonMeanCoverage", "coverage_mean_distance", false], ["comparisonMaxCoverage", "coverage_max_distance", false],
+    ["comparisonMeanScore", "score_mean", false], ["comparisonMeanRank", "mean_score_rank", false],
+  ] as const;
+  return <section className="min-w-0 space-y-1 rounded border border-border p-2" aria-label={t("strictSpatial.comparisonTitle")}>
+    <table className="w-full table-fixed text-caption">
+      <caption className="mb-1 text-left font-medium">{t("strictSpatial.comparisonTitle")}</caption>
+      <thead><tr>
+        <th className="w-1/2 text-left" scope="col">{t("strictSpatial.comparisonMetric")}</th>
+        <th className="break-words text-right" scope="col">{t("strictSpatial.comparisonSelected")}</th>
+        <th className="break-words text-right" scope="col">{t("strictSpatial.comparisonTopN")}</th>
+      </tr></thead>
+      <tbody>{rows.map(([label, key, exact]) => <tr key={key}>
+        <th className="break-words pr-1 text-left font-normal" scope="row">{t(`strictSpatial.${label}`)}</th>
+        <td className="text-right tabular-nums">{format(comparison.selected[key], exact)}</td>
+        <td className="text-right tabular-nums">{format(comparison.top_n?.[key], exact)}</td>
+      </tr>)}</tbody>
+    </table>
+    <p>{t("strictSpatial.comparisonCoverage", { sites: comparison.candidate_site_count })}</p>
+    {comparison.score_available ? <>
+      <p>{t("strictSpatial.comparisonOverlap", { overlap: comparison.top_n_overlap_count, count: result.requested_count,
+        gap: format(comparison.score_gap_to_top_n) })}</p>
+      <p>{t(result.score_order === "asc" ? "strictSpatial.comparisonScoreAsc" : "strictSpatial.comparisonScoreDesc")}</p>
+      <p>{t("strictSpatial.comparisonScoreMeaning")}</p>
+      {(comparison.selected.score_mean === null || comparison.top_n?.score_mean == null || comparison.score_gap_to_top_n === null)
+        && <p>{t("strictSpatial.comparisonNumericUnavailable")}</p>}
+    </> : <p>{t("strictSpatial.comparisonNoScores")}</p>}
+  </section>;
+}
 
 /** Session-only conservative selector; annotations explain the selection, never weight it. */
 export function StrictSpatialSection() {
@@ -78,6 +117,7 @@ export function StrictSpatialSection() {
             parsed: result.parsed_variant_count, parsing: result.parsing_omitted_count,
             start: result.start_position_omitted_count, duplicates: result.duplicate_variant_omitted_count })}</p>
           {!result.score_available && <p>{t("strictSpatial.scoresUnavailable")}</p>}
+          <StrictSpatialComparison result={result} />
           <p className="break-words font-mono">{result.selected_variants.join(", ")}</p>
           <details>
             <summary>{t("strictSpatial.evidence")}</summary>

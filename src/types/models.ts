@@ -492,6 +492,31 @@ export interface EvolveproStepStats {
 
 export type StrictSpatialBudgetMode = "unique_sites" | "distinct_variants";
 
+/** Descriptive metrics over the same eligible, mapped candidate-site universe. */
+export interface StrictSpatialProfile {
+  variant_count: number;
+  site_count: number;
+  max_variants_per_site: number;
+  minimum_site_distance: number | null;
+  coverage_mean_distance: number;
+  coverage_max_distance: number;
+  score_mean: number | null;
+  mean_score_rank: number | null;
+}
+
+export interface StrictSpatialComparison {
+  baseline: "configured-score-top-n";
+  universe: "eligible-variants-after-budget-and-cap-policy";
+  candidate_site_count: number;
+  score_available: boolean;
+  selected: StrictSpatialProfile;
+  top_n: StrictSpatialProfile | null;
+  top_n_variants: string[] | null;
+  top_n_overlap_count: number | null;
+  /** Direction-aware difference in raw score means; not measured fitness loss. */
+  score_gap_to_top_n: number | null;
+}
+
 /** Verified single-site substitutions and the exact structure used to select them. */
 export interface StrictSpatialResult {
   schema_version: 1;
@@ -531,6 +556,8 @@ export interface StrictSpatialResult {
   parsing_omitted_count: number;
   start_position_omitted_count: number;
   duplicate_variant_omitted_count: number;
+  /** Older certificates may omit diagnostics without losing selection identity. */
+  comparison?: StrictSpatialComparison;
 }
 
 export interface EvolveproLoadResult {

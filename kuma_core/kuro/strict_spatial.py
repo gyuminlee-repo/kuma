@@ -10,6 +10,7 @@ import hashlib
 import math
 import re
 import sys
+from collections import Counter
 
 from kuma_core.kuro.alphafold import _THREE_TO_ONE
 from kuma_core.kuro.interface import exact_reference_offset
@@ -165,6 +166,11 @@ def select_single_sites(rows: list[tuple[str, float]], reference: str, context: 
     variant_min = 0. if len(selected_sites) < count else site_min
     eligible_count = sum(map(len, eligible.values()))
     capacity_reduction = eligible_count - len(candidates)
+    comparison = _selection_comparison(
+        candidates, [decoded[v] for v, _ in selected], coordinate_map,
+        score_available=context.get("score_available", True),
+        score_order=context.get("score_order", "desc"),
+    )
     report = {**context, "selected_variants": [v for v, _ in result],
               "budget_mode": budget, "site_cap": cap,
               "selection_policy": ("single-site-full-pool-fps-v1" if budget == "unique_sites"
@@ -177,7 +183,79 @@ def select_single_sites(rows: list[tuple[str, float]], reference: str, context: 
                                       for p in selected_sites],
               "geometry_variant_min_pair_distance": variant_min,
               "geometry_site_min_pair_distance": site_min,
+              "comparison": comparison,
               "excluded": excluded, "input_variant_count": len(rows),
               "same_site_collapsed": capacity_reduction if budget == "unique_sites" else 0,
               "site_cap_excluded_count": capacity_reduction if budget == "distinct_variants" else 0}
     return result, report
+
+
+def _finite_mean(values: list[float]) -> float | None:
+    """Keep diagnostics JSON-safe even when finite score arithmetic overflows."""
+    try:
+        value = math.fsum(v / len(values) for v in values)
+    except OverflowError:
+        return None
+    return value if math.isfinite(value) else None
+
+
+def _selection_comparison(candidates: list[tuple[str, float, int]],
+                          selected: list[tuple[str, float, int]], coordinate_map: dict,
+                          *, score_available: bool, score_order: str) -> dict:
+    """Describe the same effective pool without changing the selection policy.
+
+    Candidates are already sorted by configured rank, position and variant ID,
+    after validity, budget and cap handling. Coverage weights each eligible site
+    once. Raw-score means undo the loader's ascending-order sign inversion;
+    the direction-aware gap is a mean-score difference, never a fitness claim.
+    """
+    if score_order not in ("asc", "desc"):
+        raise ValueError("Unknown configured score direction")
+    ranks: dict[str, float] = {}
+    i = 0
+    while i < len(candidates):
+        end = i + 1
+        while end < len(candidates) and candidates[end][1] == candidates[i][1]:
+            end += 1
+        for variant, _, _ in candidates[i:end]:
+            ranks[variant] = (i + 1 + end) / 2.
+        i = end
+    positions = sorted({p for _, _, p in candidates})
+
+    def profile(rows: list[tuple[str, float, int]]) -> dict:
+        multiplicity = Counter(p for _, _, p in rows)
+        sites = sorted(multiplicity)
+        nearest = [min(math.dist(coordinate_map[p], coordinate_map[q]) for q in sites)
+                   for p in positions]
+        mean = _finite_mean([score for _, score, _ in rows]) if score_available else None
+        return {
+            "variant_count": len(rows), "site_count": len(sites),
+            "max_variants_per_site": max(multiplicity.values()),
+            "minimum_site_distance": min((math.dist(coordinate_map[a], coordinate_map[b])
+                for index, a in enumerate(sites) for b in sites[index + 1:]), default=None),
+            "coverage_mean_distance": math.fsum(d / len(nearest) for d in nearest),
+            "coverage_max_distance": max(nearest),
+            "score_mean": -mean if mean is not None and score_order == "asc" else mean,
+            "mean_score_rank": _finite_mean([ranks[v] for v, _, _ in rows]) if score_available else None,
+        }
+
+    selected_profile = profile(selected)
+    baseline_rows = candidates[:len(selected)]
+    baseline = profile(baseline_rows) if score_available else None
+    gap = None
+    if baseline is not None and baseline["score_mean"] is not None and selected_profile["score_mean"] is not None:
+        difference = baseline["score_mean"] - selected_profile["score_mean"]
+        if score_order == "asc":
+            difference = -difference
+        if math.isfinite(difference) and difference >= 0:
+            gap = difference
+    selected_ids = {v for v, _, _ in selected}
+    return {
+        "baseline": "configured-score-top-n",
+        "universe": "eligible-variants-after-budget-and-cap-policy",
+        "candidate_site_count": len(positions), "score_available": score_available,
+        "selected": selected_profile, "top_n": baseline,
+        "top_n_variants": [v for v, _, _ in baseline_rows] if score_available else None,
+        "top_n_overlap_count": sum(v in selected_ids for v, _, _ in baseline_rows) if score_available else None,
+        "score_gap_to_top_n": gap,
+    }
