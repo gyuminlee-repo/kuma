@@ -1539,6 +1539,33 @@
       ],
       "note": "Offline polymer-to-observed residue identity, optional homolog/SIFTS evidence and confidence provenance. Not an application mapping certificate.",
       "severity": "warning"
+    },
+    {
+      "id": "prediction-bundle-import",
+      "files": [
+        "kuma_core/kuro/prediction_bundle.py",
+        "kuma_core/kuro/prediction_context.py",
+        "python-core/sidecar_kuro/models.py",
+        "python-core/sidecar_kuro/handlers/misc.py",
+        "python-core/sidecar_kuro/dispatcher.py",
+        "src/types/models.ts",
+        "src/types/models.generated.ts",
+        "src/types/validators.ts",
+        "src/lib/strictSpatial.ts",
+        "src/store/slices/inputSlice.ts",
+        "src/store/slices/inputSlice.helpers.ts",
+        "src/store/slices/designSlice.ts",
+        "src/components/panels/InputPanel/PredictionBundleControls.tsx",
+        "src/components/panels/InputPanel/PredictionBundleEvidence.tsx",
+        "src/components/panels/Selection3DPanel.tsx",
+        "src/store/slices/diversitySlice.ts",
+        "src/store/slices/exportSlice.ts",
+        "src/store/slice-interfaces.ts",
+        "src/hooks/useAutosaveHydration.ts",
+        "src/lib/selection3d.ts"
+      ],
+      "note": "Local paired prediction ZIP identity/confidence, explicit model and chain, strict certificate freshness, derived CA trace and design revalidation. No prediction or network submission.",
+      "severity": "warning"
     }
   ]
 }

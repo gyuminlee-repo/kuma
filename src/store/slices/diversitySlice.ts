@@ -26,6 +26,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   let uniprotSearchGeneration = 0;
   let structureFetchGeneration = 0;
   let refDomainGeneration = 0;
+  let predictionBundleGeneration = 0;
 
   /** Per-accession PDB text cache — avoids redundant network fetches within a session. */
   const pdbTextCache = new Map<string, Promise<FetchPdbTextResult | null>>();
@@ -78,6 +79,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   // and the 3D view aren't silently empty.
   function maybeBackfillUniprotSearch() {
     const state = get();
+    if (state.strictSpatialEnabled && state.strictStructureSource === "prediction_bundle") return;
     if (state.uniprotAccession || state.uniprotSearching) return;
     const seqInfo = state.seqInfo;
     const gene = seqInfo?.genes.find((g) => String(g.cds_start) === state.selectedGene) ?? seqInfo?.genes[0];
@@ -171,6 +173,14 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   strictSpatialSiteCap: null,
   strictSpatialSelection: null,
   strictSpatialError: null,
+  strictStructureSource: "accession",
+  predictionBundlePath: "",
+  predictionBundleInventory: null,
+  predictionBundleModelId: null,
+  predictionBundleChainId: null,
+  predictionBundleLoading: false,
+  predictionBundleError: null,
+  predictionBundleRevision: 0,
   refDomains: [],
   refDomainsLoading: false,
   refDomainHash: "",
@@ -310,6 +320,61 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       strictSpatialError: null,
     }));
     debouncedReload();
+  },
+
+  setStrictStructureSource: (source) => {
+    if (source === get().strictStructureSource) return;
+    ++predictionBundleGeneration;
+    get().cancelDiversityReload();
+    set(buildKuroDesignInputPatch(get(), {
+      strictStructureSource: source, strictSpatialSelection: null, strictSpatialError: null,
+      predictionBundleLoading: false, predictionBundleError: null,
+      predictionBundleRevision: get().predictionBundleRevision + 1,
+    }));
+  },
+
+  inspectPredictionBundle: async (filepath) => {
+    const generation = ++predictionBundleGeneration;
+    get().cancelDiversityReload();
+    set(buildKuroDesignInputPatch(get(), {
+      strictStructureSource: "prediction_bundle", predictionBundlePath: filepath,
+      predictionBundleInventory: null, predictionBundleModelId: null, predictionBundleChainId: null,
+      predictionBundleLoading: true, predictionBundleError: null,
+      strictSpatialSelection: null, strictSpatialError: null,
+      predictionBundleRevision: get().predictionBundleRevision + 1,
+    }));
+    const isCurrent = () => generation === predictionBundleGeneration
+      && get().strictStructureSource === "prediction_bundle" && get().predictionBundlePath === filepath;
+    try {
+      const inventory = await sendRequest("inspect_prediction_bundle", { filepath });
+      if (!isCurrent()) return;
+      set({ predictionBundleInventory: inventory, predictionBundleLoading: false });
+    } catch (error) {
+      if (!isCurrent()) return;
+      set({ predictionBundleLoading: false, predictionBundleError: formatError(error) });
+    }
+  },
+
+  setPredictionBundleModelId: (modelId) => {
+    if (modelId === get().predictionBundleModelId) return;
+    if (modelId !== null && !get().predictionBundleInventory?.models.some((model) => model.model_id === modelId)) return;
+    get().cancelDiversityReload();
+    set(buildKuroDesignInputPatch(get(), {
+      predictionBundleModelId: modelId, predictionBundleChainId: null,
+      predictionBundleRevision: get().predictionBundleRevision + 1,
+      strictSpatialSelection: null, strictSpatialError: null,
+    }));
+  },
+
+  setPredictionBundleChainId: (chainId) => {
+    if (chainId === get().predictionBundleChainId) return;
+    const model = get().predictionBundleInventory?.models.find((item) => item.model_id === get().predictionBundleModelId);
+    if (chainId !== null && !model?.chains.some((chain) => chain.chain_id === chainId)) return;
+    get().cancelDiversityReload();
+    set(buildKuroDesignInputPatch(get(), {
+      predictionBundleChainId: chainId, strictSpatialSelection: null, strictSpatialError: null,
+      predictionBundleRevision: get().predictionBundleRevision + 1,
+    }));
   },
 
   setStructuralKappa: (v: number) => {

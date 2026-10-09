@@ -922,6 +922,10 @@ class PreviewEvolveproSourceParams(BaseModel):
     max_rows: int = Field(default=8, ge=1, le=100)
 
 
+class InspectPredictionBundleParams(BaseModel):
+    filepath: str
+
+
 class LoadEvolveproParams(BaseModel):
     filepath: str = ""
     top_n: int = Field(default=96, ge=0, le=10000)
@@ -961,6 +965,10 @@ class LoadEvolveproParams(BaseModel):
     # revealed-anchor + 3D Ca-centroid maximin + kappa fitness blend. Off by default.
     structural_diversity: bool = False
     strict_spatial: bool = False
+    prediction_bundle_path: Optional[str] = None
+    prediction_model_id: Optional[str] = None
+    prediction_chain_id: Optional[str] = None
+    prediction_bundle_sha256: Optional[str] = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     strict_spatial_budget: Literal["unique_sites", "distinct_variants"] = "unique_sites"
     strict_spatial_site_cap: Optional[int] = Field(default=None, ge=1, strict=True)
     structural_kappa: float = Field(default=0.0, ge=0.0, le=1.0)

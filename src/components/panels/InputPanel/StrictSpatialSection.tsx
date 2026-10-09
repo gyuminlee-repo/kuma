@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import { useAppStore } from "@/store/appStore";
 import { currentStrictSpatialResult } from "@/lib/strictSpatial";
 import type { StrictSpatialResult } from "@/types/models";
+import { PredictionBundleControls } from "./PredictionBundleControls";
+import { PredictionBundleEvidence } from "./PredictionBundleEvidence";
 
 const Selection3DPanel = lazy(() => import("../Selection3DPanel").then((module) => ({ default: module.Selection3DPanel })));
 
@@ -57,6 +59,9 @@ export function StrictSpatialSection() {
   const error = useAppStore((s) => s.strictSpatialError);
   const path = useAppStore((s) => s.evolveproCsvPath);
   const load = useAppStore((s) => s.loadEvolveproCsv);
+  const sourceReady = useAppStore((s) => s.strictStructureSource !== "prediction_bundle"
+    || Boolean(s.predictionBundlePath && s.predictionBundleInventory && !s.predictionBundleLoading
+      && s.predictionBundleModelId !== null && s.predictionBundleChainId !== null));
   const [showPreview, setShowPreview] = useState(false);
   const [capError, setCapError] = useState(false);
   return (
@@ -66,6 +71,7 @@ export function StrictSpatialSection() {
         {t("strictSpatial.toggle")}
       </label>
       {enabled && <>
+        <PredictionBundleControls />
         <label className="flex min-w-0 flex-wrap items-center gap-2">
           {t("strictSpatial.budgetLabel")}
           <select className="min-w-0 flex-1 rounded border border-border bg-background px-2 py-1"
@@ -104,11 +110,15 @@ export function StrictSpatialSection() {
         </>}
         {error && <p role="alert" className="text-destructive">{error}</p>}
         {!result && <p role="status">{t("strictSpatial.pending")}</p>}
-        {path && <button type="button" className="rounded border border-border px-2 py-1 hover:bg-accent"
+        {!sourceReady && <p>{t("predictionImport.selectionRequired")}</p>}
+        {path && <button type="button" disabled={!sourceReady}
+          title={!sourceReady ? t("predictionImport.selectionRequired") : undefined}
+          className="rounded border border-border px-2 py-1 hover:bg-accent disabled:opacity-50"
           onClick={() => { void load(path).catch(() => { /* The store retains the actionable error. */ }); }}>
           {t("strictSpatial.reselect")}
         </button>}
         {result && <>
+          {result.prediction_bundle && <PredictionBundleEvidence evidence={result.prediction_bundle} />}
           <p role="status">{t("strictSpatial.selectedCounts", { variants: result.selected_variant_count,
             sites: result.selected_site_count })}</p>
           <p>{t("strictSpatial.eligibleCounts", { variants: result.eligible_variant_count,

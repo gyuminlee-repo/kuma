@@ -51,6 +51,7 @@ export interface SidecarKuroModels {
   FileExportResultModel?: FileExportResultModel;
   GetAlternativesParams?: GetAlternativesParams;
   ImportCodonTableParams?: ImportCodonTableParams;
+  InspectPredictionBundleParams?: InspectPredictionBundleParams;
   LandscapeEntry?: LandscapeEntry;
   LoadEvolveproParams?: LoadEvolveproParams;
   LoadFastaParams?: LoadFastaParams;
@@ -797,6 +798,10 @@ export interface ImportCodonTableParams {
   text?: string | null;
   [k: string]: unknown;
 }
+export interface InspectPredictionBundleParams {
+  filepath: string;
+  [k: string]: unknown;
+}
 export interface LandscapeEntry {
   fitness: number;
   variant: string;
@@ -820,6 +825,10 @@ export interface LoadEvolveproParams {
   max_per_position?: number;
   pareto_diversity?: boolean;
   pool_multiplier?: number;
+  prediction_bundle_path?: string | null;
+  prediction_bundle_sha256?: string | null;
+  prediction_chain_id?: string | null;
+  prediction_model_id?: string | null;
   ref_seq?: string;
   round_size?: number;
   score_column?: string | null;

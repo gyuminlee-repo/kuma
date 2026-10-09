@@ -84,6 +84,9 @@ export function selectedRefPositions(rows: SelectedPositionRow[]): number[] {
 }
 
 export interface MappedYpredRow {
+  viewerPosition?: number;
+  viewerChainId?: string;
+  viewerInsertionCode?: string;
   chainId?: string;
   insertionCode?: string;
   accPosition: number;

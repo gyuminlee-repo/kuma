@@ -19,6 +19,7 @@ import { currentStrictSpatialResult, isStrictSpatialMode } from "@/lib/strictSpa
 import { useAppStore } from "@/store/appStore";
 import { StateView } from "@/components/ui/StateView";
 import { InlineHelp } from "@/components/ui/InlineHelp";
+import { PredictionBundleEvidence } from "./InputPanel/PredictionBundleEvidence";
 import {
   deriveSelectedPositions,
   selectedRefPositions,
@@ -71,6 +72,20 @@ function parseBFactors(pdbText: string): Map<number, number> {
     if (!isNaN(resi) && !isNaN(b) && !map.has(resi)) map.set(resi, b);
   }
   return map;
+}
+
+/** Continuous display scale only. Unknown imported confidence stays gray. */
+function confidenceColor(value: number): string {
+  const colors = [[255, 125, 69], [255, 219, 19], [101, 203, 243], [0, 83, 214]];
+  const scaled = Math.max(0, Math.min(100, value)) / 100 * (colors.length - 1);
+  const lower = Math.min(Math.floor(scaled), colors.length - 2);
+  const fraction = scaled - lower;
+  return `rgb(${colors[lower].map((channel, index) => Math.round(channel + fraction * (colors[lower + 1][index] - channel))).join(",")})`;
+}
+
+function viewerSelection(row: MappedYpredRow) {
+  const chain = row.viewerChainId ?? row.chainId;
+  return { resi: row.viewerPosition ?? row.accPosition, ...(chain !== undefined ? { chain } : {}) };
 }
 
 const DOMAIN_COLORS = [
@@ -466,10 +481,12 @@ function PositionTable({
   rows,
   onRowClick,
   scoresAvailable = true,
+  imported = false,
 }: {
   rows: PositionTableRow[];
-  onRowClick: (accPos: number) => void;
+  onRowClick: (row: PositionTableRow) => void;
   scoresAvailable?: boolean;
+  imported?: boolean;
 }) {
   const { t } = useTranslation();
   return (
@@ -493,7 +510,7 @@ function PositionTable({
                 key={k}
                 className="border-b border-border px-2 py-1 text-left font-medium whitespace-nowrap"
               >
-                {t(`selection3d.${k}`)}
+                {imported && k === "colAccPos" ? t("predictionImport.structurePosition") : t(`selection3d.${k}`)}
               </th>
             ))}
           </tr>
@@ -502,13 +519,16 @@ function PositionTable({
           {rows.map((row, i) => (
             <tr
               key={`${row.variant}-${i}`}
-              onClick={() => onRowClick(row.accPosition)}
+              onClick={() => onRowClick(row)}
               className="cursor-pointer hover:bg-accent/50"
               data-testid="position-row"
             >
               <td className="border-b border-border px-2 py-0.5 font-mono">{row.variant}</td>
               <td className="border-b border-border px-2 py-0.5 tabular-nums">{row.refPosition}</td>
-              <td className="border-b border-border px-2 py-0.5 tabular-nums">{row.accPosition}</td>
+              <td className="border-b border-border px-2 py-0.5 tabular-nums" title={imported ? t("predictionImport.residueIdentity", {
+                chain: row.chainId || t("predictionImport.blankChain"), position: row.accPosition,
+                insertion: row.insertionCode ?? "", viewer: row.viewerPosition,
+              }) : undefined}>{row.accPosition}{imported ? row.insertionCode : ""}</td>
               <td className="border-b border-border px-2 py-0.5 tabular-nums">{scoresAvailable ? row.yPred.toFixed(3) : "–"}</td>
               <td className="border-b border-border px-2 py-0.5">
                 {row.isActiveSite ? (
@@ -596,6 +616,7 @@ function ViewerToolbar({
   onFullscreen,
   onExportPng,
   showPlddt,
+  allowSurface = true,
 }: {
   colorMode: ColorMode;
   onColorMode: (m: ColorMode) => void;
@@ -609,6 +630,7 @@ function ViewerToolbar({
   onFullscreen: () => void;
   onExportPng: () => void;
   showPlddt: boolean;
+  allowSurface?: boolean;
 }) {
   const { t } = useTranslation();
 
@@ -639,9 +661,9 @@ function ViewerToolbar({
         </button>
       ))}
       <span className="mx-0.5 h-3 w-px bg-border" />
-      <button type="button" onClick={onSurfaceToggle} className={btnCls(showSurface)}>
+      {allowSurface && <button type="button" onClick={onSurfaceToggle} className={btnCls(showSurface)}>
         {t("selection3d.repSurface")}
-      </button>
+      </button>}
       <span className="mx-0.5 h-3 w-px bg-border" />
       <button type="button" onClick={onSpin} className={btnCls(spin)} data-testid="spin-btn">
         {t("selection3d.spin")}
@@ -721,6 +743,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
 
   const strictMode = useAppStore(isStrictSpatialMode);
   const strictResult = useAppStore(currentStrictSpatialResult);
+  const importedEvidence = strictResult?.prediction_bundle;
   const [open, setOpen] = useState(defaultOpen);
   const [phase, setPhase] = useState<ViewerPhase>("idle");
   const [mapping, setMapping] = useState<{ key: string; result: ComputeDispersionResult } | null>(null);
@@ -837,7 +860,9 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
     rows: rows.flatMap((row): MappedYpredRow[] => {
       const mapped = strictResult.mapping.find((item) => item.reference_position === row.refPosition);
       return mapped ? [{ ...row, accPosition: mapped.structure_position,
-        chainId: mapped.chain_id, insertionCode: mapped.insertion_code }] : [];
+        chainId: mapped.chain_id, insertionCode: mapped.insertion_code,
+        viewerPosition: mapped.viewer_position, viewerChainId: mapped.viewer_chain_id,
+        viewerInsertionCode: mapped.viewer_insertion_code }] : [];
     }),
   } : null) : dispersion !== null
       ? joinMappedYpred(rows, dispersion.dropped, dispersion.mapped)
@@ -853,7 +878,8 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
       ...r,
       isActiveSite: activeSiteSet.has(r.accPosition),
       isBindingSite: bindingSet.has(r.accPosition),
-      plddt: bFactorMapRef.current.get(r.accPosition) ?? null,
+      plddt: importedEvidence ? importedEvidence.plddt_by_reference[r.refPosition - 1] ?? null
+        : bFactorMapRef.current.get(r.accPosition) ?? null,
       domain: dom?.name ?? "",
     };
   });
@@ -895,8 +921,9 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
       const positions = selectedRefPositions(currentRows);
 
       if (strictMode && strictResult) {
-        bFactorMapRef.current = parseBFactors(strictResult.pdb_text);
-        await initViewer(strictResult.pdb_text, "pdb", isCancelled);
+        bFactorMapRef.current = strictResult.prediction_bundle ? new Map() : parseBFactors(strictResult.pdb_text);
+        await initViewer(strictResult.pdb_text, strictResult.structure_format ?? "pdb", isCancelled);
+        if (strictResult.prediction_bundle || isCancelled()) return;
         const annotations = await fetchActiveSite(strictResult.source_accession);
         if (isCancelled()) return;
         setActiveSiteResult(annotations);
@@ -1041,7 +1068,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
     if (!viewer || phase !== "ready") return;
 
     // Base: gray cartoon
-    viewer.setStyle({}, { cartoon: { color: "gray" } });
+    viewer.setStyle({}, { cartoon: { color: "gray", ...(importedEvidence ? { style: "trace" } : {}) } });
 
     // Color mode
     if (colorMode === "domain" && !uploadSource && domains.length > 0) {
@@ -1049,6 +1076,11 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
         const color = DOMAIN_COLORS[i % DOMAIN_COLORS.length];
         viewer.setStyle({ resi: `${d.start}-${d.end}` as SelectionRange }, { cartoon: { color } });
 
+      });
+    } else if (colorMode === "plddt" && importedEvidence) {
+      importedEvidence.plddt_by_reference.forEach((confidence, index) => {
+        if (confidence !== null) viewer.setStyle({ resi: index + 1, chain: "A" },
+          { cartoon: { style: "trace", color: confidenceColor(confidence) } });
       });
     } else if (colorMode === "plddt" && !uploadSource) {
       viewer.setStyle(
@@ -1080,7 +1112,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
         const color = strictMode && strictResult?.score_available === false
           ? "#808080" : yPredColor(normalizeT(r.yPred, minY, maxY));
         viewer.addStyle(
-          { resi: r.accPosition, ...(r.chainId !== undefined ? { chain: r.chainId } : {}) },
+          viewerSelection(r),
           { sphere: { color, radius: 1.0 } },
         );
       }
@@ -1106,7 +1138,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
 
     // Hoverable: scoped to shown variant/active/binding residues
     const hoverSet = new Set<number>([
-      ...(showVariants ? joinResult?.rows.map((r) => r.accPosition) ?? [] : []),
+      ...(showVariants ? joinResult?.rows.map((r) => r.viewerPosition ?? r.accPosition) ?? [] : []),
       ...(!strictMode && showActiveSite ? activeSitePositions : []),
       ...(showBindingSite ? bindingPositions : []),
     ]);
@@ -1117,9 +1149,9 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
         true,
         (atom: AtomSpec) => {
           const resi = atom.resi;
-          const residueRows = joinResult?.rows.filter((r) => r.accPosition === resi) ?? [];
+          const residueRows = joinResult?.rows.filter((r) => (r.viewerPosition ?? r.accPosition) === resi) ?? [];
           const matchingRows = strictMode
-            ? residueRows.filter((r) => r.chainId === undefined || r.chainId === atom.chain)
+            ? residueRows.filter((r) => (r.viewerChainId ?? r.chainId) === undefined || (r.viewerChainId ?? r.chainId) === atom.chain)
             : residueRows.slice(0, 1);
           const parts: string[] = [`${atom.resn ?? ""}${resi ?? ""}`];
           for (const row of matchingRows) parts.push(strictMode && strictResult?.score_available === false
@@ -1158,7 +1190,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
           viewer.removeSurface(surfaceHandlerRef.current);
           surfaceHandlerRef.current = null;
         }
-        if (showSurface) {
+        if (showSurface && !importedEvidence) {
           const $3Dmol = await import("3dmol");
           const handler = await viewer.addSurface($3Dmol.SurfaceType.VDW, {
             opacity: 0.7,
@@ -1177,7 +1209,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, showSurface]);
+  }, [phase, showSurface, importedEvidence]);
 
   // ─── effect: background color (live) ─────────────────────────────────────
   useEffect(() => {
@@ -1188,10 +1220,10 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
   }, [darkBg, phase]);
 
   // ─── interaction handlers ───────────────────────────────────────────────
-  function handleRowClick(accPos: number) {
+  function handleRowClick(row: PositionTableRow) {
     const viewer = viewerRef.current;
     if (!viewer) return;
-    viewer.zoomTo({ resi: accPos }, 500);
+    viewer.zoomTo(viewerSelection(row), 500);
     viewer.render();
   }
 
@@ -1272,12 +1304,12 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
         <span className="text-muted-foreground text-xs">{open ? "▲" : "▼"}</span>
       </button>
 
-      {noAccession && refSeq.length === 0 && (
+      {!strictMode && noAccession && refSeq.length === 0 && (
         <p className="px-4 pb-2 text-xs italic text-muted-foreground" data-testid="disabled-message">
           {t("selection3d.noAccession")}
         </p>
       )}
-      {noAccession && esmfoldLen > 400 && (
+      {!strictMode && noAccession && esmfoldLen > 400 && (
         <p className="px-4 pb-2 text-xs italic text-muted-foreground" data-testid="esmfold-too-long">
           {t("selection3d.esmfoldTooLong")}
         </p>
@@ -1315,6 +1347,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
             {t("strictSpatial.selectedCounts", { variants: strictResult.selected_variant_count,
               sites: strictResult.selected_site_count })}
           </p>}
+          {importedEvidence && <div className="px-4 py-2 text-xs"><PredictionBundleEvidence evidence={importedEvidence} /></div>}
 
           {/* Dropped-positions warning */}
           {droppedWarning !== null && (
@@ -1349,6 +1382,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
             {phase === "ready" && (
               <>
                 <ViewerToolbar
+                  allowSurface={!importedEvidence}
                   colorMode={colorMode}
                   onColorMode={setColorMode}
                   showSurface={showSurface}
@@ -1360,7 +1394,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
                   onDarkBg={() => setDarkBg((v) => !v)}
                   onFullscreen={handleFullscreen}
                   onExportPng={handleExportPng}
-                  showPlddt={!uploadSource}
+                  showPlddt={!uploadSource && (!importedEvidence || importedEvidence.plddt_by_reference.some((value) => value !== null))}
                 />
 
                 {/* Fallback note — shown when no explicit selection but ranked candidates exist */}
@@ -1407,7 +1441,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
                     bindingPositions.length > 0
                   }
                   hasDomains={domains.length > 0}
-                  showPlddt={!uploadSource}
+                  showPlddt={!uploadSource && (!importedEvidence || importedEvidence.plddt_by_reference.some((value) => value !== null))}
                   showVariants={showVariants}
                   showActiveSite={structureSource !== "esmfold" && showActiveSite}
                   showBindingSite={structureSource !== "esmfold" && showBindingSite}
@@ -1420,7 +1454,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
                 {/* Structural Dispersion: numeric/graph summary directly under the viewer */}
                 {!strictMode && !uploadSource && dispersion !== null && <DispersionCard result={dispersion} />}
 
-                {structureSource === "esmfold" && (
+                {!strictMode && structureSource === "esmfold" && (
                   <div
                     className="rounded border border-info/40 bg-info/10 px-3 py-2 text-xs text-info"
                     data-testid="esmfold-no-accession-note"
@@ -1471,6 +1505,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
                       {t("selection3d.positionTableTitle")}
                     </h3>
                     <PositionTable rows={tableRows} onRowClick={handleRowClick}
+                      imported={Boolean(importedEvidence)}
                       scoresAvailable={!strictMode || strictResult?.score_available !== false} />
                   </div>
                 )}

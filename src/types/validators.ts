@@ -15,6 +15,8 @@ import type {
   FetchPdbTextResult,
   HealthInfo,
   PredictStructureEsmfoldResult,
+  PredictionBundleInventory,
+  PredictionBundleEvidence,
   JsonRpcError,
   ParseMutationsResult,
   PlateMapResult,
@@ -546,6 +548,76 @@ function isEvolveproStepStats(value: unknown): boolean {
   );
 }
 
+function isSha256(value: unknown): value is string {
+  return isString(value) && /^[a-f0-9]{64}$/.test(value);
+}
+
+function isHttpsUrl(value: unknown): value is string {
+  if (!isString(value)) return false;
+  try { return new URL(value).protocol === "https:"; } catch { return false; }
+}
+
+function isPredictionBundleInventory(value: unknown): value is PredictionBundleInventory {
+  if (!(isRecord(value) && value.schema_version === 1 && isString(value.source_name)
+    && isSha256(value.bundle_sha256) && (value.format === "af3_server" || value.format === "colabfold")
+    && isHttpsUrl(value.source_url) && (value.terms_url === null || isHttpsUrl(value.terms_url))
+    && isOptional(value.notices, isPredictionNotices)
+    && isArrayOf(value.models, (model) => isRecord(model)
+      && isString(model.model_id) && model.model_id.length > 0
+      && isString(model.structure_member) && model.structure_member === model.model_id
+      && (model.confidence_member === null || isString(model.confidence_member))
+      && (model.structure_format === "pdb" || model.structure_format === "cif")
+      && isArrayOf(model.chains, (chain) => isRecord(chain)
+        && isString(chain.chain_id) && isString(chain.author_chain_id)
+        && isString(chain.sequence) && /^[A-Z]+$/.test(chain.sequence)
+        && chain.length === chain.sequence.length)))) return false;
+  const inventory = value as unknown as PredictionBundleInventory;
+  return inventory.models.length > 0
+    && new Set(inventory.models.map((model) => model.model_id)).size === inventory.models.length
+    && inventory.models.every((model) => model.chains.length > 0
+      && new Set(model.chains.map((chain) => chain.chain_id)).size === model.chains.length);
+}
+
+function isPredictionNotices(value: unknown): boolean {
+  return Array.isArray(value) && value.length <= 256 && value.every((notice) => isRecord(notice)
+    && isString(notice.member) && notice.member.length <= 4096 && isSha256(notice.sha256)
+    && isString(notice.text) && notice.text.length <= 262144);
+}
+
+function isPredictionBundleEvidence(value: unknown): value is PredictionBundleEvidence {
+  const nonnegative = (item: unknown): item is number => isNumber(item) && item >= 0;
+  if (!(isRecord(value) && (value.format === "af3_server" || value.format === "colabfold")
+    && isString(value.source_name) && isSha256(value.bundle_sha256)
+    && isString(value.model_id) && value.model_id.length > 0 && isString(value.chain_id) && isString(value.author_chain_id)
+    && isString(value.structure_member) && value.structure_member === value.model_id
+    && (value.confidence_member === null || isString(value.confidence_member))
+    && isSha256(value.structure_sha256) && (value.confidence_sha256 === null || isSha256(value.confidence_sha256))
+    && (value.confidence_member === null) === (value.confidence_sha256 === null)
+    && isHttpsUrl(value.source_url) && (value.terms_url === null || isHttpsUrl(value.terms_url))
+    && isSha256(value.display_sha256) && value.display_kind === "reference-ca-trace"
+    && isArrayOf(value.plddt_by_reference, (item) => item === null || (nonnegative(item) && item <= 100))
+    && isString(value.plddt_source) && value.interdomain_confidence === "not_assessed"
+    && isOptional(value.source_notices, isPredictionNotices)
+    && isOptionalNullable(value.sequence_member, isString)
+    && isOptionalNullable(value.sequence_sha256, isSha256)
+    && isOptional(value.missing_reference_positions, (positions) => isArrayOf(positions,
+      (position) => isNumber(position) && Number.isSafeInteger(position) && position > 0))
+    && isStringArray(value.warnings) && isRecord(value.pae)
+    && (value.pae.status === "available" || value.pae.status === "unavailable")
+    && (value.pae.source === null || isString(value.pae.source))
+    && nonnegative(value.pae.dimension) && Number.isSafeInteger(value.pae.dimension)
+    && (value.pae.mean === null || nonnegative(value.pae.mean))
+    && (value.pae.max === null || nonnegative(value.pae.max))
+    && value.pae.scope === "selected-chain-polymer" && value.pae.directional === true)) return false;
+  const evidence = value as unknown as PredictionBundleEvidence;
+  if ((evidence.sequence_member == null) !== (evidence.sequence_sha256 == null)) return false;
+  return evidence.pae.status === "available"
+    ? evidence.pae.dimension > 0 && evidence.pae.source !== null
+      && ((evidence.pae.mean === null && evidence.pae.max === null)
+        || (evidence.pae.mean !== null && evidence.pae.max !== null && evidence.pae.max >= evidence.pae.mean))
+    : evidence.pae.mean === null && evidence.pae.max === null;
+}
+
 function isStrictSpatialProfile(value: unknown): value is StrictSpatialProfile {
   const positiveInteger = (item: unknown): item is number => isNumber(item) && Number.isSafeInteger(item) && item > 0;
   return isRecord(value)
@@ -618,6 +690,8 @@ function isStrictSpatialResult(value: unknown): boolean {
     && isString(value.reference_sha256) && isString(value.candidate_sha256)
     && (value.score_order === "asc" || value.score_order === "desc")
     && isBoolean(value.score_available) && isString(value.pdb_text)
+    && isOptional(value.structure_format, (format) => format === "pdb" || format === "cif")
+    && isOptional(value.prediction_bundle, isPredictionBundleEvidence)
     && value.coordinate_frame === "reference"
     && (value.budget_mode === "unique_sites" || value.budget_mode === "distinct_variants")
     && value.selection_policy === (value.budget_mode === "unique_sites"
@@ -638,13 +712,24 @@ function isStrictSpatialResult(value: unknown): boolean {
       && positiveInteger(row.reference_position) && positiveInteger(row.variant_count))
     && isArrayOf(value.excluded, (row) => isRecord(row) && isString(row.variant) && isString(row.reason))
     && isArrayOf(value.mapping, (row) => isRecord(row)
-      && positiveInteger(row.reference_position) && positiveInteger(row.structure_position)
+      && positiveInteger(row.reference_position) && isNumber(row.structure_position) && Number.isSafeInteger(row.structure_position)
+      && (value.prediction_bundle !== undefined || row.structure_position > 0)
       && isString(row.chain_id) && isString(row.insertion_code)
+      && isOptional(row.model_id, (item) => isString(item) || (isNumber(item) && Number.isSafeInteger(item)))
+      && isOptional(row.polymer_position, positiveInteger)
+      && isOptional(row.viewer_position, positiveInteger)
+      && isOptional(row.viewer_chain_id, isString) && isOptional(row.viewer_insertion_code, isString)
       && isNumberArray(row.coordinate) && row.coordinate.length === 3))) return false;
 
   // Array element predicates above check the full shape; keep the accounting
   // checks explicit so repeated sites cannot silently replace distinct IDs.
   const report = value as unknown as StrictSpatialResult;
+  if (report.prediction_bundle && (report.structure_format !== "pdb"
+    || report.source_sha256 !== report.prediction_bundle.structure_sha256
+    || report.prediction_bundle.plddt_by_reference.length === 0
+    || !report.mapping.every((row) => row.viewer_position === row.reference_position
+      && row.viewer_chain_id === "A" && row.viewer_insertion_code === ""
+      && row.reference_position <= (report.prediction_bundle?.plddt_by_reference.length ?? 0)))) return false;
   const multiplicities = new Map<number, number>();
   for (const position of report.selected_positions) {
     multiplicities.set(position, (multiplicities.get(position) ?? 0) + 1);
@@ -1411,6 +1496,8 @@ const rpcResultValidators = {
     isDesignResult(value),
   load_evolvepro_csv: (value): value is RpcMethodResult<"load_evolvepro_csv"> =>
     isEvolveproLoadResult(value),
+  inspect_prediction_bundle: (value): value is RpcMethodResult<"inspect_prediction_bundle"> =>
+    isPredictionBundleInventory(value),
   get_plate_map: (value): value is RpcMethodResult<"get_plate_map"> =>
     isPlateMapResult(value),
   get_alternatives: (value): value is RpcMethodResult<"get_alternatives"> =>

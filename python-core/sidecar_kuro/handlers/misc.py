@@ -20,6 +20,7 @@ from sidecar_kuro.core import (
 )
 from sidecar_kuro.models import (
     LoadEvolveproParams,
+    InspectPredictionBundleParams,
     PolymeraseProfileModel,
     PreviewEvolveproSourceParams,
     RunBenchmarkParams,
@@ -273,6 +274,17 @@ def _frame_checked_ca_coords(
     ], False
 
 
+def handle_inspect_prediction_bundle(params: dict) -> dict:
+    """Inspect local archive identities without prediction or network access."""
+    from kuma_core.kuro.prediction_bundle import inspect_prediction_bundle
+
+    p = InspectPredictionBundleParams(**params)
+    resolved = _validate_filepath(p.filepath, allowed_extensions={".zip"})
+    inventory = inspect_prediction_bundle(resolved)
+    return {"schema_version": 1, **asdict(inventory),
+            "source_url": inventory.source_terms[0].url, "terms_url": inventory.source_terms[1].url}
+
+
 def handle_load_evolvepro_csv(params: dict) -> dict:
     """Load EVOLVEpro df_test.csv, sort by y_pred descending, return top-N variants."""
     p = LoadEvolveproParams(**params)
@@ -280,19 +292,35 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
         raise ValueError("filepath is required")
     resolved = _validate_filepath(p.filepath, allowed_extensions=_ALLOWED_TABLE_EXTENSIONS)
 
-    ca_coords = _get_cached_ca_coords(p.structure_accession)
+    bundle_fields = (p.prediction_bundle_path, p.prediction_model_id,
+                     p.prediction_chain_id, p.prediction_bundle_sha256)
+    importing = any(value is not None for value in bundle_fields)
+    if importing and (not p.strict_spatial or not p.structural_diversity):
+        raise ValueError("Prediction bundle import requires strict spatial mode")
+    if importing and (any(value is None for value in bundle_fields)
+                      or not p.prediction_bundle_path or not p.prediction_model_id):
+        raise ValueError("Prediction bundle requires an inspected hash and explicit model/chain selection")
+    ca_coords = None if p.strict_spatial else _get_cached_ca_coords(p.structure_accession)
     strict_context = None
     if p.strict_spatial:
-        if not p.structural_diversity or not p.structure_accession or p.structure_accession.startswith("file:"):
-            raise ValueError("Strict spatial selection requires an AlphaFold accession and structural mode")
-        from kuma_core.kuro.alphafold import fetch_pdb_text
-        from kuma_core.kuro.strict_spatial import exact_pdb_context
+        if importing:
+            from kuma_core.kuro.prediction_context import prediction_context
 
-        strict_accession = p.structure_accession.strip().upper()
-        pdb_text = fetch_pdb_text(strict_accession)
-        if not pdb_text:
-            raise ValueError("Strict spatial source PDB is unavailable")
-        strict_context = exact_pdb_context(pdb_text, p.ref_seq, strict_accession)
+            resolved_bundle = _validate_filepath(p.prediction_bundle_path, allowed_extensions={".zip"})
+            strict_context = prediction_context(str(resolved_bundle), p.prediction_model_id or "",
+                p.prediction_chain_id if p.prediction_chain_id is not None else "", p.ref_seq,
+                p.prediction_bundle_sha256 or "")
+        else:
+            if not p.structural_diversity or not p.structure_accession or p.structure_accession.startswith("file:"):
+                raise ValueError("Strict spatial selection requires an AlphaFold accession and structural mode")
+            from kuma_core.kuro.alphafold import fetch_pdb_text
+            from kuma_core.kuro.strict_spatial import exact_pdb_context
+
+            strict_accession = p.structure_accession.strip().upper()
+            pdb_text = fetch_pdb_text(strict_accession)
+            if not pdb_text:
+                raise ValueError("Strict spatial source PDB is unavailable")
+            strict_context = exact_pdb_context(pdb_text, p.ref_seq, strict_accession)
         strict_context["candidate_sha256"] = hashlib.sha256(resolved.read_bytes()).hexdigest()
         strict_context["score_order"] = p.score_order
         strict_context["budget_mode"] = p.strict_spatial_budget

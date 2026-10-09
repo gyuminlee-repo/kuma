@@ -9,6 +9,7 @@ vi.mock("@/lib/keepAwake", () => ({ startKeepAwake: vi.fn(), stopKeepAwake: vi.f
 import { useAppStore } from "../appStore";
 import { distinctSpatial95Fixture, strictSpatialFixture, syntheticFullDfTestFixture } from "@/test-utils/strictSpatialFixture";
 import { strictSpatialContextKey } from "@/lib/strictSpatial";
+import { importedSpatialFixture, predictionBundleInventory } from "@/test-utils/predictionBundleFixture";
 
 function loadResponse(report = strictSpatialFixture()) {
   return { variants: report.selected_variants, y_preds: report.selected_variants.map((_, index) => 2 - index), total_count: report.eligible_variant_count,
@@ -27,11 +28,70 @@ beforeEach(() => {
     evolveproScoreOrder: "desc", evolveproVariantColumn: null, evolveproScoreColumn: null, evolveproSheetName: null,
     maxPrimers: 2, structuralDiversityEnabled: true, strictSpatialEnabled: true,
     strictSpatialBudgetMode: "unique_sites", strictSpatialSiteCap: null,
+    strictStructureSource: "accession", predictionBundleRevision: 0,
     strictSpatialSelection: null, strictSpatialError: null, evolveproSelectionManual: false,
     evolveproSelectedVariants: ["A2G", "A4V"], mutationText: "A2G\nA4V", fillOnFailure: true,
     requireNetworkConsent: vi.fn(async () => true), isDesigning: false,
   });
   useAppStore.setState({ strictSpatialSelection: { result: strictSpatialFixture(), contextKey: strictSpatialContextKey(useAppStore.getState()) } });
+});
+
+describe("local prediction design revalidation", () => {
+  function configure() {
+    const report = importedSpatialFixture();
+    useAppStore.setState({ strictStructureSource: "prediction_bundle", predictionBundlePath: "/tmp/prediction.zip",
+      predictionBundleInventory: predictionBundleInventory(), predictionBundleModelId: report.prediction_bundle.model_id,
+      predictionBundleChainId: report.prediction_bundle.chain_id });
+    useAppStore.setState({ strictSpatialSelection: { result: report, contextKey: strictSpatialContextKey(useAppStore.getState()) } });
+    return report;
+  }
+
+  it("revalidates the identical model/chain/hash and sends the exact reviewed variants to design", async () => {
+    const report = configure();
+    mocks.send.mockImplementation(async (method, params) => {
+      if (method === "load_evolvepro_csv") return loadResponse(report);
+      if (method === "design_sdm_primers") return { results: [], success_count: 0, total_count: 2,
+        failed_mutations: params.mutations_csv_or_text.split("\n").map((mutation: string, rank: number) => ({ mutation, rank, reason: "test failure" })) };
+      throw Error(`Unexpected ${method}`);
+    });
+    await useAppStore.getState().designPrimers();
+    const reload = mocks.send.mock.calls.find(([method]) => method === "load_evolvepro_csv");
+    expect(reload?.[1]).toMatchObject({ prediction_bundle_path: "/tmp/prediction.zip", prediction_model_id: report.prediction_bundle.model_id,
+      prediction_chain_id: "A", prediction_bundle_sha256: report.prediction_bundle.bundle_sha256 });
+    const design = mocks.send.mock.calls.find(([method]) => method === "design_sdm_primers");
+    expect(design?.[1].mutations_csv_or_text.split("\n")).toEqual(report.selected_variants);
+    expect(design?.[1].auto_relax).toBe(false);
+    expect(design?.[1].rescue_pool).toBeUndefined();
+    expect(useAppStore.getState().requireNetworkConsent).not.toHaveBeenCalled();
+  });
+
+  it.each(["display", "confidence", "mapping", "query"])("blocks design if %s provenance changes behind unchanged variant IDs", async (change) => {
+    const report = configure();
+    const next = importedSpatialFixture();
+    if (change === "display") next.prediction_bundle.display_sha256 = "1".repeat(64);
+    if (change === "confidence") next.prediction_bundle.confidence_sha256 = "2".repeat(64);
+    if (change === "mapping") next.mapping[0] = { ...next.mapping[0], structure_position: -3 };
+    if (change === "query") next.prediction_bundle.sequence_sha256 = "3".repeat(64);
+    expect(next.selected_variants).toEqual(report.selected_variants);
+    mocks.send.mockResolvedValue(loadResponse(next));
+    await useAppStore.getState().designPrimers();
+    expect(mocks.send.mock.calls.some(([method]) => method === "design_sdm_primers")).toBe(false);
+    expect(useAppStore.getState().statusMessage).toContain("Review the updated selection");
+  });
+
+  it("rejects a pending revalidation when the chain switches away and back", async () => {
+    const report = configure();
+    let finish: ((value: ReturnType<typeof loadResponse>) => void) | undefined;
+    mocks.send.mockImplementation(() => new Promise((resolve) => { finish = resolve; }));
+    const pending = useAppStore.getState().designPrimers();
+    useAppStore.getState().setPredictionBundleChainId("B");
+    useAppStore.getState().setPredictionBundleChainId("A");
+    finish?.(loadResponse(report));
+    await pending;
+    expect(mocks.send.mock.calls.some(([method]) => method === "design_sdm_primers")).toBe(false);
+    expect(useAppStore.getState().strictSpatialSelection).toBeNull();
+    expect(useAppStore.getState().statusMessage).toContain("Review the updated selection");
+  });
 });
 afterEach(() => useAppStore.getState().cancelDiversityReload());
 

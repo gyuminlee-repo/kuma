@@ -2860,7 +2860,8 @@ describe("strict spatial session isolation on restore", () => {
     useAppStore.getState().resetAll();
     useAppStore.setState({ strictSpatialEnabled: true, strictSpatialBudgetMode: "distinct_variants", strictSpatialSiteCap: 19,
       strictSpatialSelection: { result: strictSpatialFixture(), contextKey: "previous session" },
-      strictSpatialError: "previous failure" });
+      strictSpatialError: "previous failure", strictStructureSource: "prediction_bundle",
+      predictionBundlePath: "/tmp/old.zip", predictionBundleModelId: "old_model_0.cif", predictionBundleChainId: "A" });
     const snapshot = buildKuroSnapshot(useAppStore.getState());
     expect(snapshot.diversity).not.toHaveProperty("strict_spatial_enabled");
     await applyKuroSnapshot(snapshot as unknown as AutosaveSnapshot);
@@ -2869,5 +2870,9 @@ describe("strict spatial session isolation on restore", () => {
     expect(useAppStore.getState().strictSpatialSiteCap).toBeNull();
     expect(useAppStore.getState().strictSpatialSelection).toBeNull();
     expect(useAppStore.getState().strictSpatialError).toBeNull();
+    expect(useAppStore.getState().strictStructureSource).toBe("accession");
+    expect(useAppStore.getState().predictionBundlePath).toBe("");
+    expect(useAppStore.getState().predictionBundleModelId).toBeNull();
+    expect(useAppStore.getState().predictionBundleChainId).toBeNull();
   });
 });

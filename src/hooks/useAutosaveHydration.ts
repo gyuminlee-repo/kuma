@@ -401,6 +401,9 @@ export async function applyKuroSnapshot(
   const patch: Partial<AppState> = {
     strictSpatialEnabled: false, strictSpatialSelection: null, strictSpatialError: null,
     strictSpatialBudgetMode: "unique_sites", strictSpatialSiteCap: null,
+    strictStructureSource: "accession", predictionBundlePath: "", predictionBundleInventory: null,
+    predictionBundleModelId: null, predictionBundleChainId: null, predictionBundleLoading: false,
+    predictionBundleError: null, predictionBundleRevision: useAppStore.getState().predictionBundleRevision + 1,
   };
 
   // input

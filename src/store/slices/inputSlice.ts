@@ -59,6 +59,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     preserveSelection = false,
   ) => {
     const gen = ++csvLoadGeneration;
+    let requestContextKey: string | null = null;
     try {
       const {
         evolveproMode,
@@ -88,6 +89,11 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         strictSpatialEnabled,
         strictSpatialBudgetMode,
         strictSpatialSiteCap,
+        strictStructureSource,
+        predictionBundlePath,
+        predictionBundleInventory,
+        predictionBundleModelId,
+        predictionBundleChainId,
       } = get();
       const effectiveTopN = topNOverride ?? maxPrimers;
       const selectionDomains = resolveSelectionDomains(refDomains);
@@ -118,6 +124,14 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       // custom column names are a supported input, not a format error.
 
       const usePipeline = evolveproMode !== "topN";
+      const strictMode = usePipeline && structuralDiversityEnabled && strictSpatialEnabled;
+      requestContextKey = strictMode ? strictSpatialContextKey(get()) : null;
+      const imported = strictMode && strictStructureSource === "prediction_bundle";
+      const bundleModel = predictionBundleInventory?.models.find((model) => model.model_id === predictionBundleModelId);
+      const bundleChain = bundleModel?.chains.find((chain) => chain.chain_id === predictionBundleChainId);
+      if (imported && (!predictionBundlePath || !predictionBundleInventory || !bundleModel || !bundleChain)) {
+        throw new Error(i18next.t("predictionImport.selectionRequired"));
+      }
       // Structural-diversity revealed-anchor maximin: spread new picks away
       // from variants already committed across prior rounds. Only computed
       // when structural diversity is on (the sole consumer); empty otherwise.
@@ -160,25 +174,41 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           strictSpatialEnabled,
           strictSpatialBudgetMode,
           strictSpatialSiteCap,
+          ...(imported && predictionBundleInventory && bundleModel && bundleChain ? {
+            predictionBundle: { path: predictionBundlePath, modelId: bundleModel.model_id,
+              chainId: bundleChain.chain_id, sha256: predictionBundleInventory.bundle_sha256 },
+          } : {}),
           anchorVariants,
         });
-      const strictMode = usePipeline && structuralDiversityEnabled && strictSpatialEnabled;
       const contextKey = strictSpatialContextKey(get());
       if (strictMode) {
-        if (!refSeq || !(get().structureAccession || get().uniprotAccession)
-          || (get().structureAccession || get().uniprotAccession).startsWith("file:")) {
+        if (!refSeq || (!imported && (!(get().structureAccession || get().uniprotAccession)
+          || (get().structureAccession || get().uniprotAccession).startsWith("file:")))) {
           throw new Error(i18next.t("strictSpatial.unsupported"));
         }
-        const allowed = await get().requireNetworkConsent("alphafold");
-        if (!allowed) throw new Error(i18next.t("strictSpatial.permission"));
+        if (!imported) {
+          const allowed = await get().requireNetworkConsent("alphafold");
+          if (!allowed) throw new Error(i18next.t("strictSpatial.permission"));
+        }
       }
+      if (strictMode && contextKey !== strictSpatialContextKey(get())) return;
       const result = await sendRequest("load_evolvepro_csv", params);
       if (gen !== csvLoadGeneration) return;
       if (Boolean(strictMode) !== isStrictSpatialMode(get())) return;
       if (strictMode && (contextKey !== strictSpatialContextKey(get()) || !isStrictSpatialMode(get()))) return;
       if (strictMode && (!result.strict_spatial
         || !sameVariantIds(result.strict_spatial.selected_variants, result.variants)
-        || result.strict_spatial.source_accession !== String(params.structure_accession).trim().toUpperCase()
+        || (imported
+          ? !result.strict_spatial.prediction_bundle
+            || result.strict_spatial.prediction_bundle.bundle_sha256 !== predictionBundleInventory?.bundle_sha256
+            || result.strict_spatial.prediction_bundle.model_id !== predictionBundleModelId
+            || result.strict_spatial.prediction_bundle.chain_id !== predictionBundleChainId
+            || result.strict_spatial.prediction_bundle.format !== predictionBundleInventory?.format
+            || result.strict_spatial.prediction_bundle.structure_member !== bundleModel?.structure_member
+            || result.strict_spatial.prediction_bundle.confidence_member !== bundleModel?.confidence_member
+            || result.strict_spatial.prediction_bundle.structure_sha256 !== result.strict_spatial.source_sha256
+          : Boolean(result.strict_spatial.prediction_bundle)
+            || result.strict_spatial.source_accession !== String(params.structure_accession).trim().toUpperCase())
         || result.strict_spatial.score_order !== evolveproScoreOrder
         || result.strict_spatial.budget_mode !== params.strict_spatial_budget
         || result.strict_spatial.site_cap !== params.strict_spatial_site_cap
@@ -246,6 +276,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       }
       set({ statusMessage: update.statusMessage });
     } catch (err) {
+      if (requestContextKey !== null && requestContextKey !== strictSpatialContextKey(get())) return;
       if (gen === csvLoadGeneration) {
         set({
           strictSpatialSelection: null,

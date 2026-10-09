@@ -170,3 +170,8 @@ modified polymers, independently curated homolog correspondence, downstream
 functional-site quality, and calibration of any structural confidence policy.
 Focused utility tests and these smoke checks do not substitute for the
 repository's full tests and final CI on the complete PR head.
+
+Source PAE convention: row i is the alignment anchor and column j is the evaluated
+residue/token, as defined by the [AF3 output specification](https://github.com/google-deepmind/alphafold3/blob/main/docs/output.md#metrics-in-confidences-json).
+The prior Python comment reversed this description; its correction does not
+transpose matrices or change numeric outputs.

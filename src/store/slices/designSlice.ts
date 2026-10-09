@@ -247,6 +247,8 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         || verified.source_sha256 !== priorSpatial.source_sha256
         || verified.reference_sha256 !== priorSpatial.reference_sha256
         || verified.candidate_sha256 !== priorSpatial.candidate_sha256
+        || JSON.stringify(verified.prediction_bundle) !== JSON.stringify(priorSpatial.prediction_bundle)
+        || (verified.prediction_bundle && JSON.stringify(verified.mapping) !== JSON.stringify(priorSpatial.mapping))
         || verified.selection_policy !== priorSpatial.selection_policy
         || verified.budget_mode !== priorSpatial.budget_mode
         || verified.site_cap !== priorSpatial.site_cap

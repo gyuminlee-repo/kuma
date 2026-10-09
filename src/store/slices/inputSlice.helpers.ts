@@ -49,6 +49,7 @@ export interface EvolveproLoadConfig {
   strictSpatialEnabled?: boolean;
   strictSpatialBudgetMode?: StrictSpatialBudgetMode;
   strictSpatialSiteCap?: number | null;
+  predictionBundle?: { path: string; modelId: string; chainId: string; sha256: string };
   /**
    * Cumulative already-explored variant IDs (internal notation, e.g. `F89W`)
    * for structural-diversity revealed-anchor maximin. Empty = no anchor
@@ -112,7 +113,13 @@ export function buildEvolveproLoadParams(config: EvolveproLoadConfig): Record<st
     // The opt-in method owns its full-pool eligibility and selection. Legacy
     // quotas, Pareto shortlists, anchors and kappa must not narrow its pool.
     return {
-      filepath, top_n: topN, ref_seq: refSeq, structure_accession: structureAccession,
+      filepath, top_n: topN, ref_seq: refSeq,
+      ...(config.predictionBundle ? {
+        prediction_bundle_path: config.predictionBundle.path,
+        prediction_model_id: config.predictionBundle.modelId,
+        prediction_chain_id: config.predictionBundle.chainId,
+        prediction_bundle_sha256: config.predictionBundle.sha256,
+      } : { structure_accession: structureAccession }),
       score_order: evolveproScoreOrder, strict_spatial: true, structural_diversity: true,
       strict_spatial_budget: config.strictSpatialBudgetMode ?? "unique_sites",
       strict_spatial_site_cap: config.strictSpatialBudgetMode === "distinct_variants"

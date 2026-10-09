@@ -267,6 +267,18 @@ describe("buildEvolveproLoadStateUpdate: a missing prediction is not a fitness",
 });
 
 describe("strict spatial opt-in requests", () => {
+  it("pins local prediction identity and hash without accession or legacy selection filters", () => {
+    const predictionBundle = { path: "/tmp/prediction.zip", modelId: "job_model_0.cif", chainId: "", sha256: "a".repeat(64) };
+    const params = buildEvolveproLoadParams(makeConfig({ structuralDiversityEnabled: true, strictSpatialEnabled: true,
+      structureAccession: "P12345", predictionBundle, positionDiversityEnabled: true, paretoDiversityEnabled: true }));
+    expect(params).toMatchObject({ prediction_bundle_path: predictionBundle.path, prediction_model_id: predictionBundle.modelId,
+      prediction_chain_id: "", prediction_bundle_sha256: predictionBundle.sha256 });
+    for (const field of ["structure_accession", "max_per_position", "pareto_diversity", "prediction_bundle_model_id"]) {
+      expect(params).not.toHaveProperty(field);
+    }
+    const legacy = buildEvolveproLoadParams(makeConfig({ predictionBundle }));
+    expect(legacy).not.toHaveProperty("prediction_bundle_path");
+  });
   it("sends a full-pool request without legacy weighting or narrowing", () => {
     const params = buildEvolveproLoadParams(makeConfig({
       structuralDiversityEnabled: true, strictSpatialEnabled: true,

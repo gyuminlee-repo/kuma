@@ -13,7 +13,12 @@ export function strictSpatialContextKey(state: AppState): string {
   return JSON.stringify([
     state.evolveproCsvPath, state.evolveproVariantColumn, state.evolveproScoreColumn,
     state.evolveproScoreOrder, state.evolveproSheetName,
-    state.structureAccession || state.uniprotAccession, gene?.translation ?? "", state.maxPrimers,
+    state.predictionBundleRevision,
+    state.strictStructureSource === "prediction_bundle"
+      ? ["prediction_bundle", state.predictionBundlePath, state.predictionBundleInventory?.bundle_sha256,
+        state.predictionBundleModelId, state.predictionBundleChainId]
+      : ["accession", state.structureAccession || state.uniprotAccession],
+    gene?.translation ?? "", state.maxPrimers,
     state.strictSpatialBudgetMode, state.strictSpatialSiteCap,
   ]);
 }
@@ -31,6 +36,11 @@ export function currentStrictSpatialResult(state: AppState): StrictSpatialResult
     || selection.result.budget_mode !== state.strictSpatialBudgetMode
     || selection.result.site_cap !== (state.strictSpatialBudgetMode === "distinct_variants" ? state.strictSpatialSiteCap : null)
     || !sameVariantIds(selection.result.selected_variants, state.evolveproSelectedVariants)) return null;
+  const imported = selection.result.prediction_bundle;
+  if (state.strictStructureSource === "prediction_bundle"
+    ? !imported || imported.bundle_sha256 !== state.predictionBundleInventory?.bundle_sha256
+      || imported.model_id !== state.predictionBundleModelId || imported.chain_id !== state.predictionBundleChainId
+    : Boolean(imported)) return null;
   return selection.result;
 }
 

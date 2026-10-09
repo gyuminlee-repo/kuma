@@ -314,7 +314,7 @@ class LocalConfidence:
 
 @dataclass(frozen=True)
 class PairwiseConfidence:
-    # PAE[i][j]: error at polymer residue i+1 when aligned on residue j+1, in A.
+    # PAE[i][j]: error at polymer residue j+1 using residue i+1 as alignment anchor, in A.
     values: tuple[tuple[float | None, ...], ...]
     provenance: ConfidenceProvenance
 
