@@ -86,6 +86,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         structuralDiversityEnabled,
         structuralKappa,
         strictSpatialEnabled,
+        strictSpatialBudgetMode,
+        strictSpatialSiteCap,
       } = get();
       const effectiveTopN = topNOverride ?? maxPrimers;
       const selectionDomains = resolveSelectionDomains(refDomains);
@@ -156,6 +158,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           structuralDiversityEnabled,
           structuralKappa,
           strictSpatialEnabled,
+          strictSpatialBudgetMode,
+          strictSpatialSiteCap,
           anchorVariants,
         });
       const strictMode = usePipeline && structuralDiversityEnabled && strictSpatialEnabled;
@@ -176,7 +180,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         || !sameVariantIds(result.strict_spatial.selected_variants, result.variants)
         || result.strict_spatial.source_accession !== String(params.structure_accession).trim().toUpperCase()
         || result.strict_spatial.score_order !== evolveproScoreOrder
+        || result.strict_spatial.budget_mode !== params.strict_spatial_budget
+        || result.strict_spatial.site_cap !== params.strict_spatial_site_cap
         || result.strict_spatial.requested_count !== effectiveTopN
+        || result.selected_count !== effectiveTopN
         || result.variants.length !== effectiveTopN
         || result.y_preds.length !== result.variants.length)) {
         throw new Error(i18next.t("strictSpatial.invalidResponse"));

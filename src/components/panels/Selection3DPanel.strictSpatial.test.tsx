@@ -1,13 +1,13 @@
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ addModel: vi.fn(), addStyle: vi.fn(), setStyle: vi.fn() }));
+const mocks = vi.hoisted(() => ({ addModel: vi.fn(), addStyle: vi.fn(), setStyle: vi.fn(), setHoverable: vi.fn(), addLabel: vi.fn() }));
 vi.mock("3dmol", () => ({ createViewer: () => ({
   addModel: mocks.addModel, setStyle: mocks.setStyle, addStyle: mocks.addStyle,
-  setHoverable: vi.fn(), spin: vi.fn(), render: vi.fn(), setBackgroundColor: vi.fn(), clear: vi.fn(),
+  setHoverable: mocks.setHoverable, addLabel: mocks.addLabel, spin: vi.fn(), render: vi.fn(), setBackgroundColor: vi.fn(), clear: vi.fn(),
 }), SurfaceType: { VDW: 1 } }));
 vi.mock("@/lib/ipc-kuro", () => ({ sendRequest: vi.fn(), setProgressHandler: vi.fn(), cancelAndRespawn: vi.fn() }));
 import { useAppStore } from "@/store/appStore";
-import { strictSpatialFixture } from "@/test-utils/strictSpatialFixture";
+import { distinctSpatial95Fixture, strictSpatialFixture } from "@/test-utils/strictSpatialFixture";
 import { strictSpatialContextKey } from "@/lib/strictSpatial";
 import { Selection3DPanel } from "./Selection3DPanel";
 
@@ -15,6 +15,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   useAppStore.setState({
     strictSpatialEnabled: true, structuralDiversityEnabled: true,
+    strictSpatialBudgetMode: "unique_sites", strictSpatialSiteCap: null,
     evolveproMode: "pipeline", mutationInputMode: "evolvepro", maxPrimers: 2,
     structureAccession: "P12345", uniprotAccession: "P12345", selectedGene: "0",
     seqInfo: { header: "fixture", seq_length: 15, genes: [{ gene: "fixture", product: "fixture", cds_start: 0, cds_end: 15, aa_length: 5, translation: "MAAAA" }] },
@@ -33,6 +34,24 @@ beforeEach(() => {
 });
 
 describe("verified strict spatial viewer", () => {
+  it("keeps all 95 variant rows across five sites and lists repeated substitutions on hover", async () => {
+    const report = distinctSpatial95Fixture();
+    useAppStore.setState({ maxPrimers: 95, strictSpatialBudgetMode: "distinct_variants",
+      evolveproSelectedVariants: report.selected_variants, yPredMap: Object.fromEntries(report.selected_variants.map((variant, i) => [variant, 95 - i])) });
+    useAppStore.setState({ strictSpatialSelection: { result: report, contextKey: strictSpatialContextKey(useAppStore.getState()) } });
+    render(<Selection3DPanel defaultOpen />);
+    const rows = await screen.findAllByTestId("position-row");
+    expect(rows).toHaveLength(95);
+    expect(screen.getByTestId("strict-selection-counts")).toHaveTextContent("95 selected variants across 5 unique sites");
+    expect(rows.map((row) => within(row).getAllByRole("cell")[0].textContent)).toEqual(report.selected_variants);
+    expect(new Set(rows.map((row) => within(row).getAllByRole("cell")[1].textContent)).size).toBe(5);
+    const hover = mocks.setHoverable.mock.calls.at(-1)?.[2];
+    expect(hover).toBeTypeOf("function");
+    act(() => hover({ resi: 12, chain: "A", resn: "ALA" }));
+    const hoverLabel = mocks.addLabel.mock.calls.at(-1)?.[0];
+    for (const variant of report.selected_variants.slice(0, 19)) expect(hoverLabel).toContain(variant);
+  });
+
   it("draws the certificate PDB and selected IDs using its mapping", async () => {
     // The certificate, not independently parsed/ranked positions, owns mapping.
     useAppStore.setState({ evolveproRankedCandidates: [{ variant: "A2G", aa_position: 999, y_pred: 2 }] });

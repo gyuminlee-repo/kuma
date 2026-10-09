@@ -4058,8 +4058,8 @@
     }
   },
   "strictSpatial": {
-    "toggle": "严格单个位点空间选择（仅限当前会话）",
-    "description": "使用精确映射的 AlphaFold Cα 坐标及全部符合条件的单个位点变体。每个选定位点仅出现一次。位置数量上限、结构域分配与排除、帕累托排序、kappa、前几轮的锚定位点以及引物设计失败时的自动替换均不启用。功能注释仅用于解释；缺少注释并不能证明该区域是连接区或没有功能。",
+    "toggle": "严格空间选择（仅限当前会话）",
+    "description": "仅从提供的候选文件中选择，不添加新变体。从M个符合条件的变体中选取N个时，M>N可能改变按分数排名的Top-N集合。M=N全部选取时集合不变，无法改善空间分散程度。符合条件的数量是应用每个位点上限之前的数量。 使用精确映射的 AlphaFold Cα 坐标及全部符合条件的单个位点变体。原有的位置数量上限、结构域分配与排除、帕累托排序、kappa、前几轮的锚定位点以及引物设计失败时的自动替换均不启用。功能注释仅用于解释；缺少注释并不能证明该区域是连接区或没有功能。",
     "pending": "请加载或重新选择候选项，以验证结构及可用位点。",
     "reselect": "重新选择并验证",
     "summary": "从 {{eligible}} 个符合条件的位点中选出 {{selected}} 个；严格选择阶段排除 {{excluded}} 项。",
@@ -4092,6 +4092,17 @@
     "kappaTitle": "结构多样性 kappa（0 = 探索，1 = 利用）",
     "kappaDescription": "根据 Cα 质心之间的三维距离选择变体。kappa=0 时优先考虑空间分离；kappa=1 时优先采用已配置的评分排序。",
     "uploadCleared": "此上传结构仅供查看。由于其残基映射尚未验证，已清除先前的选择结果和注释叠加层。",
-    "sourceCoverage": "来源数据 {{source}} 行；已解析变体 {{parsed}} 个。解析时遗漏：{{parsing}}；因起始位置遗漏：{{start}}；因重复变体遗漏：{{duplicates}}。"
+    "sourceCoverage": "来源数据 {{source}} 行；已解析变体 {{parsed}} 个。解析时遗漏：{{parsing}}；因起始位置遗漏：{{start}}；因重复变体遗漏：{{duplicates}}。",
+    "budgetLabel": "选择数量依据",
+    "uniqueSites": "每个位点一个变体（默认）",
+    "distinctVariants": "不同变体",
+    "distinctDescription": "N表示不同变体的数量。同一位点的不同替换仍可入选。所有符合条件的位点均已覆盖后，将根据分数及确定性的同分排序选择额外变体。",
+    "siteCapLabel": "每个位点的最大变体数",
+    "siteCapHint": "可选的正整数。留空表示不限制每个位点的变体数。",
+    "siteCapInvalid": "请输入正整数，或留空以不设限制。",
+    "selectedCounts": "已选择{{variants}}个变体，分布于{{sites}}个不同位点。",
+    "eligibleCounts": "{{sites}}个不同位点共有{{variants}}个符合条件的变体。",
+    "budgetEvidence": "数量依据：{{budget}}；每个位点上限：{{cap}}",
+    "unlimited": "无限制"
   }
 }

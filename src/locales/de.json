@@ -4058,8 +4058,8 @@
     }
   },
   "strictSpatial": {
-    "toggle": "Strikte räumliche Auswahl einzelner Positionen (nur für diese Sitzung)",
-    "description": "Verwendet exakt zugeordnete AlphaFold-Cα-Koordinaten und alle zulässigen Einzelpositionsvarianten. Jede ausgewählte Position kommt einmal vor. Positionslimits, Domänenzuweisung und -ausschlüsse, Pareto-Rangfolge, Kappa, Anker aus früheren Runden und automatische Ersetzung bei fehlgeschlagenem Primerdesign sind deaktiviert. Funktionelle Annotationen dienen der Erläuterung; fehlende Annotationen belegen weder einen Linker noch fehlende Funktion.",
+    "toggle": "Strikte räumliche Auswahl (nur für diese Sitzung)",
+    "description": "Wählt nur aus der bereitgestellten Kandidatendatei und fügt keine neuen Varianten hinzu. Bei M zulässigen Varianten und N Auswahlen kann M>N die nach Score besten N Varianten verändern. Werden alle M=N Varianten gewählt, bleibt die Menge gleich und die räumliche Streuung kann sich nicht verbessern. Zulässige Varianten werden vor Anwendung der Positionslimits gezählt. Verwendet exakt zugeordnete AlphaFold-Cα-Koordinaten und alle zulässigen Einzelpositionsvarianten. Bisherige Positionslimits, Domänenzuweisung und -ausschlüsse, Pareto-Rangfolge, Kappa, Anker aus früheren Runden und automatische Ersetzung bei fehlgeschlagenem Primerdesign sind deaktiviert. Funktionelle Annotationen dienen der Erläuterung; fehlende Annotationen belegen weder einen Linker noch fehlende Funktion.",
     "pending": "Laden Sie Kandidaten oder wählen Sie sie erneut aus, um die Struktur und die verfügbaren Positionen zu prüfen.",
     "reselect": "Erneut auswählen und prüfen",
     "summary": "{{selected}} von {{eligible}} zulässigen Positionen ausgewählt; {{excluded}} Ausschlüsse in der strikten Auswahlstufe.",
@@ -4092,6 +4092,17 @@
     "kappaTitle": "Kappa für strukturelle Diversität (0 = erkunden, 1 = ausschöpfen)",
     "kappaDescription": "Wählt Varianten anhand des 3D-Abstands zwischen Cα-Schwerpunkten aus. Kappa=0 priorisiert räumliche Trennung; Kappa=1 priorisiert die konfigurierte Rangfolge nach Bewertung.",
     "uploadCleared": "Diese hochgeladene Struktur dient nur der Ansicht. Die vorherige Auswahl und die Annotationseinblendungen werden gelöscht, da die Zuordnung ihrer Reste nicht geprüft ist.",
-    "sourceCoverage": "{{source}} Quellzeilen; {{parsed}} eingelesene Varianten. Beim Einlesen ausgelassen: {{parsing}}; wegen der Startposition ausgelassen: {{start}}; doppelte Varianten ausgelassen: {{duplicates}}."
+    "sourceCoverage": "{{source}} Quellzeilen; {{parsed}} eingelesene Varianten. Beim Einlesen ausgelassen: {{parsing}}; wegen der Startposition ausgelassen: {{start}}; doppelte Varianten ausgelassen: {{duplicates}}.",
+    "budgetLabel": "Auswahlbudget",
+    "uniqueSites": "Eine Variante pro Position (Standard)",
+    "distinctVariants": "Verschiedene Varianten",
+    "distinctDescription": "N zählt verschiedene Varianten. Unterschiedliche Substitutionen an derselben Position bleiben zulässig. Sobald alle zulässigen Positionen vertreten sind, werden weitere Varianten nach Score und einer deterministischen Reihenfolge bei Gleichstand gewählt.",
+    "siteCapLabel": "Maximale Varianten pro Position",
+    "siteCapHint": "Optionale positive ganze Zahl. Leer lassen, um keine Begrenzung pro Position festzulegen.",
+    "siteCapInvalid": "Eine positive ganze Zahl eingeben oder für keine Begrenzung leer lassen.",
+    "selectedCounts": "{{variants}} ausgewählte Varianten an {{sites}} verschiedenen Positionen.",
+    "eligibleCounts": "{{variants}} zulässige Varianten an {{sites}} verschiedenen Positionen.",
+    "budgetEvidence": "Budget: {{budget}}; Limit pro Position: {{cap}}",
+    "unlimited": "Unbegrenzt"
   }
 }

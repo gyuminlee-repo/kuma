@@ -2858,13 +2858,15 @@ describe("useAutosaveHydration: 복원되는 결과 그룹", () => {
 describe("strict spatial session isolation on restore", () => {
   it("does not restore a geometry certificate or silently opt a restored workspace in", async () => {
     useAppStore.getState().resetAll();
-    useAppStore.setState({ strictSpatialEnabled: true,
+    useAppStore.setState({ strictSpatialEnabled: true, strictSpatialBudgetMode: "distinct_variants", strictSpatialSiteCap: 19,
       strictSpatialSelection: { result: strictSpatialFixture(), contextKey: "previous session" },
       strictSpatialError: "previous failure" });
     const snapshot = buildKuroSnapshot(useAppStore.getState());
     expect(snapshot.diversity).not.toHaveProperty("strict_spatial_enabled");
     await applyKuroSnapshot(snapshot as unknown as AutosaveSnapshot);
     expect(useAppStore.getState().strictSpatialEnabled).toBe(false);
+    expect(useAppStore.getState().strictSpatialBudgetMode).toBe("unique_sites");
+    expect(useAppStore.getState().strictSpatialSiteCap).toBeNull();
     expect(useAppStore.getState().strictSpatialSelection).toBeNull();
     expect(useAppStore.getState().strictSpatialError).toBeNull();
   });

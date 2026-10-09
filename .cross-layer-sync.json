@@ -1523,10 +1523,22 @@
         "src/store/slices/inputSlice.helpers.ts",
         "src/store/slices/inputSlice.ts",
         "src/store/slices/designSlice.ts",
-        "src/components/panels/Selection3DPanel.tsx"
+        "src/components/panels/Selection3DPanel.tsx",
+        "src/components/panels/InputPanel/StrictSpatialSection.tsx",
+        "tests/test_strict_variant_budget.py"
       ],
       "note": "Strict opt-in source/reference/candidate certificate and exact selection-to-design identity contract. Functional annotation is explanation only.",
       "severity": "blocking"
+    },
+    {
+      "id": "experimental-residue-correspondence",
+      "files": [
+        "kuma_core/kuro/residue_mapping.py",
+        "tests/test_residue_mapping.py",
+        "docs/audit/residue-mapping-contract.md"
+      ],
+      "note": "Offline polymer-to-observed residue identity, optional homolog/SIFTS evidence and confidence provenance. Not an application mapping certificate.",
+      "severity": "warning"
     }
   ]
 }

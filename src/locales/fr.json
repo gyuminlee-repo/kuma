@@ -4058,8 +4058,8 @@
     }
   },
   "strictSpatial": {
-    "toggle": "Sélection spatiale stricte de sites individuels (session en cours uniquement)",
-    "description": "Utilise des coordonnées Cα AlphaFold mises en correspondance exacte et tous les variants admissibles à site unique. Chaque site sélectionné apparaît une seule fois. Les limites par position, l’allocation et les exclusions par domaine, le classement de Pareto, kappa, les points d’ancrage des cycles précédents et le remplacement automatique en cas d’échec de conception des amorces sont désactivés. Les annotations fonctionnelles sont explicatives ; leur absence ne prouve ni un segment de liaison (linker) ni une absence de fonction.",
+    "toggle": "Sélection spatiale stricte (session en cours uniquement)",
+    "description": "Sélectionne uniquement dans le fichier de candidats fourni, sans ajouter de nouveaux variants. Avec M variants admissibles et N choix, M>N peut modifier l’ensemble des N meilleurs selon le score. Sélectionner tous les variants lorsque M=N conserve le même ensemble et ne peut pas améliorer la dispersion spatiale. Les effectifs admissibles sont comptés avant les limites par site. Utilise des coordonnées Cα AlphaFold mises en correspondance exacte et tous les variants admissibles à site unique. Les anciennes limites par position, l’allocation et les exclusions par domaine, le classement de Pareto, kappa, les points d’ancrage des cycles précédents et le remplacement automatique en cas d’échec de conception des amorces sont désactivés. Les annotations fonctionnelles sont explicatives ; leur absence ne prouve ni un segment de liaison (linker) ni une absence de fonction.",
     "pending": "Chargez ou sélectionnez à nouveau les candidats pour vérifier la structure et les sites disponibles.",
     "reselect": "Sélectionner à nouveau et vérifier",
     "summary": "{{selected}} sites sélectionnés parmi {{eligible}} sites admissibles ; {{excluded}} exclusions à l’étape stricte.",
@@ -4092,6 +4092,17 @@
     "kappaTitle": "Kappa de diversité structurale (0 = explorer, 1 = exploiter)",
     "kappaDescription": "Sélectionne les variants selon la distance entre centroïdes Cα en 3D. kappa=0 privilégie la séparation spatiale ; kappa=1 privilégie le classement par score configuré.",
     "uploadCleared": "Cette structure importée sert uniquement à la visualisation. La sélection précédente et les superpositions d’annotations sont effacées car la correspondance de ses résidus n’est pas vérifiée.",
-    "sourceCoverage": "{{source}} lignes sources ; {{parsed}} variants interprétés. Omissions lors de l’interprétation : {{parsing}} ; dues à la position initiale : {{start}} ; dues aux variants en double : {{duplicates}}."
+    "sourceCoverage": "{{source}} lignes sources ; {{parsed}} variants interprétés. Omissions lors de l’interprétation : {{parsing}} ; dues à la position initiale : {{start}} ; dues aux variants en double : {{duplicates}}.",
+    "budgetLabel": "Budget de sélection",
+    "uniqueSites": "Un variant par site (par défaut)",
+    "distinctVariants": "Variants distincts",
+    "distinctDescription": "N compte les variants distincts. Les différentes substitutions au même site restent admissibles. Une fois tous les sites admissibles représentés, les variants supplémentaires sont choisis selon le score et un ordre déterministe en cas d’égalité.",
+    "siteCapLabel": "Nombre maximal de variants par site",
+    "siteCapHint": "Entier positif facultatif. Laisser vide pour ne pas limiter le nombre par site.",
+    "siteCapInvalid": "Saisir un entier positif ou laisser vide pour ne pas fixer de limite.",
+    "selectedCounts": "{{variants}} variants sélectionnés sur {{sites}} sites distincts.",
+    "eligibleCounts": "{{variants}} variants admissibles sur {{sites}} sites distincts.",
+    "budgetEvidence": "Budget : {{budget}} ; limite par site : {{cap}}",
+    "unlimited": "Illimité"
   }
 }

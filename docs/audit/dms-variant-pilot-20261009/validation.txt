@@ -1,0 +1,12 @@
+2026-10-09 fresh bounded DMS pilot
+Preparation exit_code=0
+12 focused tests passed, exit_code=0
+Focused basedpyright evaluator/downloader/tests: 0 errors, 0 warnings, exit_code=0
+Frozen two-assay outcome evaluation exit_code=0
+Independent reviewer replay: all non-timing outputs/hash values identical
+Independent reviewer full label-reversal/removal replay: selected IDs/orders unchanged; unknown observed counts zero
+No full application-suite claim from this pilot.
+GFP_AEQVI_Sarkisyan_2016: production distinct-variant adapter matches all95 ordered FPS IDs; selected sites=95
+RL40A_YEAST_Roscoe_2013: production distinct-variant adapter matches all95 ordered FPS IDs; selected sites=75
+Final downloader live range/ETag/CRC/member SHA256 check passed; transferred933622bytes.
+Final focused checks:12tests pass; basedpyright0errors/0warnings; diffcheck pass.

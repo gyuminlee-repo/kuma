@@ -961,6 +961,8 @@ class LoadEvolveproParams(BaseModel):
     # revealed-anchor + 3D Ca-centroid maximin + kappa fitness blend. Off by default.
     structural_diversity: bool = False
     strict_spatial: bool = False
+    strict_spatial_budget: Literal["unique_sites", "distinct_variants"] = "unique_sites"
+    strict_spatial_site_cap: Optional[int] = Field(default=None, ge=1, strict=True)
     structural_kappa: float = Field(default=0.0, ge=0.0, le=1.0)
     anchor_variants: list[str] = Field(default_factory=list)
 

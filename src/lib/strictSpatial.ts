@@ -14,6 +14,7 @@ export function strictSpatialContextKey(state: AppState): string {
     state.evolveproCsvPath, state.evolveproVariantColumn, state.evolveproScoreColumn,
     state.evolveproScoreOrder, state.evolveproSheetName,
     state.structureAccession || state.uniprotAccession, gene?.translation ?? "", state.maxPrimers,
+    state.strictSpatialBudgetMode, state.strictSpatialSiteCap,
   ]);
 }
 
@@ -27,6 +28,8 @@ export function currentStrictSpatialResult(state: AppState): StrictSpatialResult
   const selection = state.strictSpatialSelection;
   if (!isStrictSpatialMode(state) || !selection
     || selection.contextKey !== strictSpatialContextKey(state)
+    || selection.result.budget_mode !== state.strictSpatialBudgetMode
+    || selection.result.site_cap !== (state.strictSpatialBudgetMode === "distinct_variants" ? state.strictSpatialSiteCap : null)
     || !sameVariantIds(selection.result.selected_variants, state.evolveproSelectedVariants)) return null;
   return selection.result;
 }

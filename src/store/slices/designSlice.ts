@@ -214,7 +214,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       selectedGene: selectedGene ?? "",
       poolVariants: state.poolVariants,
       evolveproSelectedVariants: state.evolveproSelectedVariants,
-      evolveproRankedCandidates: state.evolveproRankedCandidates,
+      evolveproRankedCandidates: strictDesign ? [] : state.evolveproRankedCandidates,
     });
     const { sendCount, isEvolveMode } = initialPrep;
 
@@ -248,6 +248,8 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         || verified.reference_sha256 !== priorSpatial.reference_sha256
         || verified.candidate_sha256 !== priorSpatial.candidate_sha256
         || verified.selection_policy !== priorSpatial.selection_policy
+        || verified.budget_mode !== priorSpatial.budget_mode
+        || verified.site_cap !== priorSpatial.site_cap
         || verified.requested_count !== priorSpatial.requested_count
         || verified.score_order !== priorSpatial.score_order
         || verified.score_available !== priorSpatial.score_available) {
@@ -264,7 +266,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       selectedGene: selectedGene ?? "",
       poolVariants: get().poolVariants,
       evolveproSelectedVariants: get().evolveproSelectedVariants,
-      evolveproRankedCandidates: get().evolveproRankedCandidates,
+      evolveproRankedCandidates: strictDesign ? [] : get().evolveproRankedCandidates,
     });
     if (!prepared.limitedText.trim()) {
       set({ statusMessage: "No valid EVOLVEpro variants loaded" });

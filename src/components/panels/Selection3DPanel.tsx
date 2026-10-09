@@ -1072,7 +1072,11 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
       const yPreds = joinResult.rows.map((r) => r.yPred);
       const minY = Math.min(...yPreds);
       const maxY = Math.max(...yPreds);
+      const highlighted = new Set<string>();
       for (const r of joinResult.rows) {
+        const coordinateKey = JSON.stringify([r.chainId, r.accPosition, r.insertionCode]);
+        if (strictMode && highlighted.has(coordinateKey)) continue;
+        highlighted.add(coordinateKey);
         const color = strictMode && strictResult?.score_available === false
           ? "#808080" : yPredColor(normalizeT(r.yPred, minY, maxY));
         viewer.addStyle(
@@ -1113,9 +1117,12 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
         true,
         (atom: AtomSpec) => {
           const resi = atom.resi;
-          const row = joinResult?.rows.find((r) => r.accPosition === resi);
+          const residueRows = joinResult?.rows.filter((r) => r.accPosition === resi) ?? [];
+          const matchingRows = strictMode
+            ? residueRows.filter((r) => r.chainId === undefined || r.chainId === atom.chain)
+            : residueRows.slice(0, 1);
           const parts: string[] = [`${atom.resn ?? ""}${resi ?? ""}`];
-          if (row) parts.push(strictMode && strictResult?.score_available === false
+          for (const row of matchingRows) parts.push(strictMode && strictResult?.score_available === false
             ? t("strictSpatial.scoreMissingHover", { variant: row.variant }) : `${row.variant} y=${row.yPred.toFixed(3)}`);
           if (resi !== undefined && activeSiteSet.has(resi)) parts.push(t("selection3d.activeSite"));
           if (resi !== undefined && bindingSet.has(resi)) parts.push(t("selection3d.bindingSite"));
@@ -1303,6 +1310,10 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
           </div>}
           {strictMode && !strictResult && <p className="px-4 py-2 text-xs" role="status">
             {t("strictSpatial.viewerPending")}
+          </p>}
+          {strictMode && strictResult && <p className="px-4 py-2 text-xs" data-testid="strict-selection-counts">
+            {t("strictSpatial.selectedCounts", { variants: strictResult.selected_variant_count,
+              sites: strictResult.selected_site_count })}
           </p>}
 
           {/* Dropped-positions warning */}

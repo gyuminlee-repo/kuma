@@ -70,7 +70,7 @@ def exact_pdb_context(pdb_text: str, reference: str, accession: str) -> dict:
 
 def select_single_sites(rows: list[tuple[str, float]], reference: str, context: dict,
                         count: int, excluded_ranges: list[dict] | None = None) -> tuple[list[tuple[str, float]], dict]:
-    """One representative/site, configured rank direction, then existing FPS.
+    """Explicit site or variant budget, configured rank direction, existing FPS.
 
     No functional annotation is an input. Count is explicit and never silently
     reduced. Unsupported multi-site rows reject this opt-in path as a whole.
@@ -79,13 +79,33 @@ def select_single_sites(rows: list[tuple[str, float]], reference: str, context: 
 
     if type(count) is not int or count <= 0:
         raise ValueError("Strict spatial selection requires a positive explicit count")
+    budget = context.get("budget_mode", "unique_sites")
+    cap = context.get("site_cap")
+    if budget not in ("unique_sites", "distinct_variants"):
+        raise ValueError("Unknown strict spatial budget mode")
+    if cap is not None and (type(cap) is not int or cap < 1):
+        raise ValueError("Site cap must be a positive integer or null")
+    if budget == "unique_sites" and cap is not None:
+        raise ValueError("Explicit site cap requires distinct-variant budget mode")
     reference = reference.strip().rstrip("*")
-    coordinate_map = {m["reference_position"]: m["coordinate"] for m in context["mapping"]}
-    representatives: dict[int, tuple[str, float]] = {}
+    coordinate_map = {}
+    for m in context["mapping"]:
+        position, coordinate = m["reference_position"], m["coordinate"]
+        if type(position) is not int or not 1 <= position <= len(reference) or position in coordinate_map:
+            raise ValueError("Mapping requires unique valid reference positions")
+        if coordinate is not None:
+            if not isinstance(coordinate, (tuple, list)) or len(coordinate) != 3 or any(
+                isinstance(x, bool) or not isinstance(x, (int, float)) for x in coordinate
+            ):
+                raise ValueError("Mapping coordinates must contain three numeric components")
+            if not all(math.isfinite(x) for x in coordinate):
+                coordinate = None
+        coordinate_map[position] = coordinate
+    eligible: dict[int, list[tuple[str, float]]] = {}
     excluded: list[dict] = []
     seen: dict[str, float] = {}
     for variant, score in rows:
-        match = re.fullmatch(r"([ACDEFGHIKLMNPQRSTVWY])(\d+)([ACDEFGHIKLMNPQRSTVWY])", variant)
+        match = re.fullmatch(r"([ACDEFGHIKLMNPQRSTVWY])([1-9]\d*)([ACDEFGHIKLMNPQRSTVWY])", variant)
         if not match:
             raise ValueError("Strict spatial selection supports single-site substitutions only")
         if variant in seen:
@@ -103,41 +123,61 @@ def select_single_sites(rows: list[tuple[str, float]], reference: str, context: 
             reason = "nonfinite_score"
         elif any(r["start"] <= position <= r["end"] for r in excluded_ranges or []):
             reason = "explicit_exclusion"
-        elif position not in coordinate_map:
+        elif coordinate_map.get(position) is None:
             reason = "missing_or_nonfinite_coordinate"
         if reason:
             excluded.append({"variant": variant, "reason": reason})
             continue
-        previous = representatives.get(position)
-        if previous is None or (-score, variant) < (-previous[1], previous[0]):
-            representatives[position] = (variant, score)
-    if count > len(representatives):
-        raise ValueError(f"Strict spatial count {count} exceeds {len(representatives)} eligible unique sites")
-    positions = sorted(representatives)
+        eligible.setdefault(position, []).append((variant, score))
+    positions = sorted(eligible)
+    limit = 1 if budget == "unique_sites" else cap
+    candidates: list[tuple[str, float, int]] = []
+    for position in positions:
+        ranked = sorted(eligible[position], key=lambda row: (-row[1], row[0]))
+        candidates.extend((v, score, position) for v, score in ranked[:limit])
+    if count > len(candidates):
+        unit = "eligible unique sites" if budget == "unique_sites" else "eligible variant capacity"
+        raise ValueError(f"Strict spatial count {count} exceeds {len(candidates)} {unit}")
     # Dense indices keep the existing selector's parser independent of sparse
     # reference numbering. The certificate retains actual reference identities.
-    encoded = {p: f"A{i}G" for i, p in enumerate(positions, 1)}
-    decoded = {encoded[p]: p for p in positions}
+    candidates.sort(key=lambda row: (-row[1], row[2], row[0]))
+    encoded = [(f"A{i}G", score) for i, (_, score, _) in enumerate(candidates, 1)]
+    decoded = {v: candidates[i] for i, (v, _) in enumerate(encoded)}
     known: list[tuple[float, float, float]] = [
-        (coordinate_map[p][0], coordinate_map[p][1], coordinate_map[p][2]) for p in positions
+        (coordinate_map[p][0], coordinate_map[p][1], coordinate_map[p][2]) for _, _, p in candidates
     ]
     coordinates: list[tuple[float, float, float] | None] = [None, *known]
     span = math.dist(tuple(min(c[a] for c in known) for a in range(3)),
                      tuple(max(c[a] for c in known) for a in range(3)))
     if not math.isfinite(span) or span > math.sqrt(sys.float_info.max / 4):
         raise ValueError("Coordinate span exceeds safe squared-distance arithmetic")
-    ordered = sorted(positions, key=lambda p: (-representatives[p][1], p))
     selected, _ = structural_diversity_select(
-        [(encoded[p], representatives[p][1]) for p in ordered], count,
+        encoded, count,
         ca_coords=coordinates, anchor_variants=(), kappa=0.,
     )
-    selected_positions = [decoded[v] for v, _ in selected]
-    result = [representatives[p] for p in selected_positions]
-    if len(result) != count or len(set(selected_positions)) != count:
+    selected_positions = [decoded[v][2] for v, _ in selected]
+    result = [(decoded[v][0], decoded[v][1]) for v, _ in selected]
+    if len(result) != count or len({v for v, _ in result}) != count:
         raise ValueError("Strict spatial selector returned incomparable cardinality")
+    selected_sites = sorted(set(selected_positions))
+    site_min = min((math.dist(coordinate_map[a], coordinate_map[b])
+                    for i, a in enumerate(selected_sites) for b in selected_sites[i + 1:]), default=None)
+    variant_min = 0. if len(selected_sites) < count else site_min
+    eligible_count = sum(map(len, eligible.values()))
+    capacity_reduction = eligible_count - len(candidates)
     report = {**context, "selected_variants": [v for v, _ in result],
+              "budget_mode": budget, "site_cap": cap,
+              "selection_policy": ("single-site-full-pool-fps-v1" if budget == "unique_sites"
+                                   else "distinct-variant-full-pool-fps-v1"),
               "selected_positions": selected_positions, "eligible_positions": positions,
               "eligible_site_count": len(positions), "requested_count": count,
+              "eligible_variant_count": eligible_count, "variant_capacity": len(candidates),
+              "selected_variant_count": count, "selected_site_count": len(selected_sites),
+              "site_multiplicities": [{"reference_position": p, "variant_count": selected_positions.count(p)}
+                                      for p in selected_sites],
+              "geometry_variant_min_pair_distance": variant_min,
+              "geometry_site_min_pair_distance": site_min,
               "excluded": excluded, "input_variant_count": len(rows),
-              "same_site_collapsed": len(set(seen)) - len(excluded) - len(positions)}
+              "same_site_collapsed": capacity_reduction if budget == "unique_sites" else 0,
+              "site_cap_excluded_count": capacity_reduction if budget == "distinct_variants" else 0}
     return result, report

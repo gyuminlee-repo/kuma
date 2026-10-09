@@ -31,6 +31,7 @@ import type {
   StructureAvailabilityResult,
   StructureResult,
   StructureModelCandidate,
+  StrictSpatialResult,
   LoadStructureFileResult,
   WorkspaceData,
   ContactEmailErrorCode,
@@ -544,30 +545,71 @@ function isEvolveproStepStats(value: unknown): boolean {
 }
 
 function isStrictSpatialResult(value: unknown): boolean {
-  const positiveInteger = (item: unknown) => isNumber(item) && Number.isInteger(item) && item > 0;
-  return isRecord(value) && value.schema_version === 1
+  const positiveInteger = (item: unknown): item is number => isNumber(item) && Number.isSafeInteger(item) && item > 0;
+  const count = (item: unknown) => isNumber(item) && Number.isSafeInteger(item) && item >= 0;
+  const distance = (item: unknown) => item === null || (isNumber(item) && item >= 0);
+  if (!(isRecord(value) && value.schema_version === 1
     && isString(value.source_accession) && isString(value.source_sha256)
     && isString(value.reference_sha256) && isString(value.candidate_sha256)
     && (value.score_order === "asc" || value.score_order === "desc")
     && isBoolean(value.score_available) && isString(value.pdb_text)
     && value.coordinate_frame === "reference"
-    && value.selection_policy === "single-site-full-pool-fps-v1"
+    && (value.budget_mode === "unique_sites" || value.budget_mode === "distinct_variants")
+    && value.selection_policy === (value.budget_mode === "unique_sites"
+      ? "single-site-full-pool-fps-v1" : "distinct-variant-full-pool-fps-v1")
+    && (value.site_cap === null || positiveInteger(value.site_cap))
+    && (value.budget_mode !== "unique_sites" || value.site_cap === null)
     && isStringArray(value.selected_variants)
     && isArrayOf(value.selected_positions, positiveInteger)
     && isArrayOf(value.eligible_positions, positiveInteger)
-    && isNumber(value.source_row_count) && isNumber(value.parsed_variant_count)
-    && isNumber(value.parsing_omitted_count) && isNumber(value.start_position_omitted_count)
-    && isNumber(value.duplicate_variant_omitted_count)
+    && count(value.source_row_count) && count(value.parsed_variant_count)
+    && count(value.parsing_omitted_count) && count(value.start_position_omitted_count)
+    && count(value.duplicate_variant_omitted_count)
     && positiveInteger(value.requested_count) && positiveInteger(value.eligible_site_count)
-    && value.requested_count === value.selected_variants.length
-    && value.selected_positions.length === value.selected_variants.length
-    && new Set(value.selected_variants).size === value.selected_variants.length
-    && new Set(value.selected_positions).size === value.selected_positions.length
+    && positiveInteger(value.selected_variant_count) && positiveInteger(value.selected_site_count)
+    && positiveInteger(value.eligible_variant_count)
+    && distance(value.geometry_variant_min_pair_distance) && distance(value.geometry_site_min_pair_distance)
+    && isArrayOf(value.site_multiplicities, (row) => isRecord(row)
+      && positiveInteger(row.reference_position) && positiveInteger(row.variant_count))
     && isArrayOf(value.excluded, (row) => isRecord(row) && isString(row.variant) && isString(row.reason))
     && isArrayOf(value.mapping, (row) => isRecord(row)
-      && positiveInteger(row.reference_position) && isNumber(row.structure_position)
+      && positiveInteger(row.reference_position) && positiveInteger(row.structure_position)
       && isString(row.chain_id) && isString(row.insertion_code)
-      && isNumberArray(row.coordinate) && row.coordinate.length === 3);
+      && isNumberArray(row.coordinate) && row.coordinate.length === 3))) return false;
+
+  // Array element predicates above check the full shape; keep the accounting
+  // checks explicit so repeated sites cannot silently replace distinct IDs.
+  const report = value as unknown as StrictSpatialResult;
+  const multiplicities = new Map<number, number>();
+  for (const position of report.selected_positions) {
+    multiplicities.set(position, (multiplicities.get(position) ?? 0) + 1);
+  }
+  const mapped = new Set(report.mapping.map((row) => row.reference_position));
+  const eligible = new Set(report.eligible_positions);
+  return report.requested_count === report.selected_variants.length
+    && report.selected_variant_count === report.selected_variants.length
+    && report.selected_positions.length === report.selected_variants.length
+    && new Set(report.selected_variants).size === report.selected_variants.length
+    && report.selected_site_count === multiplicities.size
+    && report.eligible_site_count === eligible.size
+    && eligible.size === report.eligible_positions.length
+    && report.eligible_variant_count >= report.selected_variant_count
+    && report.eligible_variant_count >= report.eligible_site_count
+    && mapped.size === report.mapping.length
+    && report.eligible_positions.every((position) => mapped.has(position))
+    && report.selected_variants.every((variant, index) => {
+      const match = /^([ACDEFGHIKLMNPQRSTVWY])([1-9]\d*)([ACDEFGHIKLMNPQRSTVWY])$/.exec(variant);
+      return match !== null && match[1] !== match[3]
+        && Number(match[2]) === report.selected_positions[index]
+        && eligible.has(report.selected_positions[index]);
+    })
+    && (report.budget_mode !== "unique_sites" || multiplicities.size === report.selected_variant_count)
+    && [...multiplicities.values()].every((size) => report.site_cap === null || size <= report.site_cap)
+    && report.site_multiplicities.length === multiplicities.size
+    && new Set(report.site_multiplicities.map((row) => row.reference_position)).size === multiplicities.size
+    && report.site_multiplicities.every((row) => multiplicities.get(row.reference_position) === row.variant_count)
+    && (report.geometry_variant_min_pair_distance === null) === (report.selected_variant_count < 2)
+    && (report.geometry_site_min_pair_distance === null) === (report.selected_site_count < 2);
 }
 
 function isEvolveproLoadResult(value: unknown): value is EvolveproLoadResult {

@@ -826,6 +826,8 @@ export interface LoadEvolveproParams {
   score_order?: "desc" | "asc";
   sheet_name?: string | null;
   strict_spatial?: boolean;
+  strict_spatial_budget?: "unique_sites" | "distinct_variants";
+  strict_spatial_site_cap?: number | null;
   structural_diversity?: boolean;
   structural_kappa?: number;
   structure_accession?: string | null;

@@ -400,6 +400,7 @@ export async function applyKuroSnapshot(
   // Strict selection certificates are session-only and cannot certify restored files.
   const patch: Partial<AppState> = {
     strictSpatialEnabled: false, strictSpatialSelection: null, strictSpatialError: null,
+    strictSpatialBudgetMode: "unique_sites", strictSpatialSiteCap: null,
   };
 
   // input

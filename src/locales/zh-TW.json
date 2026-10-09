@@ -4058,8 +4058,8 @@
     }
   },
   "strictSpatial": {
-    "toggle": "嚴格單一位點空間選擇（僅限目前工作階段）",
-    "description": "使用精確對應的 AlphaFold Cα 座標及全部符合條件的單一位點變異體。每個選定位點僅出現一次。位置數量上限、結構域分配與排除、Pareto 排序、kappa、前幾輪的錨定位點，以及引子設計失敗時的自動替換均不啟用。功能註釋僅用於解釋；缺少註釋並不能證明該區域是連接區或沒有功能。",
+    "toggle": "嚴格空間選擇（僅限目前工作階段）",
+    "description": "僅從提供的候選檔案中選擇，不新增變異體。從M個符合條件的變異體中選取N個時，M>N可能改變依分數排名的Top-N集合。M=N全部選取時集合不變，無法改善空間分散程度。符合條件的數量是套用每個位點上限之前的數量。 使用精確對應的 AlphaFold Cα 座標及全部符合條件的單一位點變異體。原有的位置數量上限、結構域分配與排除、Pareto 排序、kappa、前幾輪的錨定位點，以及引子設計失敗時的自動替換均不啟用。功能註釋僅用於解釋；缺少註釋並不能證明該區域是連接區或沒有功能。",
     "pending": "請載入或重新選擇候選項，以驗證結構及可用位點。",
     "reselect": "重新選擇並驗證",
     "summary": "從 {{eligible}} 個符合條件的位點中選出 {{selected}} 個；嚴格選擇階段排除 {{excluded}} 項。",
@@ -4092,6 +4092,17 @@
     "kappaTitle": "結構多樣性 kappa（0 = 探索，1 = 利用）",
     "kappaDescription": "根據 Cα 質心之間的三維距離選擇變異體。kappa=0 時優先考慮空間分離；kappa=1 時優先採用已設定的評分排序。",
     "uploadCleared": "此上傳結構僅供檢視。由於其殘基對應尚未驗證，已清除先前的選擇結果和註釋疊加層。",
-    "sourceCoverage": "來源資料 {{source}} 列；已解析變異體 {{parsed}} 個。解析時遺漏：{{parsing}}；因起始位置遺漏：{{start}}；因重複變異體遺漏：{{duplicates}}。"
+    "sourceCoverage": "來源資料 {{source}} 列；已解析變異體 {{parsed}} 個。解析時遺漏：{{parsing}}；因起始位置遺漏：{{start}}；因重複變異體遺漏：{{duplicates}}。",
+    "budgetLabel": "選擇數量依據",
+    "uniqueSites": "每個位點一個變異體（預設）",
+    "distinctVariants": "不同變異體",
+    "distinctDescription": "N表示不同變異體的數量。同一位點的不同替換仍可入選。所有符合條件的位點均已涵蓋後，將依分數及確定性的同分排序選擇額外變異體。",
+    "siteCapLabel": "每個位點的最大變異體數",
+    "siteCapHint": "選填的正整數。留空表示不限制每個位點的變異體數。",
+    "siteCapInvalid": "請輸入正整數，或留空以不設限制。",
+    "selectedCounts": "已選擇{{variants}}個變異體，分布於{{sites}}個不同位點。",
+    "eligibleCounts": "{{sites}}個不同位點共有{{variants}}個符合條件的變異體。",
+    "budgetEvidence": "數量依據：{{budget}}；每個位點上限：{{cap}}",
+    "unlimited": "無限制"
   }
 }

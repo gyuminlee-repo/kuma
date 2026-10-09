@@ -4058,8 +4058,8 @@
     }
   },
   "strictSpatial": {
-    "toggle": "Selección espacial estricta de sitios individuales (solo esta sesión)",
-    "description": "Utiliza coordenadas Cα de AlphaFold con correspondencia exacta y todo el conjunto de variantes elegibles de un solo sitio. Cada sitio seleccionado aparece una vez. Los límites por posición, la asignación y las exclusiones por dominio, la clasificación de Pareto, kappa, los anclajes de rondas anteriores y la sustitución automática si falla el diseño de cebadores están desactivados. Las anotaciones funcionales son explicativas; su ausencia no demuestra que una región sea un enlazador ni que carezca de función.",
+    "toggle": "Selección espacial estricta (solo esta sesión)",
+    "description": "Selecciona solo del archivo de candidatos proporcionado, sin añadir variantes nuevas. Con M variantes elegibles y N selecciones, M>N puede cambiar el conjunto de las N mejores por puntuación. Seleccionar todas cuando M=N conserva el mismo conjunto y no puede mejorar la dispersión espacial. Los recuentos elegibles son anteriores a los límites por sitio. Utiliza coordenadas Cα de AlphaFold con correspondencia exacta y todo el conjunto de variantes elegibles de un solo sitio. Los límites anteriores por posición, la asignación y las exclusiones por dominio, la clasificación de Pareto, kappa, los anclajes de rondas anteriores y la sustitución automática si falla el diseño de cebadores están desactivados. Las anotaciones funcionales son explicativas; su ausencia no demuestra que una región sea un enlazador ni que carezca de función.",
     "pending": "Cargue o vuelva a seleccionar candidatos para verificar la estructura y los sitios disponibles.",
     "reselect": "Volver a seleccionar y verificar",
     "summary": "{{selected}} seleccionados de {{eligible}} sitios elegibles; {{excluded}} exclusiones en la etapa estricta.",
@@ -4092,6 +4092,17 @@
     "kappaTitle": "Kappa de diversidad estructural (0 = explorar, 1 = aprovechar)",
     "kappaDescription": "Selecciona variantes usando la distancia entre centroides de Cα en 3D. kappa=0 prioriza la separación espacial; kappa=1 prioriza la clasificación por puntuación configurada.",
     "uploadCleared": "Esta estructura cargada es solo para visualización. Se borran la selección anterior y las superposiciones de anotaciones porque la correspondencia de sus residuos no está verificada.",
-    "sourceCoverage": "{{source}} filas de origen; {{parsed}} variantes interpretadas. Omisiones al interpretar: {{parsing}}; por posición inicial: {{start}}; por variantes duplicadas: {{duplicates}}."
+    "sourceCoverage": "{{source}} filas de origen; {{parsed}} variantes interpretadas. Omisiones al interpretar: {{parsing}}; por posición inicial: {{start}}; por variantes duplicadas: {{duplicates}}.",
+    "budgetLabel": "Criterio del número de selección",
+    "uniqueSites": "Una variante por sitio (predeterminado)",
+    "distinctVariants": "Variantes distintas",
+    "distinctDescription": "N cuenta variantes distintas. Las diferentes sustituciones en el mismo sitio siguen siendo elegibles. Una vez representados todos los sitios elegibles, se seleccionan variantes adicionales según la puntuación y un orden determinista en caso de empate.",
+    "siteCapLabel": "Número máximo de variantes por sitio",
+    "siteCapHint": "Entero positivo opcional. Dejar vacío para no establecer un límite por sitio.",
+    "siteCapInvalid": "Introduzca un entero positivo o deje vacío para no establecer un límite.",
+    "selectedCounts": "{{variants}} variantes seleccionadas en {{sites}} sitios distintos.",
+    "eligibleCounts": "{{variants}} variantes elegibles en {{sites}} sitios distintos.",
+    "budgetEvidence": "Criterio: {{budget}}; límite por sitio: {{cap}}",
+    "unlimited": "Sin límite"
   }
 }

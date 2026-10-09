@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { strictSpatialFixture } from "@/test-utils/strictSpatialFixture";
+import { distinctSpatial95Fixture, strictSpatialFixture } from "@/test-utils/strictSpatialFixture";
 import { getRpcResultValidator } from "./validators";
 
 describe("strict spatial response contract", () => {
@@ -18,5 +18,20 @@ describe("strict spatial response contract", () => {
     const value = { accession: "P12345", source: "uniprot", has_annotation: true, active_site_positions: [], binding_positions: [], features, annotation_status: "present", sequence_version: 2 };
     expect(getRpcResultValidator("fetch_active_site_residues")(value)).toBe(true);
     expect(value.features).toBe(features);
+  });
+  it("accepts 95 distinct variants at only five sites", () => {
+    const report = distinctSpatial95Fixture();
+    expect(valid({ variants: report.selected_variants, y_preds: Array<number>(95).fill(1),
+      selected_count: 95, total_count: 95, strict_spatial: report })).toBe(true);
+  });
+  it.each([
+    { budget_mode: "unique_sites", selection_policy: "single-site-full-pool-fps-v1" },
+    { selected_variant_count: 5 }, { selected_site_count: 95 }, { eligible_site_count: 95 },
+    { eligible_variant_count: 94 }, { site_cap: 18 }, { site_cap: 1.5 },
+    { selected_variants: Array<string>(95).fill("A2C") },
+    { site_multiplicities: [{ reference_position: 2, variant_count: 95 }] },
+    { selected_positions: Array<number>(95).fill(2) }, { mapping: [] },
+  ])("rejects inconsistent variant/site accounting: %j", (patch) => {
+    expect(valid({ ...result(), strict_spatial: { ...distinctSpatial95Fixture(), ...patch } })).toBe(false);
   });
 });

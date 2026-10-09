@@ -295,6 +295,8 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
         strict_context = exact_pdb_context(pdb_text, p.ref_seq, strict_accession)
         strict_context["candidate_sha256"] = hashlib.sha256(resolved.read_bytes()).hexdigest()
         strict_context["score_order"] = p.score_order
+        strict_context["budget_mode"] = p.strict_spatial_budget
+        strict_context["site_cap"] = p.strict_spatial_site_cap
 
     # Legacy exact-sequence guard with explicit reference-offset projection.
     # Strict mode validates the actual source PDB independently and never falls

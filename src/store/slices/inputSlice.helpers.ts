@@ -4,6 +4,7 @@ import type {
   DomainStat,
   EvolveproLoadResult,
   EvolveproStepStats,
+  StrictSpatialBudgetMode,
 } from "../../types/models";
 import type { Round } from "../../types/round";
 
@@ -46,6 +47,8 @@ export interface EvolveproLoadConfig {
   structuralDiversityEnabled: boolean;
   structuralKappa: number;
   strictSpatialEnabled?: boolean;
+  strictSpatialBudgetMode?: StrictSpatialBudgetMode;
+  strictSpatialSiteCap?: number | null;
   /**
    * Cumulative already-explored variant IDs (internal notation, e.g. `F89W`)
    * for structural-diversity revealed-anchor maximin. Empty = no anchor
@@ -111,6 +114,9 @@ export function buildEvolveproLoadParams(config: EvolveproLoadConfig): Record<st
     return {
       filepath, top_n: topN, ref_seq: refSeq, structure_accession: structureAccession,
       score_order: evolveproScoreOrder, strict_spatial: true, structural_diversity: true,
+      strict_spatial_budget: config.strictSpatialBudgetMode ?? "unique_sites",
+      strict_spatial_site_cap: config.strictSpatialBudgetMode === "distinct_variants"
+        ? config.strictSpatialSiteCap ?? null : null,
       ...(evolveproVariantColumn && { variant_column: evolveproVariantColumn }),
       ...(evolveproScoreColumn && { score_column: evolveproScoreColumn }),
       ...(evolveproSheetName && { sheet_name: evolveproSheetName }),

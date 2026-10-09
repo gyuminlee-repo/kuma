@@ -7,12 +7,12 @@ vi.mock("@/lib/notify", () => ({ notifyJobComplete: vi.fn() }));
 vi.mock("@/lib/keepAwake", () => ({ startKeepAwake: vi.fn(), stopKeepAwake: vi.fn() }));
 
 import { useAppStore } from "../appStore";
-import { strictSpatialFixture } from "@/test-utils/strictSpatialFixture";
+import { distinctSpatial95Fixture, strictSpatialFixture } from "@/test-utils/strictSpatialFixture";
 import { strictSpatialContextKey } from "@/lib/strictSpatial";
 
 function loadResponse(report = strictSpatialFixture()) {
-  return { variants: report.selected_variants, y_preds: [2, 1], total_count: 4,
-    selected_count: 2, pool_variants: ["A2G", "A3G", "A4V", "A5G"], strict_spatial: report,
+  return { variants: report.selected_variants, y_preds: report.selected_variants.map((_, index) => 2 - index), total_count: report.eligible_variant_count,
+    selected_count: report.selected_variant_count, pool_variants: ["A2G", "A3G", "A4V", "A5G"], strict_spatial: report,
     ranked_candidates: ["A2G", "A4V", "A5G"].map((variant, i) => ({ variant, aa_position: [2, 4, 5][i], y_pred: 2 - i })),
   };
 }
@@ -26,6 +26,7 @@ beforeEach(() => {
     structureAccession: "P12345", uniprotAccession: "P12345", structureLoaded: true,
     evolveproScoreOrder: "desc", evolveproVariantColumn: null, evolveproScoreColumn: null, evolveproSheetName: null,
     maxPrimers: 2, structuralDiversityEnabled: true, strictSpatialEnabled: true,
+    strictSpatialBudgetMode: "unique_sites", strictSpatialSiteCap: null,
     strictSpatialSelection: null, strictSpatialError: null, evolveproSelectionManual: false,
     evolveproSelectedVariants: ["A2G", "A4V"], mutationText: "A2G\nA4V", fillOnFailure: true,
     requireNetworkConsent: vi.fn(async () => true), isDesigning: false,
@@ -35,6 +36,56 @@ beforeEach(() => {
 afterEach(() => useAppStore.getState().cancelDiversityReload());
 
 describe("strict spatial design identity", () => {
+  it("forwards exactly 95 distinct variants across five sites with no rescue", async () => {
+    const report = distinctSpatial95Fixture();
+    useAppStore.setState({ maxPrimers: 95, strictSpatialBudgetMode: "distinct_variants",
+      evolveproSelectedVariants: report.selected_variants, mutationText: report.selected_variants.join("\n") });
+    useAppStore.setState({ strictSpatialSelection: { result: report, contextKey: strictSpatialContextKey(useAppStore.getState()) } });
+    mocks.send.mockImplementation(async (method, params) => {
+      if (method === "load_evolvepro_csv") return loadResponse(report);
+      if (method === "design_sdm_primers") return { results: [], success_count: 0, total_count: 95,
+        failed_mutations: params.mutations_csv_or_text.split("\n").map((mutation: string, rank: number) => ({ mutation, rank, reason: "test failure" })) };
+      throw Error(`Unexpected ${method}`);
+    });
+    await useAppStore.getState().designPrimers();
+    expect(mocks.send.mock.calls.find(([method]) => method === "load_evolvepro_csv")?.[1]).toMatchObject({
+      top_n: 95, strict_spatial_budget: "distinct_variants", strict_spatial_site_cap: null,
+    });
+    const designCalls = mocks.send.mock.calls.filter(([method]) => method === "design_sdm_primers");
+    expect(designCalls).toHaveLength(1);
+    expect(designCalls[0][1].mutations_csv_or_text.split("\n").sort()).toEqual([...report.selected_variants].sort());
+    expect(designCalls[0][1].rescue_pool).toBeUndefined();
+    expect(designCalls[0][1].auto_relax).toBe(false);
+    expect(useAppStore.getState().evolveproSelectedVariants).toHaveLength(95);
+  });
+
+  it.each(["budget", "cap"])("invalidates the preview and aborts design when %s changes during reload", async (field) => {
+    let finish: ((value: ReturnType<typeof loadResponse>) => void) | undefined;
+    mocks.send.mockImplementation(() => new Promise((resolve) => { finish = resolve; }));
+    const pending = useAppStore.getState().designPrimers();
+    await vi.waitFor(() => expect(finish).toBeDefined());
+    if (field === "budget") useAppStore.getState().setStrictSpatialBudgetMode("distinct_variants");
+    else useAppStore.getState().setStrictSpatialSiteCap(2);
+    finish?.(loadResponse());
+    await pending;
+    expect(mocks.send.mock.calls.some(([method]) => method === "design_sdm_primers")).toBe(false);
+    expect(useAppStore.getState().strictSpatialSelection).toBeNull();
+    expect(useAppStore.getState().statusMessage).toContain("Review the updated selection");
+  });
+
+  it.each([{ budget_mode: "distinct_variants" as const }, { site_cap: 2 }])("rejects a response for another budget policy: %j", async (patch) => {
+    mocks.send.mockResolvedValue(loadResponse(strictSpatialFixture(patch)));
+    await expect(useAppStore.getState().loadEvolveproCsv("/tmp/candidates.csv")).rejects.toThrow("verified strict spatial selection");
+    expect(useAppStore.getState().strictSpatialSelection).toBeNull();
+    expect(useAppStore.getState().evolveproSelectedVariants).toEqual([]);
+  });
+
+  it("rejects an inconsistent top-level selected count", async () => {
+    mocks.send.mockResolvedValue({ ...loadResponse(), selected_count: 1 });
+    await expect(useAppStore.getState().loadEvolveproCsv("/tmp/candidates.csv")).rejects.toThrow("verified strict spatial selection");
+    expect(useAppStore.getState().strictSpatialSelection).toBeNull();
+  });
+
   it.each([false, true])("aborts when strict mode changes during selection reload (initial=%s)", async (initial) => {
     useAppStore.setState({ strictSpatialEnabled: initial });
     let finish: ((value: ReturnType<typeof loadResponse>) => void) | undefined;

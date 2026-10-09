@@ -4058,8 +4058,8 @@
     }
   },
   "strictSpatial": {
-    "toggle": "Seleção espacial estrita de sítios individuais (somente nesta sessão)",
-    "description": "Usa coordenadas Cα do AlphaFold com correspondência exata e todo o conjunto de variantes elegíveis de sítio único. Cada sítio selecionado aparece uma vez. Limites por posição, alocação e exclusões por domínio, classificação de Pareto, kappa, âncoras de rodadas anteriores e substituição automática em caso de falha no desenho de primers estão desativados. As anotações funcionais são explicativas; sua ausência não comprova uma região conectora (linker) nem a falta de função.",
+    "toggle": "Seleção espacial estrita (somente nesta sessão)",
+    "description": "Seleciona apenas do arquivo de candidatos fornecido, sem adicionar novas variantes. Com M variantes elegíveis e N escolhas, M>N pode alterar o conjunto das N melhores por pontuação. Selecionar todas quando M=N mantém o mesmo conjunto e não pode melhorar a dispersão espacial. As contagens elegíveis são anteriores aos limites por sítio. Usa coordenadas Cα do AlphaFold com correspondência exata e todo o conjunto de variantes elegíveis de sítio único. Limites anteriores por posição, alocação e exclusões por domínio, classificação de Pareto, kappa, âncoras de rodadas anteriores e substituição automática em caso de falha no desenho de primers estão desativados. As anotações funcionais são explicativas; sua ausência não comprova uma região conectora (linker) nem a falta de função.",
     "pending": "Carregue ou selecione os candidatos novamente para verificar a estrutura e os sítios disponíveis.",
     "reselect": "Selecionar novamente e verificar",
     "summary": "{{selected}} selecionados entre {{eligible}} sítios elegíveis; {{excluded}} exclusões na etapa estrita.",
@@ -4092,6 +4092,17 @@
     "kappaTitle": "Kappa de diversidade estrutural (0 = explorar, 1 = aproveitar)",
     "kappaDescription": "Seleciona variantes usando a distância entre centroides Cα em 3D. kappa=0 prioriza a separação espacial; kappa=1 prioriza a classificação por pontuação configurada.",
     "uploadCleared": "Esta estrutura carregada serve apenas para visualização. A seleção anterior e as sobreposições de anotações são removidas porque a correspondência dos resíduos não foi verificada.",
-    "sourceCoverage": "{{source}} linhas de origem; {{parsed}} variantes interpretadas. Omissões na interpretação: {{parsing}}; por posição inicial: {{start}}; por variantes duplicadas: {{duplicates}}."
+    "sourceCoverage": "{{source}} linhas de origem; {{parsed}} variantes interpretadas. Omissões na interpretação: {{parsing}}; por posição inicial: {{start}}; por variantes duplicadas: {{duplicates}}.",
+    "budgetLabel": "Critério da quantidade selecionada",
+    "uniqueSites": "Uma variante por sítio (padrão)",
+    "distinctVariants": "Variantes distintas",
+    "distinctDescription": "N conta variantes distintas. Diferentes substituições no mesmo sítio continuam elegíveis. Após todos os sítios elegíveis estarem representados, variantes adicionais são escolhidas pela pontuação e por uma ordem determinística em caso de empate.",
+    "siteCapLabel": "Número máximo de variantes por sítio",
+    "siteCapHint": "Inteiro positivo opcional. Deixe em branco para não limitar a quantidade por sítio.",
+    "siteCapInvalid": "Insira um inteiro positivo ou deixe em branco para não definir limite.",
+    "selectedCounts": "{{variants}} variantes selecionadas em {{sites}} sítios distintos.",
+    "eligibleCounts": "{{variants}} variantes elegíveis em {{sites}} sítios distintos.",
+    "budgetEvidence": "Critério: {{budget}}; limite por sítio: {{cap}}",
+    "unlimited": "Sem limite"
   }
 }

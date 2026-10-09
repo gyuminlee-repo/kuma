@@ -4058,8 +4058,8 @@
     }
   },
   "strictSpatial": {
-    "toggle": "엄격한 단일 위치 공간 선택 (현재 세션만)",
-    "description": "참조 서열과의 대응을 확인한 AlphaFold Cα 좌표와 적격 단일 위치 후보 전체를 사용하며 각 선택 위치는 한 번만 포함됩니다. 위치별 상한, 도메인 할당 및 제외, Pareto 순위, kappa, 이전 라운드 앵커, 프라이머 실패 시 자동 대체는 적용되지 않습니다. 기능 주석은 설명용이며, 주석이 없다는 사실만으로 링커나 기능 부재를 판단하지 않습니다.",
+    "toggle": "엄격한 공간 선택 (현재 세션만)",
+    "description": "입력 후보 파일 안에서만 고르며 새 변이체를 추가하지 않습니다. 적격 후보 M개 중 N개를 고를 때 M>N이면 점수순 Top-N 구성원이 바뀔 수 있습니다. M=N 전부를 고르면 집합이 같아 공간 분산을 개선할 수 없습니다. 표시된 적격 후보 수는 위치별 상한 적용 전입니다. 참조 서열과의 대응을 확인한 AlphaFold Cα 좌표와 적격 단일 위치 후보 전체를 사용합니다. 기존 위치별 상한, 도메인 할당 및 제외, Pareto 순위, kappa, 이전 라운드 앵커, 프라이머 실패 시 자동 대체는 적용되지 않습니다. 기능 주석은 설명용이며, 주석이 없다는 사실만으로 링커나 기능 부재를 판단하지 않습니다.",
     "pending": "후보를 불러오거나 다시 선택하여 구조와 사용 가능한 위치를 검증하세요.",
     "reselect": "다시 선택 및 검증",
     "summary": "적격 위치 {{eligible}}개 중 {{selected}}개 선택, 엄격 선택 단계에서 {{excluded}}개 제외.",
@@ -4092,6 +4092,17 @@
     "kappaTitle": "구조 다양성 kappa (0 = 탐색, 1 = 성능 우선)",
     "kappaDescription": "3D Cα 중심 간 거리로 변이를 선택합니다. kappa=0은 공간적 분리를 우선하고 kappa=1은 설정된 점수 순위를 우선합니다.",
     "uploadCleared": "업로드한 구조는 보기 전용입니다. 잔기 대응이 검증되지 않아 이전 선택 및 기능 주석 표시를 지웠습니다.",
-    "sourceCoverage": "원본 {{source}}행, 해석된 변이 {{parsed}}개. 해석 단계 누락 {{parsing}}개, 시작 위치 제외 {{start}}개, 중복 변이 제외 {{duplicates}}개."
+    "sourceCoverage": "원본 {{source}}행, 해석된 변이 {{parsed}}개. 해석 단계 누락 {{parsing}}개, 시작 위치 제외 {{start}}개, 중복 변이 제외 {{duplicates}}개.",
+    "budgetLabel": "선택 수 기준",
+    "uniqueSites": "위치당 변이체 1개 (기본값)",
+    "distinctVariants": "서로 다른 변이체",
+    "distinctDescription": "N은 서로 다른 변이체 수입니다. 같은 위치의 다른 아미노산 치환도 후보에 포함됩니다. 모든 적격 위치가 포함된 후에는 점수와 결정적 동점 순서에 따라 추가 변이체를 선택합니다.",
+    "siteCapLabel": "위치당 최대 변이체 수",
+    "siteCapHint": "선택 사항인 양의 정수입니다. 비워 두면 위치별 제한이 없습니다.",
+    "siteCapInvalid": "양의 정수를 입력하거나 제한 없이 사용하려면 비워 두세요.",
+    "selectedCounts": "{{sites}}개 고유 위치에서 변이체 {{variants}}개 선택.",
+    "eligibleCounts": "{{sites}}개 고유 위치에 적격 변이체 {{variants}}개.",
+    "budgetEvidence": "선택 수 기준: {{budget}}; 위치별 상한: {{cap}}",
+    "unlimited": "제한 없음"
   }
 }

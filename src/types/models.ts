@@ -490,7 +490,9 @@ export interface EvolveproStepStats {
   start_codon_removed_variants?: string[] | null;
 }
 
-/** Verified single-site selection and the exact structure used to select it. */
+export type StrictSpatialBudgetMode = "unique_sites" | "distinct_variants";
+
+/** Verified single-site substitutions and the exact structure used to select them. */
 export interface StrictSpatialResult {
   schema_version: 1;
   source_accession: string;
@@ -501,9 +503,14 @@ export interface StrictSpatialResult {
   score_available: boolean;
   pdb_text: string;
   coordinate_frame: "reference";
-  selection_policy: "single-site-full-pool-fps-v1";
+  selection_policy: "single-site-full-pool-fps-v1" | "distinct-variant-full-pool-fps-v1";
+  budget_mode: StrictSpatialBudgetMode;
+  site_cap: number | null;
   selected_variants: string[];
+  /** Variant-aligned positions; distinct substitutions may share a site. */
   selected_positions: number[];
+  selected_variant_count: number;
+  selected_site_count: number;
   mapping: Array<{
     reference_position: number;
     structure_position: number;
@@ -515,6 +522,10 @@ export interface StrictSpatialResult {
   excluded: Array<{ variant: string; reason: string }>;
   requested_count: number;
   eligible_site_count: number;
+  eligible_variant_count: number;
+  site_multiplicities: Array<{ reference_position: number; variant_count: number }>;
+  geometry_variant_min_pair_distance: number | null;
+  geometry_site_min_pair_distance: number | null;
   source_row_count: number;
   parsed_variant_count: number;
   parsing_omitted_count: number;

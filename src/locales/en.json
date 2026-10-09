@@ -4058,8 +4058,8 @@
     }
   },
   "strictSpatial": {
-    "toggle": "Strict single-site spatial selection (session only)",
-    "description": "Uses exactly mapped AlphaFold Cα coordinates and the full eligible single-site pool. Each selected site appears once. Position caps, domain allocation and exclusions, Pareto ranking, kappa, prior-round anchors and automatic replacement on primer failure are inactive. Functional annotations are explanatory; missing annotations do not establish a linker or lack of function.",
+    "toggle": "Strict spatial selection (session only)",
+    "description": "Selects only from the supplied candidate file; it adds no new variants. With M eligible variants and N picks, M>N may change the score-based Top-N set. Selecting all M=N variants keeps the same set and cannot improve spatial dispersion. Eligible counts are before per-site limits. Uses exactly mapped AlphaFold Cα coordinates and the full eligible single-site pool. Legacy position caps, domain allocation and exclusions, Pareto ranking, kappa, prior-round anchors and automatic replacement on primer failure are inactive. Functional annotations are explanatory; missing annotations do not establish a linker or lack of function.",
     "pending": "Load or reselect candidates to verify the structure and available sites.",
     "reselect": "Reselect and verify",
     "summary": "{{selected}} selected from {{eligible}} eligible sites; {{excluded}} strict-stage exclusions.",
@@ -4092,6 +4092,17 @@
     "kappaTitle": "Structural diversity kappa (0 = explore, 1 = exploit)",
     "kappaDescription": "Selects variants using 3D Cα centroid distance. kappa=0 prioritizes spatial separation; kappa=1 prioritizes the configured score ranking.",
     "uploadCleared": "This uploaded structure is view-only. Previous selection and annotation overlays are cleared because its residue mapping is unverified.",
-    "sourceCoverage": "{{source}} source rows; {{parsed}} parsed variants. Parsing omissions: {{parsing}}; start-position omissions: {{start}}; duplicate-variant omissions: {{duplicates}}."
+    "sourceCoverage": "{{source}} source rows; {{parsed}} parsed variants. Parsing omissions: {{parsing}}; start-position omissions: {{start}}; duplicate-variant omissions: {{duplicates}}.",
+    "budgetLabel": "Selection budget",
+    "uniqueSites": "One variant per site (default)",
+    "distinctVariants": "Distinct variants",
+    "distinctDescription": "N counts distinct variants. Different substitutions at the same site remain eligible. After all eligible sites are represented, additional variants are chosen by score and deterministic tie order.",
+    "siteCapLabel": "Maximum variants per site",
+    "siteCapHint": "Optional positive whole number. Leave blank for no per-site limit.",
+    "siteCapInvalid": "Enter a positive whole number or leave blank for no limit.",
+    "selectedCounts": "{{variants}} selected variants across {{sites}} unique sites.",
+    "eligibleCounts": "{{variants}} eligible variants across {{sites}} unique sites.",
+    "budgetEvidence": "Budget: {{budget}}; per-site limit: {{cap}}",
+    "unlimited": "Unlimited"
   }
 }
