@@ -149,7 +149,8 @@ def test_every_atom_value_order_and_identity_is_preserved(tmp_path: Path) -> Non
 
 
 @pytest.mark.parametrize('contents', [b'', b'not a PDB\n', PUBLIC.read_bytes() + b'\n',
-                                      PUBLIC.read_bytes().replace(b'27.340', b'27.341', 1)])
+                                      PUBLIC.read_bytes().replace(b'27.340', b'27.341', 1)],
+                         ids=['empty', 'not_pdb', 'extra_newline', 'changed_coordinate'])
 def test_only_exact_pinned_public_bytes_are_accepted(tmp_path: Path, contents: bytes) -> None:
     changed = tmp_path / 'changed.pdb'
     changed.write_bytes(contents)
@@ -168,6 +169,7 @@ def test_stale_outputs_are_not_replaced(tmp_path: Path, kind: str) -> None:
         destination.write_bytes(b'stale')
     elif kind == 'directory':
         destination.mkdir()
+        (destination / 'sentinel').write_bytes(b'untouched directory')
     elif kind == 'hardlink':
         os.link(target, destination)
     else:
@@ -175,11 +177,18 @@ def test_stale_outputs_are_not_replaced(tmp_path: Path, kind: str) -> None:
             destination.symlink_to(target if kind == 'symlink' else tmp_path / 'missing')
         except OSError:
             pytest.skip('Symlinks unavailable on this host')
-    with pytest.raises((FileExistsError, ValueError)):
+    # Windows O_CREAT|O_EXCL refuses an existing directory with EACCES.
+    # Refusal and preservation are the contract, not a POSIX-specific errno.
+    refused = (FileExistsError, ValueError, PermissionError) if kind == 'directory' else (FileExistsError, ValueError)
+    with pytest.raises(refused):
         fixture.create_af3_fixture(PUBLIC, destination)
     assert target.read_bytes() == b'untouched'
     if kind == 'file':
         assert destination.read_bytes() == b'stale'
+    elif kind == 'directory':
+        assert destination.is_dir() and (destination / 'sentinel').read_bytes() == b'untouched directory'
+    elif kind == 'hardlink':
+        assert destination.read_bytes() == b'untouched' and destination.samefile(target)
     elif kind in {'symlink', 'dangling'}:
         assert destination.is_symlink()
 
@@ -307,3 +316,26 @@ def test_import_is_host_only_lazy_and_never_loads_model_packages() -> None:
     completed = subprocess.run([sys.executable, '-c', code], cwd=root, capture_output=True, text=True,
                                check=False, timeout=30)
     assert completed.returncode == 0, completed.stderr
+
+
+def test_existing_directory_permission_refusal_keeps_exclusive_open_and_contents(tmp_path: Path) -> None:
+    destination = tmp_path / 'output.zip'
+    destination.mkdir()
+    sentinel = destination / 'sentinel'
+    sentinel.write_bytes(b'untouched')
+    before = destination.stat()
+    original_open = os.open
+    observed = []
+    def windows_directory_refusal(path, flags, *args, **kwargs):
+        if Path(path) == destination:
+            observed.append(flags)
+            assert flags & (os.O_CREAT | os.O_EXCL) == os.O_CREAT | os.O_EXCL
+            raise PermissionError(13, 'synthetic existing-directory refusal', str(destination))
+        return original_open(path, flags, *args, **kwargs)
+    with patch.object(fixture.os, 'open', side_effect=windows_directory_refusal):
+        with pytest.raises(PermissionError):
+            fixture.create_af3_fixture(PUBLIC, destination)
+    after = destination.stat()
+    assert len(observed) == 1
+    assert (after.st_dev, after.st_ino, after.st_mode) == (before.st_dev, before.st_ino, before.st_mode)
+    assert sentinel.read_bytes() == b'untouched'

@@ -42,7 +42,7 @@ MAX_SOURCE_IDENTITY_BYTES = 2 * 1024 * 1024
 MAX_RUNTIME_RESIDUES = 2000  # Unmeasured conservative allocation guard, not safe-capacity evidence.
 MAX_FAILURE_BYTES = 4096
 MAX_FAILURE_FRAMES = 32
-FAILURE_SCHEMA = 'kuma-merizo-entry-failure-v3'
+FAILURE_SCHEMA = 'kuma-merizo-entry-failure-v4'
 FAILURE_ERROR_TYPES = frozenset({'ValueError', 'TypeError', 'KeyError', 'IndexError', 'RuntimeError',
     'ImportError', 'ModuleNotFoundError', 'OSError', 'FileNotFoundError', 'PermissionError',
     'MemoryError', 'OverflowError', 'AssertionError', 'TimeoutError', 'InputLimitError',
@@ -685,11 +685,13 @@ def failure_lines(exc: BaseException, codes: dict[CodeType, str]) -> tuple[list[
     return lines[-MAX_FAILURE_FRAMES:], stage, trace is not None or len(lines) > MAX_FAILURE_FRAMES
 
 
-def failure_diagnostic(exc: BaseException, warning_report=None) -> dict:
+def failure_diagnostic(exc: BaseException, warning_report=None, origin_audit=None) -> dict:
+    from scripts.merizo_runtime_archive.runtime_origin import origin_failure
     lines, stage, truncated = failure_lines(exc, _FAILURE_CODE_STAGES)
     validate_warning_report(warning_report)
     report = {'schema': FAILURE_SCHEMA, 'error_type': safe_error_type(exc), 'stage': stage,
-              'runtime_entry_lines': lines, 'truncated': truncated, 'warning_observations': warning_report}
+              'runtime_entry_lines': lines, 'truncated': truncated, 'warning_observations': warning_report,
+              'origin_failure': origin_failure(exc, origin_audit)}
     while len(canonical(report)) + 1 > MAX_FAILURE_BYTES and warning_report and warning_report['items']:
         warning_report['items'].pop()
         warning_report['truncated'] = True
@@ -734,6 +736,7 @@ def main(argv=None) -> int:
     parser.add_argument('--audit-origin-report', type=Path)
     args = parser.parse_args(argv)
     audit_path = None
+    origin_audit = None
     warning_report = {}
     try:
         if not getattr(sys, 'frozen', False):
@@ -763,7 +766,7 @@ def main(argv=None) -> int:
     except Exception as exc:
         if audit_path is not None:
             try:
-                publish_failure(audit_path, failure_diagnostic(exc, warning_report or None))
+                publish_failure(audit_path, failure_diagnostic(exc, warning_report or None, origin_audit))
             except Exception:
                 pass  # Diagnostic failure must never replace the original failure.
         # No private input, paths or arbitrary upstream exception text in logs.

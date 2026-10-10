@@ -102,7 +102,8 @@ print(json.dumps(sorted(name for name in sys.modules if
 
     def test_windows_validation_keeps_required_dlls_and_system_rejections(self):
         with tempfile.TemporaryDirectory() as folder:
-            root, system = Path(folder) / "bundle", Path(folder) / "Windows"
+            alias = Path(folder) / "alias-segment" / ".."
+            root, system = alias / "bundle", alias / "Windows"
             required = [str(root / "_internal" / name) for name in
                         ("python311.dll", "torch_cpu.dll", "c10.dll")]
             valid = required + [str(system / "System32/kernel32.dll")]
@@ -116,11 +117,13 @@ print(json.dumps(sorted(name for name in sys.modules if
                     self.assertEqual(result, outcome(shared.validate_windows_native_paths, paths, root, system))
                     self.assertEqual(result[0] == "ok", index == 0)
             self.assertEqual(windows.validate_native_paths(valid, root, system),
-                             {"bundled": required, "windows_system": [str(system / "System32/kernel32.dll")]})
+                             {"bundled": [str(Path(path).resolve()) for path in required],
+                              "windows_system": [str((system / "System32/kernel32.dll").resolve())]})
 
     def test_windows_enumeration_is_bounded_and_uses_explicit_abi(self):
         with tempfile.TemporaryDirectory() as folder:
-            paths = [str(Path(folder) / name) for name in ("z.dll", "a.dll", "a.dll")]
+            alias = Path(folder) / "alias-segment" / ".."
+            paths = [str(alias / name) for name in ("z.dll", "a.dll", "a.dll")]
             kernel, psapi = mock.Mock(), mock.Mock()
             kernel.GetCurrentProcess.return_value = 17
 
@@ -142,7 +145,9 @@ print(json.dumps(sorted(name for name in sys.modules if
             psapi.GetModuleFileNameExW.side_effect = filename
             with mock.patch.object(shared.sys, "platform", "win32"), \
                  mock.patch.object(shared.ctypes, "WinDLL", side_effect=[kernel, psapi], create=True) as loader:
-                self.assertEqual(shared.windows_loaded_native_paths(), sorted(set(paths), key=str.casefold))
+                expected = sorted({str(Path(path).resolve()) for path in paths}, key=str.casefold)
+                self.assertNotEqual(expected, sorted(set(paths), key=str.casefold))
+                self.assertEqual(shared.windows_loaded_native_paths(), expected)
             self.assertEqual(loader.call_args_list,
                              [mock.call("kernel32", use_last_error=True), mock.call("psapi", use_last_error=True)])
             self.assertIs(psapi.EnumProcessModulesEx.restype, shared.wintypes.BOOL)

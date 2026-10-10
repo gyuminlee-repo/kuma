@@ -249,3 +249,238 @@ assert not any(any(name == item or name.startswith(item + '.') for item in block
     completed = subprocess.run([sys.executable, '-c', script], cwd=Path(__file__).resolve().parents[1],
                                capture_output=True, text=True, check=False, timeout=30)
     assert completed.returncode == 0, completed.stderr
+
+
+def diagnostic_audit(tmp_path, monkeypatch):
+    root = tmp_path / 'installed'
+    internal = root / '_internal'
+    internal.mkdir(parents=True)
+    executable = root / 'kuma-merizo'
+    executable.write_bytes(b'synthetic executable')
+    native = [internal / name for name in ('libpython3.11.so', 'libtorch_cpu.so', 'libc10.so')]
+    for path in native:
+        path.write_bytes(b'synthetic library')
+    modules = {name: str(internal / (name.replace('.', '/') + '.py'))
+               for name in ('torch', 'predict', 'model.network', 'model.utils.features')}
+    work = tmp_path / 'work'
+    work.mkdir()
+    private = work / 'domain-private-test'
+    private.mkdir()
+    environment = _environment(private)
+    monkeypatch.setattr(origin.sys, 'frozen', True, raising=False)
+    monkeypatch.setattr(origin.sys, 'executable', str(executable))
+    monkeypatch.setattr(origin.platform, 'system', lambda: 'Linux')
+    monkeypatch.setattr(origin.Path, 'cwd', lambda: work)
+    monkeypatch.setattr(origin.os, 'environ', environment)
+    monkeypatch.setattr(origin.shared, 'module_origins', lambda *args, **kwargs: modules)
+    enumeration = __import__('unittest.mock', fromlist=['Mock']).Mock(return_value=[str(path) for path in native])
+    monkeypatch.setattr(origin.shared, 'linux_native_paths', enumeration)
+    return origin.OriginAudit(internal, '1' * 64), prepared_synthetic(), enumeration
+
+
+@pytest.mark.parametrize('substage', ['module_validation', 'module_normalization', 'native_enumeration',
+    'native_policy', 'native_normalization', 'environment', 'serialization'])
+def test_origin_capture_failure_records_bounded_exact_stage_and_never_reenumerates(tmp_path, monkeypatch, substage):
+    from scripts.merizo_runtime_archive.roundtrip import read_failure
+    audit, prepared, enumerator = diagnostic_audit(tmp_path, monkeypatch)
+    private_error = ValueError('PRIVATE_SEQUENCE /outside/person error')
+    def fail(*args, **kwargs):
+        raise private_error
+    if substage == 'module_validation':
+        monkeypatch.setattr(origin.shared, 'module_origins', fail)
+    elif substage == 'module_normalization':
+        monkeypatch.setattr(origin.shared, 'module_origins', lambda *a, **k: {'torch': '/outside/private.py'})
+    elif substage == 'native_enumeration':
+        enumerator.side_effect = private_error
+    elif substage == 'native_policy':
+        monkeypatch.setattr(origin.shared, 'validate_posix_native_paths', fail)
+    elif substage == 'native_normalization':
+        monkeypatch.setattr(origin.shared, 'validate_posix_native_paths', lambda *a, **k:
+                            {'required_bundled': {}, 'posix_system': [], 'bundled': ['/outside/private.so']})
+    elif substage == 'environment':
+        monkeypatch.setitem(origin.os.environ, 'PYTHONPATH', '/outside/private')
+    else:
+        real_canonical = origin.canonical
+        def reject_report(value):
+            if value is audit.report:
+                raise private_error
+            return real_canonical(value)
+        monkeypatch.setattr(origin, 'canonical', reject_report)
+    with pytest.raises(ValueError) as caught:
+        audit.capture('before_weights', prepared)
+    calls = enumerator.call_count
+    diagnostic = origin.origin_failure(caught.value, audit)
+    assert diagnostic is not None
+    assert diagnostic['status'] == 'collected'
+    assert diagnostic['phase'] == 'before_weights' and diagnostic['substage'] == substage
+    assert diagnostic['frames'] and len(diagnostic['frames']) <= 8
+    report = entry.failure_diagnostic(caught.value, origin_audit=audit)
+    assert report['schema'] == 'kuma-merizo-entry-failure-v4'
+    raw = canonical(report) + b'\n'
+    assert len(raw) <= entry.MAX_FAILURE_BYTES
+    assert b'PRIVATE' not in raw and b'/outside' not in raw and str(tmp_path).encode() not in raw
+    output = tmp_path / 'failure.json'
+    output.write_bytes(raw)
+    assert read_failure(output)['report']['origin_failure'] == diagnostic
+    assert enumerator.call_count == calls  # Diagnostic never takes another native snapshot.
+
+
+@pytest.mark.parametrize('substage', ['final_validation', 'executable_reverification', 'publication'])
+def test_origin_finish_diagnostic_keeps_final_gate_failure(tmp_path, monkeypatch, substage):
+    audit, prepared, enumerator = diagnostic_audit(tmp_path, monkeypatch)
+    audit.capture('before_weights', prepared)
+    audit.capture('after_inference', prepared)
+    output = tmp_path / 'origin.json'
+    if substage == 'final_validation':
+        audit.report['snapshots'][1]['environment']['gpu_hidden'] = False
+    elif substage == 'executable_reverification':
+        audit.executable.write_bytes(b'changed')
+    else:
+        output.write_bytes(b'stale')
+    with pytest.raises(ValueError) as caught:
+        audit.finish(output)
+    diagnostic = origin.origin_failure(caught.value, audit)
+    assert diagnostic is not None
+    assert diagnostic['phase'] == 'after_inference' and diagnostic['substage'] == substage
+    assert enumerator.call_count == 2
+    assert not output.exists() if substage != 'publication' else output.read_bytes() == b'stale'
+
+
+def test_normalized_mac_python_copy_class_is_observable_without_accepting_it(tmp_path):
+    root, internal = tmp_path, tmp_path / '_internal'
+    internal.mkdir()
+    paths = [internal / name for name in ('Python', 'libtorch_cpu.dylib', 'libc10.dylib')]
+    for path in paths:
+        path.write_bytes(b'synthetic bytes')
+    classes = origin.native_classes([str(path) for path in paths], root, internal, 'Darwin')
+    assert classes == {'status': 'observed', 'bundled_python_role': False,
+        'bundled_torch_cpu_role': True, 'bundled_c10_role': True,
+        'bundled_python_flat_path': True, 'bundled_python_framework_path': False,
+        'external_inference_runtime': False, 'external_other_image': False}
+    images = tuple(origin.shared.DarwinImage(i, str(path), 8 * (i + 1), origin.shared.MH_MAGIC_64,
+        origin.shared.CPU_TYPE_ARM64, 0, origin.shared.MH_DYLIB, 0, False) for i, path in enumerate(paths))
+    with pytest.raises(ValueError, match='Required bundled native modules missing') as caught:
+        origin.shared.validate_posix_native_paths([str(path) for path in paths], root, 'Darwin', darwin_images=images)
+    diagnostic = origin.origin_failure(caught.value)
+    assert diagnostic is not None
+    assert diagnostic['frames'][-1]['call'] == 'shared.validate_posix_native_paths'
+    assert origin.shared.runtime_role(paths[0], 'Darwin') is None
+
+
+def test_native_classification_is_bounded_and_failed_observation_cannot_hide_policy_error(tmp_path, monkeypatch):
+    audit, prepared, enumerator = diagnostic_audit(tmp_path, monkeypatch)
+    original = ValueError('PRIVATE original role check')
+    def fail(*args, **kwargs): raise original
+    monkeypatch.setattr(origin.shared, 'runtime_role', fail)
+    with pytest.raises(ValueError) as caught:
+        audit.capture('before_weights', prepared)
+    assert caught.value is original
+    diagnostic = origin.origin_failure(caught.value, audit)
+    assert diagnostic is not None
+    assert diagnostic['substage'] == 'native_policy'
+    assert diagnostic['native_classes']['status'] == 'unavailable'
+    assert all(value is None for key, value in diagnostic['native_classes'].items() if key != 'status')
+    assert enumerator.call_count == 1
+    assert origin.native_classes(['/untrusted'] * 2049, tmp_path, tmp_path, 'Linux')['status'] == 'unavailable'
+    assert origin.native_classes(['relative/private'], tmp_path, tmp_path, 'Linux')['status'] == 'unavailable'
+
+
+def test_frame_filename_name_and_equal_cloned_code_are_not_trusted():
+    from types import FunctionType
+    trusted = origin.shared.runtime_role
+    clone = FunctionType(trusted.__code__.replace(), trusted.__globals__)
+    assert clone.__code__ == trusted.__code__ and clone.__code__ is not trusted.__code__
+    for function in (clone, lambda *_: (_ for _ in ()).throw(ValueError('private'))):
+        with pytest.raises(Exception) as caught:
+            function(object(), 'Darwin')
+        assert origin.origin_failure(caught.value) is None
+
+
+def test_origin_failure_collector_error_returns_unavailable_without_exception_text(tmp_path, monkeypatch):
+    audit, prepared, _ = diagnostic_audit(tmp_path, monkeypatch)
+    monkeypatch.setitem(origin.os.environ, 'PYTHONPATH', '/private/path')
+    with pytest.raises(ValueError) as caught:
+        audit.capture('before_weights', prepared)
+    monkeypatch.setattr(origin, 'validate_origin_failure', lambda *_: (_ for _ in ()).throw(RuntimeError('private')))
+    diagnostic = origin.origin_failure(caught.value, audit)
+    assert diagnostic is not None
+    assert diagnostic['status'] == 'unavailable' and not diagnostic['frames']
+    assert b'private' not in canonical(diagnostic)
+
+
+@pytest.mark.parametrize('field,value', [('phase', 'private sequence'), ('substage', '/private/path'),
+    ('frames', [{'call': 'os.system', 'line': 1}]), ('frames', [{'call': 'audit.capture', 'line': True}]),
+    ('frames', [{'call': 'audit.capture', 'line': 1}] * 9), ('truncated', 1)])
+def test_reader_rejects_forged_origin_diagnostic_fields(tmp_path, monkeypatch, field, value):
+    from scripts.merizo_runtime_archive.roundtrip import read_failure
+    audit, prepared, _ = diagnostic_audit(tmp_path, monkeypatch)
+    monkeypatch.setitem(origin.os.environ, 'PYTHONPATH', '/private')
+    with pytest.raises(ValueError) as caught:
+        audit.capture('before_weights', prepared)
+    report = entry.failure_diagnostic(caught.value, origin_audit=audit)
+    report['origin_failure'][field] = value
+    output = tmp_path / 'failure.json'
+    output.write_bytes(canonical(report) + b'\n')
+    assert read_failure(output)['status'] == 'rejected'
+
+
+def test_combined_failure_envelope_keeps_origin_and_conserved_warning_counts_within_4k(tmp_path, monkeypatch):
+    audit, prepared, _ = diagnostic_audit(tmp_path, monkeypatch)
+    monkeypatch.setitem(origin.os.environ, 'PYTHONPATH', '/private')
+    with pytest.raises(ValueError) as caught:
+        audit.capture('before_weights', prepared)
+    reference = {'kind': 'wheel', 'member': 'x' * 237 + '.py', 'sha256': '1' * 64,
+                 'line': 123, 'owner': 'x' * 100}
+    item = {'category': 'UserWarning', 'message_sha256': '2' * 64, 'message_status': 'complete',
+            'known_id': 'unrecognized', 'active_source': reference, 'reported_source': reference,
+            'accepted_notice': False}
+    warnings = {'count': 4, 'count_capped': False, 'truncated': False, 'collection_failed': False,
+                'id_counts': {}, 'unknown_count': 4, 'accepted_counts': {}, 'items': [copy.deepcopy(item) for _ in range(4)]}
+    report = entry.failure_diagnostic(caught.value, warnings, audit)
+    assert report['origin_failure']['substage'] == 'environment'
+    assert len(canonical(report)) + 1 <= 4096
+    assert report['warning_observations']['count'] == report['warning_observations']['unknown_count'] == 4
+    assert report['warning_observations']['truncated'] is True
+    entry.validate_warning_report(report['warning_observations'])
+
+
+@pytest.mark.parametrize('change', ['wrong_status', 'numeric_bool', 'unavailable_with_values', 'extra_private'])
+def test_reader_rejects_forged_native_path_classification(tmp_path, monkeypatch, change):
+    from scripts.merizo_runtime_archive.roundtrip import read_failure
+    audit, prepared, _ = diagnostic_audit(tmp_path, monkeypatch)
+    monkeypatch.setitem(origin.os.environ, 'PYTHONPATH', '/private')
+    with pytest.raises(ValueError) as caught:
+        audit.capture('before_weights', prepared)
+    report = entry.failure_diagnostic(caught.value, origin_audit=audit)
+    classes = report['origin_failure']['native_classes']
+    if change == 'wrong_status': classes['status'] = 'trusted'
+    elif change == 'numeric_bool': classes['bundled_python_role'] = 1
+    elif change == 'unavailable_with_values': classes['status'] = 'unavailable'
+    else: classes['path'] = '/private/person'
+    output = tmp_path / 'failure.json'
+    output.write_bytes(canonical(report) + b'\n')
+    assert read_failure(output)['status'] == 'rejected'
+
+
+def test_native_classes_distinguish_framework_and_external_inference_without_emitting_paths(tmp_path):
+    internal = tmp_path / '_internal'
+    framework = internal / 'Python.framework/Versions/3.11/Python'
+    observations = origin.native_classes([str(framework), '/external/private/libtorch_cpu.dylib',
+                                          '/usr/lib/libSystem.B.dylib'], tmp_path, internal, 'Darwin')
+    assert observations['bundled_python_framework_path'] and observations['bundled_python_role']
+    assert not observations['bundled_python_flat_path']
+    assert observations['external_inference_runtime'] and observations['external_other_image']
+    assert b'private' not in canonical(observations) and str(tmp_path).encode() not in canonical(observations)
+
+
+def test_diagnostic_trace_scan_and_retained_frames_are_bounded(monkeypatch):
+    def recurse(depth):
+        if depth: recurse(depth - 1)
+        else: raise ValueError('private')
+    monkeypatch.setitem(origin._ORIGIN_CODES, id(recurse.__code__), (recurse.__code__, 'audit.capture'))
+    with pytest.raises(ValueError) as caught:
+        recurse(80)
+    diagnostic = origin.origin_failure(caught.value)
+    assert diagnostic is not None
+    assert diagnostic['truncated'] and len(diagnostic['frames']) == 8
+    assert len(canonical(diagnostic)) <= origin.MAX_ORIGIN_FAILURE_BYTES

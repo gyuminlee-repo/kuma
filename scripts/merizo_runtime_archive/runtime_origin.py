@@ -22,6 +22,103 @@ _CHECKS = {'empty_search_path', 'private_home_cache_temp', 'no_python_environmen
 _MODULES = ('torch', 'model', 'predict')
 _HASH = re.compile('[0-9a-f]{64}\\Z')
 
+ORIGIN_FAILURE_SCHEMA = 'kuma-merizo-origin-failure-v1'
+MAX_ORIGIN_FAILURE_FRAMES = 8
+MAX_ORIGIN_FAILURE_BYTES = 2048
+_ORIGIN_PHASES = frozenset({'bootstrap', *PHASES})
+_ORIGIN_STAGES = frozenset({'initialization', 'phase_validation', 'module_collection', 'module_validation',
+    'module_normalization', 'native_enumeration', 'native_policy', 'native_normalization', 'environment',
+    'serialization', 'final_validation', 'executable_reverification', 'publication', 'unavailable'})
+_NATIVE_CLASSES = frozenset({'bundled_python_role', 'bundled_torch_cpu_role', 'bundled_c10_role',
+    'bundled_python_flat_path', 'bundled_python_framework_path', 'external_inference_runtime', 'external_other_image'})
+
+
+def _unavailable_native_classes():
+    return {'status': 'unavailable', **{key: None for key in _NATIVE_CLASSES}}
+
+
+def native_classes(paths, root: Path, internal: Path, system: str) -> dict:
+    """Diagnostic observations from the original snapshot, never acceptance evidence."""
+    try:
+        if not isinstance(paths, (list, tuple)) or not 0 < len(paths) <= MAX_ORIGIN_ROWS:
+            return _unavailable_native_classes()
+        result = {'status': 'observed', **{key: False for key in _NATIVE_CLASSES}}
+        for raw in paths:
+            if not isinstance(raw, str) or len(raw) > 4096 or any(c in raw for c in '\0\r\n'):
+                return _unavailable_native_classes()
+            original, path = Path(raw), Path(raw).resolve()
+            if not original.is_absolute():
+                return _unavailable_native_classes()
+            if path.is_relative_to(root):
+                role = ({'python311.dll': 'python', 'torch_cpu.dll': 'torch_cpu', 'c10.dll': 'c10'}.get(path.name.casefold())
+                        if system == 'Windows' else shared.runtime_role(path, system))
+                if role in {'python', 'torch_cpu', 'c10'}:
+                    result['bundled_' + role + '_role'] = True
+                if system == 'Darwin':
+                    result['bundled_python_flat_path'] |= path == internal / 'Python'
+                    result['bundled_python_framework_path'] |= path == internal / 'Python.framework/Versions/3.11/Python'
+            elif shared.is_inference_runtime(original) or shared.is_inference_runtime(path):
+                result['external_inference_runtime'] = True
+            else:
+                result['external_other_image'] = True
+        return result
+    except BaseException:
+        return _unavailable_native_classes()  # Never replace an original policy failure.
+
+
+def validate_origin_failure(value):
+    if value is None:
+        return
+    keys = {'schema', 'status', 'phase', 'substage', 'frames', 'truncated', 'native_classes'}
+    if (not isinstance(value, dict) or set(value) != keys or value['schema'] != ORIGIN_FAILURE_SCHEMA
+            or value['status'] not in {'collected', 'unavailable'} or value['phase'] not in _ORIGIN_PHASES
+            or value['substage'] not in _ORIGIN_STAGES or type(value['truncated']) is not bool
+            or not isinstance(value['frames'], list) or len(value['frames']) > MAX_ORIGIN_FAILURE_FRAMES):
+        raise ValueError('Invalid origin failure diagnostic')
+    for row in value['frames']:
+        if (not isinstance(row, dict) or set(row) != {'call', 'line'} or row['call'] not in _ORIGIN_CALL_IDS
+                or type(row['line']) is not int or not 1 <= row['line'] <= 1000000):
+            raise ValueError('Invalid owned origin failure frame')
+    classes = value['native_classes']
+    if (not isinstance(classes, dict) or set(classes) != {'status'} | _NATIVE_CLASSES
+            or classes['status'] not in {'observed', 'unavailable'}
+            or any((type(classes[key]) is not bool if classes['status'] == 'observed' else classes[key] is not None)
+                   for key in _NATIVE_CLASSES)):
+        raise ValueError('Invalid native path classification diagnostic')
+    if value['status'] == 'unavailable' and (value['frames'] or classes['status'] != 'unavailable'):
+        raise ValueError('Unavailable origin diagnostic carries observations')
+    if len(canonical(value)) > MAX_ORIGIN_FAILURE_BYTES:
+        raise ValueError('Origin failure diagnostic exceeds bound')
+
+
+def origin_failure(exc: BaseException, audit=None):
+    """No messages, paths, locals, second enumeration, or filename-based trust."""
+    try:
+        frames, scanned, truncated = [], 0, False
+        trace = exc.__traceback__
+        while trace is not None and scanned < 64:
+            code = trace.tb_frame.f_code
+            trusted = _ORIGIN_CODES.get(id(code))
+            if trusted is not None and code is trusted[0] and 1 <= trace.tb_lineno <= 1000000:
+                frames.append({'call': trusted[1], 'line': trace.tb_lineno})
+                if len(frames) > MAX_ORIGIN_FAILURE_FRAMES:
+                    frames.pop(0)
+                    truncated = True
+            trace, scanned = trace.tb_next, scanned + 1
+        if not frames:
+            return None
+        value = {'schema': ORIGIN_FAILURE_SCHEMA, 'status': 'collected',
+            'phase': 'bootstrap' if audit is None else audit.failure_phase,
+            'substage': 'initialization' if audit is None else audit.failure_substage,
+            'frames': frames, 'truncated': truncated or trace is not None,
+            'native_classes': _unavailable_native_classes() if audit is None else dict(audit.native_observations)}
+        validate_origin_failure(value)
+        return value
+    except BaseException:
+        return {'schema': ORIGIN_FAILURE_SCHEMA, 'status': 'unavailable', 'phase': 'bootstrap',
+            'substage': 'unavailable', 'frames': [], 'truncated': False,
+            'native_classes': _unavailable_native_classes()}
+
 
 def read_stable(path: Path, limit: int) -> bytes:
     before = path.lstat()
@@ -210,6 +307,8 @@ def environment_checks(root: Path, internal: Path, executable: Path) -> dict:
 
 class OriginAudit:
     def __init__(self, internal: Path, source_identity_sha256: str):
+        self.failure_phase, self.failure_substage = 'bootstrap', 'initialization'
+        self.native_observations = _unavailable_native_classes()
         self.executable = Path(sys.executable).resolve()
         self.root, self.internal = self.executable.parent, internal.resolve()
         if (not getattr(sys, 'frozen', False) or self.executable.name not in {'kuma-merizo', 'kuma-merizo.exe'}
@@ -220,19 +319,29 @@ class OriginAudit:
                        'module_families': list(_MODULES), 'snapshots': []}
 
     def capture(self, phase: str, prepared):
+        self.failure_phase = phase if phase in PHASES else 'bootstrap'
+        self.failure_substage = 'phase_validation'
+        self.native_observations = _unavailable_native_classes()
         if len(self.report['snapshots']) >= len(PHASES) or phase != PHASES[len(self.report['snapshots'])]:
             raise ValueError('Origin phases out of order')
         if self.report['input_binding_sha256'] not in {None, prepared.binding_sha256}:
             raise ValueError('Input binding changed between origin phases')
         self.report['input_binding_sha256'] = prepared.binding_sha256
+        self.failure_substage = 'module_collection'
         modules = [(name, module) for name, module in list(sys.modules.items()) if module is not None
                    and any(name == prefix or name.startswith(prefix + '.') for prefix in _MODULES)]
+        self.failure_substage = 'module_validation'
         origins = shared.module_origins(modules, self.internal, check_namespace_paths=True)
+        self.failure_substage = 'module_normalization'
         normalized = {name: Path(path).relative_to(self.internal).as_posix() for name, path in origins.items()}
         system, images = self.report['platform'], None
+        self.failure_substage = 'native_enumeration'
         if system == 'Windows':
-            native = shared.validate_windows_native_paths(shared.windows_loaded_native_paths(), self.root,
-                                                          Path(os.environ['SystemRoot']).resolve())
+            paths = shared.windows_loaded_native_paths()
+            self.native_observations = native_classes(paths, self.root, self.internal, system)
+            self.failure_substage = 'native_policy'
+            native = shared.validate_windows_native_paths(paths, self.root, Path(os.environ['SystemRoot']).resolve())
+            self.failure_substage = 'native_normalization'
             required = {role: next(x for x in native['bundled'] if Path(x).name.casefold() == name)
                         for role, name in {'python': 'python311.dll', 'torch_cpu': 'torch_cpu.dll', 'c10': 'c10.dll'}.items()}
             system_paths = [Path(path).relative_to(Path(os.environ['SystemRoot']).resolve()).as_posix()
@@ -241,7 +350,10 @@ class OriginAudit:
         else:
             images = shared.darwin_native_images() if system == 'Darwin' else None
             paths = [image.path for image in images] if images is not None else shared.linux_native_paths()
+            self.native_observations = native_classes(paths, self.root, self.internal, system)
+            self.failure_substage = 'native_policy'
             native = shared.validate_posix_native_paths(paths, self.root, system, darwin_images=images)
+            self.failure_substage = 'native_normalization'
             required, system_paths = native['required_bundled'], native['posix_system']
             mechanism = 'dyld_stable_indexed_cache_snapshots' if images is not None else 'proc_self_maps_executable_files'
             contract = shared.DARWIN_ORIGIN_CONTRACT if images is not None else 'linux_loaded_origins_v1'
@@ -253,22 +365,50 @@ class OriginAudit:
             row.update(kind='bundled' if bundled else 'system', path=relative(image.path) if bundled else image.path,
                        resolved_path=relative(image.path) if bundled else str(Path(image.path).resolve()))
             image_rows.append(row)
+        native_record = {'bundled': [relative(x) for x in native['bundled']],
+                         'system': system_paths, 'required': {role: relative(x) for role, x in required.items()}}
+        self.failure_substage = 'environment'
+        environment = environment_checks(self.root, self.internal, self.executable)
+        self.failure_substage = 'serialization'
         self.report['snapshots'].append({'phase': phase, 'mechanism': mechanism, 'contract': contract,
-            'modules': normalized, 'native': {'bundled': [relative(x) for x in native['bundled']],
-             'system': system_paths, 'required': {role: relative(x) for role, x in required.items()}},
-            'images': image_rows, 'environment': environment_checks(self.root, self.internal, self.executable)})
+            'modules': normalized, 'native': native_record,
+            'images': image_rows, 'environment': environment})
         self.report['snapshots'][-1]['native']['system_path_basis'] = (
             'windows_directory_relative' if system == 'Windows' else 'absolute_posix_os_roots')
         if len(normalized) > MAX_ORIGIN_ROWS or len(canonical(self.report)) + 1 > MAX_ORIGIN_BYTES:
             raise ValueError('Origin snapshot exceeds declared bound')
 
     def finish(self, path: Path | None = None):
+        self.failure_substage = 'final_validation'
         validate_origins(self.report)
+        self.failure_substage = 'executable_reverification'
         if digest(self.executable) != self.report['executable_sha256']:
             raise ValueError('Installed executable changed during inference')
         if path is not None:
+            self.failure_substage = 'publication'
             publish_exclusive(path, canonical(self.report) + b'\n', MAX_ORIGIN_BYTES)
 
 
 def read_origins(path: Path, **expected):
     return validate_origins(strict_json(read_stable(path, MAX_ORIGIN_BYTES)), **expected)
+
+
+def _owned_origin_codes():
+    rows = {}
+    for owner, prefix, names in (
+        (OriginAudit, 'audit', ('__init__', 'capture', 'finish')),
+        (sys.modules[__name__], 'origin', ('environment_checks', 'validate_origins', '_relative', '_system_path',
+                                          'read_stable', 'publish_exclusive')),
+        (shared, 'shared', ('module_origins', 'within', 'parse_linux_maps', 'linux_native_paths',
+                           'darwin_native_images', 'runtime_role', 'is_inference_runtime', 'system_library',
+                           'darwin_cached_os_image', 'validate_posix_native_paths',
+                           'windows_loaded_native_paths', 'validate_windows_native_paths')),
+    ):
+        for name in names:
+            code = getattr(owner, name).__code__
+            rows[id(code)] = (code, prefix + '.' + name)
+    return rows
+
+
+_ORIGIN_CODES = _owned_origin_codes()
+_ORIGIN_CALL_IDS = frozenset(value[1] for value in _ORIGIN_CODES.values())

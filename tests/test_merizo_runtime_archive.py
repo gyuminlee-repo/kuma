@@ -136,7 +136,7 @@ class RuntimeFailureDiagnosticTests(unittest.TestCase):
             self.assertEqual(self.call_entry(), 2)
         raw = self.audit.read_text()
         report = strict_json(raw.encode())
-        self.assertEqual(set(report), {'schema', 'error_type', 'stage', 'runtime_entry_lines', 'truncated', 'warning_observations'})
+        self.assertEqual(set(report), {'schema', 'error_type', 'stage', 'runtime_entry_lines', 'truncated', 'warning_observations', 'origin_failure'})
         self.assertEqual(report['error_type'], 'ValueError')
         self.assertEqual(report['stage'], 'execute')
         self.assertTrue(report['runtime_entry_lines'])

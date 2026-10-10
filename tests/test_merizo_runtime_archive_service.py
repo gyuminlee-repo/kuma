@@ -103,7 +103,7 @@ def test_failed_normal_registry_remove_is_not_replaced_by_outer_cleanup_success(
     original = roundtrip.tempfile.mkdtemp
     def track(*args, **kwargs):
         path = original(*args, **kwargs)
-        if kwargs.get('prefix') == 'kuma-runtime-roundtrip-': roots.append(Path(path))
+        if kwargs.get('prefix') == 'kuma-runtime-roundtrip-': roots.append(Path(path).resolve(strict=True))
         return path
     try:
         with patch.object(roundtrip.tempfile, 'mkdtemp', side_effect=track), \
@@ -182,13 +182,23 @@ def test_service_stage_failure_keeps_partial_report_and_cleanup(tmp_path, operat
         assert report['removed']
 
 
-@pytest.mark.parametrize('cleanup', ['stop_error', 'stop_false', 'remove', 'workspace'])
-def test_secondary_cleanup_failure_preserves_original_and_owned_storage(tmp_path, cleanup):
+@pytest.mark.parametrize('cleanup,aliased_root', [('stop_error', False), ('stop_false', False),
+    ('remove', False), ('workspace', False), ('workspace', True)],
+    ids=['stop_error', 'stop_false', 'remove', 'workspace', 'workspace_lexical_alias'])
+def test_secondary_cleanup_failure_preserves_original_and_owned_storage(tmp_path, cleanup, aliased_root):
     calls, report, roots = [], {}, []
     original = roundtrip.tempfile.mkdtemp
     def track(*args, **kwargs):
         path = original(*args, **kwargs)
-        if kwargs.get('prefix') == 'kuma-runtime-roundtrip-': roots.append(Path(path))
+        if kwargs.get('prefix') == 'kuma-runtime-roundtrip-':
+            if aliased_root:
+                # Cross-platform stand-in for Windows short/long temp spellings.
+                parent = Path(path) / 'alias-parent'
+                parent.mkdir()
+                path = str(parent / '..')
+            roots.append(Path(path).resolve(strict=True))
+            if aliased_root:
+                assert Path(path) != roots[-1] and Path(path).resolve(strict=True) == roots[-1]
         return path
     primary = DomainProcessError('Original child failure')
     def runner(argv, **kwargs):
@@ -202,7 +212,7 @@ def test_secondary_cleanup_failure_preserves_original_and_owned_storage(tmp_path
         # Patching rmtree must target only the controller-owned outer root.
         real_rmtree = shutil.rmtree
         def targeted_rmtree(path, *args, **kwargs):
-            if Path(path) in roots:
+            if Path(path).resolve(strict=True) in roots:
                 raise PermissionError('Secondary cleanup failure')
             return real_rmtree(path, *args, **kwargs)
         if cleanup == 'workspace': injected = {'side_effect': targeted_rmtree}

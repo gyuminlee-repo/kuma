@@ -593,3 +593,32 @@ machine, native GUI behavior, or original binary distribution rights. In
 particular, Windows build-time DLL selection from ambient runner paths remains a
 separate source-provenance question even when runtime images load from the bundle.
 The new service/origin evidence requires its own exact-head native CI run.
+
+### First installed-origin execution and bounded failure evidence
+
+At `0e5c7446`, Linux and Windows completed both installed-runtime calls,
+including the synthetic AF3 service path, normal removal and exact public result
+replay. macOS stopped during the first `before_weights` origin capture with a
+`ValueError`, before network construction; its second service call did not run.
+Normal removal and controller cleanup succeeded. The available report did not
+identify the rejected origin predicate. Framework-symlink materialization is a
+source-backed candidate, not a confirmed cause or permission to relax the check.
+
+Failure schema v4 retains a nullable, bounded origin diagnostic: fixed phase and
+substage, exact owned code-object frame identifiers/line numbers, and seven
+boolean path/required-role classes from the original native snapshot. Missing
+observations remain explicitly unavailable. No arbitrary path, exception text,
+locals or second native enumeration is exported. The existing 4 KiB failure
+limit remains; only warning examples may be trimmed, with explicit truncation
+and complete counts retained. This adds failure evidence without changing origin
+acceptance, inference, process ownership or cleanup policy.
+
+The same head's full Windows suite also exposed test-fixture portability errors:
+large parametrized PDB values exceeded Windows' environment-variable limit,
+existing-directory exclusive creation raised the platform's `PermissionError`,
+and short/canonical temporary-root spellings differed in expected values and a
+cleanup-failure injection. Follow-up tests use short descriptive IDs with the
+same input bytes, preserve the directory refusal/unchanged-output assertion, and
+exercise lexical aliases against canonical identities on every platform. These
+fixture corrections do not change runtime acceptance or cleanup guards; their
+native Windows result remains subject to the next complete CI run.

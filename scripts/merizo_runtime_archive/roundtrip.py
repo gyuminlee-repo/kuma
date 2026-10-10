@@ -212,7 +212,7 @@ def read_failure(path: Path, *, schema=FAILURE_SCHEMA, line_key='runtime_entry_l
         value = strict_json(raw)
         fields = {'schema', 'error_type', 'stage', line_key, 'truncated'}
         if schema == FAILURE_SCHEMA:
-            fields.add('warning_observations')
+            fields.update({'warning_observations', 'origin_failure'})
         if (not isinstance(value, dict)
                 or set(value) != fields
                 or value['schema'] != schema or value['error_type'] not in FAILURE_ERROR_TYPES
@@ -222,6 +222,8 @@ def read_failure(path: Path, *, schema=FAILURE_SCHEMA, line_key='runtime_entry_l
             raise ValueError('Invalid diagnostic schema')
         if schema == FAILURE_SCHEMA:
             validate_warning_report(value['warning_observations'])
+            from scripts.merizo_runtime_archive.runtime_origin import validate_origin_failure
+            validate_origin_failure(value['origin_failure'])
         return {'status': 'validated', 'report': value}
     except FileNotFoundError:
         return {'status': 'missing'}
