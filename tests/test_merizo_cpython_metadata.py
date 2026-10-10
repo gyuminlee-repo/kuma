@@ -196,6 +196,27 @@ class CPythonMetadataTests(unittest.TestCase):
                 self.assertFalse((root / 'record.json').exists())
             opener.assert_not_called()
 
+    def test_opaque_bearer_grammar_is_preserved_without_format_guessing(self):
+        tokens = ('synthetic.header-payload.signature', 'SYNTHETIC_opaque~+/==', 'x' * 4096)
+        for token in tokens:
+            def opened(request, *, timeout):
+                self.assertEqual(request.get_header('Authorization'), 'Bearer ' + token)
+                return Response(request.full_url)
+            with self.subTest(length=len(token)), patch.object(origin.urllib.request, 'build_opener',
+                    return_value=Mock(open=opened)):
+                self.assertEqual(origin.fetch_metadata(METADATA_URLS[0], github_token=token), b'{}')
+
+    def test_bearer_header_injection_or_malformed_padding_is_rejected(self):
+        tokens = ('x\ny', 'x\ry', 'x\ty', 'x y', 'x\0y', 'x:y', 'x,y', 'x"y',
+                  'x\u00e9', '=padding', 'x=y', 'x==y', 'x' * 4097)
+        with patch.object(origin.urllib.request, 'Request') as request, \
+             patch.object(origin.urllib.request, 'build_opener') as opener:
+            for token in tokens:
+                with self.subTest(length=len(token)), self.assertRaises(ValueError):
+                    origin.fetch_metadata(METADATA_URLS[0], github_token=token)
+            request.assert_not_called()
+            opener.assert_not_called()
+
     def test_metadata_byte_bound_is_enforced(self):
         with patch.object(origin, 'MAX_METADATA', 1), \
              patch.object(origin.urllib.request, 'build_opener',

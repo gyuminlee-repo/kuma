@@ -57,7 +57,10 @@ def _remaining(deadline: float | None) -> float:
 def _validated_token(github_token: str | None) -> str:
     if not github_token:
         raise ValueError('CPython metadata acquisition requires the CI GitHub token')
-    if not isinstance(github_token, str) or not re.fullmatch(r'[A-Za-z0-9_]{1,4096}', github_token):
+    # Treat credentials as opaque RFC 6750 section 2.1 b64token values,
+    # not a guessed GitHub prefix/alphabet. Whitespace/control bytes stay forbidden.
+    if (not isinstance(github_token, str) or len(github_token) > 4096
+            or not re.fullmatch(r'[A-Za-z0-9._~+/-]+=*', github_token)):
         raise ValueError('Invalid CI GitHub metadata token')
     return github_token
 
