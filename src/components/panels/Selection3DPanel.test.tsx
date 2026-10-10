@@ -440,6 +440,9 @@ describe("Selection3DPanel — pLDDT mode hidden when upload source", () => {
     const toolbar = screen.getByTestId("viewer-toolbar");
     // mock t() returns key suffix: "colorPlddt" for "selection3d.colorPlddt"
     expect(toolbar.textContent).not.toContain("colorPlddt");
+    expect(screen.queryByTestId("position-table")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("dispersion-card")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("active-site-control")).not.toBeInTheDocument();
   });
 });
 

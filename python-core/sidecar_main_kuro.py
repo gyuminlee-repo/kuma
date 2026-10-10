@@ -38,6 +38,13 @@ def _emit_ready_now() -> None:
 
 
 if __name__ == "__main__":
+    # A dedicated POSIX helper owns only its optional runtime's descendants.
+    # Dispatch before ready/RPC setup so its bounded private pipe stays clean.
+    if len(sys.argv) >= 2 and sys.argv[1] == "--kuma-domain-supervisor":
+        if len(sys.argv) != 3:
+            raise SystemExit(2)
+        from kuma_core.kuro.domain_process import supervisor_main
+        raise SystemExit(supervisor_main(sys.argv[2]))
     _emit_ready_now()
     # Heavy imports happen below; the host already saw ready, so the
     # READY_TIMEOUT budget is effectively decoupled from import time.

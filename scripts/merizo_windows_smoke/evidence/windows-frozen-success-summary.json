@@ -1,0 +1,152 @@
+{
+  "evidence_kind": "Selected fields from downloaded CI artifact; full raw files identified by SHA-256",
+  "kuma_commit": "3a4b57b86bef737b9183b7898a2a45f7d000abdd",
+  "workflow_run": 38042162805,
+  "artifact_id": 11666482560,
+  "original_sha256": {
+    "frozen-windows-cpu.json": "c0079ca5640b6b9fbb3c0ea29395088af07aca74b9b5a49bdf13a350836237d7",
+    "frozen-build.json": "752e16286f78d3e1d870e17565945642d483f8943a8cf91492393eb4ec097f12",
+    "windows-cpu.json": "ceb8c88221a201c9081b8bf7b3f41aa2788bf2423ee6a7545335f4db78fffc0d"
+  },
+  "build": {
+    "status": "built",
+    "source_commit": "41d12fb84e6e8fdb586c2c859d12161dc7bb5bfd",
+    "source_directory": "D:\\a\\kuma\\kuma\\.merizo-smoke-upstream",
+    "package_directory": "D:\\a\\_temp\\merizo frozen build\\dist\\merizo-frozen-smoke",
+    "verified_before_build": true,
+    "build_timeout_seconds": 600,
+    "not_verified": [
+      "KUMA integration",
+      "distribution rights",
+      "clean machine installation"
+    ],
+    "freezer_dependencies": {
+      "pyinstaller": "6.16.0",
+      "backports.tarfile": "1.2.0",
+      "backports_tarfile_origin": "C:\\hostedtoolcache\\windows\\Python\\3.11.9\\x64\\Lib\\site-packages\\backports\\tarfile\\__init__.py",
+      "standalone_backport_verified": true
+    },
+    "weights_sha256": {
+      "weights_part_0.pt": "8b90ad1967c3e445aca7ed3d53135190ceaf8e100d68afd1543e5e8d28547151",
+      "weights_part_1.pt": "644f711b9573b44fc25a0bc0631ee9ab43f7fbd796db0a382298755057a2fa38",
+      "weights_part_2.pt": "ddafe5fa5dfa729eb8715757004d2d3e4e9798f96ea43c689e799ef91af8c2b8"
+    },
+    "source_python_sha256": {
+      "model/decoders/mask_decoder.py": "e9c899c28c352b20b05c9382ffd6e27c876be39a76a251e9810ec5d3408126b5",
+      "model/ipa/ipa_encoder.py": "ff9c65f63ebbffbee99c4ed5c2030c706a96a318f564e2f658f6975bf14d404c",
+      "model/ipa/nndef_ipa.py": "588317f185c384eae432d47aa394ca3601fb5ae925f719affef8ef601c70e3b8",
+      "model/ipa/nndef_ipa_primitives.py": "dc4db98361bffcb27fe8f58db540d04e965f2a1cd3975e3c07fb9df76ad6f0ac",
+      "model/network.py": "63d1738b16a7892ad0ad4c2342fbab59fef9616de68f75ec13003afc8d698dbe",
+      "model/posenc/alibi.py": "5c02a6ba5248fc659e763281bc79266e179af4c07094c2b669b316c94da466dc",
+      "model/utils/build_info.py": "a5af4fed8e0ad0616a9299f11f6d5867543f5b7b320b2876063238ca94b63440",
+      "model/utils/constants.py": "c6bd3a036074997815e27d6ac09da349c0217dddca305c84b96bb20c3cc815c0",
+      "model/utils/features.py": "4624980638b960ab0b666c6388808e9a6a490a88b39ba1c19030e086bb98e1f1",
+      "model/utils/frames.py": "8b542e89c00bf6751d6cfd615aeb6621b70386783c6f94f274e1c0fd242b95aa",
+      "model/utils/pdb_parser.py": "598f4b4ba1d3eaaf4a4409a1cf05128eac0e807b77dcdad326d867512caa4095",
+      "model/utils/utils.py": "12a0045dc1464929eb5f6447a9b105397845dbf6551f0b75e271f34da52ac0d2",
+      "predict.py": "844a61be5603f1471d9d25d95a0a5d5bacd2fe766432c6d73159f8feeda1b883"
+    },
+    "own_harness_sha256": {
+      "run.py": "a827d38957bbb588d576b12173cc17759ddbecd4301d477590276e5d66dc717f",
+      "frozen_entry.py": "f1a84fda98d0abd71aa4229fdf296d05491a183ff49b26da410baaaed043771a",
+      "build_frozen.py": "47f04841d1816bef2e9f706b130c6c960f8c604f314bdf78aefa7ebef8cbdfa0",
+      "run_frozen.ps1": "37c0405387554efe265a5f601093b7105e312e3ca8def101d5ce0f5018c5c9df",
+      "freezer-requirements.txt": "ec9e976bd500154cae7e583d2defb4cdfcf35dec4692ebd9914ae3c4dce4159c"
+    },
+    "pyinstaller": "6.16.0",
+    "frozen_bootstrap_imports": {
+      "verified": true,
+      "embedded_pyz": [
+        "PYZ.pyz"
+      ],
+      "required_modules": [
+        "backports",
+        "backports.tarfile"
+      ],
+      "collected_modules": [
+        "backports",
+        "backports.tarfile"
+      ]
+    },
+    "package_bytes": 716440262,
+    "package_file_count": 1806,
+    "entry_executable": "D:\\a\\_temp\\merizo frozen build\\dist\\merizo-frozen-smoke\\merizo-frozen-smoke.exe",
+    "elapsed_seconds": 77.4601853
+  },
+  "execution": {
+    "status": "passed",
+    "scope": "frozen_native_windows_cpu_public_fixture_smoke_only",
+    "timeout_seconds": 300,
+    "source_removed": true,
+    "process_started": true,
+    "job_assigned_before_inference": true,
+    "process_tree_termination_verified": true,
+    "runtime_directory_removed": true,
+    "system_python_physically_removed": false,
+    "not_verified": [
+      "absence of system Python installation",
+      "KUMA integration",
+      "native GUI",
+      "installer",
+      "redistribution rights",
+      "biological accuracy"
+    ],
+    "source_commit": "41d12fb84e6e8fdb586c2c859d12161dc7bb5bfd",
+    "weights_sha256": {
+      "weights_part_1.pt": "644f711b9573b44fc25a0bc0631ee9ab43f7fbd796db0a382298755057a2fa38",
+      "weights_part_2.pt": "ddafe5fa5dfa729eb8715757004d2d3e4e9798f96ea43c689e799ef91af8c2b8",
+      "weights_part_0.pt": "8b90ad1967c3e445aca7ed3d53135190ceaf8e100d68afd1543e5e8d28547151"
+    },
+    "input_sha256": "d4a6812d8951cf6594e6a0763f089e35f5a80b62acb3c117b2c5565228a7b161",
+    "package_bytes": 716440262,
+    "package_file_count": 1806,
+    "working_directory_has_spaces": true,
+    "working_directory_outside_repository_source_package": true,
+    "sanitized_env": {
+      "path": "C:\\Windows\\system32;C:\\Windows",
+      "permitted_names": [
+        "APPDATA",
+        "COMSPEC",
+        "CUDA_VISIBLE_DEVICES",
+        "HOME",
+        "KUMA_MERIZO_START_GATE",
+        "LOCALAPPDATA",
+        "MKL_NUM_THREADS",
+        "MPLBACKEND",
+        "MPLCONFIGDIR",
+        "NUMBER_OF_PROCESSORS",
+        "OMP_NUM_THREADS",
+        "OPENBLAS_NUM_THREADS",
+        "OS",
+        "PATH",
+        "PROCESSOR_ARCHITECTURE",
+        "PROCESSOR_IDENTIFIER",
+        "SystemRoot",
+        "TEMP",
+        "TMP",
+        "TORCH_HOME",
+        "USERPROFILE",
+        "WINDIR",
+        "XDG_CACHE_HOME"
+      ],
+      "inherited_environment_cleared": true,
+      "python_environment_names_removed": [
+        "CONDA",
+        "Python_ROOT_DIR",
+        "Python2_ROOT_DIR",
+        "Python3_ROOT_DIR",
+        "PYTHONDONTWRITEBYTECODE",
+        "pythonLocation"
+      ],
+      "temporary_user_and_cache_directories": true,
+      "python_environment_variables_present": []
+    },
+    "sampled_peak_working_set_bytes": 1082548224,
+    "process_peak_working_set_bytes": 1144422400,
+    "peak_working_set_bytes": 1144422400,
+    "exit_code": 0,
+    "stdout_characters_drained": 0,
+    "stderr_characters_drained": 0,
+    "elapsed_seconds": 9.958
+  }
+}

@@ -397,7 +397,14 @@ export async function applyKuroSnapshot(
   const input = snapshot.input as Record<string, unknown> | undefined;
   const params = snapshot.parameters as Record<string, unknown> | undefined;
   const diversity = snapshot.diversity as Record<string, unknown> | undefined;
-  const patch: Partial<AppState> = {};
+  // Strict selection certificates are session-only and cannot certify restored files.
+  const patch: Partial<AppState> = {
+    strictSpatialEnabled: false, strictSpatialSelection: null, strictSpatialError: null,
+    strictSpatialBudgetMode: "unique_sites", strictSpatialSiteCap: null,
+    strictStructureSource: "accession", predictionBundlePath: "", predictionBundleInventory: null,
+    predictionBundleModelId: null, predictionBundleChainId: null, predictionBundleLoading: false,
+    predictionBundleError: null, predictionBundleRevision: useAppStore.getState().predictionBundleRevision + 1,
+  };
 
   // input
   if (isMutationInputMode(input?.mutation_input_mode)) {

@@ -1,3 +1,5 @@
+import { domainAnnotationContextKey } from "../lib/domainAnnotation";
+import { createDomainAnnotationSlice } from "./slices/domainAnnotationSlice";
 import { create } from "zustand";
 import { setProgressHandler } from "../lib/ipc-kuro";
 import { createSequenceSlice } from "./slices/sequenceSlice";
@@ -40,6 +42,7 @@ export const useAppStore = create<AppState>()((...a) => {
   return {
     ...createSequenceSlice(...a),
     ...createDiversitySlice(...a),
+    ...createDomainAnnotationSlice(...a),
     ...createInputSlice(...a),
     ...createDesignSlice(...a),
     ...createExportSlice(...a),
@@ -69,4 +72,9 @@ useAppStore.subscribe((state, prevState) => {
       recordRunDuration(job.kind, duration);
     }
   }
+});
+
+// Reference/source changes invalidate annotations immediately, including hidden panels.
+useAppStore.subscribe((state, previous) => {
+  if (domainAnnotationContextKey(state) !== domainAnnotationContextKey(previous)) state.resetDomainAnnotation();
 });
