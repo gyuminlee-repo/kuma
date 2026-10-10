@@ -22,6 +22,19 @@ for (const file of ["merizo-platform-smoke.yml", "merizo-windows-smoke.yml"]) {
       expect(matching).toHaveLength(1);
       expect(matching[0].run?.trim()).toBe(command);
     });
+    it("scopes the existing read-only metadata token to preparation only", () => {
+      const document = yaml.load(source) as {
+        permissions: Record<string, string>;
+        jobs: Record<string, { steps: Array<{ name?: string; env?: Record<string, string> }> }>;
+      };
+      expect(document.permissions).toEqual({ contents: "read" });
+      const steps = Object.values(document.jobs).flatMap((job) => job.steps);
+      const scoped = steps.filter((step) => step.env?.KUMA_GITHUB_METADATA_TOKEN);
+      expect(scoped).toHaveLength(1);
+      expect(scoped[0].name).toBe("Prepare candidate archive input evidence (no distribution)");
+      expect(scoped[0].env?.KUMA_GITHUB_METADATA_TOKEN).toBe("${{ github.token }}");
+      expect(source.split("${{ github.token }}")).toHaveLength(2);
+    });
     it("rejects the original colon-space plain-scalar regression", () => {
       expect(source.split(block)).toHaveLength(2);
       const original = source.replace(block, `        run: ${command}`);

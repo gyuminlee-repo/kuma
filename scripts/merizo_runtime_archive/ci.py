@@ -11,6 +11,7 @@ import time
 
 from kuma_core.kuro.domain_process import run_managed_process
 from scripts.merizo_runtime_archive.common import read_regular, strict_json, write_json
+from scripts.merizo_runtime_archive.cpython_origin import acquire as acquire_cpython_origin
 
 
 def target() -> str:
@@ -23,8 +24,12 @@ def target() -> str:
 
 
 def run(source: Path, evidence: Path, task_directory: Path) -> int:
+    # This step-scoped existing CI token never enters a generated driver or child.
+    github_token = os.environ.pop("KUMA_GITHUB_METADATA_TOKEN", None)
     if os.environ.get("GITHUB_ACTIONS") != "true":
         raise ValueError("Candidate archive execution is restricted to the internal CI audit")
+    if not github_token:
+        raise ValueError("Missing step-scoped GitHub metadata token")
     project = Path(__file__).resolve().parents[2]
     source = source.resolve(strict=True)
     evidence = evidence.resolve()
@@ -117,14 +122,22 @@ def run(source: Path, evidence: Path, task_directory: Path) -> int:
             '--no-cache-dir', '--no-index', '--require-hashes', '--only-binary=:all:',
             '--find-links', str(wheelhouse), '-r', str(requirements)])
         origin = evidence / 'archive-cpython-origin.json'
-        args = [sys.executable, '-m', 'scripts.merizo_runtime_archive.cpython_origin', '--output', str(origin),
-                '--payload-directory', str(task_directory / 'cpython-origin')]
-        if report['target'] == 'linux-x64':
-            args += ['--runner-platform-version', '22.04']
-        command('acquire_cpython_origin_bytes', args)
+        # Metadata credentials stay in this controller only. The acquisition has
+        # its own deadline and the preparation step retains its 10-minute cap.
+        before = time.monotonic()
+        try:
+            acquire_cpython_origin(origin, task_directory / 'cpython-origin',
+                runner_platform_version='22.04' if report['target'] == 'linux-x64' else None,
+                github_token=github_token)
+        except Exception:
+            report['steps'].append({'name': 'acquire_cpython_origin_bytes', 'passed': False,
+                                    'seconds': time.monotonic() - before})
+            raise
+        report['steps'].append({'name': 'acquire_cpython_origin_bytes', 'passed': True,
+                                'seconds': time.monotonic() - before})
         report['status'] = 'prepared'
     except Exception as exc:
-        report['error'] = f'{type(exc).__name__}: {exc}'[:4000]
+        report['error'] = f'{type(exc).__name__}: {exc}'.replace(github_token, '[redacted]')[:4000]
     finally:
         if report['status'] != 'prepared':
             try:
@@ -132,7 +145,7 @@ def run(source: Path, evidence: Path, task_directory: Path) -> int:
                 report['payloads_removed'] = not task_directory.exists()
             except Exception as exc:
                 report['status'] = 'failed'
-                report['cleanup_error'] = f'{type(exc).__name__}: {exc}'[:1000]
+                report['cleanup_error'] = f'{type(exc).__name__}: {exc}'.replace(github_token, '[redacted]')[:1000]
         report['seconds'] = time.monotonic() - started
         write_json(evidence / 'archive-ci.json', report)
     return 0 if report['status'] == 'prepared' else 1

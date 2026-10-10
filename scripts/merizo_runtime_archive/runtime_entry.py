@@ -16,6 +16,8 @@ from pathlib import Path
 import platform
 import re
 import sys
+import sysconfig
+import struct
 import tempfile
 import time
 import warnings
@@ -146,8 +148,20 @@ def validate_features(features: dict, prepared: DomainInput, features_module, to
             'ca_coordinates': coordinates}
 
 
+def expected_cpu_torch() -> str | None:
+    system = platform.system()
+    if system == 'Windows':
+        # CPython 3.11 platform.machine() reads PROCESSOR_* environment values,
+        # deliberately absent from managed jobs. get_platform() instead reads
+        # the interpreter's compiled sys.version identity on Windows.
+        if sysconfig.get_platform() != 'win-amd64' or struct.calcsize('P') != 8:
+            return None
+        return CPU_TORCH[('Windows', 'AMD64')]
+    return CPU_TORCH.get((system, platform.machine()))
+
+
 def infer(prepared: DomainInput, source: Path, weights: Path) -> dict:
-    expected_torch = CPU_TORCH.get((platform.system(), platform.machine()))
+    expected_torch = expected_cpu_torch()
     if expected_torch is None or sys.version_info[:2] != (3, 11):
         raise ValueError('Unsupported CPU architecture or Python ABI')
     # Verification is completed by the caller before any of these imports.

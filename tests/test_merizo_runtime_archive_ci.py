@@ -12,6 +12,8 @@ from scripts.merizo_runtime_archive import ci
 @pytest.fixture(autouse=True)
 def internal_ci_marker(monkeypatch):
     monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    monkeypatch.setenv("KUMA_GITHUB_METADATA_TOKEN", "dummy_ci_metadata_token")
+    monkeypatch.setattr(ci, "acquire_cpython_origin", lambda *args, **kwargs: {})
 
 
 def test_archive_ci_prepares_bounded_inputs_without_nesting_build_supervisors(tmp_path):
@@ -40,7 +42,7 @@ def test_archive_ci_prepares_bounded_inputs_without_nesting_build_supervisors(tm
     report = json.loads((evidence / 'archive-ci.json').read_text())
     assert report['status'] == 'prepared' and not report['payloads_removed']
     assert not report['distribution_cleared']
-    assert len(commands) == 5
+    assert len(commands) == 4
     assert '--require-hashes' in commands[3] and '--no-index' in commands[3]
     assert all('scripts.merizo_runtime_archive.build' not in command for command in commands)
     assert source.exists() and task.exists()
@@ -69,10 +71,11 @@ def test_cleanup_failure_cannot_report_success(tmp_path):
     assert 'cleanup_error' in report and task.exists()
 
 
-def test_existing_or_overlapping_directory_is_never_deleted(tmp_path):
+def test_existing_or_overlapping_directory_is_never_deleted(tmp_path, monkeypatch):
     source = tmp_path / 'source'
     source.mkdir()
     for task, evidence in ((source, tmp_path / 'evidence'), (source / 'nested', tmp_path / 'evidence'), (tmp_path / 'new', tmp_path / 'new' / 'evidence')):
+        monkeypatch.setenv('KUMA_GITHUB_METADATA_TOKEN', 'dummy_ci_metadata_token')
         with pytest.raises(ValueError, match='fresh task directory'):
             ci.run(source, evidence, task)
     assert source.exists()
@@ -207,3 +210,40 @@ def test_readonly_git_object_is_copied_as_deletable_bytes_without_mutating_sourc
         assert original.read_bytes() == b'synthetic pinned object bytes'
     finally:
         original.chmod(stat.S_IREAD | stat.S_IWRITE)
+
+
+def test_metadata_token_is_controller_only_and_error_is_redacted(tmp_path, monkeypatch):
+    import os
+    source, evidence, task = tmp_path / 'source', tmp_path / 'evidence', tmp_path / 'task'
+    source.mkdir()
+    token = 'dummy_ci_metadata_token'
+    seen = []
+    def runner(argv, **kwargs):
+        assert 'KUMA_GITHUB_METADATA_TOKEN' not in os.environ
+        script = Path(argv[2]).read_text()
+        assert token not in script and token not in str(argv) and token not in str(kwargs)
+        seen.append(script)
+        kwargs['result_path'].write_text('{}')
+    def acquire(*args, **kwargs):
+        assert 'KUMA_GITHUB_METADATA_TOKEN' not in os.environ
+        assert kwargs['github_token'] == token
+        assert len(seen) == 4
+        raise RuntimeError('simulated request header Authorization: Bearer ' + token)
+    monkeypatch.setattr(ci, 'acquire_cpython_origin', acquire)
+    with patch.object(ci, 'run_managed_process', runner):
+        assert ci.run(source, evidence, task) == 1
+    raw = (evidence / 'archive-ci.json').read_text()
+    assert token not in raw and '[redacted]' in raw
+    report = json.loads(raw)
+    assert report['status'] == 'failed' and report['payloads_removed']
+    assert report['steps'][-1]['name'] == 'acquire_cpython_origin_bytes'
+    assert report['steps'][-1]['passed'] is False
+    assert not task.exists()
+
+
+def test_missing_step_metadata_token_refuses_before_any_child(tmp_path, monkeypatch):
+    monkeypatch.delenv('KUMA_GITHUB_METADATA_TOKEN')
+    with patch.object(ci, 'run_managed_process') as runner:
+        with pytest.raises(ValueError, match='Missing step-scoped'):
+            ci.run(tmp_path, tmp_path / 'reports', tmp_path / 'task')
+    runner.assert_not_called()

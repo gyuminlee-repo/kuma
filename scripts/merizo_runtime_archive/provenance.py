@@ -83,14 +83,17 @@ def verify_source(source: Path) -> dict:
 
 
 def _wheel_destination(member: str) -> tuple[str, str]:
-    parts = member.split('/')
-    if len(parts) > 2 and parts[0].endswith('.data'):
+    parts = safe_member(member).split('/')
+    if parts[0].endswith('.data'):
+        if len(parts) < 3:
+            raise ValueError('Malformed wheel .data member')
         if parts[1] in {'purelib', 'platlib'}:
             return 'site', '/'.join(parts[2:])
-        if parts[1] == 'scripts':
-            return 'scripts', '/'.join(parts[2:])
-        # Real installation-scheme mapping is required for this uncommon case.
-        raise ValueError('Unimplemented wheel .data installation scheme')
+        if parts[1] in {'scripts', 'data'}:
+            return parts[1], '/'.join(parts[2:])
+        # Headers use pip-specific per-distribution paths, not simply include.
+        # Refuse unimplemented schemes rather than guessing an installation root.
+        raise ValueError(f'Unimplemented wheel .data installation scheme: {member}')
     return 'site', member
 
 
@@ -129,9 +132,22 @@ def installed_provenance(lock_path: Path, wheelhouse: Path) -> dict:
         rows = {}
         for member in members:
             scheme, relative = _wheel_destination(member['member'])
-            actual = (Path(sysconfig.get_path('scripts')) / relative if scheme == 'scripts'
-                      else Path(str(distribution.locate_file(relative)))).resolve()
-            rows[str(actual)] = member
+            if scheme in {'scripts', 'data'}:
+                # pip 25.2's default venv scheme uses sysconfig's scripts/data
+                # roots. No --user, --prefix, --target or --root install is used.
+                scheme_root = Path(sysconfig.get_path(scheme))
+                if not scheme_root.is_absolute() or not scheme_root.resolve().is_relative_to(Path(sys.prefix).resolve()):
+                    raise ValueError('Wheel installation scheme escapes isolated environment')
+                actual = (scheme_root / relative).resolve()
+                if not actual.is_relative_to(scheme_root.resolve()):
+                    raise ValueError('Wheel member escapes its installation scheme')
+            else:
+                actual = Path(str(distribution.locate_file(relative))).resolve()
+            if not actual.is_relative_to(Path(sys.prefix).resolve()):
+                raise ValueError('Wheel member destination escapes isolated environment')
+            if str(actual) in rows:
+                raise ValueError('Wheel members have colliding installed destinations')
+            rows[str(actual)] = {**member, 'installation_scheme': scheme}
         for entry in installed_files:
             actual = Path(str(distribution.locate_file(entry))).resolve()
             if not actual.is_relative_to(Path(sys.prefix).resolve()) or not actual.is_file():
@@ -150,6 +166,7 @@ def installed_provenance(lock_path: Path, wheelhouse: Path) -> dict:
             if original:
                 record['wheel_member'] = original['member']
                 record['wheel_member_sha256'] = original['sha256']
+                record['wheel_installation_scheme'] = original['installation_scheme']
                 if checksum == original['sha256']:
                     record['mapping'] = 'exact_wheel_member'
                 elif (original['member'].count('/') == 1

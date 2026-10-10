@@ -27,6 +27,34 @@ ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / 'tests/data/domain_annotation/1ubq.pdb'
 
 
+class RuntimeArchitectureTests(unittest.TestCase):
+    def test_windows_compiled_abi_survives_removed_processor_environment(self):
+        with patch.object(runtime_entry.platform, 'system', return_value='Windows'), \
+             patch.object(runtime_entry.platform, 'machine', return_value=''), \
+             patch.object(os, 'name', 'nt'), \
+             patch.object(runtime_entry.sys, 'version', '3.11.9 (synthetic) [MSC v.1938 64 bit (AMD64)]'), \
+             patch.object(runtime_entry.struct, 'calcsize', return_value=8), \
+             patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(runtime_entry.expected_cpu_torch(), '2.0.1+cpu')
+
+    def test_windows_unsupported_build_or_pointer_width_remains_rejected(self):
+        for build, width in (('win32', 4), ('win-arm64', 8), ('win-amd64', 4), ('unknown', 8)):
+            with self.subTest(build=build, width=width), \
+                 patch.object(runtime_entry.platform, 'system', return_value='Windows'), \
+                 patch.object(runtime_entry.platform, 'machine', return_value='AMD64'), \
+                 patch.object(runtime_entry.sysconfig, 'get_platform', return_value=build), \
+                 patch.object(runtime_entry.struct, 'calcsize', return_value=width):
+                self.assertIsNone(runtime_entry.expected_cpu_torch())
+
+    def test_posix_machine_contract_is_unchanged(self):
+        for system, machine, expected in (('Linux', 'x86_64', '2.0.1+cpu'),
+                ('Darwin', 'arm64', '2.0.1'), ('Linux', 'aarch64', None), ('Darwin', 'x86_64', None)):
+            with self.subTest(system=system, machine=machine), \
+                 patch.object(runtime_entry.platform, 'system', return_value=system), \
+                 patch.object(runtime_entry.platform, 'machine', return_value=machine):
+                self.assertEqual(runtime_entry.expected_cpu_torch(), expected)
+
+
 class PreparedInputTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -278,6 +306,93 @@ class WheelRecordTests(unittest.TestCase):
             for name, data in values.items():
                 archive_file.writestr(name, data)
         return path
+
+    def data_installation(self, root, *, extra_payload=None):
+        from importlib.metadata import PathDistribution
+        data_member = 'sample-1.data/data/share/man/man1/sample.1'
+        payload = {data_member: b'synthetic manual page\n',
+                   'sample-1.dist-info/METADATA': b'Metadata-Version: 2.1\nName: sample\nVersion: 1\n'}
+        payload.update(extra_payload or {})
+        wheel = self.wheel(root, payload=payload)
+        prefix = root / 'venv'
+        site = prefix / 'lib/python3.11/site-packages'
+        with zipfile.ZipFile(wheel) as zipped:
+            for name in zipped.namelist():
+                destination = (prefix / name.removeprefix('sample-1.data/data/')
+                               if name.startswith('sample-1.data/data/') else site / name)
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(zipped.read(name))
+        owner = site / 'sample-1.dist-info/RECORD'
+        rows = []
+        for path in sorted(prefix.rglob('*')):
+            if path.is_file() and path != owner:
+                data = path.read_bytes()
+                checksum = base64.urlsafe_b64encode(hashlib.sha256(data).digest()).decode().rstrip('=')
+                rows.append([os.path.relpath(path, site).replace(os.sep, '/'), 'sha256=' + checksum, str(len(data))])
+        rows.append(['sample-1.dist-info/RECORD', '', ''])
+        text = io.StringIO()
+        csv.writer(text, lineterminator='\n').writerows(rows)
+        owner.write_text(text.getvalue(), encoding='utf-8', newline='\n')
+        lock = root / 'lock.json'
+        write_json(lock, {'schema': 'kuma-merizo-input-lock-v1', 'wheels': [
+            {'name': 'sample', 'version': '1', 'filename': wheel.name,
+             'url': 'https://files.pythonhosted.org/' + wheel.name,
+             'sha256': digest(wheel), 'size': wheel.stat().st_size}]})
+        return lock, prefix, PathDistribution(site / 'sample-1.dist-info'), data_member
+
+    def test_data_scheme_maps_manual_page_to_verified_venv_bytes(self):
+        from scripts.merizo_runtime_archive import provenance
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            lock, prefix, distribution, member = self.data_installation(root)
+            with patch.object(provenance.importlib.metadata, 'distributions', return_value=[distribution]), \
+                 patch.object(provenance.sys, 'prefix', str(prefix)), \
+                 patch.object(provenance.sysconfig, 'get_path', return_value=str(prefix)) as scheme:
+                report = provenance.installed_provenance(lock, root)
+                scheme.assert_called_once_with('data')
+                row = next(row for row in report['installed_files'] if row.get('wheel_member') == member)
+                installed = prefix / 'share/man/man1/sample.1'
+                self.assertEqual(row['path'], str(installed))
+                self.assertEqual(row['mapping'], 'exact_wheel_member')
+                self.assertEqual(row['wheel_installation_scheme'], 'data')
+                self.assertEqual(row['wheel_member_sha256'], digest(installed))
+                self.assertEqual(row['owner'], 'sample')
+                self.assertFalse(report['unresolved'])
+                installed.write_bytes(b'tampered documentation\n')
+                with self.assertRaisesRegex(ValueError, 'Installed RECORD digest differs'):
+                    provenance.installed_provenance(lock, root)
+
+    def test_data_scheme_rejects_outside_or_relative_root(self):
+        from scripts.merizo_runtime_archive import provenance
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            lock, prefix, distribution, _ = self.data_installation(root)
+            for scheme_root in (str(root / 'outside'), 'relative-data'):
+                with self.subTest(scheme_root=scheme_root), \
+                     patch.object(provenance.importlib.metadata, 'distributions', return_value=[distribution]), \
+                     patch.object(provenance.sys, 'prefix', str(prefix)), \
+                     patch.object(provenance.sysconfig, 'get_path', return_value=scheme_root), \
+                     self.assertRaisesRegex(ValueError, 'scheme escapes isolated environment'):
+                    provenance.installed_provenance(lock, root)
+
+    def test_data_and_root_members_cannot_collide_after_installation(self):
+        from scripts.merizo_runtime_archive import provenance
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            lock, prefix, distribution, _ = self.data_installation(root, extra_payload={
+                'sample-1.data/data/lib/python3.11/site-packages/sample.py': b'colliding source\n'})
+            with patch.object(provenance.importlib.metadata, 'distributions', return_value=[distribution]), \
+                 patch.object(provenance.sys, 'prefix', str(prefix)), \
+                 patch.object(provenance.sysconfig, 'get_path', return_value=str(prefix)), \
+                 self.assertRaisesRegex(ValueError, 'colliding installed destinations'):
+                provenance.installed_provenance(lock, root)
+
+    def test_unknown_malformed_or_traversing_data_schemes_remain_refused(self):
+        from scripts.merizo_runtime_archive import provenance
+        for member in ('sample-1.data/headers/sample.h', 'sample-1.data/unknown/file',
+                       'sample-1.data/data', 'sample-1.data/data/../escape'):
+            with self.subTest(member=member), self.assertRaises(ValueError):
+                provenance._wheel_destination(member)
 
     def test_record_verified_against_every_original_byte(self):
         with tempfile.TemporaryDirectory() as directory:

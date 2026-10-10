@@ -37,6 +37,9 @@ new archive. No current archive measurements are inferred from those reports.
   shipped as individually hashed `.py` data; duplicate compiled upstream modules
   are removed from PYZ to prevent an unchecked alternate import. Prediction is
   decoded against the exact app contract before atomic success publication.
+  Windows target validation uses the interpreter's compiled `win-amd64` identity
+  and 64-bit pointer width, so it does not depend on removed `PROCESSOR_*`
+  environment variables. Other supported OS/architecture pairs remain exact.
   It never downloads or automatically installs anything.
 - `archive.py` safely materializes in-bundle aliases, rejects escapes, cycles,
   reparse points/special files and path collisions, and applies the registry's
@@ -440,6 +443,21 @@ legal clearance. No external contact is needed for this design step.
 another managed process: nested POSIX helpers would create an outer-timeout
 ownership gap. The workflow invokes the isolated environment's build module
 directly, and that controller owns the compiler and installed-runtime children.
+
+The preparation step supplies only its existing `contents: read` ephemeral
+GitHub token to the CI controller. The controller removes that environment
+entry before spawning any installation/build child and retains it only in memory
+for three fixed public `actions/python-versions` metadata GETs. That dedicated
+helper rejects redirects and noncanonical/unapproved API URLs before attaching
+credentials. Generic wheel/raw/release-binary/python.org fetches remain
+unauthenticated. No token is written to drivers, arguments, reports, or error
+text; no new secret, permission, fallback, or 403 retry is introduced.
+
+CPython acquisition now runs in the controller, with a 300-second cooperative
+acquisition deadline and bounded network reads. This is not the former child
+process watchdog: DNS/header setup cannot promise a strict portable wall-clock
+limit. The existing 10-minute preparation workflow step remains the hard bound;
+forced cancellation without cleanup proof stays unverified as described below.
 
 Only after supervised calls and its `finally` does the controller write
 `execution_controller_completed: true` in the final audit. The sequential

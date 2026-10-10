@@ -90,6 +90,8 @@ jobs:
         run: python scripts/merizo_windows_smoke/build_frozen.py --source .merizo-smoke-upstream --output-directory "${{ runner.temp }}/merizo frozen build" --evidence merizo-smoke-results/frozen-build.json
       - name: Prepare candidate archive input evidence (no distribution)
         timeout-minutes: 10
+        env:
+          KUMA_GITHUB_METADATA_TOKEN: ${{ github.token }}
         run: python -m scripts.merizo_runtime_archive.ci --source .merizo-smoke-upstream --evidence-directory merizo-smoke-results --task-directory "${{ runner.temp }}/merizo archive audit"
       - name: Run direct archive build controller and installed CPU entry
         timeout-minutes: 20
