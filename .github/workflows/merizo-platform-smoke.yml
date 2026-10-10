@@ -4,9 +4,9 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/merizo-platform-smoke.yml'
-      - 'scripts/merizo_windows_smoke/run.py'
-      - 'scripts/merizo_windows_smoke/requirements.txt'
+      - 'scripts/merizo_windows_smoke/**'
       - 'tests/test_merizo_platform_smoke.py'
+      - 'tests/test_merizo_posix*.py'
       - 'tests/test_merizo_windows_smoke.py'
   workflow_dispatch:
 permissions:
@@ -27,7 +27,7 @@ jobs:
             target: macos-arm64
             machine: arm64
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 15
+    timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
       MPLBACKEND: Agg
@@ -69,26 +69,53 @@ jobs:
         run: |
           python -m unittest discover -s tests -p 'test_merizo_windows_smoke.py' -v
           python -m unittest discover -s tests -p 'test_merizo_platform_smoke.py' -v
+          python -m unittest discover -s tests -p 'test_merizo_posix*.py' -v
       - name: Run one fixed public fixture with 300 second process limit
         timeout-minutes: 6
         run: python scripts/merizo_windows_smoke/run.py --source .merizo-smoke-upstream --fixture tests/data/domain_annotation/1ubq.pdb --output merizo-smoke-results/${{ matrix.target }}.json
+      - name: Install fixed freezing tools (CI-only)
+        run: python -m pip install --disable-pip-version-check -r scripts/merizo_windows_smoke/freezer-requirements.txt
+      - name: Build temporary POSIX onedir after verifying official pins
+        timeout-minutes: 12
+        run: python scripts/merizo_windows_smoke/build_frozen_posix.py --source .merizo-smoke-upstream --output-directory "${{ runner.temp }}/merizo posix build" --evidence merizo-smoke-results/frozen-build.json
+      - name: Remove original source before isolated executable run
+        run: |
+          python - <<'PYTHON'
+          from pathlib import Path
+          import shutil
+          source = Path('.merizo-smoke-upstream')
+          assert source.is_dir(), 'Expected task-only source is missing'
+          shutil.rmtree(source)
+          assert not source.exists(), 'Source cleanup failed'
+          PYTHON
+      - name: Run packaged executable with an empty private command path
+        timeout-minutes: 7
+        run: python scripts/merizo_windows_smoke/run_frozen_posix.py --package-directory "${{ runner.temp }}/merizo posix build/dist/merizo-frozen-smoke" --fixture tests/data/domain_annotation/1ubq.pdb --result-directory merizo-smoke-results --pin-report merizo-smoke-results/frozen-build.json
       - name: Preserve small result only (never models or runtime)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: merizo-${{ matrix.target }}-result
-          path: merizo-smoke-results/${{ matrix.target }}.json
+          path: |
+            merizo-smoke-results/${{ matrix.target }}.json
+            merizo-smoke-results/frozen-build.json
+            merizo-smoke-results/frozen-posix-cpu.json
           if-no-files-found: warn
           retention-days: 7
-      - name: Remove task-only upstream source and weights
+      - name: Remove task-only source, weights and frozen package
         if: always()
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
           import shutil
+          import os
           source = Path('.merizo-smoke-upstream')
           if source.exists():
               shutil.rmtree(source)
           assert not source.exists(), 'Task-only source cleanup failed'
+          build = Path(os.environ['RUNNER_TEMP']) / 'merizo posix build'
+          if build.exists():
+              shutil.rmtree(build)
+          assert not build.exists(), 'Task-only package cleanup failed'
           PY

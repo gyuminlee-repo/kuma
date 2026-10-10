@@ -23,7 +23,7 @@ sequence, prediction service, or user-machine access is used.
   pinned; transitive dependencies and hosted runner images are not fully locked.
 - All native probes use one CPU thread and a 300-second whole-inference
   process limit. The Windows native/frozen job has a 30-minute limit; the
-  Linux/macOS native jobs each have a 15-minute limit. Native results do not
+  Linux/macOS native/frozen jobs each have a 30-minute limit. Native results do not
   validate packaging, native GUI, cancellation in KUMA, or an end-user installer.
 
 ## What the smoke validates
@@ -171,12 +171,50 @@ runner label. Official torch 2.0.1 has a [CPython 3.11 macOS arm64 wheel](https:
 [GitHub's standard runner table](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
 identifies `macos-14` as arm64. CPU execution is explicit on both platforms;
 macOS uses version `2.0.1` and Linux uses the official `2.0.1+cpu` wheel.
-No CUDA/MPS execution, Intel Mac claim, or additional frozen packaging is added.
+No CUDA/MPS execution or Intel Mac claim is added. Native execution alone does
+not verify a standalone package.
 
-These two native jobs are unverified until their exact-head executions pass.
+Both native jobs passed at `93db07396bd98a1c63841ddb683e1dbe64201066` in
+[workflow 38043729900](https://github.com/gyuminlee-repo/kuma/actions/runs/38043729900).
+Linux x86-64 (Python 3.11.17) took 1.647 s and macOS 14.8.9 arm64
+(Python 3.11.9) took 5.095 s for the measured model-load/inference region.
+All source/weight/input/normalized hashes, 602 atoms, 76 residue mappings and
+labels matched Windows: domain 1–73 and unassigned 74–76. Small floating-point
+confidence differences were retained; these are not biological probabilities.
 They retain the same source/weight/input hashes and sequence/coordinate guards,
-use no user input, upload only one small result JSON each, and remove the
+use no user input, retain a small native result JSON each, and remove the
 upstream checkout and weights even on failure. The pinned old dependency set
 remains an experimental compatibility baseline. Product integration, signed
 installers, clean-machine installation, security maintenance, and redistribution
 clearance remain separate gates on every platform.
+
+
+## Bounded POSIX frozen experiments (not yet executed)
+
+The same Linux x86-64/macOS arm64 jobs can now create a temporary PyInstaller
+6.16 onedir and execute it once after removing the original upstream checkout.
+The test reuses the exact source, model, fixture and direct CPU inference path.
+No installer, binary, model, runtime, or third-party source is uploaded; artifacts
+are limited to the native result, `frozen-build.json`, and `frozen-posix-cpu.json`.
+The build budget is 600 seconds; executable budget is 300 seconds with bounded
+process-group termination/reaping. A new private directory supplies HOME,
+caches, working directory and an empty command-search PATH. The supervisor may
+use CI's Python; only the frozen child's independence is being tested.
+
+The executable reports its own bundled Python, module and native library
+origins before model loading and after inference. Linux audits executable
+file-backed `/proc/self/maps` mappings. macOS audits dyld image paths, allowing
+specified OS frameworks/shared-cache libraries while requiring Python/Torch
+libraries inside the bundle. External Python, Homebrew, original checkout and
+other undeclared library paths fail closed. This verifies observed loads, not a
+sandbox against a malicious program or proof that system Python was uninstalled.
+
+POSIX onedir symlinks are accepted only when their resolved targets remain
+inside the bundle. Package size counts unique regular-file inodes once and
+reports symlinks separately; it is not compressed download size. The macOS build
+uses arm64 explicitly and PyInstaller's automatic ad-hoc signing, without a
+Developer ID, notarization, or release signing. Linux glibc remains an OS
+requirement. These experiments do not establish portability to older OS versions,
+clean-user-machine installation, GUI integration, security maintenance, or
+redistribution clearance. An unexpected dependency is a failed test to diagnose,
+not a reason to broadly relax library-origin checks or add upstream patches.
