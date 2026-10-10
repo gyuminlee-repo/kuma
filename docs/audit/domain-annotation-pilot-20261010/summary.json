@@ -1,0 +1,49 @@
+{
+  "date_utc": "2026-10-10",
+  "scope": "one public Linux CPU integration fixture; not model accuracy or native GUI validation",
+  "source": "https://files.rcsb.org/download/1UBQ.pdb",
+  "selected_model": "1",
+  "selected_chain": "A",
+  "reference_evidence": "independent SEQRES complete polymer, 76 residues",
+  "atom_records_preserved": 602,
+  "native_wrapper_exit": 0,
+  "native_wrapper_stderr": "",
+  "native_stride_exit": 0,
+  "native_stride_asg_count": 76,
+  "domains": 1,
+  "chopping": "2-71",
+  "assigned_residues": 70,
+  "total_residues": 76,
+  "unassigned_positions": [
+    1,
+    72,
+    73,
+    74,
+    75,
+    76
+  ],
+  "runtime": "Python3.11.17 / torch2.0.1+cpu; explicit CPU/thread1; versions and source/weights hashes in result",
+  "failure_probes": [
+    {
+      "probe": "mock STRIDE nonzero",
+      "wrapper_exit": 2,
+      "stderr": "External Chainsaw failed: DomainAnnotationError: STRIDE failed or reported diagnostics (exit 1)",
+      "result_written": false
+    },
+    {
+      "probe": "mock STRIDE empty",
+      "wrapper_exit": 2,
+      "stderr": "External Chainsaw failed: DomainAnnotationError: STRIDE assignments do not span the normalized input",
+      "result_written": false
+    }
+  ],
+  "limits": [
+    "genuine producer ZIP not tested",
+    "user df_test not tested",
+    "Windows/macOS/native GUI not tested",
+    "no annotation UI or selection integration",
+    "no domain accuracy/function/fitness validation"
+  ],
+  "actual_stride_input_atoms_verified": true,
+  "actual_stride_input_comparison": "All ATOM first-80 columns and ordering match export; only cosmetic TER/END rewriting allowed"
+}

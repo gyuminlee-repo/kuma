@@ -51,6 +51,7 @@ export interface SidecarKuroModels {
   FileExportResultModel?: FileExportResultModel;
   GetAlternativesParams?: GetAlternativesParams;
   ImportCodonTableParams?: ImportCodonTableParams;
+  InspectPredictionBundleParams?: InspectPredictionBundleParams;
   LandscapeEntry?: LandscapeEntry;
   LoadEvolveproParams?: LoadEvolveproParams;
   LoadFastaParams?: LoadFastaParams;
@@ -705,8 +706,14 @@ export interface FetchActiveSiteParams {
 export interface FetchActiveSiteResult {
   accession: string;
   active_site_positions?: number[];
+  annotation_status?: string;
   binding_positions?: number[];
+  features?: {
+    [k: string]: unknown;
+  }[];
   has_annotation?: boolean;
+  projection_status?: string;
+  sequence_version?: number | null;
   source?: string;
   [k: string]: unknown;
 }
@@ -791,6 +798,10 @@ export interface ImportCodonTableParams {
   text?: string | null;
   [k: string]: unknown;
 }
+export interface InspectPredictionBundleParams {
+  filepath: string;
+  [k: string]: unknown;
+}
 export interface LandscapeEntry {
   fitness: number;
   variant: string;
@@ -814,11 +825,18 @@ export interface LoadEvolveproParams {
   max_per_position?: number;
   pareto_diversity?: boolean;
   pool_multiplier?: number;
+  prediction_bundle_path?: string | null;
+  prediction_bundle_sha256?: string | null;
+  prediction_chain_id?: string | null;
+  prediction_model_id?: string | null;
   ref_seq?: string;
   round_size?: number;
   score_column?: string | null;
   score_order?: "desc" | "asc";
   sheet_name?: string | null;
+  strict_spatial?: boolean;
+  strict_spatial_budget?: "unique_sites" | "distinct_variants";
+  strict_spatial_site_cap?: number | null;
   structural_diversity?: boolean;
   structural_kappa?: number;
   structure_accession?: string | null;

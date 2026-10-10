@@ -1,0 +1,30 @@
+{
+  "commit": "9ced6e6d04043b0f2c50afa4527013997e305d4d",
+  "files": {
+    "get_predictions.py": "0a94048bd7db5040689aa4f767fcffa95ac5fb6cd4a85b320cb991d0977e6513",
+    "saved_models/model_v3/config.json": "fdf3ea1d9e6c2c72ed63cf04952a6845258cc725ec8f6f529aa577bb5d550715",
+    "saved_models/model_v3/feature_config.json": "5b0ab82dbdfd012b403d27ef9f1ec959bcadc7ff12427a0d9e8a9d2da4c16522",
+    "saved_models/model_v3/weights.pt": "f21d5451e285e347582944e4017822379c31866d343593d71bccc8eb31ff9c9e",
+    "src/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/constants.py": "04cd2f0a984d7e22201dfc1e9a74d8d5b1fce8ead2ae0c13012362882e298741",
+    "src/domain_assignment/assigners.py": "3eb1f84c7f47587459e636baa9d13bf7f4b7e3f33056a1aaf49d29983ea247a1",
+    "src/domain_assignment/sparse_lowrank.py": "cebf40615a983cb8adf69bca8d26f133b13c3d5bbb798267f7d2179aba9235a0",
+    "src/domain_assignment/util.py": "007718b5575d2078a5fc14c126ca56d21ace273756c5ecbc96d219d458fc05ff",
+    "src/domain_chop.py": "4e848368740d403339a3cb978dce4b860815bab759fedc7bdf68ea35acd017ee",
+    "src/errors.py": "a7975fbfc65fc42493728d5505da08ea5178eaf736c696ea87c1102948fca4f5",
+    "src/factories.py": "e4ee7ef9b4d51e6771dbcdb829490c9a52ea45d6d2fa1b1cace2ab9dfc1a554c",
+    "src/featurisers.py": "21db93d2707349f0631672d4894188fd934115fbd17114b995091c0b9350f334",
+    "src/loggers.py": "e7d3eb982b79b182136fa85941664a219eb4b8999c8e42fb916aa47e1437694f",
+    "src/models/results.py": "ee4f04ed09c0dd342e69c920b87999db0116a2d4946d7e7cc62d59141b78d26a",
+    "src/models/rosetta.py": "b6a378368d45481361dd8f0f5e0afcfd45b487cba4927c267a06382d2718029f",
+    "src/prediction_result_file.py": "aa35107f7daea5a9b4918aa18539bd481aed156fa3f9bc527e462fb5f6ff8766",
+    "src/utils/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/utils/cif2pdb.py": "4c3848a69a1968a918ce8700950dc4173533f74945ebebbe6153e1423d82e130",
+    "src/utils/common.py": "d23404e29a3ba78f9b30996534391353627e6e2be26ca86db944999851aa2522",
+    "src/utils/domain_boundary_distance_score.py": "ce6fb5667f735080e8696de71b0b8618becb720adfca798ea8293bbb5c3d4a84",
+    "src/utils/ndo_score.py": "c3e2e8a6882dd3c8dc612ffeaf3355c499821c3e9926b66a81747830701e4215",
+    "src/utils/pdb_reres.py": "56e828c67312e9ee1eae28dd45617dbdf0154499399d1c045eeb0ae30ff0ffc6",
+    "src/utils/pymol_3d_visuals.py": "88bc47afff4a41032e714a5a2cb5bf26be162ff3c868fd5263034a26c367f011",
+    "src/utils/secondary_structure.py": "6a4731857037fbddae18664556c998329bb6b1af4cc732a8b4fd3da26a6fa8a0"
+  }
+}

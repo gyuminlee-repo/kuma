@@ -189,6 +189,14 @@ function loadAllowlist() {
     if (byPath.has(entry.path)) {
       fail(`${ALLOWLIST_FILE}: duplicate entry for "${entry.path}"`);
     }
+    if (entry.occurrences !== undefined && (
+      !Array.isArray(entry.occurrences) || entry.occurrences.length === 0 ||
+      entry.occurrences.some((scope) => !scope || typeof scope.source !== "string" ||
+        !scope.source || scope.source.startsWith("/") || insideRoot(scope.source) !== scope.source ||
+        /[?*\\]/.test(scope.source) || typeof scope.text !== "string" || !scope.text.trim())
+    )) {
+      fail(`${ALLOWLIST_FILE}: entry "${entry.path}" needs exact source/text occurrences`);
+    }
     byPath.set(entry.path, entry);
   }
   return { byPath, missing: false };
@@ -214,11 +222,12 @@ function scan() {
     } catch {
       continue; // deleted from the working tree but still in the index
     }
+    const lines = content.split(/\r?\n/);
     for (const { ref, line } of extractFromContent(content)) {
       occurrences += 1;
       if (resolveReference(ref, path, trackedSet) !== null) continue;
       if (!unresolved.has(ref)) unresolved.set(ref, []);
-      unresolved.get(ref).push({ source: path, line });
+      unresolved.get(ref).push({ source: path, line, text: lines[line - 1].trim() });
     }
   }
 
@@ -243,6 +252,28 @@ function scan() {
 export function findUnusedAllowEntries(allowPaths, unresolvedRefs) {
   const stillCited = new Set(unresolvedRefs);
   return allowPaths.filter((path) => !stillCited.has(path)).sort((a, b) => a.localeCompare(b));
+}
+
+/** Exact source AND trimmed line scope; existing unscoped ledger entries retain their meaning. */
+export function allowsOccurrence(entry, occurrence) {
+  return Boolean(entry && (entry.occurrences === undefined || entry.occurrences.some(
+    (scope) => scope.source === occurrence.source && scope.text === occurrence.text
+  )));
+}
+
+export function classifyUnresolved(unresolved, byPath) {
+  const offenders = new Map();
+  const used = new Set();
+  for (const [ref, occurrences] of unresolved) {
+    for (const occurrence of occurrences) {
+      if (allowsOccurrence(byPath.get(ref), occurrence)) used.add(ref);
+      else {
+        if (!offenders.has(ref)) offenders.set(ref, []);
+        offenders.get(ref).push(occurrence);
+      }
+    }
+  }
+  return { offenders, unused: findUnusedAllowEntries([...byPath.keys()], used) };
 }
 
 // --------------------------------------------------------------------------
@@ -278,9 +309,10 @@ function runCheck() {
     console.warn(`[check-doc-citations] ${ALLOWLIST_FILE} not found, treating the allowlist as empty`);
   }
 
-  const offenders = sortedRefs(unresolved).filter((ref) => !byPath.has(ref));
+  const classified = classifyUnresolved(unresolved, byPath);
+  const offenders = sortedRefs(classified.offenders);
   const allowedRefs = unresolved.size - offenders.length;
-  const unused = findUnusedAllowEntries([...byPath.keys()], unresolved.keys());
+  const unused = classified.unused;
 
   if (offenders.length > 0) {
     console.error(
@@ -289,7 +321,7 @@ function runCheck() {
     );
     for (const ref of offenders) {
       console.error(`  ${ref}`);
-      for (const { source, line } of unresolved.get(ref)) {
+      for (const { source, line } of classified.offenders.get(ref)) {
         console.error(`    ${source}:${line}`);
       }
     }
@@ -320,7 +352,8 @@ function runList() {
   buckets.set("unclassified", []);
   for (const ref of sortedRefs(unresolved)) {
     const entry = byPath.get(ref);
-    buckets.get(entry ? entry.category : "unclassified").push(ref);
+    buckets.get(entry && unresolved.get(ref).every((o) => allowsOccurrence(entry, o))
+      ? entry.category : "unclassified").push(ref);
   }
 
   let totalOccurrences = 0;
@@ -345,7 +378,7 @@ function runList() {
     }
   }
 
-  const unused = findUnusedAllowEntries([...byPath.keys()], unresolved.keys());
+  const { unused } = classifyUnresolved(unresolved, byPath);
   if (unused.length > 0) {
     console.log("");
     console.log(`## no longer cited (${unused.length})`);
@@ -390,13 +423,21 @@ function runSelftest() {
     }
   }
 
+  for (const testCase of corpus.scopeCases ?? []) {
+    const result = classifyUnresolved(new Map(testCase.unresolved),
+      new Map(testCase.allow.map((entry) => [entry.path, entry])));
+    const actual = { offenders: [...result.offenders], unused: result.unused };
+    const expected = testCase.expect;
+    if (JSON.stringify(actual) !== JSON.stringify(expected)) failures.push({ id: testCase.id, expected, actual });
+  }
+
   for (const f of failures) {
     console.error(`[check-doc-citations] selftest FAIL ${f.id}`);
     console.error(`  expected ${JSON.stringify(f.expected)}`);
     console.error(`  actual   ${JSON.stringify(f.actual)}`);
   }
 
-  const total = corpus.cases.length + corpus.allowlistCases.length;
+  const total = corpus.cases.length + corpus.allowlistCases.length + (corpus.scopeCases ?? []).length;
   if (failures.length > 0) {
     console.error(`[check-doc-citations] selftest: ${total - failures.length}/${total} passed`);
     process.exit(1);

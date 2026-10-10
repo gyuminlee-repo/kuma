@@ -1,0 +1,799 @@
+{
+  "status": "passed",
+  "scope": "native_cpu_public_fixture_smoke_only",
+  "platform": "Windows-10-10.0.20348-SP0",
+  "python": "3.11.9",
+  "torch": "2.0.1+cpu",
+  "threads": 1,
+  "source_commit": "41d12fb84e6e8fdb586c2c859d12161dc7bb5bfd",
+  "weights_sha256": {
+    "weights_part_0.pt": "8b90ad1967c3e445aca7ed3d53135190ceaf8e100d68afd1543e5e8d28547151",
+    "weights_part_1.pt": "644f711b9573b44fc25a0bc0631ee9ab43f7fbd796db0a382298755057a2fa38",
+    "weights_part_2.pt": "ddafe5fa5dfa729eb8715757004d2d3e4e9798f96ea43c689e799ef91af8c2b8"
+  },
+  "input_sha256": "d4a6812d8951cf6594e6a0763f089e35f5a80b62acb3c117b2c5565228a7b161",
+  "normalized_sha256": "b3dd4103f338f741fbfcee70f3b01c245ed79b385109e920be1fcc2599634768",
+  "atom_count": 602,
+  "reference_length": 76,
+  "feature_sequence_and_coordinates_checked": true,
+  "insertion_roundtrip_checked": true,
+  "mapping": [
+    {
+      "normalized_position": 1,
+      "reference_position": 1,
+      "author_number": 1,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 2,
+      "reference_position": 2,
+      "author_number": 2,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 3,
+      "reference_position": 3,
+      "author_number": 3,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 4,
+      "reference_position": 4,
+      "author_number": 4,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 5,
+      "reference_position": 5,
+      "author_number": 5,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 6,
+      "reference_position": 6,
+      "author_number": 6,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 7,
+      "reference_position": 7,
+      "author_number": 7,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 8,
+      "reference_position": 8,
+      "author_number": 8,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 9,
+      "reference_position": 9,
+      "author_number": 9,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 10,
+      "reference_position": 10,
+      "author_number": 10,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 11,
+      "reference_position": 11,
+      "author_number": 11,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 12,
+      "reference_position": 12,
+      "author_number": 12,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 13,
+      "reference_position": 13,
+      "author_number": 13,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 14,
+      "reference_position": 14,
+      "author_number": 14,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 15,
+      "reference_position": 15,
+      "author_number": 15,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 16,
+      "reference_position": 16,
+      "author_number": 16,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 17,
+      "reference_position": 17,
+      "author_number": 17,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 18,
+      "reference_position": 18,
+      "author_number": 18,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 19,
+      "reference_position": 19,
+      "author_number": 19,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 20,
+      "reference_position": 20,
+      "author_number": 20,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 21,
+      "reference_position": 21,
+      "author_number": 21,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 22,
+      "reference_position": 22,
+      "author_number": 22,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 23,
+      "reference_position": 23,
+      "author_number": 23,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 24,
+      "reference_position": 24,
+      "author_number": 24,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 25,
+      "reference_position": 25,
+      "author_number": 25,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 26,
+      "reference_position": 26,
+      "author_number": 26,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 27,
+      "reference_position": 27,
+      "author_number": 27,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 28,
+      "reference_position": 28,
+      "author_number": 28,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 29,
+      "reference_position": 29,
+      "author_number": 29,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 30,
+      "reference_position": 30,
+      "author_number": 30,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 31,
+      "reference_position": 31,
+      "author_number": 31,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 32,
+      "reference_position": 32,
+      "author_number": 32,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 33,
+      "reference_position": 33,
+      "author_number": 33,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 34,
+      "reference_position": 34,
+      "author_number": 34,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 35,
+      "reference_position": 35,
+      "author_number": 35,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 36,
+      "reference_position": 36,
+      "author_number": 36,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 37,
+      "reference_position": 37,
+      "author_number": 37,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 38,
+      "reference_position": 38,
+      "author_number": 38,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 39,
+      "reference_position": 39,
+      "author_number": 39,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 40,
+      "reference_position": 40,
+      "author_number": 40,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 41,
+      "reference_position": 41,
+      "author_number": 41,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 42,
+      "reference_position": 42,
+      "author_number": 42,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 43,
+      "reference_position": 43,
+      "author_number": 43,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 44,
+      "reference_position": 44,
+      "author_number": 44,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 45,
+      "reference_position": 45,
+      "author_number": 45,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 46,
+      "reference_position": 46,
+      "author_number": 46,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 47,
+      "reference_position": 47,
+      "author_number": 47,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 48,
+      "reference_position": 48,
+      "author_number": 48,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 49,
+      "reference_position": 49,
+      "author_number": 49,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 50,
+      "reference_position": 50,
+      "author_number": 50,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 51,
+      "reference_position": 51,
+      "author_number": 51,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 52,
+      "reference_position": 52,
+      "author_number": 52,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 53,
+      "reference_position": 53,
+      "author_number": 53,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 54,
+      "reference_position": 54,
+      "author_number": 54,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 55,
+      "reference_position": 55,
+      "author_number": 55,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 56,
+      "reference_position": 56,
+      "author_number": 56,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 57,
+      "reference_position": 57,
+      "author_number": 57,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 58,
+      "reference_position": 58,
+      "author_number": 58,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 59,
+      "reference_position": 59,
+      "author_number": 59,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 60,
+      "reference_position": 60,
+      "author_number": 60,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 61,
+      "reference_position": 61,
+      "author_number": 61,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 62,
+      "reference_position": 62,
+      "author_number": 62,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 63,
+      "reference_position": 63,
+      "author_number": 63,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 64,
+      "reference_position": 64,
+      "author_number": 64,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 65,
+      "reference_position": 65,
+      "author_number": 65,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 66,
+      "reference_position": 66,
+      "author_number": 66,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 67,
+      "reference_position": 67,
+      "author_number": 67,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 68,
+      "reference_position": 68,
+      "author_number": 68,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 69,
+      "reference_position": 69,
+      "author_number": 69,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 70,
+      "reference_position": 70,
+      "author_number": 70,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 71,
+      "reference_position": 71,
+      "author_number": 71,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 72,
+      "reference_position": 72,
+      "author_number": 72,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 73,
+      "reference_position": 73,
+      "author_number": 73,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 74,
+      "reference_position": 74,
+      "author_number": 74,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 75,
+      "reference_position": 75,
+      "author_number": 75,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    },
+    {
+      "normalized_position": 76,
+      "reference_position": 76,
+      "author_number": 76,
+      "insertion_code": "",
+      "chain_id": "A",
+      "model_id": "1"
+    }
+  ],
+  "elapsed_seconds": 5.763756999999998,
+  "prediction": {
+    "nres": 76,
+    "ndom": 1,
+    "confidence": 0.47852104902267456,
+    "labels": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0
+    ],
+    "residue_numbers": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0,
+      7.0,
+      8.0,
+      9.0,
+      10.0,
+      11.0,
+      12.0,
+      13.0,
+      14.0,
+      15.0,
+      16.0,
+      17.0,
+      18.0,
+      19.0,
+      20.0,
+      21.0,
+      22.0,
+      23.0,
+      24.0,
+      25.0,
+      26.0,
+      27.0,
+      28.0,
+      29.0,
+      30.0,
+      31.0,
+      32.0,
+      33.0,
+      34.0,
+      35.0,
+      36.0,
+      37.0,
+      38.0,
+      39.0,
+      40.0,
+      41.0,
+      42.0,
+      43.0,
+      44.0,
+      45.0,
+      46.0,
+      47.0,
+      48.0,
+      49.0,
+      50.0,
+      51.0,
+      52.0,
+      53.0,
+      54.0,
+      55.0,
+      56.0,
+      57.0,
+      58.0,
+      59.0,
+      60.0,
+      61.0,
+      62.0,
+      63.0,
+      64.0,
+      65.0,
+      66.0,
+      67.0,
+      68.0,
+      69.0,
+      70.0,
+      71.0,
+      72.0,
+      73.0,
+      74.0,
+      75.0,
+      76.0
+    ]
+  },
+  "not_verified": [
+    "KUMA integration",
+    "native GUI",
+    "standalone packaging",
+    "redistribution rights",
+    "biological accuracy"
+  ]
+}

@@ -28,6 +28,7 @@ const STAGES = [
   { name: "sync-check", cmd: ["node", "scripts/sync-check.mjs"] },
   { name: "sync-check-groups", cmd: ["node", "scripts/sync-check-groups.mjs"] },
   { name: "gen-whatsnew", cmd: ["node", "scripts/gen-whatsnew.mjs", "--check"] },
+  { name: "check-doc-citations-selftest", cmd: ["node", "scripts/check-doc-citations.mjs", "--selftest"] },
   { name: "check-doc-citations", cmd: ["node", "scripts/check-doc-citations.mjs"] },
   // version-sync above compares the manifests against each other, so a bump
   // that never happened leaves them agreeing and passes. This one compares them

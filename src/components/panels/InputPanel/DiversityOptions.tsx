@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import { StrictSpatialSection } from "./StrictSpatialSection";
 import { useAppStore } from "../../../store/appStore";
 import { combinatorialFraction } from "../../../store/slices/diversitySlice.helpers";
 import {
@@ -53,6 +54,7 @@ export function DiversityOptions() {
   const setParetoDiversityEnabled = useAppStore((s) => s.setParetoDiversityEnabled);
   const structuralDiversityEnabled = useAppStore((s) => s.structuralDiversityEnabled);
   const setStructuralDiversityEnabled = useAppStore((s) => s.setStructuralDiversityEnabled);
+  const strictSpatialEnabled = useAppStore((s) => s.strictSpatialEnabled);
   const structuralKappa = useAppStore((s) => s.structuralKappa);
   const setStructuralKappa = useAppStore((s) => s.setStructuralKappa);
   const entropyWeightEnabled = useAppStore((s) => s.entropyWeightEnabled);
@@ -206,10 +208,11 @@ export function DiversityOptions() {
           enabled={structuralDiversityEnabled}
           onToggle={setStructuralDiversityEnabled}
         >
-          <StructuralDiversitySection
+          {!strictSpatialEnabled && <StructuralDiversitySection
             structuralKappa={structuralKappa}
             setStructuralKappa={setStructuralKappa}
-          />
+          />}
+          <StrictSpatialSection />
         </PipelineStep>
       </div>
 

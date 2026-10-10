@@ -1,0 +1,81 @@
+{
+  "status": "failed",
+  "scope": "frozen_native_windows_cpu_public_fixture_smoke_only",
+  "timeout_seconds": 300,
+  "source_removed": true,
+  "process_started": true,
+  "job_assigned_before_inference": true,
+  "process_tree_termination_verified": true,
+  "runtime_directory_removed": true,
+  "system_python_physically_removed": false,
+  "not_verified": [
+    "absence of system Python installation",
+    "KUMA integration",
+    "native GUI",
+    "installer",
+    "redistribution rights",
+    "biological accuracy"
+  ],
+  "source_commit": "41d12fb84e6e8fdb586c2c859d12161dc7bb5bfd",
+  "weights_sha256": {
+    "weights_part_1.pt": "644f711b9573b44fc25a0bc0631ee9ab43f7fbd796db0a382298755057a2fa38",
+    "weights_part_2.pt": "ddafe5fa5dfa729eb8715757004d2d3e4e9798f96ea43c689e799ef91af8c2b8",
+    "weights_part_0.pt": "8b90ad1967c3e445aca7ed3d53135190ceaf8e100d68afd1543e5e8d28547151"
+  },
+  "input_sha256": "d4a6812d8951cf6594e6a0763f089e35f5a80b62acb3c117b2c5565228a7b161",
+  "package_bytes": 716385956,
+  "package_file_count": 1806,
+  "working_directory_has_spaces": true,
+  "working_directory_outside_repository_source_package": true,
+  "copied_inputs": [
+    "pinned_public_1ubq_fixture_only"
+  ],
+  "sanitized_env": {
+    "inherited_environment_cleared": true,
+    "python_environment_variables_present": [],
+    "permitted_names": [
+      "APPDATA",
+      "COMSPEC",
+      "CUDA_VISIBLE_DEVICES",
+      "HOME",
+      "KUMA_MERIZO_START_GATE",
+      "LOCALAPPDATA",
+      "MKL_NUM_THREADS",
+      "MPLBACKEND",
+      "MPLCONFIGDIR",
+      "NUMBER_OF_PROCESSORS",
+      "OMP_NUM_THREADS",
+      "OPENBLAS_NUM_THREADS",
+      "OS",
+      "PATH",
+      "PROCESSOR_ARCHITECTURE",
+      "PROCESSOR_IDENTIFIER",
+      "SystemRoot",
+      "TEMP",
+      "TMP",
+      "TORCH_HOME",
+      "USERPROFILE",
+      "WINDIR",
+      "XDG_CACHE_HOME"
+    ],
+    "path": "C:\\Windows\\system32;C:\\Windows",
+    "temporary_user_and_cache_directories": true,
+    "python_environment_names_removed": [
+      "CONDA",
+      "Python_ROOT_DIR",
+      "Python2_ROOT_DIR",
+      "Python3_ROOT_DIR",
+      "PYTHONDONTWRITEBYTECODE",
+      "pythonLocation"
+    ]
+  },
+  "sampled_peak_working_set_bytes": 22024192,
+  "process_peak_working_set_bytes": 22024192,
+  "peak_working_set_bytes": 22024192,
+  "exit_code": 1,
+  "error": "Frozen executable failed; raw stdout/stderr are intentionally not retained.",
+  "stdout_characters_drained": 0,
+  "stderr_characters_drained": 654,
+  "elapsed_seconds": 0.243,
+  "stderr_tail": "Traceback (most recent call last):\r\n  File \"pyi_rth_pkgres.py\", line 177, in <module>\r\n  File \"pyi_rth_pkgres.py\", line 44, in _pyi_rthook\r\n  File \"pyimod02_importers.py\", line 457, in exec_module\r\n  File \"pkg_resources\\__init__.py\", line 90, in <module>\r\n  File \"pyimod02_importers.py\", line 457, in exec_module\r\n  File \"setuptools\\_vendor\\jaraco\\text\\__init__.py\", line 12, in <module>\r\n  File \"pyimod02_importers.py\", line 457, in exec_module\r\n  File \"setuptools\\_vendor\\jaraco\\context.py\", line 17, in <module>\r\nModuleNotFoundError: No module named 'backports'\r\n[PYI-6720:ERROR] Failed to execute script 'pyi_rth_pkgres' due to unhandled exception!\r\n"
+}
