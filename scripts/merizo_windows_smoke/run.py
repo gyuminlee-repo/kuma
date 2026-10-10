@@ -17,6 +17,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from typing import Callable
 
 COMMIT = "41d12fb84e6e8fdb586c2c859d12161dc7bb5bfd"
 INPUT_SHA = "d4a6812d8951cf6594e6a0763f089e35f5a80b62acb3c117b2c5565228a7b161"
@@ -84,7 +85,24 @@ def verify_upstream(source: Path) -> dict[str, str]:
     subprocess.run(["git", "-C", str(source), "diff", "--exit-code", "HEAD", "--"], check=True, capture_output=True)
     if subprocess.check_output(["git", "-C", str(source), "ls-files", "--others", "--exclude-standard"], text=True).strip():
         raise ValueError("Untracked source files")
-    actual = {file.name: sha(file.read_bytes()) for file in (source / "weights").glob("*.pt")}
+    # Ignored modules/bytecode could otherwise contaminate imports despite a
+    # clean tracked diff. Build/probe runs set PYTHONDONTWRITEBYTECODE=1.
+    if subprocess.check_output(["git", "-C", str(source), "ls-files", "--others", "--ignored", "--exclude-standard"], text=True).strip():
+        raise ValueError("Ignored source files are not allowed in the clean probe checkout")
+    return verify_weights(source / "weights")
+
+
+def verify_weights(directory: Path) -> dict[str, str]:
+    """Stream all three exact official weight hashes before pickle model loading."""
+    actual = {}
+    for file in directory.glob("*.pt"):
+        if not file.is_file() or file.is_symlink() or file.stat().st_size > 512 * 1024 * 1024:
+            raise ValueError("Unsupported weight file")
+        digest = hashlib.sha256()
+        with file.open("rb") as stream:
+            while block := stream.read(1024 * 1024):
+                digest.update(block)
+        actual[file.name] = digest.hexdigest()
     if actual != WEIGHTS:
         raise ValueError("Weight file set or SHA mismatch before model loading")
     return actual
@@ -112,8 +130,10 @@ def validate_coordinates(actual: list[list[float]], expected: list[list[float]])
         raise ValueError("Feature CA coordinates changed")
 
 
-def worker(source: Path, fixture: Path, output: Path) -> None:
-    weights = verify_upstream(source)
+def inference(fixture: Path, weights_directory: Path,
+              runtime_guard: Callable[[], dict] | None = None) -> dict:
+    """Shared native/frozen inference; never relaunch sys.executable here."""
+    weights = verify_weights(weights_directory)
     raw = fixture.read_bytes()
     if sha(raw) != INPUT_SHA:
         raise ValueError("Unpinned public input")
@@ -129,7 +149,6 @@ def worker(source: Path, fixture: Path, output: Path) -> None:
     probe, probe_mapping, _ = prepare("\n".join(probe_lines))
     if probe != normalized or probe_mapping[9]["author_number"] != probe_mapping[10]["author_number"]:
         raise ValueError("Insertion normalization failed")
-    sys.path.insert(0, str(source))
     torch = importlib.import_module("torch")
     torch.set_num_threads(1)
     torch.set_num_interop_threads(1)
@@ -138,9 +157,11 @@ def worker(source: Path, fixture: Path, output: Path) -> None:
         raise ValueError("Expected pinned CPU-only torch")
     predict = importlib.import_module("predict")
     features_module = importlib.import_module("model.utils.features")
+    # The frozen entry checks real module/DLL origins before torch.load.
+    runtime_before = runtime_guard() if runtime_guard is not None else None
     start = time.perf_counter()
     network = predict.Merizo().to("cpu")
-    network.load_state_dict(predict.read_split_weight_files(str(source / "weights")), strict=True)
+    network.load_state_dict(predict.read_split_weight_files(str(weights_directory)), strict=True)
     network.eval()
     with tempfile.TemporaryDirectory(prefix="kuma merizo smoke ") as temp:
         pdb = Path(temp) / "public input with spaces.pdb"
@@ -168,6 +189,16 @@ def worker(source: Path, fixture: Path, output: Path) -> None:
               "insertion_roundtrip_checked": True, "mapping": mapping,
               "elapsed_seconds": time.perf_counter() - start, "prediction": prediction,
               "not_verified": ["KUMA integration", "native GUI", "standalone packaging", "redistribution rights", "biological accuracy"]}
+    if runtime_guard is not None:
+        report["frozen_runtime_before_load"] = runtime_before
+        report["frozen_runtime_after_inference"] = runtime_guard()
+    return report
+
+
+def worker(source: Path, fixture: Path, output: Path) -> None:
+    verify_upstream(source)
+    sys.path.insert(0, str(source))
+    report = inference(fixture, source / "weights")
     output.write_text(json.dumps(report, indent=2, allow_nan=False) + "\n", encoding="utf-8")
 
 
@@ -182,7 +213,7 @@ def main() -> int:
         worker(args.source.resolve(), args.fixture.resolve(), args.output.resolve())
         return 0
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    command = [sys.executable, "-I", str(Path(__file__).resolve()), "--worker", "--source", str(args.source.resolve()),
+    command = [sys.executable, "-I", "-B", str(Path(__file__).resolve()), "--worker", "--source", str(args.source.resolve()),
                "--fixture", str(args.fixture.resolve()), "--output", str(args.output.resolve())]
     env = {**os.environ, "OMP_NUM_THREADS": "1", "MKL_NUM_THREADS": "1", "OPENBLAS_NUM_THREADS": "1",
            "MPLBACKEND": "Agg", "CUDA_VISIBLE_DEVICES": ""}

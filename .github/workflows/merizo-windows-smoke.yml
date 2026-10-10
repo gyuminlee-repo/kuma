@@ -5,7 +5,7 @@ on:
     paths:
       - '.github/workflows/merizo-windows-smoke.yml'
       - 'scripts/merizo_windows_smoke/**'
-      - 'tests/test_merizo_windows_smoke.py'
+      - 'tests/test_merizo_windows*.py'
   workflow_dispatch:
 permissions:
   contents: read
@@ -15,7 +15,7 @@ concurrency:
 jobs:
   native-windows-cpu:
     runs-on: windows-2022
-    timeout-minutes: 15
+    timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
       MPLBACKEND: Agg
@@ -47,15 +47,39 @@ jobs:
           python -m pip install --disable-pip-version-check -r scripts/merizo_windows_smoke/requirements.txt
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Validate harness without inference
-        run: python -m unittest discover -s tests -p test_merizo_windows_smoke.py -v
+        run: python -m unittest discover -s tests -p "test_merizo_windows*.py" -v
       - name: Run fixed public fixture with 300 second process limit
         run: python scripts/merizo_windows_smoke/run.py --source .merizo-smoke-upstream --fixture tests/data/domain_annotation/1ubq.pdb --output merizo-smoke-results/windows-cpu.json
+      - name: Install fixed freezing tool (CI-only)
+        run: python -m pip install --disable-pip-version-check pyinstaller==6.16.0
+      - name: Build temporary onedir executable after verifying official pins
+        timeout-minutes: 12
+        run: python scripts/merizo_windows_smoke/build_frozen.py --source .merizo-smoke-upstream --output-directory "${{ runner.temp }}/merizo frozen build" --evidence merizo-smoke-results/frozen-build.json
+      - name: Remove original upstream checkout before isolated executable run
+        shell: pwsh
+        run: |
+          $source = Join-Path $env:GITHUB_WORKSPACE '.merizo-smoke-upstream'
+          if (!(Test-Path $source)) { throw 'Expected task-only upstream checkout is missing' }
+          Remove-Item -LiteralPath $source -Recurse -Force
+          if (Test-Path $source) { throw 'Task-only source cleanup failed' }
+      - name: Run packaged executable without Python on PATH
+        timeout-minutes: 7
+        shell: pwsh
+        run: >-
+          ./scripts/merizo_windows_smoke/run_frozen.ps1
+          -PackageDirectory "${{ runner.temp }}/merizo frozen build/dist/merizo-frozen-smoke"
+          -Fixture tests/data/domain_annotation/1ubq.pdb
+          -ResultDirectory merizo-smoke-results
+          -PinReport merizo-smoke-results/frozen-build.json
       - name: Preserve small result only (never models or runtime)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: merizo-windows-cpu-result
-          path: merizo-smoke-results/windows-cpu.json
+          path: |
+            merizo-smoke-results/windows-cpu.json
+            merizo-smoke-results/frozen-build.json
+            merizo-smoke-results/frozen-windows-cpu.json
           if-no-files-found: warn
           retention-days: 7
       - name: Remove task-only upstream weights/source
@@ -63,3 +87,6 @@ jobs:
         shell: pwsh
         run: |
           if (Test-Path .merizo-smoke-upstream) { Remove-Item -Recurse -Force .merizo-smoke-upstream }
+          $build = Join-Path $env:RUNNER_TEMP 'merizo frozen build'
+          if (Test-Path $build) { Remove-Item -LiteralPath $build -Recurse -Force }
+          if (Test-Path $build) { throw 'Task-only frozen package cleanup failed' }
