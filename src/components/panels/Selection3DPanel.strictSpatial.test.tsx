@@ -52,11 +52,15 @@ describe("imported prediction viewer", () => {
     const report = setImported();
     render(<Selection3DPanel defaultOpen />);
     const rows = await screen.findAllByTestId("position-row");
-    expect(mocks.addModel).toHaveBeenCalledWith(report.pdb_text, "pdb");
-    expect(mocks.setStyle).toHaveBeenCalledWith({}, { cartoon: { color: "gray", style: "trace" } });
+    // Ready-state rows commit before the separate passive styling effect.
+    // Wait for the viewer contract itself, not only its surrounding DOM.
+    await waitFor(() => {
+      expect(mocks.addModel).toHaveBeenCalledWith(report.pdb_text, "pdb");
+      expect(mocks.setStyle).toHaveBeenCalledWith({}, { cartoon: { color: "gray", style: "trace" } });
+      expect(mocks.addStyle).toHaveBeenCalledWith({ resi: 2, chain: "A" }, expect.any(Object));
+    });
     expect(within(rows[0]).getAllByRole("cell")[2]).toHaveTextContent("-3A");
     expect(within(rows[0]).getAllByRole("cell")[2]).toHaveAttribute("title", "Original chain X, residue -3A → viewer residue 2");
-    expect(mocks.addStyle).toHaveBeenCalledWith({ resi: 2, chain: "A" }, expect.any(Object));
     expect(mocks.addStyle.mock.calls.some(([selection]) => selection.resi === -3)).toBe(false);
     fireEvent.click(rows[0]);
     expect(mocks.zoomTo).toHaveBeenCalledWith({ resi: 2, chain: "A" }, 500);
@@ -76,7 +80,8 @@ describe("imported prediction viewer", () => {
     expect(screen.getByText(/pLDDT available for 3 of 5 residues/)).toBeInTheDocument();
     expect(screen.getByText(/Low pLDDT does not establish a nonfunctional region/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "pLDDT" }));
-    expect(mocks.setStyle).toHaveBeenCalledWith({ resi: 2, chain: "A" }, { cartoon: { style: "trace", color: expect.any(String) } });
+    await waitFor(() => expect(mocks.setStyle).toHaveBeenCalledWith(
+      { resi: 2, chain: "A" }, { cartoon: { style: "trace", color: expect.any(String) } }));
     expect(mocks.setStyle.mock.calls.some(([selection]) => selection.resi === 4)).toBe(false);
   });
 
@@ -106,8 +111,8 @@ describe("verified strict spatial viewer", () => {
     expect(screen.getByTestId("strict-selection-counts")).toHaveTextContent("95 selected variants across 5 unique sites");
     expect(rows.map((row) => within(row).getAllByRole("cell")[0].textContent)).toEqual(report.selected_variants);
     expect(new Set(rows.map((row) => within(row).getAllByRole("cell")[1].textContent)).size).toBe(5);
+    await waitFor(() => expect(mocks.setHoverable.mock.calls.at(-1)?.[2]).toBeTypeOf("function"));
     const hover = mocks.setHoverable.mock.calls.at(-1)?.[2];
-    expect(hover).toBeTypeOf("function");
     act(() => hover({ resi: 12, chain: "A", resn: "ALA" }));
     const hoverLabel = mocks.addLabel.mock.calls.at(-1)?.[0];
     for (const variant of report.selected_variants.slice(0, 19)) expect(hoverLabel).toContain(variant);
@@ -120,11 +125,13 @@ describe("verified strict spatial viewer", () => {
     const rows = await screen.findAllByTestId("position-row");
     expect(rows.map((row) => within(row).getAllByRole("cell").slice(0, 3).map((cell) => cell.textContent)))
       .toEqual([["A2G", "2", "12"], ["A4V", "4", "14"]]);
-    expect(mocks.addModel).toHaveBeenCalledWith(strictSpatialFixture().pdb_text, "pdb");
+    await waitFor(() => {
+      expect(mocks.addModel).toHaveBeenCalledWith(strictSpatialFixture().pdb_text, "pdb");
+      expect(mocks.addStyle).toHaveBeenCalledWith({ resi: 12, chain: "A" }, expect.objectContaining({ sphere: expect.any(Object) }));
+    });
     expect(useAppStore.getState().fetchPdbText).not.toHaveBeenCalled();
     expect(useAppStore.getState().computeDispersion).not.toHaveBeenCalled();
     expect(screen.queryByTestId("upload-input")).not.toBeInTheDocument();
-    expect(mocks.addStyle).toHaveBeenCalledWith({ resi: 12, chain: "A" }, expect.objectContaining({ sphere: expect.any(Object) }));
   });
   it("preserves uncertain raw evidence without asserting function on selected residues", async () => {
     render(<Selection3DPanel defaultOpen />);
