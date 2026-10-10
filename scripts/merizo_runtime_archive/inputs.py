@@ -58,9 +58,13 @@ def wheel_members(path: Path) -> list[dict]:
         names = [safe_member(info.filename) for info in infos]
         if len(set(names)) != len(names) or sum(info.file_size for info in infos) > 4 * MAX_WHEEL_BYTES:
             raise ValueError('Duplicate or oversized wheel contents')
-        records = [name for name in names if name.endswith('.dist-info/RECORD')]
+        # The owning distribution's RECORD is directly below the wheel root.
+        # Vendored distributions may retain nested RECORD files; those are
+        # ordinary payload bytes whose hashes/sizes the owning RECORD must cover.
+        records = [name for name in names
+                   if name.count('/') == 1 and name.endswith('.dist-info/RECORD')]
         if len(records) != 1:
-            raise ValueError('Expected one wheel RECORD')
+            raise ValueError('Expected one root-level wheel RECORD')
         if archive.getinfo(records[0]).file_size > MAX_RECORD_BYTES:
             raise ValueError('Wheel RECORD exceeds explicit metadata byte bound')
         rows = list(csv.reader(io.StringIO(archive.read(records[0]).decode('utf-8'))))

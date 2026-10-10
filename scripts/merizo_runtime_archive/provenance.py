@@ -152,7 +152,8 @@ def installed_provenance(lock_path: Path, wheelhouse: Path) -> dict:
                 record['wheel_member_sha256'] = original['sha256']
                 if checksum == original['sha256']:
                     record['mapping'] = 'exact_wheel_member'
-                elif original['member'].endswith('.dist-info/RECORD'):
+                elif (original['member'].count('/') == 1
+                      and original['member'].endswith('.dist-info/RECORD')):
                     record['mapping'] = 'pip_rewritten_RECORD'
                 else:
                     record['mapping'] = 'unexplained_installer_transform'

@@ -255,21 +255,25 @@ class ArchiveTests(unittest.TestCase):
 
 
 class WheelRecordTests(unittest.TestCase):
-    def wheel(self, directory, *, corrupt=False, extra=False):
+    def wheel(self, directory, *, corrupt=False, extra=False, payload=None,
+              owners=('sample-1.dist-info/RECORD',), after_record=None):
         path = Path(directory) / 'sample-1-py3-none-any.whl'
         values = {'sample.py': b'example source\n', 'sample-1.dist-info/LICENSE': b'example grant\n'}
+        values.update(payload or {})
         records = []
         for name, data in values.items():
             checksum = base64.urlsafe_b64encode(hashlib.sha256(data).digest()).decode().rstrip('=')
             records.append([name, 'sha256=' + checksum, str(len(data))])
-        records.append(['sample-1.dist-info/RECORD', '', ''])
+        records.extend([name, '', ''] for name in owners)
         text = io.StringIO()
         csv.writer(text, lineterminator='\n').writerows(records)
-        values['sample-1.dist-info/RECORD'] = text.getvalue().encode()
+        for name in owners:
+            values[name] = text.getvalue().encode()
         if corrupt:
             values['sample.py'] += b'changed'
         if extra:
             values['hidden.py'] = b'not in RECORD'
+        values.update(after_record or {})
         with zipfile.ZipFile(path, 'w') as archive_file:
             for name, data in values.items():
                 archive_file.writestr(name, data)
@@ -281,6 +285,84 @@ class WheelRecordTests(unittest.TestCase):
             for kwargs in ({'corrupt': True}, {'extra': True}):
                 with self.assertRaises(ValueError):
                     inputs.wheel_members(self.wheel(directory, **kwargs))
+
+    def test_nested_vendor_record_is_covered_by_owning_record(self):
+        nested = 'sample/_vendor/dependency-1.dist-info/RECORD'
+        data = b'dependency.py,sha256=vendor_assertion,12\n'
+        with tempfile.TemporaryDirectory() as directory:
+            members = inputs.wheel_members(self.wheel(directory, payload={nested: data}))
+        by_name = {member['member']: member for member in members}
+        self.assertEqual(len(members), 4)
+        self.assertEqual(by_name[nested]['sha256'], hashlib.sha256(data).hexdigest())
+        self.assertEqual(by_name[nested]['size'], len(data))
+
+    def test_nested_records_do_not_replace_missing_or_multiple_owners(self):
+        nested = 'sample/_vendor/dependency-1.dist-info/RECORD'
+        with tempfile.TemporaryDirectory() as directory:
+            for owners in ((), ('sample-1.dist-info/RECORD', 'other-2.dist-info/RECORD')):
+                with self.subTest(owners=owners), self.assertRaisesRegex(ValueError, 'one root-level wheel RECORD'):
+                    inputs.wheel_members(self.wheel(directory, payload={nested: b'vendor metadata\n'}, owners=owners))
+
+    def test_nested_record_tampering_and_unlisted_bytes_are_rejected(self):
+        nested = 'sample/_vendor/dependency-1.dist-info/RECORD'
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ValueError, 'hash/size mismatch'):
+                inputs.wheel_members(self.wheel(directory, payload={nested: b'original\n'},
+                                                after_record={nested: b'changed\n'}))
+            with self.assertRaisesRegex(ValueError, 'does not inventory every file'):
+                inputs.wheel_members(self.wheel(directory, after_record={nested: b'unlisted\n'}))
+
+    def test_changed_installed_nested_record_is_not_attributed_to_pip(self):
+        from importlib.metadata import PathDistribution
+        from scripts.merizo_runtime_archive import provenance
+        nested = 'sample/_vendor/dependency-1.dist-info/RECORD'
+        owner = 'sample-1.dist-info/RECORD'
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            wheel = self.wheel(root, payload={nested: b'original vendor metadata\n',
+                'sample-1.dist-info/METADATA': b'Metadata-Version: 2.1\nName: sample\nVersion: 1\n'})
+            installed = root / 'installed'
+            with zipfile.ZipFile(wheel) as zipped:
+                for name in zipped.namelist():
+                    destination = installed / name
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    destination.write_bytes(zipped.read(name))
+            # Even a self-consistent rewritten installed RECORD cannot attribute
+            # altered vendored metadata to pip's owning-RECORD rewrite behavior.
+            (installed / nested).write_bytes(b'changed vendor metadata\n')
+            rows = []
+            for path in sorted(installed.rglob('*')):
+                if path.is_file() and path != installed / owner:
+                    data = path.read_bytes()
+                    checksum = base64.urlsafe_b64encode(hashlib.sha256(data).digest()).decode().rstrip('=')
+                    rows.append([path.relative_to(installed).as_posix(), 'sha256=' + checksum, str(len(data))])
+            rows.append([owner, '', ''])
+            text = io.StringIO()
+            csv.writer(text, lineterminator='\n').writerows(rows)
+            (installed / owner).write_text(text.getvalue(), encoding='utf-8', newline='\n')
+            wheel_sha = digest(wheel)
+            lock = root / 'lock.json'
+            write_json(lock, {'schema': 'kuma-merizo-input-lock-v1', 'wheels': [
+                {'name': 'sample', 'version': '1', 'filename': wheel.name,
+                 'url': 'https://files.pythonhosted.org/' + wheel.name,
+                 'sha256': wheel_sha, 'size': wheel.stat().st_size}]})
+            distribution = PathDistribution(installed / 'sample-1.dist-info')
+            with patch.object(provenance.importlib.metadata, 'distributions', return_value=[distribution]), \
+                 patch.object(provenance.sys, 'prefix', str(installed)):
+                report = provenance.installed_provenance(lock, root)
+                by_member = {row['wheel_member']: row for row in report['installed_files']}
+                self.assertEqual(by_member[owner]['mapping'], 'pip_rewritten_RECORD')
+                self.assertEqual(by_member[nested]['mapping'], 'unexplained_installer_transform')
+                self.assertEqual(by_member[nested]['owner'], 'sample')
+                self.assertEqual(by_member[nested]['wheel_sha256'], wheel_sha)
+                self.assertIn({'kind': 'installed_transform', 'path': str(installed / nested),
+                               'owner': 'sample'}, report['unresolved'])
+                (installed / nested).write_bytes(b'changed again without matching installed RECORD\n')
+                with self.assertRaisesRegex(ValueError, 'Installed RECORD digest differs'):
+                    provenance.installed_provenance(lock, root)
+                wheel.write_bytes(wheel.read_bytes() + b'changed wheel bytes')
+                with self.assertRaisesRegex(ValueError, 'Original wheel bytes differ'):
+                    provenance.installed_provenance(lock, root)
 
     def test_unknown_origin_rejected_before_download(self):
         with tempfile.TemporaryDirectory() as directory:
