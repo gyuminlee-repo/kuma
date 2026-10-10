@@ -203,8 +203,8 @@ use CI's Python; only the frozen child's independence is being tested.
 
 The executable reports its own bundled Python, module and native library
 origins before model loading and after inference. Linux audits executable
-file-backed `/proc/self/maps` mappings. macOS audits dyld image paths, allowing
-specified OS frameworks/shared-cache libraries while requiring Python/Torch
+file-backed `/proc/self/maps` mappings. macOS audits indexed dyld images and
+shared-cache residency under the v2 contract below while requiring Python/Torch
 libraries inside the bundle. External Python, Homebrew, original checkout and
 other undeclared library paths fail closed. This verifies observed loads, not a
 sandbox against a malicious program or proof that system Python was uninstalled.
@@ -269,3 +269,33 @@ The initial diagnostic probe cannot prevent the cleanup attempt itself. No
 administrator permissions, OS security changes, or timeout extension are used.
 This is a test-supervisor correction; the exact corrected macOS run is still
 required to verify cancellation and the isolated frozen inference.
+
+### macOS origin contract v2: trusted dyld cache-residency evidence
+
+The later frozen macOS inventory still failed the manual OS-name allowlist;
+that historical failure remains a failure, and its evidence is not rewritten.
+The CI-only `darwin_dyld_shared_cache_v2` contract replaces Darwin's name list
+with the trusted OS's public dyld evidence. It does **not** independently verify
+an Apple code signature. [Apple's public dyld header](https://github.com/apple-oss-distributions/dyld/blob/main/include/mach-o/dyld.h)
+provides `_dyld_shared_cache_contains_path` (macOS 11+) and
+`_dyld_get_image_header`; [the public Mach-O header](https://github.com/apple-oss-distributions/xnu/blob/main/EXTERNAL_HEADERS/mach-o/loader.h)
+defines `MH_DYLIB_IN_CACHE` as cache residency.
+
+Every image retains its index, exact path, header address, native Mach-O64 arm64
+header fields, and cache membership across two identical snapshots within four
+attempts. Counts and path copies are bounded; missing APIs, NULL headers,
+invalid ABI/filetype, or unstable observations fail closed. Header memory is
+read only at addresses returned directly by dyld, never from a JSON report.
+An OS exception requires both raw and resolved paths within `/usr/lib/` or
+`/System/Library/`, true cache membership, and a loaded `MH_DYLIB` header bearing
+the cache flag. Python, Torch, and non-OS numerical runtimes must still be
+bundled before this exception is considered; Homebrew/external runtime paths
+remain rejected even when both cache indicators are true.
+
+Before/after inference provenance labels the new contract and preserves its
+indexed records. Linux's origin contract, module/weight integrity checks,
+timeouts, and cleanup are unchanged. This remains a quiescent, trusted-process
+observation, not thread-safe enumeration or protection against hostile code.
+Mock/stdlib tests are source-only evidence; v2 frozen macOS inference remains
+unverified until a separately authorized exact-head CI run passes. No permission
+to distribute model files or frozen binaries follows from this change.

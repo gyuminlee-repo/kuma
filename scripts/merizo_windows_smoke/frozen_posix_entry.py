@@ -15,7 +15,7 @@ import re
 import sys
 import time
 from types import ModuleType
-from typing import Iterable
+from typing import Iterable, NamedTuple
 
 MAX_REPORT_BYTES = 1024 * 1024
 MAX_MAP_BYTES = 1024 * 1024
@@ -31,44 +31,34 @@ LINUX_SYSTEM_NAMES = re.compile(
     r"(?:ld-linux-x86-64\.so\.2|ld-[0-9.]+\.so|"
     r"lib(?:c|m|dl|pthread|rt|util|resolv|gcc_s|stdc\+\+)\.so(?:\.[0-9]+)+)"
 )
-DARWIN_DYLIB_NAMES = {
-    "libSystem.B.dylib", "libobjc.A.dylib", "libc++.1.dylib", "libc++abi.dylib",
-    "libz.1.dylib", "libbz2.1.0.dylib", "libiconv.2.dylib", "libresolv.9.dylib",
-    "libsqlite3.dylib", "libcompression.dylib", "libxml2.2.dylib", "libicucore.A.dylib",
-    "libDiagnosticMessagesClient.dylib", "libenergytrace.dylib", "libcache.dylib",
-    "libnetwork.dylib", "libnetworkextension.dylib", "libapple_nghttp2.dylib",
-    "libpcap.A.dylib", "libapple_crypto.dylib", "libbsm.0.dylib", "libxar.1.dylib",
-    "liblzma.5.dylib", "libutil.dylib", "libpam.2.dylib", "libncurses.5.4.dylib",
-}
-DARWIN_SYSTEM_DYLIB_NAMES = {
-    "libcache.dylib", "libcommonCrypto.dylib", "libcompiler_rt.dylib", "libcopyfile.dylib",
-    "libdispatch.dylib", "libdyld.dylib", "libkeymgr.dylib", "liblaunch.dylib", "libmacho.dylib",
-    "libquarantine.dylib", "libremovefile.dylib", "libunwind.dylib", "libxpc.dylib",
-    *("libsystem_" + name + ".dylib" for name in (
-        "asl", "blocks", "c", "collections", "configuration", "containermanager", "coreservices",
-        "darwin", "dnssd", "eligibility", "featureflags", "info", "kernel", "m", "malloc",
-        "networkextension", "notify", "platform", "pthread", "sandbox", "secinit", "symptoms", "trace")),
-}
-DARWIN_FRAMEWORKS = {
-    "Accelerate", "CoreFoundation", "Foundation", "Security", "SystemConfiguration",
-    "CoreServices", "CFNetwork", "IOKit", "ApplicationServices", "DiskArbitration",
-    "CoreGraphics", "CoreText", "ColorSync", "ImageIO", "CoreVideo", "Metal",
-    "MetalPerformanceShaders", "MetalPerformanceShadersGraph",
-}
-DARWIN_PRIVATE_FRAMEWORKS = {
-    "AppleSystemInfo", "CoreServicesInternal", "BaseBoard", "CoreAnalytics",
-    "CoreAutoLayout", "CoreSVG", "LoggingSupport", "TCC", "SkyLight",
-}
-DARWIN_NESTED_FRAMEWORKS = {
-    "Accelerate": {"vecLib", "vImage"},
-    "CoreServices": {"AE", "CarbonCore", "DictionaryServices", "FSEvents", "LaunchServices",
-                     "Metadata", "OSServices", "SearchKit", "SharedFileList"},
-    "ApplicationServices": {"ATS", "ColorSync", "HIServices", "LangAnalysis", "PrintCore", "QD", "SpeechSynthesis"},
-    "MetalPerformanceShaders": {"MPSCore", "MPSImage", "MPSMatrix", "MPSNeuralNetwork", "MPSRayIntersector", "MPSNDArray"},
-}
-ACCELERATE_VECLIB_IMAGES = {"vecLib", "libBLAS.dylib", "libLAPACK.dylib", "libvDSP.dylib",
-                          "libvMisc.dylib", "libBNNS.dylib", "libLinearAlgebra.dylib",
-                          "libSparse.dylib", "libSparseBLAS.dylib", "libQuadrature.dylib"}
+# Public mach-o/dyld.h and mach-o/loader.h ABI. This is trusted-OS evidence,
+# not independent Apple code-signature verification or a hostile-code sandbox.
+DARWIN_ORIGIN_CONTRACT = "darwin_dyld_shared_cache_v2"
+DARWIN_OS_ROOTS = (Path("/usr/lib"), Path("/System/Library"))
+MH_MAGIC_64 = 0xFEEDFACF
+CPU_TYPE_ARM64 = 0x0100000C
+CPU_SUBTYPE_MASK = 0xFF000000
+MH_EXECUTE, MH_DYLIB, MH_BUNDLE = 2, 6, 8
+MH_DYLIB_IN_CACHE = 0x80000000
+
+
+class MachHeader64(ctypes.Structure):
+    _fields_ = [("magic", ctypes.c_uint32), ("cputype", ctypes.c_int32),
+                ("cpusubtype", ctypes.c_int32), ("filetype", ctypes.c_uint32),
+                ("ncmds", ctypes.c_uint32), ("sizeofcmds", ctypes.c_uint32),
+                ("flags", ctypes.c_uint32), ("reserved", ctypes.c_uint32)]
+
+
+class DarwinImage(NamedTuple):
+    image_index: int
+    path: str
+    header_address: int
+    magic: int
+    cputype: int
+    cpusubtype: int
+    filetype: int
+    flags: int
+    shared_cache_member: bool
 
 
 class NativeOriginError(ValueError):
@@ -195,31 +185,67 @@ def linux_native_paths() -> list[str]:
     return parse_linux_maps(raw.decode("utf-8", errors="strict"))
 
 
-def darwin_native_paths() -> list[str]:
-    """Bounded stable dyld snapshots, not a claim of thread-safe enumeration."""
-    dyld = ctypes.CDLL(None)
-    dyld._dyld_image_count.argtypes = []
-    dyld._dyld_image_count.restype = ctypes.c_uint32
-    dyld._dyld_get_image_name.argtypes = [ctypes.c_uint32]
-    dyld._dyld_get_image_name.restype = ctypes.c_char_p
+def darwin_native_images() -> tuple[DarwinImage, ...]:
+    """Two matching indexed snapshots of the trusted process's public dyld API.
+
+    Only pointers returned directly by dyld are read, never JSON addresses.
+    Fixed-size headers and bounded NUL-terminated paths are copied immediately.
+    Enumeration is not thread-safe; instability fails closed, not a locking claim.
+    """
+    if ctypes.sizeof(ctypes.c_void_p) != 8 or sys.byteorder != "little":
+        raise ValueError("Unsupported native Mach-O arm64 ABI")
+    try:
+        dyld = ctypes.CDLL(None)
+        dyld._dyld_image_count.argtypes = []
+        dyld._dyld_image_count.restype = ctypes.c_uint32
+        dyld._dyld_get_image_name.argtypes = [ctypes.c_uint32]
+        # c_char_p would copy an unbounded string before Python can check it.
+        dyld._dyld_get_image_name.restype = ctypes.POINTER(ctypes.c_char)
+        dyld._dyld_get_image_header.argtypes = [ctypes.c_uint32]
+        dyld._dyld_get_image_header.restype = ctypes.c_void_p
+        dyld._dyld_shared_cache_contains_path.argtypes = [ctypes.c_char_p]
+        dyld._dyld_shared_cache_contains_path.restype = ctypes.c_bool
+    except (AttributeError, OSError) as exc:
+        raise ValueError("Required public dyld cache/header API unavailable") from exc
     previous = None
     for _ in range(4):
         count = dyld._dyld_image_count()
         if not 0 < count <= MAX_NATIVE_IMAGES:
             raise ValueError("dyld image inventory exceeds bounds")
-        paths = []
+        images = []
         for index in range(count):
-            raw = dyld._dyld_get_image_name(index)
-            if not raw or len(raw) > MAX_PATH_BYTES:
+            pointer = dyld._dyld_get_image_name(index)
+            if not pointer:
                 raise ValueError("Unresolved dyld image path")
+            raw = bytearray()
+            for offset in range(MAX_PATH_BYTES + 1):
+                character = pointer[offset]
+                if character == b"\x00":
+                    break
+                if offset == MAX_PATH_BYTES:
+                    raise ValueError("dyld image path exceeds byte limit")
+                raw.extend(character)
             name = raw.decode("utf-8", errors="strict")
-            if not name.startswith("/") or "\x00" in name or "\n" in name:
+            if not name.startswith("/") or any(character in name for character in "\x00\r\n"):
                 raise ValueError("dyld did not report an absolute image path")
-            paths.append(name)
-        current = tuple(sorted(set(paths)))
+            address = dyld._dyld_get_image_header(index)
+            if not address or address % ctypes.alignment(MachHeader64):
+                raise ValueError("Unresolved or misaligned dyld image header")
+            # The sole address dereference is adjacent to its dyld getter.
+            header = MachHeader64.from_buffer_copy(ctypes.string_at(address, ctypes.sizeof(MachHeader64)))
+            if (header.magic != MH_MAGIC_64 or header.cputype != CPU_TYPE_ARM64
+                    or (header.cpusubtype & (0xFFFFFFFF ^ CPU_SUBTYPE_MASK)) not in {0, 1, 2}
+                    or header.filetype not in {MH_EXECUTE, MH_DYLIB, MH_BUNDLE}):
+                raise ValueError("Invalid native Mach-O arm64 image header")
+            member = dyld._dyld_shared_cache_contains_path(bytes(raw))
+            images.append(DarwinImage(index, name, address, header.magic, header.cputype,
+                                      header.cpusubtype, header.filetype, header.flags, member))
+        # Do not sort/deduplicate: changing index/path/header associations must
+        # invalidate a snapshot even when its set of filenames stays the same.
+        current = tuple(images)
         if dyld._dyld_image_count() == count:
             if current == previous:
-                return list(current)
+                return current
             previous = current
         else:
             previous = None
@@ -249,40 +275,35 @@ def is_inference_runtime(path: Path) -> bool:
 
 
 def system_library(path: Path, system: str) -> bool:
-    if system == "Linux":
-        roots = (Path("/lib"), Path("/lib64"), Path("/usr/lib"), Path("/usr/lib64"))
-        return bool(LINUX_SYSTEM_NAMES.fullmatch(path.name)) and any(within(path, root) for root in roots)
-    if system != "Darwin":
+    # Darwin has no path-only exception. Its OS-root check also needs the
+    # exact stable dyld record's membership, header type and cache flag below.
+    if system != "Linux":
         return False
-    if path.parent == Path("/usr/lib") and path.name in DARWIN_DYLIB_NAMES:
-        return True
-    if path.parent == Path("/usr/lib/system") and path.name in DARWIN_SYSTEM_DYLIB_NAMES:
-        return True
-    for prefix, names in ((Path("/System/Library/Frameworks"), DARWIN_FRAMEWORKS),
-                          (Path("/System/Library/PrivateFrameworks"), DARWIN_PRIVATE_FRAMEWORKS)):
-        if path.is_relative_to(prefix):
-            relative = path.relative_to(prefix).as_posix()
-            # An approved framework does not approve arbitrary Resources or
-            # plugins inside it. Only its named executable and named children.
-            match = re.fullmatch(r"([A-Za-z0-9]+)\.framework/(?:Versions/[A-Za-z0-9.]+/)?([A-Za-z0-9]+)", relative)
-            if match and match[1] in names and match[2] == match[1]:
-                return True
-            nested = re.fullmatch(r"([A-Za-z0-9]+)\.framework/(?:Versions/[A-Za-z0-9.]+/)?Frameworks/"
-                                  r"([A-Za-z0-9]+)\.framework/(?:Versions/[A-Za-z0-9.]+/)?([^/]+)", relative)
-            if nested and nested[1] in names and nested[2] in DARWIN_NESTED_FRAMEWORKS.get(nested[1], set()):
-                allowed = ACCELERATE_VECLIB_IMAGES if (nested[1], nested[2]) == ("Accelerate", "vecLib") else {nested[2]}
-                if nested[3] in allowed:
-                    return True
-    return False
+    roots = (Path("/lib"), Path("/lib64"), Path("/usr/lib"), Path("/usr/lib64"))
+    return bool(LINUX_SYSTEM_NAMES.fullmatch(path.name)) and any(within(path, root) for root in roots)
 
 
-def validate_native_paths(paths: list[str], root: Path, system: str) -> dict:
+def darwin_cached_os_image(raw: Path, resolved: Path, image: DarwinImage) -> bool:
+    return (all(any(path != root and path.is_relative_to(root) for root in DARWIN_OS_ROOTS)
+                for path in (raw, resolved))
+            and ".." not in raw.parts
+            and image.shared_cache_member is True and image.filetype == MH_DYLIB
+            and bool(image.flags & MH_DYLIB_IN_CACHE))
+
+
+def validate_native_paths(paths: list[str], root: Path, system: str, *,
+                          darwin_images: tuple[DarwinImage, ...] | None = None) -> dict:
     bundled, system_paths = [], []
     required = {}
     if not paths or len(paths) > MAX_NATIVE_IMAGES:
         raise ValueError("Native image inventory outside bounds")
-    for raw in paths:
-        if not Path(raw).is_absolute() or len(raw.encode("utf-8")) > MAX_PATH_BYTES:
+    if system == "Darwin" and (darwin_images is None or len(darwin_images) != len(paths)
+            or any(not isinstance(image, DarwinImage) or image.image_index != index or image.path != paths[index]
+                   for index, image in enumerate(darwin_images))):
+        raise ValueError("Native paths require the same indexed dyld evidence snapshot")
+    for index, raw in enumerate(paths):
+        if (not Path(raw).is_absolute() or any(character in raw for character in "\x00\r\n")
+                or len(raw.encode("utf-8")) > MAX_PATH_BYTES):
             raise ValueError("Invalid native image path")
         path = Path(raw).resolve()
         if Path(raw).is_relative_to(root.resolve()) and not within(path, root):
@@ -298,7 +319,8 @@ def validate_native_paths(paths: list[str], root: Path, system: str) -> dict:
                 required[role] = str(path)
         elif is_inference_runtime(Path(raw)) or is_inference_runtime(path):
             raise ValueError(f"Python/Torch/numerical runtime escaped the bundle: {path}")
-        elif system_library(path, system):
+        elif (system_library(path, system) or (system == "Darwin" and darwin_images is not None
+                and darwin_cached_os_image(Path(raw), path, darwin_images[index]))):
             # dyld shared-cache OS images need not exist as files on modern
             # macOS. This exception never applies to Python/Torch/bundle paths.
             if system == "Linux" and not path.is_file():
@@ -320,16 +342,23 @@ def runtime_provenance() -> dict:
                                           or name.startswith(("torch.", "model.")))]
     origins = module_origins(modules, internal)
     system = platform.system()
-    paths = linux_native_paths() if system == "Linux" else darwin_native_paths()
+    images = darwin_native_images() if system == "Darwin" else None
+    paths = [image.path for image in images] if images is not None else linux_native_paths()
     snapshot = tuple(paths)
     try:
-        native = validate_native_paths(paths, root, system)
+        native = (validate_native_paths(paths, root, system, darwin_images=images) if images is not None
+                  else validate_native_paths(paths, root, system))
     except ValueError as exc:
         raise NativeOriginError(str(exc), snapshot) from exc
-    return {"frozen": True, "executable": str(Path(sys.executable).resolve()),
+    result = {"frozen": True, "executable": str(Path(sys.executable).resolve()),
             "bundle_root": str(root), "meipass": str(internal), "module_origins": origins,
             "native_module_paths": native, "loaded_native_paths": paths,
-            "inventory_mechanism": "proc_self_maps_executable_files" if system == "Linux" else "dyld_stable_snapshots"}
+            "inventory_mechanism": "proc_self_maps_executable_files" if system == "Linux" else "dyld_stable_indexed_cache_snapshots"}
+    if images is not None:
+        result.update(native_origin_contract=DARWIN_ORIGIN_CONTRACT,
+                      native_origin_claim="trusted_os_dyld_reported_cache_residency",
+                      loaded_native_images=[image._asdict() for image in images])
+    return result
 
 
 def wait_for_job_gate() -> None:
@@ -374,6 +403,8 @@ def main(argv: list[str] | None = None) -> int:
         report["not_verified"] = ["KUMA integration", "native GUI", "system Python physically removed",
                                   "redistribution rights", "biological accuracy", "product dependency security baseline",
                                   "anonymous executable memory provenance", "thread-safe dyld enumeration"]
+        if platform.system() == "Darwin":
+            report["not_verified"].append("independent Apple code-signature verification")
         write_report(args.output.resolve(), report)
         return 0
     except Exception as exc:

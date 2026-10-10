@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest import mock
 
@@ -370,13 +371,47 @@ class PosixMockProcessTests(unittest.TestCase):
         self.assertTrue(report["runtime_directory_removed"])
 
     def test_timeout_kills_and_reaps_stubborn_descendant_group(self):
-        self.configure("signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
+        ready = self.base / "descendant-ready"
+        # Deliberately take longer to start than the short test watchdog. The
+        # timeout must exercise a live, stubborn descendant, not Python startup.
+        self.configure("time.sleep(0.3)\n"
+                       "signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
                        "child = os.fork()\n"
+                       "if child == 0:\n"
+                       f"    pathlib.Path({str(ready)!r}).write_text(str(os.getpid()))\n"
                        "while True: time.sleep(0.01)\n")
-        with mock.patch.object(launcher, "TIMEOUT_SECONDS", 0.15):
+        real_time = launcher.time
+        started = None
+        startup_offset = None
+        ready_before_watchdog = False
+
+        def readiness_clock():
+            nonlocal started, startup_offset, ready_before_watchdog
+            now = real_time.monotonic()
+            if started is None:
+                started = now
+                return now
+            if startup_offset is None:
+                # The first timeout check follows the real session check and
+                # start gate. Bound this one-time fixture barrier independently;
+                # every later tick, including cleanup, advances at real speed.
+                deadline = now + 5
+                while real_time.monotonic() < deadline:
+                    if ready.is_file():
+                        ready_before_watchdog = True
+                        break
+                    real_time.sleep(0.005)
+                startup_offset = real_time.monotonic() - started
+            return real_time.monotonic() - startup_offset
+
+        test_time = SimpleNamespace(monotonic=readiness_clock, sleep=real_time.sleep)
+        with mock.patch.object(launcher, "TIMEOUT_SECONDS", 0.15), \
+             mock.patch.object(launcher, "time", test_time):
             code, report = self.run_probe()
+        self.assertTrue(ready_before_watchdog, "Mock descendant did not become ready within 5 seconds")
         self.assertEqual(code, 2, report)
         self.assertEqual(report["status"], "timed_out")
+        self.assertEqual(report["exit_code"], -launcher.signal.SIGKILL)
         self.assertTrue(report["process_group_termination_verified"])
         self.assertTrue(report["runtime_directory_removed"])
         self.assertLess(report["elapsed_seconds"], 10)

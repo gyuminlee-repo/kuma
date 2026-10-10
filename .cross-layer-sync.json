@@ -1582,6 +1582,29 @@
       ],
       "note": "Offline annotation-only full-atom export and pinned external result consistency; no bundled runtime/UI/selection coupling. Changes to polymer or source identity require rechecking bijective domain mapping.",
       "severity": "warning"
+    },
+    {
+      "id": "optional-merizo-scientific-adapter",
+      "files": [
+        "kuma_core/kuro/domain_merizo.py",
+        "kuma_core/kuro/domain_annotation.py",
+        "kuma_core/kuro/prediction_bundle.py",
+        "kuma_core/kuro/residue_mapping.py",
+        "tests/test_domain_merizo.py",
+        "docs/audit/optional-merizo-runtime-gates.md"
+      ],
+      "note": "Source-only Merizo result consistency and annotation summaries. Full original atoms, complete reference and source identity; no selector weighting or runtime execution.",
+      "severity": "warning"
+    },
+    {
+      "id": "optional-runtime-host-registry",
+      "files": [
+        "kuma_core/kuro/optional_runtime.py",
+        "tests/test_optional_runtime.py",
+        "docs/audit/optional-merizo-runtime-gates.md"
+      ],
+      "note": "Empty production catalog and bounded local archive host mechanism. Any future executor must share the operation lock from verification through child exit; current source is not a shipped installer.",
+      "severity": "warning"
     }
   ]
 }

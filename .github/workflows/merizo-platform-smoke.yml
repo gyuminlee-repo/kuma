@@ -5,6 +5,9 @@ on:
     paths:
       - '.github/workflows/merizo-platform-smoke.yml'
       - 'scripts/merizo_windows_smoke/**'
+      - 'scripts/collect-python-licenses.py'
+      - 'scripts/license-supplements.json'
+      - 'tests/test_merizo_legal_inventory.py'
       - 'tests/test_merizo_platform_smoke.py'
       - 'tests/test_merizo_posix*.py'
       - 'tests/test_merizo_windows_smoke.py'
@@ -70,11 +73,15 @@ jobs:
           python -m unittest discover -s tests -p 'test_merizo_windows_smoke.py' -v
           python -m unittest discover -s tests -p 'test_merizo_platform_smoke.py' -v
           python -m unittest discover -s tests -p 'test_merizo_posix*.py' -v
+      - name: Validate legal evidence collector
+        run: python -m unittest discover -s tests -p 'test_merizo_legal_inventory.py' -v
       - name: Run one fixed public fixture with 300 second process limit
         timeout-minutes: 6
         run: python scripts/merizo_windows_smoke/run.py --source .merizo-smoke-upstream --fixture tests/data/domain_annotation/1ubq.pdb --output merizo-smoke-results/${{ matrix.target }}.json
       - name: Install fixed freezing tools (CI-only)
         run: python -m pip install --disable-pip-version-check -r scripts/merizo_windows_smoke/freezer-requirements.txt
+      - name: Collect installed legal texts for separate distribution review
+        run: python scripts/merizo_windows_smoke/collect_legal_inventory.py --source .merizo-smoke-upstream --output merizo-smoke-results/legal-inventory.json
       - name: Build temporary POSIX onedir after verifying official pins
         timeout-minutes: 12
         run: python scripts/merizo_windows_smoke/build_frozen_posix.py --source .merizo-smoke-upstream --output-directory "${{ runner.temp }}/merizo posix build" --evidence merizo-smoke-results/frozen-build.json
@@ -99,6 +106,7 @@ jobs:
           path: |
             merizo-smoke-results/${{ matrix.target }}.json
             merizo-smoke-results/frozen-build.json
+            merizo-smoke-results/legal-inventory.json
             merizo-smoke-results/frozen-posix-cpu.json
           if-no-files-found: warn
           retention-days: 7

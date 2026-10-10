@@ -24,6 +24,33 @@ def mapping(path: str = "", *, permissions: str = "r-xp", inode: str = "123") ->
     return f"1000-2000 {permissions} 00000000 08:01 {inode}" + (" " + path if path else "")
 
 
+class FakeDyld:
+    """Real ctypes buffers, with only public dyld calls replaced (no model)."""
+
+    def __init__(self, paths, *, flags=entry.MH_DYLIB_IN_CACHE, member=True):
+        self.names = [ctypes.create_string_buffer(path.encode() if isinstance(path, str) else path)
+                      for path in paths]
+        self.headers = [entry.MachHeader64(entry.MH_MAGIC_64, entry.CPU_TYPE_ARM64, 0,
+                                          entry.MH_DYLIB, 0, 0, flags, 0) for _ in paths]
+        self.library = mock.Mock(spec=["_dyld_image_count", "_dyld_get_image_name",
+                                      "_dyld_get_image_header", "_dyld_shared_cache_contains_path"])
+        self.library._dyld_image_count.return_value = len(paths)
+        self.library._dyld_get_image_name.side_effect = lambda index: ctypes.cast(
+            self.names[index], ctypes.POINTER(ctypes.c_char))
+        self.library._dyld_get_image_header.side_effect = lambda index: ctypes.addressof(self.headers[index])
+        self.library._dyld_shared_cache_contains_path.return_value = member
+
+    def snapshot(self):
+        with mock.patch.object(entry.ctypes, "CDLL", return_value=self.library):
+            return entry.darwin_native_images()
+
+
+def validate_paths(paths, root, system, **kwargs):
+    if system == "Darwin" and "darwin_images" not in kwargs:
+        kwargs["darwin_images"] = FakeDyld(paths).snapshot()
+    return entry.validate_native_paths(paths, root, system, **kwargs)
+
+
 class PosixEntryContracts(unittest.TestCase):
     def test_maps_preserves_spaces_and_deduplicates(self):
         raw = "\n".join([mapping("/bundle with spaces/libtorch_cpu.so"),
@@ -54,35 +81,113 @@ class PosixEntryContracts(unittest.TestCase):
         reader.return_value.read.assert_called_once_with(entry.MAX_MAP_BYTES + 1)
 
     def test_dyld_uses_explicit_abi_and_two_matching_snapshots(self):
-        library = mock.Mock()
-        library._dyld_image_count.return_value = 2
-        library._dyld_get_image_name.side_effect = lambda index: [b"/bundle/Python", b"/usr/lib/libSystem.B.dylib"][index]
+        fake = FakeDyld(["/bundle/Python", "/usr/lib/libSystem.B.dylib"])
+        library = fake.library
+        # arm64e CPU subtype capability bits are not a different architecture.
+        fake.headers[1].cpusubtype = ctypes.c_int32(0x80000002).value
         with mock.patch.object(entry.ctypes, "CDLL", return_value=library) as loader:
-            self.assertEqual(entry.darwin_native_paths(), ["/bundle/Python", "/usr/lib/libSystem.B.dylib"])
+            images = entry.darwin_native_images()
+        self.assertEqual([image.path for image in images], ["/bundle/Python", "/usr/lib/libSystem.B.dylib"])
+        self.assertEqual([image.image_index for image in images], [0, 1])
+        self.assertEqual(images[1].header_address, ctypes.addressof(fake.headers[1]))
+        self.assertEqual(images[1].flags, entry.MH_DYLIB_IN_CACHE)
+        self.assertTrue(images[1].shared_cache_member)
         loader.assert_called_once_with(None)
         self.assertEqual(library._dyld_image_count.argtypes, [])
         self.assertIs(library._dyld_image_count.restype, ctypes.c_uint32)
-        self.assertEqual(library._dyld_get_image_name.argtypes, [ctypes.c_uint32])
-        self.assertIs(library._dyld_get_image_name.restype, ctypes.c_char_p)
-        self.assertEqual(library._dyld_get_image_name.call_count, 4)
+        for name, result in (("_dyld_get_image_name", ctypes.POINTER(ctypes.c_char)),
+                             ("_dyld_get_image_header", ctypes.c_void_p)):
+            function = getattr(library, name)
+            self.assertEqual(function.argtypes, [ctypes.c_uint32])
+            self.assertIs(function.restype, result)
+            self.assertEqual(function.call_count, 4)
+        self.assertEqual(library._dyld_shared_cache_contains_path.argtypes, [ctypes.c_char_p])
+        self.assertIs(library._dyld_shared_cache_contains_path.restype, ctypes.c_bool)
+        self.assertEqual(library._dyld_shared_cache_contains_path.call_count, 4)
+        self.assertEqual(ctypes.sizeof(entry.MachHeader64), 32)
+        self.assertEqual(entry.MachHeader64.flags.offset, 24)
 
-    def test_dyld_rejects_unstable_overflow_null_relative_and_long_paths(self):
-        for fault in ("unstable", "count_changed", "zero", "overflow", "null", "relative", "long", "utf8"):
+    def test_dyld_rejects_changed_index_path_address_flags_or_membership(self):
+        for fault in ("index", "path", "address", "flags", "membership", "count_changed"):
             with self.subTest(fault=fault):
-                library = mock.Mock()
-                library._dyld_image_count.return_value = entry.MAX_NATIVE_IMAGES + 1 if fault == "overflow" else 1
-                if fault == "zero":
-                    library._dyld_image_count.return_value = 0
-                if fault == "count_changed":
-                    library._dyld_image_count.side_effect = [1, 2] * 4
-                names = {"null": None, "relative": b"@rpath/lib.so", "long": b"/" + b"x" * entry.MAX_PATH_BYTES,
-                         "utf8": b"/\xff"}
-                if fault == "unstable":
-                    library._dyld_get_image_name.side_effect = [b"/a", b"/b", b"/a", b"/b"]
+                fake = FakeDyld(["/a", "/b"])
+                library = fake.library
+                if fault == "index":
+                    # Same path set and stable count, but different index associations.
+                    library._dyld_get_image_name.side_effect = [ctypes.cast(fake.names[i], ctypes.POINTER(ctypes.c_char))
+                                                               for i in (0, 1, 1, 0) * 2]
+                elif fault == "path":
+                    library._dyld_get_image_name.side_effect = [ctypes.cast(fake.names[i], ctypes.POINTER(ctypes.c_char))
+                                                               for i in (0, 1, 1, 1) * 2]
+                elif fault == "address":
+                    library._dyld_get_image_header.side_effect = [ctypes.addressof(fake.headers[i])
+                                                                 for i in (0, 1, 1, 0) * 2]
+                elif fault == "flags":
+                    def changed_header(index):
+                        fake.headers[index].flags ^= 1
+                        return ctypes.addressof(fake.headers[index])
+                    library._dyld_get_image_header.side_effect = changed_header
+                elif fault == "membership":
+                    library._dyld_shared_cache_contains_path.side_effect = [True, True, False, True] * 2
                 else:
-                    library._dyld_get_image_name.return_value = names.get(fault, b"/a")
-                with mock.patch.object(entry.ctypes, "CDLL", return_value=library), self.assertRaises(ValueError):
-                    entry.darwin_native_paths()
+                    library._dyld_image_count.side_effect = [2, 3] * 4
+                with self.assertRaisesRegex(ValueError, "stabilize"):
+                    fake.snapshot()
+                self.assertLessEqual(library._dyld_get_image_name.call_count, 8)
+
+    def test_dyld_rejects_overflow_null_relative_long_and_invalid_utf8_paths(self):
+        for fault in ("zero", "overflow", "null", "relative", "long", "utf8", "newline", "carriage_return"):
+            with self.subTest(fault=fault):
+                names = {"relative": b"@rpath/lib.so", "long": b"/" + b"x" * entry.MAX_PATH_BYTES,
+                         "utf8": b"/\xff", "newline": b"/bad\npath", "carriage_return": b"/bad\rpath"}
+                fake = FakeDyld([names.get(fault, b"/a")])
+                if fault in {"zero", "overflow"}:
+                    fake.library._dyld_image_count.return_value = 0 if fault == "zero" else entry.MAX_NATIVE_IMAGES + 1
+                if fault == "null":
+                    fake.library._dyld_get_image_name.side_effect = None
+                    fake.library._dyld_get_image_name.return_value = ctypes.POINTER(ctypes.c_char)()
+                with self.assertRaises(ValueError):
+                    fake.snapshot()
+
+    def test_dyld_path_copy_is_bounded_before_allocation(self):
+        fake = FakeDyld(["/a"])
+        pointer = mock.Mock()
+        pointer.__getitem__ = mock.Mock(return_value=b"x")
+        fake.library._dyld_get_image_name.side_effect = None
+        fake.library._dyld_get_image_name.return_value = pointer
+        with self.assertRaisesRegex(ValueError, "byte limit"):
+            fake.snapshot()
+        self.assertEqual(pointer.__getitem__.call_count, entry.MAX_PATH_BYTES + 1)
+        fake.library._dyld_get_image_header.assert_not_called()
+
+    def test_dyld_rejects_missing_api_null_header_and_invalid_native_abi(self):
+        for name in ("_dyld_image_count", "_dyld_get_image_name", "_dyld_get_image_header",
+                     "_dyld_shared_cache_contains_path"):
+            fake = FakeDyld(["/a"])
+            delattr(fake.library, name)
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, "unavailable"):
+                fake.snapshot()
+        with mock.patch.object(entry.ctypes, "CDLL", side_effect=OSError("missing")), \
+             self.assertRaisesRegex(ValueError, "unavailable"):
+            entry.darwin_native_images()
+        for field, value in (("magic", 0xCFFAEDFE), ("magic", 0xFEEDFACE), ("cputype", 0x01000007),
+                             ("cputype", 12), ("cpusubtype", 99), ("filetype", 1), ("filetype", 9)):
+            fake = FakeDyld(["/a"])
+            setattr(fake.headers[0], field, value)
+            with self.subTest(field=field, value=value), self.assertRaisesRegex(ValueError, "header"):
+                fake.snapshot()
+        for address in (None, 0, 1):
+            fake = FakeDyld(["/a"])
+            fake.library._dyld_get_image_header.side_effect = None
+            fake.library._dyld_get_image_header.return_value = address
+            with self.subTest(address=address), \
+                 mock.patch.object(entry.ctypes, "string_at") as read, self.assertRaisesRegex(ValueError, "header"):
+                fake.snapshot()
+            read.assert_not_called()
+        with mock.patch.object(entry.sys, "byteorder", "big"), self.assertRaisesRegex(ValueError, "ABI"):
+            FakeDyld(["/a"]).snapshot()
+        with mock.patch.object(entry.ctypes, "sizeof", return_value=4), self.assertRaisesRegex(ValueError, "ABI"):
+            FakeDyld(["/a"]).snapshot()
 
     def test_bundle_requires_frozen_supported_arch_python_and_internal_root(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -139,38 +244,17 @@ class PosixEntryContracts(unittest.TestCase):
                     path.parent.mkdir(parents=True, exist_ok=True)
                     path.touch()
                     paths.append(str(path))
-                result = entry.validate_native_paths(paths, root, system)
+                result = validate_paths(paths, root, system)
                 self.assertEqual(set(result["required_bundled"]), {"python", "torch_cpu", "c10"})
                 for missing in range(3):
                     with self.subTest(missing=missing), self.assertRaisesRegex(ValueError, "missing"):
-                        entry.validate_native_paths(paths[:missing] + paths[missing + 1:], root, system)
+                        validate_paths(paths[:missing] + paths[missing + 1:], root, system)
                 Path(paths[0]).unlink()
                 with self.assertRaisesRegex(ValueError, "missing"):
-                    entry.validate_native_paths(paths, root, system)
-
-    @unittest.skipUnless(os.name == "posix", "POSIX absolute-path and symlink semantics")
-    def test_native_system_allowlist_never_allows_external_python_torch_or_homebrew(self):
-        with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder)
-            for raw in ("/usr/lib/libpython3.11.so.1.0", "/usr/lib/libtorch_cpu.so", "/usr/lib/libc10.so",
-                        "/System/Library/Frameworks/Python.framework/Versions/3.11/Python",
-                        "/Library/Frameworks/Python.framework/Versions/3.11/Python",
-                        "/opt/homebrew/lib/libomp.dylib", "/usr/local/lib/libc.so.6",
-                        "/usr/lib/libunapproved.dylib", "/System/Library/Frameworks/Unapproved.framework/Unapproved"):
-                system = "Linux" if ".so" in raw else "Darwin"
-                with self.subTest(raw=raw), self.assertRaisesRegex(ValueError, "escaped|allowlist"):
-                    entry.validate_native_paths([raw], root, system)
-            self.assertTrue(entry.system_library(Path("/usr/lib/libSystem.B.dylib"), "Darwin"))
-            self.assertTrue(entry.system_library(Path("/usr/lib/system/libsystem_kernel.dylib"), "Darwin"))
-            self.assertFalse(entry.system_library(Path("/usr/lib/system/libsystem_unapproved.dylib"), "Darwin"))
-            self.assertTrue(entry.system_library(Path("/System/Library/Frameworks/Accelerate.framework/Versions/A/Accelerate"), "Darwin"))
-            self.assertFalse(entry.system_library(Path("/usr/local/lib/libc.so.6"), "Linux"))
-            self.assertFalse(entry.system_library(Path("/System/Library/Frameworks/Foundation.framework/Versions/C/Resources/thirdparty.dylib"), "Darwin"))
-            self.assertTrue(entry.system_library(Path("/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib"), "Darwin"))
+                    validate_paths(paths, root, system)
 
     @unittest.skipUnless(os.name == "posix", "POSIX absolute-path semantics")
-    def test_quadrature_is_only_allowed_as_named_apple_veclib_image(self):
-        official = "/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libQuadrature.dylib"
+    def test_os_roots_membership_and_loaded_cache_flag_are_all_required(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             bundled = []
@@ -178,29 +262,88 @@ class PosixEntryContracts(unittest.TestCase):
                 path = root / name
                 path.touch()
                 bundled.append(str(path))
-            result = entry.validate_native_paths([*bundled, official], root, "Darwin")
-            self.assertEqual(result["posix_system"], [official])
-            for rejected in ("/opt/homebrew/lib/libQuadrature.dylib", "/usr/local/lib/libQuadrature.dylib",
-                             "/usr/lib/libQuadrature.dylib", official.replace("vecLib.framework", "vImage.framework"),
-                             official.replace("/libQuadrature", "/Resources/libQuadrature"),
-                             official.replace("Accelerate.framework", "Foundation.framework"),
-                             "/usr/lib/libpython3.11.dylib", "/usr/lib/libtorch_cpu.dylib"):
-                with self.subTest(rejected=rejected), self.assertRaisesRegex(ValueError, "escaped|allowlist"):
-                    entry.validate_native_paths([*bundled, rejected], root, "Darwin")
+            for official in ("/usr/lib/libSystem.B.dylib", "/usr/lib/system/libunlisted.dylib",
+                             "/System/Library/PrivateFrameworks/NewOS.framework/NewOS",
+                             "/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libQuadrature.dylib"):
+                paths = [*bundled, official]
+                result = validate_paths(paths, root, "Darwin")
+                self.assertEqual(result["posix_system"], [official])
+                # A familiar name or OS path alone provides no exception.
+                self.assertFalse(entry.system_library(Path(official), "Darwin"))
+                for member, flags, filetype in ((False, entry.MH_DYLIB_IN_CACHE, entry.MH_DYLIB),
+                                               (True, 0, entry.MH_DYLIB),
+                                               (True, entry.MH_DYLIB_IN_CACHE, entry.MH_BUNDLE)):
+                    fake = FakeDyld(paths)
+                    images = list(fake.snapshot())
+                    images[-1] = images[-1]._replace(shared_cache_member=member, flags=flags, filetype=filetype)
+                    with self.subTest(path=official, member=member, flags=flags, filetype=filetype), \
+                         self.assertRaisesRegex(ValueError, "allowlist"):
+                        validate_paths(paths, root, "Darwin", darwin_images=tuple(images))
+            for raw in ("/opt/homebrew/lib/libSystem.B.dylib", "/usr/local/lib/libSystem.B.dylib",
+                        "/usr/library/libSystem.B.dylib", "/System/LibraryOther/libSystem.B.dylib",
+                        "/System/Library/../Library/libSystem.B.dylib", "/usr/lib", "/System/Library"):
+                with self.subTest(raw=raw), self.assertRaisesRegex(ValueError, "allowlist"):
+                    validate_paths([*bundled, raw], root, "Darwin")
+
+    @unittest.skipUnless(os.name == "posix", "POSIX absolute-path semantics")
+    def test_cached_external_runtimes_never_get_os_exception(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            for raw in ("/usr/lib/libpython3.11.dylib", "/usr/lib/libtorch_cpu.dylib", "/usr/lib/libc10.dylib",
+                        "/System/Library/Frameworks/Python.framework/Versions/3.11/Python",
+                        "/Library/Frameworks/Python.framework/Versions/3.11/Python",
+                        "/opt/homebrew/lib/libomp.dylib", "/usr/lib/libomp.dylib", "/usr/lib/libgomp.dylib",
+                        "/usr/lib/libiomp5.dylib", "/usr/lib/libopenblas.dylib", "/usr/lib/libmkl_core.dylib",
+                        "/System/Library/torch/custom.dylib", "/usr/lib/site-packages/arbitrary.dylib"):
+                # Even both true cache indicators cannot promote a runtime.
+                with self.subTest(raw=raw), self.assertRaisesRegex(ValueError, "runtime escaped"):
+                    validate_paths([raw], root, "Darwin")
+            for raw in ("/usr/lib/libpython3.11.so.1.0", "/usr/lib/libtorch_cpu.so", "/usr/lib/libc10.so",
+                        "/usr/local/lib/libc.so.6"):
+                with self.subTest(raw=raw), self.assertRaisesRegex(ValueError, "escaped|allowlist"):
+                    validate_paths([raw], root, "Linux")
+            self.assertFalse(entry.system_library(Path("/usr/local/lib/libc.so.6"), "Linux"))
+
+    def test_validation_rejects_missing_mismatched_or_json_dyld_evidence_without_dereference(self):
+        paths = ["/usr/lib/libSystem.B.dylib"]
+        images = FakeDyld(paths).snapshot()
+        cases = (None, (), (images[0]._replace(image_index=1),), (images[0]._replace(path="/different"),),
+                 (dict(images[0]._asdict(), header_address=1),))
+        with tempfile.TemporaryDirectory() as folder:
+            for evidence in cases:
+                with self.subTest(evidence=evidence), mock.patch.object(entry.ctypes, "string_at") as read, \
+                     self.assertRaisesRegex(ValueError, "snapshot"):
+                    entry.validate_native_paths(paths, Path(folder), "Darwin", darwin_images=evidence)
+                read.assert_not_called()
+
+    @unittest.skipUnless(os.name == "posix", "POSIX symlink semantics")
+    def test_cache_flags_cannot_approve_bundle_symlink_escape_or_os_root_escape(self):
+        official = Path("/usr/lib/libSystem.B.dylib")
+        image = FakeDyld([str(official)]).snapshot()[0]
+        self.assertFalse(entry.darwin_cached_os_image(official, Path("/outside/libSystem.B.dylib"), image))
+        self.assertFalse(entry.darwin_cached_os_image(Path("/outside/libSystem.B.dylib"), official, image))
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            link = root / "libSystem.B.dylib"
+            link.symlink_to(official)
+            with self.assertRaisesRegex(ValueError, "symlink escaped"):
+                validate_paths([str(link)], root, "Darwin")
 
     def test_rejected_origin_carries_same_inventory_without_reenumeration(self):
         paths = ["/bundle/libpython3.11.dylib", "/System/Library/unapproved.dylib"]
+        images = FakeDyld(paths).snapshot()
         with tempfile.TemporaryDirectory() as folder, \
              mock.patch.object(entry, "bundle_root", return_value=(Path(folder), Path(folder) / "_internal")), \
              mock.patch.object(entry, "module_origins", return_value={}), \
              mock.patch.object(entry.platform, "system", return_value="Darwin"), \
-             mock.patch.object(entry, "darwin_native_paths", return_value=paths) as inventory, \
+             mock.patch.object(entry, "darwin_native_images", return_value=images) as inventory, \
              mock.patch.object(entry, "validate_native_paths", side_effect=ValueError("unapproved native image")) as validate:
             with self.assertRaises(entry.NativeOriginError) as caught:
                 entry.runtime_provenance()
         inventory.assert_called_once_with()
         self.assertEqual(validate.call_count, 1)
-        self.assertIs(validate.call_args.args[0], paths)
+        self.assertEqual(validate.call_args.args[0], paths)
+        self.assertIs(validate.call_args.kwargs["darwin_images"], images)
         self.assertEqual(caught.exception.paths, tuple(paths))
         self.assertIsInstance(caught.exception.__cause__, ValueError)
 
@@ -257,14 +400,14 @@ class PosixEntryContracts(unittest.TestCase):
                 link = root / name
                 link.symlink_to(target.relative_to(root))
                 paths.append(str(link))
-            self.assertEqual(len(entry.validate_native_paths(paths, root, "Linux")["bundled"]), 3)
+            self.assertEqual(len(validate_paths(paths, root, "Linux")["bundled"]), 3)
             outside = base / "libc10.so"
             outside.touch()
             link = root / "libc10.so"
             link.unlink()
             link.symlink_to(outside)
             with self.assertRaisesRegex(ValueError, "escaped"):
-                entry.validate_native_paths(paths, root, "Linux")
+                validate_paths(paths, root, "Linux")
             module_link = root / "predict.py"
             module_link.symlink_to(outside)
             module = ModuleType("predict")
@@ -277,7 +420,7 @@ class PosixEntryContracts(unittest.TestCase):
             external_system_image.touch()
             system_link.symlink_to(external_system_image)
             with self.assertRaisesRegex(ValueError, "symlink escaped"):
-                entry.validate_native_paths([str(system_link)], root, "Linux")
+                validate_paths([str(system_link)], root, "Linux")
 
     def test_gate_requires_own_session_location_and_bounded_wait(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -337,17 +480,27 @@ class PosixEntryContracts(unittest.TestCase):
     def test_provenance_dispatch_and_shared_guard_surround_weight_load(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder).resolve()
-            for system, function in (("Linux", "linux_native_paths"), ("Darwin", "darwin_native_paths")):
+            for system, function in (("Linux", "linux_native_paths"), ("Darwin", "darwin_native_images")):
+                paths = [str(root / "native")]
+                darwin_inventory = FakeDyld(paths).snapshot()
+                inventory = darwin_inventory if system == "Darwin" else paths
                 with self.subTest(system=system), \
                      mock.patch.object(entry, "bundle_root", return_value=(root, root / "_internal")), \
                      mock.patch.object(entry, "module_origins", return_value={"predict": "inside"}), \
                      mock.patch.object(entry.platform, "system", return_value=system), \
-                     mock.patch.object(entry, function, return_value=[str(root / "native")]), \
+                     mock.patch.object(entry, function, return_value=inventory), \
                      mock.patch.object(entry, "validate_native_paths", return_value={"bundled": []}) as validate:
                     report = entry.runtime_provenance()
                     self.assertTrue(report["frozen"])
                     self.assertEqual(report["bundle_root"], str(root))
-                    validate.assert_called_once_with([str(root / "native")], root, system)
+                    if system == "Darwin":
+                        validate.assert_called_once_with(paths, root, system, darwin_images=inventory)
+                        self.assertEqual(report["native_origin_contract"], "darwin_dyld_shared_cache_v2")
+                        self.assertEqual(report["loaded_native_images"], [image._asdict() for image in darwin_inventory])
+                    else:
+                        validate.assert_called_once_with(paths, root, system)
+                        self.assertNotIn("native_origin_contract", report)
+                        self.assertEqual(report["inventory_mechanism"], "proc_self_maps_executable_files")
         # The actual shared function remains the inference implementation. Its
         # two guards bracket weight deserialization and the segmentation call.
         tree = ast.parse((HARNESS / "run.py").read_text())
