@@ -1,0 +1,65 @@
+name: Merizo Windows CPU feasibility
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/merizo-windows-smoke.yml'
+      - 'scripts/merizo_windows_smoke/**'
+      - 'tests/test_merizo_windows_smoke.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: merizo-windows-smoke-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  native-windows-cpu:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      MPLBACKEND: Agg
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      CUDA_VISIBLE_DEVICES: ''
+    steps:
+      - name: Preserve pinned source and PDB bytes on Windows
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - name: Obtain exact official upstream (test only)
+        uses: actions/checkout@v5
+        with:
+          repository: psipred/Merizo
+          ref: 41d12fb84e6e8fdb586c2c859d12161dc7bb5bfd
+          path: .merizo-smoke-upstream
+          persist-credentials: false
+      - name: Install CPU compatibility environment (no product bundle)
+        shell: pwsh
+        run: |
+          python -m pip install --disable-pip-version-check "torch==2.0.1+cpu" --index-url https://download.pytorch.org/whl/cpu
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m pip install --disable-pip-version-check -r scripts/merizo_windows_smoke/requirements.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Validate harness without inference
+        run: python -m unittest discover -s tests -p test_merizo_windows_smoke.py -v
+      - name: Run fixed public fixture with 300 second process limit
+        run: python scripts/merizo_windows_smoke/run.py --source .merizo-smoke-upstream --fixture tests/data/domain_annotation/1ubq.pdb --output merizo-smoke-results/windows-cpu.json
+      - name: Preserve small result only (never models or runtime)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: merizo-windows-cpu-result
+          path: merizo-smoke-results/windows-cpu.json
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Remove task-only upstream weights/source
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path .merizo-smoke-upstream) { Remove-Item -Recurse -Force .merizo-smoke-upstream }
