@@ -40,7 +40,11 @@ class FrozenHarnessContracts(unittest.TestCase):
 
     def test_freezer_preflight_rejects_missing_wrong_or_vendored_backport(self):
         with tempfile.TemporaryDirectory() as folder:
-            standalone = Path(folder) / "site-packages/backports/tarfile/__init__.py"
+            # A noncanonical spelling reproduces the short/long Windows temp
+            # path discrepancy on every OS without weakening the origin guard.
+            spelling = Path(folder) / "spelling"
+            spelling.mkdir()
+            standalone = spelling / ".." / "site-packages/backports/tarfile/__init__.py"
             standalone.parent.mkdir(parents=True)
             standalone.write_text("# mock only; never imported")
             for problem in (None, "version", "missing", "vendored", "wrong_origin"):
@@ -59,7 +63,7 @@ class FrozenHarnessContracts(unittest.TestCase):
                         if problem is None:
                             report = build.verify_freezer_dependencies()
                             self.assertTrue(report["standalone_backport_verified"])
-                            self.assertEqual(report["backports_tarfile_origin"], str(standalone))
+                            self.assertEqual(report["backports_tarfile_origin"], str(standalone.resolve()))
                         else:
                             with self.assertRaises(ValueError):
                                 build.verify_freezer_dependencies()
