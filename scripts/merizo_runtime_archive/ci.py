@@ -10,7 +10,7 @@ import sys
 import time
 
 from kuma_core.kuro.domain_process import run_managed_process
-from scripts.merizo_runtime_archive.common import write_json
+from scripts.merizo_runtime_archive.common import read_regular, strict_json, write_json
 
 
 def target() -> str:
@@ -55,24 +55,44 @@ def run(source: Path, evidence: Path, task_directory: Path) -> int:
         work.mkdir()
         sentinel = work / 'completed.json'
         driver = work / 'command.py'
+        diagnostic = work / 'failure.json'
         # Build tools need the trusted CI tool path. This driver is not shipped
         # and does not change the production inference environment contract.
-        driver.write_text('import os, runpy, sys\nfrom pathlib import Path\n' +
+        driver.write_text('import json, os, runpy, sys, traceback\nfrom pathlib import Path\n' +
             f'os.environ["PATH"] = {build_path!r}\n' +
             f'os.environ.update({ci_identity!r})\n' +
             f'sys.path.insert(0, {str(project)!r})\n' +
             f'sys.argv = {argv[2:]!r}\n' +
-            'try:\n    runpy.run_module(sys.argv[0], run_name="__main__", alter_sys=True)\n' +
-            'except SystemExit as exc:\n    if exc.code not in (None, 0): raise\n' +
+            'try:\n    try:\n        runpy.run_module(sys.argv[0], run_name="__main__", alter_sys=True)\n' +
+            '    except SystemExit as exc:\n        if exc.code not in (None, 0): raise\n' +
+            'except BaseException as exc:\n    try:\n' +
+            f'        Path({str(diagnostic)!r}).write_text(json.dumps({{"type": type(exc).__name__[:128], "message": str(exc)[:1024], "traceback": traceback.format_exc(limit=6)[-2048:]}}, ensure_ascii=False), encoding="utf-8")\n' +
+            '    except OSError:\n        pass\n    raise\n' +
             f'Path({str(sentinel)!r}).write_text("{{}}", encoding="ascii")\n', encoding='utf-8')
-        run_managed_process([argv[0], '-I', str(driver)], cwd=work, cancelled=lambda: False,
-                            timeout_seconds=timeout, output_limit=1024 * 1024,
-                            result_path=sentinel, result_limit=4096)
+        try:
+            run_managed_process([argv[0], '-I', str(driver)], cwd=work, cancelled=lambda: False,
+                                timeout_seconds=timeout, output_limit=1024 * 1024,
+                                result_path=sentinel, result_limit=4096)
+        except Exception:
+            failed = {'name': name, 'passed': False, 'seconds': time.monotonic() - before}
+            try:
+                detail = strict_json(read_regular(diagnostic, 16384))
+                limits = {'type': 128, 'message': 1024, 'traceback': 2048}
+                if (isinstance(detail, dict) and set(detail) == set(limits)
+                        and all(isinstance(detail[key], str) and len(detail[key]) <= limit
+                                for key, limit in limits.items())):
+                    failed['diagnostic'] = detail
+            except (OSError, ValueError, RecursionError):
+                pass  # Diagnostic failure must not replace the original process failure.
+            report['steps'].append(failed)
+            raise
         report['steps'].append({'name': name, 'passed': True, 'seconds': time.monotonic() - before})
 
     try:
         copied = task_directory / 'official source'
-        shutil.copytree(source, copied)
+        # Preserve source bytes, not Git object read-only attributes. The owned
+        # Windows copy must remain deletable without changing original permissions.
+        shutil.copytree(source, copied, copy_function=shutil.copyfile)
         venv = task_directory / 'build environment'
         command('create_isolated_environment', [sys.executable, '-m', 'venv', str(venv)])
         python = venv / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')

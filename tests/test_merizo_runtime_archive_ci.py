@@ -120,3 +120,90 @@ def test_stale_controller_audit_refuses_preparation(tmp_path):
     with pytest.raises(ValueError, match='stale'):
         ci.run(source, evidence, tmp_path / 'task')
     assert not (tmp_path / 'task').exists()
+
+
+@pytest.mark.parametrize("diagnostic", [
+    {"type": "ValueError", "message": "synthetic wheel mismatch", "traceback": "bounded traceback"},
+    {"type": "ValueError", "message": "x" * 1025, "traceback": ""},
+    {"type": "ValueError", "message": "x" * 20000, "traceback": ""},
+    {"unexpected": "field"}, [{"nested": "list"}], None,
+])
+def test_bounded_failure_diagnostic_preserves_original_failure_and_cleanup(tmp_path, diagnostic):
+    source, evidence, task = tmp_path / 'source', tmp_path / 'evidence', tmp_path / 'task'
+    source.mkdir()
+    def runner(argv, **kwargs):
+        if diagnostic is not None:
+            (kwargs['cwd'] / 'failure.json').write_text(json.dumps(diagnostic))
+        raise RuntimeError('original process failure')
+    with patch.object(ci, 'run_managed_process', runner):
+        assert ci.run(source, evidence, task) == 1
+    report = json.loads((evidence / 'archive-ci.json').read_text())
+    assert report['status'] == 'failed' and report['payloads_removed']
+    assert report['error'] == 'RuntimeError: original process failure'
+    step = report['steps'][0]
+    assert step['name'] == 'create_isolated_environment' and not step['passed']
+    if isinstance(diagnostic, dict) and diagnostic.get('message') == 'synthetic wheel mismatch':
+        assert step['diagnostic'] == diagnostic
+    else:
+        assert 'diagnostic' not in step
+
+
+def test_actual_generated_driver_writes_bounded_exception_before_cleanup(tmp_path):
+    import subprocess
+    import sys
+    source, evidence, task = tmp_path / 'source', tmp_path / 'evidence', tmp_path / 'task'
+    source.mkdir()
+    def runner(argv, **kwargs):
+        driver = Path(argv[2])
+        text = driver.read_text().replace('runpy.run_module(sys.argv[0], run_name="__main__", alter_sys=True)',
+                                         'raise ValueError("synthetic driver failure")')
+        driver.write_text(text)
+        completed = subprocess.run([sys.executable, '-I', str(driver)], capture_output=True, timeout=10)
+        assert completed.returncode != 0
+        assert not kwargs['result_path'].exists()
+        raise RuntimeError('original process failure')
+    with patch.object(ci, 'run_managed_process', runner):
+        assert ci.run(source, evidence, task) == 1
+    report = json.loads((evidence / 'archive-ci.json').read_text())
+    detail = report['steps'][0]['diagnostic']
+    assert detail['type'] == 'ValueError' and detail['message'] == 'synthetic driver failure'
+    assert 'ValueError: synthetic driver failure' in detail['traceback']
+    assert report['payloads_removed']
+
+
+@pytest.mark.parametrize("raw", ["{broken json", "[" * 7000 + "]" * 7000])
+def test_malformed_or_deep_diagnostic_does_not_mask_process_failure(tmp_path, raw):
+    source, evidence, task = tmp_path / 'source', tmp_path / 'evidence', tmp_path / 'task'
+    source.mkdir()
+    def runner(argv, **kwargs):
+        (kwargs['cwd'] / 'failure.json').write_text(raw)
+        raise RuntimeError('original process failure')
+    with patch.object(ci, 'run_managed_process', runner):
+        assert ci.run(source, evidence, task) == 1
+    report = json.loads((evidence / 'archive-ci.json').read_text())
+    assert report['error'] == 'RuntimeError: original process failure'
+    assert report['payloads_removed'] and 'diagnostic' not in report['steps'][0]
+
+
+def test_readonly_git_object_is_copied_as_deletable_bytes_without_mutating_source(tmp_path):
+    import stat
+    source, evidence, task = tmp_path / 'source', tmp_path / 'evidence', tmp_path / 'task'
+    original = source / '.git' / 'objects' / 'aa' / 'fixture'
+    original.parent.mkdir(parents=True)
+    original.write_bytes(b'synthetic pinned object bytes')
+    original.chmod(stat.S_IREAD)
+    initial = original.stat().st_mode
+    try:
+        def runner(argv, **kwargs):
+            copied = task / 'official source' / '.git' / 'objects' / 'aa' / 'fixture'
+            assert copied.read_bytes() == original.read_bytes()
+            assert copied.stat().st_mode & stat.S_IWRITE
+            raise RuntimeError('original process failure')
+        with patch.object(ci, 'run_managed_process', runner):
+            assert ci.run(source, evidence, task) == 1
+        report = json.loads((evidence / 'archive-ci.json').read_text())
+        assert report['payloads_removed'] and not task.exists()
+        assert original.exists() and original.stat().st_mode == initial
+        assert original.read_bytes() == b'synthetic pinned object bytes'
+    finally:
+        original.chmod(stat.S_IREAD | stat.S_IWRITE)
