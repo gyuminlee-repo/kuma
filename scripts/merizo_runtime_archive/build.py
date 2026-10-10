@@ -42,6 +42,28 @@ BUILD_TIMEOUT_SECONDS = 600
 MAX_SOURCE_COMPANION = 2 * 1024 * 1024 * 1024
 
 
+def assert_biopython_excluded(toc, provenance, *, embedded=None, records=None):
+    """Host AF3 parser bytes must not silently become runtime constituents."""
+    owned = {row['path'] for row in provenance.get('installed_files', []) if row.get('owner') == 'biopython'}
+    def bio_name(value):
+        if not isinstance(value, str):
+            return False
+        value = value.replace('\\', '/')
+        return any(part in {'Bio', 'BioSQL'} or part.startswith(('Bio.', 'BioSQL.', 'biopython-'))
+                   for part in value.split('/'))
+    for rows in toc.values():
+        for row in rows:
+            if row.get('source') in owned or bio_name(row.get('source')) or bio_name(row.get('destination')):
+                raise ValueError('Host-only Biopython was collected into the runtime')
+    if embedded is not None:
+        for row in embedded['pyz_modules']:
+            if bio_name(row['module']):
+                raise ValueError('Host-only Biopython appeared in actual PYZ')
+    if records is not None and any(bio_name(row['path']) for row in records):
+        raise ValueError('Host-only Biopython appeared in normalized archive')
+    return {'analysis_toc': True, 'actual_pyz': embedded is not None, 'normalized_archive': records is not None}
+
+
 def warning_source_inventory(source, identity, provenance):
     """Public source-location references derived from exact verified input bytes.
 
@@ -247,7 +269,8 @@ def embedded_inventory(executable: Path) -> dict:
 def source_companion(source, identity, project, generated, destination, cpython_origin=None, toc=None):
     files = [(source / row['path'], 'Merizo/' + row['path']) for row in identity['files']]
     recipe = sorted((project / 'scripts/merizo_runtime_archive').glob('*.py'))
-    recipe += [project / 'scripts/merizo_runtime_archive/README.md', project / 'LICENSE', project / 'pyproject.toml']
+    recipe += [project / 'scripts/merizo_runtime_archive/README.md',
+               project / 'scripts/merizo_runtime_archive/requirements.txt', project / 'LICENSE', project / 'pyproject.toml']
     recipe += [project / 'kuma_core/kuro' / name for name in
                ('domain_annotation.py', 'domain_merizo.py', 'residue_mapping.py')]
     # Include every actually analyzed KUMA source module, including package
@@ -321,22 +344,34 @@ def package_legal(package, source, provenance, source_record):
 
 def output_edges(records, toc, executable):
     source_rows = {}
+    spellings = {}
+    def destination(value):
+        if not isinstance(value, str) or len(value) > 4096 or ':' in value or '\0' in value:
+            raise ValueError('Unsafe relative TOC destination')
+        normalized = value.replace('\\', '/')
+        if any(part in {'', '.', '..'} for part in normalized.split('/')):
+            raise ValueError('Unsafe relative TOC destination')
+        prior = spellings.setdefault(normalized, value)
+        if prior != value:
+            raise ValueError('TOC destination normalization collision')
+        return normalized
     for stage in ('Analysis.binaries', 'Analysis.datas', 'COLLECT.input'):
         for row in toc.get(stage, []):
-            source_rows.setdefault(row['destination'], []).append(row)
+            source_rows.setdefault(destination(row['destination']), []).append(row)
     edges, unresolved = [], []
     for row in records:
         logical = row['path'].removeprefix('_internal/')
         canonical_destination = row['original_path'].removeprefix('_internal/')
-        candidates = source_rows.get(logical, [])
+        candidates = list(source_rows.get(logical, []))
         if canonical_destination != logical:
             candidates += source_rows.get(canonical_destination, [])
-        exact = [candidate for candidate in candidates if candidate.get('sha256') == row['sha256']]
+        exact = [candidate for candidate in candidates if candidate.get('sha256') == row['sha256']
+                 and candidate.get('size') == row['size']]
         edge = {'path': row['path'], 'sha256': row['sha256'], 'size': row['size'],
                 'executable': row['executable'], 'aliases': row['aliases'], 'original_path': row['original_path']}
         if row['path'] == executable:
             edge.update(mapping='composite_executable', provenance='embedded_inventory_and_PKG_EXE_TOC')
-        elif exact:
+        elif exact and len(exact) == len(candidates):
             edge.update(mapping='exact_build_input', inputs=exact)
         elif row['path'] in {'LEGAL.json', 'NOTICE.txt', 'SOURCES.json', 'CAPABILITIES.json'}:
             edge.update(mapping='generated_review_payload', provenance='hashed_recipe_and_collected_original_texts')
@@ -376,6 +411,9 @@ def build(args) -> int:
         identity = verify_source(source)
         checkpoint('installed_provenance')
         provenance = installed_provenance(args.input_lock, args.wheelhouse)
+        bio = [row for row in provenance.get('components', []) if row['id'] == 'biopython']
+        if len(bio) != 1 or bio[0]['version'] != '1.84':
+            raise ValueError('Public AF3 service proof requires the existing app Biopython 1.84 pin')
         checkpoint('cpython_origin')
         origin = None if args.cpython_origin is None else verify_cpython_origin(
             strict_json(read_regular(args.cpython_origin, 8 * 1024 * 1024)))
@@ -386,6 +424,8 @@ def build(args) -> int:
                            'run_id': os.environ.get('GITHUB_RUN_ID'), 'runner_image': os.environ.get('ImageOS'),
                            'runner_image_version': os.environ.get('ImageVersion'), 'pyinstaller': '6.16.0',
                            'recipe_sha256': {path.name: digest(path) for path in Path(__file__).parent.glob('*.py')}}
+        report['build']['host_only_roots'] = [{'name': 'biopython', 'version': '1.84',
+            'wheel_sha256': bio[0]['wheel']['sha256'], 'role': 'ci_af3_preparation_only'}]
         checkpoint('build_workspace')
         output.mkdir(parents=True, exist_ok=False)
         created = True
@@ -397,6 +437,7 @@ def build(args) -> int:
         report['build']['warning_source_references'] = source_reference_summary
         write_json(generated / 'merizo-source-identity.json', runtime_identity, MAX_SOURCE_IDENTITY_BYTES)
         identity_sha = digest(generated / 'merizo-source-identity.json')
+        report['build']['source_identity_sha256'] = identity_sha
         (generated / '_merizo_build_identity.py').write_text(f'SOURCE_IDENTITY_SHA256 = {identity_sha!r}\nINTERNAL_AUDIT = True\n', encoding='ascii')
         shutil.copyfile(args.input_lock, generated / 'input-lock.json')
         checkpoint('freeze')
@@ -407,6 +448,7 @@ def build(args) -> int:
             raise ValueError('Official source changed during freeze')
         report['build']['command'] = command
         report['pyinstaller'] = toc
+        report['build']['biopython_exclusion'] = assert_biopython_excluded(toc, provenance)
         report['build']['kuma_compilation_modules'] = [row['destination'] for row in toc.get('Analysis.pure', [])
                                                        if row['destination'].startswith('kuma_core')]
         checkpoint('build_input_mapping')
@@ -417,6 +459,7 @@ def build(args) -> int:
         entry = PACKAGE + ('.exe' if os.name == 'nt' else '')
         checkpoint('embedded_inventory')
         report['embedded'] = embedded_inventory(package / entry)
+        report['build']['biopython_exclusion'] = assert_biopython_excluded(toc, provenance, embedded=report['embedded'])
         report['build']['notice_code_binding'] = verify_frozen_notice_code(report['embedded'], runtime_identity['notice_policy'])
         toc['stdlib.compilation'] = [{'destination': row['member'], 'source': row['source'],
             'typecode': 'PYMODULE', 'sha256': row['source_sha256']}
@@ -435,6 +478,8 @@ def build(args) -> int:
         checkpoint('normalize_archive')
         artifact, records = normalize_archive(package, output / 'archive', version='internal-41d12fb-v1',
                                              platform=current_platform_key(), executable=entry)
+        report['build']['biopython_exclusion'] = assert_biopython_excluded(
+            toc, provenance, embedded=report['embedded'], records=records)
         checkpoint('output_mapping')
         report['files'], gaps = output_edges(records, toc, entry)
         report['unresolved'].extend(gaps)
@@ -449,7 +494,9 @@ def build(args) -> int:
         checkpoint('archive_roundtrip')
         report['archive']['roundtrip'] = {}
         roundtrip(output / 'archive/runtime.zip', artifact, inputs,
-                  report=report['archive']['roundtrip'], stage_events=stage_events)
+                  report=report['archive']['roundtrip'], stage_events=stage_events,
+                  fixture=args.fixture, evidence_directory=evidence.parent,
+                  source_identity_sha256=identity_sha, build_revision=report['build']['build_commit'])
         report['unresolved'].extend([{'kind': 'candidate_inputs_unreviewed'},
             {'kind': 'native_source_and_license_obligation_review'},
             {'kind': 'product_dependency_security_baseline'}, {'kind': 'source_delivery_and_rights_review'}])

@@ -35,6 +35,24 @@ for (const file of ["merizo-platform-smoke.yml", "merizo-windows-smoke.yml"]) {
       expect(scoped[0].env?.KUMA_GITHUB_METADATA_TOKEN).toBe("${{ github.token }}");
       expect(source.split("${{ github.token }}")).toHaveLength(2);
     });
+    it("retains only named JSON evidence and watches the real service inputs", () => {
+      const document = yaml.load(source) as {
+        on: { pull_request: { paths: string[] } };
+        jobs: Record<string, { steps: Array<{ name?: string; with?: { path?: string } }> }>;
+      };
+      const steps = Object.values(document.jobs).flatMap((job) => job.steps);
+      const artifacts = steps.filter((step) => step.name === "Preserve small result only (never models or runtime)");
+      expect(artifacts).toHaveLength(1);
+      const paths = artifacts[0].with?.path?.trim().split(/\r?\n/).map((path) => path.trim()) ?? [];
+      expect(paths).toHaveLength(12);
+      expect(new Set(paths).size).toBe(12);
+      expect(paths).toContain("merizo-smoke-results/archive-public-1ubq-execution.json");
+      expect(paths).toContain("merizo-smoke-results/archive-synthetic-af3-execution.json");
+      expect(paths.every((path) => path.startsWith("merizo-smoke-results/") && path.endsWith(".json") && !path.includes("*"))).toBe(true);
+      for (const path of ["kuma_core/kuro/domain_jobs.py", "kuma_core/kuro/domain_af3.py", "kuma_core/kuro/prediction_bundle.py"]) {
+        expect(document.on.pull_request.paths).toContain(path);
+      }
+    });
     it("rejects the original colon-space plain-scalar regression", () => {
       expect(source.split(block)).toHaveLength(2);
       const original = source.replace(block, `        run: ${command}`);

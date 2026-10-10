@@ -1683,9 +1683,43 @@
         "kuma_core/kuro/optional_runtime.py",
         "kuma_core/kuro/domain_process.py",
         ".github/workflows/merizo-platform-smoke.yml",
-        ".github/workflows/merizo-windows-smoke.yml"
+        ".github/workflows/merizo-windows-smoke.yml",
+        "scripts/merizo_runtime_archive/public_fixture.py",
+        "scripts/merizo_runtime_archive/runtime_origin.py",
+        "scripts/merizo_runtime_archive/execution_evidence.py",
+        "tests/test_merizo_runtime_archive_public_fixture.py",
+        "kuma_core/kuro/domain_jobs.py",
+        "kuma_core/kuro/domain_af3.py",
+        "kuma_core/kuro/prediction_bundle.py",
+        "scripts/merizo_windows_smoke/runtime_origins.py",
+        "tests/merizoWorkflowSyntax.test.ts",
+        "tests/test_merizo_runtime_archive_origin.py",
+        "tests/test_merizo_runtime_archive_execution_evidence.py",
+        "tests/test_merizo_runtime_archive_service.py"
       ],
-      "note": "Internal fixed-version CPU producer, exact wheel/source evidence, normalized archive and real registry roundtrip. JSON-only evidence; candidate hashes and notices do not authorize production catalog or public binary distribution.",
+      "note": "Internal fixed-version CPU producer, exact source evidence, normalized archive and real service/registry roundtrip. Bounded public result/origin JSON supports replay; no production catalog or public binary distribution clearance.",
+      "severity": "warning"
+    },
+    {
+      "id": "optional-merizo-loaded-origin-contract",
+      "files": [
+        "scripts/merizo_windows_smoke/runtime_origins.py",
+        "scripts/merizo_windows_smoke/frozen_entry.py",
+        "scripts/merizo_windows_smoke/frozen_posix_entry.py",
+        "scripts/merizo_windows_smoke/build_frozen.py",
+        "scripts/merizo_windows_smoke/build_frozen_posix.py",
+        "scripts/merizo_runtime_archive/runtime_origin.py",
+        "scripts/merizo_runtime_archive/runtime_entry.py",
+        "scripts/merizo_runtime_archive/execution_evidence.py",
+        "tests/test_merizo_runtime_origins.py",
+        "tests/test_merizo_posix_entry.py",
+        "tests/test_merizo_windows_frozen.py",
+        ".github/workflows/merizo-platform-smoke.yml",
+        ".github/workflows/merizo-windows-smoke.yml",
+        "tests/test_merizo_runtime_archive_origin.py",
+        "tests/test_merizo_runtime_archive_execution_evidence.py"
+      ],
+      "note": "Shared stdlib origin predicates preserve old probe behavior; each new executable needs its own native pre-weight/post-inference evidence. Runtime load location is distinct from source-byte and redistribution provenance.",
       "severity": "warning"
     }
   ]

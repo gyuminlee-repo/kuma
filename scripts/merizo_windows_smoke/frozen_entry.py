@@ -6,22 +6,28 @@ whole-process deadline and a kill-on-close Job Object before opening the gate.
 from __future__ import annotations
 
 import argparse
-import ctypes
-from ctypes import wintypes
 import json
 import os
 from pathlib import Path
-import re
 import sys
 import time
 from types import ModuleType
 from typing import Iterable
 
+# Direct-script/frozen builds use the sibling import. File-based test loaders
+# can import through the checkout's namespace package without changing sys.path.
+try:
+    import runtime_origins as origins
+except ModuleNotFoundError as exc:
+    if exc.name != "runtime_origins":
+        raise
+    from scripts.merizo_windows_smoke import runtime_origins as origins
+
 MAX_REPORT_BYTES = 1024 * 1024
 
 
 def within(path: Path, root: Path) -> bool:
-    return path.resolve().is_relative_to(root.resolve())
+    return origins.within(path, root)
 
 
 def bundle_root() -> tuple[Path, Path]:
@@ -38,74 +44,16 @@ def bundle_root() -> tuple[Path, Path]:
 
 
 def module_origins(modules: Iterable[tuple[str, ModuleType]], internal: Path) -> dict[str, str]:
-    origins = {}
-    for name, module in modules:
-        origin = getattr(module, "__file__", None)
-        # Namespace-only model containers may have no __file__; their children
-        # are checked individually, and required concrete modules cannot omit it.
-        if origin is None:
-            if name in {"torch", "predict", "model.network", "model.utils.features"}:
-                raise ValueError(f"Required module has no bundled origin: {name}")
-            continue
-        path = Path(origin).resolve()
-        if not within(path, internal):
-            raise ValueError(f"Module resolved outside the frozen bundle: {name}: {path}")
-        origins[name] = str(path)
-    required = {"torch", "predict", "model.network", "model.utils.features"}
-    if not required <= origins.keys():
-        raise ValueError("Required inference modules were not loaded from the bundle")
-    return origins
+    # Preserve the fixed Windows probe's namespace-only container semantics.
+    return origins.module_origins(modules, internal, check_namespace_paths=False)
 
 
 def loaded_native_paths() -> list[str]:
-    """Enumerate actual loaded Windows native modules, including Python/Torch."""
-    if sys.platform != "win32":
-        raise ValueError("Native module enumeration requires Windows")
-    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
-    psapi = ctypes.WinDLL("psapi", use_last_error=True)
-    kernel.GetCurrentProcess.argtypes = []
-    kernel.GetCurrentProcess.restype = wintypes.HANDLE
-    psapi.EnumProcessModulesEx.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.HMODULE),
-                                          wintypes.DWORD, ctypes.POINTER(wintypes.DWORD), wintypes.DWORD]
-    psapi.EnumProcessModulesEx.restype = wintypes.BOOL
-    psapi.GetModuleFileNameExW.argtypes = [wintypes.HANDLE, wintypes.HMODULE, wintypes.LPWSTR, wintypes.DWORD]
-    psapi.GetModuleFileNameExW.restype = wintypes.DWORD
-    process = kernel.GetCurrentProcess()
-    capacity = 2048
-    modules = (wintypes.HMODULE * capacity)()
-    needed = wintypes.DWORD()
-    if not psapi.EnumProcessModulesEx(process, modules, ctypes.sizeof(modules), ctypes.byref(needed), 3):
-        raise ctypes.WinError(ctypes.get_last_error())
-    if needed.value > ctypes.sizeof(modules):
-        raise ValueError("Native module inventory exceeds bounded capacity")
-    paths = []
-    for index in range(needed.value // ctypes.sizeof(wintypes.HMODULE)):
-        buffer = ctypes.create_unicode_buffer(32768)
-        length = psapi.GetModuleFileNameExW(process, modules[index], buffer, len(buffer))
-        if not length or length >= len(buffer) - 1:
-            raise ValueError("Cannot resolve a loaded native module path")
-        paths.append(str(Path(buffer.value).resolve()))
-    return sorted(set(paths), key=str.casefold)
+    return origins.windows_loaded_native_paths()
 
 
 def validate_native_paths(paths: list[str], root: Path, windows: Path) -> dict[str, list[str]]:
-    required = {"python311.dll", "torch_cpu.dll", "c10.dll"}
-    bundled, system = [], []
-    found = set()
-    for raw in paths:
-        path = Path(raw).resolve()
-        name = path.name.casefold()
-        is_runtime = bool(re.fullmatch(r"python\d*(?:_d)?\.dll", name)) or name.startswith(("torch", "c10"))
-        if within(path, root):
-            bundled.append(str(path))
-            found.add(name)
-        elif within(path, windows) and not is_runtime:
-            system.append(str(path))
-        else:
-            raise ValueError(f"Loaded native module is outside bundle/Windows: {path}")
-    if not required <= found:
-        raise ValueError(f"Required bundled native modules missing: {sorted(required - found)}")
-    return {"bundled": bundled, "windows_system": system}
+    return origins.validate_windows_native_paths(paths, root, windows)
 
 
 def runtime_provenance() -> dict:

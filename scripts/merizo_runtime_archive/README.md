@@ -28,7 +28,8 @@ new archive. No current archive measurements are inferred from those reports.
   It checks the complete installed distribution closure against the pre-install
   lock, wheel RECORD mappings and actual installed bytes. The freezer uses the
   same owned process group/Windows Job Object supervisor as managed runtime work,
-  with a 600-second bound, and captures Analysis/PYZ/PKG/EXE/COLLECT objects rather
+  with a 600-second elapsed budget (synchronous calls are checked on return),
+  and captures Analysis/PYZ/PKG/EXE/COLLECT objects rather
   than evaluating saved TOC text.
 - `runtime_entry.py` implements the actual app CLI and calls pinned Merizo
   `segment`, rather than the old fixed-76-residue probe. It validates strict JSON,
@@ -46,12 +47,17 @@ new archive. No current archive measurements are inferred from those reports.
   existing bounds without changing them. It generates the external candidate
   manifest from exact final ZIP bytes. The package includes original legal texts,
   readable NOTICE, source-companion identity and runtime capabilities.
-- `roundtrip.py` installs that test-only candidate through the real manager,
-  verifies it, takes a fresh execution lease per invocation, runs the extracted
-  CLI under real process ownership, decodes the result, and removes the runtime.
-  The two cases are public 1UBQ and a synthetic author/chain/insertion relabeling
-  of the same public coordinates. This adds source-binding coverage, not an
-  additional biological or large-protein benchmark.
+- `roundtrip.py` retains exactly two model invocations. The first installs the
+  test-only candidate through the real manager, verifies it, takes a fresh lease,
+  runs the extracted CLI and strictly decodes its result.
+  The second uses the real `DomainJobService` install/start/poll/import/remove
+  path with the same installed test-only candidate and injected CI-only catalog;
+  normal runtime removal follows both calls. Unchanged process ownership,
+  cancellation and deadline contracts apply. Its deterministic synthetic AF3 container
+  preserves the public 1UBQ atom coordinates, occupancy/B factors and explicit
+  author/insertion mapping. Required confidence metadata is synthetic parser
+  metadata and is not evidence of AF3 prediction quality. This replaces the older
+  direct synthetic-label call; it adds no model invocation or biological case.
 
 The CPU entry has an unmeasured conservative 2,000-residue allocation guard,
 checked before any tensor allocation. This is recorded in `CAPABILITIES.json`
@@ -550,3 +556,40 @@ target roles with post-failure read-only/reparse/directory observations. It neve
 includes path strings or exception messages. Missing, unsafe or failed
 observations remain unavailable; they cannot authorize deletion or replace the
 original execution/removal error. The manager's removal behavior is unchanged.
+
+
+## Exact installed executable and service evidence
+
+The archive entry reuses shared standard-library origin validators, while old
+fixed-probe entry points retain their existing validation predicates. The new
+executable collects its own evidence after inference imports and before weights,
+then again after inference and before success publication. Python module evidence
+is scoped to the recorded inference module families, not all loaded Python code.
+Bundled Python/Torch/c10 requirements and the platform-specific OS-image checks remain enforced. Prior
+fixed-probe success cannot certify this different executable.
+
+The CI host alone adds the application's pinned Biopython 1.84 to prepare and
+parse the synthetic AF3 input. Build provenance labels that host role; Analysis,
+PYZ and final archive inventories must exclude Biopython-owned modules and native
+extensions. It is not silently added to the user's module payload.
+
+Only the two fixed public/synthetic cases may export execution evidence. The
+fixed filenames are `archive-public-1ubq-execution.json` and
+`archive-synthetic-af3-execution.json`. Each has a 1 MiB serialized limit, with
+at most 256 KiB of exact UTF-8 scientific result text and 512 KiB of origin data.
+Unexpected result fields, duplicate keys or nonfinite values are rejected before
+export. Capture follows verified child/helper exit and strict decoding, before
+service workspace cleanup; publication is exclusive. The main audit links exact
+file, archive, executable, input-binding and result hashes and retains its 32 MiB
+limit. Deterministic ZIP metadata/order and generator identity allow independent
+regeneration from the pinned public PDB and full result decoding. No private
+sequence or arbitrary user result is eligible for this CI export.
+
+Environment evidence distinguishes removed inherited variables from legitimate
+bootloader additions, such as bundle-bound loader paths and private temporary
+cache directories. These checks establish observed module/native origins for the
+installed executable under the managed launch; they do not establish a clean
+machine, native GUI behavior, or original binary distribution rights. In
+particular, Windows build-time DLL selection from ambient runner paths remains a
+separate source-provenance question even when runtime images load from the bundle.
+The new service/origin evidence requires its own exact-head native CI run.

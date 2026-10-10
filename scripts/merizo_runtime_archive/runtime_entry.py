@@ -571,7 +571,7 @@ def expected_cpu_torch() -> str | None:
     return CPU_TORCH.get((system, platform.machine()))
 
 
-def infer(prepared: DomainInput, source: Path, weights: Path) -> dict:
+def infer(prepared: DomainInput, source: Path, weights: Path, *, origin_audit=None) -> dict:
     expected_torch = expected_cpu_torch()
     if expected_torch is None or sys.version_info[:2] != (3, 11):
         raise ValueError('Unsupported CPU architecture or Python ABI')
@@ -591,6 +591,8 @@ def infer(prepared: DomainInput, source: Path, weights: Path) -> dict:
             origin = getattr(module, '__file__', None)
             if origin is not None and not Path(origin).resolve().is_relative_to(source.resolve()):
                 raise ValueError('Merizo module did not load from verified source')
+    if origin_audit is not None:
+        origin_audit.capture('before_weights', prepared)
     started = time.perf_counter()
     network = predict.Merizo().to('cpu')
     network.load_state_dict(predict.read_split_weight_files(str(weights)), strict=True)
@@ -621,6 +623,8 @@ def infer(prepared: DomainInput, source: Path, weights: Path) -> dict:
         if (confidence.numel() != len(prepared.sequence) or not bool(torch.isfinite(confidence).all())
                 or bool((confidence < 0).any()) or bool((confidence > 1).any())):
             raise ValueError('Invalid per-residue confidence')
+        if origin_audit is not None:
+            origin_audit.capture('after_inference', prepared)
         return make_envelope(prepared, final_features, labels, int(result['ndom']),
                              float(result['conf_global']), time.perf_counter() - started)
     finally:
@@ -636,7 +640,8 @@ def make_envelope(prepared, features, labels, ndom, confidence, elapsed):
                            'confidence': confidence, 'time_sec': elapsed}}
 
 
-def execute(pdb: Path, manifest: Path, output: Path, internal: Path, identity_sha: str, *, warning_report=None) -> None:
+def execute(pdb: Path, manifest: Path, output: Path, internal: Path, identity_sha: str, *, warning_report=None,
+            origin_audit=None, origin_path: Path | None = None) -> None:
     if output.exists() or output.is_symlink() or not output.parent.is_dir():
         raise ValueError('Result destination must be a fresh file in an existing private directory')
     prepared = load_prepared(pdb, manifest)
@@ -651,12 +656,15 @@ def execute(pdb: Path, manifest: Path, output: Path, internal: Path, identity_sh
         observer = WarningObserver(internal, source, table, {} if warning_report is None else warning_report,
                                    identity.get('notice_policy'))
         with observer.observe():
-            result = infer(prepared, source, weights)
+            result = (infer(prepared, source, weights) if origin_audit is None else
+                      infer(prepared, source, weights, origin_audit=origin_audit))
     notices = observer.compatibility_notices(len(observed))
     if notices is not None:
         result['process']['compatibility_notices'] = notices
     decode_merizo_result(json.dumps(result, allow_nan=False), prepared,
                          current_binding_sha256=prepared.binding_sha256)
+    if origin_audit is not None:
+        origin_audit.finish(origin_path)
     write_json(output, result, MAX_RESULT_BYTES)
 
 
@@ -723,6 +731,7 @@ def main(argv=None) -> int:
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--device', required=True, choices=['cpu'])
     parser.add_argument('--audit-failure-report', type=Path)
+    parser.add_argument('--audit-origin-report', type=Path)
     args = parser.parse_args(argv)
     audit_path = None
     warning_report = {}
@@ -730,6 +739,13 @@ def main(argv=None) -> int:
         if not getattr(sys, 'frozen', False):
             raise ValueError('Use the managed frozen runtime')
         identity_module = importlib.import_module('_merizo_build_identity')
+        origin_path = None
+        if args.audit_origin_report is not None:
+            if getattr(identity_module, 'INTERNAL_AUDIT', False) is not True:
+                raise ValueError('Origin report requires an internal audit build')
+            origin_path = failure_destination(args.audit_origin_report,
+                (args.input_pdb, args.input_manifest, args.output,
+                 args.audit_failure_report or args.output))
         if args.audit_failure_report is not None:
             if getattr(identity_module, 'INTERNAL_AUDIT', False) is not True:
                 raise ValueError('Failure diagnostics require an internal audit build')
@@ -738,8 +754,11 @@ def main(argv=None) -> int:
         internal = Path(getattr(sys, '_MEIPASS')).resolve()
         if not internal.is_relative_to(Path(sys.executable).resolve().parent):
             raise ValueError('Frozen payload escapes its installed runtime')
+        from scripts.merizo_runtime_archive.runtime_origin import OriginAudit
+        origin_audit = OriginAudit(internal, identity_module.SOURCE_IDENTITY_SHA256)
         execute(args.input_pdb, args.input_manifest, args.output, internal, identity_module.SOURCE_IDENTITY_SHA256,
-                warning_report=warning_report if audit_path is not None else None)
+                warning_report=warning_report if audit_path is not None else None,
+                origin_audit=origin_audit, origin_path=origin_path)
         return 0
     except Exception as exc:
         if audit_path is not None:

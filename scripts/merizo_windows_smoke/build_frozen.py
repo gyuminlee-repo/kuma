@@ -95,7 +95,7 @@ def digest_file(path: Path) -> str:
 def own_hashes() -> dict[str, str]:
     root = Path(__file__).resolve().parent
     return {name: digest_file(root / name) for name in
-            ("run.py", "frozen_entry.py", "build_frozen.py", "run_frozen.ps1", "freezer-requirements.txt")}
+            ("run.py", "frozen_entry.py", "runtime_origins.py", "build_frozen.py", "run_frozen.ps1", "freezer-requirements.txt")}
 
 
 def source_hashes(source: Path) -> dict[str, str]:

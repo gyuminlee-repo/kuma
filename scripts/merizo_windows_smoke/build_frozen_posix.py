@@ -80,7 +80,7 @@ def build(source: Path, output: Path, evidence_path: Path) -> int:
         evidence['weights_sha256'] = verify_upstream(source)
         evidence['source_python_sha256'] = shared.source_hashes(source)
         own = Path(__file__).resolve().parent
-        names = ('run.py', 'build_frozen.py', 'build_frozen_posix.py', 'frozen_posix_entry.py',
+        names = ('run.py', 'build_frozen.py', 'build_frozen_posix.py', 'frozen_posix_entry.py', 'runtime_origins.py',
                  'run_frozen_posix.py', 'freezer-requirements.txt')
         evidence['own_harness_sha256'] = {name: shared.digest_file(own / name) for name in names}
         evidence['pyinstaller'] = shared.PYINSTALLER_VERSION

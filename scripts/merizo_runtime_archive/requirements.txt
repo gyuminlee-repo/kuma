@@ -5,3 +5,5 @@
 -r ../merizo_windows_smoke/freezer-requirements.txt
 pip==25.2
 psutil==7.2.2
+# Existing app pin, CI controller AF3 preparation only; explicitly excluded from runtime.
+biopython==1.84

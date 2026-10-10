@@ -8,7 +8,11 @@ on:
       - 'scripts/domain_runtime_smoke/**'
       - 'scripts/merizo_runtime_archive/**'
       - 'tests/test_merizo_runtime_archive*.py'
+      - 'tests/test_merizo_runtime_origins.py'
       - 'kuma_core/kuro/domain_process.py'
+      - 'kuma_core/kuro/domain_jobs.py'
+      - 'kuma_core/kuro/domain_af3.py'
+      - 'kuma_core/kuro/prediction_bundle.py'
       - 'kuma_core/kuro/domain_lease.py'
       - 'kuma_core/kuro/domain_watchdog.py'
       - 'kuma_core/kuro/optional_runtime.py'
@@ -150,6 +154,8 @@ jobs:
             merizo-smoke-results/archive-input-lock.json
             merizo-smoke-results/archive-cpython-origin.json
             merizo-smoke-results/runtime-archive.json
+            merizo-smoke-results/archive-public-1ubq-execution.json
+            merizo-smoke-results/archive-synthetic-af3-execution.json
             merizo-smoke-results/frozen-posix-cpu.json
           if-no-files-found: warn
           retention-days: 7

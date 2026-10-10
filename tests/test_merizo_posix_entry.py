@@ -69,9 +69,9 @@ class PosixEntryContracts(unittest.TestCase):
                     mapping("/bundle/" + "x" * entry.MAX_PATH_BYTES), ""):
             with self.subTest(raw=raw[:80]), self.assertRaises(ValueError):
                 entry.parse_linux_maps(raw)
-        with mock.patch.object(entry, "MAX_MAP_BYTES", 2), self.assertRaisesRegex(ValueError, "byte limit"):
+        with mock.patch.object(entry.origins, "MAX_MAP_BYTES", 2), self.assertRaisesRegex(ValueError, "byte limit"):
             entry.parse_linux_maps(mapping("/x"))
-        with mock.patch.object(entry, "MAX_NATIVE_IMAGES", 1), self.assertRaisesRegex(ValueError, "inventory"):
+        with mock.patch.object(entry.origins, "MAX_NATIVE_IMAGES", 1), self.assertRaisesRegex(ValueError, "inventory"):
             entry.parse_linux_maps(mapping("/a") + "\n" + mapping("/b"))
 
     def test_maps_file_read_is_bounded(self):
@@ -250,7 +250,7 @@ class PosixEntryContracts(unittest.TestCase):
                 # dyld speaks POSIX even on a Windows test host. Map only the
                 # filesystem boundary; existence checks still use real files.
                 paths = list(host_files)
-                with mock.patch.object(entry, "Path", side_effect=lambda raw: host_files[raw]):
+                with mock.patch.object(entry.origins, "Path", side_effect=lambda raw: host_files[raw]):
                     result = validate_paths(paths, root, system)
                     self.assertEqual(set(result["required_bundled"]), {"python", "torch_cpu", "c10"})
                     for missing in range(3):

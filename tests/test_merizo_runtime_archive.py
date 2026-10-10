@@ -113,6 +113,7 @@ class RuntimeFailureDiagnosticTests(unittest.TestCase):
 
     def call_entry(self, *, audit=True, internal: bool | None = True, destination=None):
         from types import SimpleNamespace
+        from scripts.merizo_runtime_archive import runtime_origin
         argv = ['--input-pdb', str(self.pdb), '--input-manifest', str(self.manifest),
                 '--output', str(self.output), '--device', 'cpu']
         if audit:
@@ -120,7 +121,8 @@ class RuntimeFailureDiagnosticTests(unittest.TestCase):
         identity = SimpleNamespace(SOURCE_IDENTITY_SHA256='0' * 64, INTERNAL_AUDIT=internal)
         if internal is None:
             del identity.INTERNAL_AUDIT
-        with patch.object(runtime_entry.sys, 'frozen', True, create=True), \
+        with patch.object(runtime_origin, 'OriginAudit', return_value=None), \
+             patch.object(runtime_entry.sys, 'frozen', True, create=True), \
              patch.object(runtime_entry.sys, '_MEIPASS', str(self.root), create=True), \
              patch.object(runtime_entry.sys, 'executable', str(self.root / 'entry')), \
              patch.object(runtime_entry.Path, 'cwd', return_value=self.root), \
@@ -1414,12 +1416,12 @@ class BuildAuditTests(unittest.TestCase):
                 (RuntimeFile('entry', '0' * 64, 1, True),), 'entry')
             with patch.dict(os.environ, {'GITHUB_ACTIONS': 'true'}), \
                  patch.object(build, 'verify_source', return_value={'python_files': {}, 'files': []}), \
-                 patch.object(build, 'installed_provenance', return_value={'installed_files': []}), \
+                 patch.object(build, 'installed_provenance', return_value={'installed_files': [], 'components': [{'id': 'biopython', 'version': '1.84', 'wheel': {'sha256': '0' * 64}}]}), \
                  patch.object(build, 'notice_policy_identity', return_value={'code_fingerprints': {}}), \
                  patch.object(build, 'verify_frozen_notice_code', return_value={}), \
                  patch.object(build, 'freeze', return_value=({}, [])), \
                  patch.object(build, 'map_build_inputs', return_value={'unresolved': [], 'edges': []}), \
-                 patch.object(build, 'embedded_inventory', return_value={'stdlib_compilation_inputs': []}), \
+                 patch.object(build, 'embedded_inventory', return_value={'stdlib_compilation_inputs': [], 'pyz_modules': []}), \
                  patch.object(build, 'source_companion', return_value={}), \
                  patch.object(build, 'package_legal', return_value={}), \
                  patch.object(build, 'normalize_archive', return_value=(artifact, [])), \
@@ -1455,10 +1457,10 @@ class BuildAuditTests(unittest.TestCase):
                               failure={'stage': 'runtime_process', 'error_type': 'DomainProcessError'})
                 raise DomainProcessError('synthetic process failure')
             values = {'verify_source': {'python_files': {}, 'files': []},
-                      'installed_provenance': {'installed_files': []}, 'freeze': ({}, []),
+                      'installed_provenance': {'installed_files': [], 'components': [{'id': 'biopython', 'version': '1.84', 'wheel': {'sha256': '0' * 64}}]}, 'freeze': ({}, []),
                       'notice_policy_identity': {'code_fingerprints': {}}, 'verify_frozen_notice_code': {},
                       'map_build_inputs': {'unresolved': [], 'edges': []},
-                      'embedded_inventory': {'stdlib_compilation_inputs': []},
+                      'embedded_inventory': {'stdlib_compilation_inputs': [], 'pyz_modules': []},
                       'source_companion': {}, 'package_legal': {},
                       'normalize_archive': (artifact, []), 'output_edges': ([], [])}
             with ExitStack() as stack:

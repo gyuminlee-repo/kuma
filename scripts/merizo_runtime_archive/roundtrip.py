@@ -136,7 +136,8 @@ _STAGES = {
         'package_notices', 'normalize_archive', 'output_mapping', 'remove_original_source', 'archive_roundtrip'}),
     'freezer': frozenset({'freezer_dependencies', 'freezer_spec', 'freezer_process', 'freezer_toc'}),
     'roundtrip': frozenset({'catalog', 'workspace', 'install', 'verify', 'prepare_protocol',
-                          'runtime_process', 'decode_result', 'remove', 'workspace_cleanup'}),
+                          'runtime_process', 'decode_result', 'remove', 'workspace_cleanup',
+                          'prepare_af3', 'service_start', 'service_poll', 'service_import', 'service_shutdown', 'evidence_retention'}),
     'cleanup': frozenset({'build_payload_cleanup'}),
 }
 
@@ -229,7 +230,12 @@ def read_failure(path: Path, *, schema=FAILURE_SCHEMA, line_key='runtime_entry_l
 
 
 def roundtrip(archive: Path, artifact, inputs, *, runner=run_managed_process, report=None,
-              stage_events: bool = False) -> dict:
+              stage_events: bool = False, fixture=None, evidence_directory=None,
+              source_identity_sha256=None, build_revision=None) -> dict:
+    if fixture is not None:
+        return service_roundtrip(archive, artifact, fixture, evidence_directory=evidence_directory,
+            source_identity_sha256=source_identity_sha256, build_revision=build_revision,
+            runner=runner, report=report, stage_events=stage_events)
     if report is None:
         report = {}
     if report:
@@ -341,6 +347,210 @@ def roundtrip(archive: Path, artifact, inputs, *, runner=run_managed_process, re
             if primary is None:
                 primary = OSError('Roundtrip temporary storage remains')
                 report['failure'] = {'stage': 'workspace_cleanup', 'error_type': 'OSError'}
+        report['status'] = 'failed' if primary is not None else 'passed'
+        report['current_stage'] = 'failed' if primary is not None else 'completed'
+    if primary is not None:
+        raise primary
+    return report
+
+
+def service_roundtrip(archive, artifact, fixture, *, evidence_directory, source_identity_sha256,
+                      build_revision, runner=run_managed_process, report=None, stage_events=False):
+    """Exactly two invocations: direct public PDB and real AF3 DomainJobService."""
+    from kuma_core.kuro.domain_jobs import DomainJobService, TERMINAL_STATES
+    from scripts.merizo_runtime_archive.public_fixture import create_af3_fixture, public_prepared
+    from scripts.merizo_runtime_archive.execution_evidence import export_execution, strict_result
+    from scripts.merizo_runtime_archive.runtime_origin import read_stable, MAX_ORIGIN_BYTES
+    if report is None:
+        report = {}
+    if report:
+        raise ValueError('Partial roundtrip report must start empty')
+    report.update(catalog_scope='test_only_exact_archive_bytes', installed=False, verified=False,
+                  removed=False, runs=[], status='running', current_stage='catalog',
+                  temporary_storage_removed=False, cleanup_errors=[], invocation_count=0)
+    root = manager = service = job_id = primary = None
+    invocation_failures = []
+    def checkpoint(stage):
+        stage_event(report, 'roundtrip', stage, enabled=stage_events)
+    try:
+        checkpoint('catalog')
+        if PRODUCTION_CATALOG or not Path(evidence_directory).is_dir():
+            raise ValueError('Public audit requires empty production catalog and existing evidence directory')
+        checkpoint('workspace')
+        root = Path(tempfile.mkdtemp(prefix='kuma-runtime-roundtrip-')).resolve()
+        manager = OptionalRuntimeManager(root / 'app', catalog={(artifact.engine, artifact.platform): artifact},
+                                         platform_key=artifact.platform)
+        checkpoint('prepare_af3')
+        source, synthetic, recipe = create_af3_fixture(fixture, root / 'synthetic-af3.zip')
+        public = public_prepared(fixture)
+        rows = {}
+        for name, prepared in (('public_1ubq', public), ('synthetic_af3_public_geometry', synthetic)):
+            row = {'fixture': name, 'verified': False, 'process_invoked': False, 'process_succeeded': False,
+                   'decoded': False, 'current_stage': 'verify', 'source_sha256': prepared.source_sha256,
+                   'binding_sha256': prepared.binding_sha256}
+            rows[name] = row
+            report['runs'].append(row)
+        service_failure = []
+        def invoke(argv, prepared, name, **kwargs):
+            row = rows[name]
+            work, result = Path(kwargs['cwd']), Path(kwargs['result_path'])
+            failure, origins = work / 'entry-failure.json', work / 'entry-origins.json'
+            row['executable_sha256'] = digest(Path(argv[0]))
+            row['verified'] = report['verified'] = True  # Real manager verify precedes each runner call.
+            row['current_stage'] = 'runtime_process'
+            stage_event(row, 'roundtrip', 'runtime_process', enabled=stage_events)
+            if report['invocation_count'] >= 2 or kwargs.get('operation_lease') is None:
+                raise ValueError('Public audit invocation/lease contract differs')
+            report['invocation_count'] += 1
+            row['process_invoked'] = True
+            try:
+                runner([*argv, '--audit-failure-report', str(failure), '--audit-origin-report', str(origins)], **kwargs)
+                # The real runner returns only after owned process/lease cleanup.
+                row['process_succeeded'] = True
+                row['current_stage'] = 'decode_result'
+                stage_event(row, 'roundtrip', 'decode_result', enabled=stage_events)
+                raw = read_stable(result, 256 * 1024)
+                _, annotation, envelope = strict_result(raw, prepared)
+                row.update(decoded=True, residues=annotation.total_residues, domains=len(annotation.domains),
+                           coverage=annotation.coverage, confidence=annotation.confidence,
+                           result_sha256=hashlib.sha256(raw).hexdigest())
+                notices = envelope['process'].get('compatibility_notices')
+                if notices is not None:
+                    row['compatibility_notices'] = notices
+                row['current_stage'] = 'evidence_retention'
+                stage_event(row, 'roundtrip', 'evidence_retention', enabled=stage_events)
+                row['execution_evidence'] = export_execution(Path(evidence_directory), result, origins,
+                    fixture=fixture, prepared=prepared, fixture_id=name, recipe=recipe, archive_sha256=artifact.archive_sha256,
+                    executable_sha256=row['executable_sha256'], source_identity_sha256=source_identity_sha256,
+                    build_revision=build_revision)
+                row['current_stage'] = 'completed'
+            except BaseException as exc:
+                invocation_failures.append((exc, row['current_stage']))
+                row['error_type'] = safe_error_type(exc)
+                row['entry_diagnostic'] = read_failure(failure)
+                try:
+                    read_stable(origins, MAX_ORIGIN_BYTES)
+                    row['origin_diagnostic'] = 'present_unvalidated'
+                except FileNotFoundError:
+                    row['origin_diagnostic'] = 'missing'
+                except Exception:
+                    row['origin_diagnostic'] = 'rejected'
+                raise
+        def service_runner(argv, **kwargs):
+            try:
+                return invoke(argv, synthetic, 'synthetic_af3_public_geometry', **kwargs)
+            except BaseException as exc:
+                service_failure.append(exc)
+                raise
+        service = DomainJobService(manager, runner=service_runner)
+        checkpoint('install')
+        if service.install(str(archive))['state'] != 'installed':
+            raise ValueError('Service installation failed')
+        report['installed'] = True
+        checkpoint('verify')
+        with manager.operation_lock() as lease:
+            verified = manager.verify()
+            if verified.state != 'installed' or not verified.executable_path:
+                raise ValueError('Public runtime verification failed')
+            work = root / 'public_1ubq'
+            work.mkdir()
+            pdb, manifest, result = work / 'input.pdb', work / 'input.json', work / 'result.json'
+            checkpoint('prepare_protocol')
+            pdb.write_bytes(public.normalized_pdb.encode('ascii'))
+            write_json(manifest, domain_input_manifest(public))
+            checkpoint('runtime_process')
+            invoke([verified.executable_path, '--input-pdb', str(pdb), '--input-manifest', str(manifest),
+                    '--output', str(result), '--device', 'cpu'], public, 'public_1ubq', cwd=work,
+                   cancelled=lambda: False, timeout_seconds=300, output_limit=1024 * 1024,
+                   result_path=result, result_limit=8 * 1024 * 1024, operation_lease=lease)
+        checkpoint('service_start')
+        job = service.start(source, attempt_id='76' * 16)
+        job_id = job['job_id']
+        checkpoint('service_poll')
+        while job['state'] not in TERMINAL_STATES:
+            time.sleep(0.02)
+            job = service.poll(job_id)
+        report['service_terminal_state'] = job['state']
+        if job['state'] != 'succeeded':
+            if service_failure:
+                raise service_failure[0]
+            raise ValueError('Public AF3 service job failed')
+        checkpoint('service_import')
+        imported = service.import_result(job_id, source)
+        if (imported['provenance'] != 'managed' or imported['binding_sha256'] != synthetic.binding_sha256
+                or imported['total_residues'] != 76 or report['invocation_count'] != 2):
+            raise ValueError('Service import binding or invocation count differs')
+        report['service_import'] = {'provenance': imported['provenance'], 'binding': imported['binding'],
+                                    'binding_sha256': imported['binding_sha256'], 'decoded': True}
+    except BaseException as exc:
+        primary = exc
+        failed_stage = next((stage for error, stage in invocation_failures if error is exc), report['current_stage'])
+        report['failure'] = {'stage': failed_stage, 'error_type': safe_error_type(exc)}
+    finally:
+        def cleanup_failure(stage, exc):
+            nonlocal primary
+            row: dict = {'stage': stage, 'error_type': safe_error_type(exc)}
+            if stage == 'remove' and root is not None and manager is not None:
+                row['diagnostic'] = remove_failure_diagnostic(exc, root, manager, artifact)
+            report['cleanup_errors'].append(row)
+            if primary is None:
+                primary = exc
+                report['failure'] = {'stage': stage, 'error_type': safe_error_type(exc)}
+
+        confirmed = True
+        if service is not None:
+            terminal = job_id is None
+            if job_id is not None:
+                try:
+                    terminal = service.poll(job_id)['state'] in TERMINAL_STATES
+                except BaseException as exc:
+                    cleanup_failure('service_poll', exc)
+            stopped = False
+            if not terminal:
+                checkpoint('service_shutdown')
+                try:
+                    confirmed = service.stop() is True
+                except BaseException as exc:
+                    confirmed = False
+                    cleanup_failure('service_shutdown', exc)
+                stopped = True
+            # Normal completion exercises service.remove. If an interrupted job
+            # required stop(), the closed service cannot admit mutations, so
+            # remove through the same manager only after confirmed shutdown.
+            remover = ((service.remove if terminal else manager.remove)
+                       if confirmed and report['installed'] and manager is not None else None)
+            if remover is not None:
+                checkpoint('remove')
+                try:
+                    removed = remover()
+                    report['removed'] = (removed['state'] if isinstance(removed, dict) else removed.state) == 'missing'
+                    if not report['removed']:
+                        raise ValueError('Public service registry removal failed')
+                except BaseException as exc:
+                    cleanup_failure('remove', exc)
+            if not stopped:
+                checkpoint('service_shutdown')
+                try:
+                    confirmed = service.stop() is True
+                except BaseException as exc:
+                    confirmed = False
+                    cleanup_failure('service_shutdown', exc)
+            report['service_shutdown_confirmed'] = confirmed
+            if not confirmed and not any(row['stage'] == 'service_shutdown' for row in report['cleanup_errors']):
+                cleanup_failure('service_shutdown', RuntimeError('Public service shutdown remains unverified'))
+        checkpoint('workspace_cleanup')
+        if root is not None and confirmed and (report['removed'] or not report['installed']):
+            try:
+                shutil.rmtree(root)
+            except BaseException as exc:
+                cleanup_failure('workspace_cleanup', exc)
+        try:
+            report['temporary_storage_removed'] = root is None or not root.exists()
+        except BaseException as exc:
+            report['temporary_storage_removed'] = False
+            cleanup_failure('workspace_cleanup', exc)
+        if not report['temporary_storage_removed'] and primary is None:
+            cleanup_failure('workspace_cleanup', RuntimeError('Public audit cleanup remains unverified'))
         report['status'] = 'failed' if primary is not None else 'passed'
         report['current_stage'] = 'failed' if primary is not None else 'completed'
     if primary is not None:

@@ -46,7 +46,7 @@ from PyInstaller.utils.hooks import copy_metadata
 a = Analysis([{str(entry)!r}], pathex={[str(source), str(project), str(generated)]!r},
              binaries=[], datas={data!r} + copy_metadata('torch'),
              hiddenimports={hidden!r}, hookspath=[], hooksconfig={{}},
-             runtime_hooks=[], excludes=[], noarchive=False)
+             runtime_hooks=[], excludes=['Bio', 'BioSQL'], noarchive=False)
 analysis_pure = list(a.pure)
 a.pure = [row for row in a.pure if not (row[0] == 'predict' or row[0] == 'model' or row[0].startswith('model.'))]
 pyz = PYZ(a.pure)
