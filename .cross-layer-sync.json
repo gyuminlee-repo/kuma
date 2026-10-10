@@ -1566,6 +1566,22 @@
       ],
       "note": "Local paired prediction ZIP identity/confidence, unambiguous producer-ranked default with explicit advanced model and chain selection, strict certificate freshness, derived CA trace and design revalidation. No prediction or network submission.",
       "severity": "warning"
+    },
+    {
+      "id": "experimental-domain-interchange",
+      "files": [
+        "kuma_core/kuro/domain_annotation.py",
+        "kuma_core/kuro/residue_mapping.py",
+        "kuma_core/kuro/prediction_bundle.py",
+        "scripts/domain_annotation_interchange.py",
+        "scripts/run_external_chainsaw.py",
+        "scripts/chainsaw-source-pins.json",
+        "tests/test_domain_annotation.py",
+        "tests/data/domain_annotation/1ubq.pdb",
+        "docs/audit/domain-annotation-interchange.md"
+      ],
+      "note": "Offline annotation-only full-atom export and pinned external result consistency; no bundled runtime/UI/selection coupling. Changes to polymer or source identity require rechecking bijective domain mapping.",
+      "severity": "warning"
     }
   ]
 }

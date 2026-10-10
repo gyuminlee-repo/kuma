@@ -66,3 +66,6 @@ uv.lock text eol=lf
 *.woff2 binary
 *.ttf binary
 *.otf binary
+
+# Preserve original fixed-column public PDB bytes for hash/atom identity tests.
+tests/data/domain_annotation/1ubq.pdb whitespace=-blank-at-eol
