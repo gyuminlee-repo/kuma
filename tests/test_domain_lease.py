@@ -315,13 +315,13 @@ def helper_script(root: Path) -> Path:
         spec.loader.exec_module(module)
         config = json.loads(sys.stdin.buffer.readline())
         helper = module.HelperLease.claim(config, config["token"])
-        print("claimed", flush=True)
+        sys.stdout.buffer.write(b"claimed\\n"); sys.stdout.buffer.flush()
         if sys.argv[2] == "terminal":
             helper.complete()
-            print("terminal", flush=True)
+            sys.stdout.buffer.write(b"terminal\\n"); sys.stdout.buffer.flush()
             sys.stdin.buffer.read(1)
             helper.close()
-            print("closed", flush=True)
+            sys.stdout.buffer.write(b"closed\\n"); sys.stdout.buffer.flush()
         sys.stdin.buffer.read(1)
         helper.close()
     '''), encoding="utf-8")
@@ -433,8 +433,13 @@ def test_root_replacement_is_not_adopted(root: Path) -> None:
     managed.mkdir()
     with primary(managed) as fd:
         operation = lease.OperationLease(managed, fd)
-        managed.rename(root / "original")
-        managed.mkdir()
+    # Windows denies renaming a directory containing the open primary handle.
+    # Release/reopen the same old lock only in this fixture, preserving the
+    # captured root identity and testing stale-directory refusal on every OS.
+    managed.rename(root / "original")
+    managed.mkdir()
+    with primary(root / "original") as original_fd:
+        operation.primary_fd = original_fd
         with pytest.raises(lease.RuntimeLeaseError, match="directory identity"):
             operation.prepare()
     assert not (managed / lease.EXECUTION_RECORD_NAME).exists()

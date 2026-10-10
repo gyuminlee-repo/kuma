@@ -468,3 +468,31 @@ completion evidence is reported as cleanup `unverified`; the script does not
 race still-cleaning helpers by deleting their files. Remaining payload then
 belongs to ephemeral runner teardown, which is not reported as a verified app
 cleanup. These are CI-only paths, not a general recovery or updater facility.
+
+
+## Internal failure evidence
+
+The CI-only build enables an optional private failure report in the actual
+runtime entry. It is unavailable unless the compiled build identity explicitly
+enables internal auditing. The report is a fresh direct child of the job cwd,
+distinct from inputs/results, published atomically without replacing an existing
+file. Its 4 KiB schema contains only an allowlisted exception category, an owned
+stage and up to 32 owned runtime-entry frame line numbers. Arbitrary messages,
+input contents, paths and locals are excluded. Missing, malformed or unavailable
+diagnostics never turn a failed process into a successful scientific result.
+
+Build and registry round-trip reports retain their last stage before each call,
+including installation, verification, compiler/runtime process, decoding and
+cleanup. Partial evidence is attached before child invocation and survives a
+failure; secondary cleanup errors do not replace the original failure. A missing
+entry report cannot identify whether the bootloader, interpreter bootstrap or a
+later abrupt exit failed, and is explicitly recorded as missing. This evidence
+improves diagnosis; it does not relax source/model/input/feature/warning checks.
+
+The CI build controller also flushes progress-only JSON to its existing workflow
+log before bounded stages, using fixed scope/stage enums and a bounded monotonic
+elapsed value. These lines contain no child output, paths, input or exception
+text. They identify the last entered stage if the outer workflow terminates the
+controller before its final audit. They do not prove stage completion, child exit
+or cleanup, and do not replace the controller-written completion audit. This is
+observability on the existing controller log stream, not a timeout fix.

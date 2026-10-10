@@ -16,7 +16,15 @@ def internal_ci_marker(monkeypatch):
     monkeypatch.setattr(ci, "acquire_cpython_origin", lambda *args, **kwargs: {})
 
 
-def test_archive_ci_prepares_bounded_inputs_without_nesting_build_supervisors(tmp_path):
+def test_archive_ci_prepares_bounded_inputs_without_nesting_build_supervisors(tmp_path, monkeypatch):
+    original_write_text = Path.write_text
+
+    def windows_text_write(path, data, *args, **kwargs):
+        if path.name == '.kuma-audit-owner' and kwargs.get('newline') is None:
+            return path.write_bytes(data.replace('\n', '\r\n').encode('ascii'))
+        return original_write_text(path, data, *args, **kwargs)
+
+    monkeypatch.setattr(Path, 'write_text', windows_text_write)
     source = tmp_path / 'official source'
     source.mkdir()
     (source / 'fixture.txt').write_text('synthetic')
@@ -46,6 +54,7 @@ def test_archive_ci_prepares_bounded_inputs_without_nesting_build_supervisors(tm
     assert '--require-hashes' in commands[3] and '--no-index' in commands[3]
     assert all('scripts.merizo_runtime_archive.build' not in command for command in commands)
     assert source.exists() and task.exists()
+    assert (task / '.kuma-audit-owner').read_bytes() == b'kuma-merizo-internal-audit-v1\n'
 
 
 def test_command_failure_still_removes_payload_and_keeps_failure(tmp_path):
@@ -97,7 +106,7 @@ def test_archive_audit_refuses_outside_ci(tmp_path, monkeypatch):
 def test_unknown_controller_cleanup_never_deletes_payload(tmp_path, proof):
     task, evidence = tmp_path / 'task', tmp_path / 'evidence'
     task.mkdir(); evidence.mkdir()
-    (task / '.kuma-audit-owner').write_text('kuma-merizo-internal-audit-v1\n')
+    (task / '.kuma-audit-owner').write_bytes(b'kuma-merizo-internal-audit-v1\n')
     if proof is not None:
         (evidence / 'runtime-archive.json').write_text(json.dumps(proof))
     assert ci.cleanup(task, evidence) == 1
@@ -108,7 +117,7 @@ def test_unknown_controller_cleanup_never_deletes_payload(tmp_path, proof):
 def test_completed_direct_controller_allows_owned_payload_cleanup(tmp_path):
     task, evidence = tmp_path / 'task', tmp_path / 'evidence'
     task.mkdir(); evidence.mkdir()
-    (task / '.kuma-audit-owner').write_text('kuma-merizo-internal-audit-v1\n')
+    (task / '.kuma-audit-owner').write_bytes(b'kuma-merizo-internal-audit-v1\n')
     (evidence / 'runtime-archive.json').write_text(json.dumps({
         'schema': 'kuma-merizo-runtime-audit-v1', 'execution_controller_completed': True}))
     assert ci.cleanup(task, evidence) == 0

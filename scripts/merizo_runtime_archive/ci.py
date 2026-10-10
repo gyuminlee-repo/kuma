@@ -48,7 +48,7 @@ def run(source: Path, evidence: Path, task_directory: Path) -> int:
     if any(len(value) > 256 or any(c in value for c in "\0\r\n") for value in ci_identity.values()):
         raise ValueError("Invalid public CI identity metadata")
     task_directory.mkdir(parents=True)
-    (task_directory / '.kuma-audit-owner').write_text('kuma-merizo-internal-audit-v1\n', encoding='ascii')
+    (task_directory / '.kuma-audit-owner').write_bytes(b'kuma-merizo-internal-audit-v1\n')
 
     def command(name: str, argv: list[str], timeout: int = 300) -> None:
         before = time.monotonic()

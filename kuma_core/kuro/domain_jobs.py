@@ -303,7 +303,7 @@ class DomainJobService:
                 with tempfile.TemporaryDirectory(prefix="kuma-domain-") as directory:
                     work = Path(directory).resolve()
                     pdb, manifest, result = work / "input.pdb", work / "input.json", work / "result.json"
-                    pdb.write_text(prepared.normalized_pdb, encoding="utf-8")
+                    pdb.write_bytes(prepared.normalized_pdb.encode("ascii"))
                     manifest.write_text(json.dumps(domain_input_manifest(prepared), allow_nan=False), encoding="utf-8")
                     with self._lock:
                         if job.cancelled.is_set():

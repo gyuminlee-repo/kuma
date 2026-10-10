@@ -28,19 +28,45 @@ from scripts.merizo_runtime_archive.common import canonical, digest, read_regula
 from scripts.merizo_runtime_archive.freeze_spec import write_spec
 from scripts.merizo_runtime_archive.cpython_origin import verify as verify_cpython_origin
 from scripts.merizo_runtime_archive.provenance import installed_provenance, map_build_inputs, verify_source
-from scripts.merizo_runtime_archive.roundtrip import public_inputs, roundtrip
-from scripts.merizo_runtime_archive.runtime_entry import MAX_RUNTIME_RESIDUES
+from scripts.merizo_runtime_archive.roundtrip import public_inputs, roundtrip, read_failure, stage_event
+from scripts.merizo_runtime_archive.runtime_entry import (
+    MAX_RUNTIME_RESIDUES, safe_error_type, failure_lines, publish_failure,
+)
 
 PACKAGE = 'kuma-merizo'
 BUILD_TIMEOUT_SECONDS = 600
 MAX_SOURCE_COMPANION = 2 * 1024 * 1024 * 1024
 
 
-def freeze(source, project, output, generated):
+def run_freezer(options):
+    """CI-only owned driver; preserve safe evidence before compiler cleanup."""
+    try:
+        run = __import__('importlib').import_module('PyInstaller.__main__').run
+        run(options)
+    except BaseException as exc:
+        if isinstance(exc, SystemExit) and exc.code in (None, 0):
+            return
+        lines, _, truncated = failure_lines(exc, {run_freezer.__code__: 'freezer'})
+        try:
+            publish_failure(Path.cwd() / 'freezer-failure.json', {
+                'schema': 'kuma-merizo-freezer-failure-v1', 'error_type': safe_error_type(exc),
+                'stage': 'freezer', 'freezer_lines': lines, 'truncated': truncated})
+        except Exception:
+            pass
+        raise
+
+
+def freeze(source, project, output, generated, *, report=None, stage_events: bool = False):
     from kuma_core.kuro.domain_process import run_managed_process
+    if report is None:
+        report = {}
+    def checkpoint(stage):
+        stage_event(report, 'freezer', stage, enabled=stage_events)
+    checkpoint('freezer_dependencies')
     if importlib.metadata.version('pyinstaller') != '6.16.0':
         raise ValueError('Require PyInstaller 6.16.0')
     spec, toc = generated / 'runtime.spec', output / 'pyinstaller-toc.json'
+    checkpoint('freezer_spec')
     write_spec(spec, source=source, project=project, generated=generated, evidence=toc, package_name=PACKAGE)
     options = ['--clean', '--noconfirm', '--distpath', str(output / 'dist'),
                '--workpath', str(output / 'work'), str(spec)]
@@ -58,14 +84,28 @@ def freeze(source, project, output, generated):
         'sys.dont_write_bytecode = True\n' +
         f'os.environ.update({environment!r})\n' +
         f'sys.path.insert(0, {str(project)!r})\n' +
-        'from PyInstaller.__main__ import run\n' + f'run({options!r})\n', encoding='utf-8')
+        'from scripts.merizo_runtime_archive.build import run_freezer\n' +
+        f'run_freezer({options!r})\n', encoding='utf-8')
     command = [sys.executable, str(driver)]
     # Reuse the application's actual process-group / Windows Job Object owner.
     # It proves tree exit and never targets a completed Windows PID with taskkill.
-    run_managed_process(command, cwd=output, cancelled=lambda: False,
-        timeout_seconds=BUILD_TIMEOUT_SECONDS, output_limit=1024 * 1024,
-        result_path=toc, result_limit=32 * 1024 * 1024)
-    return strict_json(read_regular(toc, 32 * 1024 * 1024)), command
+    checkpoint('freezer_process')
+    try:
+        run_managed_process(command, cwd=output, cancelled=lambda: False,
+            timeout_seconds=BUILD_TIMEOUT_SECONDS, output_limit=1024 * 1024,
+            result_path=toc, result_limit=32 * 1024 * 1024)
+    except BaseException as exc:
+        report['error_type'] = safe_error_type(exc)
+        try:
+            report['diagnostic'] = read_failure(output / 'freezer-failure.json',
+                schema='kuma-merizo-freezer-failure-v1', line_key='freezer_lines', stages=frozenset({'freezer'}))
+        except Exception:
+            report['diagnostic'] = {'status': 'rejected'}
+        raise
+    checkpoint('freezer_toc')
+    result = strict_json(read_regular(toc, 32 * 1024 * 1024))
+    report['current_stage'] = 'completed'
+    return result, command
 
 
 def embedded_inventory(executable: Path) -> dict:
@@ -224,10 +264,14 @@ def build(args) -> int:
     report = {'schema': 'kuma-merizo-runtime-audit-v1', 'status': 'blocked',
               'scope': 'internal_candidate_archive_and_managed_CPU_inference_only',
               'distribution_cleared': False, 'production_catalog_modified': False, 'truncated': False,
-              'unresolved': [], 'cleanup': {}}
+              'unresolved': [], 'cleanup': {}, 'current_stage': 'preflight'}
+    stage_events = os.environ.get('GITHUB_ACTIONS') == 'true'
+    def checkpoint(stage):
+        stage_event(report, 'build', stage, enabled=stage_events)
     created = False
     exit_code = 2
     try:
+        checkpoint('preflight')
         if os.environ.get('GITHUB_ACTIONS') != 'true':
             raise ValueError('Real build is restricted to the authorized internal CI experiment')
         if PRODUCTION_CATALOG or current_platform_key() not in {'linux-x86_64', 'windows-x86_64', 'macos-arm64'}:
@@ -235,80 +279,106 @@ def build(args) -> int:
         if (output.exists() or output == source or source.is_relative_to(output) or output.is_relative_to(source)
                 or evidence.is_relative_to(output) or evidence.is_relative_to(source)):
             raise ValueError('Build directory must be fresh and disjoint from source/evidence')
+        checkpoint('public_fixture')
         inputs = public_inputs(args.fixture)
+        checkpoint('source_verification')
         identity = verify_source(source)
+        checkpoint('installed_provenance')
         provenance = installed_provenance(args.input_lock, args.wheelhouse)
+        checkpoint('cpython_origin')
         origin = None if args.cpython_origin is None else verify_cpython_origin(
             strict_json(read_regular(args.cpython_origin, 8 * 1024 * 1024)))
         report['inputs'] = {'source': identity, 'wheels': provenance, 'candidate_pin_status': 'candidate_inputs_unreviewed'}
+        checkpoint('build_identity')
         report['build'] = {'target': current_platform_key(), 'python': platform.python_version(),
                            'build_commit': subprocess.check_output(['git', '-C', str(project), 'rev-parse', 'HEAD'], text=True).strip(),
                            'run_id': os.environ.get('GITHUB_RUN_ID'), 'runner_image': os.environ.get('ImageOS'),
                            'runner_image_version': os.environ.get('ImageVersion'), 'pyinstaller': '6.16.0',
                            'recipe_sha256': {path.name: digest(path) for path in Path(__file__).parent.glob('*.py')}}
+        checkpoint('build_workspace')
         output.mkdir(parents=True, exist_ok=False)
         created = True
         generated = output / 'generated'
         generated.mkdir()
         write_json(generated / 'merizo-source-identity.json', identity)
         identity_sha = digest(generated / 'merizo-source-identity.json')
-        (generated / '_merizo_build_identity.py').write_text(f'SOURCE_IDENTITY_SHA256 = {identity_sha!r}\n', encoding='ascii')
+        (generated / '_merizo_build_identity.py').write_text(f'SOURCE_IDENTITY_SHA256 = {identity_sha!r}\nINTERNAL_AUDIT = True\n', encoding='ascii')
         shutil.copyfile(args.input_lock, generated / 'input-lock.json')
-        toc, command = freeze(source, project, output, generated)
+        checkpoint('freeze')
+        report['freezer'] = {}
+        toc, command = freeze(source, project, output, generated, report=report['freezer'], stage_events=stage_events)
+        checkpoint('source_reverification')
         if verify_source(source) != identity:
             raise ValueError('Official source changed during freeze')
         report['build']['command'] = command
         report['pyinstaller'] = toc
         report['build']['kuma_compilation_modules'] = [row['destination'] for row in toc.get('Analysis.pure', [])
                                                        if row['destination'].startswith('kuma_core')]
+        checkpoint('build_input_mapping')
         mapping = map_build_inputs(toc, provenance, source, identity, project, origin)
         report['provenance'] = mapping
         report['unresolved'].extend(mapping['unresolved'])
         package = output / 'dist' / PACKAGE
         entry = PACKAGE + ('.exe' if os.name == 'nt' else '')
+        checkpoint('embedded_inventory')
         report['embedded'] = embedded_inventory(package / entry)
         toc['stdlib.compilation'] = [{'destination': row['member'], 'source': row['source'],
             'typecode': 'PYMODULE', 'sha256': row['source_sha256']}
             for row in report['embedded']['stdlib_compilation_inputs'] if row['source']]
+        checkpoint('stdlib_mapping')
         stdlib_mapping = map_build_inputs({'stdlib.compilation': toc['stdlib.compilation']},
                                          {'installed_files': provenance['installed_files'], 'unresolved': []},
                                          source, identity, project, origin)
         report['provenance']['edges'].extend(stdlib_mapping['edges'])
         report['unresolved'].extend(stdlib_mapping['unresolved'])
+        checkpoint('source_companion')
         source_record = source_companion(source, identity, project, generated, output / 'source-companion.zip', origin, toc)
         report['sources'] = source_record
+        checkpoint('package_notices')
         report['notices'] = package_legal(package, source, provenance, source_record)
+        checkpoint('normalize_archive')
         artifact, records = normalize_archive(package, output / 'archive', version='internal-41d12fb-v1',
                                              platform=current_platform_key(), executable=entry)
+        checkpoint('output_mapping')
         report['files'], gaps = output_edges(records, toc, entry)
         report['unresolved'].extend(gaps)
         report['archive'] = {'candidate_manifest': asdict(artifact), 'installed_bytes': sum(row['size'] for row in records),
                               'file_count': len(records), 'alias_files': sum(bool(row['aliases']) for row in records)}
+        checkpoint('remove_original_source')
         if args.remove_source_before_run:
             shutil.rmtree(source)
             if source.exists():
                 raise ValueError('Original source removal failed')
         report['original_source_removed_before_run'] = not source.exists()
-        report['archive']['roundtrip'] = roundtrip(output / 'archive/runtime.zip', artifact, inputs)
+        checkpoint('archive_roundtrip')
+        report['archive']['roundtrip'] = {}
+        roundtrip(output / 'archive/runtime.zip', artifact, inputs,
+                  report=report['archive']['roundtrip'], stage_events=stage_events)
         report['unresolved'].extend([{'kind': 'candidate_inputs_unreviewed'},
             {'kind': 'native_source_and_license_obligation_review'},
             {'kind': 'product_dependency_security_baseline'}, {'kind': 'source_delivery_and_rights_review'}])
+        report['current_stage'] = 'completed'
         report['status'] = 'internal_roundtrip_passed_distribution_blocked'
         exit_code = 0
     except Exception as exc:
-        report['error'] = {'type': type(exc).__name__, 'message': str(exc)[:2048]}
+        report['failure_stage'] = report['current_stage']
+        report['error'] = {'type': safe_error_type(exc), 'message': str(exc)[:2048]}
         exit_code = 2
     finally:
+        stage_event(report['cleanup'], 'cleanup', 'build_payload_cleanup', enabled=stage_events)
         if created:
             try:
                 shutil.rmtree(output)
                 report['cleanup']['build_archive_source_companion_removed'] = not output.exists()
+                if output.exists():
+                    raise OSError('Build payload remains after cleanup')
             except OSError as exc:
                 report['cleanup']['build_archive_source_companion_removed'] = False
                 report['cleanup']['error_type'] = type(exc).__name__
                 report['status'] = 'cleanup_failed'
                 exit_code = 2
         report['cleanup']['original_source_exists'] = source.exists()
+        report['cleanup']['current_stage'] = 'failed' if report['cleanup'].get('error_type') else 'completed'
         report['elapsed_seconds'] = time.perf_counter() - started
         # Written only after owned process calls and this controller's finally.
         report['execution_controller_completed'] = True
@@ -322,7 +392,10 @@ def build(args) -> int:
                 'execution_controller_completed': True,
                 'production_catalog_modified': False, 'truncated': False,
                 'unresolved': [{'kind': 'complete_audit_exceeds_bound_or_serialization_failed'}],
-                'cleanup': report['cleanup'], 'error_type': type(exc).__name__})
+                'cleanup': report['cleanup'], 'error_type': type(exc).__name__,
+                'failure_stage': report.get('failure_stage'), 'current_stage': report['current_stage'],
+                'original_error': report.get('error'), 'freezer': report.get('freezer'),
+                'roundtrip': report.get('archive', {}).get('roundtrip')})
             exit_code = 2
     return exit_code
 

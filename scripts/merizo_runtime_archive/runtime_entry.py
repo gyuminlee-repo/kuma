@@ -21,6 +21,7 @@ import struct
 import tempfile
 import time
 import warnings
+from types import CodeType
 
 from kuma_core.kuro.domain_annotation import DomainInput, MAX_SOURCE_BYTES, MAX_RESULT_BYTES
 from kuma_core.kuro.domain_merizo import (
@@ -36,6 +37,15 @@ CPU_TORCH = {('Linux', 'x86_64'): '2.0.1+cpu', ('Windows', 'AMD64'): '2.0.1+cpu'
              ('Darwin', 'arm64'): '2.0.1'}
 MAX_SOURCE_IDENTITY_BYTES = 2 * 1024 * 1024
 MAX_RUNTIME_RESIDUES = 2000  # Unmeasured conservative allocation guard, not safe-capacity evidence.
+MAX_FAILURE_BYTES = 4096
+MAX_FAILURE_FRAMES = 32
+FAILURE_SCHEMA = 'kuma-merizo-entry-failure-v1'
+FAILURE_ERROR_TYPES = frozenset({'ValueError', 'TypeError', 'KeyError', 'IndexError', 'RuntimeError',
+    'ImportError', 'ModuleNotFoundError', 'OSError', 'FileNotFoundError', 'PermissionError',
+    'MemoryError', 'OverflowError', 'AssertionError', 'TimeoutError', 'InputLimitError',
+    'DomainAnnotationError', 'DomainProcessError', 'DomainProcessCancelled', 'SystemExit', 'OtherError'})
+FAILURE_STAGES = frozenset({'bootstrap', 'execute', 'input_validation', 'payload_verification',
+                          'architecture', 'inference', 'feature_validation', 'result_envelope'})
 
 
 class InputLimitError(ValueError):
@@ -243,29 +253,109 @@ def execute(pdb: Path, manifest: Path, output: Path, internal: Path, identity_sh
     write_json(output, result, MAX_RESULT_BYTES)
 
 
+def safe_error_type(exc: BaseException) -> str:
+    name = type(exc).__name__
+    return name if name in FAILURE_ERROR_TYPES else 'OtherError'
+
+
+def failure_lines(exc: BaseException, codes: dict[CodeType, str]) -> tuple[list[int], str, bool]:
+    lines, stage, scanned = [], 'bootstrap', 0
+    trace = exc.__traceback__
+    while trace is not None and scanned < 256:
+        scanned += 1
+        if trace.tb_frame.f_code in codes:
+            stage = codes[trace.tb_frame.f_code]
+            lines.append(trace.tb_lineno)
+        trace = trace.tb_next
+    return lines[-MAX_FAILURE_FRAMES:], stage, trace is not None or len(lines) > MAX_FAILURE_FRAMES
+
+
+def failure_diagnostic(exc: BaseException) -> dict:
+    lines, stage, truncated = failure_lines(exc, _FAILURE_CODE_STAGES)
+    return {'schema': FAILURE_SCHEMA, 'error_type': safe_error_type(exc), 'stage': stage,
+            'runtime_entry_lines': lines, 'truncated': truncated}
+
+
+def failure_destination(path: Path, forbidden: tuple[Path, ...] = ()) -> Path:
+    # Only a direct child of the caller-owned cwd, never an input/result alias.
+    if (path.parent.resolve() != Path.cwd().resolve() or path.exists() or path.is_symlink()
+            or path.resolve() in {item.resolve() for item in forbidden}):
+        raise ValueError('Invalid private failure-report destination')
+    return Path.cwd().resolve() / path.name
+
+
+def publish_failure(path: Path, report: dict) -> None:
+    path = failure_destination(path)
+    raw = canonical(report) + b'\n'
+    if len(raw) > MAX_FAILURE_BYTES:
+        raise ValueError('Failure report exceeds bound')
+    descriptor, temporary = tempfile.mkstemp(prefix='.kuma-failure-', dir=path.parent)
+    try:
+        with os.fdopen(descriptor, 'wb') as stream:
+            stream.write(raw)
+            stream.flush()
+            os.fsync(stream.fileno())
+        # Atomic, exclusive publication: unlike replace(), never overwrite a
+        # stale file or a link introduced after destination validation.
+        os.link(temporary, path)
+    finally:
+        Path(temporary).unlink(missing_ok=True)
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--input-pdb', required=True, type=Path)
     parser.add_argument('--input-manifest', required=True, type=Path)
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--device', required=True, choices=['cpu'])
+    parser.add_argument('--audit-failure-report', type=Path)
     args = parser.parse_args(argv)
+    audit_path = None
     try:
         if not getattr(sys, 'frozen', False):
             raise ValueError('Use the managed frozen runtime')
         identity_module = importlib.import_module('_merizo_build_identity')
+        if args.audit_failure_report is not None:
+            if getattr(identity_module, 'INTERNAL_AUDIT', False) is not True:
+                raise ValueError('Failure diagnostics require an internal audit build')
+            audit_path = failure_destination(args.audit_failure_report,
+                                             (args.input_pdb, args.input_manifest, args.output))
         internal = Path(getattr(sys, '_MEIPASS')).resolve()
         if not internal.is_relative_to(Path(sys.executable).resolve().parent):
             raise ValueError('Frozen payload escapes its installed runtime')
         execute(args.input_pdb, args.input_manifest, args.output, internal, identity_module.SOURCE_IDENTITY_SHA256)
         return 0
-    except InputLimitError:
-        print('Merizo runtime input exceeds conservative limit: 2000 complete residues.', file=sys.stderr)
-        return 2
     except Exception as exc:
+        if audit_path is not None:
+            try:
+                publish_failure(audit_path, failure_diagnostic(exc))
+            except Exception:
+                pass  # Diagnostic failure must never replace the original failure.
         # No private input, paths or arbitrary upstream exception text in logs.
-        print('Merizo runtime refused or failed: ' + type(exc).__name__, file=sys.stderr)
+        if isinstance(exc, InputLimitError):
+            print('Merizo runtime input exceeds conservative limit: 2000 complete residues.', file=sys.stderr)
+        else:
+            print('Merizo runtime refused or failed: ' + safe_error_type(exc), file=sys.stderr)
         return 2
+
+
+def _owned_failure_codes() -> dict[CodeType, str]:
+    result = {}
+    for function, stage in ((main, 'bootstrap'), (execute, 'execute'),
+            (load_prepared, 'input_validation'), (verify_payload, 'payload_verification'),
+            (expected_cpu_torch, 'architecture'), (infer, 'inference'),
+            (validate_features, 'feature_validation'), (make_envelope, 'result_envelope')):
+        pending = [function.__code__]
+        while pending:
+            code = pending.pop()
+            result[code] = stage
+            pending.extend(value for value in code.co_consts if isinstance(value, CodeType))
+    return result
+
+
+# Exact code objects, including owned nested functions; never match an arbitrary
+# upstream frame merely because its filename resembles runtime_entry.py.
+_FAILURE_CODE_STAGES = _owned_failure_codes()
 
 
 if __name__ == '__main__':

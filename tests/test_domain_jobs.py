@@ -45,7 +45,7 @@ def successful_runner(source: DomainSource, *, directories: list[Path] | None = 
         assert argv[1:] == ["--input-pdb", str(work / "input.pdb"), "--input-manifest",
                             str(work / "input.json"), "--output", str(work / "result.json"), "--device", "cpu"]
         prepared, _ = prepare_source(source)
-        assert (work / "input.pdb").read_text() == prepared.normalized_pdb
+        assert (work / "input.pdb").read_bytes() == prepared.normalized_pdb.encode("ascii")
         assert len([line for line in prepared.normalized_pdb.splitlines() if line.startswith("ATOM  ")]) == 30
         manifest = json.loads((work / "input.json").read_text())
         assert manifest["binding_sha256"] == prepared.binding_sha256
@@ -87,7 +87,15 @@ def test_production_catalog_blocked_no_files_or_command_override(tmp_path):
     assert not (tmp_path / "app").exists()
 
 
-def test_managed_success_complete_original_atoms_unique_identity_and_cleanup(tmp_path):
+def test_managed_success_complete_original_atoms_unique_identity_and_cleanup(tmp_path, monkeypatch):
+    original_write_text = Path.write_text
+
+    def windows_text_write(path, data, *args, **kwargs):
+        if path.name == "input.pdb" and kwargs.get("newline") is None:
+            return path.write_bytes(data.replace("\n", "\r\n").encode("ascii"))
+        return original_write_text(path, data, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "write_text", windows_text_write)
     source = source_fixture(tmp_path)
     directories = []
     service, _ = service_fixture(tmp_path, successful_runner(source, directories=directories))

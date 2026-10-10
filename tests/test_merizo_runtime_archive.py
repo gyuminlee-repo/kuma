@@ -55,6 +55,184 @@ class RuntimeArchitectureTests(unittest.TestCase):
                 self.assertEqual(runtime_entry.expected_cpu_torch(), expected)
 
 
+class ControllerStageEventTests(unittest.TestCase):
+    def test_stage_event_is_flushed_bounded_and_progress_only(self):
+        from scripts.merizo_runtime_archive import roundtrip as module
+        report = {}
+        with patch.object(module.time, 'monotonic', return_value=module._STAGE_STARTED + 5000), \
+             patch('builtins.print') as printed:
+            module.stage_event(report, 'build', 'freeze', enabled=True)
+        printed.assert_called_once()
+        self.assertEqual(printed.call_args.kwargs, {'flush': True})
+        event = json.loads(printed.call_args.args[0])
+        self.assertEqual(set(event), {'schema', 'scope', 'stage', 'event', 'evidence',
+                                     'elapsed_seconds', 'elapsed_capped'})
+        self.assertEqual(event['elapsed_seconds'], 3600.0)
+        self.assertTrue(event['elapsed_capped'])
+        self.assertEqual(event['event'], 'entered')
+        self.assertEqual(event['evidence'], 'progress_only')
+        self.assertEqual(report, {'current_stage': 'freeze'})
+
+    def test_invalid_private_stage_or_scope_is_never_emitted(self):
+        from scripts.merizo_runtime_archive.roundtrip import stage_event
+        for scope, stage in (('private/path', 'freeze'), ('build', 'private sequence'),
+                             ('build', 'runtime_process'), ('build', 'completed')):
+            report = {}
+            with self.subTest(scope=scope, stage=stage), patch('builtins.print') as printed:
+                with self.assertRaises(ValueError):
+                    stage_event(report, scope, stage, enabled=True)
+                printed.assert_not_called()
+                self.assertEqual(report, {})
+
+    def test_disabled_invalid_clock_and_failed_logging_do_not_change_stage(self):
+        from scripts.merizo_runtime_archive import roundtrip as module
+        report = {}
+        with patch('builtins.print') as printed:
+            module.stage_event(report, 'build', 'freeze')
+            printed.assert_not_called()
+        for clock in (float('inf'), float('nan'), module._STAGE_STARTED - 1):
+            with self.subTest(clock=clock), patch.object(module.time, 'monotonic', return_value=clock), \
+                 patch('builtins.print') as printed:
+                module.stage_event(report, 'build', 'freeze', enabled=True)
+                printed.assert_not_called()
+        with patch('builtins.print', side_effect=BrokenPipeError('private logging failure')):
+            module.stage_event(report, 'build', 'freeze', enabled=True)
+        self.assertEqual(report, {'current_stage': 'freeze'})
+
+
+class RuntimeFailureDiagnosticTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name).resolve()
+        self.prepared = prepared_synthetic()
+        self.pdb, self.manifest = self.root / 'input.pdb', self.root / 'input.json'
+        self.pdb.write_bytes(self.prepared.normalized_pdb.encode('ascii'))
+        write_json(self.manifest, domain_input_manifest(self.prepared))
+        self.output, self.audit = self.root / 'result.json', self.root / 'failure.json'
+
+    def call_entry(self, *, audit=True, internal: bool | None = True, destination=None):
+        from types import SimpleNamespace
+        argv = ['--input-pdb', str(self.pdb), '--input-manifest', str(self.manifest),
+                '--output', str(self.output), '--device', 'cpu']
+        if audit:
+            argv += ['--audit-failure-report', str(destination or self.audit)]
+        identity = SimpleNamespace(SOURCE_IDENTITY_SHA256='0' * 64, INTERNAL_AUDIT=internal)
+        if internal is None:
+            del identity.INTERNAL_AUDIT
+        with patch.object(runtime_entry.sys, 'frozen', True, create=True), \
+             patch.object(runtime_entry.sys, '_MEIPASS', str(self.root), create=True), \
+             patch.object(runtime_entry.sys, 'executable', str(self.root / 'entry')), \
+             patch.object(runtime_entry.Path, 'cwd', return_value=self.root), \
+             patch.object(runtime_entry.importlib, 'import_module', return_value=identity):
+            return runtime_entry.main(argv)
+
+    def test_safe_failure_has_only_owned_lines_and_no_hostile_text(self):
+        secret = 'PRIVATE_SEQUENCE /private/person/location secret\nmessage'
+        with patch.object(runtime_entry, 'verify_payload', side_effect=ValueError(secret)), \
+             patch('sys.stderr', new_callable=io.StringIO) as stderr:
+            self.assertEqual(self.call_entry(), 2)
+        raw = self.audit.read_text()
+        report = strict_json(raw.encode())
+        self.assertEqual(set(report), {'schema', 'error_type', 'stage', 'runtime_entry_lines', 'truncated'})
+        self.assertEqual(report['error_type'], 'ValueError')
+        self.assertEqual(report['stage'], 'execute')
+        self.assertTrue(report['runtime_entry_lines'])
+        self.assertTrue(all(type(line) is int for line in report['runtime_entry_lines']))
+        self.assertNotIn(secret, raw + stderr.getvalue())
+        self.assertNotIn(str(self.root), raw)
+        self.assertFalse(self.output.exists())
+        self.assertEqual(runtime_entry.safe_error_type(type('PRIVATE_ERROR', (Exception,), {})()), 'OtherError')
+
+    def test_success_and_normal_failure_do_not_publish_audit(self):
+        with patch.object(runtime_entry, 'verify_payload', return_value=(self.root, self.root, {})), \
+             patch.object(runtime_entry, 'infer', return_value=envelope(self.prepared)):
+            self.assertEqual(self.call_entry(), 0)
+        self.assertTrue(self.output.exists())
+        self.assertFalse(self.audit.exists())
+        self.output.unlink()
+        with patch.object(runtime_entry, 'verify_payload', side_effect=ValueError('private')):
+            self.assertEqual(self.call_entry(audit=False), 2)
+        self.assertFalse(self.audit.exists())
+        self.assertFalse(self.output.exists())
+
+    def test_audit_gate_and_private_fresh_destination_are_enforced(self):
+        with patch.object(runtime_entry, 'execute') as execute:
+            for destination in (self.root.parent / 'outside.json', self.output, self.pdb):
+                with self.subTest(destination=destination):
+                    self.assertEqual(self.call_entry(destination=destination), 2)
+            self.assertEqual(self.call_entry(internal=False), 2)
+            self.assertEqual(self.call_entry(internal=None), 2)
+            self.audit.write_text('stale bytes')
+            self.assertEqual(self.call_entry(), 2)
+            self.assertEqual(self.audit.read_text(), 'stale bytes')
+            execute.assert_not_called()
+
+    def test_diagnostic_write_failure_preserves_original_failure(self):
+        with patch.object(runtime_entry, 'verify_payload', side_effect=ValueError('private original')), \
+             patch.object(runtime_entry, 'publish_failure', side_effect=PermissionError('private secondary')):
+            self.assertEqual(self.call_entry(), 2)
+        self.assertFalse(self.output.exists())
+        self.assertFalse(self.audit.exists())
+
+    def test_atomic_publication_never_overwrites_a_racing_destination(self):
+        original_link = os.link
+        def race(source, destination):
+            Path(destination).write_text('preexisting bytes')
+            original_link(source, destination)
+        with patch.object(runtime_entry.Path, 'cwd', return_value=self.root), \
+             patch.object(runtime_entry.os, 'link', side_effect=race), \
+             self.assertRaises(FileExistsError):
+            runtime_entry.publish_failure(self.audit, runtime_entry.failure_diagnostic(ValueError()))
+        self.assertEqual(self.audit.read_text(), 'preexisting bytes')
+        self.assertFalse(list(self.root.glob('.kuma-failure-*')))
+
+    def test_failure_frames_are_bounded_and_filename_spoof_is_not_owned(self):
+        def recurse(count):
+            if count:
+                recurse(count - 1)
+            raise ValueError('private recursion detail')
+        lines, stage, truncated = [], "", False
+        try:
+            recurse(40)
+        except ValueError as exc:
+            lines, stage, truncated = runtime_entry.failure_lines(exc, {recurse.__code__: 'inference'})
+        self.assertEqual(len(lines), runtime_entry.MAX_FAILURE_FRAMES)
+        self.assertEqual(stage, 'inference')
+        self.assertTrue(truncated)
+        report = {}
+        try:
+            exec(compile("raise ValueError('private spoofed frame')", runtime_entry.__file__, 'exec'), {})
+        except ValueError as exc:
+            report = runtime_entry.failure_diagnostic(exc)
+        self.assertEqual(report['runtime_entry_lines'], [])
+        self.assertEqual(report['stage'], 'bootstrap')
+
+    def test_report_reader_is_bounded_exact_and_rejects_links(self):
+        from scripts.merizo_runtime_archive.roundtrip import read_failure
+        valid = runtime_entry.failure_diagnostic(ValueError())
+        self.assertEqual(read_failure(self.audit), {'status': 'missing'})
+        for value in ({**valid, 'private': 'secret'}, {**valid, 'stage': 'secret'},
+                      {**valid, 'runtime_entry_lines': [True]}, {**valid, 'truncated': 1},
+                      {**valid, 'runtime_entry_lines': [1] * 33}):
+            write_json(self.audit, value)
+            self.assertEqual(read_failure(self.audit), {'status': 'rejected'})
+        self.audit.write_bytes(b'x' * (runtime_entry.MAX_FAILURE_BYTES + 1))
+        self.assertEqual(read_failure(self.audit), {'status': 'rejected'})
+        self.audit.write_text('{"schema":"x","schema":"y"}')
+        self.assertEqual(read_failure(self.audit), {'status': 'rejected'})
+        write_json(self.audit, valid)
+        self.assertEqual(read_failure(self.audit), {'status': 'validated', 'report': valid})
+        link = self.root / 'linked.json'
+        try:
+            link.symlink_to(self.audit)
+        except OSError:
+            return  # Windows runners may lack symlink privilege.
+        self.assertEqual(read_failure(link), {'status': 'rejected'})
+        with patch.object(runtime_entry.Path, 'cwd', return_value=self.root), self.assertRaises(ValueError):
+            runtime_entry.failure_destination(link)
+
+
 class PreparedInputTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -62,13 +240,13 @@ class PreparedInputTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.prepared = prepared_synthetic()
         self.pdb, self.manifest = self.root / 'input.pdb', self.root / 'input.json'
-        self.pdb.write_text(self.prepared.normalized_pdb, encoding='ascii')
+        self.pdb.write_bytes(self.prepared.normalized_pdb.encode('ascii'))
         write_json(self.manifest, domain_input_manifest(self.prepared))
 
     def test_general_lengths_and_source_identities(self):
         for sequence in ('A', 'ACDEFG', 'ACDEFGHIKLMNPQRSTVWY'):
             expected = prepared_synthetic(sequence)
-            self.pdb.write_text(expected.normalized_pdb, encoding='ascii')
+            self.pdb.write_bytes(expected.normalized_pdb.encode('ascii'))
             write_json(self.manifest, domain_input_manifest(expected))
             self.assertEqual(runtime_entry.load_prepared(self.pdb, self.manifest), expected)
 
@@ -88,7 +266,7 @@ class PreparedInputTests(unittest.TestCase):
                 strict_json(raw)
 
     def test_input_hash_and_atom_gate_before_inference(self):
-        self.pdb.write_text(self.prepared.normalized_pdb.replace(' CA ', ' CB ', 1))
+        self.pdb.write_bytes(self.prepared.normalized_pdb.replace(' CA ', ' CB ', 1).encode('ascii'))
         with patch.object(runtime_entry, 'verify_payload') as verify:
             with self.assertRaises(ValueError):
                 runtime_entry.execute(self.pdb, self.manifest, self.root / 'result.json', self.root, '0' * 64)
@@ -268,7 +446,8 @@ class ArchiveTests(unittest.TestCase):
         prepared = prepared_synthetic('ACDEFGHIK')
         leases = []
         def synthetic_runner(argv, **kwargs):
-            self.assertEqual(argv[-2:], ['--device', 'cpu'])
+            self.assertEqual(argv[7:9], ['--device', 'cpu'])
+            self.assertEqual(argv[9], '--audit-failure-report')
             loaded = runtime_entry.load_prepared(Path(argv[2]), Path(argv[4]))
             self.assertEqual(loaded, prepared)
             self.assertIsNotNone(kwargs['operation_lease'])
@@ -280,6 +459,128 @@ class ArchiveTests(unittest.TestCase):
         self.assertTrue(report['removed'])
         self.assertTrue(report['temporary_storage_removed'])
         self.assertEqual(report['runs'][0]['residues'], 9)
+
+    def test_partial_roundtrip_records_each_failed_stage_and_cleanup(self):
+        from contextlib import ExitStack
+        from kuma_core.kuro.domain_process import DomainProcessError
+        artifact, _ = self.build()
+        prepared = prepared_synthetic()
+        for stage in ('install', 'verify', 'runtime_process', 'decode_result', 'remove'):
+            with self.subTest(stage=stage), ExitStack() as stack:
+                primary = DomainProcessError('private original failure')
+                report = {}
+                def runner(argv, **kwargs):
+                    if stage == 'runtime_process':
+                        raise primary
+                    write_json(Path(argv[6]), {} if stage == 'decode_result' else envelope(prepared))
+                if stage in {'install', 'verify', 'remove'}:
+                    stack.enter_context(patch.object(OptionalRuntimeManager, stage, side_effect=primary))
+                with self.assertRaises(Exception) as caught:
+                    roundtrip(self.root / 'out/runtime.zip', artifact, [('synthetic', prepared)],
+                              runner=runner, report=report)
+                if stage != 'decode_result':
+                    self.assertIs(caught.exception, primary)
+                self.assertEqual(report['status'], 'failed')
+                self.assertEqual(report['failure']['stage'], stage)
+                self.assertTrue(report['temporary_storage_removed'])
+                self.assertEqual(report['installed'], stage != 'install')
+                self.assertEqual(report['removed'], stage not in {'install', 'remove'})
+                if stage == 'runtime_process':
+                    self.assertEqual(report['runs'][0]['entry_diagnostic'], {'status': 'missing'})
+                    self.assertFalse(report['runs'][0]['process_succeeded'])
+                if stage == 'remove':
+                    self.assertTrue(report['runs'][0]['decoded'])
+                    self.assertEqual(report['cleanup_errors'][0]['stage'], 'remove')
+
+    def test_failed_run_keeps_diagnostic_and_original_error_despite_cleanup_failure(self):
+        from kuma_core.kuro.domain_process import DomainProcessError
+        artifact, _ = self.build()
+        prepared = prepared_synthetic()
+        primary = DomainProcessError('private process failure')
+        for mode in ('valid', 'oversized', 'malformed'):
+            report = {}
+            def runner(argv, **kwargs):
+                diagnostic = Path(argv[argv.index('--audit-failure-report') + 1])
+                if mode == 'valid':
+                    write_json(diagnostic, runtime_entry.failure_diagnostic(ValueError('private detail')))
+                else:
+                    diagnostic.write_text('x' * (runtime_entry.MAX_FAILURE_BYTES + 1) if mode == 'oversized' else '{}')
+                raise primary
+            with self.subTest(mode=mode), \
+                 patch.object(OptionalRuntimeManager, 'remove', side_effect=PermissionError('private cleanup')), \
+                 self.assertRaises(DomainProcessError) as caught:
+                roundtrip(self.root / 'out/runtime.zip', artifact, [('synthetic', prepared)],
+                          runner=runner, report=report)
+            self.assertIs(caught.exception, primary)
+            self.assertEqual(report['failure']['stage'], 'runtime_process')
+            self.assertEqual(report['runs'][0]['entry_diagnostic']['status'],
+                             'validated' if mode == 'valid' else 'rejected')
+            self.assertEqual(report['cleanup_errors'], [{'stage': 'remove', 'error_type': 'PermissionError'}])
+            self.assertTrue(report['temporary_storage_removed'])
+            self.assertNotIn('private', json.dumps(report))
+
+    def test_completed_first_run_survives_second_run_failure(self):
+        from kuma_core.kuro.domain_process import DomainProcessError
+        artifact, _ = self.build()
+        prepared = prepared_synthetic()
+        report = {}
+        calls = 0
+        def runner(argv, **kwargs):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                raise DomainProcessError('synthetic failure')
+            write_json(Path(argv[6]), envelope(prepared))
+        with self.assertRaises(DomainProcessError):
+            roundtrip(self.root / 'out/runtime.zip', artifact, [('first', prepared), ('second', prepared)],
+                      runner=runner, report=report)
+        self.assertTrue(report['runs'][0]['decoded'])
+        self.assertFalse(report['runs'][1]['decoded'])
+        self.assertTrue(report['removed'])
+        self.assertTrue(report['temporary_storage_removed'])
+
+    def test_controller_events_precede_process_and_cleanup_calls(self):
+        from kuma_core.kuro.domain_process import DomainProcessError
+        artifact, _ = self.build()
+        prepared = prepared_synthetic()
+        primary = DomainProcessError('private original failure')
+        events = []
+        original_remove = OptionalRuntimeManager.remove
+        def printed(raw, *, flush):
+            self.assertTrue(flush)
+            events.append(json.loads(raw))
+        def runner(*args, **kwargs):
+            self.assertEqual(events[-1]['stage'], 'runtime_process')
+            raise primary  # Simulates a call that blocks, then fails.
+        def remove(manager):
+            self.assertEqual(events[-1]['stage'], 'remove')
+            return original_remove(manager)
+        report = {}
+        with patch('builtins.print', side_effect=printed), \
+             patch.object(OptionalRuntimeManager, 'remove', remove), \
+             self.assertRaises(DomainProcessError) as caught:
+            roundtrip(self.root / 'out/runtime.zip', artifact, [('synthetic', prepared)],
+                      runner=runner, report=report, stage_events=True)
+        self.assertIs(caught.exception, primary)
+        self.assertTrue(report['removed'])
+        self.assertEqual(events[-1]['stage'], 'workspace_cleanup')
+        self.assertTrue(all(event['event'] == 'entered' and event['evidence'] == 'progress_only'
+                            for event in events))
+        self.assertNotIn('private', json.dumps(events))
+
+    def test_broken_controller_stdout_preserves_original_process_failure(self):
+        from kuma_core.kuro.domain_process import DomainProcessError
+        artifact, _ = self.build()
+        prepared = prepared_synthetic()
+        primary = DomainProcessError('original failure')
+        report = {}
+        with patch('builtins.print', side_effect=BrokenPipeError('logging failed')), \
+             self.assertRaises(DomainProcessError) as caught:
+            roundtrip(self.root / 'out/runtime.zip', artifact, [('synthetic', prepared)],
+                      runner=lambda *a, **kw: (_ for _ in ()).throw(primary), report=report, stage_events=True)
+        self.assertIs(caught.exception, primary)
+        self.assertTrue(report['removed'])
+        self.assertTrue(report['temporary_storage_removed'])
 
 
 class WheelRecordTests(unittest.TestCase):
@@ -526,6 +827,115 @@ class BuildAuditTests(unittest.TestCase):
             self.assertNotIn('error', report)
             self.assertFalse(report['cleanup']['build_archive_source_companion_removed'])
             self.assertFalse(report['distribution_cleared'])
+
+    def test_build_retains_attached_partial_roundtrip_before_cleanup(self):
+        from contextlib import ExitStack
+        from types import SimpleNamespace
+        from scripts.merizo_runtime_archive import build
+        from kuma_core.kuro.optional_runtime import RuntimeArtifact, RuntimeFile
+        from kuma_core.kuro.domain_process import DomainProcessError
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            source = root / 'upstream'
+            source.mkdir()
+            (root / 'lock.json').write_text('{}')
+            args = SimpleNamespace(source=source, output_directory=root / 'build', evidence=root / 'audit.json',
+                fixture=FIXTURE, input_lock=root / 'lock.json', wheelhouse=root / 'wheels',
+                cpython_origin=None, remove_source_before_run=False)
+            artifact = RuntimeArtifact('merizo', 'test', 'linux-x86_64', '0' * 64, 1,
+                (RuntimeFile('entry', '0' * 64, 1, True),), 'entry')
+            def failed_roundtrip(*args, report, **kwargs):
+                report.update(installed=True, verified=True, removed=True, status='failed',
+                              failure={'stage': 'runtime_process', 'error_type': 'DomainProcessError'})
+                raise DomainProcessError('synthetic process failure')
+            values = {'verify_source': {'python_files': {}, 'files': []},
+                      'installed_provenance': {'installed_files': []}, 'freeze': ({}, []),
+                      'map_build_inputs': {'unresolved': [], 'edges': []},
+                      'embedded_inventory': {'stdlib_compilation_inputs': []},
+                      'source_companion': {}, 'package_legal': {},
+                      'normalize_archive': (artifact, []), 'output_edges': ([], [])}
+            with ExitStack() as stack:
+                stack.enter_context(patch.dict(os.environ, {'GITHUB_ACTIONS': 'true'}))
+                for name, value in values.items():
+                    stack.enter_context(patch.object(build, name, return_value=value))
+                stack.enter_context(patch.object(build, 'roundtrip', side_effect=failed_roundtrip))
+                self.assertEqual(build.build(args), 2)
+            report = strict_json((root / 'audit.json').read_bytes())
+            self.assertEqual(report['failure_stage'], 'archive_roundtrip')
+            self.assertEqual(report['archive']['roundtrip']['failure']['stage'], 'runtime_process')
+            self.assertTrue(report['archive']['roundtrip']['verified'])
+            self.assertTrue(report['cleanup']['build_archive_source_companion_removed'])
+
+    def test_freezer_driver_diagnostic_excludes_external_frames_and_text(self):
+        from types import SimpleNamespace
+        from scripts.merizo_runtime_archive import build
+        from scripts.merizo_runtime_archive.roundtrip import read_failure
+        secret = 'private compiler input /private/path'
+        def failed(options):
+            raise ValueError(secret)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            with patch.dict('sys.modules', {'PyInstaller.__main__': SimpleNamespace(run=failed)}), \
+                 patch.object(runtime_entry.Path, 'cwd', return_value=root), \
+                 self.assertRaisesRegex(ValueError, 'private compiler'):
+                build.run_freezer([])
+            path = root / 'freezer-failure.json'
+            value = read_failure(path, schema='kuma-merizo-freezer-failure-v1',
+                                 line_key='freezer_lines', stages=frozenset({'freezer'}))
+            self.assertEqual(value['status'], 'validated')
+            self.assertEqual(len(value['report']['freezer_lines']), 1)
+            self.assertNotIn(secret, path.read_text())
+            self.assertNotIn(str(root), path.read_text())
+
+    def test_build_event_precedes_blocking_source_verification(self):
+        from types import SimpleNamespace
+        from scripts.merizo_runtime_archive import build
+        events = []
+        def blocked(source):
+            self.assertEqual(events[-1]['scope'], 'build')
+            self.assertEqual(events[-1]['stage'], 'source_verification')
+            raise RuntimeError('synthetic source failure')
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            source = root / 'source'
+            source.mkdir()
+            args = SimpleNamespace(source=source, output_directory=root / 'output', evidence=root / 'audit.json',
+                                   fixture=FIXTURE)
+            with patch.dict(os.environ, {'GITHUB_ACTIONS': 'true'}), \
+                 patch.object(build, 'public_inputs', return_value=[]), \
+                 patch.object(build, 'verify_source', side_effect=blocked), \
+                 patch('builtins.print', side_effect=lambda raw, **kw: events.append(json.loads(raw))):
+                self.assertEqual(build.build(args), 2)
+            self.assertEqual(events[-1]['stage'], 'build_payload_cleanup')
+            self.assertEqual(strict_json(args.evidence.read_bytes())['failure_stage'], 'source_verification')
+
+    def test_freezer_controller_event_precedes_process_without_child_events(self):
+        from types import SimpleNamespace
+        from kuma_core.kuro import domain_process
+        from scripts.merizo_runtime_archive import build
+        events = []
+        primary = domain_process.DomainProcessError('synthetic compiler failure')
+        def blocked(*args, **kwargs):
+            self.assertEqual(events[-1]['scope'], 'freezer')
+            self.assertEqual(events[-1]['stage'], 'freezer_process')
+            raise primary
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            generated = root / 'generated'
+            generated.mkdir()
+            report = {}
+            with patch.object(build.importlib.metadata, 'version', return_value='6.16.0'), \
+                 patch.object(build, 'write_spec'), \
+                 patch.object(domain_process, 'run_managed_process', side_effect=blocked), \
+                 patch('builtins.print', side_effect=lambda raw, **kw: events.append(json.loads(raw))), \
+                 self.assertRaises(domain_process.DomainProcessError) as caught:
+                build.freeze(root, ROOT, root, generated, report=report, stage_events=True)
+            self.assertIs(caught.exception, primary)
+            self.assertEqual(report['diagnostic'], {'status': 'missing'})
+            with patch.dict('sys.modules', {'PyInstaller.__main__': SimpleNamespace(run=lambda options: None)}), \
+                 patch('builtins.print') as printed:
+                build.run_freezer([])
+                printed.assert_not_called()
 
     def test_runtime_cold_import_without_product_dependencies(self):
         import subprocess
