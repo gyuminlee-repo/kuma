@@ -848,6 +848,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
   },
 
   resetAll: (options) => {
+    get().resetDomainAnnotation?.();
     set({
       fastaPath: "",
       seqInfo: null,

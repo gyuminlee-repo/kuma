@@ -1605,6 +1605,47 @@
       ],
       "note": "Empty production catalog and bounded local archive host mechanism. Any future executor must share the operation lock from verification through child exit; current source is not a shipped installer.",
       "severity": "warning"
+    },
+    {
+      "id": "optional-domain-app-contract",
+      "files": [
+        "kuma_core/kuro/domain_jobs.py",
+        "kuma_core/kuro/domain_process.py",
+        "kuma_core/shared/windows_rpc.py",
+        "python-core/sidecar_kuro/handlers/domain.py",
+        "python-core/sidecar_kuro/dispatcher.py",
+        "python-core/sidecar_kuro/models.py",
+        "python-core/sidecar_main_kuro.py",
+        "src/types/models.generated.ts",
+        "src/types/domainAnnotation.ts",
+        "src/types/domainAnnotation.validators.ts",
+        "src/store/slices/domainAnnotationSlice.ts",
+        "src/lib/domainAnnotation.ts",
+        "src/components/panels/InputPanel/OptionalDomainAnnotationPanel.tsx",
+        "tests/test_domain_jobs.py",
+        "tests/test_domain_process.py",
+        "tests/shared/test_windows_rpc.py",
+        "tests/sidecar_kuro/test_domain_rpc.py",
+        "src/store/slices/domainAnnotationSlice.test.ts",
+        "src/components/panels/InputPanel/OptionalDomainAnnotationPanel.test.tsx",
+        "docs/audit/optional-domain-app-flow.md"
+      ],
+      "note": "Typed optional annotation RPC, exact attempt cancellation, source/reference identity, isolated process ownership and UI acceptance must remain consistent. Empty production catalog; source-only host and synthetic tests do not imply installable module.",
+      "severity": "warning"
+    },
+    {
+      "id": "optional-domain-frozen-process-contract",
+      "files": [
+        "kuma_core/kuro/domain_process.py",
+        "kuma_core/shared/windows_rpc.py",
+        "scripts/domain_runtime_smoke/entry.py",
+        "scripts/domain_runtime_smoke/run.py",
+        "tests/test_domain_runtime_smoke.py",
+        ".github/workflows/merizo-windows-smoke.yml",
+        ".github/workflows/merizo-platform-smoke.yml"
+      ],
+      "note": "Native frozen delayed RPC and managed-process cancellation/timeout/parent-loss evidence. Retain JSON only, remove temporary executable; actual platform execution is distinct from mock tests.",
+      "severity": "warning"
     }
   ]
 }

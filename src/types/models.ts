@@ -1,3 +1,4 @@
+import type { DomainAnnotationSource, DomainRuntimeStatus, DomainAnnotationJob, DomainAnnotationResult, DomainAnnotationAttempt } from "./domainAnnotation";
 import type { SortingState } from "@tanstack/react-table";
 import type { SettingsBundle } from "./models.generated";
 
@@ -1238,6 +1239,16 @@ export interface RpcMethodMap {
     params: RpcParams;
     result: EvolveproLoadResult;
   };
+  domain_runtime_status: { params: Record<string, never>; result: DomainRuntimeStatus };
+  domain_runtime_install: { params: { archive_path: string }; result: DomainRuntimeStatus };
+  domain_runtime_remove: { params: Record<string, never>; result: DomainRuntimeStatus };
+  start_domain_annotation: { params: DomainAnnotationSource & { attempt_id: string }; result: DomainAnnotationJob };
+  get_domain_annotation_attempt: { params: { attempt_id: string }; result: DomainAnnotationAttempt };
+  cancel_domain_annotation_attempt: { params: { attempt_id: string }; result: DomainAnnotationAttempt };
+  poll_domain_annotation: { params: { job_id: string }; result: DomainAnnotationJob };
+  cancel_domain_annotation: { params: { job_id: string }; result: DomainAnnotationJob };
+  import_domain_annotation_result: { params: DomainAnnotationSource & { job_id: string }; result: DomainAnnotationResult };
+  import_domain_annotation_file: { params: DomainAnnotationSource & { filepath: string }; result: DomainAnnotationResult };
   inspect_prediction_bundle: {
     params: { filepath: string };
     result: PredictionBundleInventory;

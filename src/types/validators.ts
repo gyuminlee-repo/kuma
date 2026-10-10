@@ -1,3 +1,4 @@
+import { isDomainRuntimeStatus, isDomainAnnotationAttempt, isDomainAnnotationJob, isDomainAnnotationResult } from "./domainAnnotation.validators";
 import type {
   AlternativesResult,
   AnnotateDomainsResult,
@@ -1506,6 +1507,16 @@ const rpcResultValidators = {
     isDesignResult(value),
   load_evolvepro_csv: (value): value is RpcMethodResult<"load_evolvepro_csv"> =>
     isEvolveproLoadResult(value),
+  domain_runtime_status: isDomainRuntimeStatus,
+  domain_runtime_install: isDomainRuntimeStatus,
+  domain_runtime_remove: isDomainRuntimeStatus,
+  start_domain_annotation: isDomainAnnotationJob,
+  get_domain_annotation_attempt: isDomainAnnotationAttempt,
+  cancel_domain_annotation_attempt: isDomainAnnotationAttempt,
+  poll_domain_annotation: isDomainAnnotationJob,
+  cancel_domain_annotation: isDomainAnnotationJob,
+  import_domain_annotation_result: isDomainAnnotationResult,
+  import_domain_annotation_file: isDomainAnnotationResult,
   inspect_prediction_bundle: (value): value is RpcMethodResult<"inspect_prediction_bundle"> =>
     isPredictionBundleInventory(value),
   get_plate_map: (value): value is RpcMethodResult<"get_plate_map"> =>

@@ -1,3 +1,4 @@
+import { OptionalDomainAnnotationPanel } from "./OptionalDomainAnnotationPanel";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -98,6 +99,7 @@ export function PredictionBundleControls() {
         <p className="break-all">{t("predictionImport.bundleHash", { hash: inventory.bundle_sha256 })}</p>
         <PredictionSourceLinks source={inventory} />
       </>}
+      <OptionalDomainAnnotationPanel />
     </>}
   </section>;
 }

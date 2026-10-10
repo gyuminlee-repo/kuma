@@ -84,3 +84,17 @@ recovery path must be validated before enabling a user-facing installer; an
 unmarked directory must never be automatically adopted or deleted. Runtime jobs
 must hold the same operation lock from fresh verification until child exit;
 a standalone status response is not a reusable authorization to launch.
+
+## App connection follow-up
+
+The typed UI/RPC/job connection is described in
+[optional-domain-app-flow.md](optional-domain-app-flow.md). Its production catalog
+remains empty. Synthetic trusted runtime execution and imported-result consistency
+are useful source-level contracts, not a completed distributable installation.
+The concrete native-byte/notice/source/archive review plan is retained in
+`scripts/merizo_runtime_archive/README.md`.
+
+Before catalog activation, abrupt-host-loss restart/remove/install exclusion must
+also be demonstrated: the live host holds the registry lock, and its OS release
+can precede dedicated-helper EOF cleanup. Passing child cleanup does not close
+that crash window or establish crash-file recovery.

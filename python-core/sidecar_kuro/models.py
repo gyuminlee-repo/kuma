@@ -1236,3 +1236,99 @@ class ExportCodonTableParams(BaseModel):
     key: str
     format: Literal["json", "csv", "cusp"]
     filepath: str
+
+
+# Optional structural-domain annotations. These models never enter selection,
+# fitness, primer design, or CSV export contracts.
+class DomainRuntimeParams(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+
+class DomainRuntimeInstallParams(DomainRuntimeParams):
+    archive_path: str = Field(min_length=1, max_length=4096)
+
+
+class DomainRuntimeStatus(BaseModel):
+    state: Literal["installed", "missing", "corrupt", "licensing_blocked", "unsupported_platform"]
+    engine: Literal["merizo"] = "merizo"
+    platform: str
+    version: Optional[str] = None
+    message: str
+    install_available: bool
+    available_version: Optional[str] = None
+
+
+class DomainAnnotationSourceParams(DomainRuntimeParams):
+    prediction_bundle_path: str = Field(min_length=1, max_length=4096)
+    prediction_bundle_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    prediction_model_id: str = Field(min_length=1, max_length=1024)
+    prediction_chain_id: str = Field(max_length=128)
+    ref_seq: str = Field(min_length=1, max_length=10000)
+
+
+class StartDomainAnnotationParams(DomainAnnotationSourceParams):
+    attempt_id: str = Field(pattern=r"^[0-9a-f]{32}$")
+
+
+class DomainAnnotationJobParams(DomainRuntimeParams):
+    job_id: str = Field(pattern=r"^[0-9a-f]{32}$")
+
+
+class ImportDomainAnnotationResultParams(DomainAnnotationSourceParams):
+    job_id: str = Field(pattern=r"^[0-9a-f]{32}$")
+
+
+class ImportDomainAnnotationFileParams(DomainAnnotationSourceParams):
+    filepath: str = Field(min_length=1, max_length=4096)
+
+
+class DomainAnnotationBinding(BaseModel):
+    bundle_sha256: str
+    source_sha256: str
+    reference_sha256: str
+    model_id: str
+    chain_id: str
+
+
+class DomainAnnotationJob(BaseModel):
+    job_id: str
+    state: Literal["queued", "running", "cancelling", "succeeded", "failed", "cancelled"]
+    message: str
+    binding: DomainAnnotationBinding
+
+
+class DomainAnnotationSegment(BaseModel):
+    start: int
+    end: int
+
+
+class DomainAnnotationPartition(BaseModel):
+    segments: list[DomainAnnotationSegment]
+    positions: list[int]
+
+
+class DomainAnnotationResult(BaseModel):
+    job_id: Optional[str] = None
+    binding: DomainAnnotationBinding
+    binding_sha256: str
+    engine: Literal["merizo"] = "merizo"
+    coordinate_frame: Literal["reference"] = "reference"
+    provenance: Literal["managed", "imported"]
+    provenance_note: str
+    domains: list[DomainAnnotationPartition]
+    unassigned_positions: list[int]
+    assigned_residues: int
+    total_residues: int
+    coverage: float
+    confidence: float
+
+
+class DomainAnnotationAttemptParams(DomainRuntimeParams):
+    attempt_id: str = Field(pattern=r"^[0-9a-f]{32}$")
+
+
+class DomainAnnotationAttempt(BaseModel):
+    attempt_id: str
+    state: Literal["unknown", "pending", "job", "cancelled", "failed", "expired"]
+    message: str
+    job: Optional[DomainAnnotationJob] = None
