@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import stat
 import struct
 import zipfile
@@ -238,7 +239,7 @@ def test_unsafe_paths_fail_even_when_not_selected(
 ) -> None:
     # Exercise Windows normalization even on POSIX CI without changing os
     # globally for pathlib, pytest, or the production importer.
-    monkeypatch.setattr(zipfile, "os", SimpleNamespace(**{**vars(zipfile.os), "sep": separator}))
+    monkeypatch.setattr(zipfile, "os", SimpleNamespace(**{**vars(os), "sep": separator}))
     path = bundle(tmp_path)
     with zipfile.ZipFile(path, "a") as archive:
         info = zipfile.ZipInfo(name)
