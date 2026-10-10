@@ -15,9 +15,11 @@ import { writeFile } from "@tauri-apps/plugin-fs";
 import { toast } from "sonner";
 
 
+import { currentStrictSpatialResult, isStrictSpatialMode } from "@/lib/strictSpatial";
 import { useAppStore } from "@/store/appStore";
 import { StateView } from "@/components/ui/StateView";
 import { InlineHelp } from "@/components/ui/InlineHelp";
+import { PredictionBundleEvidence } from "./InputPanel/PredictionBundleEvidence";
 import {
   deriveSelectedPositions,
   selectedRefPositions,
@@ -70,6 +72,20 @@ function parseBFactors(pdbText: string): Map<number, number> {
     if (!isNaN(resi) && !isNaN(b) && !map.has(resi)) map.set(resi, b);
   }
   return map;
+}
+
+/** Continuous display scale only. Unknown imported confidence stays gray. */
+function confidenceColor(value: number): string {
+  const colors = [[255, 125, 69], [255, 219, 19], [101, 203, 243], [0, 83, 214]];
+  const scaled = Math.max(0, Math.min(100, value)) / 100 * (colors.length - 1);
+  const lower = Math.min(Math.floor(scaled), colors.length - 2);
+  const fraction = scaled - lower;
+  return `rgb(${colors[lower].map((channel, index) => Math.round(channel + fraction * (colors[lower + 1][index] - channel))).join(",")})`;
+}
+
+function viewerSelection(row: MappedYpredRow) {
+  const chain = row.viewerChainId ?? row.chainId;
+  return { resi: row.viewerPosition ?? row.accPosition, ...(chain !== undefined ? { chain } : {}) };
 }
 
 const DOMAIN_COLORS = [
@@ -268,7 +284,9 @@ function ColorLegend({
   onToggleVariants,
   onToggleActiveSite,
   onToggleBindingSite,
+  scoresAvailable = true,
 }: {
+  scoresAvailable?: boolean;
   colorMode: ColorMode;
   hasVariants: boolean;
   hasActiveSite: boolean;
@@ -316,8 +334,8 @@ function ColorLegend({
   if (hasVariants) {
     rows.push({
       key: "variant",
-      swatch: <ColorSwatch gradient="linear-gradient(to right, #0000ff, #ff0000)" />,
-      label: t("selection3d.legendVariant"),
+      swatch: scoresAvailable ? <ColorSwatch gradient="linear-gradient(to right, #0000ff, #ff0000)" /> : <ColorSwatch color="#808080" />,
+      label: scoresAvailable ? t("selection3d.legendVariant") : t("strictSpatial.scoreMissingLegend"),
       toggle: { on: showVariants, onToggle: onToggleVariants },
     });
   }
@@ -462,9 +480,13 @@ interface PositionTableRow extends MappedYpredRow {
 function PositionTable({
   rows,
   onRowClick,
+  scoresAvailable = true,
+  imported = false,
 }: {
   rows: PositionTableRow[];
-  onRowClick: (accPos: number) => void;
+  onRowClick: (row: PositionTableRow) => void;
+  scoresAvailable?: boolean;
+  imported?: boolean;
 }) {
   const { t } = useTranslation();
   return (
@@ -488,7 +510,7 @@ function PositionTable({
                 key={k}
                 className="border-b border-border px-2 py-1 text-left font-medium whitespace-nowrap"
               >
-                {t(`selection3d.${k}`)}
+                {imported && k === "colAccPos" ? t("predictionImport.structurePosition") : t(`selection3d.${k}`)}
               </th>
             ))}
           </tr>
@@ -497,14 +519,17 @@ function PositionTable({
           {rows.map((row, i) => (
             <tr
               key={`${row.variant}-${i}`}
-              onClick={() => onRowClick(row.accPosition)}
+              onClick={() => onRowClick(row)}
               className="cursor-pointer hover:bg-accent/50"
               data-testid="position-row"
             >
               <td className="border-b border-border px-2 py-0.5 font-mono">{row.variant}</td>
               <td className="border-b border-border px-2 py-0.5 tabular-nums">{row.refPosition}</td>
-              <td className="border-b border-border px-2 py-0.5 tabular-nums">{row.accPosition}</td>
-              <td className="border-b border-border px-2 py-0.5 tabular-nums">{row.yPred.toFixed(3)}</td>
+              <td className="border-b border-border px-2 py-0.5 tabular-nums" title={imported ? t("predictionImport.residueIdentity", {
+                chain: row.chainId || t("predictionImport.blankChain"), position: row.accPosition,
+                insertion: row.insertionCode ?? "", viewer: row.viewerPosition,
+              }) : undefined}>{row.accPosition}{imported ? row.insertionCode : ""}</td>
+              <td className="border-b border-border px-2 py-0.5 tabular-nums">{scoresAvailable ? row.yPred.toFixed(3) : "–"}</td>
               <td className="border-b border-border px-2 py-0.5">
                 {row.isActiveSite ? (
                   <span className="font-semibold text-success">✓</span>
@@ -591,6 +616,7 @@ function ViewerToolbar({
   onFullscreen,
   onExportPng,
   showPlddt,
+  allowSurface = true,
 }: {
   colorMode: ColorMode;
   onColorMode: (m: ColorMode) => void;
@@ -604,6 +630,7 @@ function ViewerToolbar({
   onFullscreen: () => void;
   onExportPng: () => void;
   showPlddt: boolean;
+  allowSurface?: boolean;
 }) {
   const { t } = useTranslation();
 
@@ -634,9 +661,9 @@ function ViewerToolbar({
         </button>
       ))}
       <span className="mx-0.5 h-3 w-px bg-border" />
-      <button type="button" onClick={onSurfaceToggle} className={btnCls(showSurface)}>
+      {allowSurface && <button type="button" onClick={onSurfaceToggle} className={btnCls(showSurface)}>
         {t("selection3d.repSurface")}
-      </button>
+      </button>}
       <span className="mx-0.5 h-3 w-px bg-border" />
       <button type="button" onClick={onSpin} className={btnCls(spin)} data-testid="spin-btn">
         {t("selection3d.spin")}
@@ -690,7 +717,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
     evolveproSelectedVariants,
     evolveproRankedCandidates,
     yPredMap,
-    domains,
+    domains: accessionDomains,
     fetchPdbText,
     fetchActiveSite,
     computeDispersion,
@@ -714,6 +741,9 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
     })),
   );
 
+  const strictMode = useAppStore(isStrictSpatialMode);
+  const strictResult = useAppStore(currentStrictSpatialResult);
+  const importedEvidence = strictResult?.prediction_bundle;
   const [open, setOpen] = useState(defaultOpen);
   const [phase, setPhase] = useState<ViewerPhase>("idle");
   const [mapping, setMapping] = useState<{ key: string; result: ComputeDispersionResult } | null>(null);
@@ -729,7 +759,11 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
   const [uploadSource, setUploadSource] = useState(false);
   const [uploadFileName, setUploadFileName] = useState<string | null>(null);
   const [droppedWarning, setDroppedWarning] = useState<string | null>(null);
+  // The geometry certificate does not establish the UniProt annotation version
+  // or alignment. Strict mode retains raw evidence without projecting it.
+  const domains = strictMode || uploadSource ? [] : accessionDomains;
 
+  const loadEpochRef = useRef(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewerRef = useRef<GLViewer | null>(null);
   const bFactorMapRef = useRef<Map<number, number>>(new Map());
@@ -808,22 +842,35 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
 
   // Derived at render time; stable for the current render cycle
   const baseVariants: string[] =
-    evolveproSelectedVariants.length > 0
+    strictMode ? strictResult?.selected_variants ?? [] : evolveproSelectedVariants.length > 0
       ? evolveproSelectedVariants
       : evolveproRankedCandidates.map((c) => c.variant);
   const usingFallback =
-    evolveproSelectedVariants.length === 0 && evolveproRankedCandidates.length > 0;
+    !strictMode && evolveproSelectedVariants.length === 0 && evolveproRankedCandidates.length > 0;
 
-  const rows = deriveSelectedPositions(baseVariants, evolveproRankedCandidates, yPredMap);
+  const rows = strictMode && strictResult
+    ? strictResult.selected_variants.map((variant, index) => ({
+        variant, refPosition: strictResult.selected_positions[index], yPred: yPredMap[variant] ?? 0,
+      }))
+    : deriveSelectedPositions(baseVariants, evolveproRankedCandidates, yPredMap);
   const mappingKey = JSON.stringify([accession, refSeq, selectedRefPositions(rows)]);
   const dispersion = mapping?.key === mappingKey ? mapping.result : null;
-  const joinResult =
-    dispersion !== null
+  const joinResult = uploadSource ? null : strictMode ? (strictResult ? {
+    lengthMismatch: false,
+    rows: rows.flatMap((row): MappedYpredRow[] => {
+      const mapped = strictResult.mapping.find((item) => item.reference_position === row.refPosition);
+      return mapped ? [{ ...row, accPosition: mapped.structure_position,
+        chainId: mapped.chain_id, insertionCode: mapped.insertion_code,
+        viewerPosition: mapped.viewer_position, viewerChainId: mapped.viewer_chain_id,
+        viewerInsertionCode: mapped.viewer_insertion_code }] : [];
+    }),
+  } : null) : dispersion !== null
       ? joinMappedYpred(rows, dispersion.dropped, dispersion.mapped)
       : null;
 
-  const activeSiteSet = new Set(activeSitePositions);
-  const bindingSet = new Set(activeSiteResult?.binding_positions ?? []);
+  const bindingPositions = strictMode ? [] : activeSiteResult?.binding_positions ?? [];
+  const activeSiteSet = new Set(strictMode ? [] : activeSitePositions);
+  const bindingSet = new Set(bindingPositions);
 
   const tableRows: PositionTableRow[] = (joinResult?.rows ?? []).map((r) => {
     const dom = domains.find((d) => r.accPosition >= d.start && r.accPosition <= d.end);
@@ -831,7 +878,8 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
       ...r,
       isActiveSite: activeSiteSet.has(r.accPosition),
       isBindingSite: bindingSet.has(r.accPosition),
-      plddt: bFactorMapRef.current.get(r.accPosition) ?? null,
+      plddt: importedEvidence ? importedEvidence.plddt_by_reference[r.refPosition - 1] ?? null
+        : bFactorMapRef.current.get(r.accPosition) ?? null,
       domain: dom?.name ?? "",
     };
   });
@@ -839,9 +887,19 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
   // ─── load structure ─────────────────────────────────────────────────────
   useEffect(() => {
     if (!open) return;
-    if (structureSource === "none") return;
+    if (!strictMode && structureSource === "none") return;
+    if (strictMode && !strictResult) {
+      cleanupViewer();
+      setPhase("idle");
+      setMapping(null);
+      setActiveSiteResult(null);
+      setActiveSitePositions([]);
+      return;
+    }
 
     let cancelled = false;
+    const epoch = ++loadEpochRef.current;
+    const isCancelled = () => cancelled || epoch !== loadEpochRef.current;
     const thisAccession = accession;
     const thisRefSeq = refSeq;
 
@@ -862,6 +920,17 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
       );
       const positions = selectedRefPositions(currentRows);
 
+      if (strictMode && strictResult) {
+        bFactorMapRef.current = strictResult.prediction_bundle ? new Map() : parseBFactors(strictResult.pdb_text);
+        await initViewer(strictResult.pdb_text, strictResult.structure_format ?? "pdb", isCancelled);
+        if (strictResult.prediction_bundle || isCancelled()) return;
+        const annotations = await fetchActiveSite(strictResult.source_accession);
+        if (isCancelled()) return;
+        setActiveSiteResult(annotations);
+        setActiveSitePositions([]);
+        return;
+      }
+
       if (structureSource === "alphafold") {
         // ── AlphaFold-by-accession (unchanged) ──────────────────────────
         const [pdbResult, activeSiteRes, dispersionRes] = await Promise.all([
@@ -877,7 +946,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
             : Promise.resolve(null),
         ]);
 
-        if (cancelled) return;
+        if (isCancelled()) return;
 
         // Active site
         if (activeSiteRes !== null) {
@@ -911,13 +980,13 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
         }
 
         bFactorMapRef.current = parseBFactors(pdbResult.pdb_text);
-        await initViewer(pdbResult.pdb_text, "pdb", () => cancelled);
+        await initViewer(pdbResult.pdb_text, "pdb", isCancelled);
       } else {
         // ── ESMFold-by-sequence fallback ─────────────────────────────────
         const esmResult: PredictStructureEsmfoldResult | null =
           await predictStructureEsmfold(thisRefSeq);
 
-        if (cancelled) return;
+        if (isCancelled()) return;
 
         if (!esmResult || !esmResult.success || !esmResult.pdb_text) {
           setPhase("error");
@@ -937,7 +1006,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
             coordinateFrame: "reference",
           });
 
-          if (cancelled) return;
+          if (isCancelled()) return;
 
           if (dispersionRes !== null) {
             setMapping({ key: mappingKey, result: dispersionRes });
@@ -963,7 +1032,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
         }
 
         bFactorMapRef.current = parseBFactors(esmPdbText);
-        await initViewer(esmPdbText, "pdb", () => cancelled);
+        await initViewer(esmPdbText, "pdb", isCancelled);
       }
     }
 
@@ -972,7 +1041,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, accession, structureSource, refSeq, mappingKey]);
+  }, [open, accession, structureSource, refSeq, mappingKey, strictMode, strictResult]);
 
 
   async function initViewer(text: string, format: string, isCancelled: () => boolean) {
@@ -999,14 +1068,19 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
     if (!viewer || phase !== "ready") return;
 
     // Base: gray cartoon
-    viewer.setStyle({}, { cartoon: { color: "gray" } });
+    viewer.setStyle({}, { cartoon: { color: "gray", ...(importedEvidence ? { style: "trace" } : {}) } });
 
     // Color mode
-    if (colorMode === "domain" && domains.length > 0) {
+    if (colorMode === "domain" && !uploadSource && domains.length > 0) {
       domains.forEach((d, i) => {
         const color = DOMAIN_COLORS[i % DOMAIN_COLORS.length];
         viewer.setStyle({ resi: `${d.start}-${d.end}` as SelectionRange }, { cartoon: { color } });
 
+      });
+    } else if (colorMode === "plddt" && importedEvidence) {
+      importedEvidence.plddt_by_reference.forEach((confidence, index) => {
+        if (confidence !== null) viewer.setStyle({ resi: index + 1, chain: "A" },
+          { cartoon: { style: "trace", color: confidenceColor(confidence) } });
       });
     } else if (colorMode === "plddt" && !uploadSource) {
       viewer.setStyle(
@@ -1030,17 +1104,22 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
       const yPreds = joinResult.rows.map((r) => r.yPred);
       const minY = Math.min(...yPreds);
       const maxY = Math.max(...yPreds);
+      const highlighted = new Set<string>();
       for (const r of joinResult.rows) {
-        const color = yPredColor(normalizeT(r.yPred, minY, maxY));
+        const coordinateKey = JSON.stringify([r.chainId, r.accPosition, r.insertionCode]);
+        if (strictMode && highlighted.has(coordinateKey)) continue;
+        highlighted.add(coordinateKey);
+        const color = strictMode && strictResult?.score_available === false
+          ? "#808080" : yPredColor(normalizeT(r.yPred, minY, maxY));
         viewer.addStyle(
-          { resi: r.accPosition },
+          viewerSelection(r),
           { sphere: { color, radius: 1.0 } },
         );
       }
     }
 
     // Active site sticks
-    if (showActiveSite && activeSitePositions.length > 0) {
+    if (!strictMode && showActiveSite && activeSitePositions.length > 0) {
       viewer.addStyle(
         { resi: activeSitePositions },
 
@@ -1049,7 +1128,6 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
     }
 
     // Binding site: magenta spheres (UniProt "Binding site" residues)
-    const bindingPositions = activeSiteResult?.binding_positions ?? [];
     if (showBindingSite && bindingPositions.length > 0) {
       viewer.addStyle(
         { resi: bindingPositions },
@@ -1060,8 +1138,8 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
 
     // Hoverable: scoped to shown variant/active/binding residues
     const hoverSet = new Set<number>([
-      ...(showVariants ? joinResult?.rows.map((r) => r.accPosition) ?? [] : []),
-      ...(showActiveSite ? activeSitePositions : []),
+      ...(showVariants ? joinResult?.rows.map((r) => r.viewerPosition ?? r.accPosition) ?? [] : []),
+      ...(!strictMode && showActiveSite ? activeSitePositions : []),
       ...(showBindingSite ? bindingPositions : []),
     ]);
     if (hoverSet.size > 0) {
@@ -1071,9 +1149,13 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
         true,
         (atom: AtomSpec) => {
           const resi = atom.resi;
-          const row = joinResult?.rows.find((r) => r.accPosition === resi);
+          const residueRows = joinResult?.rows.filter((r) => (r.viewerPosition ?? r.accPosition) === resi) ?? [];
+          const matchingRows = strictMode
+            ? residueRows.filter((r) => (r.viewerChainId ?? r.chainId) === undefined || (r.viewerChainId ?? r.chainId) === atom.chain)
+            : residueRows.slice(0, 1);
           const parts: string[] = [`${atom.resn ?? ""}${resi ?? ""}`];
-          if (row) parts.push(`${row.variant} y=${row.yPred.toFixed(3)}`);
+          for (const row of matchingRows) parts.push(strictMode && strictResult?.score_available === false
+            ? t("strictSpatial.scoreMissingHover", { variant: row.variant }) : `${row.variant} y=${row.yPred.toFixed(3)}`);
           if (resi !== undefined && activeSiteSet.has(resi)) parts.push(t("selection3d.activeSite"));
           if (resi !== undefined && bindingSet.has(resi)) parts.push(t("selection3d.bindingSite"));
           viewer.addLabel(parts.join(" | "), {
@@ -1108,7 +1190,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
           viewer.removeSurface(surfaceHandlerRef.current);
           surfaceHandlerRef.current = null;
         }
-        if (showSurface) {
+        if (showSurface && !importedEvidence) {
           const $3Dmol = await import("3dmol");
           const handler = await viewer.addSurface($3Dmol.SurfaceType.VDW, {
             opacity: 0.7,
@@ -1127,7 +1209,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, showSurface]);
+  }, [phase, showSurface, importedEvidence]);
 
   // ─── effect: background color (live) ─────────────────────────────────────
   useEffect(() => {
@@ -1138,10 +1220,10 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
   }, [darkBg, phase]);
 
   // ─── interaction handlers ───────────────────────────────────────────────
-  function handleRowClick(accPos: number) {
+  function handleRowClick(row: PositionTableRow) {
     const viewer = viewerRef.current;
     if (!viewer) return;
-    viewer.zoomTo({ resi: accPos }, 500);
+    viewer.zoomTo(viewerSelection(row), 500);
     viewer.render();
   }
 
@@ -1191,14 +1273,20 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
   async function handleUpload(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    const epoch = ++loadEpochRef.current;
     const text = await file.text();
+    if (epoch !== loadEpochRef.current) return;
     const format = file.name.toLowerCase().endsWith(".cif") ? "cif" : "pdb";
+    setMapping(null);
+    setActiveSiteResult(null);
+    setActiveSitePositions([]);
+    setDroppedWarning(null);
     setUploadFileName(file.name);
     setUploadSource(true);
     setPhase("loading");
     bFactorMapRef.current = parseBFactors(text);
     surfaceHandlerRef.current = null;
-    await initViewer(text, format, () => false);
+    await initViewer(text, format, () => epoch !== loadEpochRef.current);
   }
 
   // ─── render ──────────────────────────────────────────────────────────────
@@ -1216,12 +1304,12 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
         <span className="text-muted-foreground text-xs">{open ? "▲" : "▼"}</span>
       </button>
 
-      {noAccession && refSeq.length === 0 && (
+      {!strictMode && noAccession && refSeq.length === 0 && (
         <p className="px-4 pb-2 text-xs italic text-muted-foreground" data-testid="disabled-message">
           {t("selection3d.noAccession")}
         </p>
       )}
-      {noAccession && esmfoldLen > 400 && (
+      {!strictMode && noAccession && esmfoldLen > 400 && (
         <p className="px-4 pb-2 text-xs italic text-muted-foreground" data-testid="esmfold-too-long">
           {t("selection3d.esmfoldTooLong")}
         </p>
@@ -1231,7 +1319,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
       {open && (
         <div className="border-t border-border" data-testid="panel-body">
           {/* Upload fallback */}
-          <div className="flex flex-wrap items-center gap-2 px-4 pt-2 text-xs">
+          {!strictMode && <div className="flex flex-wrap items-center gap-2 px-4 pt-2 text-xs">
             <span className="text-muted-foreground">{t("selection3d.uploadLabel")}:</span>
             <label className="cursor-pointer rounded border border-border bg-muted px-2 py-0.5 hover:bg-accent">
               {t("selection3d.uploadButton")}
@@ -1248,10 +1336,18 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
             )}
             {uploadSource && (
               <span className="text-warning text-xs" data-testid="upload-source-note">
-                {t("selection3d.uploadSourceNote")}
+                {t("selection3d.uploadSourceNote")} {t("strictSpatial.uploadCleared")}
               </span>
             )}
-          </div>
+          </div>}
+          {strictMode && !strictResult && <p className="px-4 py-2 text-xs" role="status">
+            {t("strictSpatial.viewerPending")}
+          </p>}
+          {strictMode && strictResult && <p className="px-4 py-2 text-xs" data-testid="strict-selection-counts">
+            {t("strictSpatial.selectedCounts", { variants: strictResult.selected_variant_count,
+              sites: strictResult.selected_site_count })}
+          </p>}
+          {importedEvidence && <div className="px-4 py-2 text-xs"><PredictionBundleEvidence evidence={importedEvidence} /></div>}
 
           {/* Dropped-positions warning */}
           {droppedWarning !== null && (
@@ -1286,6 +1382,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
             {phase === "ready" && (
               <>
                 <ViewerToolbar
+                  allowSurface={!importedEvidence}
                   colorMode={colorMode}
                   onColorMode={setColorMode}
                   showSurface={showSurface}
@@ -1297,7 +1394,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
                   onDarkBg={() => setDarkBg((v) => !v)}
                   onFullscreen={handleFullscreen}
                   onExportPng={handleExportPng}
-                  showPlddt={!uploadSource}
+                  showPlddt={!uploadSource && (!importedEvidence || importedEvidence.plddt_by_reference.some((value) => value !== null))}
                 />
 
                 {/* Fallback note — shown when no explicit selection but ranked candidates exist */}
@@ -1335,15 +1432,16 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
 
                 {/* Color legend — explains what each color in the 3D scene means */}
                 <ColorLegend
+                  scoresAvailable={!strictMode || strictResult?.score_available !== false}
                   colorMode={colorMode}
                   hasVariants={(joinResult?.rows.length ?? 0) > 0}
-                  hasActiveSite={structureSource !== "esmfold" && activeSitePositions.length > 0}
+                  hasActiveSite={!strictMode && structureSource !== "esmfold" && activeSitePositions.length > 0}
                   hasBindingSite={
                     structureSource !== "esmfold" &&
-                    (activeSiteResult?.binding_positions?.length ?? 0) > 0
+                    bindingPositions.length > 0
                   }
                   hasDomains={domains.length > 0}
-                  showPlddt={!uploadSource}
+                  showPlddt={!uploadSource && (!importedEvidence || importedEvidence.plddt_by_reference.some((value) => value !== null))}
                   showVariants={showVariants}
                   showActiveSite={structureSource !== "esmfold" && showActiveSite}
                   showBindingSite={structureSource !== "esmfold" && showBindingSite}
@@ -1354,9 +1452,9 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
                 />
 
                 {/* Structural Dispersion: numeric/graph summary directly under the viewer */}
-                {dispersion !== null && <DispersionCard result={dispersion} />}
+                {!strictMode && !uploadSource && dispersion !== null && <DispersionCard result={dispersion} />}
 
-                {structureSource === "esmfold" && (
+                {!strictMode && structureSource === "esmfold" && (
                   <div
                     className="rounded border border-info/40 bg-info/10 px-3 py-2 text-xs text-info"
                     data-testid="esmfold-no-accession-note"
@@ -1365,7 +1463,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
                   </div>
                 )}
 
-                {structureSource !== "esmfold" && (
+                {!strictMode && !uploadSource && structureSource !== "esmfold" && (
                   <div>
                     <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       {t("selection3d.activeSite")}
@@ -1386,13 +1484,29 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
                 )}
 
 
+                {strictMode && <div className="space-y-1 text-xs" data-testid="functional-annotation-evidence">
+                  <p>{t("strictSpatial.annotationDisclaimer")}</p>
+                  <p>{activeSiteResult?.annotation_status === "present" ? t("strictSpatial.annotationPresent")
+                    : activeSiteResult?.annotation_status === "no_matching_features" ? t("strictSpatial.annotationAbsent")
+                    : t("strictSpatial.annotationUnknown")}
+                    {" "}{t("strictSpatial.notLinker")}</p>
+                  {activeSiteResult?.features && activeSiteResult.features.length > 0 && <details>
+                    <summary>{t("strictSpatial.features", { count: activeSiteResult.features.length })}</summary>
+                    <p>{t("strictSpatial.annotationSource", { accession: activeSiteResult.accession })}
+                      {activeSiteResult.sequence_version != null && ` ${t("strictSpatial.sequenceVersion", { version: activeSiteResult.sequence_version })}`}</p>
+                    <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words">{JSON.stringify(activeSiteResult.features, null, 2)}</pre>
+                  </details>}
+                </div>}
+
                 {/* Position table */}
                 {tableRows.length > 0 && (
                   <div>
                     <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       {t("selection3d.positionTableTitle")}
                     </h3>
-                    <PositionTable rows={tableRows} onRowClick={handleRowClick} />
+                    <PositionTable rows={tableRows} onRowClick={handleRowClick}
+                      imported={Boolean(importedEvidence)}
+                      scoresAvailable={!strictMode || strictResult?.score_available !== false} />
                   </div>
                 )}
 

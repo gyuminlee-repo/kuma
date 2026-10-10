@@ -15,6 +15,8 @@ import type {
   FetchPdbTextResult,
   HealthInfo,
   PredictStructureEsmfoldResult,
+  PredictionBundleInventory,
+  PredictionBundleEvidence,
   JsonRpcError,
   ParseMutationsResult,
   PlateMapResult,
@@ -31,6 +33,9 @@ import type {
   StructureAvailabilityResult,
   StructureResult,
   StructureModelCandidate,
+  StrictSpatialComparison,
+  StrictSpatialProfile,
+  StrictSpatialResult,
   LoadStructureFileResult,
   WorkspaceData,
   ContactEmailErrorCode,
@@ -543,6 +548,231 @@ function isEvolveproStepStats(value: unknown): boolean {
   );
 }
 
+function isSha256(value: unknown): value is string {
+  return isString(value) && /^[a-f0-9]{64}$/.test(value);
+}
+
+function isHttpsUrl(value: unknown): value is string {
+  if (!isString(value)) return false;
+  try { return new URL(value).protocol === "https:"; } catch { return false; }
+}
+
+function isPredictionBundleInventory(value: unknown): value is PredictionBundleInventory {
+  if (!(isRecord(value) && value.schema_version === 1 && isString(value.source_name)
+    && isSha256(value.bundle_sha256) && (value.format === "af3_server" || value.format === "colabfold")
+    && (value.recommended_model_id === null || isString(value.recommended_model_id))
+    && (value.recommendation_reason === "producer_rank" || value.recommendation_reason === "missing_top_rank"
+      || value.recommendation_reason === "ambiguous_ranking")
+    && isHttpsUrl(value.source_url) && (value.terms_url === null || isHttpsUrl(value.terms_url))
+    && isOptional(value.notices, isPredictionNotices)
+    && isArrayOf(value.models, (model) => isRecord(model)
+      && isString(model.model_id) && model.model_id.length > 0
+      && (model.producer_rank === null || (isNumber(model.producer_rank)
+        && Number.isSafeInteger(model.producer_rank) && model.producer_rank > 0))
+      && isString(model.structure_member) && model.structure_member === model.model_id
+      && (model.confidence_member === null || isString(model.confidence_member))
+      && (model.structure_format === "pdb" || model.structure_format === "cif")
+      && isArrayOf(model.chains, (chain) => isRecord(chain)
+        && isString(chain.chain_id) && isString(chain.author_chain_id)
+        && isString(chain.sequence) && /^[A-Z]+$/.test(chain.sequence)
+        && chain.length === chain.sequence.length)))) return false;
+  const inventory = value as unknown as PredictionBundleInventory;
+  const topModels = inventory.models.filter((model) => model.producer_rank === 1);
+  if (inventory.recommendation_reason === "producer_rank") {
+    if (topModels.length !== 1 || topModels[0].model_id !== inventory.recommended_model_id) return false;
+  } else if (inventory.recommended_model_id !== null
+    || (inventory.recommendation_reason === "missing_top_rank" && topModels.length > 0)) return false;
+  return inventory.models.length > 0
+    && new Set(inventory.models.map((model) => model.model_id)).size === inventory.models.length
+    && inventory.models.every((model) => model.chains.length > 0
+      && new Set(model.chains.map((chain) => chain.chain_id)).size === model.chains.length);
+}
+
+function isPredictionNotices(value: unknown): boolean {
+  return Array.isArray(value) && value.length <= 256 && value.every((notice) => isRecord(notice)
+    && isString(notice.member) && notice.member.length <= 4096 && isSha256(notice.sha256)
+    && isString(notice.text) && notice.text.length <= 262144);
+}
+
+function isPredictionBundleEvidence(value: unknown): value is PredictionBundleEvidence {
+  const nonnegative = (item: unknown): item is number => isNumber(item) && item >= 0;
+  if (!(isRecord(value) && (value.format === "af3_server" || value.format === "colabfold")
+    && isString(value.source_name) && isSha256(value.bundle_sha256)
+    && isString(value.model_id) && value.model_id.length > 0 && isString(value.chain_id) && isString(value.author_chain_id)
+    && isString(value.structure_member) && value.structure_member === value.model_id
+    && (value.confidence_member === null || isString(value.confidence_member))
+    && isSha256(value.structure_sha256) && (value.confidence_sha256 === null || isSha256(value.confidence_sha256))
+    && (value.confidence_member === null) === (value.confidence_sha256 === null)
+    && isHttpsUrl(value.source_url) && (value.terms_url === null || isHttpsUrl(value.terms_url))
+    && isSha256(value.display_sha256) && value.display_kind === "reference-ca-trace"
+    && isArrayOf(value.plddt_by_reference, (item) => item === null || (nonnegative(item) && item <= 100))
+    && isString(value.plddt_source) && value.interdomain_confidence === "not_assessed"
+    && isOptional(value.source_notices, isPredictionNotices)
+    && isOptionalNullable(value.sequence_member, isString)
+    && isOptionalNullable(value.sequence_sha256, isSha256)
+    && isOptional(value.missing_reference_positions, (positions) => isArrayOf(positions,
+      (position) => isNumber(position) && Number.isSafeInteger(position) && position > 0))
+    && isStringArray(value.warnings) && isRecord(value.pae)
+    && (value.pae.status === "available" || value.pae.status === "unavailable")
+    && (value.pae.source === null || isString(value.pae.source))
+    && nonnegative(value.pae.dimension) && Number.isSafeInteger(value.pae.dimension)
+    && (value.pae.mean === null || nonnegative(value.pae.mean))
+    && (value.pae.max === null || nonnegative(value.pae.max))
+    && value.pae.scope === "selected-chain-polymer" && value.pae.directional === true)) return false;
+  const evidence = value as unknown as PredictionBundleEvidence;
+  if ((evidence.sequence_member == null) !== (evidence.sequence_sha256 == null)) return false;
+  return evidence.pae.status === "available"
+    ? evidence.pae.dimension > 0 && evidence.pae.source !== null
+      && ((evidence.pae.mean === null && evidence.pae.max === null)
+        || (evidence.pae.mean !== null && evidence.pae.max !== null && evidence.pae.max >= evidence.pae.mean))
+    : evidence.pae.mean === null && evidence.pae.max === null;
+}
+
+function isStrictSpatialProfile(value: unknown): value is StrictSpatialProfile {
+  const positiveInteger = (item: unknown): item is number => isNumber(item) && Number.isSafeInteger(item) && item > 0;
+  return isRecord(value)
+    && positiveInteger(value.variant_count) && positiveInteger(value.site_count)
+    && positiveInteger(value.max_variants_per_site)
+    && value.site_count <= value.variant_count && value.max_variants_per_site <= value.variant_count
+    && (value.minimum_site_distance === null || (isNumber(value.minimum_site_distance) && value.minimum_site_distance >= 0))
+    && (value.minimum_site_distance === null) === (value.site_count < 2)
+    && isNumber(value.coverage_mean_distance) && value.coverage_mean_distance >= 0
+    && isNumber(value.coverage_max_distance) && value.coverage_max_distance >= value.coverage_mean_distance
+    && (value.score_mean === null || isNumber(value.score_mean))
+    && (value.mean_score_rank === null || (isNumber(value.mean_score_rank) && value.mean_score_rank >= 1));
+}
+
+function isStrictSpatialComparison(value: unknown, report: StrictSpatialResult): boolean {
+  if (value === undefined) return true; // Additive diagnostics: older certificates remain usable.
+  if (!(isRecord(value) && value.baseline === "configured-score-top-n"
+    && value.universe === "eligible-variants-after-budget-and-cap-policy"
+    && value.candidate_site_count === report.eligible_site_count
+    && value.score_available === report.score_available
+    && isStrictSpatialProfile(value.selected)
+    && (value.top_n === null || isStrictSpatialProfile(value.top_n))
+    && (value.top_n_variants === null || isStringArray(value.top_n_variants))
+    && (value.top_n_overlap_count === null || (isNumber(value.top_n_overlap_count)
+      && Number.isSafeInteger(value.top_n_overlap_count) && value.top_n_overlap_count >= 0))
+    && (value.score_gap_to_top_n === null || (isNumber(value.score_gap_to_top_n) && value.score_gap_to_top_n >= 0)))) return false;
+  const comparison = value as unknown as StrictSpatialComparison;
+  const selected = comparison.selected;
+  if (selected.variant_count !== report.selected_variant_count || selected.site_count !== report.selected_site_count
+    || selected.max_variants_per_site !== report.site_multiplicities.reduce((maximum, row) => Math.max(maximum, row.variant_count), 0)
+    || selected.minimum_site_distance !== report.geometry_site_min_pair_distance) return false;
+  if (!comparison.score_available) return selected.score_mean === null && selected.mean_score_rank === null
+    && comparison.top_n === null && comparison.top_n_variants === null
+    && comparison.top_n_overlap_count === null && comparison.score_gap_to_top_n === null;
+  const baseline = comparison.top_n;
+  const variants = comparison.top_n_variants;
+  if (baseline === null || variants === null || selected.mean_score_rank === null || baseline.mean_score_rank === null
+    || variants.length !== report.requested_count || new Set(variants).size !== variants.length
+    || baseline.variant_count !== variants.length || baseline.site_count > comparison.candidate_site_count
+    || selected.mean_score_rank > report.eligible_variant_count || baseline.mean_score_rank > report.eligible_variant_count) return false;
+  const multiplicities = new Map<number, number>();
+  const eligible = new Set(report.eligible_positions);
+  const selectedIds = new Set(report.selected_variants);
+  for (const variant of variants) {
+    const match = /^([ACDEFGHIKLMNPQRSTVWY])([1-9]\d*)([ACDEFGHIKLMNPQRSTVWY])$/.exec(variant);
+    if (match === null || match[1] === match[3] || !eligible.has(Number(match[2]))) return false;
+    const position = Number(match[2]);
+    multiplicities.set(position, (multiplicities.get(position) ?? 0) + 1);
+  }
+  const maximum = [...multiplicities.values()].reduce((largest, size) => Math.max(largest, size), 0);
+  const expectedGap = selected.score_mean === null || baseline.score_mean === null ? null
+    : report.score_order === "asc" ? selected.score_mean - baseline.score_mean : baseline.score_mean - selected.score_mean;
+  const tolerance = 1e-9 * Math.max(1, Math.abs(selected.score_mean ?? 0), Math.abs(baseline.score_mean ?? 0));
+  const gapValid = expectedGap === null || !Number.isFinite(expectedGap) || expectedGap < 0
+    ? comparison.score_gap_to_top_n === null
+    : comparison.score_gap_to_top_n !== null && Math.abs(comparison.score_gap_to_top_n - expectedGap) <= tolerance;
+  return baseline.site_count === multiplicities.size && baseline.max_variants_per_site === maximum
+    && (report.budget_mode !== "unique_sites" || maximum === 1)
+    && (report.site_cap === null || maximum <= report.site_cap)
+    && comparison.top_n_overlap_count === variants.filter((variant) => selectedIds.has(variant)).length
+    && gapValid;
+}
+
+function isStrictSpatialResult(value: unknown): boolean {
+  const positiveInteger = (item: unknown): item is number => isNumber(item) && Number.isSafeInteger(item) && item > 0;
+  const count = (item: unknown) => isNumber(item) && Number.isSafeInteger(item) && item >= 0;
+  const distance = (item: unknown) => item === null || (isNumber(item) && item >= 0);
+  if (!(isRecord(value) && value.schema_version === 1
+    && isString(value.source_accession) && isString(value.source_sha256)
+    && isString(value.reference_sha256) && isString(value.candidate_sha256)
+    && (value.score_order === "asc" || value.score_order === "desc")
+    && isBoolean(value.score_available) && isString(value.pdb_text)
+    && isOptional(value.structure_format, (format) => format === "pdb" || format === "cif")
+    && isOptional(value.prediction_bundle, isPredictionBundleEvidence)
+    && value.coordinate_frame === "reference"
+    && (value.budget_mode === "unique_sites" || value.budget_mode === "distinct_variants")
+    && value.selection_policy === (value.budget_mode === "unique_sites"
+      ? "single-site-full-pool-fps-v1" : "distinct-variant-full-pool-fps-v1")
+    && (value.site_cap === null || positiveInteger(value.site_cap))
+    && (value.budget_mode !== "unique_sites" || value.site_cap === null)
+    && isStringArray(value.selected_variants)
+    && isArrayOf(value.selected_positions, positiveInteger)
+    && isArrayOf(value.eligible_positions, positiveInteger)
+    && count(value.source_row_count) && count(value.parsed_variant_count)
+    && count(value.parsing_omitted_count) && count(value.start_position_omitted_count)
+    && count(value.duplicate_variant_omitted_count)
+    && positiveInteger(value.requested_count) && positiveInteger(value.eligible_site_count)
+    && positiveInteger(value.selected_variant_count) && positiveInteger(value.selected_site_count)
+    && positiveInteger(value.eligible_variant_count)
+    && distance(value.geometry_variant_min_pair_distance) && distance(value.geometry_site_min_pair_distance)
+    && isArrayOf(value.site_multiplicities, (row) => isRecord(row)
+      && positiveInteger(row.reference_position) && positiveInteger(row.variant_count))
+    && isArrayOf(value.excluded, (row) => isRecord(row) && isString(row.variant) && isString(row.reason))
+    && isArrayOf(value.mapping, (row) => isRecord(row)
+      && positiveInteger(row.reference_position) && isNumber(row.structure_position) && Number.isSafeInteger(row.structure_position)
+      && (value.prediction_bundle !== undefined || row.structure_position > 0)
+      && isString(row.chain_id) && isString(row.insertion_code)
+      && isOptional(row.model_id, (item) => isString(item) || (isNumber(item) && Number.isSafeInteger(item)))
+      && isOptional(row.polymer_position, positiveInteger)
+      && isOptional(row.viewer_position, positiveInteger)
+      && isOptional(row.viewer_chain_id, isString) && isOptional(row.viewer_insertion_code, isString)
+      && isNumberArray(row.coordinate) && row.coordinate.length === 3))) return false;
+
+  // Array element predicates above check the full shape; keep the accounting
+  // checks explicit so repeated sites cannot silently replace distinct IDs.
+  const report = value as unknown as StrictSpatialResult;
+  if (report.prediction_bundle && (report.structure_format !== "pdb"
+    || report.source_sha256 !== report.prediction_bundle.structure_sha256
+    || report.prediction_bundle.plddt_by_reference.length === 0
+    || !report.mapping.every((row) => row.viewer_position === row.reference_position
+      && row.viewer_chain_id === "A" && row.viewer_insertion_code === ""
+      && row.reference_position <= (report.prediction_bundle?.plddt_by_reference.length ?? 0)))) return false;
+  const multiplicities = new Map<number, number>();
+  for (const position of report.selected_positions) {
+    multiplicities.set(position, (multiplicities.get(position) ?? 0) + 1);
+  }
+  const mapped = new Set(report.mapping.map((row) => row.reference_position));
+  const eligible = new Set(report.eligible_positions);
+  return report.requested_count === report.selected_variants.length
+    && report.selected_variant_count === report.selected_variants.length
+    && report.selected_positions.length === report.selected_variants.length
+    && new Set(report.selected_variants).size === report.selected_variants.length
+    && report.selected_site_count === multiplicities.size
+    && report.eligible_site_count === eligible.size
+    && eligible.size === report.eligible_positions.length
+    && report.eligible_variant_count >= report.selected_variant_count
+    && report.eligible_variant_count >= report.eligible_site_count
+    && mapped.size === report.mapping.length
+    && report.eligible_positions.every((position) => mapped.has(position))
+    && report.selected_variants.every((variant, index) => {
+      const match = /^([ACDEFGHIKLMNPQRSTVWY])([1-9]\d*)([ACDEFGHIKLMNPQRSTVWY])$/.exec(variant);
+      return match !== null && match[1] !== match[3]
+        && Number(match[2]) === report.selected_positions[index]
+        && eligible.has(report.selected_positions[index]);
+    })
+    && (report.budget_mode !== "unique_sites" || multiplicities.size === report.selected_variant_count)
+    && [...multiplicities.values()].every((size) => report.site_cap === null || size <= report.site_cap)
+    && report.site_multiplicities.length === multiplicities.size
+    && new Set(report.site_multiplicities.map((row) => row.reference_position)).size === multiplicities.size
+    && report.site_multiplicities.every((row) => multiplicities.get(row.reference_position) === row.variant_count)
+    && (report.geometry_variant_min_pair_distance === null) === (report.selected_variant_count < 2)
+    && (report.geometry_site_min_pair_distance === null) === (report.selected_site_count < 2)
+    && isStrictSpatialComparison(value.comparison, report);
+}
+
 function isEvolveproLoadResult(value: unknown): value is EvolveproLoadResult {
   return (
     isRecord(value) &&
@@ -556,7 +786,8 @@ function isEvolveproLoadResult(value: unknown): value is EvolveproLoadResult {
     isOptionalNullable(value.pool_variants, isStringArray) &&
     isOptionalNullable(value.used_variant_column, isString) &&
     isOptionalNullable(value.used_score_column, isString) &&
-    isOptionalNullable(value.step_stats, isEvolveproStepStats)
+    isOptionalNullable(value.step_stats, isEvolveproStepStats) &&
+    isOptional(value.strict_spatial, isStrictSpatialResult)
   );
 }
 
@@ -1073,7 +1304,11 @@ function isFetchActiveSiteResult(value: unknown): value is FetchActiveSiteResult
     isNumberArray(value.active_site_positions) &&
     isNumberArray(value.binding_positions) &&
     isString(value.source) &&
-    isBoolean(value.has_annotation)
+    isBoolean(value.has_annotation) &&
+    isOptional(value.features, (items) => isArrayOf(items, isRecord)) &&
+    isOptional(value.annotation_status, (item) => item === "present" || item === "no_matching_features" || item === "error") &&
+    isOptionalNullable(value.sequence_version, isNumber) &&
+    isOptional(value.projection_status, (item) => item === "unverified")
   );
 }
 function isNullHistogram(value: unknown): boolean {
@@ -1271,6 +1506,8 @@ const rpcResultValidators = {
     isDesignResult(value),
   load_evolvepro_csv: (value): value is RpcMethodResult<"load_evolvepro_csv"> =>
     isEvolveproLoadResult(value),
+  inspect_prediction_bundle: (value): value is RpcMethodResult<"inspect_prediction_bundle"> =>
+    isPredictionBundleInventory(value),
   get_plate_map: (value): value is RpcMethodResult<"get_plate_map"> =>
     isPlateMapResult(value),
   get_alternatives: (value): value is RpcMethodResult<"get_alternatives"> =>

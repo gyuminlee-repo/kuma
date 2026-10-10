@@ -1509,6 +1509,63 @@
       ],
       "note": "What the codon-table seed folder ships and what copies it into the user folder. ensure_user_codon_dir writes exactly the names in _CODON_SEED_FILES, so a seed added, renamed or removed without touching that tuple never reaches a user and nothing fails. The README states the built-in key set that cannot be replaced, which is _ORGANISM_ALIASES plus the bundled stems, so the README goes stale the moment the bundled set changes: that is how it kept listing mextorquens after the table became an installable seed. mextorquens_am1.json.txt is a finished table rather than a placeholder and keeps the .json.txt suffix so seeding it is not installing it.",
       "severity": "warning"
+    },
+    {
+      "id": "strict-spatial-context",
+      "files": [
+        "kuma_core/kuro/strict_spatial.py",
+        "kuma_core/kuro/evolvepro.py",
+        "python-core/sidecar_kuro/handlers/misc.py",
+        "python-core/sidecar_kuro/models.py",
+        "src/types/models.ts",
+        "src/types/validators.ts",
+        "src/lib/strictSpatial.ts",
+        "src/store/slices/inputSlice.helpers.ts",
+        "src/store/slices/inputSlice.ts",
+        "src/store/slices/designSlice.ts",
+        "src/components/panels/Selection3DPanel.tsx",
+        "src/components/panels/InputPanel/StrictSpatialSection.tsx",
+        "tests/test_strict_variant_budget.py"
+      ],
+      "note": "Strict opt-in source/reference/candidate certificate and exact selection-to-design identity contract. Functional annotation is explanation only.",
+      "severity": "blocking"
+    },
+    {
+      "id": "experimental-residue-correspondence",
+      "files": [
+        "kuma_core/kuro/residue_mapping.py",
+        "tests/test_residue_mapping.py",
+        "docs/audit/residue-mapping-contract.md"
+      ],
+      "note": "Offline polymer-to-observed residue identity, optional homolog/SIFTS evidence and confidence provenance. Not an application mapping certificate.",
+      "severity": "warning"
+    },
+    {
+      "id": "prediction-bundle-import",
+      "files": [
+        "kuma_core/kuro/prediction_bundle.py",
+        "kuma_core/kuro/prediction_context.py",
+        "python-core/sidecar_kuro/models.py",
+        "python-core/sidecar_kuro/handlers/misc.py",
+        "python-core/sidecar_kuro/dispatcher.py",
+        "src/types/models.ts",
+        "src/types/models.generated.ts",
+        "src/types/validators.ts",
+        "src/lib/strictSpatial.ts",
+        "src/store/slices/inputSlice.ts",
+        "src/store/slices/inputSlice.helpers.ts",
+        "src/store/slices/designSlice.ts",
+        "src/components/panels/InputPanel/PredictionBundleControls.tsx",
+        "src/components/panels/InputPanel/PredictionBundleEvidence.tsx",
+        "src/components/panels/Selection3DPanel.tsx",
+        "src/store/slices/diversitySlice.ts",
+        "src/store/slices/exportSlice.ts",
+        "src/store/slice-interfaces.ts",
+        "src/hooks/useAutosaveHydration.ts",
+        "src/lib/selection3d.ts"
+      ],
+      "note": "Local paired prediction ZIP identity/confidence, unambiguous producer-ranked default with explicit advanced model and chain selection, strict certificate freshness, derived CA trace and design revalidation. No prediction or network submission.",
+      "severity": "warning"
     }
   ]
 }
