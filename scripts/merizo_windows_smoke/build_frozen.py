@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import importlib.metadata
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -20,13 +21,62 @@ import time
 from run import COMMIT, WEIGHTS, verify_upstream
 
 PYINSTALLER_VERSION = "6.16.0"
+BACKPORTS_TARFILE_VERSION = "1.2.0"
+REQUIRED_BOOTSTRAP_IMPORTS = ("backports", "backports.tarfile")
 BUILD_TIMEOUT_SECONDS = 600
 PACKAGE_NAME = "merizo-frozen-smoke"
 HIDDEN_IMPORTS = (
     "predict", "model.network", "model.utils.features", "model.utils.utils",
     "torch", "numpy", "scipy", "networkx", "einops", "rotary_embedding_torch", "natsort",
+    # setuptools 80.9's Python 3.11 jaraco.context imports the bare parent
+    # namespace. Explicit standalone imports avoid the vendored alias gap seen
+    # in the first native frozen startup, before our own entry can run.
+    *REQUIRED_BOOTSTRAP_IMPORTS,
 )
 MAX_EVIDENCE_BYTES = 1024 * 1024
+
+
+def verify_freezer_dependencies() -> dict:
+    """Require the pinned standalone backport, not setuptools' fallback copy."""
+    version = importlib.metadata.version("pyinstaller")
+    if version != PYINSTALLER_VERSION:
+        raise ValueError(f"Expected PyInstaller {PYINSTALLER_VERSION}")
+    backport_version = importlib.metadata.version("backports.tarfile")
+    if backport_version != BACKPORTS_TARFILE_VERSION:
+        raise ValueError(f"Expected backports.tarfile {BACKPORTS_TARFILE_VERSION}")
+    distribution = importlib.metadata.distribution("backports.tarfile")
+    expected = Path(str(distribution.locate_file("backports/tarfile/__init__.py"))).resolve()
+    parts = tuple(part.casefold() for part in expected.parts)
+    if any(parts[i:i + 2] == ("setuptools", "_vendor") for i in range(len(parts) - 1)):
+        raise ValueError("backports.tarfile must be a standalone CI dependency")
+    spec = importlib.util.find_spec("backports.tarfile")
+    if spec is None or spec.origin is None or not expected.is_file() or Path(spec.origin).resolve() != expected:
+        raise ValueError("backports.tarfile import origin differs from its pinned standalone distribution")
+    return {"pyinstaller": version, "backports.tarfile": backport_version,
+            "backports_tarfile_origin": str(expected), "standalone_backport_verified": True}
+
+
+def verify_frozen_bootstrap_imports(executable: Path) -> dict:
+    """Inspect the built EXE's embedded PYZ inventory without executing it.
+
+    API is pinned to PyInstaller 6.16.0 archive/readers.py: CArchive TOC entries
+    end in a typecode, 'z' opens an embedded ZlibArchiveReader whose toc keys are
+    import names. This reads only our just-built file and never extracts code.
+    """
+    readers = importlib.import_module("PyInstaller.archive.readers")
+    archive = readers.CArchiveReader(str(executable))
+    embedded = []
+    found: set[str] = set()
+    for name, entry in archive.toc.items():
+        if entry[-1] == "z":
+            embedded.append(name)
+            pyz = archive.open_embedded_archive(name)
+            found.update(set(pyz.toc).intersection(REQUIRED_BOOTSTRAP_IMPORTS))
+    missing = sorted(set(REQUIRED_BOOTSTRAP_IMPORTS) - found)
+    if not embedded or missing:
+        raise ValueError(f"Frozen bootstrap imports missing from embedded PYZ: {missing or list(REQUIRED_BOOTSTRAP_IMPORTS)}")
+    return {"verified": True, "embedded_pyz": sorted(embedded), "required_modules": list(REQUIRED_BOOTSTRAP_IMPORTS),
+            "collected_modules": sorted(found)}
 
 
 def disjoint(first: Path, second: Path) -> bool:
@@ -45,7 +95,7 @@ def digest_file(path: Path) -> str:
 def own_hashes() -> dict[str, str]:
     root = Path(__file__).resolve().parent
     return {name: digest_file(root / name) for name in
-            ("run.py", "frozen_entry.py", "build_frozen.py", "run_frozen.ps1")}
+            ("run.py", "frozen_entry.py", "build_frozen.py", "run_frozen.ps1", "freezer-requirements.txt")}
 
 
 def source_hashes(source: Path) -> dict[str, str]:
@@ -116,15 +166,14 @@ def build(source: Path, output: Path, evidence_path: Path) -> int:
             raise ValueError("Source, package output and evidence paths must be separate")
         if output.exists():
             raise ValueError("Choose a fresh packaging output directory")
-        version = importlib.metadata.version("pyinstaller")
-        if version != PYINSTALLER_VERSION:
-            raise ValueError(f"Expected PyInstaller {PYINSTALLER_VERSION}")
+        dependencies = verify_freezer_dependencies()
+        evidence["freezer_dependencies"] = dependencies
         # This happens before any PyInstaller analysis imports upstream Python.
         evidence["weights_sha256"] = verify_upstream(source)
         evidence["source_python_sha256"] = source_hashes(source)
         evidence["own_harness_sha256"] = own_hashes()
         evidence["verified_before_build"] = True
-        evidence["pyinstaller"] = version
+        evidence["pyinstaller"] = dependencies["pyinstaller"]
         evidence["status"] = "verified"
         write_evidence(evidence_path, evidence)
         output.mkdir(parents=True, exist_ok=False)
@@ -155,6 +204,7 @@ def build(source: Path, output: Path, evidence_path: Path) -> int:
         executable = package / f"{PACKAGE_NAME}.exe"
         if not executable.is_file():
             raise ValueError("Frozen entry executable was not produced")
+        evidence["frozen_bootstrap_imports"] = verify_frozen_bootstrap_imports(executable)
         evidence.update(package_inventory(package))
         evidence["entry_executable"] = str(executable)
         evidence["status"] = "built"

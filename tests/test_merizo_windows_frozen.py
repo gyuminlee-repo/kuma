@@ -28,6 +28,77 @@ frozen = load_harness("frozen_entry")
 
 
 class FrozenHarnessContracts(unittest.TestCase):
+    def test_freezer_requirement_pins_match_preflight(self):
+        requirements = {
+            line.split("==")[0]: line.split("==")[1]
+            for line in (HARNESS / "freezer-requirements.txt").read_text().splitlines()
+            if line and not line.startswith("#")
+        }
+        self.assertEqual(requirements, {"pyinstaller": build.PYINSTALLER_VERSION,
+                                       "backports.tarfile": build.BACKPORTS_TARFILE_VERSION})
+        self.assertEqual(build.REQUIRED_BOOTSTRAP_IMPORTS, ("backports", "backports.tarfile"))
+
+    def test_freezer_preflight_rejects_missing_wrong_or_vendored_backport(self):
+        with tempfile.TemporaryDirectory() as folder:
+            standalone = Path(folder) / "site-packages/backports/tarfile/__init__.py"
+            standalone.parent.mkdir(parents=True)
+            standalone.write_text("# mock only; never imported")
+            for problem in (None, "version", "missing", "vendored", "wrong_origin"):
+                with self.subTest(problem=problem):
+                    location = standalone
+                    if problem == "vendored":
+                        location = Path(folder) / "site-packages/setuptools/_vendor/backports/tarfile/__init__.py"
+                    distribution = mock.Mock()
+                    distribution.locate_file.return_value = location
+                    versions = {"pyinstaller": "6.16.0", "backports.tarfile": "0.0" if problem == "version" else "1.2.0"}
+                    spec = None if problem == "missing" else mock.Mock(origin=str(
+                        standalone.parent / "unexpected.py" if problem == "wrong_origin" else standalone))
+                    with mock.patch.object(build.importlib.metadata, "version", side_effect=versions.__getitem__), \
+                         mock.patch.object(build.importlib.metadata, "distribution", return_value=distribution), \
+                         mock.patch.object(build.importlib.util, "find_spec", return_value=spec):
+                        if problem is None:
+                            report = build.verify_freezer_dependencies()
+                            self.assertTrue(report["standalone_backport_verified"])
+                            self.assertEqual(report["backports_tarfile_origin"], str(standalone))
+                        else:
+                            with self.assertRaises(ValueError):
+                                build.verify_freezer_dependencies()
+
+    def test_built_archive_inventory_requires_bare_namespace_and_tarfile(self):
+        for names in (("backports", "backports.tarfile"), ("backports",), ("backports.tarfile",), ()):
+            with self.subTest(names=names):
+                archive = mock.Mock()
+                archive.toc = {"PYZ.pyz": (0, 0, 0, 0, "z"), "entry": (0, 0, 0, 0, "s")}
+                archive.open_embedded_archive.return_value.toc = {name: (0, 0, 0) for name in names}
+                readers = mock.Mock()
+                readers.CArchiveReader.return_value = archive
+                with mock.patch.object(build.importlib, "import_module", return_value=readers) as importer:
+                    if len(names) == 2:
+                        report = build.verify_frozen_bootstrap_imports(Path("mock.exe"))
+                        self.assertTrue(report["verified"])
+                        self.assertEqual(report["collected_modules"], list(names))
+                    else:
+                        with self.assertRaisesRegex(ValueError, "missing from embedded PYZ"):
+                            build.verify_frozen_bootstrap_imports(Path("mock.exe"))
+                importer.assert_called_once_with("PyInstaller.archive.readers")
+                readers.CArchiveReader.assert_called_once_with("mock.exe")
+                archive.open_embedded_archive.assert_called_once_with("PYZ.pyz")
+                archive.extract.assert_not_called()
+
+    def test_build_stops_before_analysis_when_freezer_preflight_fails(self):
+        with tempfile.TemporaryDirectory() as folder:
+            base = Path(folder)
+            with mock.patch.object(build.sys, "platform", "win32"), \
+                 mock.patch.dict(os.environ, {"GITHUB_ACTIONS": "true"}), \
+                 mock.patch.object(build, "verify_freezer_dependencies", side_effect=ValueError("missing backport")), \
+                 mock.patch.object(build.subprocess, "Popen") as process:
+                code = build.build(base / "source", base / "build", base / "evidence.json")
+            self.assertEqual(code, 2)
+            process.assert_not_called()
+            report = json.loads((base / "evidence.json").read_text())
+            self.assertFalse(report["verified_before_build"])
+            self.assertIn("missing backport", report["error"])
+
     def test_native_child_disables_bytecode_even_in_isolated_mode(self):
         source = (HARNESS / "run.py").read_text()
         self.assertIn('command = [sys.executable, "-I", "-B",', source)
@@ -38,7 +109,7 @@ class FrozenHarnessContracts(unittest.TestCase):
         self.assertNotIn("--onefile", command)
         self.assertEqual(command[:3], [sys.executable, "-m", "PyInstaller"])
         hidden = [command[i + 1] for i, word in enumerate(command) if word == "--hidden-import"]
-        self.assertTrue({"torch", "predict", "model.network", "model.utils.features"} <= set(hidden))
+        self.assertTrue({"torch", "predict", "model.network", "model.utils.features", "backports", "backports.tarfile"} <= set(hidden))
         data = [command[i + 1] for i, word in enumerate(command) if word == "--add-data"]
         self.assertEqual(len(data), 3)
         self.assertTrue(all(item.endswith(os.pathsep + "merizo_weights") for item in data))
@@ -59,7 +130,7 @@ class FrozenHarnessContracts(unittest.TestCase):
             self.assertFalse((base / "build").exists())
 
     def test_mock_build_preserves_preverification_and_bounded_timeout(self):
-        for outcome in ("success", "timeout"):
+        for outcome in ("success", "timeout", "missing_import"):
             with self.subTest(outcome=outcome), tempfile.TemporaryDirectory() as folder:
                 base = Path(folder)
                 source, output, report = base / "source", base / "output", base / "report.json"
@@ -73,17 +144,20 @@ class FrozenHarnessContracts(unittest.TestCase):
                     package.mkdir(parents=True)
                     (package / (build.PACKAGE_NAME + ".exe")).write_bytes(b"mock-only executable marker")
                     return process
-                if outcome == "success":
+                if outcome != "timeout":
                     process.wait.return_value = 0
                 else:
                     process.wait.side_effect = build.subprocess.TimeoutExpired("mock packaging", 600)
                 with mock.patch.object(build.sys, "platform", "win32"), \
                      mock.patch.dict(os.environ, {"GITHUB_ACTIONS": "true"}), \
-                     mock.patch.object(build.importlib.metadata, "version", return_value="6.16.0"), \
+                     mock.patch.object(build, "verify_freezer_dependencies", return_value={"pyinstaller": "6.16.0", "backports.tarfile": "1.2.0", "standalone_backport_verified": True}), \
                      mock.patch.object(build, "verify_upstream", return_value=smoke.WEIGHTS), \
                      mock.patch.object(build, "source_hashes", return_value={"predict.py": "mock-source"}), \
                      mock.patch.object(build, "own_hashes", return_value={"run.py": "mock-harness"}), \
                      mock.patch.object(build.subprocess, "Popen", side_effect=launch), \
+                     mock.patch.object(build, "verify_frozen_bootstrap_imports",
+                         side_effect=ValueError("backports missing") if outcome == "missing_import" else None,
+                         return_value={"verified": True, "collected_modules": ["backports", "backports.tarfile"]}) as inventory, \
                      mock.patch.object(build, "_stop_build", return_value=True) as stop:
                     code = build.build(source, output, report)
                 evidence = json.loads(report.read_text())
@@ -93,6 +167,14 @@ class FrozenHarnessContracts(unittest.TestCase):
                     self.assertEqual(code, 0)
                     self.assertEqual(evidence["status"], "built")
                     self.assertEqual(evidence["package_file_count"], 1)
+                    self.assertTrue(evidence["frozen_bootstrap_imports"]["verified"])
+                    inventory.assert_called_once()
+                    stop.assert_not_called()
+                elif outcome == "missing_import":
+                    self.assertEqual(code, 2)
+                    self.assertEqual(evidence["status"], "failed")
+                    self.assertIn("backports missing", evidence["error"])
+                    self.assertFalse(output.exists())
                     stop.assert_not_called()
                 else:
                     self.assertEqual(code, 2)

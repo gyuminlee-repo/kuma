@@ -108,3 +108,29 @@ integration, dependency security maintenance or redistribution clearance.
 Windows x86-64 is this probe's only target. KUMA's other existing release targets,
 Linux x86-64 and macOS arm64, require separate native/packaging checks; no Intel
 macOS support is asserted here.
+
+
+### First frozen execution: bootstrap failure retained
+
+At commit `354a31ef1acc3e813b9dbbd9a07fd3208675e185`,
+[Windows workflow 38040990688](https://github.com/gyuminlee-repo/kuma/actions/runs/38040990688)
+built an experimental onedir in 77.606 s: 716,385,956 bytes and 1,806 files.
+This is uncompressed on-disk size, not a download size or a production bundle.
+The isolated executable then failed after 0.243 s, before model inference:
+PyInstaller's pkg_resources runtime hook reached setuptools' vendored
+jaraco.context, whose Python <3.12 branch imports `backports.tarfile`, but the
+`backports` package was not collected. Runtime identity and model guards were
+not reached and the failure is not a successful standalone inference.
+Process-tree termination, source removal, and temporary runtime/package cleanup
+were confirmed. The [build evidence](evidence/windows-frozen-first-build.json)
+and [failure evidence](evidence/windows-frozen-first-failure.json) preserve the
+original JSON values with repository-standard LF line endings.
+
+The narrow proposed correction explicitly installs the official
+[backports.tarfile 1.2.0](https://pypi.org/project/backports.tarfile/1.2.0/) only in
+the CI freezing environment and collects both its parent namespace and submodule.
+Model/runtime pins, input checks, DLL checks, deadlines and artifact restrictions
+are unchanged. Build-time archive inspection must verify these modules are
+present; only a subsequent successful isolated Windows run can establish that
+this correction fixes the bootstrap failure. No blanket setuptools collection,
+model/guard workaround or timeout increase is used.
