@@ -233,6 +233,11 @@ def _tree(root: Path, cancelled: CancelCheck = None) -> tuple[set[str], set[str]
             for entry in entries:
                 _cancel(cancelled)
                 info = entry.stat(follow_symlinks=False)
+                # Preserve cached reparse flags: even no-follow stat may resolve
+                # non-name-surrogate reparse points on Windows. Other entries
+                # need fresh stat because the Windows cache zeros dev/nlink.
+                if not _is_link(info):
+                    info = os.stat(entry.path, follow_symlinks=False)
                 name = Path(entry.path).relative_to(root).as_posix()
                 if (_is_link(info) or info.st_dev != device
                         or not (stat.S_ISDIR(info.st_mode) or stat.S_ISREG(info.st_mode))):

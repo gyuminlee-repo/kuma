@@ -136,10 +136,13 @@ class PosixEntryContracts(unittest.TestCase):
                 self.assertLessEqual(library._dyld_get_image_name.call_count, 8)
 
     def test_dyld_rejects_overflow_null_relative_long_and_invalid_utf8_paths(self):
-        for fault in ("zero", "overflow", "null", "relative", "long", "utf8", "newline", "carriage_return"):
+        for fault in ("zero", "overflow", "null", "relative", "long", "utf8", "newline", "carriage_return",
+                      "windows_drive", "windows_slashes", "windows_unc"):
             with self.subTest(fault=fault):
                 names = {"relative": b"@rpath/lib.so", "long": b"/" + b"x" * entry.MAX_PATH_BYTES,
-                         "utf8": b"/\xff", "newline": b"/bad\npath", "carriage_return": b"/bad\rpath"}
+                         "utf8": b"/\xff", "newline": b"/bad\npath", "carriage_return": b"/bad\rpath",
+                         "windows_drive": br"C:\bundle\native.dylib", "windows_slashes": b"C:/bundle/native.dylib",
+                         "windows_unc": br"\\server\bundle\native.dylib"}
                 fake = FakeDyld([names.get(fault, b"/a")])
                 if fault in {"zero", "overflow"}:
                     fake.library._dyld_image_count.return_value = 0 if fault == "zero" else entry.MAX_NATIVE_IMAGES + 1
@@ -237,21 +240,25 @@ class PosixEntryContracts(unittest.TestCase):
         for system, names in (("Linux", ("libpython3.11.so.1.0", "libtorch_cpu.so", "libc10.so")),
                               ("Darwin", ("Python.framework/Versions/3.11/Python", "libtorch_cpu.dylib", "libc10.dylib"))):
             with self.subTest(system=system), tempfile.TemporaryDirectory() as folder:
-                root = Path(folder)
-                paths = []
+                root = Path(folder).resolve()
+                host_files = {}
                 for name in names:
                     path = root / name
                     path.parent.mkdir(parents=True, exist_ok=True)
                     path.touch()
-                    paths.append(str(path))
-                result = validate_paths(paths, root, system)
-                self.assertEqual(set(result["required_bundled"]), {"python", "torch_cpu", "c10"})
-                for missing in range(3):
-                    with self.subTest(missing=missing), self.assertRaisesRegex(ValueError, "missing"):
-                        validate_paths(paths[:missing] + paths[missing + 1:], root, system)
-                Path(paths[0]).unlink()
-                with self.assertRaisesRegex(ValueError, "missing"):
-                    validate_paths(paths, root, system)
+                    host_files["/bundle/" + name] = path
+                # dyld speaks POSIX even on a Windows test host. Map only the
+                # filesystem boundary; existence checks still use real files.
+                paths = list(host_files)
+                with mock.patch.object(entry, "Path", side_effect=lambda raw: host_files[raw]):
+                    result = validate_paths(paths, root, system)
+                    self.assertEqual(set(result["required_bundled"]), {"python", "torch_cpu", "c10"})
+                    for missing in range(3):
+                        with self.subTest(missing=missing), self.assertRaisesRegex(ValueError, "missing"):
+                            validate_paths(paths[:missing] + paths[missing + 1:], root, system)
+                    host_files[paths[0]].unlink()
+                    with self.assertRaisesRegex(ValueError, "missing"):
+                        validate_paths(paths, root, system)
 
     @unittest.skipUnless(os.name == "posix", "POSIX absolute-path semantics")
     def test_os_roots_membership_and_loaded_cache_flag_are_all_required(self):
@@ -323,7 +330,12 @@ class PosixEntryContracts(unittest.TestCase):
         self.assertFalse(entry.darwin_cached_os_image(official, Path("/outside/libSystem.B.dylib"), image))
         self.assertFalse(entry.darwin_cached_os_image(Path("/outside/libSystem.B.dylib"), official, image))
         with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder)
+            real_root = Path(folder) / "real"
+            real_root.mkdir()
+            alias = Path(folder) / "alias"
+            alias.symlink_to(real_root, target_is_directory=True)
+            # Exercise macOS-style temporary-path aliases on every POSIX host.
+            root = alias.resolve()
             link = root / "libSystem.B.dylib"
             link.symlink_to(official)
             with self.assertRaisesRegex(ValueError, "symlink escaped"):
@@ -481,7 +493,8 @@ class PosixEntryContracts(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder).resolve()
             for system, function in (("Linux", "linux_native_paths"), ("Darwin", "darwin_native_images")):
-                paths = [str(root / "native")]
+                # This test mocks validation and checks dispatch, not host paths.
+                paths = ["/bundle/native"]
                 darwin_inventory = FakeDyld(paths).snapshot()
                 inventory = darwin_inventory if system == "Darwin" else paths
                 with self.subTest(system=system), \

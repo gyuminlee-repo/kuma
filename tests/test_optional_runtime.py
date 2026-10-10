@@ -8,8 +8,11 @@ import stat
 import struct
 import tarfile
 import zipfile
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import replace
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -57,6 +60,130 @@ def installed_target(manager: runtime.OptionalRuntimeManager) -> Path:
     assert status.state == "installed"
     assert status.executable_path is not None
     return Path(status.executable_path).parent.parent
+
+
+@pytest.fixture
+def zero_identity_scandir(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Reproduce Windows DirEntry.stat's incomplete cache on every host."""
+    original_scandir = os.scandir
+
+    class CachedEntry:
+        def __init__(self, entry: os.DirEntry[str]) -> None:
+            self.path = entry.path
+            info = entry.stat(follow_symlinks=False)
+            values = list(info)
+            values[stat.ST_INO] = values[stat.ST_DEV] = values[stat.ST_NLINK] = 0
+            self.cached = os.stat_result(values, {
+                "st_file_attributes": getattr(info, "st_file_attributes", 0),
+                "st_reparse_tag": getattr(info, "st_reparse_tag", 0),
+            })
+
+        def stat(self, *, follow_symlinks: bool = True) -> os.stat_result:
+            assert not follow_symlinks
+            return self.cached
+
+    @contextmanager
+    def scandir(path: Path) -> Iterator[Iterator[CachedEntry]]:
+        with original_scandir(path) as entries:
+            yield (CachedEntry(entry) for entry in entries)
+
+    monkeypatch.setattr(runtime.os, "scandir", scandir)
+
+
+def test_tree_uses_complete_metadata_instead_of_zero_direntry_cache(
+        tmp_path: Path, zero_identity_scandir: None) -> None:
+    root = tmp_path.resolve()
+    (root / "bin").mkdir()
+    (root / "bin" / "runtime").write_bytes(b"synthetic, never executed")
+    (root / "NOTICE.txt").write_bytes(b"fixture")
+    assert runtime._tree(root) == ({"bin/runtime", "NOTICE.txt"}, {"bin"})
+
+
+@pytest.mark.parametrize("kind", ["symlink", "reparse"])
+def test_tree_rejects_cached_link_before_fresh_stat(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, kind: str) -> None:
+    root = tmp_path.resolve()
+    member = root / "member"
+    member.write_bytes(b"must survive")
+    cached = SimpleNamespace(
+        st_mode=stat.S_IFLNK if kind == "symlink" else stat.S_IFREG,
+        st_dev=0, st_nlink=0,
+        st_file_attributes=stat.FILE_ATTRIBUTE_REPARSE_POINT if kind == "reparse" else 0)
+
+    def cached_stat(*, follow_symlinks: bool = True) -> SimpleNamespace:
+        assert not follow_symlinks
+        return cached
+
+    @contextmanager
+    def scandir(path: Path) -> Iterator[Iterator[SimpleNamespace]]:
+        assert path == root
+        yield iter([SimpleNamespace(path=str(member), stat=cached_stat)])
+
+    original_stat = os.stat
+
+    def fresh_stat(path: str | os.PathLike[str], *, follow_symlinks: bool = True) -> os.stat_result:
+        assert Path(path) != member, "Reject cached reparse points before stat can resolve them"
+        return original_stat(path, follow_symlinks=follow_symlinks)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(runtime.os, "scandir", scandir)
+        patch.setattr(runtime.os, "stat", fresh_stat)
+        with pytest.raises(runtime.OptionalRuntimeError, match="link, mount, or special file"):
+            runtime._remove_tree(root)
+    assert member.read_bytes() == b"must survive"
+
+
+@pytest.mark.parametrize("kind,is_dir", [
+    ("mount", False), ("mount", True), ("symlink", False),
+    ("reparse", False), ("reparse", True), ("hardlink", False), ("special", False),
+])
+def test_tree_rejects_unsafe_fresh_metadata_despite_zero_direntry_cache(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, zero_identity_scandir: None,
+        kind: str, is_dir: bool) -> None:
+    root = tmp_path.resolve()
+    member = root / "member"
+    if is_dir:
+        member.mkdir()
+    else:
+        member.write_bytes(b"must survive")
+    before = member.lstat()
+    info = SimpleNamespace(
+        st_mode=before.st_mode, st_dev=before.st_dev, st_nlink=before.st_nlink,
+        st_file_attributes=0)
+    if kind == "mount":
+        info.st_dev = root.lstat().st_dev + 1
+    elif kind == "symlink":
+        info.st_mode = stat.S_IFLNK | 0o700
+    elif kind == "reparse":
+        info.st_file_attributes = stat.FILE_ATTRIBUTE_REPARSE_POINT
+    elif kind == "hardlink":
+        info.st_nlink = 2
+    else:
+        info.st_mode = stat.S_IFIFO | 0o600
+    original_stat = os.stat
+    checked: list[Path] = []
+
+    def fresh_stat(path: str | os.PathLike[str], *, follow_symlinks: bool = True
+                   ) -> os.stat_result | SimpleNamespace:
+        if Path(path) == member:
+            assert not follow_symlinks  # Never resolve a symlink or junction.
+            checked.append(member)
+            return info
+        return original_stat(path, follow_symlinks=follow_symlinks)
+
+    def refuse_delete(path: Path) -> None:
+        pytest.fail("Unsafe tree must be rejected before recursive removal")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(runtime.os, "stat", fresh_stat)
+        patch.setattr(runtime.shutil, "rmtree", refuse_delete)
+        message = "hard link" if kind == "hardlink" else "link, mount, or special file"
+        with pytest.raises(runtime.OptionalRuntimeError, match=message):
+            runtime._remove_tree(root)
+        assert checked == [member]
+    assert member.exists()
+    if not is_dir:
+        assert member.read_bytes() == b"must survive"
 
 
 def test_production_catalog_stays_empty_and_license_blocked(tmp_path: Path) -> None:
