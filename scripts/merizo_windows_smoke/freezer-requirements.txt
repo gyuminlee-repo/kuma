@@ -1,0 +1,4 @@
+# CI-only packaging tools; separate from the native inference dependencies.
+pyinstaller==6.16.0
+# Bare namespace imported by setuptools 80.9 jaraco.context on Python 3.11.
+backports.tarfile==1.2.0

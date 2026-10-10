@@ -815,6 +815,11 @@ class FetchActiveSiteResult(BaseModel):
     binding_positions: list[int] = Field(default_factory=list)
     source: str = ""
     has_annotation: bool = False
+    # Source-frame records are explanatory, never selector weights.
+    features: list[dict] = Field(default_factory=list)
+    annotation_status: str = "unknown"
+    sequence_version: Optional[int] = None
+    projection_status: str = "unverified"
 
 
 class NullHistogram(BaseModel):
@@ -917,6 +922,10 @@ class PreviewEvolveproSourceParams(BaseModel):
     max_rows: int = Field(default=8, ge=1, le=100)
 
 
+class InspectPredictionBundleParams(BaseModel):
+    filepath: str
+
+
 class LoadEvolveproParams(BaseModel):
     filepath: str = ""
     top_n: int = Field(default=96, ge=0, le=10000)
@@ -955,6 +964,13 @@ class LoadEvolveproParams(BaseModel):
     # Structure-aware diversity selector (validated 'kuro_ca' recipe): full pool +
     # revealed-anchor + 3D Ca-centroid maximin + kappa fitness blend. Off by default.
     structural_diversity: bool = False
+    strict_spatial: bool = False
+    prediction_bundle_path: Optional[str] = None
+    prediction_model_id: Optional[str] = None
+    prediction_chain_id: Optional[str] = None
+    prediction_bundle_sha256: Optional[str] = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    strict_spatial_budget: Literal["unique_sites", "distinct_variants"] = "unique_sites"
+    strict_spatial_site_cap: Optional[int] = Field(default=None, ge=1, strict=True)
     structural_kappa: float = Field(default=0.0, ge=0.0, le=1.0)
     anchor_variants: list[str] = Field(default_factory=list)
 

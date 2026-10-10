@@ -265,3 +265,56 @@ describe("buildEvolveproLoadStateUpdate: a missing prediction is not a fitness",
     expect(update.yPredMap).toEqual({ B2C: 0, A1V: 0.8 });
   });
 });
+
+describe("strict spatial opt-in requests", () => {
+  it("pins local prediction identity and hash without accession or legacy selection filters", () => {
+    const predictionBundle = { path: "/tmp/prediction.zip", modelId: "job_model_0.cif", chainId: "", sha256: "a".repeat(64) };
+    const params = buildEvolveproLoadParams(makeConfig({ structuralDiversityEnabled: true, strictSpatialEnabled: true,
+      structureAccession: "P12345", predictionBundle, positionDiversityEnabled: true, paretoDiversityEnabled: true }));
+    expect(params).toMatchObject({ prediction_bundle_path: predictionBundle.path, prediction_model_id: predictionBundle.modelId,
+      prediction_chain_id: "", prediction_bundle_sha256: predictionBundle.sha256 });
+    for (const field of ["structure_accession", "max_per_position", "pareto_diversity", "prediction_bundle_model_id"]) {
+      expect(params).not.toHaveProperty(field);
+    }
+    const legacy = buildEvolveproLoadParams(makeConfig({ predictionBundle }));
+    expect(legacy).not.toHaveProperty("prediction_bundle_path");
+  });
+  it("sends a full-pool request without legacy weighting or narrowing", () => {
+    const params = buildEvolveproLoadParams(makeConfig({
+      structuralDiversityEnabled: true, strictSpatialEnabled: true,
+      paretoDiversityEnabled: true, positionDiversityEnabled: true, domainDiversityEnabled: true,
+      anchorVariants: ["F89W"], activeDomains: [{ id: "D1", db: "test", name: "domain", start: 2, end: 30 }],
+      structureAccession: "P12345", refSeq: "MAAAA",
+    }));
+    expect(params).toMatchObject({ strict_spatial: true, structural_diversity: true, structure_accession: "P12345", ref_seq: "MAAAA" });
+    expect(params).toMatchObject({ strict_spatial_budget: "unique_sites", strict_spatial_site_cap: null });
+    for (const key of ["structural_kappa", "anchor_variants", "max_per_position", "domain_diversity", "pareto_diversity", "pool_multiplier"]) {
+      expect(params).not.toHaveProperty(key);
+    }
+  });
+  it("leaves legacy and Top-N requests unchanged unless both opt-ins are active", () => {
+    expect(buildEvolveproLoadParams(makeConfig({ strictSpatialEnabled: true }))).not.toHaveProperty("strict_spatial");
+    expect(buildEvolveproLoadParams(makeConfig({ strictSpatialEnabled: true, structuralDiversityEnabled: true, usePipeline: false }))).not.toHaveProperty("strict_spatial");
+  });
+  it.each([null, 19])("forwards the explicit distinct-variant budget and site cap %s", (cap) => {
+    const params = buildEvolveproLoadParams(makeConfig({ structuralDiversityEnabled: true, strictSpatialEnabled: true,
+      strictSpatialBudgetMode: "distinct_variants", strictSpatialSiteCap: cap, topN: 95 }));
+    expect(params).toMatchObject({ top_n: 95, strict_spatial_budget: "distinct_variants", strict_spatial_site_cap: cap });
+    expect(params).not.toHaveProperty("max_per_position");
+  });
+  it.each([1, 12, 95, 100])("forwards user N=%s from the full df_test pool without a fixed experiment size", (count) => {
+    const params = buildEvolveproLoadParams(makeConfig({ filepath: "/tmp/synthetic_df_test.csv",
+      structuralDiversityEnabled: true, strictSpatialEnabled: true,
+      strictSpatialBudgetMode: "distinct_variants", topN: count }));
+    expect(params).toMatchObject({ filepath: "/tmp/synthetic_df_test.csv", top_n: count,
+      strict_spatial_budget: "distinct_variants", strict_spatial_site_cap: null });
+    for (const key of ["max_per_position", "pool_multiplier", "structural_kappa", "domain_diversity", "pareto_diversity"]) {
+      expect(params).not.toHaveProperty(key);
+    }
+  });
+  it("keeps a saved distinct cap inactive under the default site budget", () => {
+    const params = buildEvolveproLoadParams(makeConfig({ structuralDiversityEnabled: true, strictSpatialEnabled: true,
+      strictSpatialBudgetMode: "unique_sites", strictSpatialSiteCap: 19 }));
+    expect(params).toMatchObject({ strict_spatial_budget: "unique_sites", strict_spatial_site_cap: null });
+  });
+});

@@ -23,7 +23,8 @@
     "admit every future unresolvable citation, which is the thing this check exists to stop.",
     "",
     "The ledger has to shrink as well as grow, so an entry that no citation points at any more is a",
-    "failure, not a note. Drop it, or say in its reason why it is being held open."
+    "failure, not a note. Drop it, or say in its reason why it is being held open.",
+    "Optional occurrences limit an entry to exact source paths AND trimmed source lines; no wildcards. Other occurrences of the same filename remain errors."
   ],
   "allow": [
     {
@@ -375,6 +376,17 @@
       "path": "tmp/kuma-audit-plan.md",
       "category": "generated",
       "reason": "Example optional output of scripts/plan_incremental_audit.py in docs/audit/incremental-review.md; the command writes this review plan outside the source checkout. It is not an existing audit evidence document."
+    },
+    {
+      "path": "TERMS_OF_USE.md",
+      "category": "prose",
+      "reason": "Synthetic imported ZIP member literal, not a repository document citation. Only this exact test line is exempt.",
+      "occurrences": [
+        {
+          "source": "src/types/validators.predictionBundle.test.ts",
+          "text": "const sourceNotice = () => ({ member: \"TERMS_OF_USE.md\", sha256: \"9\".repeat(64), text: \"Retain this source notice.\" });"
+        }
+      ]
     }
   ]
 }

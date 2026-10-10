@@ -26,6 +26,9 @@ import type {
   DomainStrategy,
   EvolveproPreview,
   EvolveproStepStats,
+  StrictSpatialResult,
+  StrictSpatialBudgetMode,
+  PredictionBundleInventory,
   FailedMutation,
   FetchActiveSiteResult,
   FetchPdbTextResult,
@@ -187,6 +190,20 @@ export interface DiversitySlice {
   uniprotSearching: boolean;
   structuralDiversityEnabled: boolean;
   structuralKappa: number;
+  /** Session-only opt-in; restored workspaces require an explicit new selection. */
+  strictSpatialEnabled: boolean;
+  strictSpatialBudgetMode: StrictSpatialBudgetMode;
+  strictSpatialSiteCap: number | null;
+  strictSpatialSelection: { result: StrictSpatialResult; contextKey: string } | null;
+  strictSpatialError: string | null;
+  strictStructureSource: "accession" | "prediction_bundle";
+  predictionBundlePath: string;
+  predictionBundleInventory: PredictionBundleInventory | null;
+  predictionBundleModelId: string | null;
+  predictionBundleChainId: string | null;
+  predictionBundleLoading: boolean;
+  predictionBundleError: string | null;
+  predictionBundleRevision: number;
   refDomains: DomainInfo[];
   refDomainsLoading: boolean;
   refDomainHash: string;
@@ -224,6 +241,13 @@ export interface DiversitySlice {
   cancelDiversityReload: () => void;
   setStructuralDiversityEnabled: (enabled: boolean) => void;
   setStructuralKappa: (v: number) => void;
+  setStrictSpatialEnabled: (enabled: boolean) => void;
+  setStrictSpatialBudgetMode: (mode: StrictSpatialBudgetMode) => void;
+  setStrictSpatialSiteCap: (cap: number | null) => void;
+  setStrictStructureSource: (source: "accession" | "prediction_bundle") => void;
+  inspectPredictionBundle: (filepath: string) => Promise<void>;
+  setPredictionBundleModelId: (modelId: string | null) => void;
+  setPredictionBundleChainId: (chainId: string | null) => void;
   /** Fetch PDB text for a given UniProt accession. Results are cached per accession. */
   fetchPdbText: (accession: string) => Promise<FetchPdbTextResult | null>;
   /** Fetch active-site and binding-site residues for a given UniProt accession. */
