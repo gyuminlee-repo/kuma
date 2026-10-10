@@ -13,6 +13,7 @@ import os
 import psutil
 from pathlib import Path
 import queue
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -23,6 +24,8 @@ from ctypes import wintypes
 
 ENTRY = Path(__file__).with_name("entry.py").resolve()
 MAX_CAPTURE = 64 * 1024
+sys.path.insert(0, str(ENTRY.parents[2] / "kuma_core" / "kuro"))
+import domain_watchdog  # type: ignore[import-not-found]  # Exact source alias; no scientific imports.
 
 
 def pid_alive(pid: int) -> bool:
@@ -62,10 +65,10 @@ def wait_until(predicate: Callable[[], bool], seconds: float, message: str) -> N
 
 
 class Process:
-    def __init__(self, command: list[str], cwd: Path):
+    def __init__(self, command: list[str], cwd: Path, *, env: dict[str, str] | None = None):
         self.process = subprocess.Popen(command, cwd=cwd, stdin=subprocess.PIPE,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0, shell=False,
-            start_new_session=os.name != "nt")
+            start_new_session=os.name != "nt", env=env)
         self.messages: queue.Queue[dict | Exception] = queue.Queue(maxsize=32)
         self.stderr = bytearray()
         self.stdout_bytes = 0
@@ -133,29 +136,43 @@ def request(identifier: int, method: str, text: str = "") -> bytes:
                        "params": {"text": text}}, ensure_ascii=False) + "\n").encode()
 
 
+def _source_configuration() -> tuple[list[str], dict[str, str]]:
+    # The test host, like its lease helper, must be the exact Popen process.
+    # Otherwise a Windows venv redirector obscures hard-host-loss cleanup.
+    # Preserve this harness's existing environment; runtime isolation is still
+    # applied independently inside domain_process.run_managed_process.
+    python, env = domain_watchdog._helper_interpreter(dict(os.environ))
+    return [python, "-I", str(ENTRY)], env
+
+
 def run_probe(binary: Path | None, *, timeout_seconds: float | None = None) -> dict:
     frozen = binary is not None
+    environment = None
     if binary is not None:
         binary = binary.resolve(strict=True)
         command = [str(binary)]
     else:
-        command = [sys.executable, "-I", str(ENTRY)]
+        command, environment = _source_configuration()
     timeout = timeout_seconds if timeout_seconds is not None else (30.0 if frozen else 2.0)
     if not 0.5 <= timeout <= 60:
         raise ValueError("Fixture timeout must be between 0.5 and 60 seconds")
     report: dict = {"schema": "kuma-domain-contract-smoke-v1", "status": "failed",
-                    "mode": "frozen_onedir" if frozen else "source", "platform": sys.platform,
+                    "mode": "frozen_onedir" if frozen else "source", "platform": sys.platform, "stage": "ipc",
                     "scope": "synthetic_ipc_and_process_lifecycle_only", "checks": {},
                     "not_verified": ["full GUI/product bundle", "Merizo inference or biological accuracy",
                                      "runtime redistribution rights", "hard supervisor-helper loss"]}
-    temporary = tempfile.TemporaryDirectory(prefix="kuma domain contract ")
-    root = Path(temporary.name).resolve()
+    # Source-mode failure can leave an unconfirmed helper alive. Do not attach
+    # an auto-cleanup finalizer to its cwd; retain it unless every proof passes.
+    # Frozen fixture behavior is unchanged and has separate platform evidence.
+    temporary = tempfile.TemporaryDirectory(prefix="kuma domain contract ") if frozen else None
+    root = Path(temporary.name if temporary is not None else
+                tempfile.mkdtemp(prefix="kuma domain contract ")).resolve()
     active: Process | None = None
     seen_pids: list[int] = []
     suspended_helper = None
     def admission(work: Path) -> bool:
         check = subprocess.run(command + ["--admission", str(work)], cwd=root,
-            stdin=subprocess.DEVNULL, capture_output=True, timeout=15, shell=False)
+            stdin=subprocess.DEVNULL, capture_output=True, timeout=15, shell=False, env=environment)
         if check.returncode or len(check.stdout) > 4096:
             raise AssertionError("Registry admission probe failed")
         value = json.loads(check.stdout)
@@ -163,7 +180,7 @@ def run_probe(binary: Path | None, *, timeout_seconds: float | None = None) -> d
             raise AssertionError("Invalid registry admission response")
         return value["admitted"]
     try:
-        active = Process(command + ["--ipc"], root)
+        active = Process(command + ["--ipc"], root, env=environment)
         active.send(request(1, "delay", "한국어"))
         first = active.receive()
         value = first.get("result", {})
@@ -173,6 +190,8 @@ def run_probe(binary: Path | None, *, timeout_seconds: float | None = None) -> d
         executable = Path(value["executable"]).resolve()
         if executable != (binary if frozen else Path(sys.executable).resolve()):
             raise AssertionError("Probe executable origin mismatch")
+        if not frozen and value.get("pid") != active.process.pid:
+            raise AssertionError("Source IPC host is not the exact Popen process")
         report["executable"] = str(executable)
         report["checks"]["delayed_reply_before_next_input"] = True
         report["checks"]["actual_frozen_identity"] = frozen
@@ -193,12 +212,15 @@ def run_probe(binary: Path | None, *, timeout_seconds: float | None = None) -> d
         active.close()
         active = None
         for mode in ("success", "cancel", "timeout", "hard_loss"):
+            report["stage"] = mode
             work = root / mode
             work.mkdir()
-            active = Process(command + ["--managed-host", mode, str(work), str(timeout)], root)
+            active = Process(command + ["--managed-host", mode, str(work), str(timeout)], root, env=environment)
             ready = active.receive(timeout=max(60, timeout + 10))
             if ready.get("event") != "ready" or ready.get("frozen") is not frozen:
                 raise AssertionError(f"{mode}: startup readiness was not established (not a cleanup assertion): {ready}")
+            if not frozen and ready.get("pid") != active.process.pid:
+                raise AssertionError("Source managed host is not the exact Popen process")
             pids = ready["child_pids"]
             if not isinstance(pids, list) or not pids or any(type(pid) is not int or pid <= 1 for pid in pids):
                 raise AssertionError("Invalid fixture process identities")
@@ -246,12 +268,15 @@ def run_probe(binary: Path | None, *, timeout_seconds: float | None = None) -> d
             report["checks"][mode] = {"passed": True, "helper_exit_verified": True,
                                       "registry_admitted_after_cleanup": True, "child_count": len(pids),
                                       "termination_verified": True}
+            if not frozen:
+                report["checks"][mode]["host_pid_verified"] = True
             if mode == "hard_loss":
                 report["checks"][mode]["method"] = "host_os_exit_without_cleanup"
                 report["checks"][mode]["registry_refused_during_suspended_helper_cleanup"] = True
                 report["checks"][mode]["crash_leftover_files_removed_by_driver"] = True
             active.close()
             active = None
+        report["stage"] = "completed"
         report["status"] = "passed"
     except Exception as exc:
         report["error"] = f"{type(exc).__name__}: {exc}"[:4000]
@@ -296,8 +321,14 @@ def run_probe(binary: Path | None, *, timeout_seconds: float | None = None) -> d
             report["status"] = "failed"
             report["cleanup_error"] = f"{type(exc).__name__}: {exc}"[:1000]
         try:
-            temporary.cleanup()
-            report["temporary_files_removed"] = not root.exists()
+            if temporary is not None:
+                temporary.cleanup()
+                report["temporary_files_removed"] = not root.exists()
+            elif report["status"] == "passed":
+                shutil.rmtree(root)
+                report["temporary_files_removed"] = not root.exists()
+            else:
+                report["temporary_files_removed"] = False
         except Exception as exc:
             report["status"] = "failed"
             report["cleanup_error"] = f"{type(exc).__name__}: {exc}"[:1000]

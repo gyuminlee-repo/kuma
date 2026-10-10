@@ -18,7 +18,7 @@ from kuma_core.kuro.optional_runtime import OptionalRuntimeManager, PRODUCTION_C
 from kuma_core.kuro.residue_mapping import PolymerRecord, ResidueId
 from scripts.merizo_runtime_archive.common import digest, read_regular, strict_json, write_json
 from scripts.merizo_runtime_archive.runtime_entry import (
-    FAILURE_SCHEMA, FAILURE_ERROR_TYPES, FAILURE_STAGES, MAX_FAILURE_BYTES, MAX_FAILURE_FRAMES, safe_error_type,
+    FAILURE_SCHEMA, FAILURE_ERROR_TYPES, FAILURE_STAGES, MAX_FAILURE_BYTES, MAX_FAILURE_FRAMES, safe_error_type, validate_warning_report,
 )
 
 PUBLIC_SHA = 'd4a6812d8951cf6594e6a0763f089e35f5a80b62acb3c117b2c5565228a7b161'
@@ -105,13 +105,18 @@ def read_failure(path: Path, *, schema=FAILURE_SCHEMA, line_key='runtime_entry_l
         if len(raw) > MAX_FAILURE_BYTES:
             raise ValueError('Diagnostic exceeds bound')
         value = strict_json(raw)
+        fields = {'schema', 'error_type', 'stage', line_key, 'truncated'}
+        if schema == FAILURE_SCHEMA:
+            fields.add('warning_observations')
         if (not isinstance(value, dict)
-                or set(value) != {'schema', 'error_type', 'stage', line_key, 'truncated'}
+                or set(value) != fields
                 or value['schema'] != schema or value['error_type'] not in FAILURE_ERROR_TYPES
                 or value['stage'] not in stages or type(value['truncated']) is not bool
                 or not isinstance(value[line_key], list) or len(value[line_key]) > MAX_FAILURE_FRAMES
                 or any(type(line) is not int or not 1 <= line <= 1000000 for line in value[line_key])):
             raise ValueError('Invalid diagnostic schema')
+        if schema == FAILURE_SCHEMA:
+            validate_warning_report(value['warning_observations'])
         return {'status': 'validated', 'report': value}
     except FileNotFoundError:
         return {'status': 'missing'}

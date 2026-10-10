@@ -22,6 +22,7 @@ import tempfile
 import time
 import warnings
 from types import CodeType
+from contextlib import contextmanager
 
 from kuma_core.kuro.domain_annotation import DomainInput, MAX_SOURCE_BYTES, MAX_RESULT_BYTES
 from kuma_core.kuro.domain_merizo import (
@@ -39,13 +40,267 @@ MAX_SOURCE_IDENTITY_BYTES = 2 * 1024 * 1024
 MAX_RUNTIME_RESIDUES = 2000  # Unmeasured conservative allocation guard, not safe-capacity evidence.
 MAX_FAILURE_BYTES = 4096
 MAX_FAILURE_FRAMES = 32
-FAILURE_SCHEMA = 'kuma-merizo-entry-failure-v1'
+FAILURE_SCHEMA = 'kuma-merizo-entry-failure-v2'
 FAILURE_ERROR_TYPES = frozenset({'ValueError', 'TypeError', 'KeyError', 'IndexError', 'RuntimeError',
     'ImportError', 'ModuleNotFoundError', 'OSError', 'FileNotFoundError', 'PermissionError',
     'MemoryError', 'OverflowError', 'AssertionError', 'TimeoutError', 'InputLimitError',
     'DomainAnnotationError', 'DomainProcessError', 'DomainProcessCancelled', 'SystemExit', 'OtherError'})
 FAILURE_STAGES = frozenset({'bootstrap', 'execute', 'input_validation', 'payload_verification',
                           'architecture', 'inference', 'feature_validation', 'result_envelope'})
+
+
+MAX_WARNING_SOURCES = 10000
+MAX_WARNING_SOURCE_BYTES = 4 * 1024 * 1024
+MAX_WARNING_SOURCE_TOTAL = 128 * 1024 * 1024
+MAX_WARNING_ITEMS = 4
+MAX_WARNING_COUNT = 65535
+MAX_WARNING_MESSAGE = 2048
+MAX_WARNING_STACK = 32
+_PYPARSING_SOURCE = '54b22b72a221e70ea7f7eb760b3c11008b3f8f4750eff0166e7d9e688c851f15'
+_TORCH_STORAGE_SOURCE = '0a7d86af5172fdfdd04027e01948fd0f3f02843f57ff11cfb9e5ea3729173323'
+_ALIAS_PAIRS = (('parseString', 'parse_string'), ('resetCache', 'reset_cache'),
+    ('enablePackrat', 'enable_packrat'), ('setParseAction', 'set_parse_action'),
+    ('setName', 'set_name'), ('leaveWhitespace', 'leave_whitespace'),
+    ('oneOf', 'one_of'), ('convertToFloat', 'convert_to_float'))
+_TYPED_STORAGE_MESSAGE = ('TypedStorage is deprecated. It will be removed in the future and UntypedStorage '
+    'will be the only storage class. This should only matter to you if you are using storages directly.  '
+    'To access UntypedStorage directly, use tensor.untyped_storage() instead of tensor.storage()')
+WARNING_IDS = frozenset({'unrecognized', 'torch_typed_storage_deprecated',
+    'pyparsing_unquote_results_argument', 'mpmath_mpnumeric_alias_deprecated',
+    'mpmath_rational_private_module_deprecated'} | {'pyparsing_' + new + '_alias' for _, new in _ALIAS_PAIRS})
+WARNING_CATEGORIES = frozenset({'Warning', 'UserWarning', 'DeprecationWarning', 'RuntimeWarning',
+    'FutureWarning', 'ImportWarning', 'ResourceWarning', 'SyntaxWarning', 'UnicodeWarning',
+    'BytesWarning', 'PyparsingDeprecationWarning', 'OtherWarning'})
+
+
+def source_member(name):
+    if (not isinstance(name, str) or len(name) > 240 or not name.endswith('.py')
+            or not re.fullmatch(r'[A-Za-z0-9_.+/-]+', name)
+            or any(part in {'', '.', '..'} for part in name.split('/'))):
+        raise ValueError('Invalid public Python source member')
+    return name
+
+
+def wheel_source_location(member):
+    parts = source_member(member).split('/')
+    if parts[0].endswith('.data'):
+        if len(parts) < 3 or parts[1] not in {'purelib', 'platlib'}:
+            raise ValueError('Not an importable wheel source location')
+        return '/'.join(parts[2:])
+    return member
+
+
+def validate_warning_sources(table):
+    """Informational public source references; not loaded-code authentication."""
+    if (not isinstance(table, dict) or set(table) != {'wheel', 'merizo', 'owners'}
+            or any(not isinstance(table[key], dict) for key in table)
+            or len(table['wheel']) + len(table['merizo']) > MAX_WARNING_SOURCES
+            or len(table['owners']) > 128):
+        raise ValueError('Invalid warning source-reference inventory')
+    for owner, sha in table['owners'].items():
+        if (not isinstance(owner, str) or not re.fullmatch('[a-z0-9][a-z0-9-]{0,99}', owner)
+                or not isinstance(sha, str) or not re.fullmatch('[0-9a-f]{64}', sha)):
+            raise ValueError('Invalid source-reference wheel owner')
+    locations = set()
+    for kind in ('wheel', 'merizo'):
+        for member, row in table[kind].items():
+            source_member(member)
+            if (not isinstance(row, list) or len(row) != (3 if kind == 'wheel' else 2)
+                    or not isinstance(row[0], str) or not re.fullmatch('[0-9a-f]{64}', row[0])
+                    or type(row[1]) is not int or not 1 <= row[1] <= MAX_WARNING_SOURCE_BYTES + 1
+                    or (kind == 'wheel' and row[2] not in table['owners'])):
+                raise ValueError('Invalid source-reference row')
+            location = (kind, wheel_source_location(member) if kind == 'wheel' else member)
+            if location in locations:
+                raise ValueError('Ambiguous source-reference location')
+            locations.add(location)
+    return table
+
+
+def warning_category(category):
+    for known in (Warning, UserWarning, DeprecationWarning, RuntimeWarning, FutureWarning,
+                  ImportWarning, ResourceWarning, SyntaxWarning, UnicodeWarning, BytesWarning):
+        if category is known:
+            return known.__name__
+    module = sys.modules.get('pyparsing.warnings')
+    if module is not None and category is vars(module).get('PyparsingDeprecationWarning'):
+        return 'PyparsingDeprecationWarning'
+    return 'OtherWarning'
+
+
+def known_warning(message, category, reference, function):
+    """Diagnostic IDs only. Even an exact known warning still fails the result."""
+    if reference is None or reference['kind'] != 'wheel':
+        return 'unrecognized'
+    if (reference['member'] == 'pyparsing/util.py' and reference['sha256'] == _PYPARSING_SOURCE
+            and warning_category(category) == 'PyparsingDeprecationWarning'):
+        if function == '_inner' and reference['line'] in (461, 472):
+            for old, new in _ALIAS_PAIRS:
+                if message == f"'{old}' deprecated - use '{new}'":
+                    return 'pyparsing_' + new + '_alias'
+        if (function == 'deprecate_argument' and reference['line'] == 506
+                and message == "'unquoteResults' argument is deprecated, use 'unquote_results'"):
+            return 'pyparsing_unquote_results_argument'
+    if (reference['member'] == 'torch/storage.py' and reference['sha256'] == _TORCH_STORAGE_SOURCE
+            and reference['line'] == 335 and function == '_warn_typed_storage_removal'
+            and category is UserWarning and message == _TYPED_STORAGE_MESSAGE):
+        return 'torch_typed_storage_deprecated'
+    if category is DeprecationWarning and function == '__getattr__':
+        candidates = (('mpmath/ctx_mp.py', 'e16b0facbe7e4a4120cab9af09629b32f008f199cbd6f98ed3bee6676e2d4d04',
+                       35, 'mpnumeric is deprecated', 'mpmath_mpnumeric_alias_deprecated'),
+                      ('mpmath/rational.py', '91cb2c603a6057510c46a707f60afb0102f428331b11e2e0f09beb4ef75647b9',
+                       4, 'the rational private module is deprecated', 'mpmath_rational_private_module_deprecated'))
+        for member, sha, line, text, identifier in candidates:
+            if (reference['member'], reference['sha256'], reference['line'], message) == (member, sha, line, text):
+                return identifier
+    return 'unrecognized'
+
+
+class WarningObserver:
+    """Bounded observation at showwarning; retain the original record/filter path."""
+    def __init__(self, internal, source, table, report):
+        self.internal, self.source, self.report = internal, source, report
+        self.index = {}
+        validate_warning_sources(table)
+        for kind in ('wheel', 'merizo'):
+            for member, row in table[kind].items():
+                location = wheel_source_location(member) if kind == 'wheel' else member
+                self.index[(kind, location)] = (member, row)
+        report.update(count=0, count_capped=False, truncated=False, collection_failed=False, items=[])
+
+    def reference(self, filename, line):
+        if not isinstance(filename, str) or len(filename) > 4096 or type(line) is not int:
+            return None
+        path = Path(filename)
+        if not path.is_absolute():
+            return None
+        # Lexical binding to the installed bundle only. No filesystem lookup of
+        # warning-supplied paths, and no claim that a filename authenticates code.
+        if '..' in path.parts:
+            return None
+        if path.suffix == '.pyc':
+            path = path.with_suffix('.py')
+        for kind, root in (('merizo', self.source), ('wheel', self.internal)):
+            if path.is_relative_to(root):
+                location = path.relative_to(root).as_posix()
+                item = self.index.get((kind, location))
+                if item is None:
+                    continue
+                member, row = item
+                if not 1 <= line <= row[1]:
+                    return None
+                return {'kind': kind, 'member': member, 'sha256': row[0], 'line': line,
+                        'owner': row[2] if kind == 'wheel' else 'merizo'}
+        return None
+
+    def frame_reference(self, frame):
+        declared = self.reference(frame.f_globals.get('__file__'), frame.f_lineno)
+        if declared is None:
+            return None
+        filename = frame.f_code.co_filename
+        absolute = self.reference(filename, frame.f_lineno)
+        if absolute == declared:
+            return declared
+        # PyInstaller 6.16 archive/writers.py ZlibArchiveWriter._write_entry
+        # writes an exact module-relative co_filename; the loader's __file__
+        # remains absolute in the bundle. Require both references to agree.
+        if declared['kind'] == 'wheel':
+            relative = wheel_source_location(declared['member'])
+            if filename in {relative, str(Path(relative))}:
+                return declared
+        return None
+
+    def collect(self, message, category, filename, lineno):
+        report = self.report
+        if report['count'] < MAX_WARNING_COUNT:
+            report['count'] += 1
+        else:
+            report['count_capped'] = True
+        if len(report['items']) >= MAX_WARNING_ITEMS:
+            report['truncated'] = True
+            return
+        # Do not call arbitrary __str__, which may expose data or allocate an
+        # unbounded string. Ordinary warn(str, category) stores its string in args.
+        text = message if type(message) is str else None
+        if isinstance(message, Warning) and type(message).__str__ is BaseException.__str__:
+            if len(message.args) == 1 and type(message.args[0]) is str:
+                text = message.args[0]
+        status, sha = 'unavailable', None
+        if text is not None:
+            status = 'oversized'
+            if len(text) <= MAX_WARNING_MESSAGE:
+                raw = text.encode('utf-8')
+                if len(raw) <= 4 * MAX_WARNING_MESSAGE:
+                    sha, status = hashlib.sha256(raw).hexdigest(), 'complete'
+        active, function = None, None
+        frame = sys._getframe(1)
+        try:
+            for _ in range(MAX_WARNING_STACK):
+                if frame is None:
+                    break
+                if frame.f_code in (self.hook_code, WarningObserver.collect.__code__):
+                    frame = frame.f_back
+                    continue
+                if frame.f_globals is vars(warnings):
+                    frame = frame.f_back
+                    continue
+                # Only the nearest non-warnings Python caller is eligible. Never
+                # search a distant matching ancestor to manufacture attribution.
+                active = self.frame_reference(frame)
+                function = frame.f_code.co_name
+                break
+        finally:
+            del frame
+        report['items'].append({'category': warning_category(category), 'message_sha256': sha,
+            'message_status': status, 'known_id': known_warning(text, category, active, function),
+            'active_source': active, 'reported_source': self.reference(filename, lineno)})
+
+    @contextmanager
+    def observe(self):
+        original = warnings.showwarning
+        def showwarning(message, category, filename, lineno, file=None, line=None):
+            try:
+                self.collect(message, category, filename, lineno)
+            except Exception:
+                self.report['collection_failed'] = True
+            finally:
+                original(message, category, filename, lineno, file=file, line=line)
+        self.hook_code = showwarning.__code__
+        warnings.showwarning = showwarning
+        try:
+            yield
+        finally:
+            warnings.showwarning = original
+
+
+def validate_warning_report(report):
+    if report is None:
+        return
+    if (not isinstance(report, dict) or set(report) != {'count', 'count_capped', 'truncated', 'collection_failed', 'items'}
+            or type(report['count']) is not int or not 0 <= report['count'] <= MAX_WARNING_COUNT
+            or any(type(report[key]) is not bool for key in ('count_capped', 'truncated', 'collection_failed'))
+            or not isinstance(report['items'], list) or len(report['items']) > min(MAX_WARNING_ITEMS, report['count'])):
+        raise ValueError('Invalid warning observation report')
+    for row in report['items']:
+        if (not isinstance(row, dict) or set(row) != {'category', 'message_sha256', 'message_status', 'known_id',
+                                                    'active_source', 'reported_source'}
+                or row['category'] not in WARNING_CATEGORIES or row['known_id'] not in WARNING_IDS
+                or row['message_status'] not in {'complete', 'oversized', 'unavailable'}
+                or ((row['message_status'] == 'complete') != (isinstance(row['message_sha256'], str)
+                    and re.fullmatch('[0-9a-f]{64}', row['message_sha256']) is not None))
+                or (row['message_status'] != 'complete' and row['message_sha256'] is not None)):
+            raise ValueError('Invalid warning observation')
+        for key in ('active_source', 'reported_source'):
+            ref = row[key]
+            if ref is None:
+                continue
+            if (not isinstance(ref, dict) or set(ref) != {'kind', 'member', 'sha256', 'line', 'owner'}
+                    or ref['kind'] not in {'wheel', 'merizo'} or not isinstance(ref['sha256'], str)
+                    or not re.fullmatch('[0-9a-f]{64}', ref['sha256']) or type(ref['line']) is not int
+                    or not 1 <= ref['line'] <= MAX_WARNING_SOURCE_BYTES + 1
+                    or not isinstance(ref['owner'], str) or not re.fullmatch('[a-z0-9][a-z0-9-]{0,99}', ref['owner'])):
+                raise ValueError('Invalid warning source location reference')
+            source_member(ref['member'])
 
 
 class InputLimitError(ValueError):
@@ -128,6 +383,8 @@ def verify_payload(internal: Path, expected_identity_sha256: str) -> tuple[Path,
             raise ValueError('Invalid model file')
         if digest(path) != expected:
             raise ValueError('Pinned model SHA-256 mismatch before torch.load')
+    if 'warning_sources' in identity:
+        validate_warning_sources(identity['warning_sources'])
     return source, weights, identity
 
 
@@ -235,17 +492,23 @@ def make_envelope(prepared, features, labels, ndom, confidence, elapsed):
                            'confidence': confidence, 'time_sec': elapsed}}
 
 
-def execute(pdb: Path, manifest: Path, output: Path, internal: Path, identity_sha: str) -> None:
+def execute(pdb: Path, manifest: Path, output: Path, internal: Path, identity_sha: str, *, warning_report=None) -> None:
     if output.exists() or output.is_symlink() or not output.parent.is_dir():
         raise ValueError('Result destination must be a fresh file in an existing private directory')
     prepared = load_prepared(pdb, manifest)
-    source, weights, _ = verify_payload(internal, identity_sha)
+    source, weights, identity = verify_payload(internal, identity_sha)
     with warnings.catch_warnings(record=True) as observed:
         # Respect Python's default DeprecationWarning suppression, while
         # retaining actionable runtime/numerical warnings as a failed result.
         warnings.simplefilter('always', RuntimeWarning)
         warnings.simplefilter('always', UserWarning)
-        result = infer(prepared, source, weights)
+        if warning_report is None:
+            result = infer(prepared, source, weights)
+        else:
+            table = identity.get('warning_sources', {'wheel': {}, 'merizo': {}, 'owners': {}})
+            observer = WarningObserver(internal, source, table, warning_report)
+            with observer.observe():
+                result = infer(prepared, source, weights)
     if observed:
         raise ValueError('Inference emitted a warning; no result was published')
     decode_merizo_result(json.dumps(result, allow_nan=False), prepared,
@@ -270,10 +533,17 @@ def failure_lines(exc: BaseException, codes: dict[CodeType, str]) -> tuple[list[
     return lines[-MAX_FAILURE_FRAMES:], stage, trace is not None or len(lines) > MAX_FAILURE_FRAMES
 
 
-def failure_diagnostic(exc: BaseException) -> dict:
+def failure_diagnostic(exc: BaseException, warning_report=None) -> dict:
     lines, stage, truncated = failure_lines(exc, _FAILURE_CODE_STAGES)
-    return {'schema': FAILURE_SCHEMA, 'error_type': safe_error_type(exc), 'stage': stage,
-            'runtime_entry_lines': lines, 'truncated': truncated}
+    validate_warning_report(warning_report)
+    report = {'schema': FAILURE_SCHEMA, 'error_type': safe_error_type(exc), 'stage': stage,
+              'runtime_entry_lines': lines, 'truncated': truncated, 'warning_observations': warning_report}
+    while len(canonical(report)) + 1 > MAX_FAILURE_BYTES and warning_report and warning_report['items']:
+        warning_report['items'].pop()
+        warning_report['truncated'] = True
+    if len(canonical(report)) + 1 > MAX_FAILURE_BYTES:
+        raise ValueError('Failure report exceeds bound')
+    return report
 
 
 def failure_destination(path: Path, forbidden: tuple[Path, ...] = ()) -> Path:
@@ -311,6 +581,7 @@ def main(argv=None) -> int:
     parser.add_argument('--audit-failure-report', type=Path)
     args = parser.parse_args(argv)
     audit_path = None
+    warning_report = {}
     try:
         if not getattr(sys, 'frozen', False):
             raise ValueError('Use the managed frozen runtime')
@@ -323,12 +594,13 @@ def main(argv=None) -> int:
         internal = Path(getattr(sys, '_MEIPASS')).resolve()
         if not internal.is_relative_to(Path(sys.executable).resolve().parent):
             raise ValueError('Frozen payload escapes its installed runtime')
-        execute(args.input_pdb, args.input_manifest, args.output, internal, identity_module.SOURCE_IDENTITY_SHA256)
+        execute(args.input_pdb, args.input_manifest, args.output, internal, identity_module.SOURCE_IDENTITY_SHA256,
+                warning_report=warning_report if audit_path is not None else None)
         return 0
     except Exception as exc:
         if audit_path is not None:
             try:
-                publish_failure(audit_path, failure_diagnostic(exc))
+                publish_failure(audit_path, failure_diagnostic(exc, warning_report or None))
             except Exception:
                 pass  # Diagnostic failure must never replace the original failure.
         # No private input, paths or arbitrary upstream exception text in logs.

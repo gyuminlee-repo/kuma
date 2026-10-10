@@ -42,3 +42,31 @@ for (const file of ["merizo-platform-smoke.yml", "merizo-windows-smoke.yml"]) {
     });
   });
 }
+
+it("gates heavy Windows model work on the exact small venv probe", () => {
+  const source = readFileSync(resolve(".github/workflows/merizo-windows-smoke.yml"), "utf8");
+  const document = yaml.load(source) as { jobs: Record<string, {
+    needs?: string; "timeout-minutes": number;
+    steps: Array<{ name?: string; uses?: string; if?: string; run?: string; with?: Record<string, unknown> }>;
+  }> };
+  const probe = document.jobs["windows-venv-domain-contract"];
+  expect(probe["timeout-minutes"]).toBe(5);
+  expect(document.jobs["native-windows-cpu"].needs).toBe("windows-venv-domain-contract");
+  expect(probe.steps.find((step) => step.uses === "actions/setup-python@v6")?.with?.["python-version"]).toBe("3.11.9");
+  const commands = probe.steps.map((step) => step.run ?? "").join("\n");
+  expect(commands).toContain("psutil==7.2.2");
+  expect(commands).toContain("windows_venv_probe.py --report");
+  expect(commands).not.toMatch(/Merizo|torch|weights|requirements\.txt/);
+  const artifact = probe.steps.find((step) => step.uses === "actions/upload-artifact@v4");
+  expect(artifact?.if).toBe("always()");
+  expect(artifact?.with?.path).toBe("merizo-smoke-results/windows-venv-domain-contract.json");
+  const cleanup = probe.steps.find((step) => step.name === "Remove only owned probe venv");
+  expect(cleanup?.if).toBe("always()");
+  expect(cleanup?.run).toContain("Probe ownership mismatch");
+  expect(cleanup?.run).toContain("cleanup_verified -is [bool]");
+  expect(cleanup?.run).toContain("Probe cleanup not verified; preserve venv");
+  expect(cleanup?.run).toContain("Length -gt 16384");
+  expect(cleanup?.run).toContain("Invalid probe root; preserve directory");
+  expect(cleanup?.run?.indexOf("cleanup_verified")).toBeLessThan(cleanup?.run?.indexOf("Remove-Item") ?? -1);
+  expect(cleanup?.run).toContain("-LiteralPath $venv");
+});

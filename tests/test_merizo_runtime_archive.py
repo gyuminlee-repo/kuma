@@ -134,7 +134,7 @@ class RuntimeFailureDiagnosticTests(unittest.TestCase):
             self.assertEqual(self.call_entry(), 2)
         raw = self.audit.read_text()
         report = strict_json(raw.encode())
-        self.assertEqual(set(report), {'schema', 'error_type', 'stage', 'runtime_entry_lines', 'truncated'})
+        self.assertEqual(set(report), {'schema', 'error_type', 'stage', 'runtime_entry_lines', 'truncated', 'warning_observations'})
         self.assertEqual(report['error_type'], 'ValueError')
         self.assertEqual(report['stage'], 'execute')
         self.assertTrue(report['runtime_entry_lines'])
@@ -231,6 +231,327 @@ class RuntimeFailureDiagnosticTests(unittest.TestCase):
         self.assertEqual(read_failure(link), {'status': 'rejected'})
         with patch.object(runtime_entry.Path, 'cwd', return_value=self.root), self.assertRaises(ValueError):
             runtime_entry.failure_destination(link)
+
+
+class WarningObservationTests(unittest.TestCase):
+    def setUp(self):
+        from types import ModuleType
+        import warnings
+        self.warnings = warnings
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name).resolve()
+        self.source = self.root / 'merizo_source'
+        self.category = type('PyparsingDeprecationWarning', (UserWarning, DeprecationWarning), {})
+        self.module = ModuleType('pyparsing.warnings')
+        setattr(self.module, 'PyparsingDeprecationWarning', self.category)
+        self.table = {'wheel': {'pyparsing/util.py': [runtime_entry._PYPARSING_SOURCE, 600, 'pyparsing'],
+                               'torch/storage.py': [runtime_entry._TORCH_STORAGE_SOURCE, 1100, 'torch']},
+                      'merizo': {}, 'owners': {'pyparsing': '1' * 64, 'torch': '2' * 64}}
+
+    def emitter(self, member='pyparsing/util.py', function='_inner', line=461, declared=None, stacklevel=2, code_filename=None):
+        path = str(self.root / member)
+        namespace = {'__file__': path if declared is None else declared, 'warnings': self.warnings}
+        code = '\n' * (line - 2) + f'def {function}(message, category):\n    warnings.warn(message, category, stacklevel={stacklevel})\n'
+        exec(compile(code, path if code_filename is None else code_filename, 'exec'), namespace)
+        return namespace[function]
+
+    def capture(self, emit, message, category=None):
+        report = {}
+        with patch.dict(runtime_entry.sys.modules, {'pyparsing.warnings': self.module}), \
+             self.warnings.catch_warnings(record=True) as recorded:
+            self.warnings.simplefilter('always')
+            original = self.warnings.showwarning
+            observer = runtime_entry.WarningObserver(self.root, self.source, self.table, report)
+            with observer.observe():
+                emit(message, category or self.category)
+            self.assertIs(self.warnings.showwarning, original)
+        self.assertEqual(len(recorded), 1)
+        runtime_entry.validate_warning_report(report)
+        return report
+
+    def test_exact_candidate_binds_class_message_source_function_and_immediate_line(self):
+        for old, new in runtime_entry._ALIAS_PAIRS:
+            with self.subTest(alias=old):
+                report = self.capture(self.emitter(), f"'{old}' deprecated - use '{new}'")
+                row = report['items'][0]
+                self.assertEqual(row['known_id'], 'pyparsing_' + new + '_alias')
+                self.assertEqual(row['active_source']['member'], 'pyparsing/util.py')
+                self.assertEqual(row['active_source']['line'], 461)
+                self.assertIsNone(row['reported_source'])  # stacklevel points to this test, outside bundle.
+                self.assertNotIn(str(self.root), json.dumps(report))
+        typed = self.capture(self.emitter('torch/storage.py', '_warn_typed_storage_removal', 335),
+                             runtime_entry._TYPED_STORAGE_MESSAGE, UserWarning)
+        self.assertEqual(typed['items'][0]['known_id'], 'torch_typed_storage_deprecated')
+        keyword = self.capture(self.emitter(function='deprecate_argument', line=506),
+                               "'unquoteResults' argument is deprecated, use 'unquote_results'")
+        self.assertEqual(keyword['items'][0]['known_id'], 'pyparsing_unquote_results_argument')
+
+    def test_mpmath_fixed_candidates_are_diagnostic_only_and_pin_bound(self):
+        candidates = [('mpmath/ctx_mp.py', 'e16b0facbe7e4a4120cab9af09629b32f008f199cbd6f98ed3bee6676e2d4d04',
+                       35, 'mpnumeric is deprecated', 'mpmath_mpnumeric_alias_deprecated'),
+                      ('mpmath/rational.py', '91cb2c603a6057510c46a707f60afb0102f428331b11e2e0f09beb4ef75647b9',
+                       4, 'the rational private module is deprecated', 'mpmath_rational_private_module_deprecated')]
+        self.table['owners']['mpmath'] = '3' * 64
+        for member, sha, line, message, identifier in candidates:
+            self.table['wheel'][member] = [sha, 1000, 'mpmath']
+            with self.subTest(member=member):
+                emit = self.emitter(member, '__getattr__', line, stacklevel=1)
+                self.assertEqual(self.capture(emit, message, DeprecationWarning)['items'][0]['known_id'], identifier)
+                self.assertEqual(self.capture(emit, message + ' ', DeprecationWarning)['items'][0]['known_id'], 'unrecognized')
+                self.assertEqual(self.capture(emit, message, UserWarning)['items'][0]['known_id'], 'unrecognized')
+
+    def test_stack_walk_is_bounded_and_pyc_location_is_only_a_reference(self):
+        emit = self.emitter(declared=str(self.root / 'pyparsing/util.pyc'))
+        self.assertEqual(self.capture(emit, "'parseString' deprecated - use 'parse_string'")['items'][0]['known_id'],
+                         'pyparsing_parse_string_alias')
+        with patch.object(runtime_entry, 'MAX_WARNING_STACK', 1):
+            report = self.capture(emit, "'parseString' deprecated - use 'parse_string'")
+        self.assertIsNone(report['items'][0]['active_source'])
+        self.assertEqual(report['items'][0]['known_id'], 'unrecognized')
+        observer = runtime_entry.WarningObserver(self.root, self.source, self.table, {})
+        for filename, line in ((str(self.root / 'pyparsing/util.py'), True),
+                               (str(self.root / 'pyparsing/util.py'), 601),
+                               (str(self.root / 'elsewhere/../pyparsing/util.py'), 461),
+                               ('pyparsing/util.py', 461)):
+            with self.subTest(filename=filename), self.assertNoLogs():
+                self.assertIsNone(observer.reference(filename, line))
+
+    def test_frozen_relative_code_requires_exact_absolute_bundle_module_anchor(self):
+        message = "'parseString' deprecated - use 'parse_string'"
+        for filename in {'pyparsing/util.py', str(Path('pyparsing/util.py'))}:
+            with self.subTest(filename=filename):
+                report = self.capture(self.emitter(code_filename=filename, stacklevel=1), message)
+                row = report['items'][0]
+                self.assertEqual(row['known_id'], 'pyparsing_parse_string_alias')
+                self.assertEqual(row['active_source']['member'], 'pyparsing/util.py')
+                self.assertIsNone(row['reported_source'])  # No independent relative-path attribution.
+        controls = [('util.py', None), ('other/pyparsing/util.py', None),
+                    ('./pyparsing/util.py', None), ('../pyparsing/util.py', None),
+                    ('pyparsing/../pyparsing/util.py', None), ('C:pyparsing/util.py', None),
+                    ('//server/share/pyparsing/util.py', None), ('/outside/pyparsing/util.py', None),
+                    ('pyparsing/util.py', '/private/unrelated.py'),
+                    ('pyparsing/util.py', str(self.root / 'torch/storage.py'))]
+        for filename, declared in controls:
+            with self.subTest(filename=filename, declared=declared):
+                row = self.capture(self.emitter(code_filename=filename, declared=declared), message)['items'][0]
+                self.assertIsNone(row['active_source'])
+                self.assertEqual(row['known_id'], 'unrecognized')
+
+    def test_near_match_wrong_frame_category_and_pin_remain_unknown(self):
+        message = "'parseString' deprecated - use 'parse_string'"
+        controls = [(self.emitter(), message + ' ', self.category),
+                    (self.emitter(function='different'), message, self.category),
+                    (self.emitter(line=460), message, self.category),
+                    (self.emitter(declared='/private/unrelated.py'), message, self.category),
+                    (self.emitter(), message, type('PyparsingDeprecationWarning', (UserWarning,), {})),
+                    (self.emitter(), 'nonfinite private tensor', RuntimeWarning)]
+        for emit, text, category in controls:
+            with self.subTest(text=text, category=category):
+                row = self.capture(emit, text, category)['items'][0]
+                self.assertEqual(row['known_id'], 'unrecognized')
+        self.table['wheel']['pyparsing/util.py'][0] = '0' * 64
+        self.assertEqual(self.capture(self.emitter(), message)['items'][0]['known_id'], 'unrecognized')
+
+    def test_unknown_source_has_public_reference_but_no_arbitrary_path_or_ancestor_attribution(self):
+        self.table['wheel']['other/public.py'] = ['3' * 64, 900, 'torch']
+        row = self.capture(self.emitter('other/public.py', 'unknown', 51, stacklevel=1),
+                           'PRIVATE /secret/path sequence', UserWarning)['items'][0]
+        self.assertEqual(row['known_id'], 'unrecognized')
+        self.assertEqual(row['active_source']['member'], 'other/public.py')
+        self.assertEqual(row['reported_source'], row['active_source'])
+        self.assertNotIn('PRIVATE', json.dumps(row))
+        self.assertNotIn('/secret/path', json.dumps(row))
+        unknown = self.emitter('not_inventory.py', 'unknown', 51)
+        namespace = {'__file__': str(self.root / 'pyparsing/util.py'), 'unknown': unknown}
+        exec(compile('\n' * 459 + 'def _inner(message, category):\n    unknown(message, category)\n',
+                     namespace['__file__'], 'exec'), namespace)
+        row = self.capture(namespace['_inner'], "'parseString' deprecated - use 'parse_string'")['items'][0]
+        self.assertIsNone(row['active_source'])
+        self.assertEqual(row['known_id'], 'unrecognized')
+
+    def test_collector_failures_delegate_and_restore_even_if_inference_raises(self):
+        with self.warnings.catch_warnings(record=True) as recorded:
+            self.warnings.simplefilter('always')
+            original = self.warnings.showwarning
+            report = {}
+            observer = runtime_entry.WarningObserver(self.root, self.source, self.table, report)
+            with patch.object(observer, 'collect', side_effect=ValueError('PRIVATE')), self.assertRaisesRegex(RuntimeError, 'original'):
+                with observer.observe():
+                    self.warnings.warn('first', UserWarning)
+                    raise RuntimeError('original')
+            self.assertIs(self.warnings.showwarning, original)
+            self.assertEqual(len(recorded), 1)
+            self.assertTrue(report['collection_failed'])
+        for target in ('reference',):
+            report = {}
+            with self.warnings.catch_warnings(record=True) as recorded:
+                self.warnings.simplefilter('always')
+                observer = runtime_entry.WarningObserver(self.root, self.source, self.table, report)
+                with patch.object(observer, target, side_effect=ValueError('PRIVATE')), observer.observe():
+                    self.emitter()('warning', UserWarning)
+            self.assertEqual(len(recorded), 1)
+            self.assertTrue(report['collection_failed'])
+
+    def test_default_suppression_and_showwarning_delegation_are_unchanged(self):
+        with self.warnings.catch_warnings(record=True) as recorded:
+            self.warnings.simplefilter('ignore', DeprecationWarning)
+            self.warnings.simplefilter('always', UserWarning)
+            report = {}
+            observer = runtime_entry.WarningObserver(self.root, self.source, self.table, report)
+            with observer.observe():
+                self.emitter()('suppressed', DeprecationWarning)
+                self.emitter()('observed', UserWarning)
+        self.assertEqual(len(recorded), 1)
+        self.assertEqual(report['count'], 1)
+
+    def test_oversized_messages_counts_and_final_envelope_are_bounded(self):
+        row = self.capture(self.emitter(), 'x' * (runtime_entry.MAX_WARNING_MESSAGE + 1))['items'][0]
+        self.assertEqual(row['message_status'], 'oversized')
+        self.assertIsNone(row['message_sha256'])
+        report = {}
+        observer = runtime_entry.WarningObserver(self.root, self.source, self.table, report)
+        with self.warnings.catch_warnings(record=True) as recorded:
+            self.warnings.simplefilter('always')
+            with observer.observe():
+                for _ in range(runtime_entry.MAX_WARNING_ITEMS + 2):
+                    self.emitter()('warning', UserWarning)
+        self.assertEqual(len(recorded), runtime_entry.MAX_WARNING_ITEMS + 2)
+        self.assertEqual(len(report['items']), runtime_entry.MAX_WARNING_ITEMS)
+        self.assertTrue(report['truncated'])
+        report['count'] = runtime_entry.MAX_WARNING_COUNT
+        observer.collect('warning', UserWarning, '/private', 1)
+        self.assertTrue(report['count_capped'])
+        long_member = 'a/' * 100 + 'source.py'
+        for item in report['items']:
+            ref = {'kind': 'wheel', 'member': long_member, 'sha256': '1' * 64, 'line': 1, 'owner': 'a' * 100}
+            item['active_source'] = item['reported_source'] = ref
+        diagnostic = runtime_entry.failure_diagnostic(ValueError(), report)
+        self.assertLessEqual(len(canonical(diagnostic)) + 1, runtime_entry.MAX_FAILURE_BYTES)
+        self.assertLess(len(report['items']), runtime_entry.MAX_WARNING_ITEMS)
+        self.assertTrue(report['truncated'])
+
+    def test_custom_str_is_never_called_and_hash_failure_does_not_hide_warning(self):
+        class HostileWarning(UserWarning):
+            def __str__(self):
+                raise AssertionError('PRIVATE __str__ must not be called')
+        # warnings.warn itself may call __str__ before showwarning. Exercise
+        # the observer boundary directly without changing that upstream behavior.
+        def direct(message, _):
+            self.warnings.showwarning(message, type(message), str(self.root / 'pyparsing/util.py'), 461)
+        row = self.capture(direct, HostileWarning('private'))['items'][0]
+        self.assertEqual(row['message_status'], 'unavailable')
+        report = {}
+        with self.warnings.catch_warnings(record=True) as recorded:
+            self.warnings.simplefilter('always')
+            observer = runtime_entry.WarningObserver(self.root, self.source, self.table, report)
+            with patch.object(runtime_entry.hashlib, 'sha256', side_effect=ValueError('private')), observer.observe():
+                self.emitter()('warning', UserWarning)
+        self.assertEqual(len(recorded), 1)
+        self.assertTrue(report['collection_failed'])
+
+    def test_execute_keeps_known_unknown_and_numeric_warnings_fatal(self):
+        prepared = prepared_synthetic()
+        pdb, manifest, output = self.root / 'input.pdb', self.root / 'input.json', self.root / 'result.json'
+        pdb.write_bytes(prepared.normalized_pdb.encode('ascii'))
+        write_json(manifest, domain_input_manifest(prepared))
+        for text, category in (("'parseString' deprecated - use 'parse_string'", self.category),
+                               ('unknown', UserWarning), ('nonfinite', RuntimeWarning)):
+            report = {}
+            def infer(*_):
+                self.emitter()(text, category)
+                return envelope(prepared)
+            with patch.dict(runtime_entry.sys.modules, {'pyparsing.warnings': self.module}), \
+                 patch.object(runtime_entry, 'verify_payload', return_value=(self.source, self.root, {'warning_sources': self.table})), \
+                 patch.object(runtime_entry, 'infer', side_effect=infer), self.assertRaises(ValueError):
+                runtime_entry.execute(pdb, manifest, output, self.root, '0' * 64, warning_report=report)
+            self.assertEqual(report['count'], 1)
+            self.assertFalse(output.exists())
+
+    def test_reader_rejects_malformed_warning_fields(self):
+        from scripts.merizo_runtime_archive.roundtrip import read_failure
+        report = self.capture(self.emitter(), 'warning')
+        valid = runtime_entry.failure_diagnostic(ValueError(), report)
+        path = self.root / 'failure.json'
+        bad_values = [dict(report, count=True), dict(report, count=65536), dict(report, private='secret')]
+        for field, value in (('category', 'PrivateClass'), ('known_id', 'invented'), ('message_status', 'partial'),
+                             ('message_sha256', 'private'), ('active_source', {'member': '/private'})):
+            altered = copy.deepcopy(report)
+            altered['items'][0][field] = value
+            bad_values.append(altered)
+        for bad in bad_values:
+            with self.subTest(bad=bad):
+                write_json(path, {**valid, 'warning_observations': bad})
+                self.assertEqual(read_failure(path), {'status': 'rejected'})
+
+
+class WarningSourceInventoryTests(unittest.TestCase):
+    def setUp(self):
+        from scripts.merizo_runtime_archive import build
+        self.build = build
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name).resolve()
+        self.source = self.root / 'source'
+        self.source.mkdir()
+        self.py = self.root / 'site' / 'public.py'
+        self.py.parent.mkdir()
+        self.py.write_bytes(b'# public source\n')
+        (self.source / 'predict.py').write_bytes(b'# pinned source\n')
+        self.identity = {'python_files': {'predict.py': digest(self.source / 'predict.py')}}
+        self.row = {'path': str(self.py), 'wheel_member': 'public.py', 'wheel_installation_scheme': 'site',
+                    'mapping': 'exact_wheel_member', 'sha256': digest(self.py), 'wheel_member_sha256': digest(self.py),
+                    'owner': 'test-package', 'wheel_sha256': '1' * 64}
+
+    def inventory(self, rows=None):
+        with patch.object(self.build.sys, 'prefix', str(self.root)):
+            return self.build.warning_source_inventory(self.source, self.identity,
+                {'installed_files': [self.row] if rows is None else rows})
+
+    def test_identity_copy_and_compact_audit_projection(self):
+        identity, summary = self.inventory()
+        self.assertNotIn('warning_sources', self.identity)
+        self.assertEqual(identity['warning_sources']['wheel']['public.py'], [digest(self.py), 2, 'test-package'])
+        self.assertFalse(summary['loaded_code_authentication'])
+        self.assertLess(len(canonical(summary)), 400)
+        self.assertEqual(summary['runtime_identity_bytes'], len(canonical(identity)) + 1)
+        self.assertEqual(summary['table_sha256'], hashlib.sha256(canonical(identity['warning_sources'])).hexdigest())
+        # Near-current audit occupancy: only the compact projection is appended.
+        report = {'existing_evidence': 'x' * 31_200_000, 'build': {'warning_source_references': summary}}
+        self.assertLess(len(canonical(report)) + 1, 32 * 1024 * 1024)
+
+    def test_hash_owner_collision_escape_and_bounds_refuse(self):
+        controls = [[self.row, dict(self.row, owner='another')],
+                    [dict(self.row, sha256='0' * 64)],
+                    [dict(self.row, wheel_member_sha256='0' * 64)],
+                    [dict(self.row, mapping='unexplained_installer_transform')],
+                    [dict(self.row, path='/outside/private.py')],
+                    [dict(self.row, wheel_member='../private.py')],
+                    [self.row, dict(self.row, wheel_member='x.data/purelib/public.py')]]
+        for rows in controls:
+            with self.subTest(rows=rows), self.assertRaises(ValueError):
+                self.inventory(rows)
+        for constant, bound in (('MAX_WARNING_SOURCES', 1), ('MAX_WARNING_SOURCE_BYTES', 1),
+                                ('MAX_WARNING_SOURCE_TOTAL', 1), ('MAX_SOURCE_IDENTITY_BYTES', 10)):
+            with self.subTest(constant=constant), patch.object(self.build, constant, bound), self.assertRaises(ValueError):
+                self.inventory()
+        self.py.write_bytes(b'# changed after prior verification\n')
+        with self.assertRaises(ValueError):
+            self.inventory()
+
+    def test_runtime_source_table_rejects_malformed_colliding_and_overbound_entries(self):
+        identity, _ = self.inventory()
+        table = identity['warning_sources']
+        for member, row in (('../bad.py', ['0' * 64, 1, 'test-package']),
+                            ('bad.py', ['0' * 64, True, 'test-package']),
+                            ('bad.py', ['0' * 64, 1, 'unknown']),
+                            ('x.data/purelib/public.py', ['0' * 64, 1, 'test-package'])):
+            altered = copy.deepcopy(table)
+            altered['wheel'][member] = row
+            with self.subTest(member=member), self.assertRaises(ValueError):
+                runtime_entry.validate_warning_sources(altered)
+        with patch.object(runtime_entry, 'MAX_WARNING_SOURCES', 1), self.assertRaises(ValueError):
+            runtime_entry.validate_warning_sources(table)
 
 
 class PreparedInputTests(unittest.TestCase):

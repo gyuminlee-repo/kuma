@@ -496,3 +496,16 @@ text. They identify the last entered stage if the outer workflow terminates the
 controller before its final audit. They do not prove stage completion, child exit
 or cleanup, and do not replace the controller-written completion audit. This is
 observability on the existing controller log stream, not a timeout fix.
+
+For an internal audit build, fatal warnings can additionally retain at most four
+bounded observations: fixed category/known-message identifiers and verified-wheel
+or pinned-Merizo source references. Source references are member/hash/line records,
+not arbitrary filesystem paths or proof of the currently loaded code. A compact,
+build-bound source table allows an unfamiliar Python warning to be investigated
+against its public source; unresolved/C-emitted cases remain explicitly unknown.
+The observer preserves the existing warning filters and recording, delegates the
+original warning handler, restores it on exit, and discards inspected frames.
+Every observed warning remains fatal, including recognized deprecation candidates.
+The complete failure report still has a 4 KiB serialized cap. The source table
+lives only in the bounded runtime identity; the final audit stores its compact
+summary/hash rather than duplicating thousands of references.

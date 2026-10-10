@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 from dataclasses import asdict
 import importlib.metadata
+import hashlib
 import json
 import marshal
 import os
@@ -31,11 +32,66 @@ from scripts.merizo_runtime_archive.provenance import installed_provenance, map_
 from scripts.merizo_runtime_archive.roundtrip import public_inputs, roundtrip, read_failure, stage_event
 from scripts.merizo_runtime_archive.runtime_entry import (
     MAX_RUNTIME_RESIDUES, safe_error_type, failure_lines, publish_failure,
+    MAX_SOURCE_IDENTITY_BYTES, MAX_WARNING_SOURCES, MAX_WARNING_SOURCE_BYTES, MAX_WARNING_SOURCE_TOTAL,
+    validate_warning_sources, source_member, wheel_source_location,
 )
 
 PACKAGE = 'kuma-merizo'
 BUILD_TIMEOUT_SECONDS = 600
 MAX_SOURCE_COMPANION = 2 * 1024 * 1024 * 1024
+
+
+def warning_source_inventory(source, identity, provenance):
+    """Public source-location references derived from exact verified input bytes.
+
+    These references do not authenticate the currently loaded frozen code.
+    Keep the complete table out of the near-cap final build audit JSON.
+    """
+    table = {'wheel': {}, 'merizo': {}, 'owners': {}}
+    total, count = 0, 0
+    locations = set()
+    def add(kind, member, path, expected, owner=None, wheel=None):
+        nonlocal total, count
+        source_member(member)
+        location = wheel_source_location(member) if kind == 'wheel' else member
+        if (kind, location) in locations or member in table[kind]:
+            raise ValueError('Colliding public source reference')
+        locations.add((kind, location))
+        count += 1
+        if count > MAX_WARNING_SOURCES:
+            raise ValueError('Too many public source references')
+        raw = read_regular(path, min(MAX_WARNING_SOURCE_BYTES, MAX_WARNING_SOURCE_TOTAL - total))
+        total += len(raw)
+        if hashlib.sha256(raw).hexdigest() != expected:
+            raise ValueError('Source-reference bytes differ from verified input')
+        row = [expected, raw.count(b'\n') + 1]
+        if kind == 'wheel':
+            previous = table['owners'].setdefault(owner, wheel)
+            if previous != wheel:
+                raise ValueError('Ambiguous wheel source owner')
+            row.append(owner)
+        table[kind][member] = row
+    for row in provenance['installed_files']:
+        member = row.get('wheel_member', '')
+        if not member.endswith('.py') or row.get('wheel_installation_scheme') != 'site':
+            continue
+        if row.get('mapping') != 'exact_wheel_member' or row['sha256'] != row['wheel_member_sha256']:
+            raise ValueError('Importable source lacks exact wheel correspondence')
+        path = Path(row['path'])
+        if not path.is_absolute() or not path.is_relative_to(Path(sys.prefix).resolve()):
+            raise ValueError('Source-reference input escapes isolated environment')
+        add('wheel', member, path, row['sha256'], row['owner'], row['wheel_sha256'])
+    for member, expected in identity['python_files'].items():
+        add('merizo', member, source / source_member(member), expected)
+    validate_warning_sources(table)
+    runtime_identity = {**identity, 'warning_sources': table}
+    if len(canonical(runtime_identity)) + 1 > MAX_SOURCE_IDENTITY_BYTES:
+        raise ValueError('Runtime source identity exceeds existing bound')
+    projection = {'scope': 'public_source_location_references_only', 'loaded_code_authentication': False,
+                  'files': count, 'source_bytes_read': total,
+                  'table_sha256': hashlib.sha256(canonical(table)).hexdigest(),
+                  'runtime_identity_bytes': len(canonical(runtime_identity)) + 1}
+    return runtime_identity, projection
 
 
 def run_freezer(options):
@@ -300,7 +356,9 @@ def build(args) -> int:
         created = True
         generated = output / 'generated'
         generated.mkdir()
-        write_json(generated / 'merizo-source-identity.json', identity)
+        runtime_identity, source_reference_summary = warning_source_inventory(source, identity, provenance)
+        report['build']['warning_source_references'] = source_reference_summary
+        write_json(generated / 'merizo-source-identity.json', runtime_identity, MAX_SOURCE_IDENTITY_BYTES)
         identity_sha = digest(generated / 'merizo-source-identity.json')
         (generated / '_merizo_build_identity.py').write_text(f'SOURCE_IDENTITY_SHA256 = {identity_sha!r}\nINTERNAL_AUDIT = True\n', encoding='ascii')
         shutil.copyfile(args.input_lock, generated / 'input-lock.json')

@@ -65,3 +65,32 @@ select 0.5–60 seconds for fixture testing. Private crash-leftover files are re
 by the driver after process cleanup; this does not establish automatic application
 crash-leftover reclamation. Reports are bounded JSON; child stdout/stderr logs,
 binaries, and temporary fixture trees are not published.
+
+## Windows source-venv topology probe
+
+`windows_venv_probe.py` is a separate, model-free CPython 3.11.9 Windows venv
+check. The caller creates a fresh venv and installs only `psutil==7.2.2`, then
+runs its Python with `-I` and this script's `--report` argument. The probe checks
+the redirector/interpreter PID distinction, the helper's direct-base launch with
+preserved venv imports, and the existing leased source lifecycle. The helper
+launch follows CPython's multiprocessing pattern; exact READY PID and helper
+exit checks remain mandatory. Frozen helper launches are unchanged.
+
+The Windows workflow gates the model job on this five-minute synthetic job.
+Only its bounded JSON is retained. On failure or unknown descendant exit, the
+probe preserves its private workspace and reports `cleanup_verified=false`.
+The caller removes its venv only after a matching successful report explicitly
+proves cleanup and the owned root/marker checks pass; absent proof leaves the
+venv for ephemeral runner teardown. A timeout is not successful cleanup.
+
+The native result must establish the topology before calling the candidate fix
+successful. The earlier historical stall's exact stack is not available. The
+existing active execution timer begins after startup, and cleanup without exit
+proof retains ownership; this probe does not certify an absolute deadline across
+all startup APIs or change that unknown-cleanup contract.
+The source lifecycle driver also preserves its own inner fixture directory on
+any failed or uncertain lifecycle check. The venv wrapper retains only fixed
+inner-stage/boolean outcome metadata, and refuses cleanup if either layer lacks
+proof. This source-only correction does not change the older frozen driver's
+failure-path temporary-directory behavior; that remains a separate limitation,
+not a claim of verified cleanup after a failed frozen probe.

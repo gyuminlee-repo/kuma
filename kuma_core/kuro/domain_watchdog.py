@@ -123,6 +123,32 @@ def _read_config(path: Path) -> dict[str, Any]:
     return result
 
 
+def _helper_interpreter(env: dict[str, str]) -> tuple[str, dict[str, str]]:
+    """Keep the Windows source helper's OS PID equal to its Python PID.
+
+    CPython's Windows venv executable is a redirector that creates another
+    process. Follow CPython's multiprocessing spawn path: launch the trusted
+    base interpreter directly and explicitly retain this interpreter's venv.
+    This environment copy belongs ONLY to the helper, never to the runtime.
+    See CPython v3.11.9 Lib/multiprocessing/popen_spawn_win32.py, bpo-35797.
+    """
+    helper_env = dict(env)
+    executable = sys.executable
+    if os.name != "nt" or getattr(sys, "frozen", False):
+        return executable, helper_env
+    base = getattr(sys, "_base_executable", None)
+    if not isinstance(base, str):
+        raise RuntimeError("Cannot establish trusted Windows helper interpreter")
+    for path in (executable, base):
+        if (not isinstance(path, str) or not path or "\0" in path
+                or not os.path.isabs(path) or not os.path.isfile(path)):
+            raise RuntimeError("Cannot establish trusted Windows helper interpreter")
+    if os.path.normcase(executable) != os.path.normcase(base):
+        helper_env["__PYVENV_LAUNCHER__"] = executable
+        executable = base
+    return executable, helper_env
+
+
 class _StatusWriter:
     """At most four small messages; stalled stdout never blocks tree cleanup."""
     def __init__(self, token: str, fd: int):
@@ -186,6 +212,7 @@ class WindowsLeaseWatchdog:
         self.count = 0
         self.eof: set[str] = set()
         self.capture = bytearray()
+        helper_python, helper_env = _helper_interpreter(env)
         config = json.dumps(lease.to_config(), ensure_ascii=True, allow_nan=False).encode("ascii")
         if len(config) > _LIMIT:
             raise ValueError("Watchdog lease configuration exceeds its limit")
@@ -206,14 +233,14 @@ class WindowsLeaseWatchdog:
                                             0x00100000, True, 0))  # SYNCHRONIZE only
             assert duplicated.value is not None and parent_handle.value is not None
             if getattr(sys, "frozen", False):
-                command = [sys.executable, WATCHDOG_FLAG, self.token, str(duplicated.value), str(parent_handle.value), str(self.config_path)]
+                command = [helper_python, WATCHDOG_FLAG, self.token, str(duplicated.value), str(parent_handle.value), str(self.config_path)]
             else:
-                command = [sys.executable, "-I", str(Path(__file__).resolve()),
+                command = [helper_python, "-I", str(Path(__file__).resolve()),
                            WATCHDOG_FLAG, self.token, str(duplicated.value), str(parent_handle.value), str(self.config_path)]
             startup = subprocess.STARTUPINFO()
             startup.lpAttributeList = {"handle_list": [duplicated.value, parent_handle.value]}
             self.process = subprocess.Popen(
-                command, cwd=cwd, env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                command, cwd=cwd, env=helper_env, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE, bufsize=0, close_fds=True, startupinfo=startup,
                 creationflags=subprocess.CREATE_NO_WINDOW,
             )

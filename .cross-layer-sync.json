@@ -1647,6 +1647,8 @@
         "kuma_core/shared/windows_rpc.py",
         "scripts/domain_runtime_smoke/entry.py",
         "scripts/domain_runtime_smoke/run.py",
+        "scripts/domain_runtime_smoke/windows_venv_probe.py",
+        "scripts/domain_runtime_smoke/README.md",
         "tests/test_domain_runtime_smoke.py",
         ".github/workflows/merizo-windows-smoke.yml",
         ".github/workflows/merizo-platform-smoke.yml",

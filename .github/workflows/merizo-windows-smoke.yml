@@ -30,7 +30,68 @@ concurrency:
   group: merizo-windows-smoke-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
+  windows-venv-domain-contract:
+    runs-on: windows-2022
+    timeout-minutes: 5
+    steps:
+      - name: Preserve source bytes
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11.9'
+      - name: Prepare owned synthetic-only venv
+        shell: pwsh
+        run: |
+          $venv = Join-Path $env:RUNNER_TEMP 'kuma domain venv probe'
+          if (Test-Path -LiteralPath $venv) { throw 'Refuse existing probe directory' }
+          New-Item -ItemType Directory -Path $venv | Out-Null
+          [IO.File]::WriteAllBytes((Join-Path $venv '.kuma-probe-owner'), [Text.Encoding]::ASCII.GetBytes('kuma-windows-venv-probe-v1'))
+          python -m venv "$venv"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & "$venv/Scripts/python.exe" -m pip install --disable-pip-version-check --only-binary=:all: psutil==7.2.2
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify redirector topology and leased synthetic lifecycle
+        timeout-minutes: 3
+        shell: pwsh
+        run: |
+          $venv = Join-Path $env:RUNNER_TEMP 'kuma domain venv probe'
+          & "$venv/Scripts/python.exe" -I scripts/domain_runtime_smoke/windows_venv_probe.py --report merizo-smoke-results/windows-venv-domain-contract.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Remove only owned probe venv
+        if: always()
+        shell: pwsh
+        run: |
+          $venv = Join-Path $env:RUNNER_TEMP 'kuma domain venv probe'
+          if (Test-Path -LiteralPath $venv) {
+            $venvInfo = Get-Item -LiteralPath $venv -Force
+            if (-not $venvInfo.PSIsContainer -or ($venvInfo.Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'Invalid probe root; preserve directory' }
+            $report = 'merizo-smoke-results/windows-venv-domain-contract.json'
+            if (-not (Test-Path -LiteralPath $report -PathType Leaf)) { throw 'Probe exit proof missing; preserve venv' }
+            $info = Get-Item -LiteralPath $report -Force
+            if ($info.Length -gt 16384 -or ($info.Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'Invalid probe proof; preserve venv' }
+            $proof = [IO.File]::ReadAllText($info.FullName) | ConvertFrom-Json
+            if ($proof.schema -cne 'kuma-windows-venv-domain-contract-v1' -or $proof.status -cne 'passed' -or -not ($proof.cleanup_verified -is [bool]) -or $proof.cleanup_verified -ne $true) { throw 'Probe cleanup not verified; preserve venv' }
+            $marker = Join-Path $venv '.kuma-probe-owner'
+            if (-not (Test-Path -LiteralPath $marker -PathType Leaf)) { throw 'Missing probe ownership marker' }
+            $markerInfo = Get-Item -LiteralPath $marker -Force
+            if ($markerInfo.Length -gt 64 -or ($markerInfo.Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'Invalid probe ownership marker' }
+            if ([Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($marker)) -cne 'kuma-windows-venv-probe-v1') { throw 'Probe ownership mismatch' }
+            Remove-Item -LiteralPath $venv -Recurse -Force
+            if (Test-Path -LiteralPath $venv) { throw 'Probe directory remains' }
+          }
+      - name: Preserve bounded synthetic probe JSON only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: merizo-windows-venv-domain-contract
+          retention-days: 7
+          if-no-files-found: warn
+          path: merizo-smoke-results/windows-venv-domain-contract.json
   native-windows-cpu:
+    needs: windows-venv-domain-contract
     runs-on: windows-2022
     timeout-minutes: 30
     env:

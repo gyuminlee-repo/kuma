@@ -3,11 +3,13 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 DIRECTORY = ROOT / "scripts" / "domain_runtime_smoke"
@@ -36,6 +38,7 @@ class DomainRuntimeProbeTests(unittest.TestCase):
             self.assertTrue(report["temporary_files_removed"])
             for name in ("success", "cancel", "timeout", "hard_loss"):
                 self.assertTrue(report["checks"][name]["termination_verified"], name)
+                self.assertTrue(report["checks"][name]["host_pid_verified"], name)
             self.assertEqual(report["checks"]["hard_loss"]["method"], "host_os_exit_without_cleanup")
 
     def test_exact_private_entry_dispatch_precedes_stdout(self):
@@ -83,6 +86,52 @@ class DomainRuntimeProbeTests(unittest.TestCase):
                 self.assertEqual(report["status"], "failed")
                 self.assertEqual(json.loads(process.stdout), report)
                 self.assertEqual(process.stderr, "")
+
+    def test_source_configuration_uses_direct_interpreter_and_copied_host_environment(self):
+        original = dict(os.environ)
+        returned = {"PATH": "copied-host", "__PYVENV_LAUNCHER__": "source-venv"}
+        with patch.object(smoke.domain_watchdog, "_helper_interpreter", return_value=("direct-base", returned)) as helper:
+            command, env = smoke._source_configuration()
+        self.assertEqual(command, ["direct-base", "-I", str(smoke.ENTRY)])
+        self.assertIs(env, returned)
+        self.assertEqual(helper.call_args.args[0], original)
+        self.assertIsNot(helper.call_args.args[0], os.environ)
+        self.assertEqual(dict(os.environ), original)
+
+    def test_frozen_command_does_not_select_source_interpreter(self):
+        with tempfile.TemporaryDirectory() as directory:
+            binary = Path(directory) / "frozen-fixture"
+            binary.write_bytes(b"not-executed")
+            with patch.object(smoke, "_source_configuration", side_effect=AssertionError("Source path selected")):
+                with self.assertRaisesRegex(ValueError, "Fixture timeout"):
+                    smoke.run_probe(binary, timeout_seconds=0)
+
+    def test_process_uses_explicit_host_environment(self):
+        environment = {**os.environ, "KUMA_HOST_ENV_TEST": "explicit"}
+        with tempfile.TemporaryDirectory() as directory:
+            process = smoke.Process([sys.executable, "-I", "-c",
+                                     "import json,os;print(json.dumps({'value':os.environ.get('KUMA_HOST_ENV_TEST')}))"],
+                                    Path(directory), env=environment)
+            try:
+                self.assertEqual(process.receive(), {"value": "explicit"})
+                self.assertEqual(process.process.wait(timeout=10), 0)
+            finally:
+                process.close()
+
+    def test_failed_source_probe_preserves_workspace_without_full_cleanup_proof(self):
+        with tempfile.TemporaryDirectory() as directory:
+            work = Path(directory) / "unverified source fixture"
+            work.mkdir()
+            marker = work / "preserve-cwd"
+            marker.write_text("still owned")
+            with patch.object(smoke.tempfile, "mkdtemp", return_value=str(work)), \
+                    patch.object(smoke, "Process", side_effect=OSError("Synthetic startup uncertainty")), \
+                    patch.object(smoke, "wait_until", side_effect=TimeoutError("Synthetic unconfirmed tree")):
+                report = smoke.run_probe(None)
+            self.assertEqual(report["status"], "failed")
+            self.assertIn("unconfirmed tree", report["cleanup_error"])
+            self.assertFalse(report["temporary_files_removed"])
+            self.assertEqual(marker.read_text(), "still owned")
 
 
 if __name__ == "__main__":

@@ -2,9 +2,13 @@
 from __future__ import annotations
 
 import ctypes
+import importlib.util
 import json
+import ntpath
 import os
 from pathlib import Path
+import subprocess
+import sys
 from types import SimpleNamespace
 from typing import Any
 
@@ -166,3 +170,139 @@ def test_watchdog_abi_uses_fixed_width_fields() -> None:
     assert ctypes.sizeof(watchdog._DWORD) == ctypes.sizeof(watchdog._BOOL) == 4
     assert ctypes.sizeof(watchdog._Accounting) == 48
     assert ctypes.sizeof(watchdog._HANDLE) == ctypes.sizeof(ctypes.c_void_p)
+
+
+def test_windows_source_helper_bypasses_venv_redirector_without_mutating_runtime_environment(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    launcher, base = tmp_path / "venv python.exe", tmp_path / "base python.exe"
+    launcher.write_bytes(b"fixture")
+    base.write_bytes(b"fixture")
+    private = {"PATH": "private-empty-path", "SystemRoot": "trusted-os-path"}
+    monkeypatch.setenv("PYTHONPATH", "ambient-value-must-not-enter-helper")
+    monkeypatch.setattr(watchdog, "os", SimpleNamespace(name="nt", path=os.path))
+    monkeypatch.setattr(watchdog, "sys", SimpleNamespace(executable=str(launcher), _base_executable=str(base)))
+    executable, helper_env = watchdog._helper_interpreter(private)
+    assert executable == str(base)
+    assert helper_env == {**private, "__PYVENV_LAUNCHER__": str(launcher)}
+    assert helper_env is not private
+    assert "__PYVENV_LAUNCHER__" not in private and "PYTHONPATH" not in helper_env
+
+
+@pytest.mark.parametrize("frozen,platform_name", [(True, "nt"), (False, "posix")])
+def test_frozen_or_nonwindows_helper_preserves_interpreter_and_environment(
+    monkeypatch: pytest.MonkeyPatch, frozen: bool, platform_name: str,
+) -> None:
+    monkeypatch.setattr(watchdog, "os", SimpleNamespace(name=platform_name))
+    monkeypatch.setattr(watchdog, "sys", SimpleNamespace(
+        executable="trusted-frozen-or-posix", frozen=frozen, _base_executable="do-not-use"))
+    original = {"PATH": "private"}
+    executable, copied = watchdog._helper_interpreter(original)
+    assert executable == "trusted-frozen-or-posix" and copied == original and copied is not original
+
+
+def test_same_windows_interpreter_uses_case_normalized_comparison(monkeypatch: pytest.MonkeyPatch) -> None:
+    paths = SimpleNamespace(isabs=ntpath.isabs, isfile=lambda path: True, normcase=ntpath.normcase)
+    monkeypatch.setattr(watchdog, "os", SimpleNamespace(name="nt", path=paths))
+    monkeypatch.setattr(watchdog, "sys", SimpleNamespace(
+        executable=r"C:\Python\python.exe", _base_executable=r"c:\python\PYTHON.EXE"))
+    executable, env = watchdog._helper_interpreter({})
+    assert executable == r"C:\Python\python.exe" and env == {}
+
+
+@pytest.mark.parametrize("base", [None, "", "relative.exe", "bad\0path"])
+def test_windows_helper_refuses_unestablished_base_interpreter(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, base: str | None,
+) -> None:
+    launcher = tmp_path / "python.exe"
+    launcher.write_bytes(b"fixture")
+    monkeypatch.setattr(watchdog, "os", SimpleNamespace(name="nt", path=os.path))
+    monkeypatch.setattr(watchdog, "sys", SimpleNamespace(executable=str(launcher), _base_executable=base))
+    with pytest.raises(RuntimeError, match="trusted Windows helper"):
+        watchdog._helper_interpreter({})
+
+
+def test_windows_helper_refuses_missing_base_executable(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    launcher = tmp_path / "python.exe"
+    launcher.write_bytes(b"fixture")
+    monkeypatch.setattr(watchdog, "os", SimpleNamespace(name="nt", path=os.path))
+    monkeypatch.setattr(watchdog, "sys", SimpleNamespace(
+        executable=str(launcher), _base_executable=str(tmp_path / "missing.exe")))
+    with pytest.raises(RuntimeError, match="trusted Windows helper"):
+        watchdog._helper_interpreter({})
+
+
+def test_redirector_child_identity_cannot_weaken_exact_ready_pid_guard() -> None:
+    helper: Any = object.__new__(watchdog.WindowsLeaseWatchdog)
+    helper.token = "f" * 64
+    helper.ready = False
+    helper.lease = SimpleNamespace(root_id=(1, 2))
+    helper.process = SimpleNamespace(pid=123)
+    message = {"version": 1, "token": helper.token, "type": "ready",
+               "lease": {"token": helper.token, "root_dev": 1, "root_ino": 2},
+               "helper": {"pid": 124, "created": 1234.0}}
+    with pytest.raises(ValueError, match="ownership was not established"):
+        helper._accept(json.dumps(message).encode("ascii"))
+    assert helper.ready is False
+
+
+@pytest.mark.skipif(os.name == "nt", reason="Non-Windows negative control only; native venv probe has its own CI gate")
+def test_native_venv_probe_refuses_nonwindows_without_cleanup_claim(tmp_path: Path) -> None:
+    path = Path(__file__).resolve().parents[1] / "scripts/domain_runtime_smoke/windows_venv_probe.py"
+    report_path = tmp_path / "native.json"
+    completed = subprocess.run([sys.executable, "-I", str(path), "--report", str(report_path)],
+                               capture_output=True, timeout=10)
+    assert completed.returncode == 1 and completed.stderr == b""
+    report = json.loads(report_path.read_text())
+    assert report["schema"] == "kuma-windows-venv-domain-contract-v1"
+    assert report["status"] == "failed" and report["stage"] == "validate_host"
+    assert report["checks"] == {} and report["cleanup_verified"] is False
+    assert len(report_path.read_bytes()) < 16384
+    assert all(set(json.loads(line)) == {"schema", "stage"} for line in completed.stdout.splitlines())
+
+
+@pytest.mark.parametrize("failure_stage", ["raw_redirector", "leased_source_lifecycle"])
+def test_native_probe_preserves_workspace_when_child_cleanup_is_unknown(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, failure_stage: str,
+) -> None:
+    path = Path(__file__).resolve().parents[1] / "scripts/domain_runtime_smoke/windows_venv_probe.py"
+    spec = importlib.util.spec_from_file_location("native_venv_negative_probe", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    original_path = list(sys.path)
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.path[:] = original_path
+    work = tmp_path / "keep workspace"
+    work.mkdir()
+    marker = work / "unverified-child-cwd"
+    marker.write_text("preserve")
+    monkeypatch.setattr(module, "os", SimpleNamespace(name="nt"))
+    monkeypatch.setattr(module, "sys", SimpleNamespace(
+        version_info=(3, 11, 9), prefix="venv", base_prefix="base", executable="venv-python"))
+    monkeypatch.setattr(module.psutil, "__version__", "7.2.2")
+    monkeypatch.setattr(module.tempfile, "mkdtemp", lambda **kwargs: str(work))
+    monkeypatch.setattr(module.domain_process, "_environment", lambda private: {})
+
+    def timeout(*args):
+        raise subprocess.TimeoutExpired("owned-redirector", 10)
+
+    if failure_stage == "raw_redirector":
+        monkeypatch.setattr(module, "_interpreter_probe", timeout)
+    else:
+        topology = iter([{"popen_pid_matches_python": False}, {"popen_pid_matches_python": True}])
+        monkeypatch.setattr(module, "_interpreter_probe", lambda *args: next(topology))
+        monkeypatch.setattr(module.domain_watchdog, "_helper_interpreter", lambda env: ("direct-base", dict(env)))
+        monkeypatch.setattr(module, "_source_lifecycle", lambda: {
+            "status": "failed", "stage": "cancel", "checks": {"success": {"passed": True}},
+            "temporary_files_removed": False, "error": "DO_NOT_FORWARD_PRIVATE_PATH",
+            "cleanup_error": "DO_NOT_FORWARD_PRIVATE_DIAGNOSTIC"})
+    report = module.run_probe(tmp_path / "native.json")
+    assert report["status"] == "failed" and report["stage"] == failure_stage
+    assert report["cleanup_verified"] is False and report["private_workspace_removed"] is False
+    assert marker.read_text() == "preserve"
+    if failure_stage == "leased_source_lifecycle":
+        assert report["lifecycle_outcome"] == {"stage": "cancel", "passed": False,
+            "temporary_files_removed": False, "error_present": True, "cleanup_error_present": True}
+        assert "DO_NOT_FORWARD" not in (tmp_path / "native.json").read_text()
