@@ -1,4 +1,4 @@
-"""Stdlib-only fixture tests; frozen platform evidence belongs to CI probes."""
+"""Synthetic host fixture tests; frozen platform evidence belongs to CI probes."""
 from __future__ import annotations
 
 import importlib.util
@@ -21,7 +21,7 @@ class DomainRuntimeProbeTests(unittest.TestCase):
     def test_source_cli_reports_actual_ipc_and_lifecycle_without_frozen_claim(self):
         with tempfile.TemporaryDirectory() as directory:
             report_path = Path(directory) / "report.json"
-            process = subprocess.run([sys.executable, "-I", "-S", str(DIRECTORY / "run.py"),
+            process = subprocess.run([sys.executable, "-I", str(DIRECTORY / "run.py"),
                                       "--report", str(report_path), "--timeout-seconds", "3"],
                                      cwd=ROOT, capture_output=True, text=True, timeout=90)
             report = json.loads(report_path.read_text())
@@ -31,14 +31,15 @@ class DomainRuntimeProbeTests(unittest.TestCase):
             self.assertEqual(report["status"], "passed")
             self.assertEqual(report["mode"], "source")
             self.assertFalse(report["checks"]["actual_frozen_identity"])
-            self.assertIn("dedicated supervisor exit after hard host loss", report["not_verified"])
+            self.assertTrue(report["checks"]["hard_loss"]["helper_exit_verified"])
+            self.assertTrue(report["checks"]["hard_loss"]["registry_refused_during_suspended_helper_cleanup"])
             self.assertTrue(report["temporary_files_removed"])
             for name in ("success", "cancel", "timeout", "hard_loss"):
                 self.assertTrue(report["checks"][name]["termination_verified"], name)
             self.assertEqual(report["checks"]["hard_loss"]["method"], "host_os_exit_without_cleanup")
 
     def test_exact_private_entry_dispatch_precedes_stdout(self):
-        process = subprocess.run([sys.executable, "-I", "-S", str(DIRECTORY / "entry.py"),
+        process = subprocess.run([sys.executable, "-I", str(DIRECTORY / "entry.py"),
                                   "--kuma-domain-supervisor", "invalid"],
                                  capture_output=True, timeout=10)
         self.assertEqual(process.returncode, 2)
@@ -47,7 +48,7 @@ class DomainRuntimeProbeTests(unittest.TestCase):
 
     def test_invalid_utf8_frame_does_not_drop_following_rpc(self):
         with tempfile.TemporaryDirectory() as directory:
-            process = smoke.Process([sys.executable, "-I", "-S", str(DIRECTORY / "entry.py"), "--ipc"],
+            process = smoke.Process([sys.executable, "-I", str(DIRECTORY / "entry.py"), "--ipc"],
                                     Path(directory))
             try:
                 process.send(b"\xff\n" + smoke.request(5, "echo", "日本"))
@@ -61,7 +62,7 @@ class DomainRuntimeProbeTests(unittest.TestCase):
 
     def test_stdout_timeout_is_bounded_and_child_is_cleaned(self):
         with tempfile.TemporaryDirectory() as directory:
-            process = smoke.Process([sys.executable, "-I", "-S", "-c", "import time; time.sleep(30)"],
+            process = smoke.Process([sys.executable, "-I", "-c", "import time; time.sleep(30)"],
                                     Path(directory))
             try:
                 with self.assertRaisesRegex(TimeoutError, "timed out"):
@@ -74,7 +75,7 @@ class DomainRuntimeProbeTests(unittest.TestCase):
         for extra in (("--binary", "does-not-exist-fixture-binary"), ("--timeout-seconds", "0")):
             with self.subTest(extra=extra), tempfile.TemporaryDirectory() as directory:
                 path = Path(directory) / "error.json"
-                process = subprocess.run([sys.executable, "-I", "-S", str(DIRECTORY / "run.py"),
+                process = subprocess.run([sys.executable, "-I", str(DIRECTORY / "run.py"),
                                           "--report", str(path), *extra],
                                          cwd=ROOT, capture_output=True, text=True, timeout=10)
                 self.assertEqual(process.returncode, 1)

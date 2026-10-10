@@ -6,7 +6,14 @@ on:
       - '.github/workflows/merizo-windows-smoke.yml'
       - 'scripts/merizo_windows_smoke/**'
       - 'scripts/domain_runtime_smoke/**'
+      - 'scripts/merizo_runtime_archive/**'
+      - 'tests/test_merizo_runtime_archive*.py'
       - 'kuma_core/kuro/domain_process.py'
+      - 'kuma_core/kuro/domain_lease.py'
+      - 'kuma_core/kuro/domain_watchdog.py'
+      - 'kuma_core/kuro/optional_runtime.py'
+      - 'tests/test_domain_lease.py'
+      - 'tests/test_domain_watchdog.py'
       - 'kuma_core/shared/windows_rpc.py'
       - 'kuma_core/shared/sidecar.py'
       - 'tests/test_domain_process.py'
@@ -64,12 +71,14 @@ jobs:
         run: python scripts/merizo_windows_smoke/run.py --source .merizo-smoke-upstream --fixture tests/data/domain_annotation/1ubq.pdb --output merizo-smoke-results/windows-cpu.json
       - name: Install fixed freezing tool (CI-only)
         run: python -m pip install --disable-pip-version-check -r scripts/merizo_windows_smoke/freezer-requirements.txt
+      - name: Install pinned host process identity dependency (probe only)
+        run: python -m pip install --disable-pip-version-check --only-binary=:all: psutil==7.2.2
       - name: Validate actual frozen IPC and managed process lifecycle
         timeout-minutes: 5
         shell: pwsh
         run: |
           $build = Join-Path $env:RUNNER_TEMP 'domain runtime contract'
-          python -m PyInstaller --clean --noconfirm --onedir --name domain-runtime-probe --paths . --paths kuma_core/kuro --distpath "$build/dist" --workpath "$build/work" --specpath "$build/spec" scripts/domain_runtime_smoke/entry.py
+          python -m PyInstaller --clean --noconfirm --onedir --name domain-runtime-probe --hidden-import domain_lease --hidden-import domain_watchdog --hidden-import optional_runtime --hidden-import psutil --paths . --paths kuma_core/kuro --distpath "$build/dist" --workpath "$build/work" --specpath "$build/spec" scripts/domain_runtime_smoke/entry.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python scripts/domain_runtime_smoke/run.py --binary "$build/dist/domain-runtime-probe/domain-runtime-probe.exe" --report merizo-smoke-results/domain-contract.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -78,6 +87,16 @@ jobs:
       - name: Build temporary onedir executable after verifying official pins
         timeout-minutes: 12
         run: python scripts/merizo_windows_smoke/build_frozen.py --source .merizo-smoke-upstream --output-directory "${{ runner.temp }}/merizo frozen build" --evidence merizo-smoke-results/frozen-build.json
+      - name: Prepare candidate archive input evidence (no distribution)
+        timeout-minutes: 10
+        run: python -m scripts.merizo_runtime_archive.ci --source .merizo-smoke-upstream --evidence-directory merizo-smoke-results --task-directory "${{ runner.temp }}/merizo archive audit"
+      - name: Run direct archive build controller and installed CPU entry
+        timeout-minutes: 20
+        shell: pwsh
+        run: |
+          $audit = Join-Path $env:RUNNER_TEMP 'merizo archive audit'
+          & "$audit/build environment/Scripts/python.exe" -m scripts.merizo_runtime_archive.build --source "$audit/official source" --output-directory "$audit/package build" --evidence merizo-smoke-results/runtime-archive.json --wheelhouse "$audit/wheelhouse" --input-lock merizo-smoke-results/archive-input-lock.json --cpython-origin merizo-smoke-results/archive-cpython-origin.json --fixture tests/data/domain_annotation/1ubq.pdb --remove-source-before-run
+          exit $LASTEXITCODE
       - name: Remove original upstream checkout before isolated executable run
         shell: pwsh
         run: |
@@ -94,6 +113,9 @@ jobs:
           -Fixture tests/data/domain_annotation/1ubq.pdb
           -ResultDirectory merizo-smoke-results
           -PinReport merizo-smoke-results/frozen-build.json
+      - name: Remove archive inputs only with controller cleanup proof
+        if: always()
+        run: python -m scripts.merizo_runtime_archive.ci --cleanup --evidence-directory merizo-smoke-results --task-directory "${{ runner.temp }}/merizo archive audit"
       - name: Preserve small result only (never models or runtime)
         if: always()
         uses: actions/upload-artifact@v4
@@ -104,6 +126,11 @@ jobs:
             merizo-smoke-results/frozen-build.json
             merizo-smoke-results/legal-inventory.json
             merizo-smoke-results/domain-contract.json
+            merizo-smoke-results/archive-ci.json
+            merizo-smoke-results/archive-cleanup.json
+            merizo-smoke-results/archive-input-lock.json
+            merizo-smoke-results/archive-cpython-origin.json
+            merizo-smoke-results/runtime-archive.json
             merizo-smoke-results/frozen-windows-cpu.json
           if-no-files-found: warn
           retention-days: 7

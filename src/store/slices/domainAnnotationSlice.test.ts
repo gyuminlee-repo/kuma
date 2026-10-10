@@ -140,8 +140,19 @@ describe("optional annotation session", () => {
     state().setPredictionBundleChainId("B");
     expect(state().domainAnnotationResult).toBeNull();
   });
-  it("refuses AF3 run and import without making an RPC", async () => {
-    useAppStore.setState({ predictionBundleInventory: { ...colabFoldDomainInventory(), format: "af3_server" } });
+  it("imports an AF3-bound result while an empty catalog still prevents execution", async () => {
+    useAppStore.setState({ predictionBundleInventory: { ...colabFoldDomainInventory(), format: "af3_server" },
+      domainRuntimeStatus: domainRuntimeFixture({ state: "licensing_blocked", version: null, install_available: false, available_version: null }) });
+    await state().startDomainAnnotation();
+    expect(mocks.send).not.toHaveBeenCalled();
+    mocks.send.mockResolvedValueOnce(domainResultFixture());
+    await state().importDomainAnnotationFile("/tmp/result.json");
+    expect(mocks.send).toHaveBeenCalledWith("import_domain_annotation_file", expect.objectContaining({
+      filepath: "/tmp/result.json", prediction_model_id: "job_model_0.cif", prediction_chain_id: "A", ref_seq: "MAAAA" }));
+    expect(currentDomainAnnotation(state())).toEqual(domainResultFixture());
+  });
+  it("refuses AF3 input without a matching reference selection", async () => {
+    useAppStore.setState({ predictionBundleInventory: { ...colabFoldDomainInventory(), format: "af3_server" }, seqInfo: null });
     await state().startDomainAnnotation(); await state().importDomainAnnotationFile("/tmp/result.json");
     expect(mocks.send).not.toHaveBeenCalled();
   });

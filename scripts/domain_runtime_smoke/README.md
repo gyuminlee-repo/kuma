@@ -5,7 +5,7 @@ and optional-runtime process supervisor. It does not contain Merizo, weights,
 scientific inference, or an approved runtime artifact. Passing is not evidence
 that the full sidecar, GUI, or biological workflow was frozen or validated.
 
-Source mode (stdlib only):
+Source mode (Python plus the pinned host dependency `psutil==7.2.2`):
 
 ```sh
 python scripts/domain_runtime_smoke/run.py --report /tmp/domain-contract.json
@@ -16,6 +16,8 @@ Frozen **onedir** mode (use the existing CI PyInstaller 6.16.0 environment):
 ```sh
 python -m PyInstaller --noconfirm --clean --onedir \
   --name domain-runtime-probe --paths . --paths kuma_core/kuro \
+  --hidden-import domain_lease --hidden-import domain_watchdog \
+  --hidden-import optional_runtime --hidden-import psutil \
   --distpath "$WORK/dist" --workpath "$WORK/build" --specpath "$WORK/spec" \
   scripts/domain_runtime_smoke/entry.py
 python scripts/domain_runtime_smoke/run.py \
@@ -31,8 +33,9 @@ No packages are installed by either script.
 `domain_process` is a top-level alias of the exact
 `kuma_core/kuro/domain_process.py` implementation. Both source and freeze paths
 use that file. This avoids executing `kuma_core.kuro.__init__`, which imports
-scientific dependencies unrelated to this bounded stdlib probe. The entry routes
-exactly `--kuma-domain-supervisor TOKEN` before any public output.
+scientific dependencies unrelated to this bounded probe. The registry, lease and
+watchdog use the same exact-source alias approach. Private supervisor/watchdog
+entry points run before any public output.
 
 The report distinguishes `source` from `frozen_onedir`, checks `sys.frozen`, and
 verifies the executable identity reported by the child. A delayed worker response
@@ -45,10 +48,16 @@ checked separately by the cancellation and hard-loss cases. Failure to reach a
 PID marker within the fixture budget is reported as startup readiness failure,
 not a failed cleanup assertion.
 Hard host loss uses `os._exit(91)`, skipping Python cleanup; the driver then checks
-that the managed runtime root and descendant exited. It does not capture or
-verify the dedicated supervisor PID after hard host loss; actual frozen helper
-exit is therefore unverified by this probe. Killing the supervisor itself is
-also not covered.
+that the managed runtime root, descendant and exact helper creation identity
+have exited. Before crashing the host, the driver suspends the identified
+helper. A separate real registry manager must refuse admission while that helper
+still owns cleanup; after resume, complete tree cleanup and exact helper exit
+must restore admission. The probe uses an empty test-owned registry and does not
+activate a runtime catalog. Killing the supervisor itself is not covered here;
+corrupt/nonterminal-record refusal and earlier launch windows have separate
+process/lease tests. PR11’s earlier probe did not verify helper exit or this
+crash lease window; its saved success is not retroactively expanded. The new
+source probe passes on Linux; native frozen evidence awaits the next exact CI.
 
 All stdout receives and process waits have explicit bounds. Source timeout is
 2 seconds and frozen timeout is 30 seconds by default; `--timeout-seconds` may

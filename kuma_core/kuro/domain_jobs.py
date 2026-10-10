@@ -19,6 +19,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
+from kuma_core.kuro.domain_af3 import prepare_af3_domain_input
 from kuma_core.kuro.domain_annotation import DomainAnnotation, DomainAnnotationError, DomainInput, MAX_RESULT_BYTES
 from kuma_core.kuro.domain_merizo import (
     decode_merizo_result, domain_input_manifest, prepare_colabfold_domain_input,
@@ -51,7 +52,8 @@ def prepare_source(source: DomainSource) -> tuple[DomainInput, dict[str, str]]:
         source.prediction_chain_id, reference,
         expected_bundle_sha256=source.prediction_bundle_sha256,
     )
-    prepared = prepare_colabfold_domain_input(context, reference)
+    prepared = (prepare_af3_domain_input(context, reference) if context.format == "af3_server"
+                else prepare_colabfold_domain_input(context, reference))
     return prepared, {
         "bundle_sha256": context.bundle_sha256,
         "source_sha256": prepared.source_sha256,
@@ -294,7 +296,7 @@ class DomainJobService:
             cancelled_errors = (RuntimeCancelled, DomainProcessCancelled)
             # The OS lock covers re-verification, launch, all descendants, result
             # collection and cleanup. It must not be released by a cancel request.
-            with self._manager.operation_lock():
+            with self._manager.operation_lock() as operation_lease:
                 status = self._manager.verify(cancelled=job.cancelled.is_set)
                 if status.state != "installed" or not status.executable_path:
                     raise OptionalRuntimeError(status.message)
@@ -313,7 +315,8 @@ class DomainJobService:
                             "--input-manifest", str(manifest), "--output", str(result), "--device", "cpu"],
                            cwd=work, cancelled=job.cancelled.is_set, timeout_seconds=RUN_TIMEOUT_SECONDS,
                            output_limit=MAX_OUTPUT_BYTES, result_path=result, result_limit=MAX_RESULT_BYTES,
-                           on_stopping=lambda text: self._stopping(job, text))
+                           on_stopping=lambda text: self._stopping(job, text),
+                           operation_lease=operation_lease)
                     if job.cancelled.is_set():
                         raise RuntimeCancelled("Domain annotation cancelled after confirmed process exit")
                     result_text = read_result_file(result)

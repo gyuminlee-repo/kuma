@@ -1,10 +1,90 @@
 # Optional Merizo CPU runtime: proposed archive audit
 
-Status: design only, reviewed against KUMA commit `96577792` and the final
-three-platform smoke evidence. No archive builder, new CI run, dependency/model
-download, inference, publication, or production catalog entry is introduced here.
-The existing smoke executables are fixed-public-fixture probes, not the proposed
-application executable. Distribution remains a separate reviewed release gate.
+Status: internal candidate implementation added on the PR11 base. Offline tests
+exercise the protocol and real registry extraction/removal with synthetic
+inference. Actual native builds/inference must still run in the bounded CI
+matrix before claiming archive feasibility. No production catalog entry, public
+binary/model/source artifact, release, or distribution clearance is introduced.
+The historical feasibility measurements below describe earlier probes, not this
+new archive. No current archive measurements are inferred from those reports.
+
+## Implemented internal CI contract
+
+- `inputs.py` consumes pip v1 dry-run reports, allows only exact official
+  `files.pythonhosted.org` / `download.pytorch.org` wheel URLs (plus only the two
+  pinned cp311 CPU Torch 2.0.1 links on the official index that point to
+  `download-r2.pytorch.org`), downloads and
+  verifies report SHA-256 and every RECORD entry, then writes a complete candidate
+  lock and pip `--require-hashes` requirements. Candidate resolution is explicitly
+  unreviewed. No sdist or index fallback is used for installation.
+- `cpython_origin.py` pins the observed official `actions/python-versions`
+  manifest commit, acquires the candidate release asset, exact provider build
+  recipe and matching python.org source archive, and inventories original bytes.
+  Matching version/toolcache location never proves origin: the builder rechecks
+  artifact bytes and maps each actual input hash to original archive members.
+  Missing member correspondence and native component/source review stay open.
+- `build.py` verifies every tracked upstream file against the exact git blob,
+  commit, root GPL text and three weight SHA-256s before PyInstaller analysis.
+  It checks the complete installed distribution closure against the pre-install
+  lock, wheel RECORD mappings and actual installed bytes. The freezer uses the
+  same owned process group/Windows Job Object supervisor as managed runtime work,
+  with a 600-second bound, and captures Analysis/PYZ/PKG/EXE/COLLECT objects rather
+  than evaluating saved TOC text.
+- `runtime_entry.py` implements the actual app CLI and calls pinned Merizo
+  `segment`, rather than the old fixed-76-residue probe. It validates strict JSON,
+  normalized PDB/reference/source binding, all-atom and finite-coordinate gates,
+  then source/model hashes before imports/model loading. Official source is
+  shipped as individually hashed `.py` data; duplicate compiled upstream modules
+  are removed from PYZ to prevent an unchecked alternate import. Prediction is
+  decoded against the exact app contract before atomic success publication.
+  It never downloads or automatically installs anything.
+- `archive.py` safely materializes in-bundle aliases, rejects escapes, cycles,
+  reparse points/special files and path collisions, and applies the registry's
+  existing bounds without changing them. It generates the external candidate
+  manifest from exact final ZIP bytes. The package includes original legal texts,
+  readable NOTICE, source-companion identity and runtime capabilities.
+- `roundtrip.py` installs that test-only candidate through the real manager,
+  verifies it, takes a fresh execution lease per invocation, runs the extracted
+  CLI under real process ownership, decodes the result, and removes the runtime.
+  The two cases are public 1UBQ and a synthetic author/chain/insertion relabeling
+  of the same public coordinates. This adds source-binding coverage, not an
+  additional biological or large-protein benchmark.
+
+The CPU entry has an unmeasured conservative 2,000-residue allocation guard,
+checked before any tensor allocation. This is recorded in `CAPABILITIES.json`
+and a fixed public error message; it is distinct from the scientific interchange
+limit of 9,999. It is not a measured safe capacity or a worst-case memory proof.
+The only previously validated actual geometry is the 76-residue public fixture.
+
+CI preparation (all paths are temporary task-owned paths; never user setup):
+
+1. Resolve `requirements.txt` plus the platform's official Torch 2.0.1 CPU wheel
+   using pip `--dry-run --ignore-installed --only-binary=:all: --report`.
+2. Run `python -m scripts.merizo_runtime_archive.inputs --report resolution.json
+   --wheelhouse WHEELS --output input-lock.json --requirements-lock locked.txt`.
+3. Create a clean venv and install with `--no-index --find-links WHEELS
+   --require-hashes --only-binary=:all: -r locked.txt`. The lock includes pip,
+   setuptools and psutil (the latter for the CI process/lease harness).
+4. Run `python -m scripts.merizo_runtime_archive.cpython_origin --output origin.json
+   --payload-directory PYTHON_INPUTS`; Linux also supplies
+   `--runner-platform-version 22.04` to identify the exact candidate target asset.
+5. Run `python -m scripts.merizo_runtime_archive.build --source UPSTREAM
+   --output-directory BUILD --evidence audit.json --wheelhouse WHEELS
+   --input-lock input-lock.json --cpython-origin origin.json
+   --fixture tests/data/domain_annotation/1ubq.pdb --remove-source-before-run`.
+   Use exact checkout bytes, with Git autocrlf conversion disabled.
+6. Always remove the wheelhouse, source/provider input payloads, venv and upstream
+   checkout. The builder removes its own runtime/ZIP/source companion even after
+   failure and returns nonzero if that cleanup fails. Retain only explicitly
+   named bounded JSON audits, never an output-directory wildcard.
+
+`source-companion.zip` includes the complete exact Merizo tree, all actually
+analyzed KUMA source modules, adapter/spec/lock/recipe files, and acquired CPython
+source/provider recipe archives. It deliberately does not assert complete native
+corresponding source or release delivery. Unowned files, transformed native bytes,
+embedded constituents, missing original text and source/rights/security review
+remain individually visible. A successful internal roundtrip does not clear
+those gates, and the production catalog remains empty.
 
 ## Decision and smallest implementation scope
 
@@ -15,9 +95,8 @@ round-trip an archive internally, retain only bounded audit JSON, and delete the
 runtime, model, downloaded inputs, and source payloads in unconditional cleanup.
 Do not publish binaries or fill `PRODUCTION_CATALOG` as a side effect.
 
-If this design is approved, the smallest follow-up is an offline evidence
-collector/normalizer under this directory, synthetic tests, and narrow hooks in
-the existing frozen-build/CI scripts. The collector must derive associations from
+The implementation above follows this evidence plan with a separate managed
+entry, offline collectors/normalizer, synthetic tests, and bounded CI hooks. The collector must derive associations from
 wheel members/RECORD, PyInstaller build objects, CPython distribution contents and
 OS package records. A caller-supplied package-name-to-file map is not evidence and
 must not mark an archive complete. No general installer/updater is needed.
@@ -353,3 +432,21 @@ security baseline; normalized archive round-trip and target execution; and
 app-protocol verification. The current old compatibility stack is not a reviewed
 product security baseline. This document is an engineering evidence plan, not
 legal clearance. No external contact is needed for this design step.
+
+## CI controller ownership
+
+`ci.py` prepares a fresh, isolated candidate environment and writes
+`archive-ci.json` with status `prepared`. It does not supervise `build.py` inside
+another managed process: nested POSIX helpers would create an outer-timeout
+ownership gap. The workflow invokes the isolated environment's build module
+directly, and that controller owns the compiler and installed-runtime children.
+
+Only after supervised calls and its `finally` does the controller write
+`execution_controller_completed: true` in the final audit. The sequential
+workflow cleanup command requires that fresh completion evidence plus the
+owned payload marker before deleting the wheelhouse/CPython/source environment.
+Preparation rejects an existing final audit. Forced workflow termination without
+completion evidence is reported as cleanup `unverified`; the script does not
+race still-cleaning helpers by deleting their files. Remaining payload then
+belongs to ephemeral runner teardown, which is not reported as a verified app
+cleanup. These are CI-only paths, not a general recovery or updater facility.

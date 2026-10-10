@@ -7,16 +7,20 @@ No ``preexec_fn`` or signal handlers are installed in the threaded sidecar.
 
 Normal shutdown must cancel and WAIT for this function. Unknown termination
 keeps this function, its private directory and the caller's lock alive, with a
-bounded cleanup-pending notification. Windows starts suspended, joins a
-kill-on-close Job Object, then resumes; descendants cannot break away.
+bounded cleanup-pending notification. Windows atomically creates the suspended
+runtime inside a kill-on-close Job Object, then resumes; descendants cannot
+break away. A leased run has an external watchdog owning a second job handle.
 
 POSIX uses a dedicated single-job helper: only that process becomes a Linux
 subreaper. The shared sidecar's subreaper state is untouched. Its private stdin
 lifetime pipe requests group termination/reaping on hard sidecar loss. The
 runtime itself receives closed stdin, separate from this lifetime channel.
-PRODUCTION ACTIVATION GATE: killing/crashing the helper itself remains a distinct
-failure boundary; the host retains its lock without a terminal cleanup proof.
-Real frozen runtime/helper crash and native platform evidence are still required
+Managed jobs hand off a durable nonterminal execution record before spawning.
+The POSIX helper retains the primary flock; the Windows watchdog holds a
+separate admission guard. All new operations require terminal tree proof AND
+exact helper exit, including after hard sidecar loss. Helper/combined loss
+without proof leaves a fail-closed record; automatic recovery is not provided.
+Real frozen runtime/helper crash and native platform evidence remain required
 before production catalog activation. Flags request CPU-only execution; the
 trusted runtime must honor --device cpu, including on Metal-capable systems.
 Hard sidecar loss can leave private input/work directories behind. The helper
@@ -43,7 +47,37 @@ import tempfile
 import threading
 import time
 from collections.abc import Callable
-from typing import Protocol
+from typing import TYPE_CHECKING, Any, Protocol
+
+if TYPE_CHECKING:
+    from kuma_core.kuro.domain_lease import ExecutionLease, OperationLease
+
+
+def _lease_module() -> Any:
+    # The source helper is launched with -I. Load only adjacent trusted app
+    # code, not a working-directory/PYTHONPATH module. Frozen minimal probes
+    # bundle these same modules as top-level aliases.
+    if __package__:
+        from . import domain_lease
+    else:
+        if not getattr(sys, "frozen", False):
+            own_directory = str(Path(__file__).resolve().parent)
+            if own_directory not in sys.path:
+                sys.path.insert(0, own_directory)
+        import domain_lease
+    return domain_lease
+
+
+def _watchdog_module() -> Any:
+    if __package__:
+        from . import domain_watchdog
+    else:
+        if not getattr(sys, "frozen", False):
+            directory = str(Path(__file__).resolve().parent)
+            if directory not in sys.path:
+                sys.path.insert(0, directory)
+        import domain_watchdog
+    return domain_watchdog
 
 _POLL_SECONDS = 0.025
 _TERM_GRACE_SECONDS = 0.25
@@ -213,8 +247,9 @@ class _PosixSupervisor:
     """Private helper owns reaping; stdin EOF is the sidecar lifetime signal."""
     def __init__(self, argv: list[str], cwd: Path, env: dict[str, str], *,
                  timeout_seconds: float, output_limit: int, result_path: Path,
-                 result_limit: int, callback: Callable[[str], None] | None):
-        self.token = secrets.token_hex(32)
+                 result_limit: int, callback: Callable[[str], None] | None,
+                 lease: ExecutionLease | None = None):
+        self.token = lease.token if lease is not None else secrets.token_hex(32)
         self.callback = callback
         self.terminal: dict | None = None
         self.problem: str | None = None
@@ -223,7 +258,8 @@ class _PosixSupervisor:
         config = {"version": 1, "token": self.token, "argv": argv, "cwd": str(cwd),
                   "environment": env, "timeout_seconds": timeout_seconds,
                   "output_limit": output_limit, "result_path": str(result_path),
-                  "result_limit": result_limit}
+                  "result_limit": result_limit,
+                  "lease": None if lease is None else lease.to_config()}
         self.outgoing = bytearray(json.dumps(config, ensure_ascii=True, allow_nan=False).encode("ascii") + b"\n")
         if len(self.outgoing) > _CONFIG_LIMIT:
             raise DomainProcessError("Managed domain supervisor configuration exceeds its limit")
@@ -236,6 +272,7 @@ class _PosixSupervisor:
             self.process = subprocess.Popen(
                 command, cwd=cwd, env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE, bufsize=0, start_new_session=True, close_fds=True,
+                pass_fds=() if lease is None else (lease.primary_fd,),
             )
         except BaseException:
             self.selector.close()
@@ -418,6 +455,7 @@ def _windows_api():
         "SetInformationJobObject": ([_HANDLE, ctypes.c_int, _LPVOID, _DWORD], _BOOL),
         "QueryInformationJobObject": ([_HANDLE, ctypes.c_int, _LPVOID, _DWORD, _LPVOID], _BOOL),
         "AssignProcessToJobObject": ([_HANDLE, _HANDLE], _BOOL),
+        "IsProcessInJob": ([_HANDLE, _HANDLE, ctypes.POINTER(_BOOL)], _BOOL),
         "TerminateJobObject": ([_HANDLE, _DWORD], _BOOL),
         "TerminateProcess": ([_HANDLE, _DWORD], _BOOL),
         "CreatePipe": ([ctypes.POINTER(_HANDLE), ctypes.POINTER(_HANDLE), _LPVOID, _DWORD], _BOOL),
@@ -446,8 +484,12 @@ def _win_check(ok: object) -> None:
 
 
 class _WindowsProcess:
-    def __init__(self, argv: list[str], cwd: Path, env: dict[str, str]):
+    def __init__(self, argv: list[str], cwd: Path, env: dict[str, str], *,
+                 lease: ExecutionLease | None = None,
+                 callback: Callable[[str], None] | None = None,
+                 cancelled: Callable[[], bool] = lambda: False, timeout_seconds: float = 300):
         self.api = _windows_api()
+        self.watchdog: Any = None
         self.handles: list[int] = []
         self.readers: list[int] = []
         self.info = _ProcessInformation()
@@ -460,6 +502,9 @@ class _WindowsProcess:
             limits = _ExtendedLimits()
             limits.basic.flags = 0x2000  # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE; no breakaway.
             _win_check(self.api.SetInformationJobObject(self.job, 9, ctypes.byref(limits), ctypes.sizeof(limits)))
+            if lease is not None:
+                self.watchdog = _watchdog_module().WindowsLeaseWatchdog(self.job, lease, cwd, env, callback)
+                self.watchdog.wait_ready(cancelled, min(30, timeout_seconds))
             security = _SecurityAttributes(ctypes.sizeof(_SecurityAttributes), None, 1)
 
             def pipe() -> tuple[int, int]:
@@ -477,14 +522,19 @@ class _WindowsProcess:
                 _win_check(self.api.SetHandleInformation(handle, 1, 0))
             inherited = (_HANDLE * 3)(stdin_read, stdout_write, stderr_write)
             size = _SIZE_T()
-            self.api.InitializeProcThreadAttributeList(None, 1, 0, ctypes.byref(size))
+            self.api.InitializeProcThreadAttributeList(None, 2, 0, ctypes.byref(size))
             if not size.value:
                 _win_check(False)
             storage = ctypes.create_string_buffer(size.value)
-            _win_check(self.api.InitializeProcThreadAttributeList(storage, 1, 0, ctypes.byref(size)))
+            _win_check(self.api.InitializeProcThreadAttributeList(storage, 2, 0, ctypes.byref(size)))
             attributes = ctypes.cast(storage, _LPVOID)
             _win_check(self.api.UpdateProcThreadAttribute(
                 attributes, 0, 0x20002, inherited, ctypes.sizeof(inherited), None, None))
+            job_list = (_HANDLE * 1)(self.job)
+            # Windows10+/Server2016+: membership is atomic with creation. A
+            # failed JOB_LIST attribute aborts; never fall back to create/assign.
+            _win_check(self.api.UpdateProcThreadAttribute(
+                attributes, 0, 0x2000D, job_list, ctypes.sizeof(job_list), None, None))
             startup = _StartupInfoEx()
             startup.startup.cb = ctypes.sizeof(startup)
             startup.startup.flags = 0x100  # STARTF_USESTDHANDLES
@@ -495,15 +545,37 @@ class _WindowsProcess:
                 "\0".join(f"{key}={value}" for key, value in sorted(env.items(), key=lambda item: item[0].upper())) + "\0\0")
             # Application name is explicit (spaces cannot select another exe).
             # CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT | CREATE_NO_WINDOW |
-            # EXTENDED_STARTUPINFO_PRESENT. Assignment happens before ANY code.
+            # EXTENDED_STARTUPINFO_PRESENT. Job assignment is atomic with creation.
             _win_check(self.api.CreateProcessW(
                 argv[0], command, None, None, True, 0x08080404, environment,
                 str(cwd), ctypes.byref(startup), ctypes.byref(self.info)))
+            self.assigned = True
         except BaseException:
-            # CreateProcessW is the last potentially failing step above. No
-            # child exists on its failure; a successful child is owned below.
+            # No runtime code has resumed. Still prove OS-level termination if
+            # interrupted immediately after successful CreateProcessW.
+            if self.info.process:
+                while True:
+                    try:
+                        _win_check(self.api.TerminateJobObject(self.job, 1))
+                        accounting = _Accounting()
+                        _win_check(self.api.QueryInformationJobObject(
+                            self.job, 1, ctypes.byref(accounting), ctypes.sizeof(accounting), None))
+                        if self.api.WaitForSingleObject(self.info.process, 0) == 0 and accounting.active == 0:
+                            break
+                    except BaseException:
+                        pass
+                    try:
+                        time.sleep(_POLL_SECONDS)
+                    except BaseException:
+                        pass
+            if self.watchdog is not None:
+                self.watchdog.wait_stopped()
+                self.watchdog.close()
             for handle in self.handles:
                 self.api.CloseHandle(handle)
+            for handle in (self.info.process, self.info.thread):
+                if handle:
+                    self.api.CloseHandle(handle)
             raise
         finally:
             if attributes is not None:
@@ -515,12 +587,19 @@ class _WindowsProcess:
             self.handles.remove(handle)
 
     def start(self) -> None:
-        _win_check(self.api.AssignProcessToJobObject(self.job, self.info.process))
-        self.assigned = True
+        member = _BOOL()
+        _win_check(self.api.IsProcessInJob(self.info.process, self.job, ctypes.byref(member)))
+        if not member.value:
+            self.assigned = False
+            raise DomainProcessError("Runtime was not atomically assigned to its JobObject")
         if self.api.ResumeThread(self.info.thread) == 0xFFFFFFFF:
             _win_check(False)
 
     def poll(self) -> int | None:
+        if self.watchdog is not None:
+            watchdog_exit = self.watchdog.poll()
+            if self.watchdog.problem or (watchdog_exit is not None and not self.watchdog.confirmed):
+                raise DomainProcessError("Runtime lease watchdog exited without cleanup proof")
         state = self.api.WaitForSingleObject(self.info.process, 0)
         if state == 258:  # WAIT_TIMEOUT
             return None
@@ -554,15 +633,24 @@ class _WindowsProcess:
             if accounting.active:
                 return False
         # An unassigned process was NEVER resumed, so it cannot have children.
-        return not self.readers
+        if self.readers:
+            return False
+        if self.watchdog is not None:
+            self.watchdog.request_stop()
+            return self.watchdog.exited_cleanly()
+        return True
 
     def stop(self, hard: bool) -> None:
         if self.assigned:
             _win_check(self.api.TerminateJobObject(self.job, 1))
-        elif self.poll() is None:
+        elif self.api.WaitForSingleObject(self.info.process, 0) == 258:
             _win_check(self.api.TerminateProcess(self.info.process, 1))
+        if self.watchdog is not None:
+            self.watchdog.request_stop()
 
     def close(self) -> None:
+        if self.watchdog is not None:
+            self.watchdog.close()
         for handle in reversed(self.handles):
             self.api.CloseHandle(handle)
         self.handles.clear()
@@ -657,6 +745,7 @@ def run_managed_process(
     timeout_seconds: float = 300, output_limit: int = 1048576,
     result_path: Path, result_limit: int = 8388608,
     on_stopping: Callable[[str], None] | None = None,
+    operation_lease: OperationLease | None = None,
 ) -> None:
     """Run verified argv without a shell; return/raise only after tree cleanup.
 
@@ -682,12 +771,20 @@ def run_managed_process(
         raise DomainProcessCancelled("Managed domain annotation cancelled")
     with tempfile.TemporaryDirectory(prefix="domain-private-", dir=cwd) as temporary:
         environment = _environment(Path(temporary))
+        # This durable nonterminal record precedes EVERY helper/runtime spawn.
+        # A startup crash leaves refusal, never an apparently empty registry.
+        execution_lease = None if operation_lease is None else operation_lease.prepare()
         try:
-            owned: _Process = (_WindowsProcess(argv, cwd, environment) if os.name == "nt" else
+            owned: _Process = (_WindowsProcess(argv, cwd, environment, lease=execution_lease,
+                                               callback=on_stopping, cancelled=cancelled,
+                                               timeout_seconds=timeout_seconds) if os.name == "nt" else
                                _PosixSupervisor(argv, cwd, environment, timeout_seconds=timeout_seconds,
                                                 output_limit=output_limit, result_path=result_path,
-                                                result_limit=result_limit, callback=on_stopping))
+                                                result_limit=result_limit, callback=on_stopping,
+                                                lease=execution_lease))
         except Exception as exc:
+            if cancelled():
+                raise DomainProcessCancelled("Managed domain annotation cancelled before runtime launch") from exc
             raise DomainProcessError(f"Cannot start managed domain supervisor ({type(exc).__name__})") from exc
         _run_observed(owned, cancelled=cancelled, timeout_seconds=timeout_seconds,
                       output_limit=output_limit, result_path=result_path,
@@ -784,7 +881,7 @@ def _read_supervisor_config(fd: int, token: str) -> dict:
         config = json.loads(line)
         if (not isinstance(config, dict) or config.get("version") != 1 or config.get("token") != token
                 or set(config) != {"version", "token", "argv", "cwd", "environment", "timeout_seconds",
-                                   "output_limit", "result_path", "result_limit"}):
+                                   "output_limit", "result_path", "result_limit", "lease"}):
             raise ValueError("Supervisor configuration identity mismatch")
         argv, env = config["argv"], config["environment"]
         if (not isinstance(argv, list) or not argv or not all(isinstance(arg, str) and "\0" not in arg for arg in argv)
@@ -833,9 +930,15 @@ def supervisor_main(token: str) -> int:
         flush_output()
 
     outcome, detail = "ok", ""
+    held_lease = None
     try:
         config = _read_supervisor_config(sys.stdin.fileno(), token)
         lifetime = _ParentLifetime(sys.stdin.fileno())
+        if config["lease"] is not None:
+            try:
+                held_lease = _lease_module().HelperLease.claim(config["lease"], expected_token=token)
+            except Exception as exc:
+                raise DomainProcessError("Cannot claim runtime execution lease") from exc
 
         def stop_signal(_signum: int, _frame: object) -> None:
             lifetime.signalled = True
@@ -856,6 +959,8 @@ def supervisor_main(token: str) -> int:
         outcome, detail = "cancelled", str(exc)[:512]
     except DomainProcessError as exc:
         outcome, detail = "error", str(exc)[:512]
+    if held_lease is not None:
+        _complete_execution_lease(held_lease, lambda message: emit("stopping", message=message))
     # Only these known post-cleanup exceptions can reach a terminal proof. An
     # unexpected helper crash never emits it, and the parent retains its lock.
     emit("complete", outcome=outcome, message=detail, tree_exited=True)
@@ -865,7 +970,27 @@ def supervisor_main(token: str) -> int:
         flush_output()
         if outgoing:
             time.sleep(_POLL_SECONDS)
+    if held_lease is not None:
+        # Only close the inherited flock reference. LOCK_UN here would also
+        # unlock the live parent's same open-file-description prematurely.
+        held_lease.close()
     return 0
+
+
+def _complete_execution_lease(held_lease: Any, callback: Callable[[str], None] | None) -> None:
+    notified = False
+    while True:
+        try:
+            held_lease.complete()
+            return
+        except BaseException:
+            if not notified:
+                notified = True
+                _notify(callback, "Cleanup proof pending; runtime registry remains locked.")
+            try:
+                time.sleep(_POLL_SECONDS)
+            except BaseException:
+                pass
 
 
 if __name__ == "__main__":

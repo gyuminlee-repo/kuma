@@ -107,8 +107,9 @@ export function OptionalDomainAnnotationPanel() {
     {expanded && <>
       <p>{t("optionalDomains.annotationOnly")}</p>
       <p className="text-muted-foreground">{t("optionalDomains.originalAtoms")}</p>
-      {!ready && <p>{t(format === "af3_server" ? "optionalDomains.unsupportedAf3" : "optionalDomains.inputRequired")}</p>}
+      {!ready && <p>{t("optionalDomains.inputRequired")}</p>}
       <p className="text-muted-foreground">{t("optionalDomains.inputLimits")}</p>
+      {format === "af3_server" && <p className="text-muted-foreground">{t("optionalDomains.af3Limits")}</p>}
       {runtimeLoading && <p role="status">{t("optionalDomains.runtimeChecking")}</p>}
       {runtime && <>
         <p role="status">{t(`optionalDomains.runtime.${runtime.state}`)}</p>

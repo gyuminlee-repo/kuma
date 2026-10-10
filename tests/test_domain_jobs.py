@@ -264,24 +264,32 @@ def test_request_models_forbid_all_command_catalog_and_override_channels(tmp_pat
             DomainRuntimeInstallParams.model_validate({"archive_path": "local.zip", key: value})
 
 
-def test_af3_is_explicitly_unsupported_for_file_import(tmp_path):
+def test_incomplete_af3_subset_fails_before_result_file_is_read(tmp_path):
     from tests.test_prediction_bundle import AF_MODEL, bundle
-    from kuma_core.kuro.domain_merizo import AF3_UNSUPPORTED_REASON
     path = bundle(tmp_path)
     source = DomainSource(str(path), hashlib.sha256(path.read_bytes()).hexdigest(), AF_MODEL, "A", "ACD")
     service = DomainJobService(OptionalRuntimeManager(tmp_path / "app"))
     with pytest.raises(DomainAnnotationError) as error:
         service.import_file(str(tmp_path / "not-read.json"), source)
-    assert str(error.value) == AF3_UNSUPPORTED_REASON
+    assert "Missing or malformed AF3 atom_site columns" in str(error.value)
 
 
 @pytest.mark.skipif(sys.platform not in {"linux", "darwin"}, reason="Native POSIX synthetic executable fixture")
-def test_real_synthetic_executable_catalog_to_current_bound_annotation(tmp_path):
+@pytest.mark.parametrize("source_kind", ["colabfold", "af3"])
+def test_real_synthetic_executable_catalog_to_current_bound_annotation(tmp_path, source_kind):
     """Native harmless process, not Merizo inference or model accuracy evidence."""
     from kuma_core.kuro.domain_merizo import MERIZO_COMMIT, MERIZO_WEIGHTS_SHA256
     from kuma_core.kuro.optional_runtime import RuntimeArtifact, RuntimeFile, current_platform_key
     from io import BytesIO
-    source = source_fixture(tmp_path)
+    if source_kind == "af3":
+        from tests.test_domain_af3 import LABEL, MODEL as AF3_MODEL, SEQUENCE, bundle
+        context = bundle(tmp_path)
+        source = DomainSource(str(tmp_path / "synthetic-af3.zip"), context.bundle_sha256,
+                              AF3_MODEL, LABEL, SEQUENCE)
+        atom_count, residue_count = 19, 3
+    else:
+        source = source_fixture(tmp_path)
+        atom_count, residue_count = 30, 6
     script = (f"#!{sys.executable}\n" + '''import argparse, json
 from pathlib import Path
 from typing import Any
@@ -291,7 +299,7 @@ a=p.parse_args()
 assert a.device=='cpu'
 m=json.loads(Path(a.input_manifest).read_text())
 lines=Path(a.input_pdb).read_text().splitlines()
-assert len([x for x in lines if x.startswith('ATOM  ')])==30
+assert len([x for x in lines if x.startswith('ATOM  ')])==EXPECTED_ATOMS
 coords=[[float(x[30:38]),float(x[38:46]),float(x[46:54])] for x in lines if x.startswith('ATOM  ') and x[12:16].strip()=='CA']
 n=len(m['sequence']); assert n==len(coords)
 r={'schema':'kuma-merizo-result-v1','tool_commit':COMMIT,'weights_sha256':WEIGHTS,'input':m,
@@ -299,7 +307,8 @@ r={'schema':'kuma-merizo-result-v1','tool_commit':COMMIT,'weights_sha256':WEIGHT
 'features':{'nres':n,'sequence':m['sequence'],'residue_numbers':list(range(1,n+1)),'ca_coordinates':coords},
 'prediction':{'nres':n,'ndom':1,'labels':[1]*n,'residue_numbers':list(range(1,n+1)),'confidence':0.5,'time_sec':0.01}}
 Path(a.output).write_text(json.dumps(r))
-'''.replace("COMMIT", repr(MERIZO_COMMIT)).replace("WEIGHTS", repr(MERIZO_WEIGHTS_SHA256))).encode()
+'''.replace("COMMIT", repr(MERIZO_COMMIT)).replace("WEIGHTS", repr(MERIZO_WEIGHTS_SHA256))
+        .replace("EXPECTED_ATOMS", str(atom_count))).encode()
     member = "bin/synthetic-domain"
     output = BytesIO()
     with zipfile.ZipFile(output, "w") as archive:
@@ -318,8 +327,8 @@ Path(a.output).write_text(json.dumps(r))
     outcome = terminal(service, job["job_id"])
     assert outcome["state"] == "succeeded", outcome
     result = service.import_result(job["job_id"], source)
-    assert result["total_residues"] == 6
-    assert result["assigned_residues"] == 6
+    assert result["total_residues"] == residue_count
+    assert result["assigned_residues"] == residue_count
     assert result["coverage"] == 1.0
     assert result["provenance"] == "managed"
     assert service.remove()["state"] == "missing"
@@ -542,3 +551,19 @@ def test_shutdown_blocks_late_start_or_mutation_before_admission(tmp_path):
             action()
     assert service._jobs == {}
     assert service.recover_attempt("1" * 32)["state"] == "failed"
+
+
+def test_af3_source_dispatch_reopens_pinned_original_and_preserves_binding(tmp_path: Path) -> None:
+    from tests.test_domain_af3 import LABEL, MODEL as AF3_MODEL, SEQUENCE, bundle, result_envelope
+    context = bundle(tmp_path)
+    source = DomainSource(str(tmp_path / "synthetic-af3.zip"), context.bundle_sha256,
+                          AF3_MODEL, LABEL, SEQUENCE)
+    prepared, binding = prepare_source(source)
+    assert prepared.source_sha256 == context.structure_sha256
+    assert binding["chain_id"] == LABEL and binding["model_id"] == AF3_MODEL
+    assert len([line for line in prepared.normalized_pdb.splitlines() if line.startswith("ATOM  ")]) == 19
+    result = tmp_path / "import.json"
+    result.write_text(json.dumps(result_envelope(prepared)))
+    service = DomainJobService(OptionalRuntimeManager(tmp_path / "empty-app"))
+    imported = service.import_file(str(result), source)
+    assert imported["binding"] == binding and imported["provenance"] == "imported"

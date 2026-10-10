@@ -10,6 +10,7 @@ import argparse
 import ctypes
 import json
 import os
+import psutil
 from pathlib import Path
 import queue
 import subprocess
@@ -138,7 +139,7 @@ def run_probe(binary: Path | None, *, timeout_seconds: float | None = None) -> d
         binary = binary.resolve(strict=True)
         command = [str(binary)]
     else:
-        command = [sys.executable, "-I", "-S", str(ENTRY)]
+        command = [sys.executable, "-I", str(ENTRY)]
     timeout = timeout_seconds if timeout_seconds is not None else (30.0 if frozen else 2.0)
     if not 0.5 <= timeout <= 60:
         raise ValueError("Fixture timeout must be between 0.5 and 60 seconds")
@@ -146,12 +147,21 @@ def run_probe(binary: Path | None, *, timeout_seconds: float | None = None) -> d
                     "mode": "frozen_onedir" if frozen else "source", "platform": sys.platform,
                     "scope": "synthetic_ipc_and_process_lifecycle_only", "checks": {},
                     "not_verified": ["full GUI/product bundle", "Merizo inference or biological accuracy",
-                                     "runtime redistribution rights", "hard supervisor-helper loss",
-                                     "dedicated supervisor exit after hard host loss"]}
+                                     "runtime redistribution rights", "hard supervisor-helper loss"]}
     temporary = tempfile.TemporaryDirectory(prefix="kuma domain contract ")
     root = Path(temporary.name).resolve()
     active: Process | None = None
     seen_pids: list[int] = []
+    suspended_helper = None
+    def admission(work: Path) -> bool:
+        check = subprocess.run(command + ["--admission", str(work)], cwd=root,
+            stdin=subprocess.DEVNULL, capture_output=True, timeout=15, shell=False)
+        if check.returncode or len(check.stdout) > 4096:
+            raise AssertionError("Registry admission probe failed")
+        value = json.loads(check.stdout)
+        if set(value) != {"admitted"} or type(value["admitted"]) is not bool:
+            raise AssertionError("Invalid registry admission response")
+        return value["admitted"]
     try:
         active = Process(command + ["--ipc"], root)
         active.send(request(1, "delay", "한국어"))
@@ -195,10 +205,21 @@ def run_probe(binary: Path | None, *, timeout_seconds: float | None = None) -> d
             seen_pids.extend(pids)
             if mode in {"cancel", "hard_loss"} and not all(pid_alive(pid) for pid in pids):
                 raise AssertionError("Fixture process exited before cancellation/crash")
+            helper = ready["helper"]
+            if not isinstance(helper, dict) or type(helper.get("pid")) is not int or type(helper.get("created")) not in (int, float):
+                raise AssertionError("Missing exact helper identity")
             if mode == "hard_loss":
+                suspended_helper = psutil.Process(helper["pid"])
+                if suspended_helper.create_time() != helper["created"]:
+                    raise AssertionError("Helper creation identity changed")
+                suspended_helper.suspend()
                 active.send(b"crash\n")
                 if active.process.wait(timeout=10) != 91:
                     raise AssertionError("Abrupt host exit was not established")
+                if admission(work):
+                    raise AssertionError("Registry admitted a new operation before helper cleanup")
+                suspended_helper.resume()
+                suspended_helper = None
             else:
                 if mode == "cancel":
                     active.send(b"cancel\n")
@@ -214,10 +235,20 @@ def run_probe(binary: Path | None, *, timeout_seconds: float | None = None) -> d
                     raise AssertionError("Managed fixture host did not exit cleanly")
             wait_until(lambda: all(not pid_alive(pid) for pid in pids), 15,
                        f"{mode}: child/descendant termination was not confirmed")
-            report["checks"][mode] = {"passed": True, "child_count": len(pids),
+            def helper_exited():
+                try:
+                    return psutil.Process(helper["pid"]).create_time() != helper["created"]
+                except psutil.NoSuchProcess:
+                    return True
+            wait_until(helper_exited, 15, "Exact lifecycle helper did not exit")
+            if not admission(work):
+                raise AssertionError("Terminal proof plus helper exit did not restore registry admission")
+            report["checks"][mode] = {"passed": True, "helper_exit_verified": True,
+                                      "registry_admitted_after_cleanup": True, "child_count": len(pids),
                                       "termination_verified": True}
             if mode == "hard_loss":
                 report["checks"][mode]["method"] = "host_os_exit_without_cleanup"
+                report["checks"][mode]["registry_refused_during_suspended_helper_cleanup"] = True
                 report["checks"][mode]["crash_leftover_files_removed_by_driver"] = True
             active.close()
             active = None
@@ -225,6 +256,14 @@ def run_probe(binary: Path | None, *, timeout_seconds: float | None = None) -> d
     except Exception as exc:
         report["error"] = f"{type(exc).__name__}: {exc}"[:4000]
     finally:
+        if suspended_helper is not None:
+            try:
+                suspended_helper.resume()
+            except psutil.NoSuchProcess:
+                pass
+            except psutil.Error as exc:
+                report["status"] = "failed"
+                report["cleanup_error"] = f"Cannot resume fixture helper: {type(exc).__name__}"
         if active is not None:
             try:
                 active.close()

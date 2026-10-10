@@ -1,4 +1,4 @@
-"""Test-only stdlib frozen IPC/lifecycle entry. Never a scientific runtime."""
+"""Test-only frozen IPC/lifecycle and registry-lease entry. Never a scientific runtime."""
 from __future__ import annotations
 
 import json
@@ -18,10 +18,15 @@ if not getattr(sys, "frozen", False):
     sys.path.insert(0, str(repository / "kuma_core" / "kuro"))
 
 import domain_process  # type: ignore[import-not-found]
+import optional_runtime  # type: ignore[import-not-found]
 
 # The private protocol must precede every public output and RPC initialization.
 if __name__ == "__main__" and len(sys.argv) == 3 and sys.argv[1] == "--kuma-domain-supervisor":
     raise SystemExit(domain_process.supervisor_main(sys.argv[2]))
+
+if __name__ == "__main__" and len(sys.argv) == 6 and sys.argv[1] == "--kuma-domain-watchdog":
+    import domain_watchdog  # type: ignore[import-not-found]
+    raise SystemExit(domain_watchdog.watchdog_main(sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), Path(sys.argv[5])))
 
 from kuma_core.shared.sidecar import JsonRpcWriter, loads_rpc_request
 from kuma_core.shared.windows_rpc import BoundedUtf8LineReader, RpcLineError, windows_stdin_reader
@@ -30,7 +35,7 @@ from kuma_core.shared.windows_rpc import BoundedUtf8LineReader, RpcLineError, wi
 def command(*arguments: str) -> list[str]:
     if getattr(sys, "frozen", False):
         return [sys.executable, *arguments]
-    return [sys.executable, "-I", "-S", str(Path(__file__).resolve()), *arguments]
+    return [sys.executable, "-I", str(Path(__file__).resolve()), *arguments]
 
 
 def identity() -> dict:
@@ -106,15 +111,19 @@ def managed_host(mode: str, work: Path, timeout: float) -> int:
     work = work.resolve(strict=True)
     started = time.monotonic()
 
+    manager = optional_runtime.OptionalRuntimeManager(work / "app")
+    manager._create_root()  # Test-owned empty catalog; use the real registry lock.
+
     def run() -> None:
         try:
-            domain_process.run_managed_process(
-                command("--child", "success" if mode == "success" else
-                        "sleep" if mode == "timeout" else "tree", str(work)),
-                cwd=work, cancelled=cancel.is_set, result_path=work / "result.json",
-                timeout_seconds=timeout if mode == "timeout" else max(30.0, timeout),
-                output_limit=65536, result_limit=4096,
-            )
+            with manager.operation_lock() as lease:
+                domain_process.run_managed_process(
+                    command("--child", "success" if mode == "success" else
+                            "sleep" if mode == "timeout" else "tree", str(work)),
+                    cwd=work, cancelled=cancel.is_set, result_path=work / "result.json",
+                    timeout_seconds=timeout if mode == "timeout" else max(30.0, timeout),
+                    output_limit=65536, result_limit=4096, operation_lease=lease,
+                )
             result.update(outcome="ok")
         except domain_process.DomainProcessCancelled as exc:
             result.update(outcome="cancelled", message=str(exc)[:512])
@@ -138,7 +147,11 @@ def managed_host(mode: str, work: Path, timeout: float) -> int:
             return 1
         time.sleep(0.01)
     pids = [int(path.read_text(encoding="ascii")) for path in markers]
-    writer.send({"event": "ready", "child_pids": pids, **identity()})
+    record = (manager.root / ".kuma-execution.json").read_bytes()
+    if len(record) > 4096:
+        raise ValueError("Oversized fixture lease record")
+    helper = json.loads(record)["helper"]
+    writer.send({"event": "ready", "child_pids": pids, "helper": helper, **identity()})
     if mode in {"cancel", "hard_loss"}:
         action = sys.stdin.readline().strip()
         if mode == "hard_loss" and action == "crash":
@@ -161,6 +174,15 @@ def main() -> int:
     if os.name == "nt":
         sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
         sys.stderr.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
+    if len(sys.argv) == 3 and sys.argv[1] == "--admission":
+        manager = optional_runtime.OptionalRuntimeManager(Path(sys.argv[2]).resolve(strict=True) / "app")
+        try:
+            with manager.operation_lock():
+                allowed = True
+        except optional_runtime.OptionalRuntimeError:
+            allowed = False
+        print(json.dumps({"admitted": allowed}))
+        return 0
     if sys.argv[1:] == ["--ipc"]:
         return ipc()
     if len(sys.argv) == 4 and sys.argv[1] == "--child":

@@ -33,6 +33,12 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import BinaryIO, Literal
 
+if __package__:
+    from .domain_lease import OperationLease, RuntimeLeaseError, check_execution_admission
+else:
+    # Minimal frozen lifecycle probe bundles these exact modules as aliases.
+    from domain_lease import OperationLease, RuntimeLeaseError, check_execution_admission
+
 MAX_ARCHIVE_BYTES = 1024 * 1024 * 1024
 MAX_FILE_BYTES = 1024 * 1024 * 1024
 MAX_INSTALLED_BYTES = 2 * 1024 * 1024 * 1024
@@ -337,11 +343,13 @@ class OptionalRuntimeManager:
         _read_exact(self.root / _ROOT_MARKER, _ROOT_BYTES)
 
     @contextmanager
-    def operation_lock(self) -> Iterator[None]:
+    def operation_lock(self) -> Iterator[OperationLease]:
         """Exclude other installs/removals/cleanups and cooperating runtime jobs.
 
-        Non-reentrant and nonblocking, including between manager instances. OS
-        locks are released on process termination; never delete the lock file.
+        Non-reentrant and nonblocking, including between manager instances.
+        A runtime helper also retains an execution lease and bounded proof
+        record, so host termination does not authorize concurrent mutation.
+        Never delete either lock file or an unproved execution record.
         The app-owned root must already exist (a verified installation does).
         """
         self._check_root()
@@ -373,7 +381,11 @@ class OptionalRuntimeManager:
                     raise OptionalRuntimeError("Another optional runtime operation is in progress") from exc
             locked = True
             self._check_root()
-            yield
+            try:
+                check_execution_admission(self.root)
+            except RuntimeLeaseError as exc:
+                raise OptionalRuntimeError(str(exc)) from exc
+            yield OperationLease(self.root, fd)
         finally:
             try:
                 if locked:
@@ -381,9 +393,9 @@ class OptionalRuntimeManager:
                         import msvcrt
                         os.lseek(fd, 0, os.SEEK_SET)
                         msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
-                    else:
-                        import fcntl
-                        fcntl.flock(fd, fcntl.LOCK_UN)
+                    # POSIX inherited descriptors share one flock. Explicit
+                    # LOCK_UN would also unlock the helper's borrowed lease.
+                    # Close only; the last owner releases the shared lock.
             finally:
                 os.close(fd)
 

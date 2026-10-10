@@ -31,12 +31,12 @@ describe("optional domain controls", () => {
     expect(screen.getByText(/No installable module package is available/)).toBeInTheDocument();
     expect(mocks.send).toHaveBeenCalledOnce();
   });
-  it("explains unsupported AF3 and disables both scientific input actions", () => {
-    useAppStore.setState({ predictionBundleInventory: { ...colabFoldDomainInventory(), format: "af3_server" }, domainRuntimeStatus: domainRuntimeFixture() });
+  it("explains the AF3 subset and permits import while the runtime catalog is empty", () => {
+    useAppStore.setState({ predictionBundleInventory: { ...colabFoldDomainInventory(), format: "af3_server" }, domainRuntimeStatus: blocked() });
     render(<OptionalDomainAnnotationPanel />); expand();
-    expect(screen.getByText(/AF3 structures can be viewed/)).toBeInTheDocument();
+    expect(screen.getByText(/AF3 domain input requires/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Run optional domain analysis" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Import domain result JSON" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Import domain result JSON" })).not.toBeDisabled();
   });
   it("renders discontinuous domains, unassigned residues and variant/site counts without selection changes", () => {
     useAppStore.setState({ domainRuntimeStatus: blocked(), domainAnnotationResult: domainResultFixture(),

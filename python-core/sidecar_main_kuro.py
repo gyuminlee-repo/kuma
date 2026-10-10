@@ -38,6 +38,11 @@ def _emit_ready_now() -> None:
 
 
 if __name__ == "__main__":
+    if len(sys.argv) >= 2 and sys.argv[1] == "--kuma-domain-watchdog":
+        if len(sys.argv) != 6:
+            raise SystemExit(2)
+        from kuma_core.kuro.domain_watchdog import watchdog_main
+        raise SystemExit(watchdog_main(sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), Path(sys.argv[5])))
     # A dedicated POSIX helper owns only its optional runtime's descendants.
     # Dispatch before ready/RPC setup so its bounded private pipe stays clean.
     if len(sys.argv) >= 2 and sys.argv[1] == "--kuma-domain-supervisor":

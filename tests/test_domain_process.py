@@ -590,8 +590,9 @@ def test_windows_failure_after_assignment_kills_suspended_process(
     child: tuple[Path, Path, Path], monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     def refuse_resume(self: process._WindowsProcess) -> None:
-        process._win_check(self.api.AssignProcessToJobObject(self.job, self.info.process))
-        self.assigned = True
+        member = process._BOOL()
+        process._win_check(self.api.IsProcessInJob(self.info.process, self.job, ctypes.byref(member)))
+        assert member.value and self.assigned
         raise OSError("Synthetic resume failure")
 
     monkeypatch.setattr(process._WindowsProcess, "start", refuse_resume)

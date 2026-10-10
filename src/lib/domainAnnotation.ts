@@ -17,7 +17,7 @@ export function domainAnnotationSource(state: AppState): DomainAnnotationSource 
   const model = inventory?.models.find((item) => item.model_id === state.predictionBundleModelId);
   const chain = model?.chains.find((item) => item.chain_id === state.predictionBundleChainId);
   const refSeq = domainReferenceSequence(state);
-  if (state.strictStructureSource !== "prediction_bundle" || inventory?.format !== "colabfold"
+  if (state.strictStructureSource !== "prediction_bundle" || (inventory?.format !== "colabfold" && inventory?.format !== "af3_server")
     || state.predictionBundleLoading || !state.predictionBundlePath || !model || !chain || !refSeq) return null;
   return { prediction_bundle_path: state.predictionBundlePath, prediction_bundle_sha256: inventory.bundle_sha256,
     prediction_model_id: model.model_id, prediction_chain_id: chain.chain_id, ref_seq: refSeq };

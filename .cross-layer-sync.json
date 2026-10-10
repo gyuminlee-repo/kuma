@@ -1591,7 +1591,9 @@
         "kuma_core/kuro/prediction_bundle.py",
         "kuma_core/kuro/residue_mapping.py",
         "tests/test_domain_merizo.py",
-        "docs/audit/optional-merizo-runtime-gates.md"
+        "docs/audit/optional-merizo-runtime-gates.md",
+        "kuma_core/kuro/domain_af3.py",
+        "tests/test_domain_af3.py"
       ],
       "note": "Source-only Merizo result consistency and annotation summaries. Full original atoms, complete reference and source identity; no selector weighting or runtime execution.",
       "severity": "warning"
@@ -1601,7 +1603,12 @@
       "files": [
         "kuma_core/kuro/optional_runtime.py",
         "tests/test_optional_runtime.py",
-        "docs/audit/optional-merizo-runtime-gates.md"
+        "docs/audit/optional-merizo-runtime-gates.md",
+        "kuma_core/kuro/domain_lease.py",
+        "kuma_core/kuro/domain_watchdog.py",
+        "tests/test_domain_lease.py",
+        "tests/test_domain_watchdog.py",
+        "tests/test_domain_leased_process.py"
       ],
       "note": "Empty production catalog and bounded local archive host mechanism. Any future executor must share the operation lock from verification through child exit; current source is not a shipped installer.",
       "severity": "warning"
@@ -1642,9 +1649,41 @@
         "scripts/domain_runtime_smoke/run.py",
         "tests/test_domain_runtime_smoke.py",
         ".github/workflows/merizo-windows-smoke.yml",
-        ".github/workflows/merizo-platform-smoke.yml"
+        ".github/workflows/merizo-platform-smoke.yml",
+        "kuma_core/kuro/domain_lease.py",
+        "kuma_core/kuro/domain_watchdog.py",
+        "tests/test_domain_lease.py",
+        "tests/test_domain_watchdog.py",
+        "tests/test_domain_leased_process.py"
       ],
       "note": "Native frozen delayed RPC and managed-process cancellation/timeout/parent-loss evidence. Retain JSON only, remove temporary executable; actual platform execution is distinct from mock tests.",
+      "severity": "warning"
+    },
+    {
+      "id": "optional-merizo-runtime-archive",
+      "files": [
+        "scripts/merizo_runtime_archive/README.md",
+        "scripts/merizo_runtime_archive/archive.py",
+        "scripts/merizo_runtime_archive/build.py",
+        "scripts/merizo_runtime_archive/ci.py",
+        "scripts/merizo_runtime_archive/common.py",
+        "scripts/merizo_runtime_archive/cpython_origin.py",
+        "scripts/merizo_runtime_archive/freeze_spec.py",
+        "scripts/merizo_runtime_archive/inputs.py",
+        "scripts/merizo_runtime_archive/provenance.py",
+        "scripts/merizo_runtime_archive/requirements.txt",
+        "scripts/merizo_runtime_archive/roundtrip.py",
+        "scripts/merizo_runtime_archive/runtime_entry.py",
+        "tests/test_merizo_runtime_archive.py",
+        "tests/test_merizo_runtime_archive_ci.py",
+        "kuma_core/kuro/domain_merizo.py",
+        "kuma_core/kuro/domain_annotation.py",
+        "kuma_core/kuro/optional_runtime.py",
+        "kuma_core/kuro/domain_process.py",
+        ".github/workflows/merizo-platform-smoke.yml",
+        ".github/workflows/merizo-windows-smoke.yml"
+      ],
+      "note": "Internal fixed-version CPU producer, exact wheel/source evidence, normalized archive and real registry roundtrip. JSON-only evidence; candidate hashes and notices do not authorize production catalog or public binary distribution.",
       "severity": "warning"
     }
   ]
