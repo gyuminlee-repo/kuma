@@ -8,7 +8,8 @@ from __future__ import annotations
 
 import argparse
 import ctypes
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+import errno
 import json
 import math
 import os
@@ -37,6 +38,7 @@ NATIVE_DIAGNOSTIC_SNAPSHOT = "rejected_validation_snapshot"
 TAIL_BYTES = 8192
 TAIL_CHARACTERS = 2048
 PACKAGE_NAME = "merizo-frozen-smoke"
+MAX_CLEANUP_EVENTS = 32
 
 
 def disjoint(first: Path, second: Path) -> bool:
@@ -166,6 +168,22 @@ class ObservedProcess:
     process: subprocess.Popen[bytes]
     rss_raw: float | None = None
     reaped_descendants: int = 0
+    cleanup_started: bool = False
+    cleanup_events: list[dict] = field(default_factory=list)
+    cleanup_event_count: int = 0
+    cleanup_eperm_count: int = 0
+
+    def record_cleanup(self, stage: str, outcome: str, error_number: int = 0) -> None:
+        event = {"stage": stage, "outcome": outcome, "errno": error_number,
+                 "pgid": self.process.pid, "root_reaped": self.process.returncode is not None}
+        self.cleanup_event_count += 1
+        if error_number == errno.EPERM:
+            self.cleanup_eperm_count += 1
+        if len(self.cleanup_events) == MAX_CLEANUP_EVENTS:
+            # Preserve the first half and most recent half, including the final
+            # proof/failure, without growing diagnostics on a persistent error.
+            del self.cleanup_events[MAX_CLEANUP_EVENTS // 2]
+        self.cleanup_events.append(event)
 
     def reap(self, group: bool = False) -> None:
         if not group and self.process.returncode is not None:
@@ -174,14 +192,25 @@ class ObservedProcess:
             try:
                 pid, status, usage = os.wait4(-self.process.pid if group else self.process.pid, os.WNOHANG)
             except ChildProcessError:
+                if self.cleanup_started:
+                    self.record_cleanup("wait4_group" if group else "wait4_root", "no_children", errno.ECHILD)
                 return
+            except OSError as exc:
+                if self.cleanup_started:
+                    self.record_cleanup("wait4_group" if group else "wait4_root", "error", exc.errno or 0)
+                raise
             if pid == 0:
+                if self.cleanup_started:
+                    self.record_cleanup("wait4_group" if group else "wait4_root", "not_ready")
                 return
             if pid == self.process.pid:
                 self.process.returncode = os.waitstatus_to_exitcode(status)
                 self.rss_raw = float(usage.ru_maxrss)
             else:
                 self.reaped_descendants += 1
+            if self.cleanup_started:
+                self.record_cleanup("wait4_group" if group else "wait4_root",
+                                    "root_reaped" if pid == self.process.pid else "descendant_reaped")
             if not group:
                 return
 
@@ -194,40 +223,76 @@ def group_exists(pgid: int) -> bool:
     return True  # PermissionError propagates; it is never proof of termination.
 
 
+def probe_cleanup_group(observed: ObservedProcess, stage: str) -> bool | None:
+    try:
+        exists = group_exists(observed.process.pid)
+    except OSError as exc:
+        observed.record_cleanup(stage, "unknown", exc.errno or 0)
+        if exc.errno != errno.EPERM:
+            raise
+        # XNU killpg1 filters SZOMB members and can return EPERM for the group:
+        # apple-oss-distributions/xnu, xnu-10002.81.5/bsd/kern/kern_sig.c:1601-1610.
+        # This is a possible cause, never proof: only reaping + ESRCH can pass.
+        return None
+    observed.record_cleanup(stage, "present" if exists else "absent", 0 if exists else errno.ESRCH)
+    return exists
+
+
+def signal_cleanup_group(observed: ObservedProcess, signum: int, stage: str) -> None:
+    try:
+        os.killpg(observed.process.pid, signum)
+    except OSError as exc:
+        observed.record_cleanup(stage, "unknown" if exc.errno == errno.EPERM else "error", exc.errno or 0)
+        if exc.errno not in {errno.ESRCH, errno.EPERM}:
+            raise
+    else:
+        observed.record_cleanup(stage, "sent")
+
+
 def stop_group(observed: ObservedProcess) -> bool:
     """Bound the entire TERM/KILL/reap sequence, including after root success."""
     deadline = time.monotonic() + CLEANUP_SECONDS
     pgid = observed.process.pid
-    observed.reap(group=True)
-    if not group_exists(pgid):
-        if observed.process.returncode is not None:
-            return True
-        # A startup refusal may happen before session ownership is observed.
-        # Kill only our still-unreaped root PID; never signal the parent's group.
-        try:
-            os.kill(pgid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
-    try:
-        os.killpg(pgid, signal.SIGTERM)
-    except ProcessLookupError:
-        pass
-    hard_kill_at = time.monotonic() + 0.25
-    killed = False
+    observed.cleanup_started = True
+    first_probe = True
+    root_kill_attempted = False
+    term_attempted = False
+    kill_attempted = False
+    hard_kill_at = deadline
     while time.monotonic() < deadline:
         observed.reap(group=True)
         observed.reap()
-        if not group_exists(pgid):
-            return observed.process.returncode is not None
-        if not killed and time.monotonic() >= hard_kill_at:
-            try:
-                os.killpg(pgid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-            killed = True
-        time.sleep(0.02)
+        exists = probe_cleanup_group(observed, "initial_probe" if first_probe else "loop_probe")
+        first_probe = False
+        if exists is False:
+            if observed.process.returncode is not None:
+                return True
+            if not root_kill_attempted:
+                # Only after real ESRCH, kill our unreaped root PID if startup
+                # failed before session ownership. Never bypass group EPERM.
+                root_kill_attempted = True
+                try:
+                    os.kill(pgid, signal.SIGKILL)
+                except OSError as exc:
+                    observed.record_cleanup("root_sigkill", "error", exc.errno or 0)
+                    if exc.errno not in {errno.ESRCH, errno.EPERM}:
+                        raise
+                else:
+                    observed.record_cleanup("root_sigkill", "sent")
+        elif exists is True:
+            if not term_attempted:
+                signal_cleanup_group(observed, signal.SIGTERM, "sigterm")
+                term_attempted = True
+                hard_kill_at = time.monotonic() + 0.25
+            elif not kill_attempted and time.monotonic() >= hard_kill_at:
+                signal_cleanup_group(observed, signal.SIGKILL, "sigkill")
+                kill_attempted = True
+        # UNKNOWN/EPERM never means absent and triggers no alternate control
+        # path: reap/reprobe within the original budget until actual ESRCH.
+        time.sleep(min(0.02, max(0, deadline - time.monotonic())))
     observed.reap(group=True)
-    return not group_exists(pgid) and observed.process.returncode is not None
+    observed.reap()
+    return probe_cleanup_group(observed, "final_probe") is False and observed.process.returncode is not None
 
 
 def drain_ready(selector: selectors.BaseSelector, captures: dict[str, Capture], timeout: float) -> None:
@@ -421,7 +486,8 @@ def supervise(package_directory: Path, fixture: Path, result_directory: Path, pi
             signal.signal(signum, signal.SIG_IGN)
         if observed is not None:
             try:
-                report["remaining_group_after_root_exit"] = group_exists(observed.process.pid)
+                observed.cleanup_started = True
+                report["remaining_group_after_root_exit"] = probe_cleanup_group(observed, "diagnostic_probe")
                 dead = stop_group(observed)
                 report["process_group_termination_verified"] = dead
                 report["reaped_descendants"] = observed.reaped_descendants
@@ -441,9 +507,16 @@ def supervise(package_directory: Path, fixture: Path, result_directory: Path, pi
                     report["peak_rss_bytes"] = int(observed.rss_raw * (1 if unit == "bytes" else 1024))
                     report["peak_rss_basis"] = "os.wait4 root-process rusage.ru_maxrss; not a summed process-group peak"
             except Exception as exc:
-                report.update(status="cleanup_failed", cleanup_error=str(exc)[:2000])
+                report.update(status="cleanup_failed", cleanup_error=str(exc)[:2000],
+                              process_group_termination_verified=False)
                 exit_code = 3
             finally:
+                report["cleanup_trace"] = observed.cleanup_events
+                report["cleanup_trace_total"] = observed.cleanup_event_count
+                report["cleanup_trace_truncated"] = observed.cleanup_event_count > len(observed.cleanup_events)
+                if observed.cleanup_eperm_count:
+                    report["cleanup_eperm_count"] = observed.cleanup_eperm_count
+                    report["cleanup_eperm_cause"] = "undetermined; stage trace records observations only"
                 for stream in (observed.process.stdout, observed.process.stderr):
                     if stream is not None:
                         stream.close()

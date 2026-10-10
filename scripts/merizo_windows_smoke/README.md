@@ -250,3 +250,22 @@ framework contents, and external Python/Torch remain refused. A rejected native
 inventory can be retained as bounded failure diagnostics from the same snapshot;
 this does not turn a failed origin check into success. macOS standalone inference
 remains unverified until the corrected exact-head frozen execution passes.
+
+### Bounded macOS cancellation reconciliation
+
+At `540c70a4c5deadd01ef622e54c57b2d0dd98be64`, the macOS job stopped in
+its immediate-cancellation mock-process regression before frozen model execution.
+Cleanup reported `EPERM` about 0.014 s after starting the child; the temporary
+runtime directory was removed. The prior run of this test passed, so its exact
+kernel timing is not established by that log.
+
+Apple's [XNU process-group signalling implementation](https://github.com/apple-oss-distributions/xnu/blob/xnu-10002.81.5/bsd/kern/kern_sig.c#L1601-L1610)
+can return `EPERM` when a group exists but contains no eligible non-zombie member.
+That supports bounded reaping/rechecking, not treating every permission error
+as harmless. Cleanup records syscall stages and errno values, retains the same
+10-second deadline, and reports success only after the owned root is reaped and
+a group probe actually returns `ESRCH`. Persistent `EPERM` remains cleanup failure.
+The initial diagnostic probe cannot prevent the cleanup attempt itself. No
+administrator permissions, OS security changes, or timeout extension are used.
+This is a test-supervisor correction; the exact corrected macOS run is still
+required to verify cancellation and the isolated frozen inference.

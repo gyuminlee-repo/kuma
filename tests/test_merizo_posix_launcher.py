@@ -6,6 +6,7 @@ fixtures is deliberately not evidence of frozen-runtime portability.
 from __future__ import annotations
 
 import copy
+import errno
 import importlib.util
 import json
 import os
@@ -149,6 +150,141 @@ class PosixLauncherContracts(unittest.TestCase):
         load.assert_not_called()
 
 
+@unittest.skipUnless(sys.platform in {"linux", "darwin"}, "POSIX cleanup state machine")
+class PosixCleanupRaceTests(unittest.TestCase):
+    def test_transient_probe_eperm_requires_reap_and_real_esrch(self):
+        process = mock.Mock(pid=43210, returncode=None)
+        observed = launcher.ObservedProcess(process)
+        not_ready = (0, 0, mock.Mock(ru_maxrss=0))
+        reaped = (process.pid, 15, mock.Mock(ru_maxrss=10))
+        with mock.patch.object(launcher.os, "wait4", side_effect=[
+                not_ready, not_ready, reaped, ChildProcessError(errno.ECHILD, "reaped")]), \
+             mock.patch.object(launcher.os, "killpg", side_effect=[
+                 PermissionError(errno.EPERM, "unknown group state"), ProcessLookupError(errno.ESRCH, "gone")]) as killpg, \
+             mock.patch.object(launcher.time, "sleep"):
+            self.assertTrue(launcher.stop_group(observed))
+        self.assertEqual(process.returncode, -15)
+        self.assertEqual([call.args[1] for call in killpg.call_args_list], [0, 0])
+        self.assertTrue(any(event["stage"] == "initial_probe" and event["errno"] == errno.EPERM
+                            and not event["root_reaped"] for event in observed.cleanup_events))
+        self.assertEqual(observed.cleanup_events[-1]["errno"], errno.ESRCH)
+        self.assertTrue(observed.cleanup_events[-1]["root_reaped"])
+
+    def test_post_term_zombie_window_recovers_by_observation(self):
+        process = mock.Mock(pid=43210, returncode=None)
+        observed = launcher.ObservedProcess(process)
+        not_ready = (0, 0, mock.Mock(ru_maxrss=0))
+        reaped = (process.pid, 15, mock.Mock(ru_maxrss=10))
+        with mock.patch.object(launcher.os, "wait4", side_effect=[
+                not_ready, not_ready, not_ready, not_ready, reaped, ChildProcessError(errno.ECHILD, "reaped")]), \
+             mock.patch.object(launcher.os, "killpg", side_effect=[
+                 None, None, PermissionError(errno.EPERM, "unknown group state"),
+                 ProcessLookupError(errno.ESRCH, "gone")]) as killpg, \
+             mock.patch.object(launcher.time, "sleep"):
+            self.assertTrue(launcher.stop_group(observed))
+        self.assertEqual([call.args[1] for call in killpg.call_args_list], [0, launcher.signal.SIGTERM, 0, 0])
+        self.assertTrue(any(event["stage"] == "loop_probe" and event["errno"] == errno.EPERM
+                            for event in observed.cleanup_events))
+
+    def test_persistent_eperm_is_unknown_until_original_deadline_then_false(self):
+        process = mock.Mock(pid=43210, returncode=0)  # Reaped root alone is insufficient.
+        observed = launcher.ObservedProcess(process)
+        clock = 100.0
+
+        def sleep(seconds):
+            nonlocal clock
+            clock += seconds
+
+        with mock.patch.object(launcher.os, "wait4", side_effect=ChildProcessError(errno.ECHILD, "reaped")), \
+             mock.patch.object(launcher.os, "killpg", side_effect=PermissionError(errno.EPERM, "still unknown")) as killpg, \
+             mock.patch.object(launcher.os, "kill") as root_kill, \
+             mock.patch.object(launcher.time, "monotonic", side_effect=lambda: clock), \
+             mock.patch.object(launcher.time, "sleep", side_effect=sleep):
+            self.assertFalse(launcher.stop_group(observed))
+        self.assertAlmostEqual(clock, 100.0 + launcher.CLEANUP_SECONDS)
+        self.assertTrue(all(call.args[1] == 0 for call in killpg.call_args_list))
+        root_kill.assert_not_called()
+        self.assertEqual(len(observed.cleanup_events), 32)
+        self.assertGreater(observed.cleanup_event_count, 32)
+        self.assertEqual(observed.cleanup_events[-1]["stage"], "final_probe")
+        self.assertEqual(observed.cleanup_events[-1]["errno"], errno.EPERM)
+
+    def test_group_esrch_without_root_reap_still_fails_at_deadline(self):
+        process = mock.Mock(pid=43210, returncode=None)
+        observed = launcher.ObservedProcess(process)
+        clock = 100.0
+
+        def sleep(seconds):
+            nonlocal clock
+            clock += seconds
+
+        with mock.patch.object(launcher.os, "wait4", return_value=(0, 0, mock.Mock(ru_maxrss=0))), \
+             mock.patch.object(launcher.os, "killpg", side_effect=ProcessLookupError(errno.ESRCH, "group absent")), \
+             mock.patch.object(launcher.os, "kill") as root_kill, \
+             mock.patch.object(launcher.time, "monotonic", side_effect=lambda: clock), \
+             mock.patch.object(launcher.time, "sleep", side_effect=sleep):
+            self.assertFalse(launcher.stop_group(observed))
+        self.assertIsNone(process.returncode)
+        self.assertAlmostEqual(clock, 100.0 + launcher.CLEANUP_SECONDS)
+        root_kill.assert_called_once_with(process.pid, launcher.signal.SIGKILL)
+        self.assertEqual(observed.cleanup_events[-1]["stage"], "final_probe")
+        self.assertEqual(observed.cleanup_events[-1]["errno"], errno.ESRCH)
+        self.assertFalse(observed.cleanup_events[-1]["root_reaped"])
+
+    def test_signal_eperm_is_traced_and_requires_independent_death_evidence(self):
+        for denied_signal in (launcher.signal.SIGTERM, launcher.signal.SIGKILL):
+            with self.subTest(denied_signal=denied_signal):
+                process = mock.Mock(pid=43210, returncode=None)
+                observed = launcher.ObservedProcess(process)
+                signal_denied = False
+                root_reaped = False
+                clock = 100.0
+
+                def sleep(seconds):
+                    nonlocal clock
+                    clock += seconds
+
+                def wait4(_pid, _options):
+                    nonlocal root_reaped
+                    if root_reaped:
+                        raise ChildProcessError(errno.ECHILD, "reaped")
+                    if signal_denied:
+                        root_reaped = True
+                        return process.pid, 15, mock.Mock(ru_maxrss=10)
+                    return 0, 0, mock.Mock(ru_maxrss=0)
+
+                def killpg(_pgid, signum):
+                    nonlocal signal_denied
+                    if root_reaped:
+                        raise ProcessLookupError(errno.ESRCH, "gone")
+                    if signum == denied_signal:
+                        signal_denied = True
+                        raise PermissionError(errno.EPERM, "unknown signal result")
+
+                with mock.patch.object(launcher.os, "wait4", side_effect=wait4), \
+                     mock.patch.object(launcher.os, "killpg", side_effect=killpg) as send, \
+                     mock.patch.object(launcher.time, "monotonic", side_effect=lambda: clock), \
+                     mock.patch.object(launcher.time, "sleep", side_effect=sleep):
+                    self.assertTrue(launcher.stop_group(observed))
+                stage = "sigterm" if denied_signal == launcher.signal.SIGTERM else "sigkill"
+                self.assertTrue(any(event["stage"] == stage and event["errno"] == errno.EPERM
+                                    for event in observed.cleanup_events))
+                self.assertEqual(sum(call.args[1] == denied_signal for call in send.call_args_list), 1)
+                self.assertTrue(root_reaped)
+                self.assertEqual(observed.cleanup_events[-1]["errno"], errno.ESRCH)
+
+    def test_non_child_wait4_errors_are_not_swallowed(self):
+        observed = launcher.ObservedProcess(mock.Mock(pid=43210, returncode=None))
+        with mock.patch.object(launcher.os, "wait4", side_effect=OSError(errno.EINVAL, "bad wait")), \
+             mock.patch.object(launcher.os, "killpg") as killpg:
+            with self.assertRaises(OSError) as caught:
+                launcher.stop_group(observed)
+        self.assertEqual(caught.exception.errno, errno.EINVAL)
+        killpg.assert_not_called()
+        self.assertEqual(observed.cleanup_events[-1]["stage"], "wait4_group")
+        self.assertEqual(observed.cleanup_events[-1]["errno"], errno.EINVAL)
+
+
 @unittest.skipUnless(sys.platform in {"linux", "darwin"}, "POSIX-only process/symlink supervision")
 class PosixMockProcessTests(unittest.TestCase):
     def setUp(self):
@@ -276,6 +412,31 @@ class PosixMockProcessTests(unittest.TestCase):
         self.assertEqual(report["status"], "cancelled")
         self.assertTrue(report["process_group_termination_verified"])
         self.assertTrue(report["runtime_directory_removed"])
+
+    def test_initial_diagnostic_eperm_does_not_skip_actual_cleanup(self):
+        self.configure(self.success_body())
+        exists = launcher.group_exists
+        diagnostic_called = False
+
+        def diagnostic_unknown_once(pgid):
+            nonlocal diagnostic_called
+            if not diagnostic_called:
+                diagnostic_called = True
+                raise PermissionError(errno.EPERM, "mock diagnostic race")
+            return exists(pgid)
+
+        with mock.patch.object(launcher, "group_exists", side_effect=diagnostic_unknown_once), \
+             mock.patch.object(launcher, "stop_group", wraps=launcher.stop_group) as cleanup:
+            code, report = self.run_probe()
+        self.assertEqual(code, 0, report)
+        cleanup.assert_called_once()
+        self.assertIsNone(report["remaining_group_after_root_exit"])
+        self.assertTrue(report["process_group_termination_verified"])
+        self.assertTrue(report["runtime_directory_removed"])
+        self.assertEqual(report["cleanup_trace"][0]["stage"], "diagnostic_probe")
+        self.assertEqual(report["cleanup_trace"][0]["errno"], errno.EPERM)
+        self.assertEqual(report["cleanup_trace"][-1]["errno"], errno.ESRCH)
+        self.assertIn("undetermined", report["cleanup_eperm_cause"])
 
     def test_unverified_group_death_cannot_report_success(self):
         self.configure(self.success_body())
