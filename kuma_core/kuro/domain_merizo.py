@@ -31,15 +31,21 @@ MERIZO_WEIGHTS_SHA256 = {
 }
 # Versioned, narrowly reviewed compatibility policy. Imported producer claims
 # remain unauthenticated, just like the existing tool/model/input provenance.
-MERIZO_NOTICE_POLICY = "kuma-merizo-pyparsing-alias-v1"
-MERIZO_NOTICE_IDS = frozenset({"pyparsing_parse_string_alias", "pyparsing_reset_cache_alias"})
+MERIZO_NOTICE_POLICY = "kuma-merizo-pyparsing-alias-v2"
+_LEGACY_NOTICE_POLICY = "kuma-merizo-pyparsing-alias-v1"
+_LEGACY_NOTICE_IDS = frozenset({"pyparsing_parse_string_alias", "pyparsing_reset_cache_alias"})
+MERIZO_NOTICE_IDS = _LEGACY_NOTICE_IDS | {"pyparsing_enable_packrat_alias"}
 MERIZO_NOTICE_SOURCE_SHA256 = "54b22b72a221e70ea7f7eb760b3c11008b3f8f4750eff0166e7d9e688c851f15"
 MERIZO_CODE_FINGERPRINT = "kuma-python-code-v1"
 MAX_MERIZO_NOTICE_COUNT = 65535
 
 
-def validate_merizo_notice_basis(basis: Any) -> None:
-    expected = {"policy_id": MERIZO_NOTICE_POLICY, "source_member": "pyparsing/util.py",
+def validate_merizo_notice_basis(basis: Any, *, allow_legacy: bool = False) -> None:
+    # Runtime/build callers accept only the current policy. The decoder can
+    # explicitly retain old producer records without expanding their semantics.
+    policy = (_LEGACY_NOTICE_POLICY if allow_legacy and isinstance(basis, dict)
+              and basis.get("policy_id") == _LEGACY_NOTICE_POLICY else MERIZO_NOTICE_POLICY)
+    expected = {"policy_id": policy, "source_member": "pyparsing/util.py",
                 "source_sha256": MERIZO_NOTICE_SOURCE_SHA256,
                 "code_fingerprint_schema": MERIZO_CODE_FINGERPRINT, "python_abi": "cpython-311"}
     if (not isinstance(basis, dict) or set(basis) != set(expected) | {"code_fingerprints"}
@@ -56,10 +62,12 @@ def validate_merizo_compatibility_notices(value: Any) -> None:
     """Validate producer claims, never authenticate an imported execution."""
     if not isinstance(value, dict) or set(value) != {"basis", "count", "counts"}:
         raise DomainAnnotationError("Invalid compatibility-notice record")
-    validate_merizo_notice_basis(value["basis"])
+    validate_merizo_notice_basis(value["basis"], allow_legacy=True)
+    allowed_ids = (_LEGACY_NOTICE_IDS if value["basis"]["policy_id"] == _LEGACY_NOTICE_POLICY
+                   else MERIZO_NOTICE_IDS)
     counts = value["counts"]
     if (type(value["count"]) is not int or not 1 <= value["count"] <= MAX_MERIZO_NOTICE_COUNT
-            or not isinstance(counts, dict) or not counts or not set(counts) <= MERIZO_NOTICE_IDS
+            or not isinstance(counts, dict) or not counts or not set(counts) <= allowed_ids
             or any(type(count) is not int or not 1 <= count <= MAX_MERIZO_NOTICE_COUNT for count in counts.values())
             or sum(counts.values()) != value["count"]):
         raise DomainAnnotationError("Unknown, incomplete or inconsistent compatibility-notice counts")

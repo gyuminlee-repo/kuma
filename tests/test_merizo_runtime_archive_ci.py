@@ -3,10 +3,176 @@ import ast
 import json
 from pathlib import Path
 from unittest.mock import patch
+from types import SimpleNamespace
+import os
+import stat
 
 import pytest
 
 from scripts.merizo_runtime_archive import ci
+from scripts.merizo_runtime_archive import roundtrip as trip
+from tests.test_optional_runtime import setup_runtime
+
+
+def test_remove_diagnostic_locates_real_rename_failure_without_paths(tmp_path, monkeypatch):
+    manager, archive, artifact = setup_runtime(tmp_path)
+    manager.install(archive)
+    target = manager._target(artifact)
+
+    def denied(source, destination):
+        error = PermissionError(13, 'PRIVATE_REMOVE_MESSAGE', str(source))
+        error.winerror = 32
+        error.filename2 = str(destination)
+        raise error
+
+    with monkeypatch.context() as scoped:
+        scoped.setattr(os, 'rename', denied)
+        with pytest.raises(PermissionError) as caught:
+            manager.remove()
+        detail = trip.remove_failure_diagnostic(caught.value, tmp_path.resolve(), manager, artifact)
+    assert detail['errno'] == 13 and detail['winerror'] == 32
+    assert any(frame['call'] == 'manager.remove' for frame in detail['frames'])
+    assert detail['target']['role'] == 'installed_target'
+    assert detail['target']['directory'] is True
+    assert detail['target2']['role'] == 'removal_stage_entry'
+    assert detail['target2']['observation'] == 'missing'
+    raw = json.dumps(detail)
+    assert str(tmp_path) not in raw and 'PRIVATE_REMOVE_MESSAGE' not in raw
+    assert len(raw) < 4096 and manager.verify().state == 'installed'
+    assert manager.remove().state == 'missing'
+
+
+def test_remove_diagnostic_locates_recursive_delete_and_observes_attributes(tmp_path, monkeypatch):
+    manager, archive, artifact = setup_runtime(tmp_path)
+    manager.install(archive)
+    original_unlink = os.unlink
+
+    def denied(path, *args, **kwargs):
+        if Path(path).name == 'NOTICE.txt':
+            stage = next(manager.root.glob(manager._stage_prefix(artifact) + '*'))
+            raise PermissionError(13, 'PRIVATE_UNLINK_MESSAGE', str(stage / 'payload' / 'NOTICE.txt'))
+        return original_unlink(path, *args, **kwargs)
+
+    with monkeypatch.context() as scoped:
+        scoped.setattr(os, 'unlink', denied)
+        with pytest.raises(PermissionError) as caught:
+            manager.remove()
+        original_lstat = Path.lstat
+
+        def attributes(path):
+            info = original_lstat(path)
+            if str(path) == caught.value.filename:
+                return SimpleNamespace(st_mode=info.st_mode, st_file_attributes=1)
+            return info
+
+        scoped.setattr(Path, 'lstat', attributes)
+        detail = trip.remove_failure_diagnostic(caught.value, tmp_path.resolve(), manager, artifact)
+    calls = {frame['call'] for frame in detail['frames']}
+    assert 'runtime._remove_tree' in calls and 'shutil.rmtree' in calls
+    assert detail['target'] == {'role': 'removal_stage_entry', 'observation': 'observed',
+                                'readonly': True, 'reparse': False, 'directory': False}
+    assert detail['evidence'] == 'post_failure_observation_not_cause'
+    assert 'PRIVATE_UNLINK_MESSAGE' not in json.dumps(detail)
+    assert manager.cleanup_interrupted() == 1
+
+
+@pytest.mark.parametrize('filename', ['outside', 'parent_escape', 'relative', 'bytes'])
+def test_remove_diagnostic_never_stats_unrecognized_exception_paths(tmp_path, monkeypatch, filename):
+    manager, _, artifact = setup_runtime(tmp_path)
+    value = {'outside': str(tmp_path.parent / 'private-outside'),
+             'parent_escape': str(tmp_path / '..' / 'private-outside'),
+             'relative': 'private-relative', 'bytes': b'private-bytes'}[filename]
+    error = PermissionError(13, 'PRIVATE', value)
+    monkeypatch.setattr(Path, 'lstat', lambda *args: pytest.fail('Unrecognized path was inspected'))
+    detail = trip.remove_failure_diagnostic(error, tmp_path, manager, artifact)
+    assert detail['target']['role'] == 'unknown' and detail['target']['observation'] == 'unavailable'
+    assert 'private-' not in json.dumps(detail)
+
+
+def test_remove_diagnostic_stops_before_reparse_ancestor_and_does_not_guess_readonly(tmp_path, monkeypatch):
+    manager, archive, artifact = setup_runtime(tmp_path)
+    manager.install(archive)
+    target = manager._target(artifact)
+    member = target / 'bin' / 'merizo-cpu'
+    original_lstat = Path.lstat
+    seen = []
+
+    def reparse(path):
+        seen.append(path)
+        assert path != member
+        if path == member.parent:
+            return SimpleNamespace(st_mode=stat.S_IFDIR, st_file_attributes=0x400)
+        return original_lstat(path)
+
+    with monkeypatch.context() as scoped:
+        scoped.setattr(Path, 'lstat', reparse)
+        detail = trip.remove_failure_diagnostic(PermissionError(13, 'PRIVATE', str(member)),
+                                                tmp_path.resolve(), manager, artifact)
+    assert member.parent in seen
+    assert detail['target']['observation'] == 'unsafe_ancestor'
+    assert detail['target']['readonly'] is None
+    if os.name != 'nt':
+        detail = trip.remove_failure_diagnostic(PermissionError(13, 'PRIVATE', str(member)),
+                                                tmp_path.resolve(), manager, artifact)
+        assert detail['target']['observation'] == 'observed' and detail['target']['readonly'] is None
+
+
+def test_remove_diagnostic_rejects_spoofed_frames_and_bounds_codes_and_size(tmp_path, monkeypatch):
+    manager, _, artifact = setup_runtime(tmp_path)
+    error = PermissionError('PRIVATE')
+    error.errno = True
+    error.winerror = 2**40
+    with pytest.raises(PermissionError) as caught:
+        exec(compile('raise error', trip._runtime.__file__, 'exec'), {'error': error})
+    detail = trip.remove_failure_diagnostic(caught.value, tmp_path, manager, artifact)
+    assert detail['frames'] == [] and detail['errno'] is None and detail['winerror'] is None
+    monkeypatch.setattr(trip, '_MAX_REMOVE_DIAGNOSTIC_BYTES', 1)
+    assert trip.remove_failure_diagnostic(error, tmp_path, manager, artifact)['status'] == 'unavailable'
+
+
+def test_remove_diagnostic_caps_traceback_traversal_and_retained_frames(tmp_path, monkeypatch):
+    manager, _, artifact = setup_runtime(tmp_path)
+
+    def recurse(remaining):
+        if remaining:
+            recurse(remaining - 1)
+        raise PermissionError('PRIVATE_RECURSION')
+
+    # Test the cap independently; production uses only its immutable snapshot of
+    # trusted source code identities, as the spoofed-filename test also checks.
+    monkeypatch.setattr(trip, '_CLEANUP_CODES', {recurse.__code__: 'runtime._tree'})
+    with pytest.raises(PermissionError) as caught:
+        recurse(80)
+    detail = trip.remove_failure_diagnostic(caught.value, tmp_path, manager, artifact)
+    assert len(detail['frames']) == 8 and detail['frames_truncated'] is True
+    assert len(json.dumps(detail)) < 4096
+
+
+@pytest.mark.parametrize('diagnostic_failure', [False, True])
+def test_roundtrip_cleanup_diagnostic_preserves_primary_failure(tmp_path, monkeypatch, diagnostic_failure):
+    from kuma_core.kuro.domain_process import DomainProcessError
+
+    _, archive, artifact = setup_runtime(tmp_path)
+    prepared = SimpleNamespace(source_sha256='a' * 64, binding_sha256='b' * 64, normalized_pdb='synthetic')
+    primary = DomainProcessError('PRIVATE_PRIMARY')
+    secondary = PermissionError(13, 'PRIVATE_SECONDARY', str(tmp_path / 'private-name'))
+    monkeypatch.setattr(trip, 'domain_input_manifest', lambda value: {})
+    if diagnostic_failure:
+        monkeypatch.setattr(trip, '_cleanup_target', lambda *args: (_ for _ in ()).throw(ValueError('PRIVATE_DIAGNOSTIC')))
+
+    def runner(*args, **kwargs):
+        raise primary
+
+    report = {}
+    with patch.object(trip.OptionalRuntimeManager, 'remove', side_effect=secondary):
+        with pytest.raises(DomainProcessError) as caught:
+            trip.roundtrip(archive, artifact, [('synthetic', prepared)], runner=runner, report=report)
+    assert caught.value is primary
+    assert report['failure'] == {'stage': 'runtime_process', 'error_type': 'DomainProcessError'}
+    assert report['cleanup_errors'] == [{'stage': 'remove', 'error_type': 'PermissionError'}]
+    assert report['removed'] is False and report['temporary_storage_removed'] is True
+    assert report['remove_failure_diagnostic']['status'] == ('unavailable' if diagnostic_failure else 'collected')
+    assert 'PRIVATE' not in json.dumps(report)
 
 
 @pytest.fixture(autouse=True)

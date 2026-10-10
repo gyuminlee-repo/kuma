@@ -95,16 +95,24 @@ class MerizoScientificContractTests(unittest.TestCase):
         notice = {"basis": {"policy_id": MERIZO_NOTICE_POLICY, "source_member": "pyparsing/util.py",
                   "source_sha256": MERIZO_NOTICE_SOURCE_SHA256, "code_fingerprint_schema": MERIZO_CODE_FINGERPRINT,
                   "python_abi": "cpython-311", "code_fingerprints": {"461": "1" * 64, "472": "2" * 64}},
-                  "count": 11, "counts": {"pyparsing_parse_string_alias": 6, "pyparsing_reset_cache_alias": 5}}
+                  "count": 11, "counts": {"pyparsing_parse_string_alias": 5, "pyparsing_reset_cache_alias": 5,
+                                           "pyparsing_enable_packrat_alias": 1}}
         result["process"]["compatibility_notices"] = notice
         decoded = decode(prepared, result)
         self.assertEqual(decoded, legacy)
         self.assertIn("provenance_unverified", decoded.interpretation)
+        self.assertEqual(notice['basis']['policy_id'], 'kuma-merizo-pyparsing-alias-v2')
+        old_notice = {**notice, "basis": {**notice["basis"], "policy_id": "kuma-merizo-pyparsing-alias-v1"},
+                      "count": 10, "counts": {"pyparsing_parse_string_alias": 5, "pyparsing_reset_cache_alias": 5}}
+        self.assertEqual(decode(prepared, {**result, "process": {**result["process"],
+                            "compatibility_notices": old_notice}}), legacy)
         invalid = [None, [], {}, {**notice, "count": True}, {**notice, "count": 12},
                    {**notice, "count": 65536}, {**notice, "counts": {}},
                    {**notice, "counts": {"pyparsing_parse_string_alias": True}},
                    {**notice, "counts": {"torch_typed_storage_deprecated": 11}},
                    {**notice, "counts": {"mpmath_rational_private_module_deprecated": 11}},
+                   {**notice, "counts": {"pyparsing_set_parse_action_alias": 11}},
+                   {**notice, "basis": old_notice["basis"]},
                    {**notice, "private": "secret"}]
         for key, value in (("policy_id", "unknown-policy"), ("source_member", "other.py"),
                            ("source_sha256", "0" * 64), ("python_abi", "cpython-312"),

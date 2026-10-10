@@ -6,6 +6,8 @@ import hashlib
 import json
 import math
 import os
+import re
+import shutil
 import stat
 from pathlib import Path
 import tempfile
@@ -14,6 +16,7 @@ import time
 from kuma_core.kuro.domain_annotation import prepare_domain_input
 from kuma_core.kuro.domain_merizo import decode_merizo_result, domain_input_manifest
 from kuma_core.kuro.domain_process import run_managed_process
+from kuma_core.kuro import domain_lease as _lease, optional_runtime as _runtime
 from kuma_core.kuro.optional_runtime import OptionalRuntimeManager, PRODUCTION_CATALOG
 from kuma_core.kuro.residue_mapping import PolymerRecord, ResidueId
 from scripts.merizo_runtime_archive.common import digest, read_regular, strict_json, write_json
@@ -25,6 +28,107 @@ PUBLIC_SHA = 'd4a6812d8951cf6594e6a0763f089e35f5a80b62acb3c117b2c5565228a7b161'
 SEQUENCE = 'MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG'
 _STAGE_STARTED = time.monotonic()
 _MAX_STAGE_SECONDS = 3600.0
+_MAX_REMOVE_DIAGNOSTIC_BYTES = 4096
+
+
+def _cleanup_codes() -> dict:
+    """Snapshot trusted code identities, never traceback filename/name strings."""
+    result = {}
+    for prefix, owner, names in (
+        ('runtime', _runtime, ('_directory_chain', '_open_regular', '_read_exact', '_tree', '_remove_tree')),
+        ('manager', OptionalRuntimeManager, ('_check_root', 'operation_lock', 'remove', 'status')),
+        ('lease', _lease, ('_root_identity', '_check_root', '_check_named', '_primary', '_read_record',
+                            '_sync_root', 'check_execution_admission')),
+        ('guard', _lease._Guard, ('__init__', 'check', 'close')),
+        ('shutil', shutil, ('rmtree', '_rmtree_unsafe', '_rmtree_safe_fd', '_rmtree_isdir', '_rmtree_islink')),
+    ):
+        for name in names:
+            function = getattr(owner, name, None)
+            function = getattr(function, '__wrapped__', function)
+            code = getattr(function, '__code__', None)
+            if code is not None:
+                result[code] = prefix + '.' + name
+    return result
+
+
+_CLEANUP_CODES = _cleanup_codes()
+
+
+def _cleanup_target(value, root: Path, manager: OptionalRuntimeManager, artifact) -> dict:
+    observed = {'role': 'unknown', 'observation': 'unavailable',
+                'readonly': None, 'reparse': None, 'directory': None}
+    if not isinstance(value, str) or len(value) > 4096 or '\0' in value:
+        return observed
+    path = Path(value)
+    if (not path.is_absolute() or '..' in path.parts or len(path.parts) > 64
+            or not path.is_relative_to(root)):
+        return observed
+    target = manager._target(artifact)
+    known = {root: 'workspace_root', manager.app_data_root: 'app_root', manager.root: 'registry_root',
+             manager.root / _runtime._LOCK_FILE: 'primary_lock',
+             manager.root / _runtime._ROOT_MARKER: 'root_marker',
+             manager.root / _lease.EXECUTION_GUARD_NAME: 'execution_guard',
+             manager.root / _lease.EXECUTION_RECORD_NAME: 'execution_record',
+             target: 'installed_target', target / _runtime._RECEIPT: 'installed_receipt'}
+    role = known.get(path)
+    if role is None and path.is_relative_to(target):
+        role = 'installed_payload_entry'
+    if role is None and path.is_relative_to(manager.root):
+        relative = path.relative_to(manager.root).parts
+        if relative and re.fullmatch(re.escape(manager._stage_prefix(artifact)) + r'[a-z0-9_]{8}', relative[0]):
+            role = 'removal_stage' if len(relative) == 1 else 'removal_stage_entry'
+    if role is None:
+        return observed
+    observed['role'] = role
+    try:
+        # No resolve(), content reads, or traversal through a link/reparse point.
+        # These are post-failure observations, never authority to mutate/delete.
+        for ancestor in reversed(path.parents):
+            info = ancestor.lstat()
+            if (_runtime._is_link(info) or not stat.S_ISDIR(info.st_mode)):
+                observed['observation'] = 'unsafe_ancestor'
+                return observed
+        info = path.lstat()
+        attributes = getattr(info, 'st_file_attributes', None)
+        observed.update(observation='observed',
+                        readonly=bool(attributes & 1) if type(attributes) is int else None,
+                        reparse=_runtime._is_link(info), directory=stat.S_ISDIR(info.st_mode))
+    except FileNotFoundError:
+        observed['observation'] = 'missing'
+    except OSError:
+        pass
+    return observed
+
+
+def remove_failure_diagnostic(exc: BaseException, root: Path, manager: OptionalRuntimeManager, artifact) -> dict:
+    """Bounded syscall-location evidence; no exception text or filesystem paths."""
+    fallback = {'schema': 'kuma-runtime-remove-failure-v1', 'status': 'unavailable'}
+    try:
+        def number(name):
+            value = getattr(exc, name, None)
+            return value if type(value) is int and 0 <= value <= 0xFFFFFFFF else None
+
+        frames = []
+        current, inspected, truncated = exc.__traceback__, 0, False
+        while current is not None and inspected < 64:
+            call = _CLEANUP_CODES.get(current.tb_frame.f_code)
+            if call is not None and 1 <= current.tb_lineno <= 1000000:
+                frames.append({'call': call, 'line': current.tb_lineno})
+                if len(frames) > 8:
+                    frames.pop(0)
+                    truncated = True
+            current, inspected = current.tb_next, inspected + 1
+        result = {'schema': fallback['schema'], 'status': 'collected',
+                  'evidence': 'post_failure_observation_not_cause',
+                  'errno': number('errno'), 'winerror': number('winerror'),
+                  'frames': frames, 'frames_truncated': truncated or current is not None,
+                  'target': _cleanup_target(getattr(exc, 'filename', None), root, manager, artifact),
+                  'target2': _cleanup_target(getattr(exc, 'filename2', None), root, manager, artifact)}
+        if len(json.dumps(result, ensure_ascii=True, allow_nan=False).encode('ascii')) > _MAX_REMOVE_DIAGNOSTIC_BYTES:
+            return fallback
+        return result
+    except BaseException:
+        return fallback  # Diagnostic failure cannot replace either real failure.
 _STAGES = {
     'build': frozenset({'preflight', 'public_fixture', 'source_verification', 'installed_provenance',
         'cpython_origin', 'build_identity', 'build_workspace', 'freeze', 'source_reverification',
@@ -217,6 +321,8 @@ def roundtrip(archive: Path, artifact, inputs, *, runner=run_managed_process, re
                     raise ValueError('Internal registry removal failed')
             except BaseException as exc:
                 report['cleanup_errors'].append({'stage': 'remove', 'error_type': safe_error_type(exc)})
+                if root is not None:
+                    report['remove_failure_diagnostic'] = remove_failure_diagnostic(exc, root, manager, artifact)
                 if primary is None:
                     primary = exc
                     report['failure'] = {'stage': 'remove', 'error_type': safe_error_type(exc)}

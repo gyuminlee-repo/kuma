@@ -64,6 +64,10 @@ _ALIAS_PAIRS = (('parseString', 'parse_string'), ('resetCache', 'reset_cache'),
     ('enablePackrat', 'enable_packrat'), ('setParseAction', 'set_parse_action'),
     ('setName', 'set_name'), ('leaveWhitespace', 'leave_whitespace'),
     ('oneOf', 'one_of'), ('convertToFloat', 'convert_to_float'))
+# Pinned core.py compatibility bindings: parse_string takes self; reset_cache
+# and enable_packrat are staticmethods. Diagnostic recognition remains broader.
+_NOTICE_LINES = {'pyparsing_parse_string_alias': 461, 'pyparsing_reset_cache_alias': 472,
+                 'pyparsing_enable_packrat_alias': 472}
 _TYPED_STORAGE_MESSAGE = ('TypedStorage is deprecated. It will be removed in the future and UntypedStorage '
     'will be the only storage class. This should only matter to you if you are using storages directly.  '
     'To access UntypedStorage directly, use tensor.untyped_storage() instead of tensor.storage()')
@@ -350,6 +354,7 @@ class WarningObserver:
         else:
             report['id_counts'][identifier] = report['id_counts'].get(identifier, 0) + 1
         accepted = (identifier in MERIZO_NOTICE_IDS and self.policy is not None and active is not None
+                    and active['line'] == _NOTICE_LINES.get(identifier)
                     and fingerprint == self.policy['code_fingerprints'].get(str(active['line'])))
         if accepted:
             report['accepted_counts'][identifier] = report['accepted_counts'].get(identifier, 0) + 1
@@ -639,7 +644,7 @@ def execute(pdb: Path, manifest: Path, output: Path, internal: Path, identity_sh
     with warnings.catch_warnings(record=True) as observed:
         # Respect Python's default DeprecationWarning suppression, while
         # retaining every observed warning for complete classification. Only
-        # the separately code-bound two-alias policy can accept a notice.
+        # the separately code-bound, versioned alias policy can accept a notice.
         warnings.simplefilter('always', RuntimeWarning)
         warnings.simplefilter('always', UserWarning)
         table = identity.get('warning_sources', {'wheel': {}, 'merizo': {}, 'owners': {}})

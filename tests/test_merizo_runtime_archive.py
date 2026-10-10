@@ -515,26 +515,77 @@ class CompatibilityNoticePolicyTests(_WarningFixture):
     def accepted_emissions(self):
         first = self.emitter(code_filename='pyparsing/util.py')
         second = self.emitter(line=472, code_filename='pyparsing/util.py')
-        return [(first, "'parseString' deprecated - use 'parse_string'", self.category)] * 6 + [
-                (second, "'resetCache' deprecated - use 'reset_cache'", self.category)] * 5
+        return ([(first, "'parseString' deprecated - use 'parse_string'", self.category)] * 5
+                + [(second, "'resetCache' deprecated - use 'reset_cache'", self.category)] * 5
+                + [(second, "'enablePackrat' deprecated - use 'enable_packrat'", self.category)])
 
     def test_classifies_all_repeated_notices_and_conserves_counts_after_sample_cap(self):
         observer, report, recorded = self.classify(self.accepted_emissions())
         self.assertEqual(recorded, 11)
         self.assertEqual(report['count'], 11)
-        self.assertEqual(report['id_counts'], {'pyparsing_parse_string_alias': 6, 'pyparsing_reset_cache_alias': 5})
+        self.assertEqual(report['id_counts'], {'pyparsing_parse_string_alias': 5, 'pyparsing_reset_cache_alias': 5,
+                                              'pyparsing_enable_packrat_alias': 1})
         self.assertEqual(report['accepted_counts'], report['id_counts'])
         self.assertEqual(report['unknown_count'], 0)
-        self.assertEqual(len(report['items']), 2)
+        self.assertEqual(len(report['items']), 3)
         notices = observer.compatibility_notices(recorded)
         assert notices is not None
         self.assertEqual(notices['count'], 11)
         self.assertEqual(notices['counts'], report['id_counts'])
+        self.assertEqual(notices['basis']['policy_id'], 'kuma-merizo-pyparsing-alias-v2')
+
+    def test_third_alias_requires_exact_message_category_source_frame_and_code(self):
+        message = "'enablePackrat' deprecated - use 'enable_packrat'"
+        controls = [(self.emitter(line=472), message + ' ', self.category),
+                    (self.emitter(line=472), message, UserWarning),
+                    (self.emitter('other.py', line=472), message, self.category),
+                    (self.emitter(function='other', line=472), message, self.category),
+                    (self.emitter(line=473), message, self.category),
+                    (self.emitter(line=472, stacklevel=1), message, self.category)]
+        for emission in controls:
+            with self.subTest(emission=emission):
+                observer, report, recorded = self.classify([emission])
+                self.assertEqual(recorded, 1)
+                self.assertEqual(report['accepted_counts'], {})
+                with self.assertRaises(ValueError):
+                    observer.compatibility_notices(recorded)
+        policy = self.policy()
+        policy['code_fingerprints']['472'] = '0' * 64
+        observer, report, recorded = self.classify([self.accepted_emissions()[-1]], policy)
+        self.assertEqual(report['id_counts'], {'pyparsing_enable_packrat_alias': 1})
+        self.assertEqual(report['accepted_counts'], {})
+        with self.assertRaises(ValueError):
+            observer.compatibility_notices(recorded)
+        self.table['wheel']['pyparsing/util.py'][0] = '0' * 64
+        with self.assertRaises(ValueError):
+            self.classify([self.accepted_emissions()[-1]])
+
+    def test_runtime_rejects_legacy_policy_identity_even_for_original_aliases(self):
+        policy = self.policy()
+        policy['policy_id'] = 'kuma-merizo-pyparsing-alias-v1'
+        with self.assertRaises(ValueError):
+            self.classify(self.accepted_emissions()[:1], policy)
+
+    def test_each_notice_requires_its_exact_pinned_wrapper_variant(self):
+        self.assertEqual(set(runtime_entry._NOTICE_LINES), runtime_entry.MERIZO_NOTICE_IDS)
+        for old, new, wrong_line in (('parseString', 'parse_string', 472),
+                                    ('resetCache', 'reset_cache', 461),
+                                    ('enablePackrat', 'enable_packrat', 461)):
+            with self.subTest(alias=old):
+                observer, report, recorded = self.classify([
+                    (self.emitter(line=wrong_line), f"'{old}' deprecated - use '{new}'", self.category)])
+                # Both wrapper code objects are approved, but the wrong one is
+                # not the source-pinned callable binding for this exact alias.
+                self.assertEqual(report['id_counts'], {'pyparsing_' + new + '_alias': 1})
+                self.assertEqual(report['unknown_count'], 0)
+                self.assertEqual(report['accepted_counts'], {})
+                with self.assertRaises(ValueError):
+                    observer.compatibility_notices(recorded)
 
     def test_late_unknown_numeric_serialization_missing_data_and_other_known_notice_fail(self):
         controls = [('private unknown /input/path', UserWarning), ('overflow', RuntimeWarning),
                     ('pickle load', FutureWarning), ('missing atom', UserWarning),
-                    ("'enablePackrat' deprecated - use 'enable_packrat'", self.category)]
+                    ("'setParseAction' deprecated - use 'set_parse_action'", self.category)]
         for text, category in controls:
             with self.subTest(text=text):
                 emissions = self.accepted_emissions() + [(self.emitter(), text, category)]
@@ -560,7 +611,7 @@ class CompatibilityNoticePolicyTests(_WarningFixture):
         policy = self.policy()
         policy['code_fingerprints']['461'] = '0' * 64
         observer, report, recorded = self.classify(self.accepted_emissions(), policy)
-        self.assertEqual(report['id_counts']['pyparsing_parse_string_alias'], 6)
+        self.assertEqual(report['id_counts']['pyparsing_parse_string_alias'], 5)
         self.assertNotIn('pyparsing_parse_string_alias', report['accepted_counts'])
         with self.assertRaises(ValueError):
             observer.compatibility_notices(recorded)
@@ -995,7 +1046,8 @@ class ArchiveTests(unittest.TestCase):
                     'source_sha256': runtime_entry.MERIZO_NOTICE_SOURCE_SHA256,
                     'code_fingerprint_schema': runtime_entry.MERIZO_CODE_FINGERPRINT, 'python_abi': 'cpython-311',
                     'code_fingerprints': {'461': '1' * 64, '472': '2' * 64}},
-                   'count': 11, 'counts': {'pyparsing_parse_string_alias': 6, 'pyparsing_reset_cache_alias': 5}}
+                   'count': 11, 'counts': {'pyparsing_parse_string_alias': 5, 'pyparsing_reset_cache_alias': 5,
+                                          'pyparsing_enable_packrat_alias': 1}}
         def runner(argv, **kwargs):
             result = envelope(prepared)
             result['process']['compatibility_notices'] = notices

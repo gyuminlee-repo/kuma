@@ -505,8 +505,14 @@ build-bound source table allows an unfamiliar Python warning to be investigated
 against its public source; unresolved/C-emitted cases remain explicitly unknown.
 The observer preserves the existing warning filters and recording, delegates the
 original warning handler, restores it on exit, and discards inspected frames.
-The subsequent `kuma-merizo-pyparsing-alias-v1` policy can report only the exact
-pinned `parseString`/`resetCache` API-renaming notices without rejecting a result.
+The `kuma-merizo-pyparsing-alias-v2` policy can report only the exact pinned
+`parseString`/`resetCache`/`enablePackrat` API-renaming notices without rejecting
+a result. The decoder retains v1 only with its original two-ID restriction.
+The exact pyparsing 3.3.3 `core.py` binding passes `enable_packrat` to the same
+verified no-self wrapper (`core.py` SHA256
+`e84663e68207f710f8f49d970931685a13ac008694ec96b9ff430017fa46999a`, line 2603).
+This policy leaves the existing memoization call and its arguments unchanged;
+it does not assert that memoization is scientifically irrelevant.
 These verified upstream wrappers warn and immediately delegate the same arguments;
 changing their callers instead would modify pinned third-party bytes or require
 runtime patching. Acceptance binds the verified source to actual collected PYZ
@@ -522,8 +528,25 @@ complete observed count. `process.warnings: []` means zero unhandled warnings,
 not warning-free inference. The strict app decoder validates this additive field;
 imported producer assertions remain unauthenticated. The earlier three-OS
 `d444cf4b` runs remain failures: only four of their eleven warnings were retained,
-so their other seven observations cannot be retroactively classified.
+so their other seven observations cannot be retroactively classified. Later
+`4906aded` Linux/macOS/Windows evidence classifies all eleven as 5 parse-string, 5
+reset-cache and 1 enable-packrat notice, with no unknown or truncated observations.
+The two-ID v1 policy correctly rejected that third ID; these runs remain failures.
+The separately versioned v2 policy requires a new actual run.
 
 The complete failure report still has a 4 KiB serialized cap. The source table
 lives only in the bounded runtime identity; the final audit stores its compact
 summary/hash rather than duplicating thousands of references.
+
+At `4906aded`, Windows also records `PermissionError` during the manager's
+explicit removal, with `removed: false`. Its later temporary-directory cleanup
+and build/payload cleanup succeeded. Those outcomes are separate: Python's
+temporary-directory cleanup can reset permissions and retry, while the manager
+uses its guarded removal path. The saved exception class alone does not identify
+the failing syscall or establish a read-only file, a retained handle or a race.
+A failed removal can now retain a separate 4 KiB diagnostic: bounded numeric
+OS error codes, exact trusted cleanup callable/line identifiers, and fixed owned
+target roles with post-failure read-only/reparse/directory observations. It never
+includes path strings or exception messages. Missing, unsafe or failed
+observations remain unavailable; they cannot authorize deletion or replace the
+original execution/removal error. The manager's removal behavior is unchanged.
