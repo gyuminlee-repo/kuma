@@ -171,7 +171,11 @@ class PosixEntryContracts(unittest.TestCase):
     @unittest.skipUnless(os.name == "posix", "POSIX symlink semantics")
     def test_internal_native_and_module_symlinks_allowed_but_escape_rejected(self):
         with tempfile.TemporaryDirectory() as folder:
-            base = Path(folder)
+            real_base = Path(folder) / "real"
+            real_base.mkdir()
+            alias = Path(folder) / "alias"
+            alias.symlink_to(real_base, target_is_directory=True)
+            base = alias.resolve()
             root = base / "bundle"
             root.mkdir()
             paths = []
@@ -197,7 +201,10 @@ class PosixEntryContracts(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "outside"):
                 entry.module_origins([("predict", module)], root)
             system_link = root / "libc.so.6"
-            system_link.symlink_to("/usr/lib/libc.so.6")
+            # Portable stand-in: no Linux library or /var spelling assumptions.
+            external_system_image = base / "libc.so.6"
+            external_system_image.touch()
+            system_link.symlink_to(external_system_image)
             with self.assertRaisesRegex(ValueError, "symlink escaped"):
                 entry.validate_native_paths([str(system_link)], root, "Linux")
 
