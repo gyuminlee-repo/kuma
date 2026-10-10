@@ -7,6 +7,7 @@ import stat
 import struct
 import zipfile
 from pathlib import Path
+from types import SimpleNamespace
 from collections.abc import Mapping
 
 import pytest
@@ -231,9 +232,24 @@ def test_colabfold_incomplete_or_ambiguous_pdb_rejects(tmp_path: Path, change: s
 
 
 @pytest.mark.parametrize("name", ["../evil", "/evil", "C:/evil", "a\\evil", "a/../evil", "a//evil", "a/./evil"])
-def test_unsafe_paths_fail_even_when_not_selected(tmp_path: Path, name: str) -> None:
+@pytest.mark.parametrize("separator", ["/", "\\"])
+def test_unsafe_paths_fail_even_when_not_selected(
+    tmp_path: Path, name: str, separator: str, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Exercise Windows normalization even on POSIX CI without changing os
+    # globally for pathlib, pytest, or the production importer.
+    monkeypatch.setattr(zipfile, "os", SimpleNamespace(**{**vars(zipfile.os), "sep": separator}))
+    path = bundle(tmp_path)
+    with zipfile.ZipFile(path, "a") as archive:
+        info = zipfile.ZipInfo(name)
+        # ZipInfo normalizes backslashes on Windows. Restore the adversarial
+        # filename so the serialized archive really contains the unsafe path.
+        info.filename = name
+        archive.writestr(info, "bad")
+    with zipfile.ZipFile(path) as archive:
+        assert archive.infolist()[-1].orig_filename == name
     with pytest.raises(PredictionBundleError, match="path"):
-        inspect_prediction_bundle(bundle(tmp_path, {AF_MODEL: cif(), AF_DATA: af_data(), name: "bad"}))
+        inspect_prediction_bundle(path)
 
 
 def test_casefold_duplicate_members_reject(tmp_path: Path) -> None:

@@ -96,3 +96,18 @@ chain을 직접 선택한다. 원본 잔기 번호와 참조 위치의 정확한
 confidence를 보존해 strict 선정·CA trace·설계 재검증에 연결한다. 없는 좌표를
 채우거나 신뢰도를 추정하지 않는다. PAE 요약은 선택 chain 범위이며 도메인 신뢰도나
 기능을 판정하지 않는다. DPAM은 입력 호환성만 검토했고 실행·도메인 예측은 하지 않았다.
+
+## Validation correction after first remote run
+
+The first import commit's [remote frontend job](https://github.com/gyuminlee-repo/kuma/actions/runs/38004217512/job/114069164654)
+failed the document-citation check on a synthetic ZIP notice-member filename.
+The earlier local sync check ran before the new files were staged; this checker
+uses tracked files, so that local result did not cover the new fixture. The
+product test results do not substitute for this failed gate.
+
+The follow-up limits the exception to the exact fixture source path and exact
+trimmed ZIP-member line. The same filename in a repository-document citation,
+even elsewhere in that same test file, still fails. Removing the scoped literal
+also makes the allow entry unused and fails. Four regression cases run through
+the citation selftest, now included in the complete sync gate. Final checks must
+run with all new files staged, followed by CI on the final commit.
