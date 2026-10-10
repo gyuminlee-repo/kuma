@@ -4164,6 +4164,12 @@
     "paeMeaning": "PAE wird für Restpaare außerhalb der Diagonale in dieser Proteinkette unter Beibehaltung der Richtung zusammengefasst. Die Konfidenz zwischen Domänen wurde nicht bewertet.",
     "structurePosition": "Ursprünglicher Rest",
     "bundledNotices": "Mitgelieferte Hinweise der Quelle",
-    "sequenceHash": "SHA-256 der Abfragesequenz: {{hash}}"
+    "sequenceHash": "SHA-256 der Abfragesequenz: {{hash}}",
+    "selectedModel": "Ausgewähltes Modell: {{model}}",
+    "producerDefault": "Standardmäßig wird das vom Vorhersagetool erstplatzierte Modell ausgewählt. Dies garantiert keine biologische Genauigkeit.",
+    "missingTopRank": "Das erstplatzierte Modell fehlt. Es wurde kein Ersatz ausgewählt. Wählen Sie ein Modell ausdrücklich aus.",
+    "ambiguousRanking": "Die Rangfolge des Vorhersagetools ist unbekannt oder mehrdeutig. Wählen Sie ein Modell ausdrücklich aus.",
+    "advancedModels": "Erweitert: anderes Modell wählen",
+    "rankedModelOption": "{{model}} · Rang des Vorhersagetools {{rank}}"
   }
 }

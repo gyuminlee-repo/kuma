@@ -9,8 +9,12 @@ available and the CSV candidate pool/score/budget algorithms are unchanged.
 
 1. Inspect a local supported ZIP. A bounded parser checks archive safety and exact
    structure/confidence/query pairing before listing models and protein chains.
-2. Explicitly choose a model and chain. Inspection does not automatically choose
-   the best-ranked model or treat structural ranking as a variant fitness score.
+2. Default to the producer's unambiguous top-ranked model after the entire archive
+   validates: AlphaFold Server model_0 or ColabFold rank_001. The displayed rank
+   starts at 1. Other models remain available under advanced options. Missing or
+   ambiguous ranking leaves the model unset and opens explicit selection; a
+   malformed top model rejects inspection rather than falling back. Protein chains
+   still require explicit selection. Structural ranking is not a variant fitness score.
 3. Match the supplied reference through unique exact sequence correspondence.
    Supported terminal tags/truncations retain explicit unmapped positions. This
    path does not enable homolog alignment or synthesize missing coordinates.
@@ -26,6 +30,8 @@ available and the CSV candidate pool/score/budget algorithms are unchanged.
 
 Source/model/chain changes invalidate the result. Late responses must not restore
 an older choice. Workspace restoration does not reactivate a saved strict result.
+This producer-ranked default supersedes the earlier all-models-explicit UI contract;
+the explicit chain and unique exact reference-correspondence requirements remain.
 The original ZIP stays on the user's filesystem. Source hashes describe the bytes
 read; recognizing a layout is not proof of an authentic or unmodified producer run.
 
@@ -91,8 +97,9 @@ PAE matrix and keep output-use notices. The application's reference-fragment CA
 trace is not automatically a DPAM-ready full-polymer input. That export and actual
 DPAM execution remain separate validation gates.
 
-한국어 요약: 이미 만든 AF3 Server·ColabFold ZIP을 로컬에서 검사하고 모델과 단백질
-chain을 직접 선택한다. 원본 잔기 번호와 참조 위치의 정확한 대응 및 같은 예측의
+한국어 요약: 이미 만든 AF3 Server·ColabFold ZIP을 로컬에서 검사하고 예측 도구의
+1위 모델을 모호함 없이 확인한 경우에만 기본 선택한다. 다른 모델은 고급 옵션에서
+선택하고 단백질 chain은 직접 선택한다. 원본 잔기 번호와 참조 위치의 정확한 대응 및 같은 예측의
 confidence를 보존해 strict 선정·CA trace·설계 재검증에 연결한다. 없는 좌표를
 채우거나 신뢰도를 추정하지 않는다. PAE 요약은 선택 chain 범위이며 도메인 신뢰도나
 기능을 판정하지 않는다. DPAM은 입력 호환성만 검토했고 실행·도메인 예측은 하지 않았다.

@@ -4164,6 +4164,12 @@
     "paeMeaning": "La PAE est résumée pour les paires de résidus hors diagonale de cette chaîne protéique, en conservant la direction. La confiance entre les domaines n’a pas été évaluée.",
     "structurePosition": "Résidu d’origine",
     "bundledNotices": "Mentions de la source incluses",
-    "sequenceHash": "SHA-256 de la séquence requête : {{hash}}"
+    "sequenceHash": "SHA-256 de la séquence requête : {{hash}}",
+    "selectedModel": "Modèle sélectionné : {{model}}",
+    "producerDefault": "Le modèle classé premier par l’outil de prédiction est sélectionné par défaut. Cela ne garantit pas l’exactitude biologique.",
+    "missingTopRank": "Le modèle classé premier est absent. Aucun remplacement n’a été sélectionné ; choisissez un modèle explicitement.",
+    "ambiguousRanking": "Le classement de l’outil est inconnu ou ambigu. Choisissez un modèle explicitement.",
+    "advancedModels": "Avancé : choisir un autre modèle",
+    "rankedModelOption": "{{model}} · rang de l’outil {{rank}}"
   }
 }

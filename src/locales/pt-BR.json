@@ -4164,6 +4164,12 @@
     "paeMeaning": "O resumo de PAE considera os pares de resíduos fora da diagonal desta cadeia proteica, preservando a direção. A confiança entre domínios não foi avaliada.",
     "structurePosition": "Resíduo original",
     "bundledNotices": "Avisos da origem incluídos",
-    "sequenceHash": "SHA-256 da sequência de consulta: {{hash}}"
+    "sequenceHash": "SHA-256 da sequência de consulta: {{hash}}",
+    "selectedModel": "Modelo selecionado: {{model}}",
+    "producerDefault": "O modelo mais bem classificado pela ferramenta de predição é selecionado por padrão. Isso não garante a precisão biológica.",
+    "missingTopRank": "O modelo mais bem classificado está ausente. Nenhum substituto foi selecionado; escolha um modelo explicitamente.",
+    "ambiguousRanking": "A classificação da ferramenta é desconhecida ou ambígua. Escolha um modelo explicitamente.",
+    "advancedModels": "Avançado: escolher outro modelo",
+    "rankedModelOption": "{{model}} · classificação da ferramenta {{rank}}"
   }
 }

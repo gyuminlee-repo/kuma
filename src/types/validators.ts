@@ -560,10 +560,15 @@ function isHttpsUrl(value: unknown): value is string {
 function isPredictionBundleInventory(value: unknown): value is PredictionBundleInventory {
   if (!(isRecord(value) && value.schema_version === 1 && isString(value.source_name)
     && isSha256(value.bundle_sha256) && (value.format === "af3_server" || value.format === "colabfold")
+    && (value.recommended_model_id === null || isString(value.recommended_model_id))
+    && (value.recommendation_reason === "producer_rank" || value.recommendation_reason === "missing_top_rank"
+      || value.recommendation_reason === "ambiguous_ranking")
     && isHttpsUrl(value.source_url) && (value.terms_url === null || isHttpsUrl(value.terms_url))
     && isOptional(value.notices, isPredictionNotices)
     && isArrayOf(value.models, (model) => isRecord(model)
       && isString(model.model_id) && model.model_id.length > 0
+      && (model.producer_rank === null || (isNumber(model.producer_rank)
+        && Number.isSafeInteger(model.producer_rank) && model.producer_rank > 0))
       && isString(model.structure_member) && model.structure_member === model.model_id
       && (model.confidence_member === null || isString(model.confidence_member))
       && (model.structure_format === "pdb" || model.structure_format === "cif")
@@ -572,6 +577,11 @@ function isPredictionBundleInventory(value: unknown): value is PredictionBundleI
         && isString(chain.sequence) && /^[A-Z]+$/.test(chain.sequence)
         && chain.length === chain.sequence.length)))) return false;
   const inventory = value as unknown as PredictionBundleInventory;
+  const topModels = inventory.models.filter((model) => model.producer_rank === 1);
+  if (inventory.recommendation_reason === "producer_rank") {
+    if (topModels.length !== 1 || topModels[0].model_id !== inventory.recommended_model_id) return false;
+  } else if (inventory.recommended_model_id !== null
+    || (inventory.recommendation_reason === "missing_top_rank" && topModels.length > 0)) return false;
   return inventory.models.length > 0
     && new Set(inventory.models.map((model) => model.model_id)).size === inventory.models.length
     && inventory.models.every((model) => model.chains.length > 0

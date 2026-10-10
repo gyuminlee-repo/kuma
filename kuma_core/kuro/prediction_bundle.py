@@ -16,10 +16,10 @@ import struct
 import unicodedata
 import zipfile
 import zlib
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from io import BytesIO, StringIO
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import Any, Literal
 
 from kuma_core.kuro.alphafold import _THREE_TO_ONE
 from kuma_core.kuro.residue_mapping import (
@@ -42,7 +42,8 @@ MAX_NOTICE_BYTES = 256 * 1024
 _STANDARD_AA = frozenset("ACDEFGHIKLMNPQRSTVWY")
 _STANDARD_MONOMERS = frozenset(_THREE_TO_ONE) - {"MSE", "SEC", "PYL"}
 _AF_RE = re.compile(r"(?P<prefix>.*?)(?:_)?model_(?P<index>\d+)\.(?:cif|mmcif)$")
-_CF_RE = re.compile(r"(?P<job>.+)_(?:unrelaxed|relaxed)_(?P<tag>rank_\d{3,}_alphafold2(?:_ptm|_multimer_v\d+)?_model_\d+_seed_\d{3,})\.pdb$")
+_CF_RE = re.compile(r"(?P<job>.+)_(?:unrelaxed|relaxed)_(?P<tag>rank_(?P<rank>\d{3,})_alphafold2(?:_ptm|_multimer_v\d+)?_model_\d+_seed_\d{3,})\.pdb$")
+_RecommendationReason = Literal["producer_rank", "missing_top_rank", "ambiguous_ranking"]
 
 
 class PredictionBundleError(ValueError):
@@ -78,6 +79,7 @@ class PredictionModel:
     structure_format: str
     chains: tuple[PredictionChain, ...]
     sequence_member: str | None = None
+    producer_rank: int | None = None
 
 
 @dataclass(frozen=True)
@@ -88,6 +90,8 @@ class PredictionBundleInspection:
     models: tuple[PredictionModel, ...]
     source_terms: tuple[SourceLink, ...]
     notices: tuple[SourceNotice, ...]
+    recommended_model_id: str | None
+    recommendation_reason: _RecommendationReason
 
 
 @dataclass(frozen=True)
@@ -629,14 +633,65 @@ def _parse(bundle: _Bundle, pair: tuple[str, str, str | None]) -> _ParsedModel:
     return _af3(bundle, name, confidence) if sequence is None else _colabfold(bundle, name, confidence, sequence)
 
 
+def _producer_recommendation(
+    format_name: str, models: tuple[PredictionModel, ...],
+) -> tuple[tuple[PredictionModel, ...], str | None, _RecommendationReason]:
+    """Expose documented filename ranks, never rerank confidence or pick a fallback.
+
+    AF Server's model_0..4 are ranked best first; ColabFold writes rank_001
+    after ranking its own results. Ranks only compare within one directory/job.
+    An unknown rank or duplicate coordinate variant keeps selection manual.
+    """
+    ranked: list[PredictionModel] = []
+    scopes: set[tuple[str, str]] = set()
+    ranks: set[int] = set()
+    ambiguous = False
+    for model in models:
+        path = PurePosixPath(model.structure_member)
+        rank = None
+        if format_name == "af3_server":
+            match = _AF_RE.fullmatch(path.name)
+            if match is not None:
+                scopes.add((str(path.parent), match["prefix"]))
+                # The documented Server layout has five samples, not arbitrary
+                # model indices or zero-padded aliases of those indices.
+                prefix = f"{match['prefix']}_" if match["prefix"] else ""
+                canonical_name = f"{prefix}model_{match['index']}{path.suffix}"
+                if path.name == canonical_name and match["index"] in {"0", "1", "2", "3", "4"}:
+                    rank = int(match["index"]) + 1
+        elif format_name == "colabfold":
+            match = _CF_RE.fullmatch(path.name)
+            if match is not None:
+                scopes.add((str(path.parent), match["job"]))
+                spelling = match["rank"]
+                # Bound conversion and preserve exact JSON/JavaScript integer
+                # representation. Unknown spellings remain manually selectable.
+                if len(spelling) <= 16:
+                    value = int(spelling)
+                    if 1 <= value <= 2**53 - 1 and spelling == f"{value:03d}":
+                        rank = value
+        ranked.append(replace(model, producer_rank=rank))
+        if rank is None or rank in ranks:
+            ambiguous = True
+        if rank is not None:
+            ranks.add(rank)
+    if ambiguous or len(scopes) != 1:
+        return tuple(ranked), None, "ambiguous_ranking"
+    top = next((model for model in ranked if model.producer_rank == 1), None)
+    if top is None:
+        return tuple(ranked), None, "missing_top_rank"
+    return tuple(ranked), top.model_id, "producer_rank"
+
+
 def inspect_prediction_bundle(path: str | Path, *, expected_bundle_sha256: str | None = None) -> PredictionBundleInspection:
     """Verify every candidate before listing explicit selectable models/chains."""
     bundle = _Bundle(path, expected_bundle_sha256)
     try:
         format_name, pairs = _models(bundle)
         models = tuple(_parse(bundle, pair).public for pair in pairs)
+        models, recommended, reason = _producer_recommendation(format_name, models)
         return PredictionBundleInspection(bundle.path.name, bundle.sha256, format_name, models,
-                                          _terms(format_name), bundle.notices())
+                                          _terms(format_name), bundle.notices(), recommended, reason)
     finally:
         bundle.archive.close()
 

@@ -348,7 +348,8 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     try {
       const inventory = await sendRequest("inspect_prediction_bundle", { filepath });
       if (!isCurrent()) return;
-      set({ predictionBundleInventory: inventory, predictionBundleLoading: false });
+      set({ predictionBundleInventory: inventory, predictionBundleLoading: false,
+        predictionBundleModelId: inventory.recommended_model_id });
     } catch (error) {
       if (!isCurrent()) return;
       set({ predictionBundleLoading: false, predictionBundleError: formatError(error) });

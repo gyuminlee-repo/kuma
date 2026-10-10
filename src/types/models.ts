@@ -492,14 +492,17 @@ export interface EvolveproStepStats {
 
 export type StrictSpatialBudgetMode = "unique_sites" | "distinct_variants";
 
-/** Local ZIP inventory. A model and protein chain must be chosen explicitly. */
+/** Local ZIP inventory. Only an unambiguous producer top rank may default. */
 export interface PredictionBundleInventory {
   schema_version: 1;
   source_name: string;
   bundle_sha256: string;
   format: "af3_server" | "colabfold";
+  recommended_model_id: string | null;
+  recommendation_reason: "producer_rank" | "missing_top_rank" | "ambiguous_ranking";
   models: Array<{
     model_id: string;
+    producer_rank: number | null;
     structure_member: string;
     confidence_member: string | null;
     structure_format: "cif" | "pdb";

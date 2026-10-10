@@ -17,7 +17,7 @@ beforeEach(() => {
 afterEach(() => useAppStore.getState().cancelDiversityReload());
 
 describe("saved prediction selection controls", () => {
-  it("defaults to accession and explicitly chooses a local ZIP, model and protein chain", async () => {
+  it("defaults to producer top rank and exposes other models only in advanced options", async () => {
     mocks.open.mockResolvedValue("/tmp/fold.zip");
     mocks.send.mockResolvedValue(predictionBundleInventory());
     render(<PredictionBundleControls />);
@@ -25,15 +25,17 @@ describe("saved prediction selection controls", () => {
     fireEvent.change(screen.getByRole("combobox", { name: "Structure source" }), { target: { value: "prediction_bundle" } });
     expect(screen.getByText(/Reads saved results locally/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Browse prediction ZIP" }));
-    const model = await screen.findByRole("combobox", { name: "Prediction model" });
+    const advanced = await screen.findByRole("button", { name: "Advanced: choose another model" });
     const chain = screen.getByRole("combobox", { name: "Protein chain" });
-    expect(model).toHaveValue("");
-    expect(chain).toBeDisabled();
-    fireEvent.change(model, { target: { value: "job_model_0.cif" } });
+    expect(screen.queryByRole("combobox", { name: "Prediction model" })).not.toBeInTheDocument();
+    expect(screen.getByText("Selected model: job_model_0.cif")).toBeInTheDocument();
     expect(chain).toHaveValue("");
     expect(chain).not.toBeDisabled();
     fireEvent.change(chain, { target: { value: JSON.stringify("B") } });
     expect(useAppStore.getState().predictionBundleChainId).toBe("B");
+    fireEvent.click(advanced);
+    const model = screen.getByRole("combobox", { name: "Prediction model" });
+    expect(model).toHaveValue("job_model_0.cif");
     fireEvent.change(model, { target: { value: "job_model_1.cif" } });
     expect(chain).toHaveValue("");
     expect(screen.getByText("fold.zip")).toBeInTheDocument();
@@ -49,8 +51,19 @@ describe("saved prediction selection controls", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Browse prediction ZIP" })).not.toBeDisabled());
     expect(mocks.send).not.toHaveBeenCalled();
     expect(useAppStore.getState().predictionBundlePath).toBe("/tmp/previous.zip");
-    expect(screen.getByRole("combobox", { name: "Prediction model" })).toHaveValue("job_model_0.cif");
+    expect(screen.getByText("Selected model: job_model_0.cif")).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Protein chain" })).toHaveValue(JSON.stringify("A"));
+  });
+
+  it.each(["missing_top_rank", "ambiguous_ranking"] as const)("shows the picker and explains %s without a hidden fallback", (reason) => {
+    useAppStore.setState({ strictStructureSource: "prediction_bundle",
+      predictionBundleInventory: { ...predictionBundleInventory(), recommended_model_id: null,
+        recommendation_reason: reason } });
+    render(<PredictionBundleControls />);
+    expect(screen.getByRole("combobox", { name: "Prediction model" })).toHaveValue("");
+    expect(screen.getByRole("combobox", { name: "Protein chain" })).toBeDisabled();
+    expect(screen.getByText(reason === "missing_top_rank"
+      ? /top-ranked model is missing/ : /ranking is unknown or ambiguous/)).toBeInTheDocument();
   });
 
   it("ignores a picker response if the source changed while it was open", async () => {

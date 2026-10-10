@@ -4164,6 +4164,12 @@
     "paeMeaning": "PAE 针对这条蛋白质链中非对角线的残基对汇总，并保留方向性。尚未评估结构域之间的置信度。",
     "structurePosition": "原始残基",
     "bundledNotices": "源包附带的声明",
-    "sequenceHash": "查询序列 SHA-256：{{hash}}"
+    "sequenceHash": "查询序列 SHA-256：{{hash}}",
+    "selectedModel": "所选模型：{{model}}",
+    "producerDefault": "默认选择预测工具排名第一的模型。这不保证生物学准确性。",
+    "missingTopRank": "缺少预测工具排名第一的模型。未自动选择替代模型，请手动选择。",
+    "ambiguousRanking": "预测工具排名未知或不明确。请手动选择模型。",
+    "advancedModels": "高级：选择其他模型",
+    "rankedModelOption": "{{model}} · 预测工具排名 {{rank}}"
   }
 }

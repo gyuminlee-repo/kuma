@@ -39,6 +39,31 @@ describe("prediction bundle inspection RPC contract", () => {
       models: inventory.models.map((model) => ({ ...model, confidence_member: null })) })).toBe(true);
   });
 
+  it.each([
+    { recommended_model_id: "not-in-inventory" }, { recommended_model_id: null },
+    { recommended_model_id: "job_model_1.cif" }, { recommendation_reason: "unknown" },
+    { recommended_model_id: undefined }, { recommendation_reason: undefined },
+    { recommendation_reason: "ambiguous_ranking" },
+  ])("rejects inconsistent ranking metadata: %j", (patch) => {
+    expect(inspect({ ...predictionBundleInventory(), ...patch })).toBe(false);
+  });
+
+  it.each(["missing_top_rank", "ambiguous_ranking"] as const)("accepts an explicit unavailable recommendation: %s", (reason) => {
+    const inventory = predictionBundleInventory();
+    expect(inspect({ ...inventory, recommended_model_id: null, recommendation_reason: reason,
+      models: inventory.models.map((model) => ({ ...model, producer_rank: reason === "missing_top_rank" ? 2 : null })) })).toBe(true);
+  });
+
+  it.each([0, -1, 1.5, "1", true, undefined, Number.NaN])("rejects malformed producer rank: %j", (producer_rank) => {
+    const inventory = predictionBundleInventory();
+    expect(inspect({ ...inventory, models: [{ ...inventory.models[0], producer_rank }] })).toBe(false);
+  });
+
+  it("rejects a recommended model when two top-ranked candidates exist", () => {
+    const inventory = predictionBundleInventory();
+    expect(inspect({ ...inventory, models: inventory.models.map((model) => ({ ...model, producer_rank: 1 })) })).toBe(false);
+  });
+
   it.each(malformedHashes)("rejects malformed bundle hashes: %j", (bundle_sha256) => {
     expect(inspect({ ...predictionBundleInventory(), bundle_sha256 })).toBe(false);
   });

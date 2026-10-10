@@ -109,12 +109,28 @@ def bundle(tmp_path: Path, members: Mapping[str, object] | None = None) -> Path:
     return path
 
 
+def ranked_members(
+    kind: str, index: str, *, job: str = "demo", directory: str = "",
+) -> tuple[str, dict[str, object]]:
+    prefix = f"{directory}/" if directory else ""
+    if kind == "af3":
+        model = f"{prefix}fold_{job}_model_{index}.cif"
+        return model, {model: cif(), f"{prefix}fold_{job}_full_data_{index}.json": af_data()}
+    tag = f"rank_{index}_alphafold2_ptm_model_1_seed_000"
+    model = f"{prefix}{job}_unrelaxed_{tag}.pdb"
+    return model, {model: pdb(), f"{prefix}{job}_scores_{tag}.json": cf_data(),
+                   f"{prefix}{job}.a3m": CF_A3M}
+
+
 def test_af3_inspection_explicit_models_chains_and_hash(tmp_path: Path) -> None:
     path = bundle(tmp_path)
     result = inspect_prediction_bundle(path)
     assert result.format == "af3_server"
     assert result.bundle_sha256 == hashlib.sha256(path.read_bytes()).hexdigest()
     assert result.models[0].model_id == AF_MODEL
+    assert result.models[0].producer_rank == 1
+    assert result.recommended_model_id == AF_MODEL
+    assert result.recommendation_reason == "producer_rank"
     assert [(c.chain_id, c.author_chain_id, c.sequence, c.length)
             for c in result.models[0].chains] == [("A", "author-A", "ACD", 3), ("B", "author-B", "W", 1)]
 
@@ -162,7 +178,168 @@ def test_colabfold_scores_use_residue_encounter_order_and_exact_tag(tmp_path: Pa
 def test_colabfold_relaxed_and_unrelaxed_are_distinct_models(tmp_path: Path) -> None:
     relaxed = CF_MODEL.replace("_unrelaxed_", "_relaxed_")
     path = bundle(tmp_path, {CF_MODEL: pdb(), relaxed: pdb(), CF_DATA: cf_data(), "demo.a3m": CF_A3M})
-    assert {m.model_id for m in inspect_prediction_bundle(path).models} == {CF_MODEL, relaxed}
+    inventory = inspect_prediction_bundle(path)
+    assert {m.model_id for m in inventory.models} == {CF_MODEL, relaxed}
+    assert [m.producer_rank for m in inventory.models] == [1, 1]
+    assert inventory.recommended_model_id is None
+    assert inventory.recommendation_reason == "ambiguous_ranking"
+
+
+@pytest.mark.parametrize("kind", ["af3", "colabfold"])
+@pytest.mark.parametrize("reverse_archive_order", [False, True])
+def test_recommendation_uses_producer_rank_not_confidence_or_archive_order(
+    tmp_path: Path, kind: str, reverse_archive_order: bool,
+) -> None:
+    top, members = ranked_members(kind, "0" if kind == "af3" else "001")
+    _, lower = ranked_members(kind, "1" if kind == "af3" else "002")
+    # The top producer rank deliberately has worse local pLDDT; do not rerank it.
+    if kind == "af3":
+        data = af_data()
+        data["atom_plddts"][1] = 10
+        members[AF_DATA] = data
+        members[top] = cif().replace("1 0 0 90", "1 0 0 10")
+    else:
+        data = cf_data()
+        data["plddt"][0] = 10
+        members[CF_DATA] = data
+        members[top] = pdb().replace(" 90.00", " 10.00")
+        # A lower relaxed model sorts before the top unrelaxed model by name.
+        lower = {name.replace("_unrelaxed_", "_relaxed_"): value
+                 for name, value in lower.items()}
+    members.update(lower)
+    if reverse_archive_order:
+        members = dict(reversed(list(members.items())))
+    inventory = inspect_prediction_bundle(bundle(tmp_path, members))
+    assert inventory.recommended_model_id == top
+    assert inventory.recommendation_reason == "producer_rank"
+    assert {m.producer_rank for m in inventory.models} == {1, 2}
+    if kind == "colabfold":
+        assert inventory.models[0].model_id != top
+
+
+@pytest.mark.parametrize("kind", ["af3", "colabfold"])
+@pytest.mark.parametrize("multiple_models", [False, True])
+def test_missing_top_rank_never_defaults_to_first_or_best_available(
+    tmp_path: Path, kind: str, multiple_models: bool,
+) -> None:
+    _, members = ranked_members(kind, "1" if kind == "af3" else "002")
+    if multiple_models:
+        _, more = ranked_members(kind, "2" if kind == "af3" else "003")
+        members.update(more)
+    inventory = inspect_prediction_bundle(bundle(tmp_path, members))
+    assert inventory.models[0].producer_rank == 2
+    assert inventory.recommended_model_id is None
+    assert inventory.recommendation_reason == "missing_top_rank"
+
+
+@pytest.mark.parametrize("kind", ["af3", "colabfold"])
+@pytest.mark.parametrize("different_directory", [False, True])
+@pytest.mark.parametrize("second_top", [False, True])
+def test_separate_producer_job_scopes_never_share_a_recommendation(
+    tmp_path: Path, kind: str, different_directory: bool, second_top: bool,
+) -> None:
+    top_index = "0" if kind == "af3" else "001"
+    lower_index = "1" if kind == "af3" else "002"
+    _, members = ranked_members(kind, top_index)
+    _, other = ranked_members(kind, top_index if second_top else lower_index,
+                              job="demo" if different_directory else "other",
+                              directory="other" if different_directory else "")
+    inventory = inspect_prediction_bundle(bundle(tmp_path, {**members, **other}))
+    assert inventory.recommended_model_id is None
+    assert inventory.recommendation_reason == "ambiguous_ranking"
+
+
+def test_duplicate_af3_coordinate_variants_are_ambiguous(tmp_path: Path) -> None:
+    inventory = inspect_prediction_bundle(bundle(tmp_path, {
+        AF_MODEL: cif(), AF_MODEL.replace(".cif", ".mmcif"): cif(), AF_DATA: af_data(),
+    }))
+    assert [m.producer_rank for m in inventory.models] == [1, 1]
+    assert inventory.recommended_model_id is None
+    assert inventory.recommendation_reason == "ambiguous_ranking"
+
+
+def test_duplicate_lower_rank_also_blocks_colabfold_recommendation(tmp_path: Path) -> None:
+    _, members = ranked_members("colabfold", "001")
+    lower, more = ranked_members("colabfold", "002")
+    members.update(more)
+    members[lower.replace("_unrelaxed_", "_relaxed_")] = pdb()
+    inventory = inspect_prediction_bundle(bundle(tmp_path, members))
+    assert sorted(m.producer_rank for m in inventory.models if m.producer_rank is not None) == [1, 2, 2]
+    assert inventory.recommended_model_id is None
+    assert inventory.recommendation_reason == "ambiguous_ranking"
+
+
+@pytest.mark.parametrize("kind,index,expected", [
+    ("af3", "0", 1), ("af3", "1", 2), ("af3", "2", 3), ("af3", "3", 4), ("af3", "4", 5),
+    ("colabfold", "001", 1), ("colabfold", "1234", 1234),
+    ("colabfold", "9007199254740991", 9007199254740991),
+])
+def test_documented_rank_values_are_one_based(tmp_path: Path, kind: str, index: str, expected: int) -> None:
+    model, members = ranked_members(kind, index)
+    inventory = inspect_prediction_bundle(bundle(tmp_path, members))
+    assert inventory.models[0].producer_rank == expected
+    assert inventory.recommended_model_id == (model if expected == 1 else None)
+
+
+def test_noncanonical_af3_filename_cannot_supply_a_top_rank(tmp_path: Path) -> None:
+    # The existing importer accepts this paired alias, but the documented
+    # producer filename separates a nonempty job prefix with an underscore.
+    model = AF_MODEL.replace("_model_", "model_")
+    inventory = inspect_prediction_bundle(bundle(tmp_path, {model: cif(), AF_DATA: af_data()}))
+    assert inventory.models[0].producer_rank is None
+    assert inventory.recommended_model_id is None
+    assert inventory.recommendation_reason == "ambiguous_ranking"
+
+
+@pytest.mark.parametrize("kind,index", [
+    ("af3", "5"), ("af3", "00"), ("af3", "٠"),
+    ("colabfold", "000"), ("colabfold", "0001"), ("colabfold", "٠٠١"),
+    ("colabfold", "9007199254740992"), ("colabfold", "9" * 17),
+])
+def test_unrecognized_rank_is_unknown_and_cannot_enable_a_default(
+    tmp_path: Path, kind: str, index: str,
+) -> None:
+    unknown, members = ranked_members(kind, index)
+    _, top = ranked_members(kind, "0" if kind == "af3" else "001")
+    path = bundle(tmp_path, {**members, **top})
+    inventory = inspect_prediction_bundle(path)
+    assert next(m for m in inventory.models if m.model_id == unknown).producer_rank is None
+    assert inventory.recommended_model_id is None
+    assert inventory.recommendation_reason == "ambiguous_ranking"
+    # Ranking metadata does not remove previously supported explicit selections.
+    assert load_prediction_bundle(path, unknown, "A", "ACD" if kind == "af3" else "AC")
+
+
+@pytest.mark.parametrize("kind", ["af3", "colabfold"])
+@pytest.mark.parametrize("bad_rank", ["top", "lower"])
+@pytest.mark.parametrize("failure", ["missing_pair", "malformed_model", "malformed_confidence"])
+def test_recommendation_never_skips_invalid_top_or_other_models(
+    tmp_path: Path, kind: str, bad_rank: str, failure: str,
+) -> None:
+    top, members = ranked_members(kind, "0" if kind == "af3" else "001")
+    lower, lower_members = ranked_members(kind, "1" if kind == "af3" else "002")
+    members.update(lower_members)
+    target = top if bad_rank == "top" else lower
+    confidence = target.replace("_model_", "_full_data_").replace(".cif", ".json") if kind == "af3" else (
+        target.replace("_unrelaxed_", "_scores_").replace(".pdb", ".json"))
+    if failure == "missing_pair":
+        del members[confidence]
+    elif failure == "malformed_model":
+        members[target] = "malformed structure"
+    else:
+        members[confidence] = {"plddt": [], "atom_plddts": []}
+    with pytest.raises(PredictionBundleError):
+        inspect_prediction_bundle(bundle(tmp_path, members))
+
+
+@pytest.mark.parametrize("prefix", ["", "nested/"])
+def test_unprefixed_af3_top_rank_preserves_exact_model_id(tmp_path: Path, prefix: str) -> None:
+    model = f"{prefix}model_0.cif"
+    inventory = inspect_prediction_bundle(bundle(tmp_path, {
+        model: cif(), f"{prefix}full_data_0.json": af_data(),
+    }))
+    assert inventory.recommended_model_id == model
+    assert inventory.models[0].producer_rank == 1
 
 
 def test_exact_terminal_tag_is_supported_but_substitution_fails(tmp_path: Path) -> None:

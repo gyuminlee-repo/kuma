@@ -4,7 +4,8 @@ import { strictSpatialFixture } from "./strictSpatialFixture";
 export function predictionBundleInventory(): PredictionBundleInventory {
   return { schema_version: 1, source_name: "saved-prediction.zip", bundle_sha256: "d".repeat(64),
     format: "af3_server", source_url: "https://alphafoldserver.com/", terms_url: "https://alphafoldserver.com/output-terms",
-    models: ["job_model_0.cif", "job_model_1.cif"].map((model_id) => ({ model_id, structure_member: model_id,
+    recommended_model_id: "job_model_0.cif", recommendation_reason: "producer_rank",
+    models: ["job_model_0.cif", "job_model_1.cif"].map((model_id, index) => ({ model_id, producer_rank: index + 1, structure_member: model_id,
       confidence_member: model_id.replace("model", "full_data").replace(".cif", ".json"), structure_format: "cif" as const,
       chains: [{ chain_id: "A", author_chain_id: "X", sequence: "MAAAA", length: 5 },
         { chain_id: "B", author_chain_id: "Y", sequence: "MAAAA", length: 5 }] })) };

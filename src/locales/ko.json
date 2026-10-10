@@ -4164,6 +4164,12 @@
     "paeMeaning": "PAE는 이 단백질 사슬에서 대각 성분을 제외한 잔기 쌍에 대해 방향성을 유지하여 요약합니다. 도메인 사이의 신뢰도는 평가하지 않았습니다.",
     "structurePosition": "원본 잔기",
     "bundledNotices": "원본 묶음에 포함된 고지사항",
-    "sequenceHash": "질의 서열 SHA-256: {{hash}}"
+    "sequenceHash": "질의 서열 SHA-256: {{hash}}",
+    "selectedModel": "선택한 모델: {{model}}",
+    "producerDefault": "예측 도구의 1위 모델을 기본 선택합니다. 생물학적 정확성을 보장하지는 않습니다.",
+    "missingTopRank": "예측 도구의 1위 모델이 없습니다. 다른 모델로 자동 대체하지 않았으므로 직접 선택하세요.",
+    "ambiguousRanking": "예측 도구의 순위를 알 수 없거나 모호합니다. 모델을 직접 선택하세요.",
+    "advancedModels": "고급: 다른 모델 선택",
+    "rankedModelOption": "{{model}} · 예측 도구 순위 {{rank}}"
   }
 }

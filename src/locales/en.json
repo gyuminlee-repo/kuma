@@ -4164,6 +4164,12 @@
     "paeMeaning": "PAE is summarized over off-diagonal residue pairs in this protein chain, preserving direction. Confidence between domains has not been assessed.",
     "structurePosition": "Source residue",
     "bundledNotices": "Bundled source notices",
-    "sequenceHash": "Query sequence SHA-256: {{hash}}"
+    "sequenceHash": "Query sequence SHA-256: {{hash}}",
+    "selectedModel": "Selected model: {{model}}",
+    "producerDefault": "The producer’s top-ranked model is selected by default. This is not a guarantee of biological accuracy.",
+    "missingTopRank": "The producer’s top-ranked model is missing. Choose a model explicitly; no fallback was selected.",
+    "ambiguousRanking": "Producer ranking is unknown or ambiguous. Choose a model explicitly.",
+    "advancedModels": "Advanced: choose another model",
+    "rankedModelOption": "{{model}} · producer rank {{rank}}"
   }
 }

@@ -28,32 +28,67 @@ function response(report = importedSpatialFixture()) {
 }
 
 describe("local prediction import state", () => {
-  it("requires explicit model and chain after each inspected ZIP, including a repeated file", async () => {
+  it("defaults to the verified producer top model but requires a chain after every inspected ZIP", async () => {
     mocks.send.mockResolvedValue(predictionBundleInventory());
     await useAppStore.getState().inspectPredictionBundle("/tmp/prediction.zip");
     expect(mocks.send).toHaveBeenCalledWith("inspect_prediction_bundle", { filepath: "/tmp/prediction.zip" });
-    expect(useAppStore.getState().predictionBundleModelId).toBeNull();
+    expect(useAppStore.getState().predictionBundleModelId).toBe("job_model_0.cif");
     expect(useAppStore.getState().predictionBundleChainId).toBeNull();
-    useAppStore.getState().setPredictionBundleModelId("job_model_0.cif");
+    useAppStore.getState().setPredictionBundleModelId("job_model_1.cif");
     useAppStore.getState().setPredictionBundleChainId("B");
     await useAppStore.getState().inspectPredictionBundle("/tmp/prediction.zip");
-    expect(useAppStore.getState().predictionBundleModelId).toBeNull();
+    expect(useAppStore.getState().predictionBundleModelId).toBe("job_model_0.cif");
     expect(useAppStore.getState().predictionBundleChainId).toBeNull();
     expect(useAppStore.getState().requireNetworkConsent).not.toHaveBeenCalled();
   });
 
-  it.each(["same-file", "different-file", "source-switch"])("ignores stale inventory responses after %s", async (mode) => {
+  it("uses the backend recommendation rather than the first inventory entry", async () => {
+    const inventory = predictionBundleInventory();
+    inventory.models.reverse();
+    mocks.send.mockResolvedValue(inventory);
+    await useAppStore.getState().inspectPredictionBundle("/tmp/prediction.zip");
+    expect(useAppStore.getState().predictionBundleModelId).toBe("job_model_0.cif");
+    expect(useAppStore.getState().predictionBundleChainId).toBeNull();
+  });
+
+  it.each(["missing_top_rank", "ambiguous_ranking"] as const)("never substitutes a model for %s", async (reason) => {
+    mocks.send.mockResolvedValue({ ...predictionBundleInventory(), recommended_model_id: null,
+      recommendation_reason: reason });
+    await useAppStore.getState().inspectPredictionBundle("/tmp/prediction.zip");
+    expect(useAppStore.getState().predictionBundleModelId).toBeNull();
+    expect(useAppStore.getState().predictionBundleChainId).toBeNull();
+  });
+
+  it("does not select a fallback after inspection rejects an incomplete top model", async () => {
+    configure();
+    mocks.send.mockRejectedValue(Error("Missing paired prediction member"));
+    await useAppStore.getState().inspectPredictionBundle("/tmp/broken.zip");
+    expect(useAppStore.getState().predictionBundleInventory).toBeNull();
+    expect(useAppStore.getState().predictionBundleModelId).toBeNull();
+    expect(useAppStore.getState().predictionBundleChainId).toBeNull();
+  });
+
+  it("does not auto-select even a single chain before reference correspondence is verified", async () => {
+    const inventory = predictionBundleInventory();
+    inventory.models[0].chains = [inventory.models[0].chains[0]];
+    mocks.send.mockResolvedValue(inventory);
+    await useAppStore.getState().inspectPredictionBundle("/tmp/prediction.zip");
+    expect(useAppStore.getState().predictionBundleChainId).toBeNull();
+  });
+
+  it.each(["same-file", "different-file", "source-switch", "reset"])("ignores stale inventory responses after %s", async (mode) => {
     let finish: ((value: ReturnType<typeof predictionBundleInventory>) => void) | undefined;
     mocks.send.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
     const pending = useAppStore.getState().inspectPredictionBundle("/tmp/first.zip");
-    if (mode === "source-switch") useAppStore.getState().setStrictStructureSource("accession");
+    if (mode === "reset") useAppStore.getState().resetAll();
+    else if (mode === "source-switch") useAppStore.getState().setStrictStructureSource("accession");
     else {
       mocks.send.mockResolvedValue({ ...predictionBundleInventory(), source_name: "latest.zip", bundle_sha256: "e".repeat(64) });
       await useAppStore.getState().inspectPredictionBundle(mode === "same-file" ? "/tmp/first.zip" : "/tmp/latest.zip");
     }
     finish?.(predictionBundleInventory());
     await pending;
-    expect(useAppStore.getState().predictionBundleInventory?.source_name).toBe(mode === "source-switch" ? undefined : "latest.zip");
+    expect(useAppStore.getState().predictionBundleInventory?.source_name).toBe(mode === "source-switch" || mode === "reset" ? undefined : "latest.zip");
     expect(useAppStore.getState().predictionBundleLoading).toBe(false);
   });
 

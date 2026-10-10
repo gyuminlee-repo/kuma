@@ -5,7 +5,7 @@ import { useAppStore } from "@/store/appStore";
 import { formatError } from "@/lib/utils";
 import { PredictionSourceLinks } from "./PredictionBundleEvidence";
 
-/** Selecting a file only inventories local bytes; every model and chain is explicit. */
+/** Local inspection may default to the producer's top model; chains remain explicit. */
 export function PredictionBundleControls() {
   const { t } = useTranslation();
   const source = useAppStore((state) => state.strictStructureSource);
@@ -21,9 +21,12 @@ export function PredictionBundleControls() {
   const setChain = useAppStore((state) => state.setPredictionBundleChainId);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogError, setDialogError] = useState<string | null>(null);
+  const [advancedModels, setAdvancedModels] = useState(false);
   const pickerEpoch = useRef(0);
   useEffect(() => () => { ++pickerEpoch.current; }, [source]);
+  useEffect(() => { setAdvancedModels(false); }, [inventory, source]);
   const selectedModel = inventory?.models.find((model) => model.model_id === modelId);
+  const showModels = advancedModels || !inventory?.recommended_model_id;
   async function browse() {
     const epoch = ++pickerEpoch.current;
     setDialogOpen(true);
@@ -61,14 +64,26 @@ export function PredictionBundleControls() {
       </div>}
       {inventory && <>
         <p>{t("predictionImport.format", { format: inventory.format === "af3_server" ? "AF3 Server" : "ColabFold" })}</p>
-        <label className="flex min-w-0 flex-wrap items-center gap-2">
+        <p className="break-all">{t("predictionImport.selectedModel", { model: modelId ?? t("predictionImport.chooseModel") })}</p>
+        <p className="text-muted-foreground">{t(inventory.recommended_model_id
+          ? "predictionImport.producerDefault" : inventory.recommendation_reason === "missing_top_rank"
+            ? "predictionImport.missingTopRank" : "predictionImport.ambiguousRanking")}</p>
+        {inventory.recommended_model_id && <button type="button" aria-expanded={showModels}
+          onClick={() => setAdvancedModels((previous) => !previous)}
+          className="rounded border border-border px-2 py-1 hover:bg-accent">
+          {t("predictionImport.advancedModels")}
+        </button>}
+        {showModels && <label className="flex min-w-0 flex-wrap items-center gap-2">
           {t("predictionImport.modelLabel")}
           <select className="min-w-0 flex-1 rounded border border-border bg-background px-2 py-1"
             value={modelId ?? ""} onChange={(event) => setModel(event.target.value || null)}>
             <option value="">{t("predictionImport.chooseModel")}</option>
-            {inventory.models.map((model) => <option key={model.model_id} value={model.model_id}>{model.model_id}</option>)}
+            {inventory.models.map((model) => <option key={model.model_id} value={model.model_id}>
+              {model.producer_rank === null ? model.model_id
+                : t("predictionImport.rankedModelOption", { model: model.model_id, rank: model.producer_rank })}
+            </option>)}
           </select>
-        </label>
+        </label>}
         <label className="flex min-w-0 flex-wrap items-center gap-2">
           {t("predictionImport.chainLabel")}
           <select className="min-w-0 flex-1 rounded border border-border bg-background px-2 py-1"

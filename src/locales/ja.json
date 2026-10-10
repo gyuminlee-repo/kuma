@@ -4164,6 +4164,12 @@
     "paeMeaning": "PAE はこのタンパク質鎖の対角成分を除く残基ペアについて、方向性を保持して集計しています。ドメイン間の信頼度は評価していません。",
     "structurePosition": "元の残基",
     "bundledNotices": "元のバンドルに含まれる注意事項",
-    "sequenceHash": "クエリ配列 SHA-256: {{hash}}"
+    "sequenceHash": "クエリ配列 SHA-256: {{hash}}",
+    "selectedModel": "選択したモデル: {{model}}",
+    "producerDefault": "予測ツールで最上位のモデルを既定で選択します。生物学的な正確さを保証するものではありません。",
+    "missingTopRank": "最上位モデルがありません。代替は自動選択されていないため、モデルを明示的に選択してください。",
+    "ambiguousRanking": "予測ツールの順位が不明または曖昧です。モデルを明示的に選択してください。",
+    "advancedModels": "詳細設定: 別のモデルを選択",
+    "rankedModelOption": "{{model}} · 予測ツール順位 {{rank}}"
   }
 }

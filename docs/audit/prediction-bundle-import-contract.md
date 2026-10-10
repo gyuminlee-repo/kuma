@@ -1,9 +1,10 @@
 # Offline prediction-bundle import contract
 
 This opt-in importer reads a local ZIP. It performs no prediction, MSA search,
-network request, or automatic model ranking. Existing structure-loading defaults
-are unchanged. The user explicitly selects a verified model member and protein
-chain, and the bundle SHA-256 can be pinned between inspection and use.
+network request, or confidence-based reranking. Inspection can recommend the
+producer's documented top-ranked model when its identity is unambiguous. Loading
+still requires a specific verified model member and an explicitly selected
+protein chain, and the bundle SHA-256 can be pinned between inspection and use.
 
 ## Supported producer layouts
 
@@ -34,6 +35,43 @@ query records, standalone PDB/CIF files, local AF3 runner layouts, summary-only
 confidence files, mixed producer archives, ligand/nucleic-acid layouts, modified
 residues, and nonstandard amino acids are unsupported. This intentionally bounded
 contract fails clearly rather than guessing. The importer does not read pickles.
+
+## Producer-ranked model recommendation
+
+Inspection adds `producer_rank: integer | null` to each model, plus
+`recommended_model_id: string | null` and `recommendation_reason` to the inventory.
+Ranks are 1-based for both producers:
+
+- AlphaFold Server's canonical `model_0` through `model_4` filenames map to ranks
+  1 through 5. The [Server output documentation](https://www.ebi.ac.uk/training/online/courses/alphafold/alphafold-3-and-alphafold-server/alphafold-server-your-gateway-to-alphafold-3/interpreting-results-from-alphafold-server/)
+  defines index 0 as its highest-ranked result.
+- ColabFold's canonical `rank_001` filename is rank 1. Its
+  [producer writer](https://github.com/sokrypton/ColabFold/blob/efbf31c37cedb38cd09c69c1b991910a9866480e/colabfold/batch.py#L651-L675)
+  orders results by its ranking metric and writes the 1-based rank into filenames.
+  The model-number and seed suffixes do not themselves determine rank.
+
+A recommendation is emitted only after every candidate passes the existing
+pairing, full-polymer, structure and confidence checks, and only when every
+candidate belongs to the same archive directory and exact producer job prefix,
+all ranks are recognized and distinct, and exactly one model has rank 1:
+
+- `producer_rank`: `recommended_model_id` identifies that verified rank-1 model.
+- `missing_top_rank`: one unambiguous ranked job is present, but rank 1 is absent;
+  the recommendation is null even if there is only one available model.
+- `ambiguous_ranking`: multiple job scopes, duplicate ranks, or unknown rank
+  spellings make the recommendation null. Relaxed and unrelaxed coordinate
+  variants with the same rank require manual selection, as do duplicate AF3
+  CIF/mmCIF variants. AF3 indices outside 0–4, padded AF3 indices, and noncanonical
+  ColabFold ranks have null rank metadata. ColabFold ranks must be positive and
+  exactly representable as JSON/JavaScript integers (at most 2^53−1).
+
+There is no first-file, lowest-available-rank, or pLDDT/PAE fallback. A malformed
+or unpaired top model, or any other malformed candidate, still rejects the
+entire inspection; invalid models are never skipped to obtain a recommendation.
+This metadata describes the producer's filename ordering, not scientific
+validation, producer authenticity, chain choice, or confidence acceptance.
+The user may select another verified model explicitly. Selection context,
+evidence hashes, residue mapping and confidence provenance are unchanged.
 
 ## Mapping and confidence
 
@@ -121,7 +159,9 @@ Producer contracts checked against primary sources:
 `tests/test_prediction_bundle.py` uses authored synthetic fixtures only. Tests
 cover pairing, multiple coordinate variants, complete polymer identity, missing
 CA observations, exact matching, copied multimer chains, asymmetric PAE, atom
-confidence binding, source hashes/notices, malformed evidence, and archive bounds.
+confidence binding, source hashes/notices, malformed evidence, archive bounds,
+producer-rank metadata, missing/ambiguous top ranks, cross-job ambiguity and
+fail-closed validation of every candidate before recommending a model.
 The RPC integration tests exercise the opt-in adapter and unchanged default path.
 No real producer archive or independent experimental structure was used for this
 initial validation; synthetic correctness is not biological validation or evidence

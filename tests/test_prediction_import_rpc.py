@@ -36,6 +36,9 @@ def test_inspection_and_selection_share_local_bundle_identity(tmp_path):
     assert inventory['schema_version'] == 1
     assert inventory['bundle_sha256'] == params['prediction_bundle_sha256']
     assert inventory['models'][0]['chains'][0]['sequence'] == 'MAK'
+    assert inventory['models'][0]['producer_rank'] == 1
+    assert inventory['recommended_model_id'] == params['prediction_model_id']
+    assert inventory['recommendation_reason'] == 'producer_rank'
     with patch('kuma_core.kuro.alphafold.fetch_pdb_text', side_effect=AssertionError('No network')):
         result = handle_load_evolvepro_csv(params)
     strict = result['strict_spatial']
@@ -50,6 +53,23 @@ def test_inspection_and_selection_share_local_bundle_identity(tmp_path):
     assert source['interdomain_confidence'] == 'not_assessed'
     assert source['display_sha256'] == hashlib.sha256(strict['pdb_text'].encode()).hexdigest()
     assert [(r['reference_position'], r['viewer_position']) for r in strict['mapping']] == [(1,1),(2,2),(3,3)]
+
+
+@pytest.mark.parametrize('kind', ['af3', 'colabfold'])
+@pytest.mark.parametrize('top_present', [False, True])
+def test_inspection_rpc_serializes_producer_recommendation(tmp_path, kind, top_present):
+    from sidecar_kuro.handlers.misc import handle_inspect_prediction_bundle
+    from tests.test_prediction_bundle import bundle, ranked_members
+
+    index = ('0' if top_present else '1') if kind == 'af3' else ('001' if top_present else '002')
+    model, members = ranked_members(kind, index)
+    inventory = handle_inspect_prediction_bundle({'filepath': str(bundle(tmp_path, members))})
+    assert inventory['recommended_model_id'] == (model if top_present else None)
+    assert inventory['recommendation_reason'] == ('producer_rank' if top_present else 'missing_top_rank')
+    assert inventory['models'][0]['producer_rank'] == (1 if top_present else 2)
+    assert 'recommended_chain_id' not in inventory
+    # Preserve explicit selection: a model recommendation is not a loaded chain.
+    assert [chain['chain_id'] for chain in inventory['models'][0]['chains']] == ['A', 'B']
 
 
 @pytest.mark.parametrize('missing', ['prediction_model_id','prediction_chain_id','prediction_bundle_sha256'])

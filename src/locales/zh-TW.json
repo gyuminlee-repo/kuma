@@ -4164,6 +4164,12 @@
     "paeMeaning": "PAE 針對這條蛋白質鏈中非對角線的殘基對彙整，並保留方向性。尚未評估結構域之間的可信度。",
     "structurePosition": "原始殘基",
     "bundledNotices": "來源套件隨附的聲明",
-    "sequenceHash": "查詢序列 SHA-256：{{hash}}"
+    "sequenceHash": "查詢序列 SHA-256：{{hash}}",
+    "selectedModel": "所選模型：{{model}}",
+    "producerDefault": "預設選擇預測工具排名第一的模型。這不保證生物學準確性。",
+    "missingTopRank": "缺少預測工具排名第一的模型。未自動選擇替代模型，請手動選擇。",
+    "ambiguousRanking": "預測工具排名未知或不明確。請手動選擇模型。",
+    "advancedModels": "進階：選擇其他模型",
+    "rankedModelOption": "{{model}} · 預測工具排名 {{rank}}"
   }
 }

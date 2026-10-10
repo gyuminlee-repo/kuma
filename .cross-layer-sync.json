@@ -1564,7 +1564,7 @@
         "src/hooks/useAutosaveHydration.ts",
         "src/lib/selection3d.ts"
       ],
-      "note": "Local paired prediction ZIP identity/confidence, explicit model and chain, strict certificate freshness, derived CA trace and design revalidation. No prediction or network submission.",
+      "note": "Local paired prediction ZIP identity/confidence, unambiguous producer-ranked default with explicit advanced model and chain selection, strict certificate freshness, derived CA trace and design revalidation. No prediction or network submission.",
       "severity": "warning"
     }
   ]
