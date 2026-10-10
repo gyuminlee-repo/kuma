@@ -189,7 +189,7 @@ installers, clean-machine installation, security maintenance, and redistribution
 clearance remain separate gates on every platform.
 
 
-## Bounded POSIX frozen experiments (not yet executed)
+## Bounded POSIX frozen experiments
 
 The same Linux x86-64/macOS arm64 jobs can now create a temporary PyInstaller
 6.16 onedir and execute it once after removing the original upstream checkout.
@@ -218,3 +218,35 @@ requirement. These experiments do not establish portability to older OS versions
 clean-user-machine installation, GUI integration, security maintenance, or
 redistribution clearance. An unexpected dependency is a failed test to diagnose,
 not a reason to broadly relax library-origin checks or add upstream patches.
+
+
+### POSIX execution evidence and narrow macOS correction
+
+Linux x86-64 passed isolated frozen execution at `77c508d691869172d6b0c6ca68a5fd469d9ec7e7`
+in [workflow 38045442100](https://github.com/gyuminlee-repo/kuma/actions/runs/38045442100):
+1,135,096,823 physical file bytes, 1,943 regular files and 22 internal symlinks;
+build 73.340 s, executable 6.321 s, root-process peak RSS 1,297,240,064 bytes.
+Its native and frozen mappings/predictions matched exactly. Source removal,
+private empty PATH, bundled runtime origins before/after inference, process-group
+termination and temporary-directory cleanup passed. These are one hosted-runner
+measurements, not installer size or a machine recommendation.
+
+The first macOS attempt stopped at a test fixture's noncanonical temporary-path
+and Linux-system-file assumptions, before model execution. A fixture-only fix
+made the alias explicit and used a temporary external-file stand-in; production
+guards were unchanged. The next attempt at `40574eb0d5d5b551489aeaf4970596d5e48cfbfc`
+in [workflow 38045683770](https://github.com/gyuminlee-repo/kuma/actions/runs/38045683770)
+built a 598,556,166-byte onedir in 74.919 s, then refused a loaded OS image before
+model inference. The image was exactly Apple's Accelerate/vecLib
+`libQuadrature.dylib`. [Apple documents Quadrature as part of Accelerate](https://developer.apple.com/documentation/accelerate/quadrature-collection).
+The [build](evidence/macos-frozen-first-build.json) and
+[failure](evidence/macos-frozen-first-failure.json) JSON retain that failure and
+successful process-group termination, source removal and temporary-runtime
+cleanup evidence. The workflow also removed the temporary package.
+
+The correction adds only that named image under the existing exact
+Accelerate→vecLib path rule. Identically named external libraries, arbitrary
+framework contents, and external Python/Torch remain refused. A rejected native
+inventory can be retained as bounded failure diagnostics from the same snapshot;
+this does not turn a failed origin check into success. macOS standalone inference
+remains unverified until the corrected exact-head frozen execution passes.

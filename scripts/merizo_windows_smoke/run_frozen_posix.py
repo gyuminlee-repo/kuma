@@ -30,6 +30,10 @@ CLEANUP_SECONDS = 10
 MAX_REPORT_BYTES = 2 * 1024 * 1024
 MAX_RUNTIME_BYTES = 1024 * 1024
 MAX_CAPTURE_BYTES = 64 * 1024
+MAX_NATIVE_DIAGNOSTIC_BYTES = 256 * 1024
+MAX_NATIVE_DIAGNOSTIC_PATHS = 2048
+MAX_NATIVE_DIAGNOSTIC_PATH_BYTES = 4096
+NATIVE_DIAGNOSTIC_SNAPSHOT = "rejected_validation_snapshot"
 TAIL_BYTES = 8192
 TAIL_CHARACTERS = 2048
 PACKAGE_NAME = "merizo-frozen-smoke"
@@ -251,6 +255,37 @@ def validate_runtime(report: dict, package: Path, fixture: bytes) -> None:
     validate_prediction(report["prediction"])
 
 
+def failed_runtime(report: dict) -> dict:
+    """Allowlist failed-child diagnostics without promoting them to provenance."""
+    failure = {"status": "failed", "error": str(report.get("error", ""))[:12000]}
+    keys = ("native_diagnostic_paths", "native_diagnostic_total", "native_diagnostic_truncated",
+            "native_diagnostic_snapshot")
+    if not any(key in report for key in keys):
+        return failure
+    try:
+        diagnostic = {key: report[key] for key in keys}
+        paths = diagnostic["native_diagnostic_paths"]
+        total = diagnostic["native_diagnostic_total"]
+        truncated = diagnostic["native_diagnostic_truncated"]
+        if (not isinstance(paths, list) or len(paths) > MAX_NATIVE_DIAGNOSTIC_PATHS
+                or type(total) is not int or not len(paths) <= total <= 2**31 - 1
+                or type(truncated) is not bool or truncated != (total != len(paths))
+                or diagnostic["native_diagnostic_snapshot"] != NATIVE_DIAGNOSTIC_SNAPSHOT):
+            raise ValueError("Invalid native diagnostic format")
+        for path in paths:
+            if (not isinstance(path, str) or not path.startswith("/")
+                    or any(character in path for character in "\x00\r\n")
+                    or len(path.encode("utf-8")) > MAX_NATIVE_DIAGNOSTIC_PATH_BYTES):
+                raise ValueError("Invalid native diagnostic path")
+        if len(json.dumps(diagnostic, indent=2, allow_nan=False).encode("utf-8")) > MAX_NATIVE_DIAGNOSTIC_BYTES:
+            raise ValueError("Native diagnostic exceeds byte limit")
+        failure.update(diagnostic)
+    except (KeyError, TypeError, ValueError):
+        # Keep the original status/error even if optional diagnostics are bad.
+        pass
+    return failure
+
+
 def supervise(package_directory: Path, fixture: Path, result_directory: Path, pin_report: Path) -> int:
     report: dict = {"status": "failed", "scope": "frozen_posix_cpu_public_fixture_smoke_only",
         "platform": sys.platform, "timeout_seconds": TIMEOUT_SECONDS, "cleanup_timeout_seconds": CLEANUP_SECONDS,
@@ -364,7 +399,7 @@ def supervise(package_directory: Path, fixture: Path, result_directory: Path, pi
             if runtime_report.exists():
                 try:
                     failed = read_small_json(runtime_report, MAX_RUNTIME_BYTES)
-                    report["runtime"] = {"status": failed.get("status"), "error": str(failed.get("error", ""))[:12000]}
+                    report["runtime"] = failed_runtime(failed)
                 except (OSError, ValueError):
                     report["runtime_report_error"] = "Failed runtime report was invalid or oversized"
             raise RuntimeError("Frozen executable exited unsuccessfully")

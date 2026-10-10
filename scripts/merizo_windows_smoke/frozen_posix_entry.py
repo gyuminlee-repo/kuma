@@ -21,6 +21,8 @@ MAX_REPORT_BYTES = 1024 * 1024
 MAX_MAP_BYTES = 1024 * 1024
 MAX_NATIVE_IMAGES = 2048
 MAX_PATH_BYTES = 4096
+MAX_NATIVE_DIAGNOSTIC_BYTES = 256 * 1024
+NATIVE_DIAGNOSTIC_SNAPSHOT = "rejected_validation_snapshot"
 REQUIRED_MODULES = {"torch", "predict", "model.network", "model.utils.features"}
 SUPPORTED = {("Linux", "x86_64"), ("Darwin", "arm64")}
 # OS ABI dependencies only. Neither these roots nor a familiar library name
@@ -66,7 +68,38 @@ DARWIN_NESTED_FRAMEWORKS = {
 }
 ACCELERATE_VECLIB_IMAGES = {"vecLib", "libBLAS.dylib", "libLAPACK.dylib", "libvDSP.dylib",
                           "libvMisc.dylib", "libBNNS.dylib", "libLinearAlgebra.dylib",
-                          "libSparse.dylib", "libSparseBLAS.dylib"}
+                          "libSparse.dylib", "libSparseBLAS.dylib", "libQuadrature.dylib"}
+
+
+class NativeOriginError(ValueError):
+    """Keep the exact rejected inventory, never trigger another enumeration."""
+
+    def __init__(self, message: str, paths: tuple[str, ...]):
+        super().__init__(message)
+        self.paths = paths
+
+
+def native_diagnostic(paths: tuple[str, ...]) -> dict:
+    """A bounded subset of the rejected snapshot, not approved provenance."""
+    selected = []
+    # Reserve JSON field/indent overhead; charge escaped JSON bytes per path.
+    remaining = MAX_NATIVE_DIAGNOSTIC_BYTES - 1024
+    for path in paths[:MAX_NATIVE_IMAGES]:
+        if (not isinstance(path, str) or not path.startswith("/")
+                or any(character in path for character in "\x00\r\n")
+                or len(path.encode("utf-8")) > MAX_PATH_BYTES):
+            continue
+        cost = len(json.dumps(path).encode("utf-8")) + 8
+        if cost > remaining:
+            break
+        selected.append(path)
+        remaining -= cost
+    diagnostic = {"native_diagnostic_paths": selected, "native_diagnostic_total": len(paths),
+                  "native_diagnostic_truncated": len(selected) != len(paths),
+                  "native_diagnostic_snapshot": NATIVE_DIAGNOSTIC_SNAPSHOT}
+    if len(json.dumps(diagnostic, indent=2, allow_nan=False).encode("utf-8")) > MAX_NATIVE_DIAGNOSTIC_BYTES:
+        raise ValueError("Native diagnostic exceeds byte limit")
+    return diagnostic
 
 
 def within(path: Path, root: Path) -> bool:
@@ -288,7 +321,11 @@ def runtime_provenance() -> dict:
     origins = module_origins(modules, internal)
     system = platform.system()
     paths = linux_native_paths() if system == "Linux" else darwin_native_paths()
-    native = validate_native_paths(paths, root, system)
+    snapshot = tuple(paths)
+    try:
+        native = validate_native_paths(paths, root, system)
+    except ValueError as exc:
+        raise NativeOriginError(str(exc), snapshot) from exc
     return {"frozen": True, "executable": str(Path(sys.executable).resolve()),
             "bundle_root": str(root), "meipass": str(internal), "module_origins": origins,
             "native_module_paths": native, "loaded_native_paths": paths,
@@ -340,8 +377,15 @@ def main(argv: list[str] | None = None) -> int:
         write_report(args.output.resolve(), report)
         return 0
     except Exception as exc:
-        write_report(args.output.resolve(), {"status": "failed", "scope": "frozen_posix_cpu_public_fixture_smoke_only",
-                     "error": f"{type(exc).__name__}: {exc}"[:12000]})
+        failure = {"status": "failed", "scope": "frozen_posix_cpu_public_fixture_smoke_only",
+                   "error": f"{type(exc).__name__}: {exc}"[:12000]}
+        if isinstance(exc, NativeOriginError):
+            try:
+                failure.update(native_diagnostic(exc.paths))
+            except Exception:
+                # Diagnostics must never replace or hide the original failure.
+                pass
+        write_report(args.output.resolve(), failure)
         return 2
 
 

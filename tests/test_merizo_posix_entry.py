@@ -168,6 +168,77 @@ class PosixEntryContracts(unittest.TestCase):
             self.assertFalse(entry.system_library(Path("/System/Library/Frameworks/Foundation.framework/Versions/C/Resources/thirdparty.dylib"), "Darwin"))
             self.assertTrue(entry.system_library(Path("/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib"), "Darwin"))
 
+    @unittest.skipUnless(os.name == "posix", "POSIX absolute-path semantics")
+    def test_quadrature_is_only_allowed_as_named_apple_veclib_image(self):
+        official = "/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libQuadrature.dylib"
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            bundled = []
+            for name in ("libpython3.11.dylib", "libtorch_cpu.dylib", "libc10.dylib"):
+                path = root / name
+                path.touch()
+                bundled.append(str(path))
+            result = entry.validate_native_paths([*bundled, official], root, "Darwin")
+            self.assertEqual(result["posix_system"], [official])
+            for rejected in ("/opt/homebrew/lib/libQuadrature.dylib", "/usr/local/lib/libQuadrature.dylib",
+                             "/usr/lib/libQuadrature.dylib", official.replace("vecLib.framework", "vImage.framework"),
+                             official.replace("/libQuadrature", "/Resources/libQuadrature"),
+                             official.replace("Accelerate.framework", "Foundation.framework"),
+                             "/usr/lib/libpython3.11.dylib", "/usr/lib/libtorch_cpu.dylib"):
+                with self.subTest(rejected=rejected), self.assertRaisesRegex(ValueError, "escaped|allowlist"):
+                    entry.validate_native_paths([*bundled, rejected], root, "Darwin")
+
+    def test_rejected_origin_carries_same_inventory_without_reenumeration(self):
+        paths = ["/bundle/libpython3.11.dylib", "/System/Library/unapproved.dylib"]
+        with tempfile.TemporaryDirectory() as folder, \
+             mock.patch.object(entry, "bundle_root", return_value=(Path(folder), Path(folder) / "_internal")), \
+             mock.patch.object(entry, "module_origins", return_value={}), \
+             mock.patch.object(entry.platform, "system", return_value="Darwin"), \
+             mock.patch.object(entry, "darwin_native_paths", return_value=paths) as inventory, \
+             mock.patch.object(entry, "validate_native_paths", side_effect=ValueError("unapproved native image")) as validate:
+            with self.assertRaises(entry.NativeOriginError) as caught:
+                entry.runtime_provenance()
+        inventory.assert_called_once_with()
+        self.assertEqual(validate.call_count, 1)
+        self.assertIs(validate.call_args.args[0], paths)
+        self.assertEqual(caught.exception.paths, tuple(paths))
+        self.assertIsInstance(caught.exception.__cause__, ValueError)
+
+    def test_native_diagnostic_limits_preserve_paths_or_mark_truncation(self):
+        cases = (("/unchanged path/lib.dylib",), tuple(f"/image/{index}" for index in range(2050)),
+                 tuple("/" + "x" * 4000 + str(index) for index in range(300)),
+                 tuple("/" + "\U0001f9ec" * 1000 + str(index) for index in range(300)),
+                 ("/" + "x" * 4096, "/valid", "relative", "/bad\nname"))
+        for paths in cases:
+            with self.subTest(total=len(paths)):
+                report = entry.native_diagnostic(paths)
+                kept = report["native_diagnostic_paths"]
+                self.assertEqual(report["native_diagnostic_total"], len(paths))
+                self.assertEqual(report["native_diagnostic_truncated"], len(kept) != len(paths))
+                self.assertEqual(report["native_diagnostic_snapshot"], "rejected_validation_snapshot")
+                self.assertLessEqual(len(kept), 2048)
+                self.assertTrue(all(path in paths and len(path.encode("utf-8")) <= 4096 for path in kept))
+                self.assertLessEqual(len(json.dumps(report, indent=2).encode("utf-8")), 256 * 1024)
+
+    def test_main_retains_native_failure_and_optional_bounded_snapshot(self):
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / "failure.json"
+            error = entry.NativeOriginError("original rejection", ("/rejected/path",))
+            argv = ["--fixture", str(Path(folder) / "fixture"), "--output", str(output)]
+            with mock.patch.object(entry, "bundle_root", side_effect=error):
+                self.assertEqual(entry.main(argv), 2)
+            report = json.loads(output.read_text())
+            self.assertEqual(report["status"], "failed")
+            self.assertIn("original rejection", report["error"])
+            self.assertEqual(report["native_diagnostic_paths"], ["/rejected/path"])
+            with mock.patch.object(entry, "bundle_root", side_effect=error), \
+                 mock.patch.object(entry, "native_diagnostic", side_effect=RuntimeError("diagnostic failure")):
+                self.assertEqual(entry.main(argv), 2)
+            report = json.loads(output.read_text())
+            self.assertEqual(report["status"], "failed")
+            self.assertIn("original rejection", report["error"])
+            self.assertNotIn("native_diagnostic_paths", report)
+
     @unittest.skipUnless(os.name == "posix", "POSIX symlink semantics")
     def test_internal_native_and_module_symlinks_allowed_but_escape_rejected(self):
         with tempfile.TemporaryDirectory() as folder:

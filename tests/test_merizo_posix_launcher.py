@@ -43,6 +43,44 @@ def runtime_report(package: Path) -> dict:
 
 
 class PosixLauncherContracts(unittest.TestCase):
+    def test_entry_generated_full_and_truncated_diagnostics_match_launcher_contract(self):
+        specification = importlib.util.spec_from_file_location("diagnostic_contract_entry", HARNESS / "frozen_posix_entry.py")
+        assert specification is not None and specification.loader is not None
+        entry = importlib.util.module_from_spec(specification)
+        specification.loader.exec_module(entry)
+        self.assertEqual(entry.MAX_NATIVE_DIAGNOSTIC_BYTES, launcher.MAX_NATIVE_DIAGNOSTIC_BYTES)
+        self.assertEqual(entry.MAX_NATIVE_IMAGES, launcher.MAX_NATIVE_DIAGNOSTIC_PATHS)
+        self.assertEqual(entry.MAX_PATH_BYTES, launcher.MAX_NATIVE_DIAGNOSTIC_PATH_BYTES)
+        self.assertEqual(entry.NATIVE_DIAGNOSTIC_SNAPSHOT, launcher.NATIVE_DIAGNOSTIC_SNAPSHOT)
+        for paths in (("/rejected image",), tuple(f"/image/{index}" for index in range(2050)),
+                      tuple("/" + "\U0001f9ec" * 1000 + str(index) for index in range(300))):
+            with self.subTest(total=len(paths)):
+                diagnostic = entry.native_diagnostic(paths)
+                self.assertEqual(launcher.failed_runtime({"error": "original", **diagnostic}),
+                                 {"status": "failed", "error": "original", **diagnostic})
+
+    def test_failed_runtime_preserves_only_valid_bounded_snapshot_fields(self):
+        diagnostic = {"native_diagnostic_paths": ["/rejected/native image"], "native_diagnostic_total": 1,
+                      "native_diagnostic_truncated": False, "native_diagnostic_snapshot": "rejected_validation_snapshot"}
+        report = launcher.failed_runtime({"status": "passed", "error": "original rejection", **diagnostic,
+                                          "arbitrary_payload": {"must": "not be copied"}})
+        self.assertEqual(report, {"status": "failed", "error": "original rejection", **diagnostic})
+        for patch in ({"native_diagnostic_paths": "not a list"}, {"native_diagnostic_paths": [42]},
+                      {"native_diagnostic_paths": ["relative"]}, {"native_diagnostic_paths": ["/bad\nname"]},
+                      {"native_diagnostic_paths": ["/" + "x" * 4096]},
+                      {"native_diagnostic_paths": ["/path"] * 2049, "native_diagnostic_total": 2049},
+                      {"native_diagnostic_paths": ["/" + "x" * 4000] * 100, "native_diagnostic_total": 100},
+                      {"native_diagnostic_total": True}, {"native_diagnostic_total": -1},
+                      {"native_diagnostic_total": 2**31}, {"native_diagnostic_truncated": 0},
+                      {"native_diagnostic_truncated": True}, {"native_diagnostic_snapshot": "approved"}):
+            with self.subTest(patch=tuple(patch)):
+                result = launcher.failed_runtime({"error": "original rejection", **diagnostic, **patch})
+                self.assertEqual(result, {"status": "failed", "error": "original rejection"})
+        missing = dict(diagnostic)
+        missing.pop("native_diagnostic_total")
+        self.assertEqual(launcher.failed_runtime({"error": "original rejection", **missing}),
+                         {"status": "failed", "error": "original rejection"})
+
     def test_environment_does_not_inherit_python_loader_or_venv(self):
         with tempfile.TemporaryDirectory(prefix="mock merizo env ") as folder:
             with mock.patch.dict(os.environ, {"PYTHONPATH": "outside", "LD_LIBRARY_PATH": "outside",
@@ -178,6 +216,22 @@ class PosixMockProcessTests(unittest.TestCase):
         self.assertEqual(report["stderr_bytes_drained"], 100016)
         self.assertLessEqual(len(report["stderr_tail"]), 2048)
         self.assertTrue(report["stderr_tail"].endswith("BOOTLOADER ERROR"))
+
+    def test_nonzero_child_snapshot_is_forwarded_without_promoting_failure(self):
+        diagnostic = {"native_diagnostic_paths": ["/rejected/first", "/rejected/second"],
+                      "native_diagnostic_total": 2, "native_diagnostic_truncated": False,
+                      "native_diagnostic_snapshot": "rejected_validation_snapshot"}
+        failed = {"status": "passed", "error": "original native rejection", **diagnostic,
+                  "arbitrary_runtime": "must not be copied"}
+        self.configure(f"report = json.loads({json.dumps(failed)!r})\n"
+                       "pathlib.Path(sys.argv[sys.argv.index('--output') + 1]).write_text(json.dumps(report))\n"
+                       "sys.exit(7)\n")
+        code, report = self.run_probe()
+        self.assertEqual(code, 1)
+        self.assertEqual(report["status"], "failed")
+        self.assertEqual(report["runtime"], {"status": "failed", "error": "original native rejection", **diagnostic})
+        self.assertTrue(report["process_group_termination_verified"])
+        self.assertTrue(report["runtime_directory_removed"])
 
     def test_timeout_kills_and_reaps_stubborn_descendant_group(self):
         self.configure("signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
