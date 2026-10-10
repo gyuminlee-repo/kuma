@@ -15,6 +15,123 @@ from typing import Any
 import pytest
 
 from kuma_core.kuro import domain_watchdog as watchdog
+from kuma_core.kuro import domain_process as process
+
+
+@pytest.mark.parametrize("deadline,returned_at,expired", [
+    (105.0, 104.9, False), (105.0, 105.0, True), (105.0, 106.0, True),
+    (200.0, 129.9, False), (200.0, 130.0, True), (200.0, 131.0, True),
+])
+def test_ready_return_must_fit_shared_deadline_and_readiness_cap(
+    monkeypatch: pytest.MonkeyPatch, deadline: float, returned_at: float, expired: bool,
+) -> None:
+    now = [100.0]
+    owned = object.__new__(watchdog.WindowsLeaseWatchdog)
+    owned.problem = None
+    owned.ready = False
+
+    def poll():
+        now[0] = returned_at
+        owned.ready = True
+        return None
+
+    monkeypatch.setattr(owned, "poll", poll)
+    monkeypatch.setattr(watchdog, "time", SimpleNamespace(monotonic=lambda: now[0]))
+    if expired:
+        with pytest.raises(TimeoutError, match="time limit"):
+            owned.wait_ready(lambda: False, deadline=deadline)
+    else:
+        owned.wait_ready(lambda: False, deadline=deadline)
+    # Valid ownership is still available to accept terminal cleanup after the
+    # late launch has been rejected; timeout must not poison the proof parser.
+    assert owned.ready and owned.problem is None
+
+
+def test_late_ready_finishes_watchdog_cleanup_without_runtime_creation(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    now = [0.0]
+    events: list[str] = []
+
+    class Api:
+        def CreateJobObjectW(self, *args):
+            return 123
+
+        def SetInformationJobObject(self, *args):
+            return 1
+
+        def CloseHandle(self, handle):
+            events.append("job_closed")
+
+    class Watchdog:
+        def __init__(self, *args):
+            events.append("helper_spawned")
+
+        def wait_ready(self, cancelled, *, deadline):
+            assert deadline == 1.0
+            now[0] = deadline
+            raise TimeoutError("DO_NOT_FORWARD_INTERNAL_DETAIL")
+
+        def wait_stopped(self):
+            # This cleanup remains mandatory even though readiness is late.
+            events.append("terminal_and_helper_exit")
+
+        def close(self):
+            assert events[-1] == "terminal_and_helper_exit"
+            events.append("helper_closed")
+
+    monkeypatch.setattr(process, "time", SimpleNamespace(monotonic=lambda: now[0]))
+    monkeypatch.setattr(process, "_windows_api", Api)
+    monkeypatch.setattr(process, "_watchdog_module", lambda: SimpleNamespace(WindowsLeaseWatchdog=Watchdog))
+    lease: Any = object()  # Durable preparation already occurred at the caller.
+    with pytest.raises(process.DomainProcessError, match="time limit") as caught:
+        process._WindowsProcess([sys.executable], tmp_path, {}, lease=lease, deadline=1.0)
+    assert "DO_NOT_FORWARD" not in str(caught.value)
+    assert events == ["helper_spawned", "terminal_and_helper_exit", "helper_closed", "job_closed"]
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Real late-READY helper exit/admission requires native Windows CI")
+def test_native_late_ready_proves_helper_exit_before_releasing_admission(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    import psutil
+
+    from kuma_core.kuro.domain_lease import EXECUTION_RECORD_NAME
+    from kuma_core.kuro.optional_runtime import OptionalRuntimeManager
+
+    manager = OptionalRuntimeManager(tmp_path / "app")
+    manager._create_root()
+    actual_accept = watchdog.WindowsLeaseWatchdog._accept
+    actual_time = watchdog.time
+    offset = [0.0]
+    helper_pids: list[int] = []
+
+    def accept_then_expire(self, raw):
+        was_ready = self.ready
+        actual_accept(self, raw)  # Exact actual PID/creation/lease checks stay real.
+        if not was_ready and self.ready:
+            helper_pids.append(self.process.pid)
+            offset[0] = 1000.0
+
+    monkeypatch.setattr(watchdog.WindowsLeaseWatchdog, "_accept", accept_then_expire)
+    # Only readiness's host-side clock advances. Sleeps, kernel waits, lease
+    # identity and the helper interpreter all retain their real native timing.
+    monkeypatch.setattr(watchdog, "time", SimpleNamespace(
+        monotonic=lambda: actual_time.monotonic() + offset[0], sleep=actual_time.sleep))
+    marker = tmp_path / "runtime-started"
+    result = tmp_path / "result.json"
+    argv = [sys.executable, "-I", "-S", "-c",
+            "import pathlib,sys; pathlib.Path(sys.argv[1]).write_text('started')", str(marker)]
+    with manager.operation_lock() as lease:
+        with pytest.raises(process.DomainProcessError, match="time limit"):
+            process.run_managed_process(argv, cwd=tmp_path, result_path=result,
+                                        cancelled=lambda: False, timeout_seconds=10,
+                                        operation_lease=lease)
+    assert len(helper_pids) == 1 and not psutil.pid_exists(helper_pids[0])
+    assert not marker.exists() and not result.exists()
+    assert not list(tmp_path.glob("domain-private-*"))
+    with manager.operation_lock():
+        assert not (manager.root / EXECUTION_RECORD_NAME).exists()
 
 
 @pytest.mark.parametrize("chunks,expected", [

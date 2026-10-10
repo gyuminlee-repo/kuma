@@ -29,6 +29,42 @@ MERIZO_WEIGHTS_SHA256 = {
     "weights_part_1.pt": "644f711b9573b44fc25a0bc0631ee9ab43f7fbd796db0a382298755057a2fa38",
     "weights_part_2.pt": "ddafe5fa5dfa729eb8715757004d2d3e4e9798f96ea43c689e799ef91af8c2b8",
 }
+# Versioned, narrowly reviewed compatibility policy. Imported producer claims
+# remain unauthenticated, just like the existing tool/model/input provenance.
+MERIZO_NOTICE_POLICY = "kuma-merizo-pyparsing-alias-v1"
+MERIZO_NOTICE_IDS = frozenset({"pyparsing_parse_string_alias", "pyparsing_reset_cache_alias"})
+MERIZO_NOTICE_SOURCE_SHA256 = "54b22b72a221e70ea7f7eb760b3c11008b3f8f4750eff0166e7d9e688c851f15"
+MERIZO_CODE_FINGERPRINT = "kuma-python-code-v1"
+MAX_MERIZO_NOTICE_COUNT = 65535
+
+
+def validate_merizo_notice_basis(basis: Any) -> None:
+    expected = {"policy_id": MERIZO_NOTICE_POLICY, "source_member": "pyparsing/util.py",
+                "source_sha256": MERIZO_NOTICE_SOURCE_SHA256,
+                "code_fingerprint_schema": MERIZO_CODE_FINGERPRINT, "python_abi": "cpython-311"}
+    if (not isinstance(basis, dict) or set(basis) != set(expected) | {"code_fingerprints"}
+            or any(basis.get(key) != value for key, value in expected.items())):
+        raise DomainAnnotationError("Unsupported compatibility-notice policy or source basis")
+    fingerprints = basis["code_fingerprints"]
+    if (not isinstance(fingerprints, dict) or set(fingerprints) != {"461", "472"}
+            or any(not isinstance(value, str) or not re.fullmatch("[0-9a-f]{64}", value)
+                   for value in fingerprints.values())):
+        raise DomainAnnotationError("Invalid compatibility-notice code basis")
+
+
+def validate_merizo_compatibility_notices(value: Any) -> None:
+    """Validate producer claims, never authenticate an imported execution."""
+    if not isinstance(value, dict) or set(value) != {"basis", "count", "counts"}:
+        raise DomainAnnotationError("Invalid compatibility-notice record")
+    validate_merizo_notice_basis(value["basis"])
+    counts = value["counts"]
+    if (type(value["count"]) is not int or not 1 <= value["count"] <= MAX_MERIZO_NOTICE_COUNT
+            or not isinstance(counts, dict) or not counts or not set(counts) <= MERIZO_NOTICE_IDS
+            or any(type(count) is not int or not 1 <= count <= MAX_MERIZO_NOTICE_COUNT for count in counts.values())
+            or sum(counts.values()) != value["count"]):
+        raise DomainAnnotationError("Unknown, incomplete or inconsistent compatibility-notice counts")
+
+
 AF3_UNSUPPORTED_REASON = (
     "AF3/mmCIF domain annotation is unsupported: a lossless full-atom mmCIF-to-PDB "
     "conversion with validated label/auth/model/chain residue mapping is required; "
@@ -186,7 +222,7 @@ def decode_merizo_result(text: str, prepared: DomainInput, *,
     """Decode a bounded run envelope against the exact current scientific input.
 
     Required envelope: schema/tool_commit/weights_sha256/input, process
-    {status, exit_code, warnings}, features {nres, sequence, residue_numbers,
+    {status, exit_code, warnings, optional compatibility_notices}, features {nres, sequence, residue_numbers,
     ca_coordinates}, prediction {nres, ndom, labels, residue_numbers, confidence,
     time_sec}. Labels are nonnegative integers; zero is unassigned. Positive
     labels need not be consecutive or sorted. Domain order is first occurrence.
@@ -214,6 +250,9 @@ def decode_merizo_result(text: str, prepared: DomainInput, *,
     _integer(process.get("exit_code"), 0, "Process exit")
     if process.get("status") != "ok" or process.get("warnings") != []:
         raise DomainAnnotationError("External failure, warnings or missing status evidence")
+    # warnings=[] means zero unhandled warnings, not warning-free inference.
+    if "compatibility_notices" in process:
+        validate_merizo_compatibility_notices(process["compatibility_notices"])
     nres = len(prepared.residues)
     for record, name in ((features, "Feature"), (prediction, "Prediction")):
         _integer(record.get("nres"), nres, f"{name} residue count")

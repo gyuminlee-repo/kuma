@@ -59,7 +59,8 @@ process/lease tests. PR11’s earlier probe did not verify helper exit or this
 crash lease window; its saved success is not retroactively expanded. The new
 source probe passes on Linux; native frozen evidence awaits the next exact CI.
 
-All stdout receives and process waits have explicit bounds. Source timeout is
+The driver uses explicit receive/wait budgets; this does not make synchronous
+OS calls or unconfirmed cleanup hard-bounded. Source timeout is
 2 seconds and frozen timeout is 30 seconds by default; `--timeout-seconds` may
 select 0.5–60 seconds for fixture testing. Private crash-leftover files are removed
 by the driver after process cleanup; this does not establish automatic application
@@ -83,11 +84,19 @@ The caller removes its venv only after a matching successful report explicitly
 proves cleanup and the owned root/marker checks pass; absent proof leaves the
 venv for ephemeral runner teardown. A timeout is not successful cleanup.
 
-The native result must establish the topology before calling the candidate fix
-successful. The earlier historical stall's exact stack is not available. The
-existing active execution timer begins after startup, and cleanup without exit
-proof retains ownership; this probe does not certify an absolute deadline across
-all startup APIs or change that unknown-cleanup contract.
+At HEAD `d444cf4b`, native Windows CPython 3.11.9 established the raw redirector
+PID mismatch and corrected direct-helper PID equality, with venv dependency
+origin preserved. All four source lifecycle modes and inner/outer cleanup passed
+in 5.765 seconds. The actual archive then returned and cleaned up rather than
+repeating the earlier 20-minute stall; its warning refusal remained separate.
+The earlier historical stall's exact stack is still unavailable.
+
+The subsequent deadline-accounting correction creates one monotonic budget before
+startup and rejects late READY/success after blocking calls return, including
+final validation and private-directory cleanup. It does not preempt synchronous
+OS calls. Cleanup without exit proof still retains ownership even after the
+budget expires; earlier failures/cancellation keep priority over a later timeout.
+This is elapsed-time accounting, not a hard all-API wall-clock guarantee.
 The source lifecycle driver also preserves its own inner fixture directory on
 any failed or uncertain lifecycle check. The venv wrapper retains only fixed
 inner-stage/boolean outcome metadata, and refuses cleanup if either layer lacks

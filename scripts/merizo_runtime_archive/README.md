@@ -505,7 +505,25 @@ build-bound source table allows an unfamiliar Python warning to be investigated
 against its public source; unresolved/C-emitted cases remain explicitly unknown.
 The observer preserves the existing warning filters and recording, delegates the
 original warning handler, restores it on exit, and discards inspected frames.
-Every observed warning remains fatal, including recognized deprecation candidates.
+The subsequent `kuma-merizo-pyparsing-alias-v1` policy can report only the exact
+pinned `parseString`/`resetCache` API-renaming notices without rejecting a result.
+These verified upstream wrappers warn and immediately delegate the same arguments;
+changing their callers instead would modify pinned third-party bytes or require
+runtime patching. Acceptance binds the verified source to actual collected PYZ
+code and the immediate executing frame's code fingerprint, with exact category,
+message and source location. Diagnostic source references alone cannot authorize
+acceptance. Other warnings, failed collection, unknown source/code, count overflow
+or inconsistent totals still reject the result.
+
+Every warning is classified before deduplicated sample trimming, with unknown
+samples prioritized. The optional `process.compatibility_notices` field records
+the versioned policy/source/code basis and per-ID counts; their sum must equal the
+complete observed count. `process.warnings: []` means zero unhandled warnings,
+not warning-free inference. The strict app decoder validates this additive field;
+imported producer assertions remain unauthenticated. The earlier three-OS
+`d444cf4b` runs remain failures: only four of their eleven warnings were retained,
+so their other seven observations cannot be retroactively classified.
+
 The complete failure report still has a 4 KiB serialized cap. The source table
 lives only in the bounded runtime identity; the final audit stores its compact
 summary/hash rather than duplicating thousands of references.

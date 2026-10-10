@@ -16,6 +16,8 @@ import textwrap
 import threading
 import time
 from collections.abc import Callable
+from contextlib import contextmanager
+from types import SimpleNamespace
 
 import psutil
 import pytest
@@ -211,6 +213,164 @@ def test_timeout_reaps_owned_root_without_assuming_fixture_startup(
     for marker in (child[2], child[2].with_name("descendant.pid")):
         if marker.exists():
             assert not psutil.pid_exists(int(marker.read_text()))
+
+
+@pytest.mark.parametrize("late_stage", [
+    "environment", "constructor", "start", "drain", "result_probe", "poll",
+    "cleanup", "close", "result_validation", "private_cleanup", None,
+])
+def test_one_elapsed_budget_rejects_late_success_only_after_cleanup(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, late_stage: str | None,
+) -> None:
+    # Deterministic returned-call delays, not a claim to preempt native calls.
+    now = [100.0]
+    events: list[str] = []
+    result = tmp_path / "result.json"
+
+    def stage(name: str) -> None:
+        events.append(name)
+        if name == late_stage:
+            now[0] = 101.0  # Exact equality is already expired.
+
+    class Owned:
+        stopped = False
+        proven = False
+
+        def start(self):
+            stage("start")
+            result.write_text("{}")
+
+        def drain(self, capture):
+            stage("drain")
+
+        def poll(self):
+            stage("poll")
+            return 0
+
+        def tree_exited(self):
+            stage("cleanup")
+            self.proven = self.stopped
+            return self.proven
+
+        def stop(self, hard):
+            stage("stop")
+            self.stopped = True
+
+        def close(self):
+            assert self.proven
+            stage("close")
+
+    def construct(*args, **kwargs):
+        if "deadline" in kwargs:
+            assert kwargs["deadline"] == 101.0
+        stage("constructor")
+        return Owned()
+
+    def environment(private):
+        stage("environment")
+        return {}
+
+    actual_result = process._check_result
+
+    def check_result(path, limit, *, required):
+        actual_result(path, limit, required=required)
+        stage("result_validation" if required else "result_probe")
+
+    actual_temporary = process.tempfile.TemporaryDirectory
+
+    @contextmanager
+    def temporary(*args, **kwargs):
+        with actual_temporary(*args, **kwargs) as directory:
+            yield directory
+        stage("private_cleanup")
+
+    monkeypatch.setattr(process, "time", SimpleNamespace(monotonic=lambda: now[0], sleep=lambda seconds: None))
+    monkeypatch.setattr(process, "_environment", environment)
+    monkeypatch.setattr(process, "_WindowsProcess", construct)
+    monkeypatch.setattr(process, "_PosixSupervisor", construct)
+    monkeypatch.setattr(process, "_check_result", check_result)
+    monkeypatch.setattr(process.tempfile, "TemporaryDirectory", temporary)
+
+    def run():
+        run_managed_process([sys.executable], cwd=tmp_path, result_path=result,
+                            cancelled=lambda: False, timeout_seconds=1)
+
+    if late_stage is None:
+        run()
+    else:
+        with pytest.raises(DomainProcessError, match="time limit"):
+            run()
+    if late_stage == "environment":
+        assert "constructor" not in events
+    else:
+        assert events.index("start") < events.index("stop") < events.index("close")
+    assert not list(tmp_path.glob("domain-private-*"))
+
+
+@pytest.mark.parametrize("failure", [DomainProcessError("original failure"), DomainProcessCancelled("original cancel")])
+def test_late_cleanup_does_not_replace_original_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: DomainProcessError,
+) -> None:
+    now = [0.0]
+    events: list[str] = []
+
+    class Owned:
+        def start(self):
+            raise failure
+
+        def drain(self, capture):
+            now[0] = 2.0
+
+        def poll(self):
+            return 0
+
+        def tree_exited(self):
+            events.append("proof")
+            return True
+
+        def stop(self, hard):
+            raise AssertionError("Already exited")
+
+        def close(self):
+            events.append("closed")
+
+    monkeypatch.setattr(process, "time", SimpleNamespace(monotonic=lambda: now[0]))
+    with pytest.raises(DomainProcessError) as caught:
+        process._run_observed(Owned(), cancelled=lambda: False, deadline=1.0,
+                              output_limit=1024, result_path=tmp_path / "result.json",
+                              result_limit=1024, on_stopping=None)
+    assert caught.value is failure
+    assert events == ["proof", "closed"]
+
+
+@pytest.mark.parametrize("late_stage", ["assignment_query", "resume"])
+def test_windows_start_rechecks_deadline_around_native_resume(
+    monkeypatch: pytest.MonkeyPatch, late_stage: str,
+) -> None:
+    now = [0.0]
+    events: list[str] = []
+
+    class Api:
+        def IsProcessInJob(self, root, job, member):
+            member._obj.value = 1
+            if late_stage == "assignment_query":
+                now[0] = 1.0
+            return 1
+
+        def ResumeThread(self, thread):
+            events.append("resume")
+            now[0] = 1.0
+            return 1
+
+    owned = object.__new__(process._WindowsProcess)
+    monkeypatch.setattr(owned, "api", Api(), raising=False)
+    owned.info = process._ProcessInformation()
+    owned.job = 1
+    owned.deadline = 1.0
+    monkeypatch.setattr(process, "time", SimpleNamespace(monotonic=lambda: now[0]))
+    with pytest.raises(DomainProcessError, match="time limit"):
+        owned.start()
+    assert events == ([] if late_stage == "assignment_query" else ["resume"])
 
 
 def test_parent_exits_first_with_inherited_pipes_and_stubborn_descendant(child: tuple[Path, Path, Path]) -> None:
@@ -583,6 +743,27 @@ def test_windows_job_owns_child_before_resume(child: tuple[Path, Path, Path], mo
     _run(child, "success")
     assert observed == [True]
     _assert_gone(child)
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Actual Win32 assigned-but-suspended cleanup requires native Windows CI")
+def test_windows_expired_startup_reaps_suspended_root_without_resuming(
+    child: tuple[Path, Path, Path], monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    actual_start = process._WindowsProcess.start
+    pids: list[int] = []
+
+    def expire_before_resume(self: process._WindowsProcess) -> None:
+        pids.append(self.info.pid)
+        assert not child[2].exists() and self.poll() is None
+        self.deadline = time.monotonic()
+        actual_start(self)
+
+    monkeypatch.setattr(process._WindowsProcess, "start", expire_before_resume)
+    with pytest.raises(DomainProcessError, match="time limit"):
+        _run(child, "success")
+    assert len(pids) == 1 and not psutil.pid_exists(pids[0])
+    assert not child[2].exists() and not child[1].exists()
+    assert not list(child[0].parent.glob("domain-private-*"))
 
 
 @pytest.mark.skipif(os.name != "nt", reason="Actual Win32 assigned-but-suspended cleanup requires native Windows CI")

@@ -33,7 +33,8 @@ from scripts.merizo_runtime_archive.roundtrip import public_inputs, roundtrip, r
 from scripts.merizo_runtime_archive.runtime_entry import (
     MAX_RUNTIME_RESIDUES, safe_error_type, failure_lines, publish_failure,
     MAX_SOURCE_IDENTITY_BYTES, MAX_WARNING_SOURCES, MAX_WARNING_SOURCE_BYTES, MAX_WARNING_SOURCE_TOTAL,
-    validate_warning_sources, source_member, wheel_source_location,
+    validate_warning_sources, source_member, wheel_source_location, pyparsing_wrapper_fingerprints,
+    MERIZO_NOTICE_POLICY, MERIZO_NOTICE_SOURCE_SHA256, MERIZO_CODE_FINGERPRINT,
 )
 
 PACKAGE = 'kuma-merizo'
@@ -92,6 +93,35 @@ def warning_source_inventory(source, identity, provenance):
                   'table_sha256': hashlib.sha256(canonical(table)).hexdigest(),
                   'runtime_identity_bytes': len(canonical(runtime_identity)) + 1}
     return runtime_identity, projection
+
+
+def notice_policy_identity(provenance):
+    rows = [row for row in provenance['installed_files'] if row.get('wheel_member') == 'pyparsing/util.py']
+    if (len(rows) != 1 or rows[0].get('mapping') != 'exact_wheel_member'
+            or rows[0].get('wheel_installation_scheme') != 'site'
+            or rows[0].get('sha256') != MERIZO_NOTICE_SOURCE_SHA256
+            or rows[0].get('wheel_member_sha256') != MERIZO_NOTICE_SOURCE_SHA256
+            or sys.implementation.cache_tag != 'cpython-311' or sys.flags.optimize != 0):
+        raise ValueError('Notice acceptance requires the exact reviewed wheel source and CPU Python ABI')
+    path = Path(rows[0]['path'])
+    if not path.is_absolute() or not path.is_relative_to(Path(sys.prefix).resolve()):
+        raise ValueError('Notice source escapes isolated environment')
+    raw = read_regular(path, MAX_WARNING_SOURCE_BYTES)
+    if hashlib.sha256(raw).hexdigest() != MERIZO_NOTICE_SOURCE_SHA256:
+        raise ValueError('Notice source changed after wheel verification')
+    # Compile only already verified official source. Never execute it here.
+    code = compile(raw, 'pyparsing/util.py', 'exec', dont_inherit=True, optimize=0)
+    return {'policy_id': MERIZO_NOTICE_POLICY, 'source_member': 'pyparsing/util.py',
+            'source_sha256': MERIZO_NOTICE_SOURCE_SHA256, 'code_fingerprint_schema': MERIZO_CODE_FINGERPRINT,
+            'python_abi': 'cpython-311', 'code_fingerprints': pyparsing_wrapper_fingerprints(code)}
+
+
+def verify_frozen_notice_code(embedded, policy):
+    if embedded.get('pyparsing_wrapper_fingerprints') != policy['code_fingerprints']:
+        raise ValueError('Frozen wrapper code differs from exact verified wheel compilation')
+    return {'policy_id': policy['policy_id'], 'source_sha256': policy['source_sha256'],
+            'code_fingerprint_schema': policy['code_fingerprint_schema'],
+            'code_fingerprints': policy['code_fingerprints'], 'actual_pyz_matched': True}
 
 
 def run_freezer(options):
@@ -167,13 +197,17 @@ def freeze(source, project, output, generated, *, report=None, stage_events: boo
 def embedded_inventory(executable: Path) -> dict:
     readers = __import__('importlib').import_module('PyInstaller.archive.readers')
     reader = readers.CArchiveReader(str(executable))
-    members, modules = [], []
+    members, modules, wrapper_fingerprints = [], [], None
     for name, row in reader.toc.items():
         kind = row[-1]
         if kind == 'z':
             pyz = reader.open_embedded_archive(name)
             for module in sorted(pyz.toc):
                 code = pyz.extract(module)
+                if module == 'pyparsing.util':
+                    if wrapper_fingerprints is not None:
+                        raise ValueError('Multiple frozen pyparsing wrapper modules')
+                    wrapper_fingerprints = pyparsing_wrapper_fingerprints(code)
                 modules.append({'module': module, 'compiled_sha256': __import__('hashlib').sha256(marshal.dumps(code)).hexdigest()})
         # The container and embedded item hashes complement source TOC edges.
         blob = reader.extract(name)
@@ -203,6 +237,7 @@ def embedded_inventory(executable: Path) -> dict:
     return {'container_sha256': digest(executable),
             'stdlib_archive_sha256': digest(base_library) if base_library.is_file() else None,
             'stdlib_compilation_inputs': standard_library, 'carchive_members': members, 'pyz_modules': modules,
+            'pyparsing_wrapper_fingerprints': wrapper_fingerprints,
             'bootloader_candidates': bootloaders, 'python_abi': sys.implementation.cache_tag,
             'compiler_flags': {'optimization': sys.flags.optimize},
             'native_processing_recipe': 'PyInstaller 6.16.0 process_collected_binary; strip=False, upx=False; default platform rewriting/signing',
@@ -357,6 +392,8 @@ def build(args) -> int:
         generated = output / 'generated'
         generated.mkdir()
         runtime_identity, source_reference_summary = warning_source_inventory(source, identity, provenance)
+        runtime_identity['notice_policy'] = notice_policy_identity(provenance)
+        source_reference_summary['runtime_identity_bytes'] = len(canonical(runtime_identity)) + 1
         report['build']['warning_source_references'] = source_reference_summary
         write_json(generated / 'merizo-source-identity.json', runtime_identity, MAX_SOURCE_IDENTITY_BYTES)
         identity_sha = digest(generated / 'merizo-source-identity.json')
@@ -380,6 +417,7 @@ def build(args) -> int:
         entry = PACKAGE + ('.exe' if os.name == 'nt' else '')
         checkpoint('embedded_inventory')
         report['embedded'] = embedded_inventory(package / entry)
+        report['build']['notice_code_binding'] = verify_frozen_notice_code(report['embedded'], runtime_identity['notice_policy'])
         toc['stdlib.compilation'] = [{'destination': row['member'], 'source': row['source'],
             'typecode': 'PYMODULE', 'sha256': row['source_sha256']}
             for row in report['embedded']['stdlib_compilation_inputs'] if row['source']]

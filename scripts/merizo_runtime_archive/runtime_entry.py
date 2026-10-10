@@ -27,7 +27,9 @@ from contextlib import contextmanager
 from kuma_core.kuro.domain_annotation import DomainInput, MAX_SOURCE_BYTES, MAX_RESULT_BYTES
 from kuma_core.kuro.domain_merizo import (
     MERIZO_COMMIT, MERIZO_WEIGHTS_SHA256, decode_merizo_result,
-    domain_input_manifest, expected_ca_coordinates,
+    domain_input_manifest, expected_ca_coordinates, MERIZO_NOTICE_POLICY, MERIZO_NOTICE_IDS,
+    MERIZO_NOTICE_SOURCE_SHA256, MERIZO_CODE_FINGERPRINT, validate_merizo_notice_basis,
+    validate_merizo_compatibility_notices,
 )
 from kuma_core.kuro.residue_mapping import ResidueId
 from scripts.merizo_runtime_archive.common import (
@@ -40,7 +42,7 @@ MAX_SOURCE_IDENTITY_BYTES = 2 * 1024 * 1024
 MAX_RUNTIME_RESIDUES = 2000  # Unmeasured conservative allocation guard, not safe-capacity evidence.
 MAX_FAILURE_BYTES = 4096
 MAX_FAILURE_FRAMES = 32
-FAILURE_SCHEMA = 'kuma-merizo-entry-failure-v2'
+FAILURE_SCHEMA = 'kuma-merizo-entry-failure-v3'
 FAILURE_ERROR_TYPES = frozenset({'ValueError', 'TypeError', 'KeyError', 'IndexError', 'RuntimeError',
     'ImportError', 'ModuleNotFoundError', 'OSError', 'FileNotFoundError', 'PermissionError',
     'MemoryError', 'OverflowError', 'AssertionError', 'TimeoutError', 'InputLimitError',
@@ -56,7 +58,7 @@ MAX_WARNING_ITEMS = 4
 MAX_WARNING_COUNT = 65535
 MAX_WARNING_MESSAGE = 2048
 MAX_WARNING_STACK = 32
-_PYPARSING_SOURCE = '54b22b72a221e70ea7f7eb760b3c11008b3f8f4750eff0166e7d9e688c851f15'
+_PYPARSING_SOURCE = MERIZO_NOTICE_SOURCE_SHA256
 _TORCH_STORAGE_SOURCE = '0a7d86af5172fdfdd04027e01948fd0f3f02843f57ff11cfb9e5ea3729173323'
 _ALIAS_PAIRS = (('parseString', 'parse_string'), ('resetCache', 'reset_cache'),
     ('enablePackrat', 'enable_packrat'), ('setParseAction', 'set_parse_action'),
@@ -129,7 +131,7 @@ def warning_category(category):
 
 
 def known_warning(message, category, reference, function):
-    """Diagnostic IDs only. Even an exact known warning still fails the result."""
+    """Diagnostic IDs only; acceptance requires the separate code-bound policy."""
     if reference is None or reference['kind'] != 'wheel':
         return 'unrecognized'
     if (reference['member'] == 'pyparsing/util.py' and reference['sha256'] == _PYPARSING_SOURCE
@@ -156,17 +158,108 @@ def known_warning(message, category, reference, function):
     return 'unrecognized'
 
 
+MAX_CODE_FINGERPRINT_BYTES = 65536
+MAX_CODE_FINGERPRINT_NODES = 2048
+MAX_CODE_FINGERPRINT_DEPTH = 16
+
+
+def code_fingerprint(code):
+    """Hash semantic code fields, never pickle/marshal external inputs.
+
+    Filename and line metadata are intentionally excluded: source/member and
+    exact emitting line are checked separately. Bytecode, exception tables,
+    constants, names, argument layout and closure layout are all bound.
+    """
+    budget, nodes = MAX_CODE_FINGERPRINT_BYTES, 0
+    def project(value, depth=0):
+        nonlocal budget, nodes
+        nodes += 1
+        budget -= 16  # Bound structural/tag overhead as well as primitive bytes.
+        if depth > MAX_CODE_FINGERPRINT_DEPTH or nodes > MAX_CODE_FINGERPRINT_NODES or budget < 0:
+            raise ValueError('Code fingerprint exceeds bound')
+        kind = type(value)
+        if value is None or value is Ellipsis:
+            return ['none' if value is None else 'ellipsis']
+        if kind is bool:
+            return ['bool', value]
+        if kind is int:
+            if value.bit_length() > 4096:
+                raise ValueError('Code integer constant exceeds bound')
+            text = str(value)
+            budget -= len(text)
+            return ['int', text]
+        if kind in (float, complex):
+            parts = [value] if kind is float else [value.real, value.imag]
+            if any(not math.isfinite(part) for part in parts):
+                raise ValueError('Nonfinite code constant')
+            return [kind.__name__, [part.hex() for part in parts]]
+        if kind in (str, bytes):
+            if len(value) * 4 > budget:
+                raise ValueError('Code primitive exceeds bound')
+            raw = value.encode('utf-8') if kind is str else value
+            budget -= len(raw) * 2
+            return [kind.__name__, value if kind is str else raw.hex()]
+        if kind in (tuple, frozenset):
+            if len(value) > MAX_CODE_FINGERPRINT_NODES:
+                raise ValueError('Code sequence exceeds bound')
+            children = [project(item, depth + 1) for item in value]
+            if kind is frozenset:
+                children.sort(key=canonical)
+            return [kind.__name__, children]
+        if kind is CodeType:
+            fields = ('co_argcount', 'co_posonlyargcount', 'co_kwonlyargcount', 'co_nlocals',
+                      'co_stacksize', 'co_flags', 'co_code', 'co_consts', 'co_names', 'co_varnames',
+                      'co_freevars', 'co_cellvars', 'co_name', 'co_qualname', 'co_exceptiontable')
+            return ['code', {name: project(getattr(value, name), depth + 1) for name in fields}]
+        raise ValueError('Unsupported code constant')
+    if type(code) is not CodeType:
+        raise ValueError('Require an actual code object')
+    raw = canonical([MERIZO_CODE_FINGERPRINT, project(code)])
+    if len(raw) > MAX_CODE_FINGERPRINT_BYTES:
+        raise ValueError('Code fingerprint exceeds bound')
+    return hashlib.sha256(raw).hexdigest()
+
+
+def pyparsing_wrapper_fingerprints(module_code):
+    pending, found, scanned = [module_code], {}, 0
+    while pending:
+        code = pending.pop()
+        scanned += 1
+        if scanned > 512 or type(code) is not CodeType:
+            raise ValueError('Invalid wrapper code inventory')
+        if code.co_qualname == 'replaced_by_pep8.<locals>._inner':
+            lines = {line for _, _, line in code.co_lines()}
+            matches = {str(line) for line in (461, 472) if line in lines}
+            if len(matches) != 1:
+                raise ValueError('Unexpected pinned wrapper line layout')
+            key = matches.pop()
+            if key in found:
+                raise ValueError('Duplicate pinned wrapper')
+            found[key] = code_fingerprint(code)
+        pending.extend(value for value in code.co_consts if type(value) is CodeType)
+    if set(found) != {'461', '472'}:
+        raise ValueError('Missing pinned wrapper code')
+    return found
+
+
 class WarningObserver:
     """Bounded observation at showwarning; retain the original record/filter path."""
-    def __init__(self, internal, source, table, report):
+    def __init__(self, internal, source, table, report, policy=None):
         self.internal, self.source, self.report = internal, source, report
+        self.policy = policy
+        if policy is not None:
+            validate_merizo_notice_basis(policy)
+            if (table.get('wheel', {}).get('pyparsing/util.py', [None])[0] != MERIZO_NOTICE_SOURCE_SHA256
+                    or sys.implementation.cache_tag != policy['python_abi']):
+                raise ValueError('Notice policy source or interpreter mismatch')
         self.index = {}
         validate_warning_sources(table)
         for kind in ('wheel', 'merizo'):
             for member, row in table[kind].items():
                 location = wheel_source_location(member) if kind == 'wheel' else member
                 self.index[(kind, location)] = (member, row)
-        report.update(count=0, count_capped=False, truncated=False, collection_failed=False, items=[])
+        report.update(count=0, count_capped=False, truncated=False, collection_failed=False,
+                      id_counts={}, unknown_count=0, accepted_counts={}, items=[])
 
     def reference(self, filename, line):
         if not isinstance(filename, str) or len(filename) > 4096 or type(line) is not int:
@@ -216,9 +309,7 @@ class WarningObserver:
             report['count'] += 1
         else:
             report['count_capped'] = True
-        if len(report['items']) >= MAX_WARNING_ITEMS:
-            report['truncated'] = True
-            return
+            return  # Saturation is fatal; never claim complete classification.
         # Do not call arbitrary __str__, which may expose data or allocate an
         # unbounded string. Ordinary warn(str, category) stores its string in args.
         text = message if type(message) is str else None
@@ -232,7 +323,7 @@ class WarningObserver:
                 raw = text.encode('utf-8')
                 if len(raw) <= 4 * MAX_WARNING_MESSAGE:
                     sha, status = hashlib.sha256(raw).hexdigest(), 'complete'
-        active, function = None, None
+        active, function, fingerprint = None, None, None
         frame = sys._getframe(1)
         try:
             for _ in range(MAX_WARNING_STACK):
@@ -248,12 +339,44 @@ class WarningObserver:
                 # search a distant matching ancestor to manufacture attribution.
                 active = self.frame_reference(frame)
                 function = frame.f_code.co_name
+                if self.policy is not None and active is not None and active['member'] == 'pyparsing/util.py':
+                    fingerprint = code_fingerprint(frame.f_code)
                 break
         finally:
             del frame
-        report['items'].append({'category': warning_category(category), 'message_sha256': sha,
-            'message_status': status, 'known_id': known_warning(text, category, active, function),
-            'active_source': active, 'reported_source': self.reference(filename, lineno)})
+        identifier = known_warning(text, category, active, function)
+        if identifier == 'unrecognized':
+            report['unknown_count'] += 1
+        else:
+            report['id_counts'][identifier] = report['id_counts'].get(identifier, 0) + 1
+        accepted = (identifier in MERIZO_NOTICE_IDS and self.policy is not None and active is not None
+                    and fingerprint == self.policy['code_fingerprints'].get(str(active['line'])))
+        if accepted:
+            report['accepted_counts'][identifier] = report['accepted_counts'].get(identifier, 0) + 1
+        item = {'category': warning_category(category), 'message_sha256': sha,
+            'message_status': status, 'known_id': identifier, 'accepted_notice': bool(accepted),
+            'active_source': active, 'reported_source': self.reference(filename, lineno)}
+        if item in report['items']:
+            return
+        report['items'].append(item)
+        # Preserve unknowns first, then recognized but unaccepted warnings.
+        report['items'].sort(key=lambda row: (row['known_id'] != 'unrecognized', row['accepted_notice']))
+        if len(report['items']) > MAX_WARNING_ITEMS:
+            report['items'].pop()
+            report['truncated'] = True
+
+    def compatibility_notices(self, recorded_count):
+        report = self.report
+        validate_warning_report(report)
+        if (type(recorded_count) is not int or report['count'] != recorded_count
+                or report['count_capped'] or report['collection_failed'] or report['unknown_count']
+                or sum(report['accepted_counts'].values()) != recorded_count):
+            raise ValueError('Unhandled, unbound or incompletely classified inference warning')
+        if recorded_count == 0:
+            return None
+        result = {'basis': self.policy, 'count': recorded_count, 'counts': dict(report['accepted_counts'])}
+        validate_merizo_compatibility_notices(result)
+        return result
 
     @contextmanager
     def observe(self):
@@ -263,6 +386,8 @@ class WarningObserver:
                 self.collect(message, category, filename, lineno)
             except Exception:
                 self.report['collection_failed'] = True
+                # Conserve classification accounting even if a diagnostic fails.
+                self.report['unknown_count'] = self.report['count'] - sum(self.report['id_counts'].values())
             finally:
                 original(message, category, filename, lineno, file=file, line=line)
         self.hook_code = showwarning.__code__
@@ -276,14 +401,26 @@ class WarningObserver:
 def validate_warning_report(report):
     if report is None:
         return
-    if (not isinstance(report, dict) or set(report) != {'count', 'count_capped', 'truncated', 'collection_failed', 'items'}
+    if (not isinstance(report, dict) or set(report) != {'count', 'count_capped', 'truncated', 'collection_failed', 'id_counts', 'unknown_count', 'accepted_counts', 'items'}
             or type(report['count']) is not int or not 0 <= report['count'] <= MAX_WARNING_COUNT
             or any(type(report[key]) is not bool for key in ('count_capped', 'truncated', 'collection_failed'))
             or not isinstance(report['items'], list) or len(report['items']) > min(MAX_WARNING_ITEMS, report['count'])):
         raise ValueError('Invalid warning observation report')
+    for key, allowed in (('id_counts', WARNING_IDS - {'unrecognized'}), ('accepted_counts', MERIZO_NOTICE_IDS)):
+        counts = report[key]
+        if (not isinstance(counts, dict) or not set(counts) <= allowed
+                or any(type(count) is not int or not 1 <= count <= MAX_WARNING_COUNT for count in counts.values())):
+            raise ValueError('Invalid warning classification counts')
+    if (type(report['unknown_count']) is not int or not 0 <= report['unknown_count'] <= report['count']
+            or sum(report['id_counts'].values()) + report['unknown_count'] != report['count']
+            or any(count > report['id_counts'].get(key, 0) for key, count in report['accepted_counts'].items())
+            or (report['count_capped'] and report['count'] != MAX_WARNING_COUNT)):
+        raise ValueError('Warning count conservation failed')
     for row in report['items']:
         if (not isinstance(row, dict) or set(row) != {'category', 'message_sha256', 'message_status', 'known_id',
-                                                    'active_source', 'reported_source'}
+                                                    'active_source', 'reported_source', 'accepted_notice'}
+                or type(row['accepted_notice']) is not bool
+                or (row['accepted_notice'] and row['known_id'] not in MERIZO_NOTICE_IDS)
                 or row['category'] not in WARNING_CATEGORIES or row['known_id'] not in WARNING_IDS
                 or row['message_status'] not in {'complete', 'oversized', 'unavailable'}
                 or ((row['message_status'] == 'complete') != (isinstance(row['message_sha256'], str)
@@ -385,6 +522,8 @@ def verify_payload(internal: Path, expected_identity_sha256: str) -> tuple[Path,
             raise ValueError('Pinned model SHA-256 mismatch before torch.load')
     if 'warning_sources' in identity:
         validate_warning_sources(identity['warning_sources'])
+    if 'notice_policy' in identity:
+        validate_merizo_notice_basis(identity['notice_policy'])
     return source, weights, identity
 
 
@@ -499,18 +638,18 @@ def execute(pdb: Path, manifest: Path, output: Path, internal: Path, identity_sh
     source, weights, identity = verify_payload(internal, identity_sha)
     with warnings.catch_warnings(record=True) as observed:
         # Respect Python's default DeprecationWarning suppression, while
-        # retaining actionable runtime/numerical warnings as a failed result.
+        # retaining every observed warning for complete classification. Only
+        # the separately code-bound two-alias policy can accept a notice.
         warnings.simplefilter('always', RuntimeWarning)
         warnings.simplefilter('always', UserWarning)
-        if warning_report is None:
+        table = identity.get('warning_sources', {'wheel': {}, 'merizo': {}, 'owners': {}})
+        observer = WarningObserver(internal, source, table, {} if warning_report is None else warning_report,
+                                   identity.get('notice_policy'))
+        with observer.observe():
             result = infer(prepared, source, weights)
-        else:
-            table = identity.get('warning_sources', {'wheel': {}, 'merizo': {}, 'owners': {}})
-            observer = WarningObserver(internal, source, table, warning_report)
-            with observer.observe():
-                result = infer(prepared, source, weights)
-    if observed:
-        raise ValueError('Inference emitted a warning; no result was published')
+    notices = observer.compatibility_notices(len(observed))
+    if notices is not None:
+        result['process']['compatibility_notices'] = notices
     decode_merizo_result(json.dumps(result, allow_nan=False), prepared,
                          current_binding_sha256=prepared.binding_sha256)
     write_json(output, result, MAX_RESULT_BYTES)

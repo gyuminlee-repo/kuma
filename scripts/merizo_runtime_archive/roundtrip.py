@@ -195,6 +195,9 @@ def roundtrip(archive: Path, artifact, inputs, *, runner=run_managed_process, re
                     checkpoint('decode_result')
                     text = read_regular(result, 8 * 1024 * 1024).decode('utf-8')
                     annotation = decode_merizo_result(text, prepared, current_binding_sha256=prepared.binding_sha256)
+                    notices = strict_json(text.encode('utf-8'))['process'].get('compatibility_notices')
+                    if notices is not None:
+                        run['compatibility_notices'] = notices  # Strict decoder validation completed above.
                     run.update(decoded=True, residues=annotation.total_residues, domains=len(annotation.domains),
                                coverage=annotation.coverage, confidence=annotation.confidence,
                                result_sha256=digest(result), current_stage='completed')

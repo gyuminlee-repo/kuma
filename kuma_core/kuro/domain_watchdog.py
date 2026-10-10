@@ -306,18 +306,20 @@ class WindowsLeaseWatchdog:
                     self.request_stop()
         return self.process.poll()
 
-    def wait_ready(self, cancelled: Callable[[], bool], timeout_seconds: float) -> None:
-        deadline = time.monotonic() + timeout_seconds
+    def wait_ready(self, cancelled: Callable[[], bool], *, deadline: float) -> None:
+        deadline = min(deadline, time.monotonic() + 30)
         while True:
             code = self.poll()
             if self.problem or code is not None:
                 raise RuntimeError(self.problem or "Watchdog exited before runtime launch")
+            # A synchronous poll may return late with READY already buffered.
+            # Keep its ownership proof for cleanup, but never launch from it.
+            if time.monotonic() >= deadline:
+                raise TimeoutError("Watchdog lease readiness exceeded its time limit")
             if self.ready:
                 return
             if cancelled():
                 raise RuntimeError("Cancelled before watchdog lease readiness")
-            if time.monotonic() >= deadline:
-                raise RuntimeError("Watchdog lease readiness exceeded its time limit")
             time.sleep(_POLL)
 
     def request_stop(self) -> None:

@@ -26,7 +26,8 @@ from kuma_core.kuro.domain_annotation import (
 from kuma_core.kuro.domain_merizo import (
     AF3_UNSUPPORTED_REASON, MERIZO_COMMIT, MERIZO_WEIGHTS_SHA256,
     decode_merizo_result, domain_input_manifest, expected_ca_coordinates,
-    prepare_colabfold_domain_input, summarize_domain_selection,
+    prepare_colabfold_domain_input, summarize_domain_selection, MERIZO_NOTICE_POLICY,
+    MERIZO_NOTICE_SOURCE_SHA256, MERIZO_CODE_FINGERPRINT,
 )
 from kuma_core.kuro.prediction_bundle import load_prediction_bundle
 from kuma_core.kuro.residue_mapping import PolymerRecord, ResidueId
@@ -87,6 +88,36 @@ def decode(prepared, result):
 
 
 class MerizoScientificContractTests(unittest.TestCase):
+    def test_optional_versioned_notices_preserve_legacy_results_and_unverified_import(self):
+        prepared = prepared_synthetic()
+        result = envelope(prepared)
+        legacy = decode(prepared, result)
+        notice = {"basis": {"policy_id": MERIZO_NOTICE_POLICY, "source_member": "pyparsing/util.py",
+                  "source_sha256": MERIZO_NOTICE_SOURCE_SHA256, "code_fingerprint_schema": MERIZO_CODE_FINGERPRINT,
+                  "python_abi": "cpython-311", "code_fingerprints": {"461": "1" * 64, "472": "2" * 64}},
+                  "count": 11, "counts": {"pyparsing_parse_string_alias": 6, "pyparsing_reset_cache_alias": 5}}
+        result["process"]["compatibility_notices"] = notice
+        decoded = decode(prepared, result)
+        self.assertEqual(decoded, legacy)
+        self.assertIn("provenance_unverified", decoded.interpretation)
+        invalid = [None, [], {}, {**notice, "count": True}, {**notice, "count": 12},
+                   {**notice, "count": 65536}, {**notice, "counts": {}},
+                   {**notice, "counts": {"pyparsing_parse_string_alias": True}},
+                   {**notice, "counts": {"torch_typed_storage_deprecated": 11}},
+                   {**notice, "counts": {"mpmath_rational_private_module_deprecated": 11}},
+                   {**notice, "private": "secret"}]
+        for key, value in (("policy_id", "unknown-policy"), ("source_member", "other.py"),
+                           ("source_sha256", "0" * 64), ("python_abi", "cpython-312"),
+                           ("code_fingerprint_schema", "unknown"), ("code_fingerprints", {"461": "x"}),
+                           ("code_fingerprints", {"461": "1" * 64, "472": "2" * 64, "private": "3" * 64})):
+            invalid.append({**notice, "basis": {**notice["basis"], key: value}})
+        for value in invalid:
+            with self.subTest(value=value), self.assertRaises(DomainAnnotationError):
+                decode(prepared, {**result, "process": {**result["process"], "compatibility_notices": value}})
+        for warnings in (["numeric overflow"], ["deprecated"], None, {}):
+            with self.subTest(warnings=warnings), self.assertRaises(DomainAnnotationError):
+                decode(prepared, {**result, "process": {**result["process"], "warnings": warnings}})
+
     def test_preserves_every_public_atom_without_runtime_imports(self):
         source = PDB.read_text()
         self.assertEqual(digest(source), "d4a6812d8951cf6594e6a0763f089e35f5a80b62acb3c117b2c5565228a7b161")

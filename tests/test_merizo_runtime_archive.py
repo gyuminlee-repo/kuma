@@ -233,7 +233,7 @@ class RuntimeFailureDiagnosticTests(unittest.TestCase):
             runtime_entry.failure_destination(link)
 
 
-class WarningObservationTests(unittest.TestCase):
+class _WarningFixture(unittest.TestCase):
     def setUp(self):
         from types import ModuleType
         import warnings
@@ -270,6 +270,8 @@ class WarningObservationTests(unittest.TestCase):
         runtime_entry.validate_warning_report(report)
         return report
 
+
+class WarningObservationTests(_WarningFixture):
     def test_exact_candidate_binds_class_message_source_function_and_immediate_line(self):
         for old, new in runtime_entry._ALIAS_PAIRS:
             with self.subTest(alias=old):
@@ -414,12 +416,12 @@ class WarningObservationTests(unittest.TestCase):
         with self.warnings.catch_warnings(record=True) as recorded:
             self.warnings.simplefilter('always')
             with observer.observe():
-                for _ in range(runtime_entry.MAX_WARNING_ITEMS + 2):
-                    self.emitter()('warning', UserWarning)
+                for index in range(runtime_entry.MAX_WARNING_ITEMS + 2):
+                    self.emitter()('warning ' + str(index), UserWarning)
         self.assertEqual(len(recorded), runtime_entry.MAX_WARNING_ITEMS + 2)
         self.assertEqual(len(report['items']), runtime_entry.MAX_WARNING_ITEMS)
         self.assertTrue(report['truncated'])
-        report['count'] = runtime_entry.MAX_WARNING_COUNT
+        report['count'] = report['unknown_count'] = runtime_entry.MAX_WARNING_COUNT
         observer.collect('warning', UserWarning, '/private', 1)
         self.assertTrue(report['count_capped'])
         long_member = 'a/' * 100 + 'source.py'
@@ -483,6 +485,211 @@ class WarningObservationTests(unittest.TestCase):
             with self.subTest(bad=bad):
                 write_json(path, {**valid, 'warning_observations': bad})
                 self.assertEqual(read_failure(path), {'status': 'rejected'})
+
+
+class CompatibilityNoticePolicyTests(_WarningFixture):
+    # Synthetic code-binding controls; actual wheel/PYZ correspondence remains
+    # a separate native build gate. No third-party code executes in these tests.
+    def policy(self, first=None, second=None):
+        first = first or self.emitter(code_filename='pyparsing/util.py')
+        second = second or self.emitter(line=472, code_filename='pyparsing/util.py')
+        return {'policy_id': runtime_entry.MERIZO_NOTICE_POLICY, 'source_member': 'pyparsing/util.py',
+                'source_sha256': runtime_entry.MERIZO_NOTICE_SOURCE_SHA256,
+                'code_fingerprint_schema': runtime_entry.MERIZO_CODE_FINGERPRINT, 'python_abi': 'cpython-311',
+                'code_fingerprints': {'461': runtime_entry.code_fingerprint(first.__code__),
+                                      '472': runtime_entry.code_fingerprint(second.__code__)}}
+
+    def classify(self, emissions, policy=None):
+        report = {}
+        with patch.dict(runtime_entry.sys.modules, {'pyparsing.warnings': self.module}), \
+             patch.object(runtime_entry.sys.implementation, 'cache_tag', 'cpython-311'), \
+             self.warnings.catch_warnings(record=True) as observed:
+            self.warnings.simplefilter('always')
+            observer = runtime_entry.WarningObserver(self.root, self.source, self.table, report,
+                                                       self.policy() if policy is None else policy)
+            with observer.observe():
+                for emit, text, category in emissions:
+                    emit(text, category)
+        return observer, report, len(observed)
+
+    def accepted_emissions(self):
+        first = self.emitter(code_filename='pyparsing/util.py')
+        second = self.emitter(line=472, code_filename='pyparsing/util.py')
+        return [(first, "'parseString' deprecated - use 'parse_string'", self.category)] * 6 + [
+                (second, "'resetCache' deprecated - use 'reset_cache'", self.category)] * 5
+
+    def test_classifies_all_repeated_notices_and_conserves_counts_after_sample_cap(self):
+        observer, report, recorded = self.classify(self.accepted_emissions())
+        self.assertEqual(recorded, 11)
+        self.assertEqual(report['count'], 11)
+        self.assertEqual(report['id_counts'], {'pyparsing_parse_string_alias': 6, 'pyparsing_reset_cache_alias': 5})
+        self.assertEqual(report['accepted_counts'], report['id_counts'])
+        self.assertEqual(report['unknown_count'], 0)
+        self.assertEqual(len(report['items']), 2)
+        notices = observer.compatibility_notices(recorded)
+        assert notices is not None
+        self.assertEqual(notices['count'], 11)
+        self.assertEqual(notices['counts'], report['id_counts'])
+
+    def test_late_unknown_numeric_serialization_missing_data_and_other_known_notice_fail(self):
+        controls = [('private unknown /input/path', UserWarning), ('overflow', RuntimeWarning),
+                    ('pickle load', FutureWarning), ('missing atom', UserWarning),
+                    ("'enablePackrat' deprecated - use 'enable_packrat'", self.category)]
+        for text, category in controls:
+            with self.subTest(text=text):
+                emissions = self.accepted_emissions() + [(self.emitter(), text, category)]
+                observer, report, recorded = self.classify(emissions)
+                self.assertEqual(report['count'], 12)
+                self.assertEqual(sum(report['id_counts'].values()) + report['unknown_count'], 12)
+                self.assertEqual(sum(report['accepted_counts'].values()), 11)
+                self.assertFalse(report['items'][0]['accepted_notice'])
+                with self.assertRaises(ValueError):
+                    observer.compatibility_notices(recorded)
+        # Four previously distinct examples cannot hide an unknown fifth one.
+        emissions = [(self.emitter(line=461 if i % 2 == 0 else 472),
+                       f"'{old}' deprecated - use '{new}'", self.category)
+                     for i, (old, new) in enumerate(runtime_entry._ALIAS_PAIRS[:4])]
+        observer, report, recorded = self.classify(emissions + [(self.emitter(), 'late unknown', UserWarning)])
+        self.assertEqual(report['items'][0]['known_id'], 'unrecognized')
+        self.assertTrue(report['truncated'])
+        self.assertEqual(report['count'], 5)
+        with self.assertRaises(ValueError):
+            observer.compatibility_notices(recorded)
+
+    def test_source_matching_without_code_matching_never_accepts(self):
+        policy = self.policy()
+        policy['code_fingerprints']['461'] = '0' * 64
+        observer, report, recorded = self.classify(self.accepted_emissions(), policy)
+        self.assertEqual(report['id_counts']['pyparsing_parse_string_alias'], 6)
+        self.assertNotIn('pyparsing_parse_string_alias', report['accepted_counts'])
+        with self.assertRaises(ValueError):
+            observer.compatibility_notices(recorded)
+        self.table['wheel']['pyparsing/util.py'][0] = '0' * 64
+        with self.assertRaises(ValueError):
+            self.classify(self.accepted_emissions())
+
+    def test_count_mismatch_collector_failure_and_saturation_are_fatal(self):
+        observer, report, recorded = self.classify(self.accepted_emissions())
+        for change in ('recorded_count', 'collector', 'histogram', 'accepted', 'saturation'):
+            copied = copy.deepcopy(report)
+            observer.report = copied
+            count = recorded
+            if change == 'recorded_count':
+                count += 1
+            elif change == 'collector':
+                copied['collection_failed'] = True
+            elif change == 'histogram':
+                copied['id_counts']['pyparsing_parse_string_alias'] -= 1
+            elif change == 'accepted':
+                copied['accepted_counts']['pyparsing_parse_string_alias'] -= 1
+            else:
+                copied['count_capped'] = True
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                observer.compatibility_notices(count)
+        with patch.object(runtime_entry, 'MAX_WARNING_COUNT', 2):
+            observer, report, recorded = self.classify(self.accepted_emissions())
+            self.assertEqual(report['count'], 2)
+            self.assertEqual(sum(report['id_counts'].values()), 2)
+            self.assertTrue(report['count_capped'])
+            with self.assertRaises(ValueError):
+                observer.compatibility_notices(recorded)
+
+    def test_non_audit_execution_emits_explicit_notices_and_keeps_failure_atomic(self):
+        prepared = prepared_synthetic()
+        pdb, manifest, output = self.root / 'input.pdb', self.root / 'input.json', self.root / 'result.json'
+        pdb.write_bytes(prepared.normalized_pdb.encode('ascii'))
+        write_json(manifest, domain_input_manifest(prepared))
+        identity = {'warning_sources': self.table, 'notice_policy': self.policy()}
+        def infer(*_):
+            for emit, text, category in self.accepted_emissions():
+                emit(text, category)
+            return envelope(prepared)
+        with patch.dict(runtime_entry.sys.modules, {'pyparsing.warnings': self.module}), \
+             patch.object(runtime_entry.sys.implementation, 'cache_tag', 'cpython-311'), \
+             patch.object(runtime_entry, 'verify_payload', return_value=(self.source, self.root, identity)), \
+             patch.object(runtime_entry, 'infer', side_effect=infer):
+            runtime_entry.execute(pdb, manifest, output, self.root, '0' * 64)
+        result = strict_json(output.read_bytes())
+        self.assertEqual(result['process']['warnings'], [])
+        self.assertEqual(result['process']['compatibility_notices']['count'], 11)
+        decode_merizo_result(output.read_text(), prepared, current_binding_sha256=prepared.binding_sha256)
+        output.unlink()
+        def bad_infer(*args):
+            value = infer(*args)
+            self.warnings.warn('late numerical failure', RuntimeWarning)
+            return value
+        with patch.dict(runtime_entry.sys.modules, {'pyparsing.warnings': self.module}), \
+             patch.object(runtime_entry.sys.implementation, 'cache_tag', 'cpython-311'), \
+             patch.object(runtime_entry, 'verify_payload', return_value=(self.source, self.root, identity)), \
+             patch.object(runtime_entry, 'infer', side_effect=bad_infer), self.assertRaises(ValueError):
+            runtime_entry.execute(pdb, manifest, output, self.root, '0' * 64)
+        self.assertFalse(output.exists())
+
+
+class NoticeCodeBindingTests(unittest.TestCase):
+    @staticmethod
+    def source():
+        # Two synthetic nested code objects at the official call-line slots.
+        lines = [''] * 480
+        for line, text in {450: 'def replaced_by_pep8():', 460: '    def _inner():',
+                          461: '        return 1', 467: '    first = _inner',
+                          471: '    def _inner():', 472: '        return 2',
+                          480: '    return first, _inner'}.items():
+            lines[line - 1] = text
+        return ('\n'.join(lines) + '\n').encode('ascii')
+
+    def test_semantic_fingerprint_binds_constants_arguments_closures_and_nested_code(self):
+        code = compile('def outer(x):\n def inner(y=2):\n  return x + y\n return inner\n', 'public.py', 'exec', dont_inherit=True)
+        original = runtime_entry.code_fingerprint(code)
+        self.assertEqual(original, runtime_entry.code_fingerprint(code.replace(co_filename='/private/file.py', co_firstlineno=99)))
+        for changed_code in (code.replace(co_flags=code.co_flags ^ 1), code.replace(co_names=('changed',)),
+                             code.replace(co_exceptiontable=b'x'), code.replace(co_code=b'\x09\x00')):
+            with self.subTest(changed_code=changed_code):
+                self.assertNotEqual(original, runtime_entry.code_fingerprint(changed_code))
+        child = next(value for value in code.co_consts if type(value) is runtime_entry.CodeType)
+        changed_child = child.replace(co_freevars=('different',), co_consts=child.co_consts + (123,))
+        changed = code.replace(co_consts=tuple(changed_child if value is child else value for value in code.co_consts))
+        self.assertNotEqual(original, runtime_entry.code_fingerprint(changed))
+        simple = compile('x=1', 'public.py', 'exec')
+        for value in (object(), float('nan'), 'x' * 70000):
+            with self.subTest(value_type=type(value)), self.assertRaises(ValueError):
+                runtime_entry.code_fingerprint(simple.replace(co_consts=(value,)))
+        for field, limit in (('MAX_CODE_FINGERPRINT_DEPTH', 1), ('MAX_CODE_FINGERPRINT_NODES', 1),
+                             ('MAX_CODE_FINGERPRINT_BYTES', 10)):
+            with patch.object(runtime_entry, field, limit), self.assertRaises(ValueError):
+                runtime_entry.code_fingerprint(code)
+
+    def test_verified_source_compilation_frozen_code_comparison_and_mutations(self):
+        from scripts.merizo_runtime_archive import build
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            source = root / 'util.py'
+            raw = self.source()
+            source.write_bytes(raw)
+            sha = hashlib.sha256(raw).hexdigest()
+            row = {'path': str(source), 'wheel_member': 'pyparsing/util.py', 'mapping': 'exact_wheel_member',
+                   'wheel_installation_scheme': 'site', 'sha256': sha, 'wheel_member_sha256': sha}
+            with patch.object(build, 'MERIZO_NOTICE_SOURCE_SHA256', sha), \
+                 patch.object(build.sys, 'prefix', str(root)), \
+                 patch.object(build.sys.implementation, 'cache_tag', 'cpython-311'):
+                basis = build.notice_policy_identity({'installed_files': [row]})
+                code = compile(raw, 'pyparsing/util.py', 'exec', dont_inherit=True, optimize=0)
+                frozen = runtime_entry.pyparsing_wrapper_fingerprints(code)
+                self.assertTrue(build.verify_frozen_notice_code({'pyparsing_wrapper_fingerprints': frozen}, basis)['actual_pyz_matched'])
+                with self.assertRaises(ValueError):
+                    build.verify_frozen_notice_code({'pyparsing_wrapper_fingerprints': {**frozen, '461': '0' * 64}}, basis)
+                for altered in ([], [row, row], [dict(row, mapping='installer_generated')],
+                                [dict(row, path='/outside/private.py')], [dict(row, wheel_member_sha256='0' * 64)]):
+                    with self.subTest(altered=altered), self.assertRaises(ValueError):
+                        build.notice_policy_identity({'installed_files': altered})
+                source.write_bytes(raw.replace(b'return 1', b'return 3'))
+                with self.assertRaises(ValueError):
+                    build.notice_policy_identity({'installed_files': [row]})
+                source.write_bytes(raw)
+                with patch.object(build.sys.implementation, 'cache_tag', 'cpython-312'), self.assertRaises(ValueError):
+                    build.notice_policy_identity({'installed_files': [row]})
+        with self.assertRaises(ValueError):
+            runtime_entry.pyparsing_wrapper_fingerprints(compile('x=1', 'x.py', 'exec'))
 
 
 class WarningSourceInventoryTests(unittest.TestCase):
@@ -780,6 +987,30 @@ class ArchiveTests(unittest.TestCase):
         self.assertTrue(report['removed'])
         self.assertTrue(report['temporary_storage_removed'])
         self.assertEqual(report['runs'][0]['residues'], 9)
+
+    def test_roundtrip_retains_strict_notices_before_temporary_payload_removal(self):
+        artifact, _ = self.build()
+        prepared = prepared_synthetic()
+        notices = {'basis': {'policy_id': runtime_entry.MERIZO_NOTICE_POLICY, 'source_member': 'pyparsing/util.py',
+                    'source_sha256': runtime_entry.MERIZO_NOTICE_SOURCE_SHA256,
+                    'code_fingerprint_schema': runtime_entry.MERIZO_CODE_FINGERPRINT, 'python_abi': 'cpython-311',
+                    'code_fingerprints': {'461': '1' * 64, '472': '2' * 64}},
+                   'count': 11, 'counts': {'pyparsing_parse_string_alias': 6, 'pyparsing_reset_cache_alias': 5}}
+        def runner(argv, **kwargs):
+            result = envelope(prepared)
+            result['process']['compatibility_notices'] = notices
+            write_json(Path(argv[6]), result)
+        report = roundtrip(self.root / 'out/runtime.zip', artifact, [('synthetic_notice_protocol', prepared)], runner=runner)
+        self.assertTrue(report['removed'])
+        self.assertTrue(report['temporary_storage_removed'])
+        self.assertEqual(report['runs'][0]['compatibility_notices'], notices)
+        notices['counts']['unknown'] = 1
+        partial = {}
+        with self.assertRaises(ValueError):
+            roundtrip(self.root / 'out/runtime.zip', artifact, [('invalid_notices', prepared)], runner=runner, report=partial)
+        self.assertEqual(partial['failure']['stage'], 'decode_result')
+        self.assertNotIn('compatibility_notices', partial['runs'][0])
+        self.assertTrue(partial['removed'])
 
     def test_partial_roundtrip_records_each_failed_stage_and_cleanup(self):
         from contextlib import ExitStack
@@ -1132,6 +1363,8 @@ class BuildAuditTests(unittest.TestCase):
             with patch.dict(os.environ, {'GITHUB_ACTIONS': 'true'}), \
                  patch.object(build, 'verify_source', return_value={'python_files': {}, 'files': []}), \
                  patch.object(build, 'installed_provenance', return_value={'installed_files': []}), \
+                 patch.object(build, 'notice_policy_identity', return_value={'code_fingerprints': {}}), \
+                 patch.object(build, 'verify_frozen_notice_code', return_value={}), \
                  patch.object(build, 'freeze', return_value=({}, [])), \
                  patch.object(build, 'map_build_inputs', return_value={'unresolved': [], 'edges': []}), \
                  patch.object(build, 'embedded_inventory', return_value={'stdlib_compilation_inputs': []}), \
@@ -1171,6 +1404,7 @@ class BuildAuditTests(unittest.TestCase):
                 raise DomainProcessError('synthetic process failure')
             values = {'verify_source': {'python_files': {}, 'files': []},
                       'installed_provenance': {'installed_files': []}, 'freeze': ({}, []),
+                      'notice_policy_identity': {'code_fingerprints': {}}, 'verify_frozen_notice_code': {},
                       'map_build_inputs': {'unresolved': [], 'edges': []},
                       'embedded_inventory': {'stdlib_compilation_inputs': []},
                       'source_companion': {}, 'package_legal': {},

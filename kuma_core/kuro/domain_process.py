@@ -485,9 +485,11 @@ def _win_check(ok: object) -> None:
 
 class _WindowsProcess:
     def __init__(self, argv: list[str], cwd: Path, env: dict[str, str], *,
+                 deadline: float,
                  lease: ExecutionLease | None = None,
                  callback: Callable[[str], None] | None = None,
-                 cancelled: Callable[[], bool] = lambda: False, timeout_seconds: float = 300):
+                 cancelled: Callable[[], bool] = lambda: False):
+        self.deadline = deadline
         self.api = _windows_api()
         self.watchdog: Any = None
         self.handles: list[int] = []
@@ -504,7 +506,10 @@ class _WindowsProcess:
             _win_check(self.api.SetInformationJobObject(self.job, 9, ctypes.byref(limits), ctypes.sizeof(limits)))
             if lease is not None:
                 self.watchdog = _watchdog_module().WindowsLeaseWatchdog(self.job, lease, cwd, env, callback)
-                self.watchdog.wait_ready(cancelled, min(30, timeout_seconds))
+                try:
+                    self.watchdog.wait_ready(cancelled, deadline=deadline)
+                except TimeoutError as exc:
+                    raise DomainProcessError("Watchdog lease readiness exceeded its time limit") from exc
             security = _SecurityAttributes(ctypes.sizeof(_SecurityAttributes), None, 1)
 
             def pipe() -> tuple[int, int]:
@@ -546,10 +551,12 @@ class _WindowsProcess:
             # Application name is explicit (spaces cannot select another exe).
             # CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT | CREATE_NO_WINDOW |
             # EXTENDED_STARTUPINFO_PRESENT. Job assignment is atomic with creation.
+            _check_deadline(deadline)
             _win_check(self.api.CreateProcessW(
                 argv[0], command, None, None, True, 0x08080404, environment,
                 str(cwd), ctypes.byref(startup), ctypes.byref(self.info)))
             self.assigned = True
+            _check_deadline(deadline)
         except BaseException:
             # No runtime code has resumed. Still prove OS-level termination if
             # interrupted immediately after successful CreateProcessW.
@@ -592,8 +599,10 @@ class _WindowsProcess:
         if not member.value:
             self.assigned = False
             raise DomainProcessError("Runtime was not atomically assigned to its JobObject")
+        _check_deadline(self.deadline)
         if self.api.ResumeThread(self.info.thread) == 0xFFFFFFFF:
             _win_check(False)
+        _check_deadline(self.deadline)
 
     def poll(self) -> int | None:
         if self.watchdog is not None:
@@ -683,6 +692,12 @@ def _environment(private: Path) -> dict[str, str]:
     return env
 
 
+def _check_deadline(deadline: float) -> None:
+    # Cooperative accounting only: synchronous OS calls are not preempted.
+    if time.monotonic() >= deadline:
+        raise DomainProcessError("Managed domain runtime exceeded its time limit")
+
+
 def _check_result(path: Path, limit: int, *, required: bool) -> None:
     try:
         info = path.lstat()
@@ -754,6 +769,9 @@ def run_managed_process(
     cancels execution. Polling the result is a soft growth watchdog, not a quota.
     Both callbacks are trusted internal, nonblocking functions (Event.is_set and
     a short status update); a callback must never wait for this invocation.
+    One elapsed budget covers preparation, startup and result acceptance. Calls
+    are checked on return, not preempted. Cleanup can exceed the budget and must
+    still prove tree exit before an error returns; late success is rejected.
     """
     if (not argv or not all(isinstance(arg, str) and "\0" not in arg for arg in argv)
             or not Path(argv[0]).is_absolute()):
@@ -762,6 +780,7 @@ def run_managed_process(
             or type(output_limit) is not int or output_limit <= 0
             or type(result_limit) is not int or result_limit <= 0):
         raise DomainProcessError("Invalid managed domain process limits")
+    deadline = time.monotonic() + timeout_seconds
     cwd = cwd.resolve(strict=True)
     if not cwd.is_dir() or result_path.parent.resolve(strict=True) != cwd:
         raise DomainProcessError("Managed domain result must be inside its private working directory")
@@ -769,15 +788,17 @@ def run_managed_process(
         raise DomainProcessError("Managed domain result path must be fresh")
     if cancelled():
         raise DomainProcessCancelled("Managed domain annotation cancelled")
+    _check_deadline(deadline)
     with tempfile.TemporaryDirectory(prefix="domain-private-", dir=cwd) as temporary:
         environment = _environment(Path(temporary))
+        _check_deadline(deadline)
         # This durable nonterminal record precedes EVERY helper/runtime spawn.
         # A startup crash leaves refusal, never an apparently empty registry.
         execution_lease = None if operation_lease is None else operation_lease.prepare()
         try:
             owned: _Process = (_WindowsProcess(argv, cwd, environment, lease=execution_lease,
                                                callback=on_stopping, cancelled=cancelled,
-                                               timeout_seconds=timeout_seconds) if os.name == "nt" else
+                                               deadline=deadline) if os.name == "nt" else
                                _PosixSupervisor(argv, cwd, environment, timeout_seconds=timeout_seconds,
                                                 output_limit=output_limit, result_path=result_path,
                                                 result_limit=result_limit, callback=on_stopping,
@@ -785,14 +806,17 @@ def run_managed_process(
         except Exception as exc:
             if cancelled():
                 raise DomainProcessCancelled("Managed domain annotation cancelled before runtime launch") from exc
+            if isinstance(exc, DomainProcessError):
+                raise
             raise DomainProcessError(f"Cannot start managed domain supervisor ({type(exc).__name__})") from exc
-        _run_observed(owned, cancelled=cancelled, timeout_seconds=timeout_seconds,
+        _run_observed(owned, cancelled=cancelled, deadline=deadline,
                       output_limit=output_limit, result_path=result_path,
                       result_limit=result_limit, on_stopping=on_stopping)
+    _check_deadline(deadline)
 
 
 def _run_observed(
-    owned: _Process, *, cancelled: Callable[[], bool], timeout_seconds: float,
+    owned: _Process, *, cancelled: Callable[[], bool], deadline: float,
     output_limit: int, result_path: Path, result_limit: int,
     on_stopping: Callable[[str], None] | None,
 ) -> None:
@@ -800,20 +824,24 @@ def _run_observed(
     failure: BaseException | None = None
     code: int | None = None
     try:
+        # POSIX start initializes the transport needed to obtain cleanup proof.
+        # Even an already-expired launch must initialize it before cleanup.
         owned.start()
-        deadline = time.monotonic() + timeout_seconds
+        _check_deadline(deadline)
         while True:
+            _check_deadline(deadline)
             owned.drain(capture)
             if cancelled():
                 raise DomainProcessCancelled("Managed domain annotation cancelled")
             if capture.exceeded:
                 raise DomainProcessError("Managed domain runtime exceeded the output limit")
+            _check_deadline(deadline)
             _check_result(result_path, result_limit, required=False)
+            _check_deadline(deadline)
             code = owned.poll()
+            _check_deadline(deadline)
             if code is not None:
                 break
-            if time.monotonic() >= deadline:
-                raise DomainProcessError("Managed domain runtime exceeded its time limit")
             time.sleep(_POLL_SECONDS)
     except BaseException as exc:
         failure = exc
@@ -832,6 +860,7 @@ def _run_observed(
     if code != 0:
         raise DomainProcessError(f"Managed domain runtime exited unsuccessfully ({code})")
     _check_result(result_path, result_limit, required=True)
+    _check_deadline(deadline)
 
 
 class _ParentLifetime:
@@ -933,6 +962,9 @@ def supervisor_main(token: str) -> int:
     held_lease = None
     try:
         config = _read_supervisor_config(sys.stdin.fileno(), token)
+        # Supplementary helper-local budget; the host's original absolute
+        # deadline remains authoritative across transport and helper startup.
+        deadline = time.monotonic() + config["timeout_seconds"]
         lifetime = _ParentLifetime(sys.stdin.fileno())
         if config["lease"] is not None:
             try:
@@ -951,7 +983,7 @@ def supervisor_main(token: str) -> int:
             child = _PosixChild(config["argv"], Path(config["cwd"]), config["environment"])
         except Exception as exc:
             raise DomainProcessError(f"Cannot launch managed domain child ({type(exc).__name__})") from exc
-        _run_observed(child, cancelled=lifetime.cancelled, timeout_seconds=config["timeout_seconds"],
+        _run_observed(child, cancelled=lifetime.cancelled, deadline=deadline,
                       output_limit=config["output_limit"], result_path=Path(config["result_path"]),
                       result_limit=config["result_limit"],
                       on_stopping=lambda message: emit("stopping", message=message))
