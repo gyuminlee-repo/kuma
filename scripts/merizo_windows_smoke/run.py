@@ -13,6 +13,7 @@ import math
 import os
 from pathlib import Path
 import platform
+import signal
 import subprocess
 import sys
 import tempfile
@@ -28,6 +29,28 @@ WEIGHTS = {
 }
 REFERENCE = "MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG"
 AA: dict[str, str] = dict(zip("ALA ARG ASN ASP CYS GLN GLU GLY HIS ILE LEU LYS MET PHE PRO SER THR TRP TYR VAL".split(), "ARNDCQEGHILKMFPSTWYV"))
+
+
+# This is a deliberately narrow test matrix, not a claim of general support.
+CPU_RUNTIME_MATRIX = {
+    ("Linux", "x86_64"): "2.0.1+cpu",
+    ("Darwin", "arm64"): "2.0.1",
+    ("Windows", "AMD64"): "2.0.1+cpu",
+}
+
+
+def runtime_contract() -> dict[str, str]:
+    system, architecture = platform.system(), platform.machine()
+    expected = CPU_RUNTIME_MATRIX.get((system, architecture))
+    if expected is None:
+        raise ValueError(f"Unsupported smoke platform/architecture: {system}/{architecture}")
+    return {"system": system, "architecture": architecture, "expected_torch": expected, "device": "cpu"}
+
+
+def validate_torch_runtime(version: str, cuda_version: str | None, contract: dict[str, str]) -> None:
+    if version != contract["expected_torch"] or cuda_version is not None:
+        raise ValueError(f"Expected CPU-only torch {contract['expected_torch']} on "
+                         f"{contract['system']}/{contract['architecture']}")
 
 
 def sha(data: bytes) -> str:
@@ -133,6 +156,7 @@ def validate_coordinates(actual: list[list[float]], expected: list[list[float]])
 def inference(fixture: Path, weights_directory: Path,
               runtime_guard: Callable[[], dict] | None = None) -> dict:
     """Shared native/frozen inference; never relaunch sys.executable here."""
+    contract = runtime_contract()
     weights = verify_weights(weights_directory)
     raw = fixture.read_bytes()
     if sha(raw) != INPUT_SHA:
@@ -153,8 +177,7 @@ def inference(fixture: Path, weights_directory: Path,
     torch.set_num_threads(1)
     torch.set_num_interop_threads(1)
     torch.manual_seed(0)
-    if torch.__version__ != "2.0.1+cpu" or torch.version.cuda is not None:
-        raise ValueError("Expected pinned CPU-only torch")
+    validate_torch_runtime(torch.__version__, torch.version.cuda, contract)
     predict = importlib.import_module("predict")
     features_module = importlib.import_module("model.utils.features")
     # The frozen entry checks real module/DLL origins before torch.load.
@@ -182,6 +205,7 @@ def inference(fixture: Path, weights_directory: Path,
                       "residue_numbers": result["ri"].flatten().tolist()}
         validate_prediction(prediction)
     report = {"status": "passed", "scope": "native_cpu_public_fixture_smoke_only", "platform": platform.platform(),
+              "system": contract["system"], "architecture": contract["architecture"], "device": contract["device"],
               "python": platform.python_version(), "torch": torch.__version__, "threads": torch.get_num_threads(),
               "source_commit": COMMIT, "weights_sha256": weights, "input_sha256": INPUT_SHA,
               "normalized_sha256": sha(normalized.encode("ascii")), "atom_count": 602,
@@ -202,6 +226,51 @@ def worker(source: Path, fixture: Path, output: Path) -> None:
     output.write_text(json.dumps(report, indent=2, allow_nan=False) + "\n", encoding="utf-8")
 
 
+def stop_worker_tree(process: subprocess.Popen) -> None:
+    """Kill the owned POSIX session, or the existing Windows native worker tree."""
+    if sys.platform == "win32":
+        try:
+            subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                           capture_output=True, timeout=10, check=False)
+        finally:
+            if process.poll() is None:
+                process.kill()
+    else:
+        # The caller creates this process as a session/group leader. Use its
+        # original PID even if the root exited while descendants retained pipes.
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+
+
+def supervise_worker(command: list[str], environment: dict[str, str], *,
+                     timeout_seconds: float = 300) -> tuple[int, bytes, bytes, bool]:
+    """Bounded native invocation; no inference is performed in this parent."""
+    posix_group = sys.platform != "win32"
+    process = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE, env=environment, shell=False, start_new_session=posix_group)
+    stopped = False
+    timed_out = False
+    try:
+        try:
+            stdout, stderr = process.communicate(timeout=timeout_seconds)
+        except subprocess.TimeoutExpired:
+            timed_out = True
+            stop_worker_tree(process)
+            stopped = True
+            # Descendants may have inherited the output pipes. Group termination
+            # happens first, then both draining and root reaping remain bounded.
+            stdout, stderr = process.communicate(timeout=10)
+        if process.returncode is None:
+            raise RuntimeError("Native worker was not reaped after completion")
+        return process.returncode, stdout, stderr, timed_out
+    finally:
+        if posix_group and not stopped:
+            # Also clean descendants after a normal root exit or a parent error.
+            stop_worker_tree(process)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, required=True)
@@ -217,22 +286,22 @@ def main() -> int:
                "--fixture", str(args.fixture.resolve()), "--output", str(args.output.resolve())]
     env = {**os.environ, "OMP_NUM_THREADS": "1", "MKL_NUM_THREADS": "1", "OPENBLAS_NUM_THREADS": "1",
            "MPLBACKEND": "Agg", "CUDA_VISIBLE_DEVICES": ""}
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
     try:
-        stdout, stderr = process.communicate(timeout=300)
-    except subprocess.TimeoutExpired:
-        if os.name == "nt":
-            subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"], capture_output=True, timeout=10, check=False)
-        process.kill()
-        stdout, stderr = process.communicate(timeout=10)
-        args.output.write_text(json.dumps({"status": "timed_out", "timeout_seconds": 300}) + "\n")
+        returncode, stdout, stderr, timed_out = supervise_worker(command, env)
+    except (OSError, RuntimeError, subprocess.TimeoutExpired) as exc:
+        args.output.write_text(json.dumps({"status": "failed", "stage": "native_process_cleanup",
+            "error": f"{type(exc).__name__}: {exc}"[:2000]}) + "\n", encoding="utf-8")
+        return 2
+    if timed_out:
+        args.output.write_text(json.dumps({"status": "timed_out", "timeout_seconds": 300,
+            "worker_reaped": True}) + "\n", encoding="utf-8")
         return 2
     print(stdout.decode("utf-8", errors="replace"))
     print(stderr.decode("utf-8", errors="replace"), file=sys.stderr)
-    if process.returncode:
-        args.output.write_text(json.dumps({"status": "failed", "exit_code": process.returncode,
+    if returncode:
+        args.output.write_text(json.dumps({"status": "failed", "exit_code": returncode,
                                            "stderr": stderr.decode("utf-8", errors="replace")[-12000:]}) + "\n", encoding="utf-8")
-    return process.returncode
+    return returncode
 
 
 if __name__ == "__main__":

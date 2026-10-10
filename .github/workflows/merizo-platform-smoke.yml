@@ -1,0 +1,94 @@
+name: Merizo Linux and macOS CPU feasibility
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/merizo-platform-smoke.yml'
+      - 'scripts/merizo_windows_smoke/run.py'
+      - 'scripts/merizo_windows_smoke/requirements.txt'
+      - 'tests/test_merizo_platform_smoke.py'
+      - 'tests/test_merizo_windows_smoke.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: merizo-platform-smoke-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  native-cpu:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-22.04
+            target: linux-x64
+            machine: x86_64
+          - runner: macos-14
+            target: macos-arm64
+            machine: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      MPLBACKEND: Agg
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      CUDA_VISIBLE_DEVICES: ''
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - name: Refuse an unexpected runner architecture
+        env:
+          EXPECTED_MACHINE: ${{ matrix.machine }}
+        run: python -c 'import os,platform; actual=platform.machine(); print(platform.platform(),actual); assert actual==os.environ["EXPECTED_MACHINE"], actual'
+      - name: Obtain exact official upstream (temporary test only)
+        uses: actions/checkout@v5
+        with:
+          repository: psipred/Merizo
+          ref: 41d12fb84e6e8fdb586c2c859d12161dc7bb5bfd
+          path: .merizo-smoke-upstream
+          persist-credentials: false
+      - name: Install official CPU compatibility wheel
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == Linux ]]; then
+            python -m pip install --disable-pip-version-check --only-binary=:all: 'torch==2.0.1+cpu' --index-url https://download.pytorch.org/whl/cpu
+          elif [[ "$RUNNER_OS" == macOS ]]; then
+            python -m pip install --disable-pip-version-check --only-binary=:all: 'torch==2.0.1'
+          else
+            echo 'Unexpected operating system' >&2
+            exit 1
+          fi
+          python -m pip install --disable-pip-version-check -r scripts/merizo_windows_smoke/requirements.txt
+      - name: Validate native harness guards without inference
+        run: |
+          python -m unittest discover -s tests -p 'test_merizo_windows_smoke.py' -v
+          python -m unittest discover -s tests -p 'test_merizo_platform_smoke.py' -v
+      - name: Run one fixed public fixture with 300 second process limit
+        timeout-minutes: 6
+        run: python scripts/merizo_windows_smoke/run.py --source .merizo-smoke-upstream --fixture tests/data/domain_annotation/1ubq.pdb --output merizo-smoke-results/${{ matrix.target }}.json
+      - name: Preserve small result only (never models or runtime)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: merizo-${{ matrix.target }}-result
+          path: merizo-smoke-results/${{ matrix.target }}.json
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Remove task-only upstream source and weights
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import shutil
+          source = Path('.merizo-smoke-upstream')
+          if source.exists():
+              shutil.rmtree(source)
+          assert not source.exists(), 'Task-only source cleanup failed'
+          PY
