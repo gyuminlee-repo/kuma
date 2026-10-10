@@ -1,3 +1,4 @@
+import type { DomainAnnotationSlice } from "./slices/domainAnnotationSlice";
 /**
  * Slice dependency graph:
  *   sequenceSlice → diversitySlice.searchUniprot
@@ -21,4 +22,4 @@ import type { LogSlice } from "./slice-interfaces";
 import type { SettingsSlice } from "./slice-interfaces";
 import type { NavigationSlice } from "./slices/navigationSlice";
 
-export type AppState = SequenceSlice & DiversitySlice & InputSlice & DesignSlice & ExportSlice & NetworkConsentSlice & MemorySlice & JobQueueSlice & LogSlice & NavigationSlice & SettingsSlice;
+export type AppState = DomainAnnotationSlice & SequenceSlice & DiversitySlice & InputSlice & DesignSlice & ExportSlice & NetworkConsentSlice & MemorySlice & JobQueueSlice & LogSlice & NavigationSlice & SettingsSlice;

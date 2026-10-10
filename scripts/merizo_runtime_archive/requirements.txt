@@ -1,0 +1,7 @@
+# Internal candidate resolution roots only, NOT a complete reviewed product lock.
+# Torch is supplied as its exact official target wheel URL by the workflow.
+# inputs.py freezes the complete selected closure/hashes before offline install.
+-r ../merizo_windows_smoke/requirements.txt
+-r ../merizo_windows_smoke/freezer-requirements.txt
+pip==25.2
+psutil==7.2.2

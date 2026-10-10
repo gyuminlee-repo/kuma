@@ -1,0 +1,44 @@
+{
+  "status": "built",
+  "source_commit": "41d12fb84e6e8fdb586c2c859d12161dc7bb5bfd",
+  "source_directory": "D:\\a\\kuma\\kuma\\.merizo-smoke-upstream",
+  "package_directory": "D:\\a\\_temp\\merizo frozen build\\dist\\merizo-frozen-smoke",
+  "verified_before_build": true,
+  "build_timeout_seconds": 600,
+  "not_verified": [
+    "KUMA integration",
+    "distribution rights",
+    "clean machine installation"
+  ],
+  "weights_sha256": {
+    "weights_part_0.pt": "8b90ad1967c3e445aca7ed3d53135190ceaf8e100d68afd1543e5e8d28547151",
+    "weights_part_1.pt": "644f711b9573b44fc25a0bc0631ee9ab43f7fbd796db0a382298755057a2fa38",
+    "weights_part_2.pt": "ddafe5fa5dfa729eb8715757004d2d3e4e9798f96ea43c689e799ef91af8c2b8"
+  },
+  "source_python_sha256": {
+    "model/decoders/mask_decoder.py": "e9c899c28c352b20b05c9382ffd6e27c876be39a76a251e9810ec5d3408126b5",
+    "model/ipa/ipa_encoder.py": "ff9c65f63ebbffbee99c4ed5c2030c706a96a318f564e2f658f6975bf14d404c",
+    "model/ipa/nndef_ipa.py": "588317f185c384eae432d47aa394ca3601fb5ae925f719affef8ef601c70e3b8",
+    "model/ipa/nndef_ipa_primitives.py": "dc4db98361bffcb27fe8f58db540d04e965f2a1cd3975e3c07fb9df76ad6f0ac",
+    "model/network.py": "63d1738b16a7892ad0ad4c2342fbab59fef9616de68f75ec13003afc8d698dbe",
+    "model/posenc/alibi.py": "5c02a6ba5248fc659e763281bc79266e179af4c07094c2b669b316c94da466dc",
+    "model/utils/build_info.py": "a5af4fed8e0ad0616a9299f11f6d5867543f5b7b320b2876063238ca94b63440",
+    "model/utils/constants.py": "c6bd3a036074997815e27d6ac09da349c0217dddca305c84b96bb20c3cc815c0",
+    "model/utils/features.py": "4624980638b960ab0b666c6388808e9a6a490a88b39ba1c19030e086bb98e1f1",
+    "model/utils/frames.py": "8b542e89c00bf6751d6cfd615aeb6621b70386783c6f94f274e1c0fd242b95aa",
+    "model/utils/pdb_parser.py": "598f4b4ba1d3eaaf4a4409a1cf05128eac0e807b77dcdad326d867512caa4095",
+    "model/utils/utils.py": "12a0045dc1464929eb5f6447a9b105397845dbf6551f0b75e271f34da52ac0d2",
+    "predict.py": "844a61be5603f1471d9d25d95a0a5d5bacd2fe766432c6d73159f8feeda1b883"
+  },
+  "own_harness_sha256": {
+    "run.py": "a827d38957bbb588d576b12173cc17759ddbecd4301d477590276e5d66dc717f",
+    "frozen_entry.py": "f1a84fda98d0abd71aa4229fdf296d05491a183ff49b26da410baaaed043771a",
+    "build_frozen.py": "7707fd077f5600449430f48e45397c483fb1e0069878c90ee8005735a9598687",
+    "run_frozen.ps1": "37c0405387554efe265a5f601093b7105e312e3ca8def101d5ce0f5018c5c9df"
+  },
+  "pyinstaller": "6.16.0",
+  "package_bytes": 716385956,
+  "package_file_count": 1806,
+  "entry_executable": "D:\\a\\_temp\\merizo frozen build\\dist\\merizo-frozen-smoke\\merizo-frozen-smoke.exe",
+  "elapsed_seconds": 77.60624480000001
+}

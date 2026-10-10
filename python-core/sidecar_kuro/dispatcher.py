@@ -58,6 +58,7 @@ from sidecar_kuro.handlers.misc import (
     handle_save_custom_polymerase,
     handle_list_organisms,
     handle_load_evolvepro_csv,
+    handle_inspect_prediction_bundle,
     handle_preview_evolvepro_source,
     handle_run_benchmark,
 )
@@ -65,6 +66,19 @@ from sidecar_kuro.handlers.codon import (
     handle_compute_codon_table,
     handle_import_codon_table,
     handle_export_codon_table,
+)
+from sidecar_kuro.handlers.domain import (
+    handle_domain_runtime_status,
+    handle_get_domain_annotation_attempt,
+    handle_cancel_domain_annotation_attempt,
+    handle_domain_runtime_install,
+    handle_domain_runtime_remove,
+    handle_start_domain_annotation,
+    handle_poll_domain_annotation,
+    handle_cancel_domain_annotation,
+    handle_import_domain_annotation_result,
+    handle_import_domain_annotation_file,
+    stop_domain_jobs,
 )
 from sidecar_kuro.handlers.settings import (
     handle_load as handle_settings_load,
@@ -95,6 +109,16 @@ def _handle_health_info(_params: dict) -> dict:
 
 _METHODS = {
     "ping": lambda _: {"ok": True},
+    "domain_runtime_status": handle_domain_runtime_status,
+    "get_domain_annotation_attempt": handle_get_domain_annotation_attempt,
+    "cancel_domain_annotation_attempt": handle_cancel_domain_annotation_attempt,
+    "domain_runtime_install": handle_domain_runtime_install,
+    "domain_runtime_remove": handle_domain_runtime_remove,
+    "start_domain_annotation": handle_start_domain_annotation,
+    "poll_domain_annotation": handle_poll_domain_annotation,
+    "cancel_domain_annotation": handle_cancel_domain_annotation,
+    "import_domain_annotation_result": handle_import_domain_annotation_result,
+    "import_domain_annotation_file": handle_import_domain_annotation_file,
     "health_info": _handle_health_info,
     "list_polymerases": handle_list_polymerases,
     "get_polymerase_details": handle_get_polymerase_details,
@@ -107,6 +131,7 @@ _METHODS = {
     "parse_mutations_text": handle_parse_mutations_text,
     "design_sdm_primers": handle_design_sdm_primers,
     "load_evolvepro_csv": handle_load_evolvepro_csv,
+    "inspect_prediction_bundle": handle_inspect_prediction_bundle,
     "preview_evolvepro_source": handle_preview_evolvepro_source,
     "get_plate_map": handle_get_plate_map,
     "get_alternatives": handle_get_alternatives,
@@ -152,7 +177,13 @@ _METHODS = {
 # Long-running methods (network I/O, heavy computation) run in a background thread.
 # "shutdown" is intentionally excluded — it must run on the main thread so the
 # ack flushes to stdout before the loop exits.
+_DOMAIN_ASYNC_METHODS = {
+    "domain_runtime_status", "domain_runtime_install", "domain_runtime_remove",
+    "start_domain_annotation", "import_domain_annotation_result", "import_domain_annotation_file",
+}
+
 _ASYNC_METHODS = {
+    *_DOMAIN_ASYNC_METHODS,
     "design_sdm_primers",
     "search_uniprot",
     "check_structures_available",
@@ -174,6 +205,9 @@ _ASYNC_METHODS = {
 # request. Run handlers synchronously on the main thread there (same rationale
 # and fix as the MAME dispatcher).
 _SYNC_DISPATCH = sys.platform == "win32" and getattr(sys, "frozen", False)
+# Domain I/O may dispatch asynchronously on frozen Windows only after main()
+# establishes a native GIL-releasing pipe reader. Legacy scientific policy stays.
+_DOMAIN_ASYNC_READY = False
 
 
 
@@ -211,7 +245,11 @@ def dispatch(request: dict) -> None:
         _error(req_id, -32601, f"Method not found: {method}")
         return
 
-    if method in _ASYNC_METHODS and not _SYNC_DISPATCH:
+    if method in _DOMAIN_ASYNC_METHODS and _SYNC_DISPATCH and not _DOMAIN_ASYNC_READY:
+        _error(req_id, -32002, "Optional domain actions require the native asynchronous RPC pipe reader")
+        return
+
+    if method in _ASYNC_METHODS and (not _SYNC_DISPATCH or method in _DOMAIN_ASYNC_METHODS):
         t = threading.Thread(
             target=_dispatch_handler, args=(req_id, method, handler, params), daemon=True
         )
@@ -241,6 +279,20 @@ def main(emit_ready: bool = True) -> None:
         sys.stdin.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
         sys.stderr.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
 
+    from kuma_core.shared.windows_rpc import RpcLineError, windows_stdin_reader
+    global _DOMAIN_ASYNC_READY
+    native_reader = None
+    _DOMAIN_ASYNC_READY = False
+    if _SYNC_DISPATCH:
+        try:
+            native_reader = windows_stdin_reader(sys.stdin.fileno())
+        except (OSError, ValueError) as exc:
+            # Preserve legacy sync RPCs, but never pretend cancel/poll remain
+            # responsive during new domain I/O when native initialization failed.
+            logger.error("Optional domain async RPC unavailable: %s", exc)
+        else:
+            _DOMAIN_ASYNC_READY = True
+
     _start_parent_watchdog()
     _start_memory_monitor()
     logger.info("KURO sidecar started (pid=%d)", os.getpid())
@@ -251,7 +303,14 @@ def main(emit_ready: bool = True) -> None:
     # read-ahead buffering can withhold a request until the NEXT one arrives,
     # which on Windows stalled each RPC until the following request was sent.
     while True:
-        line = sys.stdin.readline()
+        try:
+            line = native_reader.readline() if native_reader is not None else sys.stdin.readline()
+        except RpcLineError as exc:
+            _error(None, -32700, str(exc))
+            continue
+        except OSError as exc:
+            logger.error("Sidecar input pipe closed with an error: %s", exc)
+            break
         if not line:  # EOF — stdin closed
             break
         line = line.strip()
@@ -271,8 +330,14 @@ def main(emit_ready: bool = True) -> None:
         if request.get("method") == "shutdown":
             dispatch(request)
             logger.info("KURO sidecar shutdown requested, exiting cleanly")
+            # Never leave a managed child alive during an orderly shutdown.
+            # The host may still enforce its own deadline after acknowledging.
+            while not stop_domain_jobs():
+                logger.warning("Waiting for optional domain process termination before shutdown")
             _exit_after_shutdown()
 
         dispatch(request)
 
+    while not stop_domain_jobs():
+        logger.warning("Waiting for optional domain process termination after stdin closed")
     logger.info("Sidecar stdin closed, exiting")

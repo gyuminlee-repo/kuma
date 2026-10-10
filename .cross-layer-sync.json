@@ -1509,6 +1509,182 @@
       ],
       "note": "What the codon-table seed folder ships and what copies it into the user folder. ensure_user_codon_dir writes exactly the names in _CODON_SEED_FILES, so a seed added, renamed or removed without touching that tuple never reaches a user and nothing fails. The README states the built-in key set that cannot be replaced, which is _ORGANISM_ALIASES plus the bundled stems, so the README goes stale the moment the bundled set changes: that is how it kept listing mextorquens after the table became an installable seed. mextorquens_am1.json.txt is a finished table rather than a placeholder and keeps the .json.txt suffix so seeding it is not installing it.",
       "severity": "warning"
+    },
+    {
+      "id": "strict-spatial-context",
+      "files": [
+        "kuma_core/kuro/strict_spatial.py",
+        "kuma_core/kuro/evolvepro.py",
+        "python-core/sidecar_kuro/handlers/misc.py",
+        "python-core/sidecar_kuro/models.py",
+        "src/types/models.ts",
+        "src/types/validators.ts",
+        "src/lib/strictSpatial.ts",
+        "src/store/slices/inputSlice.helpers.ts",
+        "src/store/slices/inputSlice.ts",
+        "src/store/slices/designSlice.ts",
+        "src/components/panels/Selection3DPanel.tsx",
+        "src/components/panels/InputPanel/StrictSpatialSection.tsx",
+        "tests/test_strict_variant_budget.py"
+      ],
+      "note": "Strict opt-in source/reference/candidate certificate and exact selection-to-design identity contract. Functional annotation is explanation only.",
+      "severity": "blocking"
+    },
+    {
+      "id": "experimental-residue-correspondence",
+      "files": [
+        "kuma_core/kuro/residue_mapping.py",
+        "tests/test_residue_mapping.py",
+        "docs/audit/residue-mapping-contract.md"
+      ],
+      "note": "Offline polymer-to-observed residue identity, optional homolog/SIFTS evidence and confidence provenance. Not an application mapping certificate.",
+      "severity": "warning"
+    },
+    {
+      "id": "prediction-bundle-import",
+      "files": [
+        "kuma_core/kuro/prediction_bundle.py",
+        "kuma_core/kuro/prediction_context.py",
+        "python-core/sidecar_kuro/models.py",
+        "python-core/sidecar_kuro/handlers/misc.py",
+        "python-core/sidecar_kuro/dispatcher.py",
+        "src/types/models.ts",
+        "src/types/models.generated.ts",
+        "src/types/validators.ts",
+        "src/lib/strictSpatial.ts",
+        "src/store/slices/inputSlice.ts",
+        "src/store/slices/inputSlice.helpers.ts",
+        "src/store/slices/designSlice.ts",
+        "src/components/panels/InputPanel/PredictionBundleControls.tsx",
+        "src/components/panels/InputPanel/PredictionBundleEvidence.tsx",
+        "src/components/panels/Selection3DPanel.tsx",
+        "src/store/slices/diversitySlice.ts",
+        "src/store/slices/exportSlice.ts",
+        "src/store/slice-interfaces.ts",
+        "src/hooks/useAutosaveHydration.ts",
+        "src/lib/selection3d.ts"
+      ],
+      "note": "Local paired prediction ZIP identity/confidence, unambiguous producer-ranked default with explicit advanced model and chain selection, strict certificate freshness, derived CA trace and design revalidation. No prediction or network submission.",
+      "severity": "warning"
+    },
+    {
+      "id": "experimental-domain-interchange",
+      "files": [
+        "kuma_core/kuro/domain_annotation.py",
+        "kuma_core/kuro/residue_mapping.py",
+        "kuma_core/kuro/prediction_bundle.py",
+        "scripts/domain_annotation_interchange.py",
+        "scripts/run_external_chainsaw.py",
+        "scripts/chainsaw-source-pins.json",
+        "tests/test_domain_annotation.py",
+        "tests/data/domain_annotation/1ubq.pdb",
+        "docs/audit/domain-annotation-interchange.md"
+      ],
+      "note": "Offline annotation-only full-atom export and pinned external result consistency; no bundled runtime/UI/selection coupling. Changes to polymer or source identity require rechecking bijective domain mapping.",
+      "severity": "warning"
+    },
+    {
+      "id": "optional-merizo-scientific-adapter",
+      "files": [
+        "kuma_core/kuro/domain_merizo.py",
+        "kuma_core/kuro/domain_annotation.py",
+        "kuma_core/kuro/prediction_bundle.py",
+        "kuma_core/kuro/residue_mapping.py",
+        "tests/test_domain_merizo.py",
+        "docs/audit/optional-merizo-runtime-gates.md",
+        "kuma_core/kuro/domain_af3.py",
+        "tests/test_domain_af3.py"
+      ],
+      "note": "Source-only Merizo result consistency and annotation summaries. Full original atoms, complete reference and source identity; no selector weighting or runtime execution.",
+      "severity": "warning"
+    },
+    {
+      "id": "optional-runtime-host-registry",
+      "files": [
+        "kuma_core/kuro/optional_runtime.py",
+        "tests/test_optional_runtime.py",
+        "docs/audit/optional-merizo-runtime-gates.md",
+        "kuma_core/kuro/domain_lease.py",
+        "kuma_core/kuro/domain_watchdog.py",
+        "tests/test_domain_lease.py",
+        "tests/test_domain_watchdog.py",
+        "tests/test_domain_leased_process.py"
+      ],
+      "note": "Empty production catalog and bounded local archive host mechanism. Any future executor must share the operation lock from verification through child exit; current source is not a shipped installer.",
+      "severity": "warning"
+    },
+    {
+      "id": "optional-domain-app-contract",
+      "files": [
+        "kuma_core/kuro/domain_jobs.py",
+        "kuma_core/kuro/domain_process.py",
+        "kuma_core/shared/windows_rpc.py",
+        "python-core/sidecar_kuro/handlers/domain.py",
+        "python-core/sidecar_kuro/dispatcher.py",
+        "python-core/sidecar_kuro/models.py",
+        "python-core/sidecar_main_kuro.py",
+        "src/types/models.generated.ts",
+        "src/types/domainAnnotation.ts",
+        "src/types/domainAnnotation.validators.ts",
+        "src/store/slices/domainAnnotationSlice.ts",
+        "src/lib/domainAnnotation.ts",
+        "src/components/panels/InputPanel/OptionalDomainAnnotationPanel.tsx",
+        "tests/test_domain_jobs.py",
+        "tests/test_domain_process.py",
+        "tests/shared/test_windows_rpc.py",
+        "tests/sidecar_kuro/test_domain_rpc.py",
+        "src/store/slices/domainAnnotationSlice.test.ts",
+        "src/components/panels/InputPanel/OptionalDomainAnnotationPanel.test.tsx",
+        "docs/audit/optional-domain-app-flow.md"
+      ],
+      "note": "Typed optional annotation RPC, exact attempt cancellation, source/reference identity, isolated process ownership and UI acceptance must remain consistent. Empty production catalog; source-only host and synthetic tests do not imply installable module.",
+      "severity": "warning"
+    },
+    {
+      "id": "optional-domain-frozen-process-contract",
+      "files": [
+        "kuma_core/kuro/domain_process.py",
+        "kuma_core/shared/windows_rpc.py",
+        "scripts/domain_runtime_smoke/entry.py",
+        "scripts/domain_runtime_smoke/run.py",
+        "tests/test_domain_runtime_smoke.py",
+        ".github/workflows/merizo-windows-smoke.yml",
+        ".github/workflows/merizo-platform-smoke.yml",
+        "kuma_core/kuro/domain_lease.py",
+        "kuma_core/kuro/domain_watchdog.py",
+        "tests/test_domain_lease.py",
+        "tests/test_domain_watchdog.py",
+        "tests/test_domain_leased_process.py"
+      ],
+      "note": "Native frozen delayed RPC and managed-process cancellation/timeout/parent-loss evidence. Retain JSON only, remove temporary executable; actual platform execution is distinct from mock tests.",
+      "severity": "warning"
+    },
+    {
+      "id": "optional-merizo-runtime-archive",
+      "files": [
+        "scripts/merizo_runtime_archive/README.md",
+        "scripts/merizo_runtime_archive/archive.py",
+        "scripts/merizo_runtime_archive/build.py",
+        "scripts/merizo_runtime_archive/ci.py",
+        "scripts/merizo_runtime_archive/common.py",
+        "scripts/merizo_runtime_archive/cpython_origin.py",
+        "scripts/merizo_runtime_archive/freeze_spec.py",
+        "scripts/merizo_runtime_archive/inputs.py",
+        "scripts/merizo_runtime_archive/provenance.py",
+        "scripts/merizo_runtime_archive/requirements.txt",
+        "scripts/merizo_runtime_archive/roundtrip.py",
+        "scripts/merizo_runtime_archive/runtime_entry.py",
+        "tests/test_merizo_runtime_archive.py",
+        "tests/test_merizo_runtime_archive_ci.py",
+        "kuma_core/kuro/domain_merizo.py",
+        "kuma_core/kuro/domain_annotation.py",
+        "kuma_core/kuro/optional_runtime.py",
+        "kuma_core/kuro/domain_process.py",
+        ".github/workflows/merizo-platform-smoke.yml",
+        ".github/workflows/merizo-windows-smoke.yml"
+      ],
+      "note": "Internal fixed-version CPU producer, exact wheel/source evidence, normalized archive and real registry roundtrip. JSON-only evidence; candidate hashes and notices do not authorize production catalog or public binary distribution.",
+      "severity": "warning"
     }
   ]
 }

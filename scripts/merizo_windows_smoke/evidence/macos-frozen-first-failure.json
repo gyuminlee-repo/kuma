@@ -1,0 +1,80 @@
+{
+  "status": "failed",
+  "scope": "frozen_posix_cpu_public_fixture_smoke_only",
+  "platform": "darwin",
+  "timeout_seconds": 300,
+  "cleanup_timeout_seconds": 10,
+  "source_removed": true,
+  "process_started": true,
+  "process_group_termination_verified": true,
+  "runtime_directory_removed": true,
+  "system_python_physically_removed": false,
+  "not_verified": [
+    "absence of system Python installation",
+    "KUMA integration",
+    "installer",
+    "redistribution rights",
+    "biological accuracy",
+    "processes deliberately escaping their group",
+    "summed process-tree peak memory"
+  ],
+  "package_bytes": 598556166,
+  "package_file_count": 1823,
+  "package_symlink_count": 32,
+  "source_commit": "41d12fb84e6e8fdb586c2c859d12161dc7bb5bfd",
+  "weights_sha256": {
+    "weights_part_0.pt": "8b90ad1967c3e445aca7ed3d53135190ceaf8e100d68afd1543e5e8d28547151",
+    "weights_part_1.pt": "644f711b9573b44fc25a0bc0631ee9ab43f7fbd796db0a382298755057a2fa38",
+    "weights_part_2.pt": "ddafe5fa5dfa729eb8715757004d2d3e4e9798f96ea43c689e799ef91af8c2b8"
+  },
+  "input_sha256": "d4a6812d8951cf6594e6a0763f089e35f5a80b62acb3c117b2c5565228a7b161",
+  "build_elapsed_seconds": 74.91921075000005,
+  "sanitized_env": {
+    "inherited_environment_cleared": true,
+    "permitted_names": [
+      "CUDA_VISIBLE_DEVICES",
+      "HOME",
+      "KUMA_MERIZO_START_GATE",
+      "LANG",
+      "LC_ALL",
+      "MKL_NUM_THREADS",
+      "MPLBACKEND",
+      "MPLCONFIGDIR",
+      "OMP_NUM_THREADS",
+      "OPENBLAS_NUM_THREADS",
+      "PATH",
+      "TEMP",
+      "TMP",
+      "TMPDIR",
+      "TORCH_HOME",
+      "XDG_CACHE_HOME"
+    ],
+    "path_contains_only_empty_private_directory": true,
+    "python_loader_venv_variables_present": [],
+    "home_tmp_and_caches_are_private": true
+  },
+  "working_directory_has_spaces": true,
+  "working_directory_outside_repository_source_package": true,
+  "copied_inputs": [
+    "pinned_public_1ubq_fixture_only"
+  ],
+  "linux_child_subreaper_enabled": false,
+  "process_group_owned_before_inference": true,
+  "exit_code": 2,
+  "runtime": {
+    "status": "failed",
+    "error": "ValueError: Loaded native image is outside bundle/OS allowlist: /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libQuadrature.dylib"
+  },
+  "error": "RuntimeError: Frozen executable exited unsuccessfully",
+  "remaining_group_after_root_exit": false,
+  "reaped_descendants": 0,
+  "output_streams_closed": true,
+  "peak_rss_raw": 297402368.0,
+  "peak_rss_raw_unit": "bytes",
+  "peak_rss_bytes": 297402368,
+  "peak_rss_basis": "os.wait4 root-process rusage.ru_maxrss; not a summed process-group peak",
+  "elapsed_seconds": 3.163,
+  "stdout_bytes_drained": 0,
+  "stderr_bytes_drained": 0,
+  "stderr_tail": ""
+}

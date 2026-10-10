@@ -1,0 +1,48 @@
+{
+  "GFP_AEQVI_Sarkisyan_2016": {
+    "structure_sha256": "70bf9c39c1cc353d330fb37aba49d448caf03693b35196f3adc7375ef434fcc5",
+    "chain": "A",
+    "models": "single model; no MODEL delimiter",
+    "numbered_residues": 238,
+    "eligible_candidate_site_count": 233,
+    "eligible_candidate_site_range": [
+      3,
+      237
+    ],
+    "coverage_targets": "eligible unique sites only, never whole reference",
+    "raw_CA_B_column": {
+      "count": 233,
+      "min": 54.46,
+      "median": 98.41,
+      "mean": 96.73587982832618,
+      "max": 98.9
+    },
+    "confidence_semantics": "AF2-labelled archive, but this PDB has no header certifying B-column semantics; numeric column reported without asserting experimentally measured B-factor or verified pLDDT calibration",
+    "PAE": "not supplied in acquired artifact; unknown",
+    "selection_filter": "none; no confidence threshold applied",
+    "scope": "sequence correspondence verified, conformation/interdomain suitability not certified"
+  },
+  "RL40A_YEAST_Roscoe_2013": {
+    "structure_sha256": "575b528ff0a3d70a9c5f9096993235ad73e509594144bb28617bf9c7e96189da",
+    "chain": "A",
+    "models": "single model; no MODEL delimiter",
+    "numbered_residues": 128,
+    "eligible_candidate_site_count": 75,
+    "eligible_candidate_site_range": [
+      2,
+      76
+    ],
+    "coverage_targets": "eligible unique sites only, never whole reference",
+    "raw_CA_B_column": {
+      "count": 75,
+      "min": 70.24,
+      "median": 93.09,
+      "mean": 91.76066666666667,
+      "max": 95.63
+    },
+    "confidence_semantics": "AF2-labelled archive, but this PDB has no header certifying B-column semantics; numeric column reported without asserting experimentally measured B-factor or verified pLDDT calibration",
+    "PAE": "not supplied in acquired artifact; unknown",
+    "selection_filter": "none; no confidence threshold applied",
+    "scope": "sequence correspondence verified, conformation/interdomain suitability not certified"
+  }
+}

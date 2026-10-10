@@ -1,0 +1,176 @@
+name: Merizo Linux and macOS CPU feasibility
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/merizo-platform-smoke.yml'
+      - 'scripts/merizo_windows_smoke/**'
+      - 'scripts/domain_runtime_smoke/**'
+      - 'scripts/merizo_runtime_archive/**'
+      - 'tests/test_merizo_runtime_archive*.py'
+      - 'kuma_core/kuro/domain_process.py'
+      - 'kuma_core/kuro/domain_lease.py'
+      - 'kuma_core/kuro/domain_watchdog.py'
+      - 'kuma_core/kuro/optional_runtime.py'
+      - 'tests/test_domain_lease.py'
+      - 'tests/test_domain_watchdog.py'
+      - 'kuma_core/shared/windows_rpc.py'
+      - 'kuma_core/shared/sidecar.py'
+      - 'tests/test_domain_process.py'
+      - 'tests/shared/test_windows_rpc.py'
+      - 'tests/test_domain_runtime_smoke.py'
+      - 'scripts/collect-python-licenses.py'
+      - 'scripts/license-supplements.json'
+      - 'tests/test_merizo_legal_inventory.py'
+      - 'tests/test_merizo_platform_smoke.py'
+      - 'tests/test_merizo_posix*.py'
+      - 'tests/test_merizo_windows_smoke.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: merizo-platform-smoke-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  native-cpu:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-22.04
+            target: linux-x64
+            machine: x86_64
+          - runner: macos-14
+            target: macos-arm64
+            machine: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      MPLBACKEND: Agg
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      CUDA_VISIBLE_DEVICES: ''
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - name: Refuse an unexpected runner architecture
+        env:
+          EXPECTED_MACHINE: ${{ matrix.machine }}
+        run: python -c 'import os,platform; actual=platform.machine(); print(platform.platform(),actual); assert actual==os.environ["EXPECTED_MACHINE"], actual'
+      - name: Obtain exact official upstream (temporary test only)
+        uses: actions/checkout@v5
+        with:
+          repository: psipred/Merizo
+          ref: 41d12fb84e6e8fdb586c2c859d12161dc7bb5bfd
+          path: .merizo-smoke-upstream
+          persist-credentials: false
+      - name: Install official CPU compatibility wheel
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == Linux ]]; then
+            python -m pip install --disable-pip-version-check --only-binary=:all: 'torch==2.0.1+cpu' --index-url https://download.pytorch.org/whl/cpu
+          elif [[ "$RUNNER_OS" == macOS ]]; then
+            python -m pip install --disable-pip-version-check --only-binary=:all: 'torch==2.0.1'
+          else
+            echo 'Unexpected operating system' >&2
+            exit 1
+          fi
+          python -m pip install --disable-pip-version-check -r scripts/merizo_windows_smoke/requirements.txt
+      - name: Validate native harness guards without inference
+        run: |
+          python -m unittest discover -s tests -p 'test_merizo_windows_smoke.py' -v
+          python -m unittest discover -s tests -p 'test_merizo_platform_smoke.py' -v
+          python -m unittest discover -s tests -p 'test_merizo_posix*.py' -v
+      - name: Validate legal evidence collector
+        run: python -m unittest discover -s tests -p 'test_merizo_legal_inventory.py' -v
+      - name: Run one fixed public fixture with 300 second process limit
+        timeout-minutes: 6
+        run: python scripts/merizo_windows_smoke/run.py --source .merizo-smoke-upstream --fixture tests/data/domain_annotation/1ubq.pdb --output merizo-smoke-results/${{ matrix.target }}.json
+      - name: Install fixed freezing tools (CI-only)
+        run: python -m pip install --disable-pip-version-check -r scripts/merizo_windows_smoke/freezer-requirements.txt
+      - name: Install pinned host process identity dependency (probe only)
+        run: |
+          python -m pip install --disable-pip-version-check --only-binary=:all: psutil==7.2.2
+      - name: Validate actual frozen IPC and managed process lifecycle
+        timeout-minutes: 5
+        shell: bash
+        run: |
+          build="$RUNNER_TEMP/domain runtime contract"
+          python -m PyInstaller --clean --noconfirm --onedir --name domain-runtime-probe --hidden-import domain_lease --hidden-import domain_watchdog --hidden-import optional_runtime --hidden-import psutil --paths . --paths kuma_core/kuro --distpath "$build/dist" --workpath "$build/work" --specpath "$build/spec" scripts/domain_runtime_smoke/entry.py
+          python scripts/domain_runtime_smoke/run.py --binary "$build/dist/domain-runtime-probe/domain-runtime-probe" --report merizo-smoke-results/domain-contract.json
+      - name: Collect installed legal texts for separate distribution review
+        run: python scripts/merizo_windows_smoke/collect_legal_inventory.py --source .merizo-smoke-upstream --output merizo-smoke-results/legal-inventory.json
+      - name: Build temporary POSIX onedir after verifying official pins
+        timeout-minutes: 12
+        run: python scripts/merizo_windows_smoke/build_frozen_posix.py --source .merizo-smoke-upstream --output-directory "${{ runner.temp }}/merizo posix build" --evidence merizo-smoke-results/frozen-build.json
+      - name: Prepare candidate archive input evidence (no distribution)
+        timeout-minutes: 10
+        env:
+          KUMA_GITHUB_METADATA_TOKEN: ${{ github.token }}
+        run: python -m scripts.merizo_runtime_archive.ci --source .merizo-smoke-upstream --evidence-directory merizo-smoke-results --task-directory "${{ runner.temp }}/merizo archive audit"
+      - name: Run direct archive build controller and installed CPU entry
+        timeout-minutes: 20
+        shell: bash
+        run: |
+          "$RUNNER_TEMP/merizo archive audit/build environment/bin/python" -m scripts.merizo_runtime_archive.build --source "$RUNNER_TEMP/merizo archive audit/official source" --output-directory "$RUNNER_TEMP/merizo archive audit/package build" --evidence merizo-smoke-results/runtime-archive.json --wheelhouse "$RUNNER_TEMP/merizo archive audit/wheelhouse" --input-lock merizo-smoke-results/archive-input-lock.json --cpython-origin merizo-smoke-results/archive-cpython-origin.json --fixture tests/data/domain_annotation/1ubq.pdb --remove-source-before-run
+      - name: Remove original source before isolated executable run
+        run: |
+          python - <<'PYTHON'
+          from pathlib import Path
+          import shutil
+          source = Path('.merizo-smoke-upstream')
+          assert source.is_dir(), 'Expected task-only source is missing'
+          shutil.rmtree(source)
+          assert not source.exists(), 'Source cleanup failed'
+          PYTHON
+      - name: Run packaged executable with an empty private command path
+        timeout-minutes: 7
+        run: python scripts/merizo_windows_smoke/run_frozen_posix.py --package-directory "${{ runner.temp }}/merizo posix build/dist/merizo-frozen-smoke" --fixture tests/data/domain_annotation/1ubq.pdb --result-directory merizo-smoke-results --pin-report merizo-smoke-results/frozen-build.json
+      - name: Remove archive inputs only with controller cleanup proof
+        if: always()
+        run: python -m scripts.merizo_runtime_archive.ci --cleanup --evidence-directory merizo-smoke-results --task-directory "${{ runner.temp }}/merizo archive audit"
+      - name: Preserve small result only (never models or runtime)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: merizo-${{ matrix.target }}-result
+          path: |
+            merizo-smoke-results/${{ matrix.target }}.json
+            merizo-smoke-results/frozen-build.json
+            merizo-smoke-results/legal-inventory.json
+            merizo-smoke-results/domain-contract.json
+            merizo-smoke-results/archive-ci.json
+            merizo-smoke-results/archive-cleanup.json
+            merizo-smoke-results/archive-input-lock.json
+            merizo-smoke-results/archive-cpython-origin.json
+            merizo-smoke-results/runtime-archive.json
+            merizo-smoke-results/frozen-posix-cpu.json
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Remove task-only source, weights and frozen package
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import shutil
+          import os
+          source = Path('.merizo-smoke-upstream')
+          if source.exists():
+              shutil.rmtree(source)
+          assert not source.exists(), 'Task-only source cleanup failed'
+          build = Path(os.environ['RUNNER_TEMP']) / 'merizo posix build'
+          if build.exists():
+              shutil.rmtree(build)
+          assert not build.exists(), 'Task-only package cleanup failed'
+          contract = Path(os.environ['RUNNER_TEMP']) / 'domain runtime contract'
+          if contract.exists():
+              shutil.rmtree(contract)
+          assert not contract.exists(), 'Task-only contract package cleanup failed'
+          PY

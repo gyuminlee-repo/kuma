@@ -24,8 +24,20 @@ export interface SidecarKuroModels {
   ComputeDispersionResult?: ComputeDispersionResult;
   DesignResultResponseModel?: DesignResultResponseModel;
   DesignSdmPrimersParams?: DesignSdmPrimersParams;
+  DomainAnnotationAttempt?: DomainAnnotationAttempt;
+  DomainAnnotationAttemptParams?: DomainAnnotationAttemptParams;
+  DomainAnnotationBinding?: DomainAnnotationBinding;
+  DomainAnnotationJob?: DomainAnnotationJob;
+  DomainAnnotationJobParams?: DomainAnnotationJobParams;
+  DomainAnnotationPartition?: DomainAnnotationPartition;
+  DomainAnnotationResult?: DomainAnnotationResult;
+  DomainAnnotationSegment?: DomainAnnotationSegment;
+  DomainAnnotationSourceParams?: DomainAnnotationSourceParams;
   DomainEntry?: DomainEntry;
   DomainInfoModel?: DomainInfoModel;
+  DomainRuntimeInstallParams?: DomainRuntimeInstallParams;
+  DomainRuntimeParams?: DomainRuntimeParams;
+  DomainRuntimeStatus?: DomainRuntimeStatus;
   EvaluatePrimerParams?: EvaluatePrimerParams;
   EvolveproStepStatsModel?: EvolveproStepStatsModel;
   ExcludedRange?: ExcludedRange;
@@ -51,6 +63,9 @@ export interface SidecarKuroModels {
   FileExportResultModel?: FileExportResultModel;
   GetAlternativesParams?: GetAlternativesParams;
   ImportCodonTableParams?: ImportCodonTableParams;
+  ImportDomainAnnotationFileParams?: ImportDomainAnnotationFileParams;
+  ImportDomainAnnotationResultParams?: ImportDomainAnnotationResultParams;
+  InspectPredictionBundleParams?: InspectPredictionBundleParams;
   LandscapeEntry?: LandscapeEntry;
   LoadEvolveproParams?: LoadEvolveproParams;
   LoadFastaParams?: LoadFastaParams;
@@ -83,6 +98,7 @@ export interface SidecarKuroModels {
   SettingsSaveRequest?: SettingsSaveRequest;
   SettingsSaveResponse?: SettingsSaveResponse;
   SortingEntry?: SortingEntry;
+  StartDomainAnnotationParams?: StartDomainAnnotationParams;
   StructureModelCandidate?: StructureModelCandidate;
   SwapPrimerParams?: SwapPrimerParams;
   WorkspaceCacheModel?: WorkspaceCacheModel;
@@ -500,6 +516,67 @@ export interface DesignSdmPrimersParams {
   tol_max?: number;
   [k: string]: unknown;
 }
+export interface DomainAnnotationAttempt {
+  attempt_id: string;
+  job?: DomainAnnotationJob | null;
+  message: string;
+  state: "unknown" | "pending" | "job" | "cancelled" | "failed" | "expired";
+  [k: string]: unknown;
+}
+export interface DomainAnnotationJob {
+  binding: DomainAnnotationBinding;
+  job_id: string;
+  message: string;
+  state: "queued" | "running" | "cancelling" | "succeeded" | "failed" | "cancelled";
+  [k: string]: unknown;
+}
+export interface DomainAnnotationBinding {
+  bundle_sha256: string;
+  chain_id: string;
+  model_id: string;
+  reference_sha256: string;
+  source_sha256: string;
+  [k: string]: unknown;
+}
+export interface DomainAnnotationAttemptParams {
+  attempt_id: string;
+}
+export interface DomainAnnotationJobParams {
+  job_id: string;
+}
+export interface DomainAnnotationPartition {
+  positions: number[];
+  segments: DomainAnnotationSegment[];
+  [k: string]: unknown;
+}
+export interface DomainAnnotationSegment {
+  end: number;
+  start: number;
+  [k: string]: unknown;
+}
+export interface DomainAnnotationResult {
+  assigned_residues: number;
+  binding: DomainAnnotationBinding;
+  binding_sha256: string;
+  confidence: number;
+  coordinate_frame?: "reference";
+  coverage: number;
+  domains: DomainAnnotationPartition[];
+  engine?: "merizo";
+  job_id?: string | null;
+  provenance: "managed" | "imported";
+  provenance_note: string;
+  total_residues: number;
+  unassigned_positions: number[];
+  [k: string]: unknown;
+}
+export interface DomainAnnotationSourceParams {
+  prediction_bundle_path: string;
+  prediction_bundle_sha256: string;
+  prediction_chain_id: string;
+  prediction_model_id: string;
+  ref_seq: string;
+}
 /**
  * A single protein domain passed from the frontend to selection/benchmark handlers.
  */
@@ -507,6 +584,20 @@ export interface DomainEntry {
   end: number;
   name: string;
   start: number;
+  [k: string]: unknown;
+}
+export interface DomainRuntimeInstallParams {
+  archive_path: string;
+}
+export interface DomainRuntimeParams {}
+export interface DomainRuntimeStatus {
+  available_version?: string | null;
+  engine?: "merizo";
+  install_available: boolean;
+  message: string;
+  platform: string;
+  state: "installed" | "missing" | "corrupt" | "licensing_blocked" | "unsupported_platform";
+  version?: string | null;
   [k: string]: unknown;
 }
 export interface EvaluatePrimerParams {
@@ -705,8 +796,14 @@ export interface FetchActiveSiteParams {
 export interface FetchActiveSiteResult {
   accession: string;
   active_site_positions?: number[];
+  annotation_status?: string;
   binding_positions?: number[];
+  features?: {
+    [k: string]: unknown;
+  }[];
   has_annotation?: boolean;
+  projection_status?: string;
+  sequence_version?: number | null;
   source?: string;
   [k: string]: unknown;
 }
@@ -791,6 +888,26 @@ export interface ImportCodonTableParams {
   text?: string | null;
   [k: string]: unknown;
 }
+export interface ImportDomainAnnotationFileParams {
+  filepath: string;
+  prediction_bundle_path: string;
+  prediction_bundle_sha256: string;
+  prediction_chain_id: string;
+  prediction_model_id: string;
+  ref_seq: string;
+}
+export interface ImportDomainAnnotationResultParams {
+  job_id: string;
+  prediction_bundle_path: string;
+  prediction_bundle_sha256: string;
+  prediction_chain_id: string;
+  prediction_model_id: string;
+  ref_seq: string;
+}
+export interface InspectPredictionBundleParams {
+  filepath: string;
+  [k: string]: unknown;
+}
 export interface LandscapeEntry {
   fitness: number;
   variant: string;
@@ -814,11 +931,18 @@ export interface LoadEvolveproParams {
   max_per_position?: number;
   pareto_diversity?: boolean;
   pool_multiplier?: number;
+  prediction_bundle_path?: string | null;
+  prediction_bundle_sha256?: string | null;
+  prediction_chain_id?: string | null;
+  prediction_model_id?: string | null;
   ref_seq?: string;
   round_size?: number;
   score_column?: string | null;
   score_order?: "desc" | "asc";
   sheet_name?: string | null;
+  strict_spatial?: boolean;
+  strict_spatial_budget?: "unique_sites" | "distinct_variants";
+  strict_spatial_site_cap?: number | null;
   structural_diversity?: boolean;
   structural_kappa?: number;
   structure_accession?: string | null;
@@ -1065,6 +1189,14 @@ export interface SortingEntry {
   desc: boolean;
   id: string;
   [k: string]: unknown;
+}
+export interface StartDomainAnnotationParams {
+  attempt_id: string;
+  prediction_bundle_path: string;
+  prediction_bundle_sha256: string;
+  prediction_chain_id: string;
+  prediction_model_id: string;
+  ref_seq: string;
 }
 export interface SwapPrimerParams {
   candidate_idx?: number;
