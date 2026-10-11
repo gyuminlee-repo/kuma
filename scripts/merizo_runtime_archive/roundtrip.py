@@ -233,11 +233,11 @@ def read_failure(path: Path, *, schema=FAILURE_SCHEMA, line_key='runtime_entry_l
 
 def roundtrip(archive: Path, artifact, inputs, *, runner=run_managed_process, report=None,
               stage_events: bool = False, fixture=None, evidence_directory=None,
-              source_identity_sha256=None, build_revision=None) -> dict:
+              source_identity_sha256=None, build_revision=None, windows_os_dll_policy=False) -> dict:
     if fixture is not None:
         return service_roundtrip(archive, artifact, fixture, evidence_directory=evidence_directory,
             source_identity_sha256=source_identity_sha256, build_revision=build_revision,
-            runner=runner, report=report, stage_events=stage_events)
+            runner=runner, report=report, stage_events=stage_events, windows_os_dll_policy=windows_os_dll_policy)
     if report is None:
         report = {}
     if report:
@@ -357,7 +357,7 @@ def roundtrip(archive: Path, artifact, inputs, *, runner=run_managed_process, re
 
 
 def service_roundtrip(archive, artifact, fixture, *, evidence_directory, source_identity_sha256,
-                      build_revision, runner=run_managed_process, report=None, stage_events=False):
+                      build_revision, runner=run_managed_process, report=None, stage_events=False, windows_os_dll_policy=False):
     """Exactly two invocations: direct public PDB and real AF3 DomainJobService."""
     from kuma_core.kuro.domain_jobs import DomainJobService, TERMINAL_STATES
     from scripts.merizo_runtime_archive.public_fixture import create_af3_fixture, public_prepared
@@ -424,7 +424,8 @@ def service_roundtrip(archive, artifact, fixture, *, evidence_directory, source_
                 row['execution_evidence'] = export_execution(Path(evidence_directory), result, origins,
                     fixture=fixture, prepared=prepared, fixture_id=name, recipe=recipe, archive_sha256=artifact.archive_sha256,
                     executable_sha256=row['executable_sha256'], source_identity_sha256=source_identity_sha256,
-                    build_revision=build_revision, runtime_artifact=strict_json(canonical(asdict(artifact))))
+                    build_revision=build_revision, runtime_artifact=strict_json(canonical(asdict(artifact))),
+                    windows_os_dll_policy=windows_os_dll_policy)
                 row['current_stage'] = 'completed'
             except BaseException as exc:
                 invocation_failures.append((exc, row['current_stage']))

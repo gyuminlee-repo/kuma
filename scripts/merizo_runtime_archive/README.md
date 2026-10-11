@@ -653,3 +653,56 @@ one new diagnostic test mixing host Windows paths with drive-less POSIX path
 literals. Its correction uses host-absolute external fixture paths while keeping
 the Darwin role classification and path-nondisclosure assertions. Diagnostic
 production behavior is unchanged; this test also needs the next native CI run.
+
+## Opt-in Windows OS-library omission experiment
+
+`build --windows-os-dll-policy` enables a separate internal Windows x64 candidate.
+The normal build and POSIX paths keep their prior policy. This flag is accepted
+only on Windows kernel 10 or later, with the interpreter's compiled `win-amd64`
+identity, 64-bit pointers, and PyInstaller 6.16.0. KUMA already pins Rust 1.88.0;
+that toolchain's [x86_64-pc-windows-msvc target metadata](https://github.com/rust-lang/rust/blob/1.88.0/compiler/rustc_target/src/spec/targets/x86_64_pc_windows_msvc.rs#L12)
+states a Windows 10+ floor. [Microsoft documents](https://learn.microsoft.com/en-us/cpp/windows/universal-crt-deployment?view=msvc-170)
+UCRT as an OS component on Windows 10+ and Windows Server 2016+. These statements
+bound this experiment; they are not evidence of compatibility with every client
+build or a clean Windows installation. Hosted Windows Server evidence validates
+only the recorded runner kernel/build/architecture.
+
+The literal 44-name set in `windows_os_dll.py` is the reviewed UCRT/API-set subset
+of the prior Windows archive's 226 Analysis native rows. No wildcard family is
+removed. Immediately after Analysis, exactly those top-level `BINARY` rows are
+removed before PYZ/EXE/COLLECT. Destination and source basenames must agree,
+case-insensitively; missing names, nested targets, wrong TOC types, aliases, or
+case-fold collisions fail closed. A new/near-match API-set name is not omitted.
+
+The original source paths, SHA-256 hashes and byte counts are retained in a
+separate `freezer.windows_os_dll_exclusion` omitted-input ledger. They never
+appear as a normal packaged TOC stage or acquire a source/rights clearance.
+The actual `Analysis.binaries` contains survivors. Retained MSVCP/VCRUNTIME
+inputs, including plain `msvcp140.dll`, both plain VCRUNTIME DLLs and the renamed
+wheel MSVCP input, must remain unchanged through survivor capture and final
+output byte mapping. This does not resolve the plain MSVCP's ambient build-time
+source selection, its native-source correspondence, or redistribution terms.
+
+Later Analysis/DATA/dependency, PYZ, EXE/PKG and COLLECT routes reject reentry.
+The on-disk bundle, CArchive names/dependencies/link targets, normalized members
+and aliases, and actual final ZIP are checked independently for every excluded
+basename. The ordinary provenance and distribution gates remain in force.
+
+The compiled build identity activates `windows10-os-ucrt-exact44-v1` and the
+Windows-only `kuma-merizo-installed-origins-v3` evidence schema. Both loaded-image
+snapshots must show `System32/ucrtbase.dll` relative to the existing validated
+Windows directory, no excluded bundled image, and plain
+`_internal/msvcp140.dll`, alongside the existing bundled Python/Torch/c10 roles
+and isolation checks. API-set contracts need not appear as loaded modules.
+Export/replay callers for this experiment pass `windows_os_dll_policy=True`,
+which also rejects downgraded legacy evidence. Legacy v1/v2 replay and POSIX
+origin generation retain their prior semantics; earlier successful archives
+that bundled UCRT remain historical evidence of that earlier recipe.
+
+Local tests are synthetic/source-only and include inert spec-stage objects and
+saved-inventory replay; they perform no inference or real freezing. Native CI
+must rebuild this exact recipe and reuse the two existing public-fixture
+installed-runtime calls, with source removal, relocation, empty private PATH,
+both origin phases and managed cleanup. Until those new runs succeed, exclusion
+runtime success remains unverified. No catalog activation, public binary,
+release, legal acceptance or distribution clearance is part of this experiment.

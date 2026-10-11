@@ -24,7 +24,8 @@ import time
 import zipfile
 
 from kuma_core.kuro.optional_runtime import current_platform_key, PRODUCTION_CATALOG
-from scripts.merizo_runtime_archive.archive import normalize_archive
+from scripts.merizo_runtime_archive.archive import normalize_archive, inventory
+from scripts.merizo_runtime_archive import windows_os_dll
 from scripts.merizo_runtime_archive.common import canonical, digest, read_regular, strict_json, write_json
 from scripts.merizo_runtime_archive.freeze_spec import write_spec
 from scripts.merizo_runtime_archive.cpython_origin import verify as verify_cpython_origin
@@ -164,7 +165,8 @@ def run_freezer(options):
         raise
 
 
-def freeze(source, project, output, generated, *, report=None, stage_events: bool = False):
+def freeze(source, project, output, generated, *, report=None, stage_events: bool = False,
+           windows_os_dll_policy: bool = False):
     from kuma_core.kuro.domain_process import run_managed_process
     if report is None:
         report = {}
@@ -175,7 +177,8 @@ def freeze(source, project, output, generated, *, report=None, stage_events: boo
         raise ValueError('Require PyInstaller 6.16.0')
     spec, toc = generated / 'runtime.spec', output / 'pyinstaller-toc.json'
     checkpoint('freezer_spec')
-    write_spec(spec, source=source, project=project, generated=generated, evidence=toc, package_name=PACKAGE)
+    write_spec(spec, source=source, project=project, generated=generated, evidence=toc, package_name=PACKAGE,
+               windows_os_dll_policy=windows_os_dll_policy)
     options = ['--clean', '--noconfirm', '--distpath', str(output / 'dist'),
                '--workpath', str(output / 'work'), str(spec)]
     build_path = os.environ.get('PATH', '')
@@ -212,6 +215,11 @@ def freeze(source, project, output, generated, *, report=None, stage_events: boo
         raise
     checkpoint('freezer_toc')
     result = strict_json(read_regular(toc, 32 * 1024 * 1024))
+    if windows_os_dll_policy:
+        ledger = strict_json(read_regular(output / 'windows-os-dll-omitted.json', 128 * 1024))
+        windows_os_dll.reject_packaged(toc=result)
+        windows_os_dll.verify_retained(ledger, result)
+        report['windows_os_dll_exclusion'] = ledger
     report['current_stage'] = 'completed'
     return result, command
 
@@ -236,8 +244,11 @@ def embedded_inventory(executable: Path) -> dict:
         if blob is not None:
             if len(blob) > 256 * 1024 * 1024:
                 raise ValueError('Embedded archive member exceeds evidence working-set bound')
-            members.append({'name': name, 'typecode': kind, 'size': len(blob),
-                            'sha256': __import__('hashlib').sha256(blob).hexdigest()})
+            member = {'name': name, 'typecode': kind, 'size': len(blob),
+                      'sha256': __import__('hashlib').sha256(blob).hexdigest()}
+            if kind == 'n':
+                member['link_target'] = blob.rstrip(b'\0').decode('utf-8', errors='strict')
+            members.append(member)
     if not modules or len(modules) > 30000:
         raise ValueError('Missing or oversized frozen module inventory')
     distribution = importlib.metadata.distribution('pyinstaller')
@@ -385,6 +396,7 @@ def output_edges(records, toc, executable):
 
 def build(args) -> int:
     started = time.perf_counter()
+    windows_policy = getattr(args, 'windows_os_dll_policy', False)
     source, output, evidence = args.source.resolve(), args.output_directory.resolve(), args.evidence.resolve()
     project = Path(__file__).resolve().parents[2]
     report = {'schema': 'kuma-merizo-runtime-audit-v1', 'status': 'blocked',
@@ -405,6 +417,8 @@ def build(args) -> int:
         if (output.exists() or output == source or source.is_relative_to(output) or output.is_relative_to(source)
                 or evidence.is_relative_to(output) or evidence.is_relative_to(source)):
             raise ValueError('Build directory must be fresh and disjoint from source/evidence')
+        if windows_policy:
+            report['windows_os_dll_host'] = windows_os_dll.host_identity(freezer=True)
         checkpoint('public_fixture')
         inputs = public_inputs(args.fixture)
         checkpoint('source_verification')
@@ -438,11 +452,15 @@ def build(args) -> int:
         write_json(generated / 'merizo-source-identity.json', runtime_identity, MAX_SOURCE_IDENTITY_BYTES)
         identity_sha = digest(generated / 'merizo-source-identity.json')
         report['build']['source_identity_sha256'] = identity_sha
-        (generated / '_merizo_build_identity.py').write_text(f'SOURCE_IDENTITY_SHA256 = {identity_sha!r}\nINTERNAL_AUDIT = True\n', encoding='ascii')
+        build_identity = f'SOURCE_IDENTITY_SHA256 = {identity_sha!r}\nINTERNAL_AUDIT = True\n'
+        if windows_policy:
+            build_identity += f'WINDOWS_OS_DLL_POLICY = {windows_os_dll.POLICY!r}\n'
+        (generated / '_merizo_build_identity.py').write_text(build_identity, encoding='ascii')
         shutil.copyfile(args.input_lock, generated / 'input-lock.json')
         checkpoint('freeze')
         report['freezer'] = {}
-        toc, command = freeze(source, project, output, generated, report=report['freezer'], stage_events=stage_events)
+        toc, command = freeze(source, project, output, generated, report=report['freezer'], stage_events=stage_events,
+                              windows_os_dll_policy=windows_policy)
         checkpoint('source_reverification')
         if verify_source(source) != identity:
             raise ValueError('Official source changed during freeze')
@@ -459,6 +477,8 @@ def build(args) -> int:
         entry = PACKAGE + ('.exe' if os.name == 'nt' else '')
         checkpoint('embedded_inventory')
         report['embedded'] = embedded_inventory(package / entry)
+        if windows_policy:
+            windows_os_dll.reject_packaged(toc=toc, embedded=report['embedded'], records=inventory(package, entry))
         report['build']['biopython_exclusion'] = assert_biopython_excluded(toc, provenance, embedded=report['embedded'])
         report['build']['notice_code_binding'] = verify_frozen_notice_code(report['embedded'], runtime_identity['notice_policy'])
         toc['stdlib.compilation'] = [{'destination': row['member'], 'source': row['source'],
@@ -488,6 +508,11 @@ def build(args) -> int:
             from scripts.merizo_runtime_archive.python_framework_copy import check_normalized
             report['build']['python_framework_copy'] = check_normalized(
                 copy_declaration, records, strict_json(canonical(asdict(artifact))))
+        if windows_policy:
+            windows_os_dll.reject_packaged(toc=toc, embedded=report['embedded'], records=records,
+                                          archive=output / 'archive/runtime.zip')
+            report['build']['windows_os_dll_exclusion'] = windows_os_dll.verify_retained(
+                report['freezer']['windows_os_dll_exclusion'], toc, records)
         checkpoint('output_mapping')
         report['files'], gaps = output_edges(records, toc, entry)
         report['unresolved'].extend(gaps)
@@ -504,7 +529,8 @@ def build(args) -> int:
         roundtrip(output / 'archive/runtime.zip', artifact, inputs,
                   report=report['archive']['roundtrip'], stage_events=stage_events,
                   fixture=args.fixture, evidence_directory=evidence.parent,
-                  source_identity_sha256=identity_sha, build_revision=report['build']['build_commit'])
+                  source_identity_sha256=identity_sha, build_revision=report['build']['build_commit'],
+                  windows_os_dll_policy=windows_policy)
         report['unresolved'].extend([{'kind': 'candidate_inputs_unreviewed'},
             {'kind': 'native_source_and_license_obligation_review'},
             {'kind': 'product_dependency_security_baseline'}, {'kind': 'source_delivery_and_rights_review'}])
@@ -561,6 +587,8 @@ def main():
     parser.add_argument('--fixture', type=Path, required=True)
     parser.add_argument('--cpython-origin', type=Path)
     parser.add_argument('--remove-source-before-run', action='store_true')
+    parser.add_argument('--windows-os-dll-policy', action='store_true',
+                        help='Internal Windows 10+ x64 exact44 OS DLL omission experiment')
     return build(parser.parse_args())
 
 

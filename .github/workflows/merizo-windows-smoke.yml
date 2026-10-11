@@ -163,7 +163,7 @@ jobs:
         shell: pwsh
         run: |
           $audit = Join-Path $env:RUNNER_TEMP 'merizo archive audit'
-          & "$audit/build environment/Scripts/python.exe" -m scripts.merizo_runtime_archive.build --source "$audit/official source" --output-directory "$audit/package build" --evidence merizo-smoke-results/runtime-archive.json --wheelhouse "$audit/wheelhouse" --input-lock merizo-smoke-results/archive-input-lock.json --cpython-origin merizo-smoke-results/archive-cpython-origin.json --fixture tests/data/domain_annotation/1ubq.pdb --remove-source-before-run
+          & "$audit/build environment/Scripts/python.exe" -m scripts.merizo_runtime_archive.build --source "$audit/official source" --output-directory "$audit/package build" --evidence merizo-smoke-results/runtime-archive.json --wheelhouse "$audit/wheelhouse" --input-lock merizo-smoke-results/archive-input-lock.json --cpython-origin merizo-smoke-results/archive-cpython-origin.json --fixture tests/data/domain_annotation/1ubq.pdb --remove-source-before-run --windows-os-dll-policy
           exit $LASTEXITCODE
       - name: Remove original upstream checkout before isolated executable run
         shell: pwsh

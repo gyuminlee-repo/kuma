@@ -58,6 +58,20 @@ for (const file of ["merizo-platform-smoke.yml", "merizo-windows-smoke.yml"]) {
       const original = source.replace(block, `        run: ${command}`);
       expect(() => yaml.load(original)).toThrow();
     });
+    it("limits the OS DLL omission experiment to the Windows archive controller", () => {
+      const document = yaml.load(source) as {
+        jobs: Record<string, { steps: Array<{ name?: string; run?: string }> }>;
+      };
+      const steps = Object.values(document.jobs).flatMap((job) => job.steps);
+      const optedIn = steps.filter((step) => step.run?.includes("--windows-os-dll-policy"));
+      if (file === "merizo-windows-smoke.yml") {
+        expect(optedIn).toHaveLength(1);
+        expect(optedIn[0].name).toBe("Run direct archive build controller and installed CPU entry");
+        expect(optedIn[0].run).toContain("-m scripts.merizo_runtime_archive.build");
+      } else {
+        expect(optedIn).toHaveLength(0);
+      }
+    });
   });
 }
 

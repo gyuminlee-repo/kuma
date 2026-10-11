@@ -758,7 +758,8 @@ def main(argv=None) -> int:
         if not internal.is_relative_to(Path(sys.executable).resolve().parent):
             raise ValueError('Frozen payload escapes its installed runtime')
         from scripts.merizo_runtime_archive.runtime_origin import OriginAudit
-        origin_audit = OriginAudit(internal, identity_module.SOURCE_IDENTITY_SHA256)
+        origin_audit = OriginAudit(internal, identity_module.SOURCE_IDENTITY_SHA256,
+            windows_os_dll_policy=getattr(identity_module, 'WINDOWS_OS_DLL_POLICY', None))
         execute(args.input_pdb, args.input_manifest, args.output, internal, identity_module.SOURCE_IDENTITY_SHA256,
                 warning_report=warning_report if audit_path is not None else None,
                 origin_audit=origin_audit, origin_path=origin_path)

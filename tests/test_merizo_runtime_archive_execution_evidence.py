@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+from typing import TypedDict
 
 import pytest
 
@@ -32,7 +33,14 @@ from scripts.merizo_runtime_archive.common import canonical, strict_json
 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC = ROOT / 'tests/data/domain_annotation/1ubq.pdb'
-IDENTITIES = {
+class ExecutionIdentities(TypedDict):
+    archive_sha256: str
+    executable_sha256: str
+    source_identity_sha256: str
+    build_revision: str
+
+
+IDENTITIES: ExecutionIdentities = {
     'archive_sha256': 'a' * 64,
     'executable_sha256': 'b' * 64,
     'source_identity_sha256': 'c' * 64,
@@ -321,7 +329,8 @@ def test_replay_rejects_wrong_execution_binding(tmp_path, public_inputs, field):
 @pytest.mark.parametrize('field', tuple(IDENTITIES))
 def test_replay_rejects_wrong_independent_expected_identity(tmp_path, public_inputs, field):
     path, _, _, _ = exported(tmp_path, public_inputs)
-    wrong = {**IDENTITIES, field: '0' * (40 if field == 'build_revision' else 64)}
+    wrong = IDENTITIES.copy()
+    wrong[field] = '0' * (40 if field == 'build_revision' else 64)
     with pytest.raises(ValueError):
         evidence.replay_execution(path, PUBLIC, **wrong)
 

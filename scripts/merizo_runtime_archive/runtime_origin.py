@@ -13,9 +13,11 @@ from typing import cast
 from scripts.merizo_runtime_archive.common import canonical, digest, strict_json
 from scripts.merizo_windows_smoke import runtime_origins as shared
 from scripts.merizo_runtime_archive import python_framework_copy as python_copy
+from scripts.merizo_runtime_archive import windows_os_dll
 
 SCHEMA = 'kuma-merizo-installed-origins-v2'
 LEGACY_SCHEMA = 'kuma-merizo-installed-origins-v1'
+WINDOWS_OS_SCHEMA = 'kuma-merizo-installed-origins-v3'
 MAX_ORIGIN_BYTES = 512 * 1024
 MAX_ORIGIN_ROWS = 2048
 PHASES = ('before_weights', 'after_inference')
@@ -186,12 +188,22 @@ def _system_path(value, system):
         raise ValueError('Saved Linux origin is not an allowed OS library')
 
 
-def validate_origins(value, *, executable_sha256=None, binding_sha256=None, source_identity_sha256=None, runtime_artifact=None):
+def validate_origins(value, *, executable_sha256=None, binding_sha256=None, source_identity_sha256=None,
+                     runtime_artifact=None, windows_os_dll_policy=False):
     keys = {'schema', 'platform', 'executable_sha256', 'input_binding_sha256', 'source_identity_sha256', 'module_families', 'snapshots'}
-    if (not isinstance(value, dict) or set(value) != keys or value['schema'] not in {SCHEMA, LEGACY_SCHEMA}
+    new_windows = isinstance(value, dict) and value.get('schema') == WINDOWS_OS_SCHEMA
+    if new_windows:
+        keys |= {'windows_os_dll_policy', 'windows_host'}
+    if windows_os_dll_policy and not new_windows:
+        raise ValueError('Required Windows OS-DLL origin policy is missing')
+    if (not isinstance(value, dict) or set(value) != keys or value['schema'] not in {SCHEMA, LEGACY_SCHEMA, WINDOWS_OS_SCHEMA}
             or not isinstance(value['platform'], str) or value['platform'] not in {'Linux', 'Darwin', 'Windows'}
             or value['module_families'] != list(_MODULES)):
         raise ValueError('Invalid installed-origin schema')
+    if new_windows:
+        if value['platform'] != 'Windows' or value['windows_os_dll_policy'] != windows_os_dll.POLICY:
+            raise ValueError('Invalid Windows OS-DLL origin policy')
+        windows_os_dll.validate_host(value['windows_host'])
     for name, expected in (('executable_sha256', executable_sha256), ('input_binding_sha256', binding_sha256),
                            ('source_identity_sha256', source_identity_sha256)):
         if not isinstance(value[name], str) or not _HASH.fullmatch(value[name]) or (expected is not None and value[name] != expected):
@@ -222,7 +234,7 @@ def validate_origins(value, *, executable_sha256=None, binding_sha256=None, sour
             raise ValueError('Required module origins missing')
         native = row['native']
         native_keys = {'bundled', 'system', 'required', 'system_path_basis'}
-        if value['schema'] == SCHEMA:
+        if value['schema'] != LEGACY_SCHEMA:
             native_keys.add('python_copy_proof')
         if (not isinstance(native, dict) or set(native) != native_keys
                 or native['system_path_basis'] != ('windows_directory_relative' if system == 'Windows' else 'absolute_posix_os_roots')):
@@ -246,6 +258,8 @@ def validate_origins(value, *, executable_sha256=None, binding_sha256=None, sour
             if actual_role != role and not (system == 'Darwin' and role == 'python'
                     and member == python_copy.FLAT and copy_proof is not None):
                 raise ValueError('Bundled required runtime role differs')
+        if new_windows:
+            windows_os_dll.validate_native(native)
         images = row['images']
         if not isinstance(images, list) or len(images) > MAX_ORIGIN_ROWS or (system != 'Darwin' and images):
             raise ValueError('Invalid indexed image inventory')
@@ -318,7 +332,7 @@ def environment_checks(root: Path, internal: Path, executable: Path) -> dict:
 
 
 class OriginAudit:
-    def __init__(self, internal: Path, source_identity_sha256: str):
+    def __init__(self, internal: Path, source_identity_sha256: str, *, windows_os_dll_policy=None):
         self.failure_phase, self.failure_substage = 'bootstrap', 'initialization'
         self.native_observations = _unavailable_native_classes()
         self.runtime_artifact = None
@@ -330,6 +344,12 @@ class OriginAudit:
         self.report = {'schema': SCHEMA, 'platform': platform.system(), 'executable_sha256': digest(self.executable),
                        'source_identity_sha256': source_identity_sha256, 'input_binding_sha256': None,
                        'module_families': list(_MODULES), 'snapshots': []}
+        self.windows_os_dll_policy = windows_os_dll_policy is not None
+        if self.windows_os_dll_policy:
+            if windows_os_dll_policy != windows_os_dll.POLICY or self.report['platform'] != 'Windows':
+                raise ValueError('Unknown compiled Windows OS-DLL policy')
+            self.report.update(schema=WINDOWS_OS_SCHEMA, windows_os_dll_policy=windows_os_dll.POLICY,
+                               windows_host=windows_os_dll.host_identity())
 
     def capture(self, phase: str, prepared):
         self.failure_phase = phase if phase in PHASES else 'bootstrap'
@@ -393,20 +413,24 @@ class OriginAudit:
         native_record = {'bundled': [relative(x) for x in native['bundled']],
                          'system': system_paths, 'required': {role: relative(x) for role, x in required.items()},
                          'python_copy_proof': copy_proof}
+        native_record['system_path_basis'] = (
+            'windows_directory_relative' if system == 'Windows' else 'absolute_posix_os_roots')
+        if self.windows_os_dll_policy:
+            self.failure_substage = 'native_policy'
+            windows_os_dll.validate_native(native_record)
         self.failure_substage = 'environment'
         environment = environment_checks(self.root, self.internal, self.executable)
         self.failure_substage = 'serialization'
         self.report['snapshots'].append({'phase': phase, 'mechanism': mechanism, 'contract': contract,
             'modules': normalized, 'native': native_record,
             'images': image_rows, 'environment': environment})
-        self.report['snapshots'][-1]['native']['system_path_basis'] = (
-            'windows_directory_relative' if system == 'Windows' else 'absolute_posix_os_roots')
         if len(normalized) > MAX_ORIGIN_ROWS or len(canonical(self.report)) + 1 > MAX_ORIGIN_BYTES:
             raise ValueError('Origin snapshot exceeds declared bound')
 
     def finish(self, path: Path | None = None):
         self.failure_substage = 'final_validation'
-        validate_origins(self.report, runtime_artifact=self.runtime_artifact)
+        validate_origins(self.report, runtime_artifact=self.runtime_artifact,
+                         windows_os_dll_policy=self.windows_os_dll_policy)
         self.failure_substage = 'executable_reverification'
         if digest(self.executable) != self.report['executable_sha256']:
             raise ValueError('Installed executable changed during inference')
