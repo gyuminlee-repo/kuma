@@ -622,3 +622,34 @@ same input bytes, preserve the directory refusal/unchanged-output assertion, and
 exercise lexical aliases against canonical identities on every platform. These
 fixture corrections do not change runtime acceptance or cleanup guards; their
 native Windows result remains subject to the next complete CI run.
+
+### Exact normalized macOS Python framework copy
+
+The `b5432835` diagnostic identified the rejected predicate: all native path
+checks passed, but the required Python role was missing. The actual loaded image
+was the regular `_internal/Python` copy; the old classifier recognized only the
+resolved framework-shaped path. Both saved archive members had identical hashes
+and sizes. This is distinct from an external Python dependency.
+
+Origin schema v2 handles only this exact managed-archive relationship. Before
+normalization, the builder requires the original fixed framework symlink and
+records the post-freezer framework bytes in `PYTHON_ORIGIN.json`. It checks the
+final regular-file pair and alias inventory against the candidate manifest.
+After every ordinary native-image check passes, the adapter may handle only a
+missing Python role: it requires the exact loaded dyld row, canonical managed
+receipt and declaration, and stable single-link bytes at both fixed paths.
+The existing verified catalog and held execution lease provide the installation
+trust boundary; a standalone receipt is not an authentication authority.
+
+Saved v2 copy proofs must be replayed with the external candidate manifest,
+checking archive/executable/receipt/declaration identities and both file rows.
+Historical v1 keeps its original rules. Missing or inconsistent proof, another
+missing runtime role, external same-name files and changed copies are rejected.
+The old fixed probes retain their refusal behavior. Actual macOS execution of
+this narrow correction still requires the next exact-head native run.
+
+The `b5432835` full Windows run resolved the earlier fixture failures but found
+one new diagnostic test mixing host Windows paths with drive-less POSIX path
+literals. Its correction uses host-absolute external fixture paths while keeping
+the Darwin role classification and path-nondisclosure assertions. Diagnostic
+production behavior is unchanged; this test also needs the next native CI run.

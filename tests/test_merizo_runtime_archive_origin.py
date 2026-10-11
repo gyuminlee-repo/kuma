@@ -463,14 +463,28 @@ def test_reader_rejects_forged_native_path_classification(tmp_path, monkeypatch,
 
 
 def test_native_classes_distinguish_framework_and_external_inference_without_emitting_paths(tmp_path):
-    internal = tmp_path / '_internal'
+    root = tmp_path.resolve(strict=True)
+    internal = root / '_internal'
     framework = internal / 'Python.framework/Versions/3.11/Python'
-    observations = origin.native_classes([str(framework), '/external/private/libtorch_cpu.dylib',
-                                          '/usr/lib/libSystem.B.dylib'], tmp_path, internal, 'Darwin')
+    external = root.parent / ('private-external-' + root.name)
+    paths = [framework, external / 'libtorch_cpu.dylib', external / 'libSystem.B.dylib']
+    assert all(path.is_absolute() for path in paths)
+    assert all(not path.is_relative_to(root) for path in paths[1:])
+    observations = origin.native_classes([str(path) for path in paths], root, internal, 'Darwin')
+    assert observations['status'] == 'observed'
     assert observations['bundled_python_framework_path'] and observations['bundled_python_role']
     assert not observations['bundled_python_flat_path']
     assert observations['external_inference_runtime'] and observations['external_other_image']
-    assert b'private' not in canonical(observations) and str(tmp_path).encode() not in canonical(observations)
+    assert b'private' not in canonical(observations)
+    assert all(str(path).encode() not in canonical(observations) for path in paths)
+
+
+def test_native_classes_keep_relative_path_observations_unavailable_on_every_host(tmp_path):
+    root = tmp_path.resolve(strict=True)
+    observations = origin.native_classes(['private/libtorch_cpu.dylib'], root, root / '_internal', 'Darwin')
+    assert observations['status'] == 'unavailable'
+    assert all(value is None for key, value in observations.items() if key != 'status')
+    assert b'private' not in canonical(observations)
 
 
 def test_diagnostic_trace_scan_and_retained_frames_are_bounded(monkeypatch):
@@ -484,3 +498,101 @@ def test_diagnostic_trace_scan_and_retained_frames_are_bounded(monkeypatch):
     assert diagnostic is not None
     assert diagnostic['truncated'] and len(diagnostic['frames']) == 8
     assert len(canonical(diagnostic)) <= origin.MAX_ORIGIN_FAILURE_BYTES
+
+
+def mac_copy_audit(tmp_path, monkeypatch):
+    import hashlib
+    from scripts.merizo_runtime_archive import python_framework_copy as copy_proof
+    audit, _, _ = diagnostic_audit(tmp_path, monkeypatch)
+    audit.report['platform'] = 'Darwin'
+    root, internal = audit.root, audit.internal
+    flat, framework = root / copy_proof.FLAT, root / copy_proof.FRAMEWORK
+    framework.parent.mkdir(parents=True)
+    payload = b'synthetic trusted Python bytes, never loaded'
+    flat.write_bytes(payload)
+    framework.write_bytes(payload)
+    declared = {'schema': copy_proof.DECLARATION_SCHEMA, 'flat_path': copy_proof.FLAT,
+                'framework_path': copy_proof.FRAMEWORK, 'original_alias': copy_proof.ALIAS,
+                'sha256': hashlib.sha256(payload).hexdigest(), 'size': len(payload)}
+    (root / copy_proof.DECLARATION_NAME).write_bytes(canonical(declared) + b'\n')
+    native_paths = [flat, internal / 'libtorch_cpu.dylib', internal / 'libc10.dylib']
+    for path in native_paths[1:]: path.write_bytes(b'synthetic library, never loaded')
+    artifact = {'engine': 'merizo', 'version': 'copy-test', 'platform': 'macos-arm64',
+                'archive_sha256': 'a' * 64, 'archive_size': 1, 'executable_path': 'kuma-merizo', 'files': []}
+    for name in (copy_proof.FLAT, copy_proof.FRAMEWORK, copy_proof.DECLARATION_NAME, 'kuma-merizo'):
+        path = root / name
+        artifact['files'].append({'path': name, 'sha256': origin.digest(path), 'size': path.stat().st_size,
+                                  'executable': name != copy_proof.DECLARATION_NAME})
+    (root / '.kuma-runtime.json').write_bytes(copy_proof.receipt_bytes(artifact))
+    images = tuple(origin.shared.DarwinImage(i, str(path), 8 * (i + 1), origin.shared.MH_MAGIC_64,
+        origin.shared.CPU_TYPE_ARM64, 0, origin.shared.MH_DYLIB, 0, False) for i, path in enumerate(native_paths))
+    enumerator = __import__('unittest.mock', fromlist=['Mock']).Mock(return_value=images)
+    monkeypatch.setattr(origin.shared, 'darwin_native_images', enumerator)
+    return audit, artifact, enumerator
+
+
+def test_exact_mac_copy_proof_binds_both_phases_and_keeps_original_loaded_row(tmp_path, monkeypatch):
+    from scripts.merizo_runtime_archive import python_framework_copy as copy_proof
+    audit, artifact, enumerator = mac_copy_audit(tmp_path, monkeypatch)
+    prepared = prepared_synthetic()
+    audit.capture('before_weights', prepared)
+    audit.capture('after_inference', prepared)
+    audit.finish()
+    assert audit.report['schema'] == 'kuma-merizo-installed-origins-v2'
+    for snapshot in audit.report['snapshots']:
+        assert snapshot['native']['required']['python'] == copy_proof.FLAT
+        assert snapshot['images'][0]['path'] == snapshot['images'][0]['resolved_path'] == copy_proof.FLAT
+        assert snapshot['native']['python_copy_proof']['loaded_image_index'] == 0
+    assert enumerator.call_count == 2
+    origin.validate_origins(audit.report, runtime_artifact=artifact)
+    with pytest.raises(ValueError): origin.validate_origins(audit.report)
+    legacy = copy.deepcopy(audit.report)
+    legacy['schema'] = origin.LEGACY_SCHEMA
+    for snapshot in legacy['snapshots']: del snapshot['native']['python_copy_proof']
+    with pytest.raises(ValueError): origin.validate_origins(legacy, runtime_artifact=artifact)
+    assert len(canonical(audit.report)) + 1 < origin.MAX_ORIGIN_BYTES == 512 * 1024
+    monkeypatch.setattr(origin, 'MAX_ORIGIN_BYTES', len(canonical(audit.report)))
+    with pytest.raises(ValueError, match='exceeds bound'):
+        origin.validate_origins(audit.report, runtime_artifact=artifact)
+
+
+@pytest.mark.parametrize('change', ['external_python', 'missing_torch', 'missing_c10'])
+def test_other_native_policy_failures_never_enter_copy_exception(tmp_path, monkeypatch, change):
+    audit, _, enumerator = mac_copy_audit(tmp_path, monkeypatch)
+    images = list(enumerator.return_value)
+    if change == 'external_python':
+        images[0] = images[0]._replace(path='/external/private/Python')
+    else:
+        images.pop(1 if change == 'missing_torch' else 2)
+        images = [image._replace(image_index=i) for i, image in enumerate(images)]
+    enumerator.return_value = tuple(images)
+    with patch.object(origin.python_copy, 'live_proof') as proof:
+        with pytest.raises(ValueError): audit.capture('before_weights', prepared_synthetic())
+        proof.assert_not_called()
+    assert enumerator.call_count == 1 and not audit.report['snapshots']
+
+
+def test_mac_copy_exact_public_execution_requires_external_artifact_on_replay(tmp_path, monkeypatch):
+    from scripts.merizo_runtime_archive import execution_evidence as evidence, public_fixture
+    from tests.test_merizo_runtime_archive_execution_evidence import PUBLIC, mock_result
+    audit, artifact, _ = mac_copy_audit(tmp_path, monkeypatch)
+    prepared = public_fixture.public_prepared(PUBLIC)
+    _, _, recipe = public_fixture.create_af3_fixture(PUBLIC, tmp_path / 'synthetic.zip')
+    audit.capture('before_weights', prepared)
+    audit.capture('after_inference', prepared)
+    origins, result = tmp_path / 'origins.json', tmp_path / 'result.json'
+    audit.finish(origins)
+    result.write_bytes(canonical(mock_result(prepared)) + b'\n')
+    identities = {'archive_sha256': artifact['archive_sha256'], 'executable_sha256': audit.report['executable_sha256'],
+                  'source_identity_sha256': '1' * 64, 'build_revision': 'd' * 40}
+    exported = evidence.export_execution(tmp_path, result, origins, fixture=PUBLIC, prepared=prepared,
+        fixture_id='public_1ubq', recipe=recipe, runtime_artifact=artifact, **identities)
+    path = tmp_path / exported['filename']
+    assert evidence.replay_execution(path, PUBLIC, runtime_artifact=artifact, **identities).total_residues == 76
+    with pytest.raises(ValueError): evidence.replay_execution(path, PUBLIC, **identities)
+    changed = copy.deepcopy(artifact)
+    changed['files'][0]['sha256'] = '0' * 64
+    with pytest.raises(ValueError): evidence.replay_execution(path, PUBLIC, runtime_artifact=changed, **identities)
+    assert exported['bytes'] < evidence.MAX_EXECUTION_BYTES == 1024 * 1024
+    monkeypatch.setattr(evidence, 'MAX_EXECUTION_BYTES', exported['bytes'] - 1)
+    with pytest.raises(ValueError): evidence.replay_execution(path, PUBLIC, runtime_artifact=artifact, **identities)

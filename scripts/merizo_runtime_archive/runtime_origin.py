@@ -12,8 +12,10 @@ from typing import cast
 
 from scripts.merizo_runtime_archive.common import canonical, digest, strict_json
 from scripts.merizo_windows_smoke import runtime_origins as shared
+from scripts.merizo_runtime_archive import python_framework_copy as python_copy
 
-SCHEMA = 'kuma-merizo-installed-origins-v1'
+SCHEMA = 'kuma-merizo-installed-origins-v2'
+LEGACY_SCHEMA = 'kuma-merizo-installed-origins-v1'
 MAX_ORIGIN_BYTES = 512 * 1024
 MAX_ORIGIN_ROWS = 2048
 PHASES = ('before_weights', 'after_inference')
@@ -28,7 +30,7 @@ MAX_ORIGIN_FAILURE_BYTES = 2048
 _ORIGIN_PHASES = frozenset({'bootstrap', *PHASES})
 _ORIGIN_STAGES = frozenset({'initialization', 'phase_validation', 'module_collection', 'module_validation',
     'module_normalization', 'native_enumeration', 'native_policy', 'native_normalization', 'environment',
-    'serialization', 'final_validation', 'executable_reverification', 'publication', 'unavailable'})
+    'python_copy_proof', 'serialization', 'final_validation', 'executable_reverification', 'publication', 'unavailable'})
 _NATIVE_CLASSES = frozenset({'bundled_python_role', 'bundled_torch_cpu_role', 'bundled_c10_role',
     'bundled_python_flat_path', 'bundled_python_framework_path', 'external_inference_runtime', 'external_other_image'})
 
@@ -184,9 +186,9 @@ def _system_path(value, system):
         raise ValueError('Saved Linux origin is not an allowed OS library')
 
 
-def validate_origins(value, *, executable_sha256=None, binding_sha256=None, source_identity_sha256=None):
+def validate_origins(value, *, executable_sha256=None, binding_sha256=None, source_identity_sha256=None, runtime_artifact=None):
     keys = {'schema', 'platform', 'executable_sha256', 'input_binding_sha256', 'source_identity_sha256', 'module_families', 'snapshots'}
-    if (not isinstance(value, dict) or set(value) != keys or value['schema'] != SCHEMA
+    if (not isinstance(value, dict) or set(value) != keys or value['schema'] not in {SCHEMA, LEGACY_SCHEMA}
             or not isinstance(value['platform'], str) or value['platform'] not in {'Linux', 'Darwin', 'Windows'}
             or value['module_families'] != list(_MODULES)):
         raise ValueError('Invalid installed-origin schema')
@@ -219,7 +221,10 @@ def validate_origins(value, *, executable_sha256=None, binding_sha256=None, sour
         if not {'torch', 'predict', 'model.network', 'model.utils.features'} <= row['modules'].keys():
             raise ValueError('Required module origins missing')
         native = row['native']
-        if (not isinstance(native, dict) or set(native) != {'bundled', 'system', 'required', 'system_path_basis'}
+        native_keys = {'bundled', 'system', 'required', 'system_path_basis'}
+        if value['schema'] == SCHEMA:
+            native_keys.add('python_copy_proof')
+        if (not isinstance(native, dict) or set(native) != native_keys
                 or native['system_path_basis'] != ('windows_directory_relative' if system == 'Windows' else 'absolute_posix_os_roots')):
             raise ValueError('Invalid native inventory')
         for kind in ('bundled', 'system'):
@@ -229,13 +234,17 @@ def validate_origins(value, *, executable_sha256=None, binding_sha256=None, sour
                 _relative(member) if kind == 'bundled' else _system_path(member, system)
         if not isinstance(native['required'], dict) or set(native['required']) != {'python', 'torch_cpu', 'c10'}:
             raise ValueError('Required native roles missing')
+        copy_proof = native.get('python_copy_proof')
+        if copy_proof is not None and system != 'Darwin':
+            raise ValueError('Python framework-copy proof is Darwin-only')
         for role, member in native['required'].items():
             _relative(member)
             if member not in native['bundled']:
                 raise ValueError('Required runtime is not bundled')
             actual_role = ({'python311.dll': 'python', 'torch_cpu.dll': 'torch_cpu', 'c10.dll': 'c10'}.get(
                 PurePosixPath(member).name.casefold()) if system == 'Windows' else shared.runtime_role(cast(Path, PurePosixPath(member)), system))
-            if actual_role != role:
+            if actual_role != role and not (system == 'Darwin' and role == 'python'
+                    and member == python_copy.FLAT and copy_proof is not None):
                 raise ValueError('Bundled required runtime role differs')
         images = row['images']
         if not isinstance(images, list) or len(images) > MAX_ORIGIN_ROWS or (system != 'Darwin' and images):
@@ -269,6 +278,9 @@ def validate_origins(value, *, executable_sha256=None, binding_sha256=None, sour
             for kind in ('bundled', 'system'):
                 if {image['resolved_path'] for image in images if image['kind'] == kind} != set(native[kind]):
                     raise ValueError('Indexed dyld rows differ from native inventory')
+        if copy_proof is not None:
+            python_copy.validate_proof(copy_proof, artifact=runtime_artifact,
+                executable_sha256=value['executable_sha256'], native=native, images=images)
     if len(canonical(value)) + 1 > MAX_ORIGIN_BYTES:
         raise ValueError('Origin evidence exceeds bound')
     return value
@@ -309,6 +321,7 @@ class OriginAudit:
     def __init__(self, internal: Path, source_identity_sha256: str):
         self.failure_phase, self.failure_substage = 'bootstrap', 'initialization'
         self.native_observations = _unavailable_native_classes()
+        self.runtime_artifact = None
         self.executable = Path(sys.executable).resolve()
         self.root, self.internal = self.executable.parent, internal.resolve()
         if (not getattr(sys, 'frozen', False) or self.executable.name not in {'kuma-merizo', 'kuma-merizo.exe'}
@@ -334,7 +347,7 @@ class OriginAudit:
         origins = shared.module_origins(modules, self.internal, check_namespace_paths=True)
         self.failure_substage = 'module_normalization'
         normalized = {name: Path(path).relative_to(self.internal).as_posix() for name, path in origins.items()}
-        system, images = self.report['platform'], None
+        system, images, copy_proof = self.report['platform'], None, None
         self.failure_substage = 'native_enumeration'
         if system == 'Windows':
             paths = shared.windows_loaded_native_paths()
@@ -352,7 +365,19 @@ class OriginAudit:
             paths = [image.path for image in images] if images is not None else shared.linux_native_paths()
             self.native_observations = native_classes(paths, self.root, self.internal, system)
             self.failure_substage = 'native_policy'
-            native = shared.validate_posix_native_paths(paths, self.root, system, darwin_images=images)
+            try:
+                native = shared.validate_posix_native_paths(paths, self.root, system, darwin_images=images)
+            except shared.MissingNativeRolesError as exc:
+                if system != 'Darwin' or exc.missing != frozenset({'python'}):
+                    raise
+                self.failure_substage = 'python_copy_proof'
+                copy_proof, artifact = python_copy.live_proof(self.root, self.internal,
+                    self.report['executable_sha256'], exc.validated, images)
+                if self.runtime_artifact is not None and canonical(artifact) != canonical(self.runtime_artifact):
+                    raise ValueError('Managed Python-copy artifact changed between origin phases')
+                self.runtime_artifact = artifact
+                native = {**exc.validated, 'required_bundled': {**exc.validated['required_bundled'],
+                                                              'python': str(self.root / python_copy.FLAT)}}
             self.failure_substage = 'native_normalization'
             required, system_paths = native['required_bundled'], native['posix_system']
             mechanism = 'dyld_stable_indexed_cache_snapshots' if images is not None else 'proc_self_maps_executable_files'
@@ -366,7 +391,8 @@ class OriginAudit:
                        resolved_path=relative(image.path) if bundled else str(Path(image.path).resolve()))
             image_rows.append(row)
         native_record = {'bundled': [relative(x) for x in native['bundled']],
-                         'system': system_paths, 'required': {role: relative(x) for role, x in required.items()}}
+                         'system': system_paths, 'required': {role: relative(x) for role, x in required.items()},
+                         'python_copy_proof': copy_proof}
         self.failure_substage = 'environment'
         environment = environment_checks(self.root, self.internal, self.executable)
         self.failure_substage = 'serialization'
@@ -380,7 +406,7 @@ class OriginAudit:
 
     def finish(self, path: Path | None = None):
         self.failure_substage = 'final_validation'
-        validate_origins(self.report)
+        validate_origins(self.report, runtime_artifact=self.runtime_artifact)
         self.failure_substage = 'executable_reverification'
         if digest(self.executable) != self.report['executable_sha256']:
             raise ValueError('Installed executable changed during inference')
@@ -399,6 +425,8 @@ def _owned_origin_codes():
         (OriginAudit, 'audit', ('__init__', 'capture', 'finish')),
         (sys.modules[__name__], 'origin', ('environment_checks', 'validate_origins', '_relative', '_system_path',
                                           'read_stable', 'publish_exclusive')),
+        (python_copy, 'python_copy', ('live_proof', 'declaration', 'artifact_rows', 'receipt_bytes',
+                                     '_plain', '_matching_rows', 'validate_proof')),
         (shared, 'shared', ('module_origins', 'within', 'parse_linux_maps', 'linux_native_paths',
                            'darwin_native_images', 'runtime_role', 'is_inference_runtime', 'system_library',
                            'darwin_cached_os_image', 'validate_posix_native_paths',

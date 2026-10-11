@@ -70,6 +70,18 @@ class NativeOriginError(ValueError):
         self.paths = paths
 
 
+class MissingNativeRolesError(ValueError):
+    """All original native path checks passed; required roles remain absent.
+
+    Ordinary callers still fail. Only the archive adapter may separately prove
+    its exact declared normalized Python copy; this class grants no exception.
+    """
+    def __init__(self, missing: set[str], validated: dict):
+        super().__init__(f"Required bundled native modules missing: {sorted(missing)}")
+        self.missing = frozenset(missing)
+        self.validated = validated
+
+
 def native_diagnostic(paths: tuple[str, ...]) -> dict:
     """A bounded subset of the rejected snapshot, not approved provenance."""
     selected = []
@@ -318,10 +330,11 @@ def validate_posix_native_paths(paths: list[str], root: Path, system: str, *,
         else:
             raise ValueError(f"Loaded native image is outside bundle/OS allowlist: {path}")
     missing = {"python", "torch_cpu", "c10"} - required.keys()
+    validated = {"bundled": sorted(set(bundled)), "posix_system": sorted(set(system_paths)),
+                 "required_bundled": required}
     if missing:
-        raise ValueError(f"Required bundled native modules missing: {sorted(missing)}")
-    return {"bundled": sorted(set(bundled)), "posix_system": sorted(set(system_paths)),
-            "required_bundled": required}
+        raise MissingNativeRolesError(missing, validated)
+    return validated
 
 
 def windows_loaded_native_paths() -> list[str]:

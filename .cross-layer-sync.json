@@ -1695,7 +1695,9 @@
         "tests/merizoWorkflowSyntax.test.ts",
         "tests/test_merizo_runtime_archive_origin.py",
         "tests/test_merizo_runtime_archive_execution_evidence.py",
-        "tests/test_merizo_runtime_archive_service.py"
+        "tests/test_merizo_runtime_archive_service.py",
+        "scripts/merizo_runtime_archive/python_framework_copy.py",
+        "tests/test_merizo_runtime_archive_python_copy.py"
       ],
       "note": "Internal fixed-version CPU producer, exact source evidence, normalized archive and real service/registry roundtrip. Bounded public result/origin JSON supports replay; no production catalog or public binary distribution clearance.",
       "severity": "warning"
@@ -1717,7 +1719,9 @@
         ".github/workflows/merizo-platform-smoke.yml",
         ".github/workflows/merizo-windows-smoke.yml",
         "tests/test_merizo_runtime_archive_origin.py",
-        "tests/test_merizo_runtime_archive_execution_evidence.py"
+        "tests/test_merizo_runtime_archive_execution_evidence.py",
+        "scripts/merizo_runtime_archive/python_framework_copy.py",
+        "tests/test_merizo_runtime_archive_python_copy.py"
       ],
       "note": "Shared stdlib origin predicates preserve old probe behavior; each new executable needs its own native pre-weight/post-inference evidence. Runtime load location is distinct from source-byte and redistribution provenance.",
       "severity": "warning"

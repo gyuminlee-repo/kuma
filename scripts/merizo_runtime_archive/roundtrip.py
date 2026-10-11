@@ -19,7 +19,7 @@ from kuma_core.kuro.domain_process import run_managed_process
 from kuma_core.kuro import domain_lease as _lease, optional_runtime as _runtime
 from kuma_core.kuro.optional_runtime import OptionalRuntimeManager, PRODUCTION_CATALOG
 from kuma_core.kuro.residue_mapping import PolymerRecord, ResidueId
-from scripts.merizo_runtime_archive.common import digest, read_regular, strict_json, write_json
+from scripts.merizo_runtime_archive.common import canonical, digest, read_regular, strict_json, write_json
 from scripts.merizo_runtime_archive.runtime_entry import (
     FAILURE_SCHEMA, FAILURE_ERROR_TYPES, FAILURE_STAGES, MAX_FAILURE_BYTES, MAX_FAILURE_FRAMES, safe_error_type, validate_warning_report,
 )
@@ -424,7 +424,7 @@ def service_roundtrip(archive, artifact, fixture, *, evidence_directory, source_
                 row['execution_evidence'] = export_execution(Path(evidence_directory), result, origins,
                     fixture=fixture, prepared=prepared, fixture_id=name, recipe=recipe, archive_sha256=artifact.archive_sha256,
                     executable_sha256=row['executable_sha256'], source_identity_sha256=source_identity_sha256,
-                    build_revision=build_revision)
+                    build_revision=build_revision, runtime_artifact=strict_json(canonical(asdict(artifact))))
                 row['current_stage'] = 'completed'
             except BaseException as exc:
                 invocation_failures.append((exc, row['current_stage']))

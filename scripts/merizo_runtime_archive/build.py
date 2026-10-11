@@ -373,7 +373,7 @@ def output_edges(records, toc, executable):
             edge.update(mapping='composite_executable', provenance='embedded_inventory_and_PKG_EXE_TOC')
         elif exact and len(exact) == len(candidates):
             edge.update(mapping='exact_build_input', inputs=exact)
-        elif row['path'] in {'LEGAL.json', 'NOTICE.txt', 'SOURCES.json', 'CAPABILITIES.json'}:
+        elif row['path'] in {'LEGAL.json', 'NOTICE.txt', 'SOURCES.json', 'CAPABILITIES.json', 'PYTHON_ORIGIN.json'}:
             edge.update(mapping='generated_review_payload', provenance='hashed_recipe_and_collected_original_texts')
         else:
             edge.update(mapping='transformed_or_unmapped', inputs=candidates)
@@ -475,11 +475,19 @@ def build(args) -> int:
         report['sources'] = source_record
         checkpoint('package_notices')
         report['notices'] = package_legal(package, source, provenance, source_record)
+        copy_declaration = None
+        if current_platform_key() == 'macos-arm64':
+            from scripts.merizo_runtime_archive.python_framework_copy import create_declaration
+            copy_declaration = create_declaration(package)
         checkpoint('normalize_archive')
         artifact, records = normalize_archive(package, output / 'archive', version='internal-41d12fb-v1',
                                              platform=current_platform_key(), executable=entry)
         report['build']['biopython_exclusion'] = assert_biopython_excluded(
             toc, provenance, embedded=report['embedded'], records=records)
+        if copy_declaration is not None:
+            from scripts.merizo_runtime_archive.python_framework_copy import check_normalized
+            report['build']['python_framework_copy'] = check_normalized(
+                copy_declaration, records, strict_json(canonical(asdict(artifact))))
         checkpoint('output_mapping')
         report['files'], gaps = output_edges(records, toc, entry)
         report['unresolved'].extend(gaps)

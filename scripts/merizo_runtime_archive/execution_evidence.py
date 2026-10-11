@@ -42,7 +42,7 @@ def strict_result(raw, prepared):
 
 
 def validate_execution(value, *, prepared, fixture_id, recipe, archive_sha256,
-                       executable_sha256, source_identity_sha256, build_revision):
+                       executable_sha256, source_identity_sha256, build_revision, runtime_artifact=None):
     keys = {'schema', 'fixture', 'fixture_recipe', 'archive_sha256', 'executable_sha256',
             'source_identity_sha256', 'build_revision', 'input_binding_sha256',
             'result_text', 'result_sha256', 'result_bytes', 'origins'}
@@ -65,15 +65,19 @@ def validate_execution(value, *, prepared, fixture_id, recipe, archive_sha256,
             or hashlib.sha256(raw).hexdigest() != value['result_sha256']):
         raise ValueError('Exact public result bytes differ')
     _, annotation, _ = strict_result(raw, prepared)
+    if runtime_artifact is not None and (not isinstance(runtime_artifact, dict)
+            or runtime_artifact.get('archive_sha256') != archive_sha256):
+        raise ValueError('External runtime artifact differs from execution archive')
     validate_origins(value['origins'], executable_sha256=executable_sha256,
-                     binding_sha256=prepared.binding_sha256, source_identity_sha256=source_identity_sha256)
+                     binding_sha256=prepared.binding_sha256, source_identity_sha256=source_identity_sha256,
+                     runtime_artifact=runtime_artifact)
     if len(canonical(value)) + 1 > MAX_EXECUTION_BYTES:
         raise ValueError('Public execution evidence exceeds complete bound')
     return annotation
 
 
 def export_execution(directory: Path, result: Path, origins: Path, *, fixture: Path, prepared, fixture_id,
-                     recipe, archive_sha256, executable_sha256, source_identity_sha256, build_revision):
+                     recipe, archive_sha256, executable_sha256, source_identity_sha256, build_revision, runtime_artifact=None):
     from scripts.merizo_runtime_archive.public_fixture import create_af3_fixture, public_prepared
     with tempfile.TemporaryDirectory(prefix='kuma-public-export-') as temporary:
         _, synthetic, known_recipe = create_af3_fixture(fixture, Path(temporary).resolve(strict=True) / 'synthetic.zip')
@@ -91,7 +95,7 @@ def export_execution(directory: Path, result: Path, origins: Path, *, fixture: P
              'origins': strict_json(read_stable(origins, MAX_ORIGIN_BYTES))}
     validate_execution(value, prepared=prepared, fixture_id=fixture_id, recipe=recipe, archive_sha256=archive_sha256,
                        executable_sha256=executable_sha256, source_identity_sha256=source_identity_sha256,
-                       build_revision=build_revision)
+                       build_revision=build_revision, runtime_artifact=runtime_artifact)
     output = directory / FILENAMES[fixture_id]
     serialized = canonical(value) + b'\n'
     publish_exclusive(output, serialized, MAX_EXECUTION_BYTES)
@@ -101,7 +105,7 @@ def export_execution(directory: Path, result: Path, origins: Path, *, fixture: P
 
 
 def replay_execution(path: Path, fixture: Path, *, archive_sha256, executable_sha256,
-                     source_identity_sha256, build_revision):
+                     source_identity_sha256, build_revision, runtime_artifact=None):
     """Regenerate the public input and decode, never execute the runtime/model."""
     from scripts.merizo_runtime_archive.public_fixture import create_af3_fixture, public_prepared
     value = strict_json(read_stable(path, MAX_EXECUTION_BYTES))
@@ -114,4 +118,4 @@ def replay_execution(path: Path, fixture: Path, *, archive_sha256, executable_sh
         prepared = public_prepared(fixture) if value['fixture'] == 'public_1ubq' else synthetic
         return validate_execution(value, prepared=prepared, fixture_id=value['fixture'], recipe=recipe,
             archive_sha256=archive_sha256, executable_sha256=executable_sha256,
-            source_identity_sha256=source_identity_sha256, build_revision=build_revision)
+            source_identity_sha256=source_identity_sha256, build_revision=build_revision, runtime_artifact=runtime_artifact)
