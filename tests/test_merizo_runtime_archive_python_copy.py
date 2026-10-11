@@ -8,6 +8,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import os
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -36,19 +37,42 @@ def image(path, index=0):
         shared.MH_MAGIC_64, shared.CPU_TYPE_ARM64, 2, shared.MH_DYLIB, 0, False)
 
 
-def original_package(tmp_path):
+DARWIN_LINK_TARGET = 'Python.framework/Versions/3.11/Python'
+
+
+def darwin_readlink_boundary(real_readlink, owned_link, native_target, observed):
+    """Adapt one verified fixture spelling without affecting host resolution."""
+    def readlink(path):
+        raw = real_readlink(path)
+        if Path(path) == owned_link and raw == native_target:
+            observed.append(Path(path))
+            return DARWIN_LINK_TARGET
+        return raw
+    return readlink
+
+
+def original_package(tmp_path, monkeypatch):
     root = (tmp_path / 'installed').resolve()
     framework = root / python_copy.FRAMEWORK
     framework.parent.mkdir(parents=True)
     framework.write_bytes(b'synthetic Python framework bytes\n')
     framework.chmod(0o755)
-    (root / python_copy.FLAT).symlink_to('Python.framework/Versions/3.11/Python')
+    flat = root / python_copy.FLAT
+    native_target = str(Path(DARWIN_LINK_TARGET))
+    flat.symlink_to(native_target)
+    assert flat.resolve(strict=True) == framework  # Real host filesystem, including Windows.
+    if os.name == 'nt':
+        observed = []
+        proxy = SimpleNamespace(readlink=darwin_readlink_boundary(os.readlink, flat, native_target, observed),
+                                observed=observed)
+        # Never patch global os.readlink: ntpath/Path.resolve must keep native semantics.
+        monkeypatch.setattr(python_copy, 'os', proxy)
     return root
 
 
 @pytest.fixture
-def installed(tmp_path):
-    root = original_package(tmp_path)
+def installed(tmp_path, monkeypatch):
+    root = original_package(tmp_path, monkeypatch)
     declaration = python_copy.create_declaration(root)
     flat = root / python_copy.FLAT
     flat.unlink()
@@ -91,15 +115,41 @@ def rewrite_declaration(value, change):
     return declaration
 
 
-def test_original_symlink_is_declared_before_normalization(tmp_path):
-    root = original_package(tmp_path)
+def test_original_symlink_is_declared_before_normalization(tmp_path, monkeypatch):
+    root = original_package(tmp_path, monkeypatch)
+    real_readlink = os.readlink
     value = python_copy.create_declaration(root)
     assert value == {'schema': python_copy.DECLARATION_SCHEMA, 'flat_path': python_copy.FLAT,
                      'framework_path': python_copy.FRAMEWORK, 'original_alias': python_copy.ALIAS,
                      'sha256': sha((root / python_copy.FRAMEWORK).read_bytes()),
                      'size': (root / python_copy.FRAMEWORK).stat().st_size}
     assert (root / python_copy.FLAT).is_symlink()
+    assert (root / python_copy.FLAT).resolve(strict=True) == root / python_copy.FRAMEWORK
+    assert os.readlink is real_readlink
+    if os.name == 'nt':
+        assert python_copy.os is not os
+        assert getattr(python_copy.os, 'observed') == [root / python_copy.FLAT]
     assert (root / python_copy.DECLARATION_NAME).read_bytes() == canonical(value) + b'\n'
+
+
+@pytest.mark.parametrize('raw,other,translated', [
+    (r'Python.framework\Versions\3.11\Python', False, True),
+    (r'.\Python.framework\Versions\3.11\Python', False, False),
+    (r'Python.framework\Versions\3.12\Python', False, False),
+    (r'C:\external\Python', False, False),
+    (r'Python.framework\Versions\3.11\Python', True, False),
+])
+def test_windows_raw_spelling_adapter_is_exact_and_does_not_rewrite_other_links(tmp_path, raw, other, translated):
+    owned = tmp_path.resolve(strict=True) / 'owned-link'
+    requested = owned.with_name('other-link') if other else owned
+    calls, observed = [], []
+    def original(path):
+        calls.append(path)
+        return raw
+    readlink = darwin_readlink_boundary(original, owned, r'Python.framework\Versions\3.11\Python', observed)
+    assert readlink(requested) == (DARWIN_LINK_TARGET if translated else raw)
+    assert calls == [requested]
+    assert observed == ([owned] if translated else [])
 
 
 def test_exact_normalized_pair_has_bound_build_live_and_offline_proofs(installed, monkeypatch):
@@ -145,8 +195,8 @@ def test_shared_policy_still_raises_typed_missing_python_without_role_exception(
 
 
 @pytest.mark.parametrize('variant', ['regular', 'absolute', 'equivalent-relative', 'other-version', 'external'])
-def test_declaration_requires_original_exact_symlink(tmp_path, variant):
-    root = original_package(tmp_path)
+def test_declaration_requires_original_exact_symlink(tmp_path, monkeypatch, variant):
+    root = original_package(tmp_path, monkeypatch)
     flat = root / python_copy.FLAT
     flat.unlink()
     if variant == 'regular':
@@ -163,8 +213,8 @@ def test_declaration_requires_original_exact_symlink(tmp_path, variant):
 
 
 @pytest.mark.parametrize('variant', ['file', 'directory', 'dangling-symlink'])
-def test_declaration_destination_must_be_fresh(tmp_path, variant):
-    root = original_package(tmp_path)
+def test_declaration_destination_must_be_fresh(tmp_path, monkeypatch, variant):
+    root = original_package(tmp_path, monkeypatch)
     destination = root / python_copy.DECLARATION_NAME
     if variant == 'file':
         destination.write_bytes(b'stale declaration')
@@ -184,7 +234,7 @@ def test_declaration_destination_must_be_fresh(tmp_path, variant):
 
 @pytest.mark.parametrize('variant', ['symlink', 'hardlink', 'empty', 'oversized'])
 def test_original_framework_must_be_bounded_plain_single_link_file(tmp_path, monkeypatch, variant):
-    root = original_package(tmp_path)
+    root = original_package(tmp_path, monkeypatch)
     framework = root / python_copy.FRAMEWORK
     if variant in {'symlink', 'hardlink'}:
         other = root / 'other-Python'
@@ -361,9 +411,11 @@ def test_live_proof_rejects_alias_spelling_for_original_loaded_row(installed, tm
 @pytest.mark.parametrize('name', [python_copy.FLAT, python_copy.FRAMEWORK,
                                 python_copy.DECLARATION_NAME, '.kuma-runtime.json'])
 @pytest.mark.parametrize('variant', ['symlink', 'hardlink', 'reparse', 'changed-open-identity',
-                                   'changed-during-read', 'replaced-during-read'])
+                                   'changed-during-read', 'replaced-during-read', 'unchanged-during-read'])
 def test_live_inputs_require_stable_plain_single_link_files(installed, monkeypatch, name, variant):
     target = installed.root / name
+    calls = 0
+    observed = {'read_completed': False, 'named_identity_changed': False}
     if variant in {'symlink', 'hardlink'}:
         other = installed.root / ('saved-' + target.name)
         other.write_bytes(target.read_bytes())
@@ -384,7 +436,6 @@ def test_live_inputs_require_stable_plain_single_link_files(installed, monkeypat
     else:
         expected = target.stat()
         real_fstat = origin.os.fstat
-        calls = 0
         def unstable_fstat(fd):
             nonlocal calls
             info = real_fstat(fd)
@@ -396,14 +447,30 @@ def test_live_inputs_require_stable_plain_single_link_files(installed, monkeypat
             if variant == 'changed-during-read' and calls == 2:
                 return SimpleNamespace(st_size=info.st_size, st_mtime_ns=info.st_mtime_ns + 1,
                                        st_ctime_ns=info.st_ctime_ns)
-            if variant == 'replaced-during-read' and calls == 2:
-                contents = target.read_bytes()
-                target.rename(installed.root / ('replaced-' + target.name))
-                target.write_bytes(contents)
+            if variant in {'replaced-during-read', 'unchanged-during-read'} and calls == 2:
+                observed['read_completed'] = os.lseek(fd, 0, os.SEEK_CUR) == expected.st_size
             return info
         monkeypatch.setattr(origin.os, 'fstat', unstable_fstat)
-    with pytest.raises(ValueError):
-        live(installed)
+        if variant == 'replaced-during-read':
+            real_lstat = Path.lstat
+            def changed_named_identity(path):
+                info = real_lstat(path)
+                if path == target and calls == 2:
+                    observed['named_identity_changed'] = True
+                    return SimpleNamespace(st_dev=info.st_dev, st_ino=info.st_ino + 1)
+                return info
+            # Windows denies renaming an open file. Inject only the named
+            # identity after the real descriptor read; leave that descriptor open.
+            monkeypatch.setattr(Path, 'lstat', changed_named_identity)
+    if variant == 'unchanged-during-read':
+        proof, _ = live(installed)
+        assert proof['schema'] == python_copy.PROOF_SCHEMA
+        assert calls == 2 and observed['read_completed'] and not observed['named_identity_changed']
+    else:
+        with pytest.raises(ValueError):
+            live(installed)
+    if variant == 'replaced-during-read':
+        assert calls == 2 and all(observed.values())
 
 
 @pytest.mark.parametrize('parent', ['_internal', '_internal/Python.framework/Versions'])
