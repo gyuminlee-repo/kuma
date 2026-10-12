@@ -98,7 +98,8 @@ def test_annotation_status_literal_matches_frontend_validator():
     assert allowed == set(re.findall(r'item === "([a-z_]+)"', line))
     assert FetchActiveSiteResult(accession="X").annotation_status in allowed
     with pytest.raises(ValidationError):
-        FetchActiveSiteResult(accession="X", annotation_status="unknown")
+        # A dict keeps the deliberately invalid literal out of the typed constructor.
+        FetchActiveSiteResult.model_validate({"accession": "X", "annotation_status": "unknown"})
 
 
 def test_alphafold_db_source_reads_plddt_without_a_recognised_title(tmp_path, caplog):
