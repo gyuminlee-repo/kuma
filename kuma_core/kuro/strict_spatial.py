@@ -9,6 +9,7 @@ the B-factor column, while an experimental B-factor is not a confidence score.
 from __future__ import annotations
 
 import hashlib
+import logging
 import math
 import re
 import sys
@@ -21,22 +22,39 @@ from kuma_core.kuro.interface import exact_reference_offset
 # Nature 596:583; AlphaFold DB FAQ). Such regions are often disordered and their
 # coordinates are not a placement, so they must not count as spatial spread.
 PLDDT_VERY_LOW = 50.0
+# Caller-declared origin: the file was downloaded from AlphaFold DB, whose PDB
+# files store per-residue pLDDT in the B-factor column.
+SOURCE_ALPHAFOLD_DB = "alphafold_db"
+
+logger = logging.getLogger(__name__)
 
 
 def _is_alphafold_model(pdb_text: str) -> bool:
     """AlphaFold DB PDB files title themselves "ALPHAFOLD ... PREDICTION FOR".
 
-    Experimental entries carry an EXPDTA method and no such title, so their
-    B-factors are never read as pLDDT. Unlabelled files stay "unavailable".
+    Only the TITLE records are read. A file without that title, experimental
+    or unlabelled, is not treated as AlphaFold, so its B-factors are never read
+    as pLDDT unless the caller declares an AlphaFold DB source.
     """
     title = " ".join(line[10:].strip() for line in pdb_text.splitlines() if line.startswith("TITLE "))
     return "ALPHAFOLD" in title.upper() and "PREDICTION" in title.upper()
 
 
-def exact_pdb_context(pdb_text: str, reference: str, accession: str) -> dict:
+def exact_pdb_context(pdb_text: str, reference: str, accession: str, *, source: str | None = None) -> dict:
+    """``source=SOURCE_ALPHAFOLD_DB`` states the file came from AlphaFold DB.
+
+    The declared origin decides pLDDT reading; the TITLE is only a cross-check.
+    Without ``source`` the TITLE alone decides, as before.
+    """
+    if source not in (None, SOURCE_ALPHAFOLD_DB):
+        raise ValueError(f"Unknown strict spatial structure source: {source}")
     reference = reference.strip().rstrip("*")
     residues: dict[int, tuple[str, tuple[float, float, float] | None, float | None]] = {}
-    alphafold = _is_alphafold_model(pdb_text)
+    titled = _is_alphafold_model(pdb_text)
+    if source == SOURCE_ALPHAFOLD_DB and not titled:
+        logger.warning("AlphaFold DB file %s has no recognised AlphaFold TITLE; "
+                       "reading its B-factors as pLDDT because of the declared source", accession)
+    alphafold = titled or source == SOURCE_ALPHAFOLD_DB
     chains: set[str] = set()
     models = 0
     model_id = 1
@@ -178,7 +196,10 @@ def select_single_sites(rows: list[tuple[str, float]], reference: str, context: 
         candidates.extend((v, score, position) for v, score in ranked[:limit])
     if count > len(candidates):
         unit = "eligible unique sites" if budget == "unique_sites" else "eligible variant capacity"
-        raise ValueError(f"Strict spatial count {count} exceeds {len(candidates)} {unit}")
+        reasons = Counter(r["reason"] for r in excluded)
+        detail = ", ".join(f"{reason}={n}" for reason, n in sorted(reasons.items())) or "none"
+        raise ValueError(f"Strict spatial count {count} exceeds {len(candidates)} {unit} "
+                         f"(excluded variants by reason: {detail})")
     # Dense indices keep the existing selector's parser independent of sparse
     # reference numbering. The certificate retains actual reference identities.
     candidates.sort(key=lambda row: (-row[1], row[2], row[0]))

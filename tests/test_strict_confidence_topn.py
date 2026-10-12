@@ -99,3 +99,40 @@ def test_annotation_status_literal_matches_frontend_validator():
     assert FetchActiveSiteResult(accession="X").annotation_status in allowed
     with pytest.raises(ValidationError):
         FetchActiveSiteResult(accession="X", annotation_status="unknown")
+
+
+def test_alphafold_db_source_reads_plddt_without_a_recognised_title(tmp_path, caplog):
+    # The strict RPC only fetches from AlphaFold DB, so a changed TITLE format
+    # must not silently drop the pLDDT filter.
+    from unittest.mock import patch
+
+    from sidecar_kuro.handlers.misc import handle_load_evolvepro_csv
+
+    path = tmp_path / "variants.csv"
+    path.write_text("variant,y_pred\n" + "\n".join(f"{v},{s}" for v, s in rows()) + "\n")
+    with patch("kuma_core.kuro.alphafold.fetch_pdb_text", return_value=atoms()), caplog.at_level("WARNING"):
+        result = handle_load_evolvepro_csv({
+            "filepath": str(path), "top_n": 3, "ref_seq": SEQUENCE, "structure_accession": "X00000",
+            "strict_spatial": True, "structural_diversity": True})
+    report = result["strict_spatial"]
+    assert report["confidence_source"] == "alphafold_plddt"
+    assert report["coordinate_confidence"]["source"] == "alphafold_plddt"
+    assert report["coordinate_confidence"]["low_confidence_residue_count"] == 3
+    assert "A2C" not in report["selected_variants"]
+    assert "TITLE" in caplog.text
+
+
+def test_direct_call_without_source_keeps_title_inference():
+    assert exact_pdb_context(atoms(), SEQUENCE, "X00000")["confidence_source"] == "unavailable"
+    assert exact_pdb_context(atoms(AF_HEADER), SEQUENCE, "X00000")["confidence_source"] == "alphafold_plddt"
+    with pytest.raises(ValueError, match="source"):
+        exact_pdb_context(atoms(), SEQUENCE, "X00000", source="pdb")
+
+
+def test_capacity_error_names_low_confidence_exclusions():
+    context = exact_pdb_context(atoms(AF_HEADER), SEQUENCE, "X00000")
+    with pytest.raises(ValueError) as error:
+        select_single_sites(rows(), SEQUENCE, context, 10)
+    message = str(error.value)
+    assert message.startswith("Strict spatial count 10 exceeds 9 eligible unique sites")
+    assert "low_confidence_coordinate=2" in message
