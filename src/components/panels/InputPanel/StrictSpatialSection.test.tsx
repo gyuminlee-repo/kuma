@@ -132,3 +132,27 @@ describe("full df_test pool diagnostics", () => {
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
 });
+
+describe("exclusion summary punctuation", () => {
+  // Locale-owned separators: ja/zh use full-width punctuation, so none may be hardcoded.
+  it("joins reason and count with the locale's own separators", async () => {
+    const { default: i18n } = await import("@/lib/i18n");
+    i18n.addResourceBundle("en", "translation", { strictSpatial: {
+      exclusionItem: "{{reason}} = {{amount}}", exclusionSeparator: " | " } }, true, true);
+    try {
+      const report = { ...syntheticFullDfTestFixture(12), excluded: [
+        { variant: "A2C", reason: "low_confidence_coordinate" }, { variant: "A3C", reason: "low_confidence_coordinate" },
+        { variant: "A4A", reason: "unchanged_amino_acid" }] };
+      useAppStore.setState({ maxPrimers: report.requested_count, strictSpatialBudgetMode: "distinct_variants",
+        evolveproScoreOrder: report.score_order, evolveproSelectedVariants: report.selected_variants,
+        evolveproCsvPath: "/tmp/synthetic_df_test.csv" });
+      useAppStore.setState({ strictSpatialSelection: { result: report, contextKey: strictSpatialContextKey(useAppStore.getState()) } });
+      render(<StrictSpatialSection />);
+      expect(screen.getByText(
+        "Excluded from spatial selection: low-confidence coordinate (pLDDT) = 2 | unchanged amino acid = 1")).toBeInTheDocument();
+    } finally {
+      i18n.removeResourceBundle("en", "translation");
+      i18n.addResourceBundle("en", "translation", (await import("@/locales/en.json")).default, true, true);
+    }
+  });
+});

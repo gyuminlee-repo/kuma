@@ -60,8 +60,10 @@ function StrictSpatialExclusions({ result }: { result: StrictSpatialResult }) {
   const confidence = result.coordinate_confidence;
   const counts = new Map<string, number>();
   for (const row of result.excluded) counts.set(row.reason, (counts.get(row.reason) ?? 0) + 1);
-  const summary = [...counts].map(([reason, count]) =>
-    `${EXCLUSION_REASONS[reason] ? t(EXCLUSION_REASONS[reason]) : reason}: ${count}`).join("; ");
+  // Punctuation is locale-owned: ja/zh join with full-width marks.
+  const summary = [...counts].map(([reason, count]) => t("strictSpatial.exclusionItem", {
+    reason: EXCLUSION_REASONS[reason] ? t(EXCLUSION_REASONS[reason]) : reason, amount: count,
+  })).join(t("strictSpatial.exclusionSeparator"));
   return <>
     {confidence && <p>{confidence.source === "alphafold_plddt"
       ? t("strictSpatial.confidenceAlphaFold", { threshold: confidence.threshold,
