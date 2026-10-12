@@ -162,7 +162,12 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           strictSpatialSiteCap,
           anchorVariants,
         });
-      const strictMode = usePipeline && structuralDiversityEnabled && strictSpatialEnabled;
+      // A finished load always lands in EVOLVEpro mode (inputPatch below), so
+      // strict mode is judged against that mode. A CSV dropped while the text
+      // tab is open would otherwise send a strict request and then discard the
+      // strict response as stale.
+      const strictAfterLoad = () => isStrictSpatialMode({ ...get(), mutationInputMode: "evolvepro" });
+      const strictMode = strictAfterLoad();
       const contextKey = strictSpatialContextKey(get());
       if (strictMode) {
         if (!refSeq || !(get().structureAccession || get().uniprotAccession)
@@ -174,8 +179,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       }
       const result = await sendRequest("load_evolvepro_csv", params);
       if (gen !== csvLoadGeneration) return;
-      if (Boolean(strictMode) !== isStrictSpatialMode(get())) return;
-      if (strictMode && (contextKey !== strictSpatialContextKey(get()) || !isStrictSpatialMode(get()))) return;
+      if (strictMode !== strictAfterLoad()) return;
+      if (strictMode && contextKey !== strictSpatialContextKey(get())) return;
       if (strictMode && (!result.strict_spatial
         || !sameVariantIds(result.strict_spatial.selected_variants, result.variants)
         || result.strict_spatial.source_accession !== String(params.structure_accession).trim().toUpperCase()
