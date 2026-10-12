@@ -212,9 +212,73 @@ for (const file of walk(SRC)) {
   }
 }
 
-if (offenders.length === 0 && englishOffenders.length === 0 && missingKeys.length === 0) {
+// ---------------------------------------------------------------------------
+// Scoped key-literal and unused-key check
+//
+// The t() check above only sees keys written inside a t(...) call. A key kept
+// in a lookup table ({ reason: "ns.key" }) and passed to t() through a
+// variable is invisible to it, so a typo there renders as the raw key. And an
+// en.json key that no code reads anymore is silently shipped and translated.
+//
+// For each namespace in KEY_SCOPED_NAMESPACES this checks:
+//   1. every quoted "ns.key" literal anywhere in src/ (outside tests) exists
+//      in en.json;
+//   2. every en.json key under ns is referenced by some literal.
+//
+// Dynamic keys, t(`ns.${label}`): the label candidates are taken to be the
+// bare string literals ("comparisonVariants") in the same file, and each
+// `ns.<literal>` counts as referenced. A dynamic key whose candidates live in
+// another file, or are computed, leaves its keys reported as unused; fix that
+// by moving the candidates next to the template rather than by listing keys
+// here. Candidates are not checked for existence (only dotted literals are).
+//
+// Scope is opt-in per namespace because the whole tree does not pass yet: run
+// across every namespace on 2026-10-12, (1) flagged 42 literals, mostly RPC
+// method names such as "mame.build_well_layout" and file names such as
+// "kuro.json", and (2) flagged 536 of 3086 keys as unused. Add a namespace
+// here once it is clean.
+// ---------------------------------------------------------------------------
+const KEY_SCOPED_NAMESPACES = ["strictSpatial"];
+const KEY_LITERAL = /["'`]([A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+)+)["'`]/g;
+const DYNAMIC_KEY = /`([A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+)*)\.\$\{/g;
+const BARE_LITERAL = /["'`]([A-Za-z][A-Za-z0-9_]*)["'`]/g;
+const PLURAL_TAIL = /_(zero|one|two|few|many|other)$/;
+
+function flattenKeys(obj, prefix = "") {
+  return Object.entries(obj).flatMap(([k, v]) =>
+    v && typeof v === "object" && !Array.isArray(v) ? flattenKeys(v, `${prefix}${k}.`) : [`${prefix}${k}`]);
+}
+
+const en = locales.en ?? {};
+const inScope = (key) => KEY_SCOPED_NAMESPACES.includes(key.split(".")[0]);
+const referencedKeys = new Set();
+const unknownLiterals = [];
+for (const file of walk(SRC)) {
+  const rel = relative(ROOT, file).replace(/\\/g, "/");
+  const text = readFileSync(file, "utf8");
+  for (const m of text.matchAll(KEY_LITERAL)) {
+    const key = m[1];
+    if (!inScope(key)) continue;
+    referencedKeys.add(key);
+    if (!resolves(en, key)) {
+      const line = text.slice(0, m.index).split("\n").length;
+      unknownLiterals.push(`${rel}:${line}: ${key}`);
+    }
+  }
+  const dynamicPrefixes = [...text.matchAll(DYNAMIC_KEY)].map((m) => m[1]).filter((p) => inScope(`${p}.x`));
+  if (dynamicPrefixes.length === 0) continue;
+  const bares = [...text.matchAll(BARE_LITERAL)].map((m) => m[1]);
+  for (const prefix of dynamicPrefixes) for (const bare of bares) referencedKeys.add(`${prefix}.${bare}`);
+}
+const unusedKeys = flattenKeys(en)
+  .filter((key) => inScope(key))
+  .filter((key) => !referencedKeys.has(key) && !referencedKeys.has(key.replace(PLURAL_TAIL, "")));
+
+if (offenders.length === 0 && englishOffenders.length === 0 && missingKeys.length === 0
+  && unknownLiterals.length === 0 && unusedKeys.length === 0) {
   console.log(
-    "i18n-lint: ok (0 hardcoded Korean lines, 0 hardcoded English in MAME components, 0 unresolved t() keys)",
+    "i18n-lint: ok (0 hardcoded Korean lines, 0 hardcoded English in MAME components, 0 unresolved t() keys, "
+      + `0 unknown or unused keys in ${KEY_SCOPED_NAMESPACES.join(", ")})`,
   );
   process.exit(0);
 }
@@ -234,6 +298,14 @@ if (missingKeys.length > 0) {
     `i18n-lint: ${missingKeys.length} t() key(s) missing from every locale (would render as the raw key):`,
   );
   for (const o of missingKeys) console.error("  " + o);
+}
+if (unknownLiterals.length > 0) {
+  console.error(`i18n-lint: ${unknownLiterals.length} key literal(s) missing from en.json:`);
+  for (const o of unknownLiterals) console.error("  " + o);
+}
+if (unusedKeys.length > 0) {
+  console.error(`i18n-lint: ${unusedKeys.length} en.json key(s) no code references:`);
+  for (const o of unusedKeys) console.error("  " + o);
 }
 console.error("\nFix: extract to src/locales/{en,ko}.json and use t() / i18next.t().");
 console.error("Allowlist intentional Korean in scripts/i18n-lint.mjs ALLOWLIST.");
