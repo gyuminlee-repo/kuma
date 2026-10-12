@@ -55,6 +55,26 @@ afterEach(() => {
 });
 
 describe("AppLayout CSV drop", () => {
+  it("handles a rejected CSV drop without losing the store error", async () => {
+    const message = "Strict spatial count 95 exceeds 30 eligible unique sites";
+    const rejected = Promise.reject(new Error(message));
+    rejected.catch(() => {});
+    const handled = vi.spyOn(rejected, "catch");
+    const loadSpy = vi.fn(() => {
+      useAppStore.setState({ strictSpatialError: message, statusMessage: message });
+      return rejected;
+    });
+    useAppStore.setState({ loadEvolveproCsv: loadSpy });
+    render(<AppLayout />);
+    await waitFor(() => expect(drop.handler).not.toBeNull());
+    drop.handler!({ payload: { type: "drop", paths: ["/elsewhere/rejected.csv"] } });
+    await waitFor(() => expect(loadSpy).toHaveBeenCalledTimes(1));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(handled).toHaveBeenCalledTimes(1);
+    expect(useAppStore.getState().strictSpatialError).toBe(message);
+    expect(useAppStore.getState().statusMessage).toBe(message);
+  });
+
   it("loads a dropped table and records it as the operator's pick", async () => {
     const loadSpy = vi.fn(async () => {});
     useAppStore.setState({ loadEvolveproCsv: loadSpy as unknown as typeof originalLoad });

@@ -68,6 +68,28 @@ afterEach(() => {
 });
 
 describe("MutationInput manifest auto-fill", () => {
+  it.each(["manifest", "browse"])("handles a rejected %s load without losing the store error", async (source) => {
+    const message = "Strict spatial count 95 exceeds 30 eligible unique sites";
+    const rejected = Promise.reject(new Error(message));
+    rejected.catch(() => {});
+    const handled = vi.spyOn(rejected, "catch");
+    loadSpy.mockImplementation(() => {
+      useAppStore.setState({ strictSpatialError: message, statusMessage: message });
+      return rejected;
+    });
+    if (source === "browse") artifactHolder.current = null;
+    browseHolder.nextPath = "/elsewhere/rejected.csv";
+    await act(async () => { render(<MutationInput />); });
+    if (source === "browse") {
+      await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Browse" })); });
+    }
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(loadSpy).toHaveBeenCalledTimes(1);
+    expect(handled).toHaveBeenCalledTimes(1);
+    expect(useAppStore.getState().strictSpatialError).toBe(message);
+    expect(useAppStore.getState().statusMessage).toBe(message);
+  });
+
   it("fills an empty field from the manifest", () => {
     render(<MutationInput />);
     expect(loadSpy).toHaveBeenCalledTimes(1);
