@@ -4128,6 +4128,8 @@
     "confidenceAlphaFold": "AlphaFold model: {{residues}} residues with pLDDT below {{threshold}} were left out of the distance calculation. Their {{variants}} variants are not eligible for spatial selection but stay in the candidate list.",
     "confidenceUnavailable": "This structure carries no per-residue confidence, so no coordinates were filtered by confidence.",
     "exclusionSummary": "Excluded from spatial selection: {{summary}}",
+    "exclusionItem": "{{reason}}: {{amount}}",
+    "exclusionSeparator": "; ",
     "reasonUnchanged": "unchanged amino acid",
     "reasonNonfiniteScore": "missing or non-numeric score",
     "reasonExplicitExclusion": "excluded range",

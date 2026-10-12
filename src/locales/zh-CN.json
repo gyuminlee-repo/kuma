@@ -4128,6 +4128,8 @@
     "confidenceAlphaFold": "AlphaFold 模型：pLDDT 低于 {{threshold}} 的 {{residues}} 个残基未参与距离计算。其 {{variants}} 个变体不参与空间选择，但仍保留在候选列表中。",
     "confidenceUnavailable": "该结构没有逐残基置信度，因此未按置信度过滤坐标。",
     "exclusionSummary": "从空间选择中排除：{{summary}}",
+    "exclusionItem": "{{reason}}：{{amount}}",
+    "exclusionSeparator": "；",
     "reasonUnchanged": "氨基酸未改变",
     "reasonNonfiniteScore": "分数缺失或非数值",
     "reasonExplicitExclusion": "排除区间",

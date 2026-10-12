@@ -4128,6 +4128,8 @@
     "confidenceAlphaFold": "Модель AlphaFold: {{residues}} остатков с pLDDT ниже {{threshold}} исключены из расчёта расстояний. Их {{variants}} вариантов не участвуют в пространственном выборе, но остаются в списке кандидатов.",
     "confidenceUnavailable": "Для этой структуры нет уверенности по остаткам, поэтому координаты по уверенности не фильтровались.",
     "exclusionSummary": "Исключено из пространственного выбора: {{summary}}",
+    "exclusionItem": "{{reason}}: {{amount}}",
+    "exclusionSeparator": "; ",
     "reasonUnchanged": "аминокислота не меняется",
     "reasonNonfiniteScore": "оценка отсутствует или не числовая",
     "reasonExplicitExclusion": "исключённый диапазон",

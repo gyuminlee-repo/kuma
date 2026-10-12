@@ -4128,6 +4128,8 @@
     "confidenceAlphaFold": "AlphaFold-Modell: {{residues}} Reste mit pLDDT unter {{threshold}} wurden aus der Abstandsberechnung ausgeschlossen. Ihre {{variants}} Varianten sind für die räumliche Auswahl nicht zulässig, bleiben aber in der Kandidatenliste.",
     "confidenceUnavailable": "Diese Struktur enthält keine Konfidenz pro Rest, daher wurden keine Koordinaten nach Konfidenz gefiltert.",
     "exclusionSummary": "Von der räumlichen Auswahl ausgeschlossen: {{summary}}",
+    "exclusionItem": "{{reason}}: {{amount}}",
+    "exclusionSeparator": "; ",
     "reasonUnchanged": "Aminosäure unverändert",
     "reasonNonfiniteScore": "Score fehlt oder ist nicht numerisch",
     "reasonExplicitExclusion": "ausgeschlossener Bereich",

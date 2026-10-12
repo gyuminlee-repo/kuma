@@ -4128,6 +4128,8 @@
     "confidenceAlphaFold": "Modelo de AlphaFold: se excluyeron del cálculo de distancias {{residues}} residuos con pLDDT inferior a {{threshold}}. Sus {{variants}} variantes no son elegibles para la selección espacial, pero siguen en la lista de candidatos.",
     "confidenceUnavailable": "Esta estructura no incluye confianza por residuo, así que no se filtró ninguna coordenada por confianza.",
     "exclusionSummary": "Excluidas de la selección espacial: {{summary}}",
+    "exclusionItem": "{{reason}}: {{amount}}",
+    "exclusionSeparator": "; ",
     "reasonUnchanged": "aminoácido sin cambio",
     "reasonNonfiniteScore": "puntuación ausente o no numérica",
     "reasonExplicitExclusion": "rango excluido",

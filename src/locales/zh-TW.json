@@ -4128,6 +4128,8 @@
     "confidenceAlphaFold": "AlphaFold 模型：pLDDT 低於 {{threshold}} 的 {{residues}} 個殘基未納入距離計算。其 {{variants}} 個變異體不參與空間選擇，但仍保留在候選清單中。",
     "confidenceUnavailable": "此結構沒有逐殘基信賴度，因此未依信賴度篩除座標。",
     "exclusionSummary": "從空間選擇中排除：{{summary}}",
+    "exclusionItem": "{{reason}}：{{amount}}",
+    "exclusionSeparator": "；",
     "reasonUnchanged": "胺基酸未改變",
     "reasonNonfiniteScore": "分數缺失或非數值",
     "reasonExplicitExclusion": "排除區間",

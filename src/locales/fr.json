@@ -4128,6 +4128,8 @@
     "confidenceAlphaFold": "Modèle AlphaFold : {{residues}} résidus avec un pLDDT inférieur à {{threshold}} ont été exclus du calcul des distances. Leurs {{variants}} variants ne sont pas admissibles à la sélection spatiale mais restent dans la liste des candidats.",
     "confidenceUnavailable": "Cette structure ne fournit pas de confiance par résidu ; aucune coordonnée n'a donc été filtrée selon la confiance.",
     "exclusionSummary": "Exclus de la sélection spatiale : {{summary}}",
+    "exclusionItem": "{{reason}} : {{amount}}",
+    "exclusionSeparator": " ; ",
     "reasonUnchanged": "acide aminé inchangé",
     "reasonNonfiniteScore": "score absent ou non numérique",
     "reasonExplicitExclusion": "plage exclue",

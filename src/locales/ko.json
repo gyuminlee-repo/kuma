@@ -4128,6 +4128,8 @@
     "confidenceAlphaFold": "AlphaFold 모델에서 pLDDT가 {{threshold}} 미만인 잔기 {{residues}}개를 거리 계산에서 뺐습니다. 해당 변이체 {{variants}}개는 공간 선택 대상에서 빠지지만 후보 목록에는 남습니다.",
     "confidenceUnavailable": "이 구조에는 잔기별 신뢰도가 없어 신뢰도에 따른 좌표 제외를 하지 않았습니다.",
     "exclusionSummary": "공간 선택에서 제외: {{summary}}",
+    "exclusionItem": "{{reason}}: {{amount}}개",
+    "exclusionSeparator": "; ",
     "reasonUnchanged": "아미노산 변화 없음",
     "reasonNonfiniteScore": "점수 없음 또는 숫자가 아님",
     "reasonExplicitExclusion": "제외 구간",
