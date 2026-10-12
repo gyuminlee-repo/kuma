@@ -75,7 +75,7 @@ describe("full df_test pool diagnostics", () => {
     expect(within(table).getByRole("row", { name: "Max. variants per site 2 12" })).toBeInTheDocument();
     expect(within(table).getByRole("row", { name: "Min. site separation (Å) 4 N/A" })).toBeInTheDocument();
     expect(within(table).getByRole("row", { name: "Mean nearest-site distance (Å) 0 10" })).toBeInTheDocument();
-    expect(screen.getByText(/equal weight per site/)).toBeInTheDocument();
+    expect(screen.getByText(/each weighted equally/)).toBeInTheDocument();
     expect(screen.getByText(/higher is better.*ties share an averaged rank/)).toBeInTheDocument();
     expect(screen.getByText(/not measured fitness loss or biological benefit/)).toBeInTheDocument();
     expect(screen.getByText(/Overlap: 2\/12 variants/)).toBeInTheDocument();
