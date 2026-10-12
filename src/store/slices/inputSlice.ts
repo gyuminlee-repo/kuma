@@ -254,7 +254,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       if (gen === csvLoadGeneration) {
         set({
           strictSpatialSelection: null,
-          strictSpatialError: isStrictSpatialMode(get()) ? formatError(err) : null,
+          strictSpatialError: isStrictSpatialMode({ ...get(), mutationInputMode: "evolvepro" }) ? formatError(err) : null,
           mutationText: "",
           evolveproTotalCount: 0,
           evolveproFilteredCount: null,
