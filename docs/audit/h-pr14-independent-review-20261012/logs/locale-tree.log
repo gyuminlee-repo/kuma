@@ -1,0 +1,12 @@
+{"command": ["git", "ls-tree", "HEAD", "src/locales/"], "exit_code": 0, "cwd": "<local>", "PYTHON_BIN": "<local>\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe", "utc": "2026-10-12T09:05:00.001034+00:00"}
+100644 blob 91698102272803be1721cd1e1825e17ed1242378	src/locales/de.json
+100644 blob 0a116c64b51ceace9e5f79e9cca15dd222776938	src/locales/en.json
+100644 blob 8e4bf3cc82854585bff4ed8f15228e3e1f90c491	src/locales/es.json
+100644 blob feb208da0f93e3a35efd7db830916e3b971d470b	src/locales/fr.json
+100644 blob 3fadbe22626149848a597b17fc0d6ae3671611d0	src/locales/ja.json
+100644 blob 1350d2e7d0be4ff0fc0be0b3e05644323f4bc943	src/locales/ko.json
+100644 blob 500163e0cf94e6980b8176bbf4b3b3191e922772	src/locales/pt-BR.json
+100644 blob f90bbddf9e46fb308972cb4d9d6cfe8761b0a9a7	src/locales/restorableDesc.test.ts
+100644 blob c59faf06391ebe3f196b329193ed214d749e7912	src/locales/ru.json
+100644 blob ff44b4f20ab1ae49e1ba8fd87420b8f2c0b233db	src/locales/zh-CN.json
+100644 blob 035c95c5096a3545e65359d7acceb000a61df16f	src/locales/zh-TW.json
