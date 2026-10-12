@@ -580,6 +580,8 @@ export interface StrictSpatialResult {
   parsing_omitted_count: number;
   start_position_omitted_count: number;
   duplicate_variant_omitted_count: number;
+  /** Source of per-residue confidence; equals coordinate_confidence.source when both are present. */
+  confidence_source?: StrictSpatialCoordinateConfidence["source"];
   /** Older certificates may omit diagnostics without losing selection identity. */
   comparison?: StrictSpatialComparison;
   coordinate_confidence?: StrictSpatialCoordinateConfidence;

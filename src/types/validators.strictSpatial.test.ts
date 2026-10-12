@@ -149,16 +149,37 @@ describe("strict spatial raw-pool Top-N and coordinate confidence", () => {
     expect(valid(response({ ...strict, comparison } as typeof strict))).toBe(false);
   });
   const lowConfidence = { variant: "A3G", reason: "low_confidence_coordinate" };
+  // pLDDT mapping consistent with one low-confidence residue (position 3).
+  function plddtReport(overrides: Record<string, unknown> = {}) {
+    const strict = report();
+    const mapping = [...strict.mapping.map((row) => ({ ...row, confidence: 90 })),
+      { reference_position: 3, structure_position: 13, chain_id: "A", insertion_code: "", coordinate: [5, 2, 3] as [number, number, number], confidence: 30 }];
+    return report({ mapping, excluded: [lowConfidence], confidence_source: "alphafold_plddt",
+      coordinate_confidence: { source: "alphafold_plddt", threshold: 50, low_confidence_residue_count: 1, excluded_variant_count: 1 },
+      ...overrides } as never);
+  }
+  it("accepts a pLDDT report whose residue count matches the mapping", () => {
+    expect(valid(response(plddtReport()))).toBe(true);
+  });
+  it("rejects a pLDDT report whose mapping or top-level source disagrees", () => {
+    const strict = plddtReport();
+    const confidence = strict.coordinate_confidence;
+    expect(valid(response({ ...strict, coordinate_confidence: { ...confidence!, low_confidence_residue_count: 2 } }))).toBe(false);
+    expect(valid(response({ ...strict, mapping: strict.mapping.map((row, index) => (index === 0 ? { ...row, confidence: null } : row)) }))).toBe(false);
+    expect(valid(response({ ...strict, mapping: strict.mapping.map(({ confidence: _drop, ...row }) => row) }))).toBe(false);
+    expect(valid(response({ ...strict, confidence_source: "unavailable" }))).toBe(false);
+    expect(valid(response({ ...strict, confidence_source: "b_factor" } as never))).toBe(false);
+  });
   it.each([
-    [{ source: "alphafold_plddt", threshold: 50, low_confidence_residue_count: 4, excluded_variant_count: 1 }, [lowConfidence], true],
+    [{ source: "alphafold_plddt", threshold: 50, low_confidence_residue_count: 1, excluded_variant_count: 1 }, [lowConfidence], true],
     [{ source: "unavailable", threshold: null, low_confidence_residue_count: 0, excluded_variant_count: 0 }, [], true],
-    [{ source: "alphafold_plddt", threshold: 70, low_confidence_residue_count: 4, excluded_variant_count: 1 }, [lowConfidence], false],
+    [{ source: "alphafold_plddt", threshold: 70, low_confidence_residue_count: 1, excluded_variant_count: 1 }, [lowConfidence], false],
     [{ source: "unavailable", threshold: 50, low_confidence_residue_count: 0, excluded_variant_count: 0 }, [], false],
     [{ source: "unavailable", threshold: null, low_confidence_residue_count: 0, excluded_variant_count: 0 }, [lowConfidence], false],
-    [{ source: "alphafold_plddt", threshold: 50, low_confidence_residue_count: 4, excluded_variant_count: 2 }, [lowConfidence], false],
+    [{ source: "alphafold_plddt", threshold: 50, low_confidence_residue_count: 1, excluded_variant_count: 2 }, [lowConfidence], false],
     [{ source: "b_factor", threshold: null, low_confidence_residue_count: 0, excluded_variant_count: 0 }, [], false],
   ])("checks the confidence report %j against the exclusions", (confidence, excluded, expected) => {
-    expect(valid(response(report({ coordinate_confidence: confidence, excluded } as never)))).toBe(expected);
+    expect(valid(response(plddtReport({ coordinate_confidence: confidence, excluded, confidence_source: undefined })))).toBe(expected);
   });
   it("rejects an out-of-range per-residue pLDDT", () => {
     const strict = report();

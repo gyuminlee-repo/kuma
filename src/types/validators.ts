@@ -635,11 +635,22 @@ function isStrictSpatialCoordinateConfidence(value: unknown, report: StrictSpati
   const count = (item: unknown) => isNumber(item) && Number.isSafeInteger(item) && item >= 0;
   if (!(isRecord(value) && (value.source === "alphafold_plddt" || value.source === "unavailable")
     && count(value.low_confidence_residue_count) && count(value.excluded_variant_count))) return false;
+  if (report.confidence_source !== undefined && report.confidence_source !== value.source) return false;
   const excluded = report.excluded.filter((row) => row.reason === "low_confidence_coordinate").length;
-  return value.excluded_variant_count === excluded
-    && (value.source === "alphafold_plddt"
-      ? value.threshold === 50
-      : value.threshold === null && value.low_confidence_residue_count === 0 && excluded === 0);
+  if (value.excluded_variant_count !== excluded) return false;
+  if (value.source !== "alphafold_plddt") {
+    return value.threshold === null && value.low_confidence_residue_count === 0 && excluded === 0;
+  }
+  // Every mapped residue of an AlphaFold model carries its pLDDT, and the
+  // reported residue count is recomputable from the mapping itself.
+  const threshold = value.threshold;
+  if (threshold !== 50) return false;
+  let low = 0;
+  for (const row of report.mapping) {
+    if (!isNumber(row.confidence)) return false;
+    if (row.confidence < threshold) low += 1;
+  }
+  return value.low_confidence_residue_count === low;
 }
 
 function isStrictSpatialResult(value: unknown): boolean {
@@ -711,6 +722,8 @@ function isStrictSpatialResult(value: unknown): boolean {
     && (report.geometry_variant_min_pair_distance === null) === (report.selected_variant_count < 2)
     && (report.geometry_site_min_pair_distance === null) === (report.selected_site_count < 2)
     && isStrictSpatialComparison(value.comparison, report)
+    && (value.confidence_source === undefined
+      || value.confidence_source === "alphafold_plddt" || value.confidence_source === "unavailable")
     && isStrictSpatialCoordinateConfidence(value.coordinate_confidence, report);
 }
 
