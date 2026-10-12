@@ -109,7 +109,7 @@ CSV 선정·benchmark·dispersion·3D 표시가 같은 projection과 mask를 공
 
 - Rost 1999는 sequence identity만이 아니라 alignment 길이도 중요함을 보여준다. 30% 또는 50%를 보편적 거리 정확도 기준으로 쓰지 않는다. PMID 10195279, DOI [10.1093/protein/12.2.85](https://doi.org/10.1093/protein/12.2.85).
 - Kosloff & Kolodny 2008는 서열이 비슷한 단백질도 다른 구조를 가질 수 있음을 분석한다. 높은 identity가 domain motion·상태 차이를 제거하지 않는다. PMID 18004789, DOI [10.1002/prot.21770](https://doi.org/10.1002/prot.21770).
-- 3N0F/G 원논문은 Populus × canescens PcISPS 구조와 N말단 construct 조건을 기술한다. 이를 다른 종의 PtIspS 또는 임의 참조와 동일한 것으로 취급하지 않는다. 이 compact 재현에서는 실제 구조 다운로드/서열 대조를 실행하지 않았다. PMID 20624401, DOI [10.1016/j.jmb.2010.07.009](https://pmc.ncbi.nlm.nih.gov/articles/PMC2942996/).
+- 3N0F/G 원논문은 Populus × canescens PcISPS 구조와 N말단 construct 조건을 기술한다. 이를 다른 종의 구조나 임의 참조와 동일한 것으로 취급하지 않는다. 이 compact 재현에서는 실제 구조 다운로드/서열 대조를 실행하지 않았다. PMID 20624401, DOI [10.1016/j.jmb.2010.07.009](https://pmc.ncbi.nlm.nih.gov/articles/PMC2942996/).
 
 ## 선행 방법 및 공개 구현 비교
 
@@ -170,7 +170,7 @@ CSV 선정·benchmark·dispersion·3D 표시가 같은 projection과 mask를 공
 
 `reproduce.py`와 `observations.json`은 이 문서 게시 준비 과정에서 **새로 실행한 합성 증거**다. 이전 보고서나 대화에 있던 테스트 수·공개 구조 통계·원시 로그를 이 PR의 새 검증으로 재사용하지 않는다.
 
-script는 위 고정 SHA의 관련 파일과 현재 파일 bytes가 같아야 실행한다. core 함수는 이 checkout에서 직접 import한다. sidecar guard는 원본 AST의 함수 node를 변경 없이 실행하고 cached sequence lookup만 stub한다. 전체 sidecar import에 필요한 primer3 의존성을 확보하지 못했으므로 **sidecar 통합 테스트가 아니다**. dispersion의 네트워크 fetch는 합성 값으로 대체한다. 모델 호출과 외부 서열 제출은 없다.
+script는 위 고정 SHA의 관련 파일과 현재 파일 bytes가 같아야 실행한다. 따라서 이 script는 고정 SHA의 checkout에서만 실행되고 감사 대상 파일을 고친 이후의 main에서는 의도대로 실행을 거부한다. 빈 구조 서열에서 guard가 열린 채 통과하는 문제와 말단 offset 미적용 문제는 PR #5(exact-frame spatial selection)가 고친다. core 함수는 이 checkout에서 직접 import한다. sidecar guard는 원본 AST의 함수 node를 변경 없이 실행하고 cached sequence lookup만 stub한다. 전체 sidecar import에 필요한 primer3 의존성을 확보하지 못했으므로 **sidecar 통합 테스트가 아니다**. dispersion의 네트워크 fetch는 합성 값으로 대체한다. 모델 호출과 외부 서열 제출은 없다.
 
 ```bash
 # 감사 commit을 포함한 checkout. 프로젝트 Python 의존성 환경을 사용한다.
