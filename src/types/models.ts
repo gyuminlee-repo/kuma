@@ -504,17 +504,39 @@ export interface StrictSpatialProfile {
   mean_score_rank: number | null;
 }
 
-export interface StrictSpatialComparison {
-  baseline: "configured-score-top-n";
-  universe: "eligible-variants-after-budget-and-cap-policy";
-  candidate_site_count: number;
-  score_available: boolean;
-  selected: StrictSpatialProfile;
+/** Score Top-N of one candidate universe, compared with the spatial selection. */
+export interface StrictSpatialBaseline {
   top_n: StrictSpatialProfile | null;
   top_n_variants: string[] | null;
   top_n_overlap_count: number | null;
   /** Direction-aware difference in raw score means; not measured fitness loss. */
   score_gap_to_top_n: number | null;
+}
+
+/**
+ * The primary baseline is the score Top-N of every eligible variant, i.e. plain
+ * score ranking before the per-site budget. Ranks use that same pool.
+ */
+export interface StrictSpatialComparison extends StrictSpatialBaseline {
+  baseline: "configured-score-top-n";
+  universe: "eligible-variants-before-budget-and-cap-policy";
+  candidate_site_count: number;
+  score_available: boolean;
+  selected: StrictSpatialProfile;
+  /** Secondary: Top-N of the per-site representatives left by the budget and cap. */
+  representative_top_n: StrictSpatialBaseline & { universe: "eligible-variants-after-budget-and-cap-policy" };
+}
+
+/**
+ * Coordinate confidence applied before distance selection. Only an AlphaFold
+ * model carries pLDDT in its B-factor column; other sources report
+ * "unavailable" and no threshold.
+ */
+export interface StrictSpatialCoordinateConfidence {
+  source: "alphafold_plddt" | "unavailable";
+  threshold: number | null;
+  low_confidence_residue_count: number;
+  excluded_variant_count: number;
 }
 
 /** Verified single-site substitutions and the exact structure used to select them. */
@@ -542,6 +564,8 @@ export interface StrictSpatialResult {
     chain_id: string;
     insertion_code: string;
     coordinate: [number, number, number];
+    /** pLDDT of an AlphaFold model; null or absent when the source has none. */
+    confidence?: number | null;
   }>;
   eligible_positions: number[];
   excluded: Array<{ variant: string; reason: string }>;
@@ -558,6 +582,7 @@ export interface StrictSpatialResult {
   duplicate_variant_omitted_count: number;
   /** Older certificates may omit diagnostics without losing selection identity. */
   comparison?: StrictSpatialComparison;
+  coordinate_confidence?: StrictSpatialCoordinateConfidence;
 }
 
 export interface EvolveproLoadResult {

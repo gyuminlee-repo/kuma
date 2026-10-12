@@ -705,7 +705,7 @@ export interface FetchActiveSiteParams {
 export interface FetchActiveSiteResult {
   accession: string;
   active_site_positions?: number[];
-  annotation_status?: string;
+  annotation_status?: "present" | "no_matching_features" | "error";
   binding_positions?: number[];
   features?: {
     [k: string]: unknown;

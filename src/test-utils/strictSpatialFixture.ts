@@ -70,6 +70,9 @@ export function syntheticFullDfTestFixture(
   const topNProfile = scoresAvailable ? profile(baseline) : null;
   const gap = selectedProfile.score_mean === null || topNProfile?.score_mean == null ? null
     : scoreOrder === "asc" ? selectedProfile.score_mean - topNProfile.score_mean : topNProfile.score_mean - selectedProfile.score_mean;
+  const topN = { top_n: topNProfile, top_n_variants: scoresAvailable ? baseline : null,
+    top_n_overlap_count: scoresAvailable ? baseline.filter((variant) => selected.includes(variant)).length : null,
+    score_gap_to_top_n: gap };
   return strictSpatialFixture({
     budget_mode: "distinct_variants", selection_policy: "distinct-variant-full-pool-fps-v1",
     score_available: scoresAvailable, score_order: scoreOrder,
@@ -82,10 +85,10 @@ export function syntheticFullDfTestFixture(
     geometry_variant_min_pair_distance: requestedCount < 2 ? null : selectedProfile.max_variants_per_site > 1 ? 0 : selectedProfile.minimum_site_distance,
     source_row_count: pool.length, parsed_variant_count: pool.length, parsing_omitted_count: 0,
     start_position_omitted_count: 0, duplicate_variant_omitted_count: 0, excluded: [],
-    comparison: { baseline: "configured-score-top-n", universe: "eligible-variants-after-budget-and-cap-policy",
+    // Distinct variants without a cap: the raw pool and the per-site
+    // representative pool are the same, so both baselines coincide.
+    comparison: { baseline: "configured-score-top-n", universe: "eligible-variants-before-budget-and-cap-policy",
       candidate_site_count: positions.length, score_available: scoresAvailable, selected: selectedProfile,
-      top_n: topNProfile, top_n_variants: scoresAvailable ? baseline : null,
-      top_n_overlap_count: scoresAvailable ? baseline.filter((variant) => selected.includes(variant)).length : null,
-      score_gap_to_top_n: gap },
+      ...topN, representative_top_n: { universe: "eligible-variants-after-budget-and-cap-policy", ...topN } },
   });
 }

@@ -154,8 +154,11 @@ def test_score_top_n_comparison_is_same_pool_and_hand_calculated(order):
     assert comparison["selected"]["score_mean"] == (8. if order == "desc" else 3.)
     ctx["site_cap"] = 1
     _, capped = select_single_sites(list(zip(variants, scores)), "MAAAA", ctx, 2)
-    assert capped["comparison"]["top_n_variants"] == ["A2C", "A3C"]
-    assert capped["comparison"]["selected"]["mean_score_rank"] == 2.5
+    # The primary baseline ignores the cap: it is plain score ranking.
+    assert capped["comparison"]["top_n_variants"] == ["A2C", "A2D"]
+    assert capped["comparison"]["representative_top_n"]["top_n_variants"] == ["A2C", "A3C"]
+    # Ranks are taken in the uncapped eligible pool: A2C=1, A5C=5.
+    assert capped["comparison"]["selected"]["mean_score_rank"] == 3.
 
 
 def test_unknown_scores_have_no_top_score_baseline_but_real_zero_scores_do():
@@ -266,14 +269,16 @@ def test_top_n_uses_eligible_rows_not_unparseable_scores(tmp_path):
     assert report["comparison"]["selected"] == report["comparison"]["top_n"]
 
 
-def test_unique_site_comparison_uses_representative_pool():
+def test_unique_site_comparison_keeps_representatives_as_secondary():
     ctx = context(3)
     ctx["budget_mode"] = "unique_sites"
     rows = [("A1C", 10.), ("A1D", 9.), ("A2C", 8.), ("A3C", 7.)]
     selected, report = select_single_sites(rows, "AAA", ctx, 2)
     comparison = report["comparison"]
     assert selected == [("A1C", 10.), ("A3C", 7.)]
-    assert comparison["top_n_variants"] == ["A1C", "A2C"]
+    assert comparison["top_n_variants"] == ["A1C", "A1D"]
+    assert comparison["representative_top_n"]["top_n_variants"] == ["A1C", "A2C"]
     assert comparison["candidate_site_count"] == 3
-    assert comparison["selected"]["mean_score_rank"] == 2
-    assert comparison["top_n"]["site_count"] == 2
+    assert comparison["selected"]["mean_score_rank"] == 2.5
+    assert comparison["top_n"]["site_count"] == 1
+    assert comparison["representative_top_n"]["top_n"]["site_count"] == 2

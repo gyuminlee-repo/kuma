@@ -52,10 +52,16 @@ describe("strict spatial df_test comparison contract", () => {
     expect(report.comparison?.score_gap_to_top_n).toBe(42.5);
     expect(valid(response(report))).toBe(true);
   });
+  // Both baselines coincide in this fixture, so a top_n edit applies to both.
+  function withBaselines(report: ReturnType<typeof syntheticFullDfTestFixture>, selected: object, topN: object | null, gap: number | null) {
+    const comparison = report.comparison;
+    const block = { top_n: topN === null ? comparison?.top_n : { ...comparison?.top_n, ...topN }, score_gap_to_top_n: gap };
+    return { ...comparison, selected: { ...comparison?.selected, ...selected }, ...block,
+      representative_top_n: { ...comparison?.representative_top_n, ...block } };
+  }
   it("accepts tie-averaged ranks without substituting arbitrary integer ranks", () => {
     const report = syntheticFullDfTestFixture(12);
-    const comparison = { ...report.comparison, selected: { ...report.comparison?.selected, score_mean: 1, mean_score_rank: 57.5 },
-      top_n: { ...report.comparison?.top_n, score_mean: 1, mean_score_rank: 57.5 }, score_gap_to_top_n: 0 };
+    const comparison = withBaselines(report, { score_mean: 1, mean_score_rank: 57.5 }, { score_mean: 1, mean_score_rank: 57.5 }, 0);
     expect(valid({ ...response(report), strict_spatial: { ...report, comparison } })).toBe(true);
   });
   it("accepts geometry-only comparison when scores are missing", () => {
@@ -74,6 +80,10 @@ describe("strict spatial df_test comparison contract", () => {
   });
   it.each([
     { baseline: "random" }, { universe: "full-sequence" }, { candidate_site_count: 7 },
+    // The pre-2026-10-12 universe meant per-site representatives; it must not
+    // be shown under the new raw-pool label.
+    { universe: "eligible-variants-after-budget-and-cap-policy" }, { representative_top_n: undefined },
+    { representative_top_n: { universe: "eligible-variants-before-budget-and-cap-policy" } },
     { score_available: false }, { selected: null }, { top_n: null }, { top_n_variants: ["A999C"] },
     { top_n_overlap_count: 13 }, { top_n_overlap_count: 1.5 }, { score_gap_to_top_n: -1 },
     { score_gap_to_top_n: Number.POSITIVE_INFINITY }, { score_gap_to_top_n: 0 },
@@ -99,13 +109,61 @@ describe("strict spatial df_test comparison contract", () => {
   });
   it("preserves selection when raw score summaries overflow", () => {
     const report = syntheticFullDfTestFixture(12);
-    const comparison = { ...report.comparison, selected: { ...report.comparison?.selected, score_mean: null }, score_gap_to_top_n: null };
+    const comparison = withBaselines(report, { score_mean: null }, null, null);
     expect(valid({ ...response(report), strict_spatial: { ...report, comparison } })).toBe(true);
   });
   it("accepts an unavailable gap when finite raw means have an overflowing difference", () => {
     const report = syntheticFullDfTestFixture(12);
-    const comparison = { ...report.comparison, selected: { ...report.comparison?.selected, score_mean: -1e308 },
-      top_n: { ...report.comparison?.top_n, score_mean: 1e308 }, score_gap_to_top_n: null };
+    const comparison = withBaselines(report, { score_mean: -1e308 }, { score_mean: 1e308 }, null);
     expect(valid({ ...response(report), strict_spatial: { ...report, comparison } })).toBe(true);
+  });
+});
+
+describe("strict spatial raw-pool Top-N and coordinate confidence", () => {
+  const valid = getRpcResultValidator("load_evolvepro_csv");
+  const profile = (variants: number, sites: number, perSite: number, mean: number, rank: number, minimum: number | null) => ({
+    variant_count: variants, site_count: sites, max_variants_per_site: perSite, minimum_site_distance: minimum,
+    coverage_mean_distance: 1, coverage_max_distance: 2, score_mean: mean, mean_score_rank: rank });
+  // unique_sites: the raw Top-2 repeats site 2, the representative Top-2 does not.
+  function report(overrides: Record<string, unknown> = {}) {
+    return strictSpatialFixture({
+      eligible_variant_count: 4,
+      comparison: {
+        baseline: "configured-score-top-n", universe: "eligible-variants-before-budget-and-cap-policy",
+        candidate_site_count: 3, score_available: true, selected: profile(2, 2, 1, 6, 2.5, 8),
+        top_n: profile(2, 1, 2, 9.5, 1.5, null), top_n_variants: ["A2G", "A2V"], top_n_overlap_count: 1, score_gap_to_top_n: 3.5,
+        representative_top_n: { universe: "eligible-variants-after-budget-and-cap-policy",
+          top_n: profile(2, 2, 1, 8, 2, 2), top_n_variants: ["A2G", "A5C"], top_n_overlap_count: 1, score_gap_to_top_n: 2 },
+      }, ...overrides,
+    });
+  }
+  const response = (strict: ReturnType<typeof strictSpatialFixture>) => ({ variants: strict.selected_variants, y_preds: [2, 1],
+    selected_count: 2, total_count: 4, strict_spatial: strict });
+  it("accepts a raw-pool Top-N that repeats a site under the one-per-site budget", () => {
+    expect(valid(response(report()))).toBe(true);
+  });
+  it("still applies the one-per-site budget to the representative baseline", () => {
+    const strict = report();
+    const comparison = { ...strict.comparison, representative_top_n: { ...strict.comparison?.representative_top_n,
+      top_n: profile(2, 1, 2, 9.5, 1.5, null), top_n_variants: ["A2G", "A2V"], score_gap_to_top_n: 3.5 } };
+    expect(valid(response({ ...strict, comparison } as typeof strict))).toBe(false);
+  });
+  const lowConfidence = { variant: "A3G", reason: "low_confidence_coordinate" };
+  it.each([
+    [{ source: "alphafold_plddt", threshold: 50, low_confidence_residue_count: 4, excluded_variant_count: 1 }, [lowConfidence], true],
+    [{ source: "unavailable", threshold: null, low_confidence_residue_count: 0, excluded_variant_count: 0 }, [], true],
+    [{ source: "alphafold_plddt", threshold: 70, low_confidence_residue_count: 4, excluded_variant_count: 1 }, [lowConfidence], false],
+    [{ source: "unavailable", threshold: 50, low_confidence_residue_count: 0, excluded_variant_count: 0 }, [], false],
+    [{ source: "unavailable", threshold: null, low_confidence_residue_count: 0, excluded_variant_count: 0 }, [lowConfidence], false],
+    [{ source: "alphafold_plddt", threshold: 50, low_confidence_residue_count: 4, excluded_variant_count: 2 }, [lowConfidence], false],
+    [{ source: "b_factor", threshold: null, low_confidence_residue_count: 0, excluded_variant_count: 0 }, [], false],
+  ])("checks the confidence report %j against the exclusions", (confidence, excluded, expected) => {
+    expect(valid(response(report({ coordinate_confidence: confidence, excluded } as never)))).toBe(expected);
+  });
+  it("rejects an out-of-range per-residue pLDDT", () => {
+    const strict = report();
+    const mapping = strict.mapping.map((row, index) => (index === 0 ? { ...row, confidence: 120 } : row));
+    expect(valid(response({ ...strict, mapping }))).toBe(false);
+    expect(valid(response({ ...strict, mapping: strict.mapping.map((row) => ({ ...row, confidence: 91.5 })) }))).toBe(true);
   });
 });

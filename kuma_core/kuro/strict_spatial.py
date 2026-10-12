@@ -2,7 +2,9 @@
 
 The first UI path accepts one canonical PDB model/chain with contiguous positive
 author numbers. Unsupported residue identities fail instead of being flattened.
-This checks coordinate correspondence, not biological structural confidence.
+Coordinate correspondence is checked here. Structural confidence is applied
+only where the file states it: an AlphaFold model stores per-residue pLDDT in
+the B-factor column, while an experimental B-factor is not a confidence score.
 """
 from __future__ import annotations
 
@@ -15,10 +17,26 @@ from collections import Counter
 from kuma_core.kuro.alphafold import _THREE_TO_ONE
 from kuma_core.kuro.interface import exact_reference_offset
 
+# AlphaFold DB colours pLDDT < 50 as "very low" confidence (Jumper et al. 2021,
+# Nature 596:583; AlphaFold DB FAQ). Such regions are often disordered and their
+# coordinates are not a placement, so they must not count as spatial spread.
+PLDDT_VERY_LOW = 50.0
+
+
+def _is_alphafold_model(pdb_text: str) -> bool:
+    """AlphaFold DB PDB files title themselves "ALPHAFOLD ... PREDICTION FOR".
+
+    Experimental entries carry an EXPDTA method and no such title, so their
+    B-factors are never read as pLDDT. Unlabelled files stay "unavailable".
+    """
+    title = " ".join(line[10:].strip() for line in pdb_text.splitlines() if line.startswith("TITLE "))
+    return "ALPHAFOLD" in title.upper() and "PREDICTION" in title.upper()
+
 
 def exact_pdb_context(pdb_text: str, reference: str, accession: str) -> dict:
     reference = reference.strip().rstrip("*")
-    residues: dict[int, tuple[str, tuple[float, float, float] | None]] = {}
+    residues: dict[int, tuple[str, tuple[float, float, float] | None, float | None]] = {}
+    alphafold = _is_alphafold_model(pdb_text)
     chains: set[str] = set()
     models = 0
     model_id = 1
@@ -47,7 +65,15 @@ def exact_pdb_context(pdb_text: str, reference: str, accession: str) -> dict:
         if aa == "X":
             raise ValueError("Strict spatial selection requires standard amino-acid identities")
         xyz = (coordinate[0], coordinate[1], coordinate[2])
-        residues[position] = (aa, xyz if all(math.isfinite(x) for x in xyz) else None)
+        plddt = None
+        if alphafold:
+            try:
+                plddt = float(line[60:66])
+            except ValueError as exc:
+                raise ValueError("AlphaFold model has an unreadable pLDDT (B-factor) value") from exc
+            if not 0. <= plddt <= 100.:
+                raise ValueError("AlphaFold model pLDDT must lie between 0 and 100")
+        residues[position] = (aa, xyz if all(math.isfinite(x) for x in xyz) else None, plddt)
     if len(chains) != 1 or not residues or sorted(residues) != list(range(1, len(residues) + 1)):
         raise ValueError("Strict spatial selection requires one chain with contiguous numbering from 1")
     sequence = "".join(residues[p][0] for p in sorted(residues))
@@ -57,7 +83,8 @@ def exact_pdb_context(pdb_text: str, reference: str, accession: str) -> dict:
     chain = next(iter(chains))
     mapping = [
         {"reference_position": p, "structure_position": p + offset,
-         "chain_id": chain, "model_id": model_id, "insertion_code": "", "coordinate": residues[p + offset][1]}
+         "chain_id": chain, "model_id": model_id, "insertion_code": "", "coordinate": residues[p + offset][1],
+         "confidence": residues[p + offset][2]}
         for p in range(1, len(reference) + 1) if residues[p + offset][1] is not None
     ]
     return {
@@ -65,6 +92,7 @@ def exact_pdb_context(pdb_text: str, reference: str, accession: str) -> dict:
         "source_sha256": hashlib.sha256(pdb_text.encode()).hexdigest(),
         "reference_sha256": hashlib.sha256(reference.encode()).hexdigest(),
         "coordinate_frame": "reference", "mapping": mapping, "pdb_text": pdb_text,
+        "confidence_source": "alphafold_plddt" if alphafold else "unavailable",
         "selection_policy": "single-site-full-pool-fps-v1",
     }
 
@@ -89,7 +117,11 @@ def select_single_sites(rows: list[tuple[str, float]], reference: str, context: 
     if budget == "unique_sites" and cap is not None:
         raise ValueError("Explicit site cap requires distinct-variant budget mode")
     reference = reference.strip().rstrip("*")
+    confidence_source = context.get("confidence_source", "unavailable")
+    if confidence_source not in ("alphafold_plddt", "unavailable"):
+        raise ValueError("Unknown coordinate confidence source")
     coordinate_map = {}
+    low_confidence: set[int] = set()
     for m in context["mapping"]:
         position, coordinate = m["reference_position"], m["coordinate"]
         if type(position) is not int or not 1 <= position <= len(reference) or position in coordinate_map:
@@ -102,6 +134,12 @@ def select_single_sites(rows: list[tuple[str, float]], reference: str, context: 
             if not all(math.isfinite(x) for x in coordinate):
                 coordinate = None
         coordinate_map[position] = coordinate
+        if confidence_source == "alphafold_plddt":
+            plddt = m.get("confidence")
+            if isinstance(plddt, bool) or not isinstance(plddt, (int, float)) or not math.isfinite(plddt):
+                raise ValueError("AlphaFold mapping requires a numeric pLDDT per residue")
+            if plddt < PLDDT_VERY_LOW:
+                low_confidence.add(position)
     eligible: dict[int, list[tuple[str, float]]] = {}
     excluded: list[dict] = []
     seen: dict[str, float] = {}
@@ -126,6 +164,8 @@ def select_single_sites(rows: list[tuple[str, float]], reference: str, context: 
             reason = "explicit_exclusion"
         elif coordinate_map.get(position) is None:
             reason = "missing_or_nonfinite_coordinate"
+        elif position in low_confidence:
+            reason = "low_confidence_coordinate"
         if reason:
             excluded.append({"variant": variant, "reason": reason})
             continue
@@ -166,8 +206,10 @@ def select_single_sites(rows: list[tuple[str, float]], reference: str, context: 
     variant_min = 0. if len(selected_sites) < count else site_min
     eligible_count = sum(map(len, eligible.values()))
     capacity_reduction = eligible_count - len(candidates)
+    pool = sorted(((v, score, p) for p, rows_at in eligible.items() for v, score in rows_at),
+                  key=lambda row: (-row[1], row[2], row[0]))
     comparison = _selection_comparison(
-        candidates, [decoded[v] for v, _ in selected], coordinate_map,
+        pool, candidates, [decoded[v] for v, _ in selected], coordinate_map,
         score_available=context.get("score_available", True),
         score_order=context.get("score_order", "desc"),
     )
@@ -184,6 +226,12 @@ def select_single_sites(rows: list[tuple[str, float]], reference: str, context: 
               "geometry_variant_min_pair_distance": variant_min,
               "geometry_site_min_pair_distance": site_min,
               "comparison": comparison,
+              "coordinate_confidence": {
+                  "source": confidence_source,
+                  "threshold": PLDDT_VERY_LOW if confidence_source == "alphafold_plddt" else None,
+                  "low_confidence_residue_count": len(low_confidence),
+                  "excluded_variant_count": sum(r["reason"] == "low_confidence_coordinate" for r in excluded),
+              },
               "excluded": excluded, "input_variant_count": len(rows),
               "same_site_collapsed": capacity_reduction if budget == "unique_sites" else 0,
               "site_cap_excluded_count": capacity_reduction if budget == "distinct_variants" else 0}
@@ -199,28 +247,33 @@ def _finite_mean(values: list[float]) -> float | None:
     return value if math.isfinite(value) else None
 
 
-def _selection_comparison(candidates: list[tuple[str, float, int]],
+def _selection_comparison(pool: list[tuple[str, float, int]], candidates: list[tuple[str, float, int]],
                           selected: list[tuple[str, float, int]], coordinate_map: dict,
                           *, score_available: bool, score_order: str) -> dict:
-    """Describe the same effective pool without changing the selection policy.
+    """Describe the selection against plain score ranking without changing it.
 
-    Candidates are already sorted by configured rank, position and variant ID,
-    after validity, budget and cap handling. Coverage weights each eligible site
-    once. Raw-score means undo the loader's ascending-order sign inversion;
-    the direction-aware gap is a mean-score difference, never a fitness claim.
+    ``pool`` holds every eligible variant (validity, exclusions, coordinates and
+    confidence already applied) and ``candidates`` the subset left after the
+    budget and per-site cap. Both are sorted by configured rank, position and
+    variant ID. The primary baseline is the score Top-N of ``pool``, which is
+    what a user gets by taking the N best predictions. The Top-N of the
+    per-site representatives is kept as a secondary baseline. Ranks are taken
+    in ``pool`` for every profile. Coverage weights each eligible site once.
+    Raw-score means undo the loader's ascending-order sign inversion; the
+    direction-aware gap is a mean-score difference, never a fitness claim.
     """
     if score_order not in ("asc", "desc"):
         raise ValueError("Unknown configured score direction")
     ranks: dict[str, float] = {}
     i = 0
-    while i < len(candidates):
+    while i < len(pool):
         end = i + 1
-        while end < len(candidates) and candidates[end][1] == candidates[i][1]:
+        while end < len(pool) and pool[end][1] == pool[i][1]:
             end += 1
-        for variant, _, _ in candidates[i:end]:
+        for variant, _, _ in pool[i:end]:
             ranks[variant] = (i + 1 + end) / 2.
         i = end
-    positions = sorted({p for _, _, p in candidates})
+    positions = sorted({p for _, _, p in pool})
 
     def profile(rows: list[tuple[str, float, int]]) -> dict:
         multiplicity = Counter(p for _, _, p in rows)
@@ -240,22 +293,31 @@ def _selection_comparison(candidates: list[tuple[str, float, int]],
         }
 
     selected_profile = profile(selected)
-    baseline_rows = candidates[:len(selected)]
-    baseline = profile(baseline_rows) if score_available else None
-    gap = None
-    if baseline is not None and baseline["score_mean"] is not None and selected_profile["score_mean"] is not None:
-        difference = baseline["score_mean"] - selected_profile["score_mean"]
-        if score_order == "asc":
-            difference = -difference
-        if math.isfinite(difference) and difference >= 0:
-            gap = difference
     selected_ids = {v for v, _, _ in selected}
+
+    def baseline(rows: list[tuple[str, float, int]]) -> dict:
+        top = rows[:len(selected)]
+        summary = profile(top) if score_available else None
+        gap = None
+        if summary is not None and summary["score_mean"] is not None and selected_profile["score_mean"] is not None:
+            difference = summary["score_mean"] - selected_profile["score_mean"]
+            if score_order == "asc":
+                difference = -difference
+            if math.isfinite(difference) and difference >= 0:
+                gap = difference
+        return {
+            "top_n": summary,
+            "top_n_variants": [v for v, _, _ in top] if score_available else None,
+            "top_n_overlap_count": sum(v in selected_ids for v, _, _ in top) if score_available else None,
+            "score_gap_to_top_n": gap,
+        }
+
     return {
         "baseline": "configured-score-top-n",
-        "universe": "eligible-variants-after-budget-and-cap-policy",
+        "universe": "eligible-variants-before-budget-and-cap-policy",
         "candidate_site_count": len(positions), "score_available": score_available,
-        "selected": selected_profile, "top_n": baseline,
-        "top_n_variants": [v for v, _, _ in baseline_rows] if score_available else None,
-        "top_n_overlap_count": sum(v in selected_ids for v, _, _ in baseline_rows) if score_available else None,
-        "score_gap_to_top_n": gap,
+        "selected": selected_profile, **baseline(pool),
+        "representative_top_n": {
+            "universe": "eligible-variants-after-budget-and-cap-policy", **baseline(candidates),
+        },
     }

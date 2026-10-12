@@ -31,6 +31,7 @@ import type {
   StructureAvailabilityResult,
   StructureResult,
   StructureModelCandidate,
+  StrictSpatialBaseline,
   StrictSpatialComparison,
   StrictSpatialProfile,
   StrictSpatialResult,
@@ -560,28 +561,28 @@ function isStrictSpatialProfile(value: unknown): value is StrictSpatialProfile {
     && (value.mean_score_rank === null || (isNumber(value.mean_score_rank) && value.mean_score_rank >= 1));
 }
 
-function isStrictSpatialComparison(value: unknown, report: StrictSpatialResult): boolean {
-  if (value === undefined) return true; // Additive diagnostics: older certificates remain usable.
-  if (!(isRecord(value) && value.baseline === "configured-score-top-n"
-    && value.universe === "eligible-variants-after-budget-and-cap-policy"
-    && value.candidate_site_count === report.eligible_site_count
-    && value.score_available === report.score_available
-    && isStrictSpatialProfile(value.selected)
+function isStrictSpatialBaselineShape(value: unknown): value is Record<string, unknown> {
+  return isRecord(value)
     && (value.top_n === null || isStrictSpatialProfile(value.top_n))
     && (value.top_n_variants === null || isStringArray(value.top_n_variants))
     && (value.top_n_overlap_count === null || (isNumber(value.top_n_overlap_count)
       && Number.isSafeInteger(value.top_n_overlap_count) && value.top_n_overlap_count >= 0))
-    && (value.score_gap_to_top_n === null || (isNumber(value.score_gap_to_top_n) && value.score_gap_to_top_n >= 0)))) return false;
-  const comparison = value as unknown as StrictSpatialComparison;
+    && (value.score_gap_to_top_n === null || (isNumber(value.score_gap_to_top_n) && value.score_gap_to_top_n >= 0));
+}
+
+/**
+ * One score Top-N baseline against the selection. `budgeted` marks the
+ * per-site representative universe, where the budget and cap also bind the
+ * baseline; the primary raw-pool baseline may repeat a site freely.
+ */
+function isStrictSpatialBaseline(
+  block: StrictSpatialBaseline, comparison: StrictSpatialComparison, report: StrictSpatialResult, budgeted: boolean,
+): boolean {
   const selected = comparison.selected;
-  if (selected.variant_count !== report.selected_variant_count || selected.site_count !== report.selected_site_count
-    || selected.max_variants_per_site !== report.site_multiplicities.reduce((maximum, row) => Math.max(maximum, row.variant_count), 0)
-    || selected.minimum_site_distance !== report.geometry_site_min_pair_distance) return false;
-  if (!comparison.score_available) return selected.score_mean === null && selected.mean_score_rank === null
-    && comparison.top_n === null && comparison.top_n_variants === null
-    && comparison.top_n_overlap_count === null && comparison.score_gap_to_top_n === null;
-  const baseline = comparison.top_n;
-  const variants = comparison.top_n_variants;
+  if (!comparison.score_available) return block.top_n === null && block.top_n_variants === null
+    && block.top_n_overlap_count === null && block.score_gap_to_top_n === null;
+  const baseline = block.top_n;
+  const variants = block.top_n_variants;
   if (baseline === null || variants === null || selected.mean_score_rank === null || baseline.mean_score_rank === null
     || variants.length !== report.requested_count || new Set(variants).size !== variants.length
     || baseline.variant_count !== variants.length || baseline.site_count > comparison.candidate_site_count
@@ -600,13 +601,45 @@ function isStrictSpatialComparison(value: unknown, report: StrictSpatialResult):
     : report.score_order === "asc" ? selected.score_mean - baseline.score_mean : baseline.score_mean - selected.score_mean;
   const tolerance = 1e-9 * Math.max(1, Math.abs(selected.score_mean ?? 0), Math.abs(baseline.score_mean ?? 0));
   const gapValid = expectedGap === null || !Number.isFinite(expectedGap) || expectedGap < 0
-    ? comparison.score_gap_to_top_n === null
-    : comparison.score_gap_to_top_n !== null && Math.abs(comparison.score_gap_to_top_n - expectedGap) <= tolerance;
+    ? block.score_gap_to_top_n === null
+    : block.score_gap_to_top_n !== null && Math.abs(block.score_gap_to_top_n - expectedGap) <= tolerance;
   return baseline.site_count === multiplicities.size && baseline.max_variants_per_site === maximum
-    && (report.budget_mode !== "unique_sites" || maximum === 1)
-    && (report.site_cap === null || maximum <= report.site_cap)
-    && comparison.top_n_overlap_count === variants.filter((variant) => selectedIds.has(variant)).length
+    && (!budgeted || report.budget_mode !== "unique_sites" || maximum === 1)
+    && (!budgeted || report.site_cap === null || maximum <= report.site_cap)
+    && block.top_n_overlap_count === variants.filter((variant) => selectedIds.has(variant)).length
     && gapValid;
+}
+
+function isStrictSpatialComparison(value: unknown, report: StrictSpatialResult): boolean {
+  if (value === undefined) return true; // Additive diagnostics: older certificates remain usable.
+  if (!(isStrictSpatialBaselineShape(value) && value.baseline === "configured-score-top-n"
+    && value.universe === "eligible-variants-before-budget-and-cap-policy"
+    && value.candidate_site_count === report.eligible_site_count
+    && value.score_available === report.score_available
+    && isStrictSpatialProfile(value.selected)
+    && isStrictSpatialBaselineShape(value.representative_top_n)
+    && value.representative_top_n.universe === "eligible-variants-after-budget-and-cap-policy")) return false;
+  const comparison = value as unknown as StrictSpatialComparison;
+  const selected = comparison.selected;
+  if (selected.variant_count !== report.selected_variant_count || selected.site_count !== report.selected_site_count
+    || selected.max_variants_per_site !== report.site_multiplicities.reduce((maximum, row) => Math.max(maximum, row.variant_count), 0)
+    || selected.minimum_site_distance !== report.geometry_site_min_pair_distance) return false;
+  if (!comparison.score_available && (selected.score_mean !== null || selected.mean_score_rank !== null)) return false;
+  return isStrictSpatialBaseline(comparison, comparison, report, false)
+    && isStrictSpatialBaseline(comparison.representative_top_n, comparison, report, true);
+}
+
+/** pLDDT filtering is reported only for an AlphaFold source, with its fixed threshold. */
+function isStrictSpatialCoordinateConfidence(value: unknown, report: StrictSpatialResult): boolean {
+  if (value === undefined) return true; // Certificates from before the filter carry no claim.
+  const count = (item: unknown) => isNumber(item) && Number.isSafeInteger(item) && item >= 0;
+  if (!(isRecord(value) && (value.source === "alphafold_plddt" || value.source === "unavailable")
+    && count(value.low_confidence_residue_count) && count(value.excluded_variant_count))) return false;
+  const excluded = report.excluded.filter((row) => row.reason === "low_confidence_coordinate").length;
+  return value.excluded_variant_count === excluded
+    && (value.source === "alphafold_plddt"
+      ? value.threshold === 50
+      : value.threshold === null && value.low_confidence_residue_count === 0 && excluded === 0);
 }
 
 function isStrictSpatialResult(value: unknown): boolean {
@@ -640,7 +673,9 @@ function isStrictSpatialResult(value: unknown): boolean {
     && isArrayOf(value.mapping, (row) => isRecord(row)
       && positiveInteger(row.reference_position) && positiveInteger(row.structure_position)
       && isString(row.chain_id) && isString(row.insertion_code)
-      && isNumberArray(row.coordinate) && row.coordinate.length === 3))) return false;
+      && isNumberArray(row.coordinate) && row.coordinate.length === 3
+      && (row.confidence === undefined || row.confidence === null
+        || (isNumber(row.confidence) && row.confidence >= 0 && row.confidence <= 100))))) return false;
 
   // Array element predicates above check the full shape; keep the accounting
   // checks explicit so repeated sites cannot silently replace distinct IDs.
@@ -675,7 +710,8 @@ function isStrictSpatialResult(value: unknown): boolean {
     && report.site_multiplicities.every((row) => multiplicities.get(row.reference_position) === row.variant_count)
     && (report.geometry_variant_min_pair_distance === null) === (report.selected_variant_count < 2)
     && (report.geometry_site_min_pair_distance === null) === (report.selected_site_count < 2)
-    && isStrictSpatialComparison(value.comparison, report);
+    && isStrictSpatialComparison(value.comparison, report)
+    && isStrictSpatialCoordinateConfidence(value.coordinate_confidence, report);
 }
 
 function isEvolveproLoadResult(value: unknown): value is EvolveproLoadResult {

@@ -817,7 +817,9 @@ class FetchActiveSiteResult(BaseModel):
     has_annotation: bool = False
     # Source-frame records are explanatory, never selector weights.
     features: list[dict] = Field(default_factory=list)
-    annotation_status: str = "unknown"
+    # Same three values `isFetchActiveSiteResult` accepts (src/types/validators.ts).
+    # A missing status reads as unavailable, which the UI shows like a fetch error.
+    annotation_status: Literal["present", "no_matching_features", "error"] = "error"
     sequence_version: Optional[int] = None
     projection_status: str = "unverified"
 

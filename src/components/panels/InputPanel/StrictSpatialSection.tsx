@@ -34,14 +34,41 @@ function StrictSpatialComparison({ result }: { result: StrictSpatialResult }) {
     </table>
     <p>{t("strictSpatial.comparisonCoverage", { sites: comparison.candidate_site_count })}</p>
     {comparison.score_available ? <>
+      <p>{t("strictSpatial.comparisonTopNScope")}</p>
       <p>{t("strictSpatial.comparisonOverlap", { overlap: comparison.top_n_overlap_count, count: result.requested_count,
         gap: format(comparison.score_gap_to_top_n) })}</p>
+      <p>{t("strictSpatial.comparisonRepresentative", { overlap: comparison.representative_top_n.top_n_overlap_count,
+        count: result.requested_count, gap: format(comparison.representative_top_n.score_gap_to_top_n) })}</p>
       <p>{t(result.score_order === "asc" ? "strictSpatial.comparisonScoreAsc" : "strictSpatial.comparisonScoreDesc")}</p>
       <p>{t("strictSpatial.comparisonScoreMeaning")}</p>
       {(comparison.selected.score_mean === null || comparison.top_n?.score_mean == null || comparison.score_gap_to_top_n === null)
         && <p>{t("strictSpatial.comparisonNumericUnavailable")}</p>}
     </> : <p>{t("strictSpatial.comparisonNoScores")}</p>}
   </section>;
+}
+
+const EXCLUSION_REASONS: Record<string, string> = {
+  unchanged_amino_acid: "strictSpatial.reasonUnchanged",
+  nonfinite_score: "strictSpatial.reasonNonfiniteScore",
+  explicit_exclusion: "strictSpatial.reasonExplicitExclusion",
+  missing_or_nonfinite_coordinate: "strictSpatial.reasonMissingCoordinate",
+  low_confidence_coordinate: "strictSpatial.reasonLowConfidence",
+};
+
+function StrictSpatialExclusions({ result }: { result: StrictSpatialResult }) {
+  const { t } = useTranslation();
+  const confidence = result.coordinate_confidence;
+  const counts = new Map<string, number>();
+  for (const row of result.excluded) counts.set(row.reason, (counts.get(row.reason) ?? 0) + 1);
+  const summary = [...counts].map(([reason, count]) =>
+    `${EXCLUSION_REASONS[reason] ? t(EXCLUSION_REASONS[reason]) : reason}: ${count}`).join("; ");
+  return <>
+    {confidence && <p>{confidence.source === "alphafold_plddt"
+      ? t("strictSpatial.confidenceAlphaFold", { threshold: confidence.threshold,
+        residues: confidence.low_confidence_residue_count, variants: confidence.excluded_variant_count })
+      : t("strictSpatial.confidenceUnavailable")}</p>}
+    {summary && <p>{t("strictSpatial.exclusionSummary", { summary })}</p>}
+  </>;
 }
 
 /** Session-only conservative selector; annotations explain the selection, never weight it. */
@@ -117,6 +144,7 @@ export function StrictSpatialSection() {
             parsed: result.parsed_variant_count, parsing: result.parsing_omitted_count,
             start: result.start_position_omitted_count, duplicates: result.duplicate_variant_omitted_count })}</p>
           {!result.score_available && <p>{t("strictSpatial.scoresUnavailable")}</p>}
+          <StrictSpatialExclusions result={result} />
           <StrictSpatialComparison result={result} />
           <p className="break-words font-mono">{result.selected_variants.join(", ")}</p>
           <details>
