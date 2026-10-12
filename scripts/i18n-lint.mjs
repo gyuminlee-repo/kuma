@@ -230,7 +230,9 @@ for (const file of walk(SRC)) {
 // `ns.<literal>` counts as referenced. A dynamic key whose candidates live in
 // another file, or are computed, leaves its keys reported as unused; fix that
 // by moving the candidates next to the template rather than by listing keys
-// here. Candidates are not checked for existence (only dotted literals are).
+// here. Candidates are not checked for existence (only dotted literals are),
+// and since every bare literal in the file counts, an unused key whose name
+// matches an unrelated word there ("row", "status") is hidden.
 //
 // Scope is opt-in per namespace because the whole tree does not pass yet: run
 // across every namespace on 2026-10-12, (1) flagged 42 literals, mostly RPC
