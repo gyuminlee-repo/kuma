@@ -28,7 +28,7 @@ Failed lines are listed below the table with their line number, the raw text, an
 |---|---|
 | `No file selected` | No prediction file yet. Press `Browse` and pick one. |
 | `Round history suggests round N, but this is set to M.` | The saved round history disagrees with the round number entered. Correct the number, or leave it if it is intended. |
-| `EVOLVEpro file load failed: …` | Auto-detect did not work. Pick the mutation and ranking columns yourself, then press `Apply selected columns`. |
+| `EVOLVEpro file load failed: …` | Auto-detect did not work, or a chosen column is not in this file. The message lists the headers found. Pick the mutation and ranking columns yourself, then press `Apply selected columns`. |
 | `No columns detected in this file. Check the file, or pick another sheet.` | Choose a different sheet in the xlsx, or check the file. |
 | `Top-N ranges from 1 to 96. Increase it to load more variants from CSV.` | The value it refers to is `Design count:` on Step 3. One design run covers one plate worth of variants. |
 | `All {n} additional candidates shown` | No further candidates remain to display. |

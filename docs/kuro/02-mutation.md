@@ -10,6 +10,8 @@
 
 `variant`, `y_pred` 두 컬럼을 가진 `df_test.csv` 형식. Drag-drop 후 score 내림차순 정렬 → top-N 자동 선택.
 
+컬럼을 직접 지정한 경우 그 이름이 파일 헤더에 없으면 로드가 오류로 멈춘다. 오류 문구에 요청한 컬럼명과 파일에서 찾은 헤더 목록이 나온다. mutation 컬럼과 ranking 컬럼 모두 같다.
+
 | 옵션 | 효과 |
 |---|---|
 | Position diversity | 한 position 당 변이 N 개 제한 (Grantham 1974 distance tie-break) |
