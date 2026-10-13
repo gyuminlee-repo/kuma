@@ -1,0 +1,310 @@
+[
+  {
+    "name": "pLDDT_49.99_excluded_50_included_and_fps_start",
+    "status": "PASS",
+    "detail": {
+      "source": "alphafold_plddt",
+      "threshold": 50.0,
+      "low_confidence_residue_count": 2,
+      "excluded_variant_count": 2
+    }
+  },
+  {
+    "name": "all_low_confidence_rejects_without_fallback",
+    "status": "PASS",
+    "detail": "Strict spatial count 1 exceeds 0 eligible unique sites"
+  },
+  {
+    "name": "post_filter_budget_too_large",
+    "status": "PASS",
+    "detail": "Strict spatial count 3 exceeds 2 eligible unique sites"
+  },
+  {
+    "name": "nonfinite_coordinate_excluded",
+    "status": "PASS",
+    "detail": [
+      {
+        "variant": "A2G",
+        "reason": "missing_or_nonfinite_coordinate"
+      }
+    ]
+  },
+  {
+    "name": "all_missing_coordinates_reject",
+    "status": "PASS",
+    "detail": "Strict spatial count 1 exceeds 0 eligible unique sites"
+  },
+  {
+    "name": "experimental_bfactor_not_filtered",
+    "status": "PASS",
+    "detail": null
+  },
+  {
+    "name": "invalid_plddt_'      '",
+    "status": "PASS",
+    "detail": "AlphaFold model has an unreadable pLDDT (B-factor) value"
+  },
+  {
+    "name": "invalid_plddt_' -1.00'",
+    "status": "PASS",
+    "detail": "AlphaFold model pLDDT must lie between 0 and 100"
+  },
+  {
+    "name": "invalid_plddt_'101.00'",
+    "status": "PASS",
+    "detail": "AlphaFold model pLDDT must lie between 0 and 100"
+  },
+  {
+    "name": "invalid_plddt_'   nan'",
+    "status": "PASS",
+    "detail": "AlphaFold model pLDDT must lie between 0 and 100"
+  },
+  {
+    "name": "invalid_plddt_'   inf'",
+    "status": "PASS",
+    "detail": "AlphaFold model pLDDT must lie between 0 and 100"
+  },
+  {
+    "name": "reference_subsequence_offset",
+    "status": "PASS",
+    "detail": [
+      {
+        "reference_position": 1,
+        "structure_position": 2,
+        "chain_id": "A",
+        "model_id": 1,
+        "insertion_code": "",
+        "coordinate": [
+          20.0,
+          0.0,
+          0.0
+        ],
+        "confidence": 90.0
+      },
+      {
+        "reference_position": 2,
+        "structure_position": 3,
+        "chain_id": "A",
+        "model_id": 1,
+        "insertion_code": "",
+        "coordinate": [
+          30.0,
+          0.0,
+          0.0
+        ],
+        "confidence": 90.0
+      },
+      {
+        "reference_position": 3,
+        "structure_position": 4,
+        "chain_id": "A",
+        "model_id": 1,
+        "insertion_code": "",
+        "coordinate": [
+          40.0,
+          0.0,
+          0.0
+        ],
+        "confidence": 90.0
+      },
+      {
+        "reference_position": 4,
+        "structure_position": 5,
+        "chain_id": "A",
+        "model_id": 1,
+        "insertion_code": "",
+        "coordinate": [
+          50.0,
+          0.0,
+          0.0
+        ],
+        "confidence": 90.0
+      }
+    ]
+  },
+  {
+    "name": "reject_identity_V2G",
+    "status": "PASS",
+    "detail": "Variant V2G does not match the reference identity"
+  },
+  {
+    "name": "reject_identity_A9G",
+    "status": "PASS",
+    "detail": "Variant A9G does not match the reference identity"
+  },
+  {
+    "name": "reject_identity_A2G:C3G",
+    "status": "PASS",
+    "detail": "Strict spatial selection supports single-site substitutions only"
+  },
+  {
+    "name": "missing_CA_number_not_silently_remapped",
+    "status": "PASS",
+    "detail": "Strict spatial selection requires one chain with contiguous numbering from 1"
+  },
+  {
+    "name": "ambiguous_reference_reject",
+    "status": "PASS",
+    "detail": "Strict spatial selection requires a unique exact reference placement"
+  },
+  {
+    "name": "raw_top_n_asc",
+    "status": "PASS",
+    "detail": {
+      "baseline": "configured-score-top-n",
+      "universe": "eligible-variants-before-budget-and-cap-policy",
+      "candidate_site_count": 4,
+      "score_available": true,
+      "selected": {
+        "variant_count": 2,
+        "site_count": 2,
+        "max_variants_per_site": 1,
+        "minimum_site_distance": 11.0,
+        "coverage_mean_distance": 0.5,
+        "coverage_max_distance": 1.0,
+        "score_mean": 3.0,
+        "mean_score_rank": 3.0
+      },
+      "top_n": {
+        "variant_count": 2,
+        "site_count": 1,
+        "max_variants_per_site": 2,
+        "minimum_site_distance": null,
+        "coverage_mean_distance": 5.5,
+        "coverage_max_distance": 11.0,
+        "score_mean": 1.5,
+        "mean_score_rank": 1.5
+      },
+      "top_n_variants": [
+        "A2C",
+        "A2D"
+      ],
+      "top_n_overlap_count": 1,
+      "score_gap_to_top_n": 1.5,
+      "representative_top_n": {
+        "universe": "eligible-variants-after-budget-and-cap-policy",
+        "top_n": {
+          "variant_count": 2,
+          "site_count": 2,
+          "max_variants_per_site": 1,
+          "minimum_site_distance": 1.0,
+          "coverage_mean_distance": 4.75,
+          "coverage_max_distance": 10.0,
+          "score_mean": 2.0,
+          "mean_score_rank": 2.0
+        },
+        "top_n_variants": [
+          "A2C",
+          "A3C"
+        ],
+        "top_n_overlap_count": 1,
+        "score_gap_to_top_n": 1.0
+      }
+    }
+  },
+  {
+    "name": "raw_top_n_desc",
+    "status": "PASS",
+    "detail": {
+      "baseline": "configured-score-top-n",
+      "universe": "eligible-variants-before-budget-and-cap-policy",
+      "candidate_site_count": 4,
+      "score_available": true,
+      "selected": {
+        "variant_count": 2,
+        "site_count": 2,
+        "max_variants_per_site": 1,
+        "minimum_site_distance": 11.0,
+        "coverage_mean_distance": 0.5,
+        "coverage_max_distance": 1.0,
+        "score_mean": 8.0,
+        "mean_score_rank": 3.0
+      },
+      "top_n": {
+        "variant_count": 2,
+        "site_count": 1,
+        "max_variants_per_site": 2,
+        "minimum_site_distance": null,
+        "coverage_mean_distance": 5.5,
+        "coverage_max_distance": 11.0,
+        "score_mean": 9.5,
+        "mean_score_rank": 1.5
+      },
+      "top_n_variants": [
+        "A2C",
+        "A2D"
+      ],
+      "top_n_overlap_count": 1,
+      "score_gap_to_top_n": 1.5,
+      "representative_top_n": {
+        "universe": "eligible-variants-after-budget-and-cap-policy",
+        "top_n": {
+          "variant_count": 2,
+          "site_count": 2,
+          "max_variants_per_site": 1,
+          "minimum_site_distance": 1.0,
+          "coverage_mean_distance": 4.75,
+          "coverage_max_distance": 10.0,
+          "score_mean": 9.0,
+          "mean_score_rank": 2.0
+        },
+        "top_n_variants": [
+          "A2C",
+          "A3C"
+        ],
+        "top_n_overlap_count": 1,
+        "score_gap_to_top_n": 1.0
+      }
+    }
+  },
+  {
+    "name": "distinct_variant_capacity_95_96_and_cap",
+    "status": "PASS",
+    "detail": "95 variants / 5 sites, 96 rejected; cap=1 gives capacity=5"
+  },
+  {
+    "name": "invalid_count_0",
+    "status": "PASS",
+    "detail": "Strict spatial selection requires a positive explicit count"
+  },
+  {
+    "name": "invalid_count_-1",
+    "status": "PASS",
+    "detail": "Strict spatial selection requires a positive explicit count"
+  },
+  {
+    "name": "invalid_count_True",
+    "status": "PASS",
+    "detail": "Strict spatial selection requires a positive explicit count"
+  },
+  {
+    "name": "invalid_count_1.5",
+    "status": "PASS",
+    "detail": "Strict spatial selection requires a positive explicit count"
+  },
+  {
+    "name": "real_csv_loader_preserves_low_confidence_candidates",
+    "status": "PASS",
+    "detail": {
+      "selected": [
+        "D4G",
+        "E5G"
+      ],
+      "pool": [
+        "A2G",
+        "C3G",
+        "D4G",
+        "E5G"
+      ]
+    }
+  },
+  {
+    "name": "annotation_literal_matches_TS",
+    "status": "PASS",
+    "detail": [
+      "error",
+      "no_matching_features",
+      "present"
+    ]
+  }
+]
