@@ -1,0 +1,1 @@
+{"command": ["git", "status", "--porcelain"], "exit_code": 0, "cwd": "<local>", "PYTHON_BIN": "<local>\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe", "utc": "2026-10-12T09:05:00.087140+00:00"}

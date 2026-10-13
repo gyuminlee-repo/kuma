@@ -1,0 +1,2 @@
+{"name": "i18n-lint", "command": ["node", "scripts/i18n-lint.mjs"], "cwd": "<local>", "exit_code": 0, "utc": "2026-10-12T09:01:08.545453+00:00"}
+i18n-lint: ok (0 hardcoded Korean lines, 0 hardcoded English in MAME components, 0 unresolved t() keys, 0 unknown or unused keys in strictSpatial)

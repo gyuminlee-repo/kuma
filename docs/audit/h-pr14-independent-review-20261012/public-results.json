@@ -1,0 +1,226 @@
+[
+  {
+    "accession": "Q9AR86",
+    "status": "PASS",
+    "url": "https://alphafold.ebi.ac.uk/files/AF-Q9AR86-F1-model_v6.pdb",
+    "sha256": "59e17a5ebc8bd204ea150a7887edc5b76f17e5c289fdafd935f9c1fe270f08c5",
+    "residues": 595,
+    "confidence": {
+      "source": "alphafold_plddt",
+      "threshold": 50.0,
+      "low_confidence_residue_count": 52,
+      "excluded_variant_count": 51
+    },
+    "selected": [
+      [
+        "T52G",
+        543.0
+      ],
+      [
+        "K101G",
+        494.0
+      ],
+      [
+        "G402A",
+        193.0
+      ],
+      [
+        "E523G",
+        72.0
+      ],
+      [
+        "F69G",
+        526.0
+      ],
+      [
+        "G228A",
+        367.0
+      ],
+      [
+        "Q176G",
+        419.0
+      ],
+      [
+        "D84G",
+        511.0
+      ],
+      [
+        "L541G",
+        54.0
+      ],
+      [
+        "L416G",
+        179.0
+      ],
+      [
+        "L250G",
+        345.0
+      ],
+      [
+        "Y60G",
+        535.0
+      ],
+      [
+        "K430G",
+        165.0
+      ],
+      [
+        "E594G",
+        1.0
+      ],
+      [
+        "N370G",
+        225.0
+      ],
+      [
+        "L194G",
+        401.0
+      ],
+      [
+        "N332G",
+        263.0
+      ],
+      [
+        "N470G",
+        125.0
+      ],
+      [
+        "F123G",
+        472.0
+      ],
+      [
+        "D436G",
+        159.0
+      ],
+      [
+        "G299A",
+        296.0
+      ],
+      [
+        "D141G",
+        454.0
+      ],
+      [
+        "N266G",
+        329.0
+      ],
+      [
+        "G568A",
+        27.0
+      ]
+    ],
+    "note": "Synthetic descending position scores on public real coordinates, not assay benchmark"
+  },
+  {
+    "accession": "P42212",
+    "status": "PASS",
+    "url": "https://alphafold.ebi.ac.uk/files/AF-P42212-F1-model_v6.pdb",
+    "sha256": "abfe2191b8474977143b60b866077b97526fa71c9d3c657304b348e21397323f",
+    "residues": 238,
+    "confidence": {
+      "source": "alphafold_plddt",
+      "threshold": 50.0,
+      "low_confidence_residue_count": 0,
+      "excluded_variant_count": 0
+    },
+    "selected": [
+      [
+        "S2G",
+        236.0
+      ],
+      [
+        "D133G",
+        105.0
+      ],
+      [
+        "N212G",
+        26.0
+      ],
+      [
+        "S147G",
+        91.0
+      ],
+      [
+        "E124G",
+        114.0
+      ],
+      [
+        "G232A",
+        6.0
+      ],
+      [
+        "Q157G",
+        81.0
+      ],
+      [
+        "P13G",
+        225.0
+      ],
+      [
+        "G174A",
+        64.0
+      ],
+      [
+        "K52G",
+        186.0
+      ],
+      [
+        "F99G",
+        139.0
+      ],
+      [
+        "I152G",
+        86.0
+      ],
+      [
+        "Y39G",
+        199.0
+      ],
+      [
+        "I188G",
+        50.0
+      ],
+      [
+        "G24A",
+        214.0
+      ],
+      [
+        "L220G",
+        18.0
+      ],
+      [
+        "S30G",
+        208.0
+      ],
+      [
+        "D76G",
+        162.0
+      ],
+      [
+        "Y66G",
+        172.0
+      ],
+      [
+        "Y143G",
+        95.0
+      ],
+      [
+        "F8G",
+        230.0
+      ],
+      [
+        "K238G",
+        0.0
+      ],
+      [
+        "E115G",
+        123.0
+      ],
+      [
+        "A227G",
+        11.0
+      ]
+    ],
+    "note": "Synthetic descending position scores on public real coordinates, not assay benchmark"
+  }
+]

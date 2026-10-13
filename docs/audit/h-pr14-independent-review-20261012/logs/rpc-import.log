@@ -1,0 +1,8 @@
+{"name": "rpc-import", "command": ["<local>\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe", "-c", "from sidecar_kuro.handlers.misc import handle_load_evolvepro_csv; print(\"RPC import OK\")"], "cwd": "<local>", "exit_code": 1, "utc": "2026-10-12T09:01:05.871944+00:00"}
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "<local>\python-core\sidecar_kuro\handlers\misc.py", line 8, in <module>
+    from kuma_core.kuro import codon_table as _codon_table
+  File "<local>\kuma_core\kuro\codon_table.py", line 62, in <module>
+    from Bio.Data import CodonTable as _BioCodonTable
+ModuleNotFoundError: No module named 'Bio'
