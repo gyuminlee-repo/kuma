@@ -19,6 +19,11 @@
         "case": "K3",
         "ref": "37c6b474c95812b9f792b3b612f9f0ba84522b48",
         "input": "additional_cases.missing_variant_column"
+      },
+      {
+        "case": "K3",
+        "ref": "7d73356afac3d3c306ca76a49a4217b97a41a03a",
+        "input": "additional_cases.missing_variant_column, same call repeated on the final PR 14 head"
       }
     ],
     "not_run": [

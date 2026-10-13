@@ -1,6 +1,8 @@
 {
   "schema_version": 1,
   "observed_at_utc": "2026-10-13T06:28:00Z",
+  "head_repinned_at_utc": "2026-10-13T08:22:21Z",
+  "head_repin_note": "observed_at_utc is the first read. refs.head, the three changed head_blob values, the commit count and pr_state_at_read were read again at head_repinned_at_utc.",
   "review_type": "bounded_static_contract_documentation",
   "runtime_status": "PARTLY_RUN",
   "runtime_runs": [
@@ -18,6 +20,14 @@
         "K3"
       ],
       "ref": "37c6b474c95812b9f792b3b612f9f0ba84522b48",
+      "executed_at_utc": "2026-10-13T08:22:21Z",
+      "method": "Direct load_evolvepro_csv calls on git archive copies of the pinned trees. Not pytest, not the packaged product, not the sidecar."
+    },
+    {
+      "cases": [
+        "K3"
+      ],
+      "ref": "7d73356afac3d3c306ca76a49a4217b97a41a03a",
       "executed_at_utc": "2026-10-13T08:22:21Z",
       "method": "Direct load_evolvepro_csv calls on git archive copies of the pinned trees. Not pytest, not the packaged product, not the sidecar."
     }

@@ -12,7 +12,7 @@
 - PR #14의 최종 head: `7d73356afac3d3c306ca76a49a4217b97a41a03a`
 - 재고정 이력: 처음 조회한 head는 `cd234186896cc1271f1cabd6521a435254d71160`였다. 그 뒤 PR #14에 4개 커밋이 더해져 2026-10-13에 최종 head로 다시 고정했다. 두 head 사이에서 blob이 바뀐 인용 파일은 `strict_spatial.py`·`inputSlice.ts`·`tests/test_strict_variant_budget.py` 셋이다. 이전 head를 적은 곳은 이 줄뿐이다.
 - upstream 참고본: `mat10d/EvolvePro@1c77697d0c09bf6989a1562a55da99301a12e2cd`
-- main은 제품 스냅샷의 근거다. PR #14 head는 미병합 경로의 근거다. PR의 비교 기준은 main이 아니라 실제 base다.
+- main은 제품 스냅샷의 근거다. PR #14 head는 미병합 경로의 근거다. 이 문서와 expected-behavior.md에서 수식 없이 쓴 PR head는 최종 head를 가리킨다. PR의 비교 기준은 main이 아니라 실제 base다.
 - PR #14의 strict 경로 전체가 #14에서 생긴 것은 아니다. `evolvepro.py`와 `designSlice.ts`의 base/head blob은 동일하다. strict confidence와 Top-N 비교 변경은 #14 diff에 있다. 파일별 blob은 [sources.json](sources.json)에 기록했다. upstream record 하나는 `path` 필드가 없고 그 이유를 같은 record의 `path_omitted_reason`에 적었다.
 - upstream `setup.py`는 버전 1.0을 선언한다. 공개 KUMA의 dependency 목록만으로 사용자 환경에 설치된 upstream 버전은 확인할 수 없다. 위 SHA는 이 문서의 참고본이다.
 - 문서와 합성 입력만 추가한다. 제품 코드·모델·선정 알고리즘·audit registry·기존 리뷰·벤치마크는 변경하지 않는다.
@@ -125,6 +125,7 @@
 - 본문 링크와 line range를 고정 SHA에 연결했다.
 - JavaScript orchestration에서 JSON 파싱과 CSV 열 수 일치를 확인했다. 텍스트의 U+FFFD·em dash·unpaired surrogate는 각각 0개였다. 제품 parser를 실행한 검사는 아니다.
 - 2026-10-13 재고정 때 `git archive`로 푼 고정 tree 사본에서 `load_evolvepro_csv`를 직접 호출했다. S1과 S3는 PR #14 최종 head에서 호출했고 K3는 main에서 호출했다. pytest·패키징된 제품·sidecar를 거친 실행이 아니다.
+- 최종 head의 tree와 파일은 로컬 git 객체에서 읽었다. PR #14의 상태와 head SHA는 재고정 때 GitHub에서 다시 조회했다.
 - 재고정한 링크의 줄 범위는 이전 head의 내용과 최종 head의 내용을 줄 단위로 대조해 다시 잡았다.
 
 수행하지 않은 것:
