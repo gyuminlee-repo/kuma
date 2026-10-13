@@ -60,7 +60,7 @@ function StrictSpatialExclusions({ result }: { result: StrictSpatialResult }) {
   const confidence = result.coordinate_confidence;
   const counts = new Map<string, number>();
   for (const row of result.excluded) counts.set(row.reason, (counts.get(row.reason) ?? 0) + 1);
-  // Punctuation is locale-owned: ja/zh join with full-width marks.
+  // Punctuation is locale-owned: zh joins with full-width marks and fr spaces its colon and semicolon.
   const summary = [...counts].map(([reason, count]) => t("strictSpatial.exclusionItem", {
     reason: EXCLUSION_REASONS[reason] ? t(EXCLUSION_REASONS[reason]) : reason, amount: count,
   })).join(t("strictSpatial.exclusionSeparator"));

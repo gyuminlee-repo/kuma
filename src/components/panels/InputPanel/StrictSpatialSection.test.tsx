@@ -134,7 +134,7 @@ describe("full df_test pool diagnostics", () => {
 });
 
 describe("exclusion summary punctuation", () => {
-  // Locale-owned separators: ja/zh use full-width punctuation, so none may be hardcoded.
+  // Locale-owned separators: zh uses full-width punctuation and fr spaces its marks, so none may be hardcoded.
   it("joins reason and count with the locale's own separators", async () => {
     const { default: i18n } = await import("@/lib/i18n");
     i18n.addResourceBundle("en", "translation", { strictSpatial: {

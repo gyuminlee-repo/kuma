@@ -276,11 +276,33 @@ const unusedKeys = flattenKeys(en)
   .filter((key) => inScope(key))
   .filter((key) => !referencedKeys.has(key) && !referencedKeys.has(key.replace(PLURAL_TAIL, "")));
 
+// ---------------------------------------------------------------------------
+// Full-width punctuation in ja strictSpatial values
+//
+// ja.json writes its colons and semicolons half-width, followed by a space.
+// Full-width marks occur in a handful of keys outside strictSpatial, so one in
+// a strictSpatial value is a slip, not a locale convention (zh-CN and zh-TW do
+// use full-width marks and are not checked). strictSpatial.budgetEvidence was
+// already full-width before this check existed and stays allowed; nothing else
+// under the namespace may add one.
+// ---------------------------------------------------------------------------
+const FULLWIDTH_MARKS = /[\uFF1A\uFF1B]/;
+const FULLWIDTH_ALLOWED = new Set(["strictSpatial.budgetEvidence"]);
+const valueAt = (bundle, key) => key.split(".").reduce((cur, part) => cur?.[part], bundle);
+const fullwidthOffenders = flattenKeys(locales.ja ?? {})
+  .filter((key) => inScope(key) && !FULLWIDTH_ALLOWED.has(key))
+  .filter((key) => {
+    const value = valueAt(locales.ja, key);
+    return typeof value === "string" && FULLWIDTH_MARKS.test(value);
+  })
+  .map((key) => `ja.json: ${key}: ${JSON.stringify(valueAt(locales.ja, key))}`);
+
 if (offenders.length === 0 && englishOffenders.length === 0 && missingKeys.length === 0
-  && unknownLiterals.length === 0 && unusedKeys.length === 0) {
+  && unknownLiterals.length === 0 && unusedKeys.length === 0 && fullwidthOffenders.length === 0) {
   console.log(
     "i18n-lint: ok (0 hardcoded Korean lines, 0 hardcoded English in MAME components, 0 unresolved t() keys, "
-      + `0 unknown or unused keys in ${KEY_SCOPED_NAMESPACES.join(", ")})`,
+      + `0 unknown or unused keys in ${KEY_SCOPED_NAMESPACES.join(", ")}, `
+      + "0 new full-width colons or semicolons in ja strictSpatial)",
   );
   process.exit(0);
 }
@@ -308,6 +330,13 @@ if (unknownLiterals.length > 0) {
 if (unusedKeys.length > 0) {
   console.error(`i18n-lint: ${unusedKeys.length} en.json key(s) no code references:`);
   for (const o of unusedKeys) console.error("  " + o);
+}
+if (fullwidthOffenders.length > 0) {
+  console.error(
+    `i18n-lint: ${fullwidthOffenders.length} ja strictSpatial value(s) use a full-width colon or semicolon; `
+      + "ja writes these half-width (': ', '; '):",
+  );
+  for (const o of fullwidthOffenders) console.error("  " + o);
 }
 console.error("\nFix: extract to src/locales/{en,ko}.json and use t() / i18next.t().");
 console.error("Allowlist intentional Korean in scripts/i18n-lint.mjs ALLOWLIST.");
