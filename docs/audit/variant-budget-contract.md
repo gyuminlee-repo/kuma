@@ -10,6 +10,10 @@ the input pool. Actual-file provenance/notation still requires validation; the
 strict single-substitution scope does not imply support for multisite rounds.
 Compare score Top-N and spatial selection only after the same eligibility, budget
 and cap policies. Report score/rank and geometry tradeoffs without claiming fitness.
+(Superseded 2026-10-13 for the preview's primary baseline, which is now the score
+Top-N of every scored input substitution with its excluded members named; the
+same-eligibility Top-N is kept as a secondary baseline. See "Full df_test
+comparison follow-up" in `variant-budget-implementation.md`.)
 
 The existing exact-frame single-site mode and legacy defaults remain available. A new explicit `distinct_variants` budget keeps different substitutions at one reference site. N counts distinct canonical variant IDs, not sites. Exact duplicate IDs collapse; conflicting scores, invalid identities and multisite rows fail this opt-in path. Missing/nonfinite coordinates and no-op substitutions are excluded and counted. The prior source parser/start-position policy remains separately reported.
 
