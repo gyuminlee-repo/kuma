@@ -397,8 +397,16 @@ def _resolve_evolvepro_columns(
     index = _build_header_index(columns)
 
     if variant_column:
-        # Explicit user choice: match tolerantly, fall back to the raw value.
-        v_col = index.get(_normalize_header(variant_column), variant_column)
+        # Explicit user choice: match tolerantly, and refuse a name the file
+        # does not have. Passing the raw name through made every row lookup
+        # miss, so the load ended with zero variants and no error.
+        v_col = index.get(_normalize_header(variant_column))
+        if v_col is None:
+            raise ValueError(
+                f"EVOLVEpro file has no variant column named "
+                f"{variant_column!r}. Found: {columns}. "
+                f"Pick the variant column from the list above."
+            )
     else:
         v_col = next(
             (index[k] for k in (_normalize_header(a) for a in VARIANT_COLUMNS) if k in index),
@@ -451,7 +459,8 @@ def _load_evolvepro_rows(
         List of (variant, sort_score, raw_score) triples in file order (not sorted).
 
     Raises:
-        ValueError: If no recognisable variant column is found.
+        ValueError: If no recognisable variant column is found, or if
+            *variant_column* names a column the file does not have.
     """
     ext = Path(str(filepath)).suffix.lower()
     table_rows, columns = _read_table_rows(filepath, sheet_name, ext)

@@ -125,6 +125,38 @@ describe("inputSlice.loadSampleData", () => {
     expect(store.state.mutationInputMode).not.toBe("text")
   })
 
+  // The sidecar refuses a variant column the file does not have, and the
+  // sample table only carries the auto-detected names.
+  it("drops column overrides left by a previous file before loading the sample CSV", async () => {
+    const loadSequence = vi.fn(async () => {
+      ;(store.state as { seqInfo: unknown }).seqInfo = {
+        header: "x",
+        seq_length: 720,
+        genes: [
+          { gene: "egfp", aa_length: 239, translation: "M", cds_start: 1, cds_end: 720 },
+        ],
+      }
+    })
+    const seen: Array<{ variant: unknown; score: unknown }> = []
+    const loadEvolveproCsv = vi.fn(async () => {
+      seen.push({
+        variant: store.state.evolveproVariantColumn,
+        score: store.state.evolveproScoreColumn,
+      })
+    })
+    const store = makeStore({
+      loadSequence,
+      loadEvolveproCsv,
+      evolveproVariantColumn: "mutant_id",
+      evolveproScoreColumn: "rank",
+    })
+
+    await store.slice.loadSampleData()
+
+    expect(seen).toEqual([{ variant: null, score: null }])
+    expect(store.state.statusMessage).toBe("Sample data loaded (EGFP + EVOLVEpro CSV).")
+  })
+
   it("aborts before CSV load if loadSequence silently failed (seqInfo stays null)", async () => {
     const loadSequence = vi.fn(async () => {
       // simulate the swallowed-error path: seqInfo never gets set, statusMessage carries the cause

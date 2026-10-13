@@ -315,6 +315,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         });
         return;
       }
+      // Column overrides belong to whatever file was loaded before; the
+      // sample table uses the auto-detected names.
+      get().setEvolveproVariantColumn(null);
+      get().setEvolveproScoreColumn(null);
       await get().loadEvolveproCsv(csvPath);
       set({ statusMessage: "Sample data loaded (EGFP + EVOLVEpro CSV)." });
     } catch (err) {

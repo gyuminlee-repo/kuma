@@ -196,6 +196,10 @@ export function AppLayout() {
                     // A dropped table is the operator's pick, as with Browse:
                     // the manifest auto-fill must not replace it.
                     useAppStore.getState().setEvolveproCsvUserPicked(true);
+                    // Column overrides belong to the previous file, as with
+                    // Browse: a name this table lacks is refused by the loader.
+                    useAppStore.getState().setEvolveproVariantColumn(null);
+                    useAppStore.getState().setEvolveproScoreColumn(null);
                     useAppStore.getState().loadEvolveproCsv(filePath);
                     handledOne = true;
                     break;

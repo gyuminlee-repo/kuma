@@ -120,6 +120,69 @@ class TestColumnHeaderNormalization:
         assert result["variants"] == ["Q10A"]
         assert result["y_preds"][0] == pytest.approx(0.9)
 
+    def test_explicit_variant_column_absent_raises(self):
+        """A named variant column the file lacks is refused, not read as empty.
+
+        Passing the raw name through made every ``row.get`` miss, so the load
+        ended with zero variants and no error while the response echoed the
+        missing name back as the column it had used.
+        """
+        from kuma_core.kuro.evolvepro import _resolve_evolvepro_columns
+
+        with pytest.raises(ValueError) as excinfo:
+            _resolve_evolvepro_columns(["Variant", "y_pred"], variant_column="Variantt")
+
+        message = str(excinfo.value)
+        assert "Variantt" in message
+        # The real headers are listed so the operator can pick one of them.
+        assert "['Variant', 'y_pred']" in message
+
+    def test_explicit_variant_column_absent_raises_from_loaders(self, tmp_path):
+        from kuma_core.kuro.evolvepro import _load_evolvepro_rows
+
+        csv_file = tmp_path / "typo.csv"
+        csv_file.write_text("Variant,y_pred\nA2C,0.9\nC3D,0.8\n")
+
+        with pytest.raises(ValueError, match="Variantt"):
+            load_evolvepro_csv(
+                csv_file, top_n=2, ref_seq="MACDEFGH", variant_column="Variantt"
+            )
+        with pytest.raises(ValueError, match="Variantt"):
+            _load_evolvepro_rows(csv_file, variant_column="Variantt")
+
+    def test_explicit_variant_column_tolerant_match_still_resolves(self, tmp_path):
+        """BOM, surrounding whitespace and case differences are not "absent"."""
+        from kuma_core.kuro.evolvepro import _resolve_evolvepro_columns
+
+        v_col, _ = _resolve_evolvepro_columns(
+            ["Variant", "y_pred"], variant_column="\ufeff vARIANT "
+        )
+        assert v_col == "Variant"
+
+        v_col2, _ = _resolve_evolvepro_columns(
+            ["\ufeffMutant_ID ", "y_pred"], variant_column="mutant_id"
+        )
+        assert v_col2 == "\ufeffMutant_ID "
+
+        csv_file = tmp_path / "tolerant.csv"
+        csv_file.write_text(" Mutant_ID ,y_pred\nA2C,0.9\n")
+        result = load_evolvepro_csv(
+            csv_file, top_n=2, ref_seq="MACDEFGH", variant_column="mutant_id"
+        )
+        assert result["variants"] == ["A2C"]
+        assert result["used_variant_column"] == " Mutant_ID "
+
+    def test_auto_detect_paths_unchanged(self):
+        """No explicit name: alias match still wins, no match still raises."""
+        from kuma_core.kuro.evolvepro import _resolve_evolvepro_columns
+
+        assert _resolve_evolvepro_columns(["note", "Mutation", "score"]) == (
+            "Mutation",
+            "score",
+        )
+        with pytest.raises(ValueError, match="Supported aliases"):
+            _resolve_evolvepro_columns(["note", "value"])
+
     def test_resolved_names_are_original_headers(self):
         """Resolver returns the raw header strings so row lookups keep working."""
         from kuma_core.kuro.evolvepro import _resolve_evolvepro_columns

@@ -1007,3 +1007,38 @@ class TestStructuralDiversity3DCoords:
             "structural_kappa": 0.0, "anchor_variants": [],
         })
         assert resp["result"]["variants"] == ["A10G", "A40G"]
+
+
+# ── 16. load_evolvepro_csv — explicit variant column the file lacks ──────
+
+
+class TestLoadEvolveproCsvMissingVariantColumn:
+    """A named variant column absent from the header is an invalid-params error.
+
+    It used to come back as a successful response with zero variants, which
+    the app could not tell apart from an empty file.
+    """
+
+    def test_missing_explicit_variant_column_is_an_rpc_error(self, tmp_path):
+        csv = tmp_path / "df_test.csv"
+        csv.write_text("Variant,y_pred\nA10G,0.9\nA20G,0.8\n")
+
+        resp = _rpc("load_evolvepro_csv", {
+            "filepath": str(csv), "top_n": 2, "variant_column": "Variantt",
+        })
+
+        assert "result" not in resp, resp
+        assert resp["error"]["code"] == -32602
+        assert "Variantt" in resp["error"]["message"]
+        assert "'Variant', 'y_pred'" in resp["error"]["message"]
+
+    def test_tolerant_explicit_variant_column_still_loads(self, tmp_path):
+        csv = tmp_path / "df_test.csv"
+        csv.write_text("Variant,y_pred\nA10G,0.9\nA20G,0.8\n")
+
+        resp = _rpc("load_evolvepro_csv", {
+            "filepath": str(csv), "top_n": 2, "variant_column": " variant ",
+        })
+
+        assert resp["result"]["variants"] == ["A10G", "A20G"]
+        assert resp["result"]["used_variant_column"] == "Variant"
