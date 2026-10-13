@@ -37,6 +37,16 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     return state.evolveproCsvPath;
   }
 
+  /**
+   * A call that drops its answer because the context it started from moved
+   * on would leave its progress line up for good. Empty is the slice's own
+   * "nothing to say" (sequenceSlice clears the same way); a line another
+   * action wrote since is not ours to remove.
+   */
+  function clearOwnStatus(own: string) {
+    if (get().statusMessage === own) set({ statusMessage: "" });
+  }
+
   async function reloadEvolveproCsv(reason: string) {
     const state = get();
     const activePath = getActiveEvolveproPath(state);
@@ -539,10 +549,11 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     const requestedAccession = accession.trim();
     if (!requestedAccession) return;
     const fetchGeneration = ++structureFetchGeneration;
+    const loadingMessage = "AlphaFold structure loading...";
     set({
       structureLoading: true,
       structureLoaded: get().structureAccession === requestedAccession,
-      statusMessage: "AlphaFold structure loading...",
+      statusMessage: loadingMessage,
     });
     try {
       const result = await sendRequest(
@@ -550,10 +561,9 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
         { accession: requestedAccession },
         30_000,
       );
-      if (
-        fetchGeneration !== structureFetchGeneration
-        || get().uniprotAccession !== requestedAccession
-      ) {
+      if (fetchGeneration !== structureFetchGeneration) return;
+      if (get().uniprotAccession !== requestedAccession) {
+        clearOwnStatus(loadingMessage);
         return;
       }
       if (result.success) {
@@ -580,10 +590,9 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
         }
       }
     } catch (err) {
-      if (
-        fetchGeneration !== structureFetchGeneration
-        || get().uniprotAccession !== requestedAccession
-      ) {
+      if (fetchGeneration !== structureFetchGeneration) return;
+      if (get().uniprotAccession !== requestedAccession) {
+        clearOwnStatus(loadingMessage);
         return;
       }
       set({
@@ -811,9 +820,10 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     const translation = gene?.translation;
     if (!translation) return;
     const generation = ++refDomainGeneration;
+    const scanningMessage = i18next.t("diversity.sequenceDomainScanning");
     set({
       refDomainsLoading: true,
-      statusMessage: i18next.t("diversity.sequenceDomainScanning"),
+      statusMessage: scanningMessage,
     });
     try {
       const scan = () => sendRequest(
@@ -844,6 +854,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       const nowSeqInfo = nowState.seqInfo;
       if (!nowSeqInfo) {
         set({ refDomainsLoading: false });
+        clearOwnStatus(scanningMessage);
         return;
       }
       const nowGene =
@@ -851,6 +862,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
         ?? nowSeqInfo.genes[0];
       if (nowGene?.translation !== translation) {
         set({ refDomainsLoading: false });
+        clearOwnStatus(scanningMessage);
         return;
       }
       if (result.source === "error") {

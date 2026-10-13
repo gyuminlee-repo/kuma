@@ -94,6 +94,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       const activeDomains = selectionDomains.filter((d) => !disabledDomains.includes(`${d.name}-${d.start}`));
       const excludedDomains = selectionDomains.filter((d) => disabledDomains.includes(`${d.name}-${d.start}`));
       const modeLabel = "EVOLVEpro";
+      const loadingMessage = `Loading ${modeLabel} file...`;
 
       // v0.3 §4: pass protein ref_seq so sidecar can convert EVOLVEpro
       // short-form variants (89W) back to internal notation (F89W).
@@ -107,7 +108,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         return gene?.translation ?? "";
       })();
       set({
-        statusMessage: `Loading ${modeLabel} file...`,
+        statusMessage: loadingMessage,
         evolveproCsvPath: filepath,
         strictSpatialSelection: null,
         strictSpatialError: null,
@@ -178,9 +179,19 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         if (!allowed) throw new Error(i18next.t("strictSpatial.permission"));
       }
       const result = await sendRequest("load_evolvepro_csv", params);
+      // A newer load owns the status line, so an older one stays silent. The
+      // newest load, dropped because the strict context moved under it, would
+      // otherwise leave its loading line up for good. It says what happened in
+      // the words designSlice uses for the same change, and only while the line
+      // is still its own.
       if (gen !== csvLoadGeneration) return;
-      if (strictMode !== strictAfterLoad()) return;
-      if (strictMode && contextKey !== strictSpatialContextKey(get())) return;
+      if (strictMode !== strictAfterLoad()
+        || (strictMode && contextKey !== strictSpatialContextKey(get()))) {
+        if (get().statusMessage === loadingMessage) {
+          set({ statusMessage: i18next.t("strictSpatial.changedSelection") });
+        }
+        return;
+      }
       if (strictMode && (!result.strict_spatial
         || !sameVariantIds(result.strict_spatial.selected_variants, result.variants)
         || result.strict_spatial.source_accession !== String(params.structure_accession).trim().toUpperCase()
