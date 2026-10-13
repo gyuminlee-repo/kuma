@@ -1,0 +1,1869 @@
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://gyuminlee-repo.github.io/kuma/audit/evolvepro-data-contract-20261013/expected-behavior/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>합성 fixture: 예측한 동작과 미실행 수용 기준 - KUMA — KURO & MAME User Guide</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#fixture" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../.." title="KUMA — KURO &amp; MAME User Guide" class="md-header__button md-logo" aria-label="KUMA — KURO & MAME User Guide" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            KUMA — KURO & MAME User Guide
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              합성 fixture: 예측한 동작과 미실행 수용 기준
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="다크 모드"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="라이트 모드"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyuminlee-repo/kuma" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyuminlee-repo/kuma
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="탭" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../.." class="md-tabs__link">
+          
+  
+  
+  시작하기
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../kuro/" class="md-tabs__link">
+          
+  
+  
+  KURO
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../mame/" class="md-tabs__link">
+          
+  
+  
+  MAME
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../inputs/sequence/" class="md-tabs__link">
+          
+  
+  
+  입력 파일
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../troubleshooting/" class="md-tabs__link">
+          
+  
+  
+  트러블슈팅
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../reference/keybindings/" class="md-tabs__link">
+          
+  
+  
+  참고
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="KUMA — KURO &amp; MAME User Guide" class="md-nav__button md-logo" aria-label="KUMA — KURO & MAME User Guide" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    KUMA — KURO & MAME User Guide
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyuminlee-repo/kuma" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyuminlee-repo/kuma
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    시작하기
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    시작하기
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    KUMA User Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    설치
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting-started/project-structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    프로젝트 구조
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting-started/sidecar-binaries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    사이드카 바이너리
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    KURO
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    KURO
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../kuro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    개요
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../kuro/01-load/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    1. Sequence Load
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../kuro/02-mutation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2. Mutation Input
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../kuro/03-params/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    3. Parameters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../kuro/04-submit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4. Submit Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../kuro/05-output/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    5. Output Summary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../kuro/06-export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    6. Export
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MAME
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    MAME
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../mame/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    개요
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../mame/01-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    1. Run Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../mame/02-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2. Sequencing Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../mame/03-janus/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    3. Janus 장비 설정
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../mame/04-activity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4. Activity Data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    입력 파일
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    입력 파일
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../inputs/sequence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    서열
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../inputs/mutations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    변이 입력
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../inputs/expected-mutations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Expected mutations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../inputs/barcodes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Barcodes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    트러블슈팅
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    트러블슈팅
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    개요
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../troubleshooting/sidecar-method-not-found/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sidecar Method not found
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../troubleshooting/build-version/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    빌드 버전 표기
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../troubleshooting/sidebar-navigation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sidebar Navigation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../troubleshooting/windows-smartscreen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Windows SmartScreen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    참고
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    참고
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/keybindings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    단축키
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    설정
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/workspace-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace 포맷
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="fixture">합성 fixture: 예측한 동작과 미실행 수용 기준<a class="headerlink" href="#fixture" title="Permanent link">&para;</a></h1>
+<p>사례별 상태는 아래 표와 같다. <strong>RUN</strong>은 <code>git archive</code>로 푼 고정 tree 사본에서 <code>load_evolvepro_csv</code>를 직접 호출해 출력을 확인했다는 뜻이다. pytest나 제품 실행이 아니다. <strong>NOT_RUN</strong> 사례의 값은 고정 소스를 읽고 수작업으로 계산한 예상값이며 런타임 결과나 회귀 테스트 통과 기록이 아니다.</p>
+<table>
+<thead>
+<tr>
+<th>사례</th>
+<th>상태</th>
+<th>호출한 고정 SHA</th>
+<th>실행 시각(UTC)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>K1</td>
+<td>NOT_RUN</td>
+<td>없음</td>
+<td>없음</td>
+</tr>
+<tr>
+<td>K2</td>
+<td>NOT_RUN</td>
+<td>없음</td>
+<td>없음</td>
+</tr>
+<tr>
+<td>K3</td>
+<td>RUN</td>
+<td>main <code>37c6b474c95812b9f792b3b612f9f0ba84522b48</code>. 같은 호출을 PR #14 최종 head <code>7d73356afac3d3c306ca76a49a4217b97a41a03a</code>에서도 실행</td>
+<td>2026-10-13T08:22:21Z</td>
+</tr>
+<tr>
+<td>S1</td>
+<td>RUN</td>
+<td>PR #14 최종 head <code>7d73356afac3d3c306ca76a49a4217b97a41a03a</code></td>
+<td>2026-10-13T08:22:21Z</td>
+</tr>
+<tr>
+<td>S2</td>
+<td>NOT_RUN</td>
+<td>없음</td>
+<td>없음</td>
+</tr>
+<tr>
+<td>S3</td>
+<td>RUN</td>
+<td>PR #14 최종 head <code>7d73356afac3d3c306ca76a49a4217b97a41a03a</code></td>
+<td>2026-10-13T08:22:21Z</td>
+</tr>
+<tr>
+<td>M1</td>
+<td>NOT_RUN</td>
+<td>없음</td>
+<td>없음</td>
+</tr>
+<tr>
+<td>M2</td>
+<td>NOT_RUN</td>
+<td>없음</td>
+<td>없음</td>
+</tr>
+<tr>
+<td>M3</td>
+<td>NOT_RUN</td>
+<td>없음</td>
+<td>없음</td>
+</tr>
+<tr>
+<td>U1</td>
+<td>NOT_RUN</td>
+<td>없음</td>
+<td>없음</td>
+</tr>
+</tbody>
+</table>
+<p>공통 reference는 <code>MACDEFGH</code>다. 실제 단백질·실험·예측 모델 자료를 사용하지 않는다. <a href="../fixtures/cases.json">cases.json</a>의 좌표는 임의 길이 단위이며 실제 구조의 거리 또는 confidence에 관한 결론을 내리지 않는다.</p>
+<h2 id="a-fixture">A. 현재 구현을 설명하는 fixture<a class="headerlink" href="#a-fixture" title="Permanent link">&para;</a></h2>
+<h3 id="k1-legacy-parser">K1. legacy parser의 손실과 순서<a class="headerlink" href="#k1-legacy-parser" title="Permanent link">&para;</a></h3>
+<p>입력: <a href="../fixtures/candidate-parser.csv">candidate-parser.csv</a><br />
+대상: main의 <code>load_evolvepro_csv</code><br />
+설정: ref_seq = common reference. top_n = 2. max_per_position = 0. diversity flags = false. score_order = desc.</p>
+<p>예상:
+- 원본 data 행은 8개다.
+- <code>2V</code>는 <code>A2V</code>가 된다.
+- blank score의 C3S·NaN의 E5Q·빈 variant 행이 빠진다.
+- 파싱된 5행 중 M1A 한 행이 위치 1 정책으로 빠진다.
+- A2V 중복은 첫 행 9.876543만 남는다.
+- <code>total_count=3</code>. <code>selected_count=2</code>. <code>filtered_count=0</code>. <code>start_codon_removed=1</code>.
+- variants = [A2V, D4N]. y_preds = [9.8765, 6.0].
+- ranked_candidates에는 A2V·D4N·C3S가 이 순서로 남는다. C3S의 점수는 실측 여부와 별개로 파일에 있던 유한 숫자 0이다.
+- 명시 <code>score_order=asc</code>이면 selected는 C3S·D4N이다. raw 점수는 0·6으로 반환한다.
+- 이 CSV의 source_row와 y_actual 등 추가 열은 KURO 후보 응답에 보존되지 않는다.</p>
+<p>같은 fixture를 PR head의 strict 경로에 넣으면 정규화된 A2V의 상충 점수 때문에 오류를 예상한다. 자동 평균이나 최고 점수 선택을 기대하지 않는다.</p>
+<h3 id="k2-0">K2. 빈 점수와 0 점수<a class="headerlink" href="#k2-0" title="Permanent link">&para;</a></h3>
+<p>입력: cases.json의 blank_score·zero_score를 CSV 셀로 직렬화한 미래 임시 fixture.</p>
+<p>예상:
+- 둘 다 내부 score는 0이 될 수 있다.
+- legacy <code>has_score</code>는 두 경우 모두 false다.
+- strict는 blank_score의 <code>score_available=false</code>와 zero_score의 true를 구분한다.
+- blank_score에는 유효한 Top-N score 비교가 없고 zero_score에는 0 평균과 동점 rank가 있을 수 있다.
+- score 열을 존재하지 않는 이름으로 명시하면 현재 resolver의 폴백 때문에 score-free로 읽힐 수 있다. 이를 input validation 성공으로 보고하지 않는다.</p>
+<h3 id="k3">K3. 명시한 변이 열이 파일에 없는 경우<a class="headerlink" href="#k3" title="Permanent link">&para;</a></h3>
+<p>상태: RUN.<br />
+입력: cases.json의 missing_variant_column을 CSV로 직렬화한 임시 파일. 머리는 <code>Variant,y_pred</code>이고 행은 A2V 5와 C3S 3이다.<br />
+대상: main의 <code>load_evolvepro_csv</code><br />
+설정: ref_seq = common reference. top_n = 2. variant_column = <code>Variantt</code>.</p>
+<p>확인한 출력:
+- 예외가 없다.
+- variants = []. y_preds = []. ranked_candidates = [].
+- <code>total_count=0</code>. <code>selected_count=0</code>.
+- <code>used_variant_column</code>은 <code>Variantt</code>다. <code>used_score_column</code>은 <code>y_pred</code>다.
+- 대조 호출에서 variant_column = <code>Variant</code>이거나 열을 지정하지 않으면 variants = [A2V, C3S]이고 y_preds = [5.0, 3.0]이다.
+- PR #14 최종 head의 legacy 경로에 같은 호출을 넣어도 출력이 같다.</p>
+<p>읽는 법:
+- 명시한 열 이름은 머리와 대소문자·공백을 무시하고 대조한다. 맞는 열이 없으면 입력 문자열로 폴백한다. 그 이름으로 읽은 모든 행의 변이 셀이 blank여서 전부 버려진다.
+- 호출 쪽이 알 수 있는 단서는 빈 목록과 <code>used_variant_column</code>에 남은 파일에 없는 이름뿐이다. 빈 목록을 유효한 빈 파일로 보고하지 않는다.
+- 이 동작은 결함으로 보고 브랜치 <code>fix/evolvepro-missing-variant-column-20261013</code>에서 ValueError를 내도록 고칠 예정이다. 2026-10-13 확인 시점에 그 브랜치에는 수정 커밋이 없었고 이 문서의 고정 SHA에도 수정이 들어 있지 않다.</p>
+<h3 id="s1-pr-14-head">S1. PR #14 최종 head의 예산과 제외<a class="headerlink" href="#s1-pr-14-head" title="Permanent link">&para;</a></h3>
+<p>상태: RUN.<br />
+입력: <a href="../fixtures/candidate-strict.csv">candidate-strict.csv</a>와 cases.json의 strict_context.<br />
+대상: PR #14 최종 head <code>load_evolvepro_csv</code>의 strict_spatial_context 경로.<br />
+전제: 이 fixture는 직접 함수 입력 계약을 위한 것이다. app의 AFDB fetch·PDB parser·certificate validator까지 충족하는 실제 구조 파일은 아니다.</p>
+<p>unique_sites와 N=3에서 확인한 출력:
+- source_row_count=9. parsed_variant_count=9. parsing_omitted_count=0.
+- start_position_omitted_count=1. duplicate_variant_omitted_count=1.
+- strict input_variant_count=7.
+- E5Q는 missing_or_nonfinite_coordinate로 제외된다.
+- F6Y는 low_confidence_coordinate로 제외된다.
+- C3C는 unchanged_amino_acid로 제외된다.
+- eligible_variant_count=4. eligible_site_count=3. variant_capacity=3. same_site_collapsed=1.
+- 선택 순서는 A2V → D4N → C3S다.
+- selected_variant_count=3. selected_site_count=3.
+- comparison.universe는 <code>input-variants-before-spatial-eligibility</code>다. 순위 우주는 strict 입력 7개에서 C3C를 뺀 6개 변이다.
+- primary Top-N은 [A2V, A2G, C3S]다. top_n_excluded는 빈 배열이다. E5Q와 F6Y는 점수 순위가 5위와 6위여서 Top-3에 들지 않는다.
+- eligible_top_n은 [A2V, A2G, C3S]로 primary와 같다. representative_top_n은 [A2V, C3S, D4N]이다.
+- primary profile: variant_count=3. spatial_variant_count=3. site_count=2. max_variants_per_site=2. minimum_site_distance=3.0. coverage_mean_distance=1.3333. coverage_max_distance=4.0. score_mean=9.0. mean_score_rank=2.0.
+- selected profile: variant_count=3. spatial_variant_count=3. site_count=3. max_variants_per_site=1. minimum_site_distance=3.0. coverage_mean_distance=0.0. coverage_max_distance=0.0. score_mean=8.3333. mean_score_rank=2.6667.
+- top_n_overlap_count=2. score_gap_to_top_n=0.6667.
+- 이 입력에서는 입력 전체 Top-N과 적격 Top-N이 같다. 이전 head 대비 관측되는 차이는 universe 리터럴·eligible_top_n 블록·spatial_variant_count 필드·top_n_excluded 필드뿐이다. 제외 구성원이 Top-N에 드는 경우는 S3에서 다룬다.
+- N=4이면 ValueError다. 메시지는 <code>Strict spatial count 4 exceeds 3 eligible unique sites</code>로 시작한다. N을 3으로 자동 축소하지 않는다.</p>
+<p>distinct_variants와 N=4 및 cap=null에서 확인한 출력:
+- eligible_variant_count=4. variant_capacity=4.
+- 선택 순서는 A2V → D4N → C3S → A2G다.
+- selected_variant_count=4. selected_site_count=3.
+- site 2의 multiplicity는 2다. variant 최소 쌍거리는 0이다. unique-site 최소 쌍거리는 3이다.
+- primary Top-N·eligible_top_n·representative_top_n은 모두 [A2V, A2G, C3S, D4N]이다. top_n_excluded는 빈 배열이다.
+- top_n_overlap_count=4. score_gap_to_top_n=0.0.
+- cap=1과 N=4를 함께 주면 ValueError다. 메시지는 <code>Strict spatial count 4 exceeds 3 eligible variant capacity</code>로 시작한다.
+- selected ID는 모두 입력 ID다. 새 치환을 만들지 않는다.</p>
+<h3 id="s2">S2. 신원 오류<a class="headerlink" href="#s2" title="Permanent link">&para;</a></h3>
+<p>입력: cases.json의 wrong_identity·multisite.<br />
+대상: PR head strict 경로.</p>
+<p>예상:
+- C2V는 reference의 위치 2가 A이므로 오류다.
+- A2V:C3S는 strict 단일 치환 범위 밖이므로 오류다.
+- legacy parser가 문자열을 읽을 수 있다는 사실로 strict 지원이나 설계 성공을 주장하지 않는다.</p>
+<h3 id="s3-top-n">S3. Top-N에 든 제외 구성원<a class="headerlink" href="#s3-top-n" title="Permanent link">&para;</a></h3>
+<p>상태: RUN.<br />
+입력: cases.json의 strict_top_n_partly_excluded와 strict_top_n_all_excluded를 CSV로 직렬화한 임시 파일과 strict_context.<br />
+대상: PR #14 최종 head strict 경로. unique_sites. cap 없음.</p>
+<p>strict_top_n_partly_excluded와 N=3에서 확인한 출력:
+- 선택 순서는 A2V → D4N → C3S다. excluded는 F6Y의 low_confidence_coordinate 하나다.
+- primary Top-N은 [A2V, F6Y, C3S]다. top_n_excluded는 F6Y와 low_confidence_coordinate 한 항목이다.
+- primary profile: variant_count=3. spatial_variant_count=2. site_count=2. max_variants_per_site=1. minimum_site_distance=3.0. coverage_mean_distance=1.3333. coverage_max_distance=4.0. score_mean=9.0. mean_score_rank=2.0.
+- score_mean과 mean_score_rank는 F6Y를 포함한 세 구성원으로 계산된다. 부위·거리 지표는 A2V와 C3S만으로 계산된다.
+- eligible_top_n과 representative_top_n은 둘 다 [A2V, C3S, D4N]이다.
+- top_n_overlap_count=2. score_gap_to_top_n=0.6667.</p>
+<p>strict_top_n_all_excluded와 N=2에서 확인한 출력:
+- 선택 순서는 A2V → C3S다. excluded는 F6Y의 low_confidence_coordinate와 E5Q의 missing_or_nonfinite_coordinate다.
+- primary Top-N은 [F6Y, E5Q]다. top_n_excluded에 두 변이가 각자의 사유와 함께 나온다.
+- primary profile: variant_count=2. spatial_variant_count=0. site_count=0. max_variants_per_site=0. minimum_site_distance·coverage_mean_distance·coverage_max_distance는 모두 null. score_mean=8.5. mean_score_rank=1.5.
+- eligible_top_n과 representative_top_n은 둘 다 [A2V, C3S]다.
+- top_n_overlap_count=0. score_gap_to_top_n=6.0.</p>
+<p>두 입력 모두 이전 head에서 호출해도 선택 변이·적격 수·제외 목록이 같았다. 달라진 것은 comparison 블록뿐이다.</p>
+<h3 id="m1-builder-raw-ratio-pass-gate">M1. 현재 builder의 raw → ratio → PASS gate<a class="headerlink" href="#m1-builder-raw-ratio-pass-gate" title="Permanent link">&para;</a></h3>
+<p>입력: <a href="../fixtures/activity-raw.csv">activity-raw.csv</a>와 cases.json의 verdict_workbook_recipe.<br />
+대상: main <code>build_evolvepro_input</code>. activity_path 설정. activity_scale=raw. layout_xlsx 없음.<br />
+주의: JSON recipe를 실제 임시 XLSX로 만드는 단계는 수행하지 않았다.</p>
+<p>예상:
+- P1 WT 평균은 10이다.
+- A2V의 relative replicates는 [2, 4]. 평균 3.
+- C3S는 [1]. 평균 1.
+- D4N은 [5]이나 WRONG_AA로 export에서 제외된다.
+- 결과 XLSX 열은 정확히 [Variant, activity].
+- 행은 [2V, 3.0] 다음 [3S, 1.0].
+- input_count=3. n_variants=2. n_ngs_excluded=1.
+- exclusion_reason_counts는 WRONG_AA: 1.
+- wt_values=[1, 1]. variant_replicates는 2V:[2,4]와 3S:[1]만 포함한다.
+- normalization_sources는 activity_path:raw.
+- manifest의 evidence_hash·artifacts와 결과 객체의 artifact_hashes는 실제 bytes로 계산해야 한다. 이 문서는 가짜 hash를 제공하지 않는다.</p>
+<p>변형 예상:
+- 각 mutant cohort에 WT 행이 없으면 ValueError.
+- 0 WT 평균은 <code>_read_long</code>에서 양의 분모 검사 없이 나눗셈에 도달한다. 현재 소스로는 ZeroDivisionError가 예상된다. 이는 정적 관측이며 재현된 버그 판정은 아니다.
+- 같은 well의 PASS와 WRONG_AA 증거를 함께 넣으면 CONFLICT. 두 PASS가 완전히 같으면 동일 증거로 병합.
+- 모든 variant가 제외되면 성공 빈 workbook을 만들지 않고 실패.
+- activity_scale=relative_to_wt일 때는 이미 입력된 비율을 다시 WT 평균으로 나누지 않는다.</p>
+<h3 id="m2">M2. 확인 측정 우선순위<a class="headerlink" href="#m2" title="Permanent link">&para;</a></h3>
+<p>입력: cases.json의 replicate_priority.<br />
+대상: main <code>merge_replicates_priority</code>.</p>
+<p>예상:
+- 2V는 authoritative 평균 5를 쓴다. fallback 평균 3과 합쳐 평균 4를 만들지 않는다.
+- 절대 차이 2는 threshold 0.1보다 크므로 mismatched에 2V가 남는다.
+- 3S는 fallback 평균 1을 쓴다.
+- 이 함수의 dictionary key 순서는 보장된 출력 rank가 아니다. builder가 나중에 평균 내림차순으로 정렬한다.</p>
+<h3 id="m3-csv-xlsx-0">M3. CSV와 XLSX의 단위·0값 차이<a class="headerlink" href="#m3-csv-xlsx-0" title="Permanent link">&para;</a></h3>
+<p>입력: cases.json의 merged_rows_recipe.<br />
+대상: main <code>export_evolvepro_csv</code>와 <code>export_evolvepro_xlsx</code>.</p>
+<p>예상:
+- CSV main에는 A2V의 y_pred=2가 들어간다. 이는 log2 ratio다.
+- C3S는 log2_fc=None이므로 CSV excluded 쪽에 남는다.
+- XLSX에는 2V의 activity=4와 3S의 activity=0이 들어간다. 이는 ratio다.
+- 이 두 파일을 하나의 수치 단위로 비교하지 않는다.
+- MergedRow 경로의 포함 조건은 현재 builder의 explicit PASS evidence parser와 별개다. 한 경로의 결과로 다른 경로의 gate를 인증하지 않는다.</p>
+<h3 id="u1-round-kuro">U1. 다음 round 입력과 KURO 재열기 구분<a class="headerlink" href="#u1-round-kuro" title="Permanent link">&para;</a></h3>
+<p>입력: cases.json의 activity_as_prediction을 정확한 [Variant, activity] XLSX로 만드는 미래 임시 fixture.</p>
+<p>예상:
+- upstream 단일 치환 reader는 WT FASTA가 같을 때 2V → A2V와 3S → C3S로 변환한다.
+- 같은 파일을 KURO 자동 score 선택으로 읽으면 activity가 score 별칭에 없어서 score-free가 될 수 있다.
+- KURO에서 score_column=activity를 명시하면 숫자 3과 1을 읽는다. 이는 실측 ratio를 후보 점수로 사용하는 명시적 경로다. 예측 모델이 실행된 것은 아니다.
+- upstream 단일 치환 reader에 완전한 A2V를 넣으면 short 표기 처리에 맞지 않는다.
+- upstream_repeated_rounds를 누적하면 같은 non-WT ID가 중복되어 create_iteration_dataframes가 (None, None)을 반환한다.
+- embedding에 없는 실측 ID는 reindex 경계에서 보존된다고 가정하지 않는다. 집합 차이를 모델 실행 전에 검토해야 한다.</p>
+<h2 id="b">B. 제안하는 추가 수용 기준<a class="headerlink" href="#b" title="Permanent link">&para;</a></h2>
+<p>아래는 현재 코드의 PASS 주장과 구분되는 검증 제안이다. 제품 코드를 추가하지 않았다.</p>
+<ol>
+<li>동일 reference digest·variant namespace·score 의미/방향/단위로 두 경계가 연결되는지 확인한다.</li>
+<li>source 행 수와 parser 생존 행 수를 분리한다. 누락·중복·cap·coordinate 제외를 합쳐 하나의 실패 수로 숨기지 않는다.</li>
+<li>선정 ID 배열과 설계 요청 ID 배열을 정확히 대조한다. 설계 성공·NGS PASS·측정 완료·재입력 수를 별도로 비교한다.</li>
+<li>short ID 변환 전후 reference identity를 확인한다. 단순 문자열 일치나 position만으로 신원을 대신하지 않는다.</li>
+<li>확인 측정과 1차 측정의 provenance를 보존한다. 중복 측정 평균과 중복 variant 충돌을 분리한다.</li>
+<li>명시된 score 열의 존재와 score-free 상태를 검토한다. 실제 0과 결측은 의미상 구분한다.</li>
+<li>strict N 변경·budget 변경·cap 변경·reference/file bytes 변경 시 기존 preview가 유효하지 않은지 검사한다.</li>
+<li>실제 parser와 관련 기존 테스트를 실행할 수 있는 승인된 환경에서 검증한다. 문서·fixture 검토는 full suite나 native 앱 증거를 대신하지 않는다.</li>
+</ol>
+<p>실제 실행 시 각각의 exit code와 exact SHA를 기록한다. 실패·skip·미실행을 합쳐 통과로 보고하지 않는다. 이 문서에는 실행 스크립트나 모델 호출을 포함하지 않았다.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
