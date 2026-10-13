@@ -3,6 +3,8 @@
 Fixtures are synthetic. The AlphaFold-shaped header copies the TITLE layout of
 AlphaFold DB PDB files; the sequence and coordinates are invented.
 """
+import json
+import math
 import re
 import typing
 from pathlib import Path
@@ -83,8 +85,13 @@ def test_primary_top_n_is_raw_pool_not_site_representatives():
     data = [("A1C", 10.), ("A1D", 9.9), ("A1E", 9.8), ("A2C", 5.), ("A3C", 4.), ("A4C", 3.)]
     _, report = select_single_sites(data, "AAAA", ctx, 2)
     comparison = report["comparison"]
-    assert comparison["universe"] == "eligible-variants-before-budget-and-cap-policy"
+    assert comparison["universe"] == "input-variants-before-spatial-eligibility"
     assert comparison["top_n_variants"] == ["A1C", "A1D"]
+    # Nothing is excluded here, so the eligible-pool baseline is the same list.
+    assert comparison["top_n_excluded"] == []
+    assert comparison["eligible_top_n"] == {
+        "universe": "eligible-variants-before-budget-and-cap-policy",
+        **{key: comparison[key] for key in ("top_n", "top_n_variants", "top_n_overlap_count", "score_gap_to_top_n")}}
     representative = comparison["representative_top_n"]
     assert representative["top_n_variants"] == ["A1C", "A2C"]
     assert comparison["score_gap_to_top_n"] > representative["score_gap_to_top_n"]
@@ -137,3 +144,138 @@ def test_capacity_error_names_low_confidence_exclusions():
     message = str(error.value)
     assert message.startswith("Strict spatial count 10 exceeds 9 eligible unique sites")
     assert "low_confidence_coordinate=2" in message
+
+
+LOW = "low_confidence_coordinate"
+CORE_XY = [coordinate for coordinate, _ in CORE]
+
+
+def alphafold_report(count, rows_in=None, **extra):
+    context = {**exact_pdb_context(atoms(AF_HEADER), SEQUENCE, "X00000"), **extra}
+    return select_single_sites(rows_in or rows(), SEQUENCE, context, count)
+
+
+def test_primary_top_n_is_taken_from_every_scored_input_variant():
+    selected, report = alphafold_report(3)
+    comparison = report["comparison"]
+    assert comparison["baseline"] == "configured-score-top-n"
+    assert comparison["universe"] == "input-variants-before-spatial-eligibility"
+    # Plain score ranking of the input: the two best sit in the low-pLDDT tail.
+    assert comparison["top_n_variants"] == ["A2C", "A3C", "A4C"]
+    assert comparison["top_n_excluded"] == [{"variant": "A2C", "reason": LOW}, {"variant": "A3C", "reason": LOW}]
+    assert comparison["top_n"]["variant_count"] == 3
+    assert comparison["top_n"]["score_mean"] == (50. + 17. + 16.) / 3
+    assert comparison["top_n"]["mean_score_rank"] == 2.
+    picked = [v for v, _ in selected]
+    assert comparison["top_n_overlap_count"] == len({"A2C", "A3C", "A4C"} & set(picked))
+    assert comparison["score_gap_to_top_n"] == pytest.approx(
+        comparison["top_n"]["score_mean"] - comparison["selected"]["score_mean"])
+    # The former primary baseline is kept as a secondary one.
+    eligible = comparison["eligible_top_n"]
+    assert eligible["universe"] == "eligible-variants-before-budget-and-cap-policy"
+    assert eligible["top_n_variants"] == ["A4C", "A5C", "A6C"]
+    assert "top_n_excluded" not in eligible
+    assert eligible["top_n"]["mean_score_rank"] == 4.  # ranks 3, 4, 5 of the whole input
+    assert comparison["representative_top_n"]["top_n_variants"] == ["A4C", "A5C", "A6C"]
+    # Selected ranks count the excluded input variants above them.
+    universe = sorted(rows(), key=lambda row: -row[1])
+    rank = {v: i for i, (v, _) in enumerate(universe, 1)}
+    assert comparison["selected"]["mean_score_rank"] == pytest.approx(sum(rank[v] for v in picked) / 3)
+    assert comparison["selected"]["spatial_variant_count"] == 3
+
+
+def test_top_n_distance_metrics_use_only_members_with_usable_coordinates():
+    _, report = alphafold_report(3)
+    top = report["comparison"]["top_n"]
+    # Only A4C (first core residue, at the origin) has a trusted coordinate.
+    nearest = [math.dist(xy, CORE_XY[0]) for xy in CORE_XY]
+    assert top["variant_count"] == 3 and top["spatial_variant_count"] == 1
+    assert top["site_count"] == 1 and top["max_variants_per_site"] == 1
+    assert top["minimum_site_distance"] is None
+    assert top["coverage_mean_distance"] == pytest.approx(sum(nearest) / len(nearest))
+    assert top["coverage_max_distance"] == pytest.approx(max(nearest))
+    # The tail lies 200 A away; had it been used the maximum would exceed that.
+    assert top["coverage_max_distance"] < 20.
+
+
+def test_top_n_without_any_usable_coordinate_reports_no_distance():
+    _, report = alphafold_report(2)
+    comparison = report["comparison"]
+    assert comparison["top_n_variants"] == ["A2C", "A3C"]
+    assert [row["variant"] for row in comparison["top_n_excluded"]] == ["A2C", "A3C"]
+    top = comparison["top_n"]
+    assert top["variant_count"] == 2 and top["spatial_variant_count"] == 0
+    assert top["site_count"] == 0 and top["max_variants_per_site"] == 0
+    assert top["minimum_site_distance"] is None
+    assert top["coverage_mean_distance"] is None and top["coverage_max_distance"] is None
+    assert top["score_mean"] == 33.5 and top["mean_score_rank"] == 1.5
+    assert comparison["top_n_overlap_count"] == 0
+    json.dumps(report, allow_nan=False)
+
+
+def mixed_exclusion_report(count, **extra):
+    ctx = {"budget_mode": "unique_sites", "score_available": True, "score_order": "desc", **extra,
+           "mapping": [{"reference_position": p, "coordinate": (float("nan") if p == 2 else float(p), 0., 0.)}
+                       for p in range(1, 7)]}
+    data = [("A1C", 1.), ("A2C", 10.), ("A3C", 9.), ("A4C", 8.), ("A5C", 7.), ("A6C", 6.),
+            ("A4A", 99.), ("A5D", float("nan"))]
+    return select_single_sites(data, "AAAAAA", ctx, count, [{"start": 3, "end": 3}])
+
+
+def test_explicit_and_missing_coordinate_exclusions_enter_top_n_but_unranked_rows_do_not():
+    selected, report = mixed_exclusion_report(3)
+    comparison = report["comparison"]
+    # A4A (unchanged) and A5D (no score) cannot be ranked at all and stay out.
+    assert comparison["top_n_variants"] == ["A2C", "A3C", "A4C"]
+    assert comparison["top_n_excluded"] == [
+        {"variant": "A2C", "reason": "missing_or_nonfinite_coordinate"},
+        {"variant": "A3C", "reason": "explicit_exclusion"}]
+    assert {"variant": "A4A", "reason": "unchanged_amino_acid"} in report["excluded"]
+    assert {"variant": "A5D", "reason": "nonfinite_score"} in report["excluded"]
+    assert comparison["top_n"]["spatial_variant_count"] == 1
+    assert comparison["eligible_top_n"]["top_n_variants"] == ["A4C", "A5C", "A6C"]
+    # Six ranked variants: A2C=1 ... A6C=5, A1C=6.
+    rank = {"A2C": 1, "A3C": 2, "A4C": 3, "A5C": 4, "A6C": 5, "A1C": 6}
+    assert comparison["selected"]["mean_score_rank"] == pytest.approx(sum(rank[v] for v, _ in selected) / 3)
+    assert comparison["eligible_top_n"]["top_n"]["mean_score_rank"] == 4.
+
+
+def test_ascending_scores_rank_the_whole_input_and_report_raw_means():
+    # The loader negates ascending scores before the selector sees them, so
+    # rows() stands for raw scores -50, -17, -16, ... with lower being better.
+    _, report = alphafold_report(3, score_order="asc")
+    comparison = report["comparison"]
+    assert comparison["top_n_variants"] == ["A2C", "A3C", "A4C"]
+    assert comparison["top_n"]["score_mean"] == -(50. + 17. + 16.) / 3
+    assert comparison["score_gap_to_top_n"] >= 0
+
+
+def test_unavailable_scores_null_every_top_n_field_including_exclusions():
+    selected, report = alphafold_report(3, score_available=False)
+    comparison = report["comparison"]
+    for block in (comparison, comparison["eligible_top_n"], comparison["representative_top_n"]):
+        assert block["top_n"] is None and block["top_n_variants"] is None
+        assert block["top_n_overlap_count"] is None and block["score_gap_to_top_n"] is None
+    assert comparison["top_n_excluded"] is None
+    assert comparison["selected"]["mean_score_rank"] is None
+
+
+def test_tied_scores_share_an_average_rank_across_excluded_and_eligible_rows():
+    # A2C and A3C (low pLDDT) tie with A4C and A5C (eligible): ranks 1-4 average to 2.5.
+    data = [("A2C", 5.), ("A3C", 5.), ("A4C", 5.), ("A5C", 5.)] + [(f"A{p}C", 1.) for p in range(6, 13)]
+    _, report = alphafold_report(2, data)
+    comparison = report["comparison"]
+    assert comparison["top_n_variants"] == ["A2C", "A3C"]  # ties break by position
+    assert comparison["top_n"]["mean_score_rank"] == 2.5
+    assert comparison["eligible_top_n"]["top_n_variants"] == ["A4C", "A5C"]
+    assert comparison["eligible_top_n"]["top_n"]["mean_score_rank"] == 2.5
+
+
+def test_changing_the_comparison_leaves_the_selection_as_it_was():
+    selected, report = alphafold_report(3)
+    assert [v for v, _ in selected] == report["selected_variants"] == ["A4C", "A12C", "A6C"]
+    assert report["selected_positions"] == [4, 12, 6]
+    assert report["eligible_positions"] == list(range(4, 13))
+    assert report["eligible_variant_count"] == 9
+    assert report["excluded"] == [{"variant": "A2C", "reason": LOW}, {"variant": "A3C", "reason": LOW}]
+    assert report["selection_policy"] == "single-site-full-pool-fps-v1"

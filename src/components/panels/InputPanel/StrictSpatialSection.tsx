@@ -7,6 +7,17 @@ import type { StrictSpatialResult } from "@/types/models";
 
 const Selection3DPanel = lazy(() => import("../Selection3DPanel").then((module) => ({ default: module.Selection3DPanel })));
 
+const EXCLUSION_REASONS: Record<string, string> = {
+  unchanged_amino_acid: "strictSpatial.reasonUnchanged",
+  nonfinite_score: "strictSpatial.reasonNonfiniteScore",
+  explicit_exclusion: "strictSpatial.reasonExplicitExclusion",
+  missing_or_nonfinite_coordinate: "strictSpatial.reasonMissingCoordinate",
+  low_confidence_coordinate: "strictSpatial.reasonLowConfidence",
+};
+
+/** Words for a backend reason code; a code this table does not know is shown as sent. */
+const exclusionReasonLabel = (t: TFunction, reason: string) => EXCLUSION_REASONS[reason] ? t(EXCLUSION_REASONS[reason]) : reason;
+
 function StrictSpatialComparison({ result }: { result: StrictSpatialResult }) {
   const { t } = useTranslation();
   const comparison = result.comparison;
@@ -19,6 +30,8 @@ function StrictSpatialComparison({ result }: { result: StrictSpatialResult }) {
     ["comparisonMeanCoverage", "coverage_mean_distance", false], ["comparisonMaxCoverage", "coverage_max_distance", false],
     ["comparisonMeanScore", "score_mean", false], ["comparisonMeanRank", "mean_score_rank", false],
   ] as const;
+  const topN = comparison.top_n;
+  const topNExcluded = comparison.top_n_excluded ?? [];
   return <section className="min-w-0 space-y-1 rounded border border-border p-2" aria-label={t("strictSpatial.comparisonTitle")}>
     <table className="w-full table-fixed text-caption">
       <caption className="mb-1 text-left font-medium">{t("strictSpatial.comparisonTitle")}</caption>
@@ -30,14 +43,26 @@ function StrictSpatialComparison({ result }: { result: StrictSpatialResult }) {
       <tbody>{rows.map(([label, key, exact]) => <tr key={key}>
         <th className="break-words pr-1 text-left font-normal" scope="row">{t(`strictSpatial.${label}`)}</th>
         <td className="text-right tabular-nums">{format(comparison.selected[key], exact)}</td>
-        <td className="text-right tabular-nums">{format(comparison.top_n?.[key], exact)}</td>
+        <td className="text-right tabular-nums">{format(topN?.[key], exact)}</td>
       </tr>)}</tbody>
     </table>
     <p>{t("strictSpatial.comparisonCoverage", { sites: comparison.candidate_site_count })}</p>
     {comparison.score_available ? <>
       <p>{t("strictSpatial.comparisonTopNScope")}</p>
+      {topN && topNExcluded.length > 0 && <>
+        <p>{t("strictSpatial.comparisonTopNExcluded", { excluded: topNExcluded.length, total: topN.variant_count })}</p>
+        <ul className="max-h-40 min-w-0 overflow-y-auto break-words" data-testid="strict-top-n-excluded">
+          {topNExcluded.map((row) => <li key={row.variant}>
+            <span className="font-mono">{row.variant}</span> {exclusionReasonLabel(t, row.reason)}
+          </li>)}
+        </ul>
+      </>}
+      {topN && topN.spatial_variant_count < topN.variant_count
+        && <p>{t("strictSpatial.comparisonTopNSpatialSubset", { used: topN.spatial_variant_count, total: topN.variant_count })}</p>}
       <p>{t("strictSpatial.comparisonOverlap", { overlap: comparison.top_n_overlap_count, count: result.requested_count,
         gap: format(comparison.score_gap_to_top_n) })}</p>
+      <p>{t("strictSpatial.comparisonEligible", { overlap: comparison.eligible_top_n.top_n_overlap_count,
+        count: result.requested_count, gap: format(comparison.eligible_top_n.score_gap_to_top_n) })}</p>
       <p>{t("strictSpatial.comparisonRepresentative", { overlap: comparison.representative_top_n.top_n_overlap_count,
         count: result.requested_count, gap: format(comparison.representative_top_n.score_gap_to_top_n) })}</p>
       <p>{t(result.score_order === "asc" ? "strictSpatial.comparisonScoreAsc" : "strictSpatial.comparisonScoreDesc")}</p>
@@ -47,17 +72,6 @@ function StrictSpatialComparison({ result }: { result: StrictSpatialResult }) {
     </> : <p>{t("strictSpatial.comparisonNoScores")}</p>}
   </section>;
 }
-
-const EXCLUSION_REASONS: Record<string, string> = {
-  unchanged_amino_acid: "strictSpatial.reasonUnchanged",
-  nonfinite_score: "strictSpatial.reasonNonfiniteScore",
-  explicit_exclusion: "strictSpatial.reasonExplicitExclusion",
-  missing_or_nonfinite_coordinate: "strictSpatial.reasonMissingCoordinate",
-  low_confidence_coordinate: "strictSpatial.reasonLowConfidence",
-};
-
-/** Words for a backend reason code; a code this table does not know is shown as sent. */
-const exclusionReasonLabel = (t: TFunction, reason: string) => EXCLUSION_REASONS[reason] ? t(EXCLUSION_REASONS[reason]) : reason;
 
 function StrictSpatialExclusions({ result }: { result: StrictSpatialResult }) {
   const { t } = useTranslation();

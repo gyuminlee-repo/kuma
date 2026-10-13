@@ -58,7 +58,7 @@ export function syntheticFullDfTestFixture(
     const sites = [...new Set(variants.map(positionOf))];
     const nearestDistances = positions.map((position) => Math.min(...sites.map((site) => Math.abs(position - site) * 4)));
     const pairDistances = sites.flatMap((position, index) => sites.slice(index + 1).map((site) => Math.abs(position - site) * 4));
-    return { variant_count: variants.length, site_count: sites.length,
+    return { variant_count: variants.length, spatial_variant_count: variants.length, site_count: sites.length,
       max_variants_per_site: Math.max(...multiplicities(variants).map((row) => row.variant_count)),
       minimum_site_distance: pairDistances.length ? Math.min(...pairDistances) : null,
       coverage_mean_distance: nearestDistances.reduce((sum, distance) => sum + distance, 0) / positions.length,
@@ -85,10 +85,13 @@ export function syntheticFullDfTestFixture(
     geometry_variant_min_pair_distance: requestedCount < 2 ? null : selectedProfile.max_variants_per_site > 1 ? 0 : selectedProfile.minimum_site_distance,
     source_row_count: pool.length, parsed_variant_count: pool.length, parsing_omitted_count: 0,
     start_position_omitted_count: 0, duplicate_variant_omitted_count: 0, excluded: [],
-    // Distinct variants without a cap: the raw pool and the per-site
-    // representative pool are the same, so both baselines coincide.
-    comparison: { baseline: "configured-score-top-n", universe: "eligible-variants-before-budget-and-cap-policy",
+    // Nothing is excluded and distinct variants carry no cap: the scored input,
+    // the eligible pool and the per-site representative pool are the same, so
+    // all three baselines coincide.
+    comparison: { baseline: "configured-score-top-n", universe: "input-variants-before-spatial-eligibility",
       candidate_site_count: positions.length, score_available: scoresAvailable, selected: selectedProfile,
-      ...topN, representative_top_n: { universe: "eligible-variants-after-budget-and-cap-policy", ...topN } },
+      ...topN, top_n_excluded: scoresAvailable ? [] : null,
+      eligible_top_n: { universe: "eligible-variants-before-budget-and-cap-policy", ...topN },
+      representative_top_n: { universe: "eligible-variants-after-budget-and-cap-policy", ...topN } },
   });
 }

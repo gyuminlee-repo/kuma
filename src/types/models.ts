@@ -492,14 +492,20 @@ export interface EvolveproStepStats {
 
 export type StrictSpatialBudgetMode = "unique_sites" | "distinct_variants";
 
-/** Descriptive metrics over the same eligible, mapped candidate-site universe. */
+/**
+ * Descriptive metrics of one variant set. Site and distance metrics use only
+ * the `spatial_variant_count` members that have a trusted coordinate (the
+ * eligible ones); with none of them both counts are 0 and every distance is
+ * null, which is "not computable" and not a zero distance.
+ */
 export interface StrictSpatialProfile {
   variant_count: number;
+  spatial_variant_count: number;
   site_count: number;
   max_variants_per_site: number;
   minimum_site_distance: number | null;
-  coverage_mean_distance: number;
-  coverage_max_distance: number;
+  coverage_mean_distance: number | null;
+  coverage_max_distance: number | null;
   score_mean: number | null;
   mean_score_rank: number | null;
 }
@@ -514,15 +520,20 @@ export interface StrictSpatialBaseline {
 }
 
 /**
- * The primary baseline is the score Top-N of every eligible variant, i.e. plain
- * score ranking before the per-site budget. Ranks use that same pool.
+ * The primary baseline is the score Top-N of every scored substitution in the
+ * input, before the coordinate, confidence and exclusion filters and before
+ * the per-site budget. Ranks in every profile use that same input ranking.
  */
 export interface StrictSpatialComparison extends StrictSpatialBaseline {
   baseline: "configured-score-top-n";
-  universe: "eligible-variants-before-budget-and-cap-policy";
+  universe: "input-variants-before-spatial-eligibility";
   candidate_site_count: number;
   score_available: boolean;
   selected: StrictSpatialProfile;
+  /** Top-N members that spatial selection could not use, in Top-N order; null without scores. */
+  top_n_excluded: Array<{ variant: string; reason: string }> | null;
+  /** Secondary: Top-N of the eligible variants only, the primary baseline before 2026-10-13. */
+  eligible_top_n: StrictSpatialBaseline & { universe: "eligible-variants-before-budget-and-cap-policy" };
   /** Secondary: Top-N of the per-site representatives left by the budget and cap. */
   representative_top_n: StrictSpatialBaseline & { universe: "eligible-variants-after-budget-and-cap-policy" };
 }

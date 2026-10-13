@@ -5,6 +5,10 @@ author numbers. Unsupported residue identities fail instead of being flattened.
 Coordinate correspondence is checked here. Structural confidence is applied
 only where the file states it: an AlphaFold model stores per-residue pLDDT in
 the B-factor column, while an experimental B-factor is not a confidence score.
+
+Those filters decide what may be selected, not what the selection is compared
+with: the reported score Top-N is taken from every scored substitution in the
+input, and its members that spatial selection could not use are named.
 """
 from __future__ import annotations
 
@@ -160,6 +164,9 @@ def select_single_sites(rows: list[tuple[str, float]], reference: str, context: 
                 low_confidence.add(position)
     eligible: dict[int, list[tuple[str, float]]] = {}
     excluded: list[dict] = []
+    # Everything that can be ranked by score: only an unchanged residue or a
+    # score that is not a number keeps a row out. Reporting only, never selected from.
+    scored: list[tuple[str, float, int]] = []
     seen: dict[str, float] = {}
     for variant, score in rows:
         match = re.fullmatch(r"([ACDEFGHIKLMNPQRSTVWY])([1-9]\d*)([ACDEFGHIKLMNPQRSTVWY])", variant)
@@ -184,6 +191,8 @@ def select_single_sites(rows: list[tuple[str, float]], reference: str, context: 
             reason = "missing_or_nonfinite_coordinate"
         elif position in low_confidence:
             reason = "low_confidence_coordinate"
+        if reason not in ("unchanged_amino_acid", "nonfinite_score"):
+            scored.append((variant, score, position))
         if reason:
             excluded.append({"variant": variant, "reason": reason})
             continue
@@ -229,8 +238,10 @@ def select_single_sites(rows: list[tuple[str, float]], reference: str, context: 
     capacity_reduction = eligible_count - len(candidates)
     pool = sorted(((v, score, p) for p, rows_at in eligible.items() for v, score in rows_at),
                   key=lambda row: (-row[1], row[2], row[0]))
+    scored.sort(key=lambda row: (-row[1], row[2], row[0]))
     comparison = _selection_comparison(
-        pool, candidates, [decoded[v] for v, _ in selected], coordinate_map,
+        scored, pool, candidates, [decoded[v] for v, _ in selected], coordinate_map,
+        {row["variant"]: row["reason"] for row in excluded},
         score_available=context.get("score_available", True),
         score_order=context.get("score_order", "desc"),
     )
@@ -268,47 +279,61 @@ def _finite_mean(values: list[float]) -> float | None:
     return value if math.isfinite(value) else None
 
 
-def _selection_comparison(pool: list[tuple[str, float, int]], candidates: list[tuple[str, float, int]],
+def _selection_comparison(scored: list[tuple[str, float, int]], pool: list[tuple[str, float, int]],
+                          candidates: list[tuple[str, float, int]],
                           selected: list[tuple[str, float, int]], coordinate_map: dict,
+                          excluded_reasons: dict[str, str],
                           *, score_available: bool, score_order: str) -> dict:
     """Describe the selection against plain score ranking without changing it.
 
-    ``pool`` holds every eligible variant (validity, exclusions, coordinates and
-    confidence already applied) and ``candidates`` the subset left after the
-    budget and per-site cap. Both are sorted by configured rank, position and
-    variant ID. The primary baseline is the score Top-N of ``pool``, which is
-    what a user gets by taking the N best predictions. The Top-N of the
-    per-site representatives is kept as a secondary baseline. Ranks are taken
-    in ``pool`` for every profile. Coverage weights each eligible site once.
-    Raw-score means undo the loader's ascending-order sign inversion; the
-    direction-aware gap is a mean-score difference, never a fitness claim.
+    ``scored`` holds every input variant that can be ranked: all of them except
+    an unchanged residue or a non-finite score. Variants dropped for an explicit
+    exclusion, a missing coordinate or a low-confidence coordinate are in it.
+    ``pool`` holds the eligible variants (those filters applied) and
+    ``candidates`` the subset left after the budget and per-site cap. All three
+    are sorted by configured rank, position and variant ID.
+
+    The primary baseline is the score Top-N of ``scored``, which is what a user
+    gets by taking the N best predictions from the file. Its members that
+    spatial selection could not use are listed in ``top_n_excluded`` with the
+    reason. The Top-N of ``pool`` and of the per-site representatives are kept
+    as secondary baselines. Ranks are taken in ``scored`` for every profile.
+
+    Site and distance metrics use only the members with a trusted coordinate,
+    i.e. the eligible ones, counted in ``spatial_variant_count``; with none of
+    them the distances are null rather than zero. Coverage weights each
+    eligible site once. Raw-score means undo the loader's ascending-order sign
+    inversion; the direction-aware gap is a mean-score difference, never a
+    fitness claim.
     """
     if score_order not in ("asc", "desc"):
         raise ValueError("Unknown configured score direction")
     ranks: dict[str, float] = {}
     i = 0
-    while i < len(pool):
+    while i < len(scored):
         end = i + 1
-        while end < len(pool) and pool[end][1] == pool[i][1]:
+        while end < len(scored) and scored[end][1] == scored[i][1]:
             end += 1
-        for variant, _, _ in pool[i:end]:
+        for variant, _, _ in scored[i:end]:
             ranks[variant] = (i + 1 + end) / 2.
         i = end
     positions = sorted({p for _, _, p in pool})
+    usable = {v for v, _, _ in pool}
 
     def profile(rows: list[tuple[str, float, int]]) -> dict:
-        multiplicity = Counter(p for _, _, p in rows)
+        multiplicity = Counter(p for v, _, p in rows if v in usable)
         sites = sorted(multiplicity)
         nearest = [min(math.dist(coordinate_map[p], coordinate_map[q]) for q in sites)
-                   for p in positions]
+                   for p in positions] if sites else []
         mean = _finite_mean([score for _, score, _ in rows]) if score_available else None
         return {
-            "variant_count": len(rows), "site_count": len(sites),
-            "max_variants_per_site": max(multiplicity.values()),
+            "variant_count": len(rows), "spatial_variant_count": sum(multiplicity.values()),
+            "site_count": len(sites),
+            "max_variants_per_site": max(multiplicity.values(), default=0),
             "minimum_site_distance": min((math.dist(coordinate_map[a], coordinate_map[b])
                 for index, a in enumerate(sites) for b in sites[index + 1:]), default=None),
-            "coverage_mean_distance": math.fsum(d / len(nearest) for d in nearest),
-            "coverage_max_distance": max(nearest),
+            "coverage_mean_distance": math.fsum(d / len(nearest) for d in nearest) if nearest else None,
+            "coverage_max_distance": max(nearest, default=None),
             "score_mean": -mean if mean is not None and score_order == "asc" else mean,
             "mean_score_rank": _finite_mean([ranks[v] for v, _, _ in rows]) if score_available else None,
         }
@@ -335,9 +360,14 @@ def _selection_comparison(pool: list[tuple[str, float, int]], candidates: list[t
 
     return {
         "baseline": "configured-score-top-n",
-        "universe": "eligible-variants-before-budget-and-cap-policy",
+        "universe": "input-variants-before-spatial-eligibility",
         "candidate_site_count": len(positions), "score_available": score_available,
-        "selected": selected_profile, **baseline(pool),
+        "selected": selected_profile, **baseline(scored),
+        "top_n_excluded": [{"variant": v, "reason": excluded_reasons[v]}
+                           for v, _, _ in scored[:len(selected)] if v in excluded_reasons] if score_available else None,
+        "eligible_top_n": {
+            "universe": "eligible-variants-before-budget-and-cap-policy", **baseline(pool),
+        },
         "representative_top_n": {
             "universe": "eligible-variants-after-budget-and-cap-policy", **baseline(candidates),
         },

@@ -548,15 +548,22 @@ function isEvolveproStepStats(value: unknown): boolean {
 }
 
 function isStrictSpatialProfile(value: unknown): value is StrictSpatialProfile {
-  const positiveInteger = (item: unknown): item is number => isNumber(item) && Number.isSafeInteger(item) && item > 0;
+  const count = (item: unknown): item is number => isNumber(item) && Number.isSafeInteger(item) && item >= 0;
+  // Sites and distances describe only the members with a trusted coordinate.
+  // With none of them there is no site and no distance: null, never zero.
   return isRecord(value)
-    && positiveInteger(value.variant_count) && positiveInteger(value.site_count)
-    && positiveInteger(value.max_variants_per_site)
-    && value.site_count <= value.variant_count && value.max_variants_per_site <= value.variant_count
+    && count(value.variant_count) && value.variant_count > 0
+    && count(value.spatial_variant_count) && value.spatial_variant_count <= value.variant_count
+    && count(value.site_count) && count(value.max_variants_per_site)
+    && value.site_count <= value.spatial_variant_count && value.max_variants_per_site <= value.spatial_variant_count
+    && (value.site_count === 0) === (value.spatial_variant_count === 0)
+    && (value.max_variants_per_site === 0) === (value.spatial_variant_count === 0)
     && (value.minimum_site_distance === null || (isNumber(value.minimum_site_distance) && value.minimum_site_distance >= 0))
     && (value.minimum_site_distance === null) === (value.site_count < 2)
-    && isNumber(value.coverage_mean_distance) && value.coverage_mean_distance >= 0
-    && isNumber(value.coverage_max_distance) && value.coverage_max_distance >= value.coverage_mean_distance
+    && (value.spatial_variant_count === 0
+      ? value.coverage_mean_distance === null && value.coverage_max_distance === null
+      : isNumber(value.coverage_mean_distance) && value.coverage_mean_distance >= 0
+        && isNumber(value.coverage_max_distance) && value.coverage_max_distance >= value.coverage_mean_distance)
     && (value.score_mean === null || isNumber(value.score_mean))
     && (value.mean_score_rank === null || (isNumber(value.mean_score_rank) && value.mean_score_rank >= 1));
 }
@@ -570,31 +577,66 @@ function isStrictSpatialBaselineShape(value: unknown): value is Record<string, u
     && (value.score_gap_to_top_n === null || (isNumber(value.score_gap_to_top_n) && value.score_gap_to_top_n >= 0));
 }
 
+/** Exclusions that still leave a variant rankable by score, so it may sit in the input Top-N. */
+const STRICT_SPATIAL_RANKED_EXCLUSIONS = new Set(["explicit_exclusion", "missing_or_nonfinite_coordinate", "low_confidence_coordinate"]);
+
 /**
- * One score Top-N baseline against the selection. `budgeted` marks the
- * per-site representative universe, where the budget and cap also bind the
- * baseline; the primary raw-pool baseline may repeat a site freely.
+ * One score Top-N baseline against the selection. `universe` names where the
+ * Top-N was taken: "input" (primary) may hold variants that spatial selection
+ * excluded and may repeat a site freely, "eligible" holds eligible variants
+ * only, and "budgeted" is the per-site representative universe where the
+ * budget and cap also bind the baseline.
  */
 function isStrictSpatialBaseline(
-  block: StrictSpatialBaseline, comparison: StrictSpatialComparison, report: StrictSpatialResult, budgeted: boolean,
+  block: StrictSpatialBaseline, comparison: StrictSpatialComparison, report: StrictSpatialResult,
+  universe: "input" | "eligible" | "budgeted",
 ): boolean {
   const selected = comparison.selected;
+  const budgeted = universe === "budgeted";
   if (!comparison.score_available) return block.top_n === null && block.top_n_variants === null
-    && block.top_n_overlap_count === null && block.score_gap_to_top_n === null;
+    && block.top_n_overlap_count === null && block.score_gap_to_top_n === null
+    && (universe !== "input" || comparison.top_n_excluded === null);
   const baseline = block.top_n;
   const variants = block.top_n_variants;
+  // Ranks are taken in the whole scored input: eligible variants plus the
+  // excluded ones that still carry a usable score.
+  const ranked = report.eligible_variant_count
+    + report.excluded.filter((row) => STRICT_SPATIAL_RANKED_EXCLUSIONS.has(row.reason)).length;
   if (baseline === null || variants === null || selected.mean_score_rank === null || baseline.mean_score_rank === null
     || variants.length !== report.requested_count || new Set(variants).size !== variants.length
     || baseline.variant_count !== variants.length || baseline.site_count > comparison.candidate_site_count
-    || selected.mean_score_rank > report.eligible_variant_count || baseline.mean_score_rank > report.eligible_variant_count) return false;
+    || selected.mean_score_rank > ranked || baseline.mean_score_rank > ranked) return false;
   const multiplicities = new Map<number, number>();
   const eligible = new Set(report.eligible_positions);
   const selectedIds = new Set(report.selected_variants);
+  const exclusionReasons = new Map(report.excluded.map((row) => [row.variant, row.reason]));
+  const unusable: Array<{ variant: string; reason: string }> = [];
   for (const variant of variants) {
     const match = /^([ACDEFGHIKLMNPQRSTVWY])([1-9]\d*)([ACDEFGHIKLMNPQRSTVWY])$/.exec(variant);
-    if (match === null || match[1] === match[3] || !eligible.has(Number(match[2]))) return false;
+    if (match === null || match[1] === match[3]) return false;
+    const reason = exclusionReasons.get(variant);
+    if (reason !== undefined) {
+      // Only the input Top-N may name an excluded variant, and only one that
+      // was still rankable; it carries no trusted coordinate.
+      if (universe !== "input" || !STRICT_SPATIAL_RANKED_EXCLUSIONS.has(reason)) return false;
+      unusable.push({ variant, reason });
+      continue;
+    }
+    if (!eligible.has(Number(match[2]))) return false;
     const position = Number(match[2]);
     multiplicities.set(position, (multiplicities.get(position) ?? 0) + 1);
+  }
+  if (baseline.spatial_variant_count !== variants.length - unusable.length) return false;
+  if (universe === "input") {
+    // The listed exclusions are exactly the Top-N members the response itself
+    // reports as excluded, in Top-N order and with the same reason.
+    const listed = comparison.top_n_excluded;
+    if (listed === null || listed.length !== unusable.length
+      || listed.some((row, index) => row.variant !== unusable[index].variant || row.reason !== unusable[index].reason)) return false;
+    // With no excluded member the input Top-N is the eligible Top-N.
+    const eligibleTop = comparison.eligible_top_n.top_n_variants;
+    if (unusable.length === 0 && (eligibleTop === null || eligibleTop.length !== variants.length
+      || eligibleTop.some((variant, index) => variant !== variants[index]))) return false;
   }
   const maximum = [...multiplicities.values()].reduce((largest, size) => Math.max(largest, size), 0);
   const expectedGap = selected.score_mean === null || baseline.score_mean === null ? null
@@ -613,20 +655,26 @@ function isStrictSpatialBaseline(
 function isStrictSpatialComparison(value: unknown, report: StrictSpatialResult): boolean {
   if (value === undefined) return true; // Additive diagnostics: older certificates remain usable.
   if (!(isStrictSpatialBaselineShape(value) && value.baseline === "configured-score-top-n"
-    && value.universe === "eligible-variants-before-budget-and-cap-policy"
+    && value.universe === "input-variants-before-spatial-eligibility"
     && value.candidate_site_count === report.eligible_site_count
     && value.score_available === report.score_available
     && isStrictSpatialProfile(value.selected)
+    && (value.top_n_excluded === null || isArrayOf(value.top_n_excluded,
+      (row) => isRecord(row) && isString(row.variant) && isString(row.reason)))
+    && isStrictSpatialBaselineShape(value.eligible_top_n)
+    && value.eligible_top_n.universe === "eligible-variants-before-budget-and-cap-policy"
     && isStrictSpatialBaselineShape(value.representative_top_n)
     && value.representative_top_n.universe === "eligible-variants-after-budget-and-cap-policy")) return false;
   const comparison = value as unknown as StrictSpatialComparison;
   const selected = comparison.selected;
   if (selected.variant_count !== report.selected_variant_count || selected.site_count !== report.selected_site_count
+    || selected.spatial_variant_count !== selected.variant_count // every pick is an eligible variant
     || selected.max_variants_per_site !== report.site_multiplicities.reduce((maximum, row) => Math.max(maximum, row.variant_count), 0)
     || selected.minimum_site_distance !== report.geometry_site_min_pair_distance) return false;
   if (!comparison.score_available && (selected.score_mean !== null || selected.mean_score_rank !== null)) return false;
-  return isStrictSpatialBaseline(comparison, comparison, report, false)
-    && isStrictSpatialBaseline(comparison.representative_top_n, comparison, report, true);
+  return isStrictSpatialBaseline(comparison, comparison, report, "input")
+    && isStrictSpatialBaseline(comparison.eligible_top_n, comparison, report, "eligible")
+    && isStrictSpatialBaseline(comparison.representative_top_n, comparison, report, "budgeted");
 }
 
 /** pLDDT filtering is reported only for an AlphaFold source, with its fixed threshold. */

@@ -180,3 +180,62 @@ describe("exclusion detail list", () => {
     expect(detail).not.toMatch(/low_confidence_coordinate|missing_or_nonfinite_coordinate|explicit_exclusion|unchanged_amino_acid|nonfinite_score/);
   });
 });
+
+describe("input Top-N members excluded from spatial selection", () => {
+  type Report = ReturnType<typeof syntheticFullDfTestFixture>;
+  function show(patch: (comparison: NonNullable<Report["comparison"]>) => Partial<NonNullable<Report["comparison"]>>) {
+    const report = syntheticFullDfTestFixture(12);
+    if (!report.comparison || !report.comparison.top_n) throw Error("Expected scored fixture");
+    const shown = { ...report, comparison: { ...report.comparison, ...patch(report.comparison) } };
+    useAppStore.setState({ maxPrimers: shown.requested_count, strictSpatialBudgetMode: "distinct_variants",
+      evolveproScoreOrder: shown.score_order, evolveproSelectedVariants: shown.selected_variants,
+      evolveproCsvPath: "/tmp/synthetic_df_test.csv" });
+    useAppStore.setState({ strictSpatialSelection: { result: shown, contextKey: strictSpatialContextKey(useAppStore.getState()) } });
+    render(<StrictSpatialSection />);
+    return screen.getByRole("region", { name: "Selected vs. score Top-N" });
+  }
+  // A presentation-only stub, as above: the validator tests own the accounting.
+  const excluded = [{ variant: "A2C", reason: "low_confidence_coordinate" },
+    { variant: "A3C", reason: "missing_or_nonfinite_coordinate" }, { variant: "A4C", reason: "explicit_exclusion" }];
+
+  it("names the column and scope after the whole scored input", () => {
+    const section = show(() => ({}));
+    expect(within(section).getByRole("columnheader", { name: "Score Top-N (all input variants)" })).toBeInTheDocument();
+    expect(within(section).getByText(/every scored substitution in the input, before the coordinate, confidence and exclusion filters/)).toBeInTheDocument();
+    expect(within(section).queryByText(/what selecting by score alone would give/)).not.toBeInTheDocument();
+    expect(within(section).getByText(/Against the Top-N of eligible variants only: overlap 2\/12 variants, raw-score mean gap 42.5/)).toBeInTheDocument();
+  });
+
+  it("lists each excluded Top-N variant with its translated reason and says how many rows used coordinates", () => {
+    const section = show((comparison) => ({ top_n_excluded: excluded,
+      top_n: { ...comparison.top_n!, spatial_variant_count: 9 } }));
+    expect(within(section).getByText("Top-N variants excluded from spatial selection (3 of 12):")).toBeInTheDocument();
+    const items = within(within(section).getByTestId("strict-top-n-excluded")).getAllByRole("listitem");
+    expect(items.map((item) => item.textContent?.replace(/\s+/g, " ").trim())).toEqual([
+      "A2C low-confidence coordinate (pLDDT)", "A3C no usable coordinate", "A4C excluded range"]);
+    expect(within(section).getByText(
+      "Site and distance rows for Top-N use only the 9 of its 12 variants that have a usable coordinate.")).toBeInTheDocument();
+  });
+
+  it("shows N/A, not zero, for Top-N distances when none of its variants has a usable coordinate", () => {
+    const section = show((comparison) => ({ top_n_excluded: excluded,
+      top_n: { ...comparison.top_n!, spatial_variant_count: 0, site_count: 0, max_variants_per_site: 0,
+        minimum_site_distance: null, coverage_mean_distance: null, coverage_max_distance: null } }));
+    const table = within(section).getByRole("table");
+    expect(within(table).getByRole("row", { name: "Min. site separation (Å) 4 N/A" })).toBeInTheDocument();
+    expect(within(table).getByRole("row", { name: "Mean nearest-site distance (Å) 0 N/A" })).toBeInTheDocument();
+    expect(within(table).getByRole("row", { name: "Max. nearest-site distance (Å) 0 N/A" })).toBeInTheDocument();
+    // A real zero on the selected side stays a zero; the count of usable sites is a count.
+    expect(within(table).getByRole("row", { name: "Unique sites 6 0" })).toBeInTheDocument();
+    expect(within(table).getByRole("row", { name: "Distinct variants 12 12" })).toBeInTheDocument();
+    expect(within(section).getByText(
+      "Site and distance rows for Top-N use only the 0 of its 12 variants that have a usable coordinate.")).toBeInTheDocument();
+  });
+
+  it("shows neither line when every Top-N variant was usable", () => {
+    const section = show(() => ({}));
+    expect(within(section).queryByText(/excluded from spatial selection \(/)).not.toBeInTheDocument();
+    expect(within(section).queryByTestId("strict-top-n-excluded")).not.toBeInTheDocument();
+    expect(within(section).queryByText(/Site and distance rows for Top-N use only/)).not.toBeInTheDocument();
+  });
+});

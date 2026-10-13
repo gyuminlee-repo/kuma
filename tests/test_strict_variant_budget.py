@@ -86,8 +86,12 @@ def test_invalid_mapping_does_not_become_sequence_distance():
     selected, report = select_single_sites([("A1C", 9.), ("A2C", 1.)], "AA", bad, 1)
     assert selected == [("A2C", 1.)]
     assert report["excluded"] == [{"variant": "A1C", "reason": "missing_or_nonfinite_coordinate"}]
-    assert report["comparison"]["top_n_variants"] == ["A2C"]
-    assert report["comparison"]["selected"]["mean_score_rank"] == 1
+    # The better-scored A1C has no coordinate: it still leads the score Top-N
+    # and is named as its excluded member; the selected A2C ranks second.
+    assert report["comparison"]["top_n_variants"] == ["A1C"]
+    assert report["comparison"]["top_n_excluded"] == report["excluded"]
+    assert report["comparison"]["eligible_top_n"]["top_n_variants"] == ["A2C"]
+    assert report["comparison"]["selected"]["mean_score_rank"] == 2
     assert report["comparison"]["candidate_site_count"] == 1
     bad["mapping"].append(bad["mapping"][0])
     with pytest.raises(ValueError, match="unique"):
