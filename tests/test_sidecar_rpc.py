@@ -1042,3 +1042,38 @@ class TestLoadEvolveproCsvMissingVariantColumn:
 
         assert resp["result"]["variants"] == ["A10G", "A20G"]
         assert resp["result"]["used_variant_column"] == "Variant"
+
+
+# ── 17. load_evolvepro_csv — explicit score column the file lacks ────────
+
+
+class TestLoadEvolveproCsvMissingScoreColumn:
+    """A named score column absent from the header is an invalid-params error.
+
+    It used to come back as a successful score-free response: file-order
+    picks, every score 0.0, and the missing name echoed as the column used.
+    """
+
+    def test_missing_explicit_score_column_is_an_rpc_error(self, tmp_path):
+        csv = tmp_path / "df_test.csv"
+        csv.write_text("Variant,y_pred\nA10G,0.8\nA20G,0.9\n")
+
+        resp = _rpc("load_evolvepro_csv", {
+            "filepath": str(csv), "top_n": 2, "score_column": "y_predd",
+        })
+
+        assert "result" not in resp, resp
+        assert resp["error"]["code"] == -32602
+        assert "y_predd" in resp["error"]["message"]
+        assert "'Variant', 'y_pred'" in resp["error"]["message"]
+
+    def test_tolerant_explicit_score_column_still_loads(self, tmp_path):
+        csv = tmp_path / "df_test.csv"
+        csv.write_text("Variant,y_pred\nA10G,0.8\nA20G,0.9\n")
+
+        resp = _rpc("load_evolvepro_csv", {
+            "filepath": str(csv), "top_n": 2, "score_column": " Y_PRED ",
+        })
+
+        assert resp["result"]["variants"] == ["A20G", "A10G"]
+        assert resp["result"]["used_score_column"] == "y_pred"

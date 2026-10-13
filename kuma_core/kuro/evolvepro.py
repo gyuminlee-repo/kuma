@@ -421,7 +421,16 @@ def _resolve_evolvepro_columns(
         )
 
     if score_column:
-        s_col = index.get(_normalize_header(score_column), score_column)
+        # Same rule as the variant column. Falling back to the raw name made
+        # every row lookup miss, so the file was read as score-free: each row
+        # scored 0.0 and ranking was skipped, with no error.
+        s_col = index.get(_normalize_header(score_column))
+        if s_col is None:
+            raise ValueError(
+                f"EVOLVEpro file has no score column named "
+                f"{score_column!r}. Found: {columns}. "
+                f"Pick the score column from the list above."
+            )
     else:
         s_col = next(
             (index[k] for k in (_normalize_header(a) for a in SCORE_COLUMNS) if k in index),
@@ -460,7 +469,8 @@ def _load_evolvepro_rows(
 
     Raises:
         ValueError: If no recognisable variant column is found, or if
-            *variant_column* names a column the file does not have.
+            *variant_column* or *score_column* names a column the file does
+            not have.
     """
     ext = Path(str(filepath)).suffix.lower()
     table_rows, columns = _read_table_rows(filepath, sheet_name, ext)
