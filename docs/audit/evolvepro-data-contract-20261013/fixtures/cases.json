@@ -1,0 +1,241 @@
+{
+  "schema_version": 1,
+  "status": "proposed_fixture_not_executed",
+  "reference": "MACDEFGH",
+  "reference_scope": "Invented short reference. No biological interpretation.",
+  "geometry_unit": "arbitrary synthetic length unit",
+  "strict_context": {
+    "coordinate_frame": "reference",
+    "confidence_source": "alphafold_plddt",
+    "score_order": "desc",
+    "score_available": true,
+    "budget_mode": "unique_sites",
+    "site_cap": null,
+    "mapping": [
+      {
+        "reference_position": 2,
+        "coordinate": [
+          0,
+          0,
+          0
+        ],
+        "confidence": 90
+      },
+      {
+        "reference_position": 3,
+        "coordinate": [
+          3,
+          0,
+          0
+        ],
+        "confidence": 90
+      },
+      {
+        "reference_position": 4,
+        "coordinate": [
+          0,
+          4,
+          0
+        ],
+        "confidence": 90
+      },
+      {
+        "reference_position": 6,
+        "coordinate": [
+          10,
+          0,
+          0
+        ],
+        "confidence": 40
+      }
+    ]
+  },
+  "verdict_workbook_recipe": {
+    "purpose": "Cell values for a future temporary XLSX fixture. This JSON is not itself a KUMA workbook.",
+    "sheet": "Sheet",
+    "rows": [
+      [
+        "well_id",
+        "mutant_id",
+        "verdict",
+        "failed",
+        "is_fallback"
+      ],
+      [
+        "A01",
+        "A2V",
+        "PASS",
+        false,
+        false
+      ],
+      [
+        "A02",
+        "C3S",
+        "PASS",
+        false,
+        false
+      ],
+      [
+        "A03",
+        "D4N",
+        "WRONG_AA",
+        false,
+        false
+      ]
+    ]
+  },
+  "merged_rows_recipe": [
+    {
+      "plate_id": "P1",
+      "well_id": "A01",
+      "mutation": "A2V",
+      "mutation_source": "kuro_design",
+      "expected_mutation": "A2V",
+      "called_mutation": "A2V",
+      "ngs_success": true,
+      "activity_raw_mean": 40,
+      "activity_raw_sd": null,
+      "activity_replicates": [
+        40
+      ],
+      "replicate_n": 1,
+      "fold_change": 4,
+      "log2_fc": 2
+    },
+    {
+      "plate_id": "P1",
+      "well_id": "A02",
+      "mutation": "C3S",
+      "mutation_source": "kuro_design",
+      "expected_mutation": "C3S",
+      "called_mutation": "C3S",
+      "ngs_success": true,
+      "activity_raw_mean": 0,
+      "activity_raw_sd": null,
+      "activity_replicates": [
+        0
+      ],
+      "replicate_n": 1,
+      "fold_change": 0,
+      "log2_fc": null
+    }
+  ],
+  "additional_cases": {
+    "blank_score": {
+      "columns": [
+        "variant",
+        "y_pred"
+      ],
+      "rows": [
+        [
+          "A2V",
+          ""
+        ],
+        [
+          "C3S",
+          ""
+        ]
+      ]
+    },
+    "zero_score": {
+      "columns": [
+        "variant",
+        "y_pred"
+      ],
+      "rows": [
+        [
+          "A2V",
+          0
+        ],
+        [
+          "C3S",
+          0
+        ]
+      ]
+    },
+    "activity_as_prediction": {
+      "columns": [
+        "Variant",
+        "activity"
+      ],
+      "rows": [
+        [
+          "2V",
+          3
+        ],
+        [
+          "3S",
+          1
+        ]
+      ]
+    },
+    "wrong_identity": {
+      "columns": [
+        "variant",
+        "y_pred"
+      ],
+      "rows": [
+        [
+          "C2V",
+          5
+        ]
+      ]
+    },
+    "multisite": {
+      "columns": [
+        "variant",
+        "y_pred"
+      ],
+      "rows": [
+        [
+          "A2V:C3S",
+          5
+        ]
+      ]
+    },
+    "replicate_priority": {
+      "authoritative": {
+        "2V": [
+          4,
+          6
+        ]
+      },
+      "fallback": {
+        "2V": [
+          2,
+          4
+        ],
+        "3S": [
+          1
+        ]
+      },
+      "mismatch_threshold": 0.1
+    },
+    "upstream_repeated_rounds": [
+      {
+        "columns": [
+          "Variant",
+          "activity"
+        ],
+        "rows": [
+          [
+            "2V",
+            3
+          ]
+        ]
+      },
+      {
+        "columns": [
+          "Variant",
+          "activity"
+        ],
+        "rows": [
+          [
+            "2V",
+            4
+          ]
+        ]
+      }
+    ]
+  }
+}

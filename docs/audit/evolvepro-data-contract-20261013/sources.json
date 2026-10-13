@@ -1,0 +1,223 @@
+{
+  "schema_version": 1,
+  "observed_at_utc": "2026-10-13T06:28:00Z",
+  "review_type": "bounded_static_contract_documentation",
+  "runtime_status": "NOT_RUN",
+  "repositories": {
+    "kuma": {
+      "repository": "gyuminlee-repo/kuma",
+      "refs": {
+        "main": "37c6b474c95812b9f792b3b612f9f0ba84522b48",
+        "base": "c857b3560f45d2c5fd132b51bfd0920c25043983",
+        "head": "cd234186896cc1271f1cabd6521a435254d71160"
+      },
+      "pr_url": "https://github.com/gyuminlee-repo/kuma/pull/14",
+      "pr_state_at_read": "open_draft",
+      "actual_base_to_head_commits": 19,
+      "tree_truncated": {
+        "main": false,
+        "base": false,
+        "head": false
+      }
+    },
+    "upstream": {
+      "repository": "mat10d/EvolvePro",
+      "ref": "1c77697d0c09bf6989a1562a55da99301a12e2cd",
+      "declared_setup_version": "1.0",
+      "relationship": "reference_snapshot_only_not_verified_user_installation",
+      "license_file": "LICENSE.txt",
+      "upstream_source_copied": false
+    }
+  },
+  "kuma_files": [
+    {
+      "path": "kuma_core/kuro/evolvepro.py",
+      "main_blob": "fb8fcca432f130c56c5cf978ed5d5c84cbbf9ff9",
+      "base_blob": "3eb72f579f970ef9d2b6bf769d9217c7fadbf6a0",
+      "head_blob": "3eb72f579f970ef9d2b6bf769d9217c7fadbf6a0"
+    },
+    {
+      "path": "kuma_core/kuro/strict_spatial.py",
+      "main_blob": null,
+      "base_blob": "7a5b72fdc6be153e7072c3e6edcaba02227c3fe6",
+      "head_blob": "30720835aac54dae5c6969c2ed3d4cc1ac9ce86b"
+    },
+    {
+      "path": "kuma_core/mame/activity/build_evolvepro_input.py",
+      "main_blob": "33bdfb5f2a6952693d4b0127eafa4617b644def7",
+      "base_blob": "33bdfb5f2a6952693d4b0127eafa4617b644def7",
+      "head_blob": "33bdfb5f2a6952693d4b0127eafa4617b644def7"
+    },
+    {
+      "path": "kuma_core/mame/activity/export_evolvepro.py",
+      "main_blob": "bef20ad28f9cc65e4c7bf1cb1604039d53f4cf40",
+      "base_blob": "bef20ad28f9cc65e4c7bf1cb1604039d53f4cf40",
+      "head_blob": "bef20ad28f9cc65e4c7bf1cb1604039d53f4cf40"
+    },
+    {
+      "path": "kuma_core/mame/activity/variant_notation.py",
+      "main_blob": "c5dd09913915d5924a04760cf399a28a63ebb03e",
+      "base_blob": "c5dd09913915d5924a04760cf399a28a63ebb03e",
+      "head_blob": "c5dd09913915d5924a04760cf399a28a63ebb03e"
+    },
+    {
+      "path": "kuma_core/mame/activity/normalize.py",
+      "main_blob": "5c19f735bc3bbeeb8e4db12736a8ab3f845cc587",
+      "base_blob": "5c19f735bc3bbeeb8e4db12736a8ab3f845cc587",
+      "head_blob": "5c19f735bc3bbeeb8e4db12736a8ab3f845cc587"
+    },
+    {
+      "path": "kuma_core/mame/activity/join.py",
+      "main_blob": "8ee2b574681f62c9fc8a3d1d007a744b495a7dae",
+      "base_blob": "8ee2b574681f62c9fc8a3d1d007a744b495a7dae",
+      "head_blob": "8ee2b574681f62c9fc8a3d1d007a744b495a7dae"
+    },
+    {
+      "path": "kuma_core/mame/activity/merge.py",
+      "main_blob": "44772bac43353dd57633722f1b841fd081c3b19f",
+      "base_blob": "44772bac43353dd57633722f1b841fd081c3b19f",
+      "head_blob": "44772bac43353dd57633722f1b841fd081c3b19f"
+    },
+    {
+      "path": "kuma_core/mame/activity/evolvepro_xlsx.py",
+      "main_blob": "9889ca625b983dc31e9dcb8cd095d7391db2e99b",
+      "base_blob": "9889ca625b983dc31e9dcb8cd095d7391db2e99b",
+      "head_blob": "9889ca625b983dc31e9dcb8cd095d7391db2e99b"
+    },
+    {
+      "path": "kuma_core/mame/activity/verdict_ngs.py",
+      "main_blob": "96a046613a65283f35b5ed732a0a2ad129859ff4",
+      "base_blob": "96a046613a65283f35b5ed732a0a2ad129859ff4",
+      "head_blob": "96a046613a65283f35b5ed732a0a2ad129859ff4"
+    },
+    {
+      "path": "python-core/sidecar_kuro/handlers/misc.py",
+      "main_blob": "dbb0a821d153611aa75ca4803a190e2509796ebd",
+      "base_blob": "c6c2da37b917c3b6f0baf5cf612e3eb5a4dc7c96",
+      "head_blob": "e8691ce97b715d6631784d7a6e7379e3668944b7"
+    },
+    {
+      "path": "src/store/slices/inputSlice.ts",
+      "main_blob": "19be24ba774eb4e44c39c22ee4e63769bc4c642e",
+      "base_blob": "80c4aecf669102bacb3245d5bca968a28d708a30",
+      "head_blob": "23440dfce41d030033d651cec2690a1ec2ccf602"
+    },
+    {
+      "path": "src/store/slices/designSlice.ts",
+      "main_blob": "2bdae79b085f9c0545246f8df12b531a5be0541a",
+      "base_blob": "4a6d9033dc2b8d1752226559097f37fdd584de1a",
+      "head_blob": "4a6d9033dc2b8d1752226559097f37fdd584de1a"
+    },
+    {
+      "path": "src/store/slices/designSlice.helpers.ts",
+      "main_blob": "94c9c1a095ba5bf7e6dfedb71aa9b58345609067",
+      "base_blob": "94c9c1a095ba5bf7e6dfedb71aa9b58345609067",
+      "head_blob": "94c9c1a095ba5bf7e6dfedb71aa9b58345609067"
+    },
+    {
+      "path": "docs/mame/04-activity.md",
+      "main_blob": "70cbf49f0af56f2432e3b1de7ba8794c6b370860",
+      "base_blob": "70cbf49f0af56f2432e3b1de7ba8794c6b370860",
+      "head_blob": "70cbf49f0af56f2432e3b1de7ba8794c6b370860"
+    },
+    {
+      "path": "docs/public-snapshot.md",
+      "main_blob": "906ebf9c8192e107873deafbec8f21d476c128f9",
+      "base_blob": "906ebf9c8192e107873deafbec8f21d476c128f9",
+      "head_blob": "906ebf9c8192e107873deafbec8f21d476c128f9"
+    },
+    {
+      "path": "pyproject.toml",
+      "main_blob": "dad834b67665979946db554da0bfdb8c7621dabb",
+      "base_blob": "dad834b67665979946db554da0bfdb8c7621dabb",
+      "head_blob": "dad834b67665979946db554da0bfdb8c7621dabb"
+    },
+    {
+      "path": "tests/test_evolvepro.py",
+      "main_blob": "864741d1c8518fb513aeb67610ea5d02bbb7b756",
+      "base_blob": "864741d1c8518fb513aeb67610ea5d02bbb7b756",
+      "head_blob": "864741d1c8518fb513aeb67610ea5d02bbb7b756"
+    },
+    {
+      "path": "tests/test_evolvepro_others_mode.py",
+      "main_blob": "88158da063a461d7d648857f69208632a38f114e",
+      "base_blob": "88158da063a461d7d648857f69208632a38f114e",
+      "head_blob": "88158da063a461d7d648857f69208632a38f114e"
+    },
+    {
+      "path": "tests/test_strict_variant_budget.py",
+      "main_blob": null,
+      "base_blob": "fd87c470e3904ae443abdfbb2235270d510ec1c0",
+      "head_blob": "9fd18329205af355388c8229ccb8444ca12d9939"
+    },
+    {
+      "path": "tests/mame/activity/test_build_evolvepro_axes.py",
+      "main_blob": "14754669365869511dd429ce5327ec13be54f013",
+      "base_blob": "14754669365869511dd429ce5327ec13be54f013",
+      "head_blob": "14754669365869511dd429ce5327ec13be54f013"
+    },
+    {
+      "path": "tests/mame/activity/test_ngs_gating.py",
+      "main_blob": "3875139240477b939341622a7fd5c38b88819332",
+      "base_blob": "3875139240477b939341622a7fd5c38b88819332",
+      "head_blob": "3875139240477b939341622a7fd5c38b88819332"
+    },
+    {
+      "path": "tests/mame/activity/test_export_evolvepro.py",
+      "main_blob": "06cf2596f69417e8df04de2a40c9d07adb914f8c",
+      "base_blob": "06cf2596f69417e8df04de2a40c9d07adb914f8c",
+      "head_blob": "06cf2596f69417e8df04de2a40c9d07adb914f8c"
+    }
+  ],
+  "upstream_files": [
+    {
+      "path": "evolvepro/src/data.py",
+      "blob": "d8bcb5691c7b17f0a75674db2f5edef7663a4dda",
+      "source_url": "https://github.com/mat10d/EvolvePro/blob/1c77697d0c09bf6989a1562a55da99301a12e2cd/evolvepro/src/data.py"
+    },
+    {
+      "path": "evolvepro/src/model.py",
+      "blob": "694942e23c41c1c10c0df91db27cd17b22230417",
+      "source_url": "https://github.com/mat10d/EvolvePro/blob/1c77697d0c09bf6989a1562a55da99301a12e2cd/evolvepro/src/model.py"
+    },
+    {
+      "path": "evolvepro/src/evolve.py",
+      "blob": "3216968440377bae633607bf0cf74d309d4c4d2b",
+      "source_url": "https://github.com/mat10d/EvolvePro/blob/1c77697d0c09bf6989a1562a55da99301a12e2cd/evolvepro/src/evolve.py"
+    },
+    {
+      "path": "scripts/exp/README.md",
+      "blob": "7f4c2479aa4ce34f6acee343a39bfaf5e3480c83",
+      "source_url": "https://github.com/mat10d/EvolvePro/blob/1c77697d0c09bf6989a1562a55da99301a12e2cd/scripts/exp/README.md"
+    },
+    {
+      "path": "setup.py",
+      "blob": "2d666267ed160a3a1752d6c6b74da41dfee6e7da",
+      "source_url": "https://github.com/mat10d/EvolvePro/blob/1c77697d0c09bf6989a1562a55da99301a12e2cd/setup.py"
+    },
+    {
+      "path": "LICENSE.txt",
+      "blob": "38ab8c4c34418b354887d5469df13a83b1f1bfdf",
+      "source_url": "https://github.com/mat10d/EvolvePro/blob/1c77697d0c09bf6989a1562a55da99301a12e2cd/LICENSE.txt"
+    }
+  ],
+  "verified_absent_from_both_complete_kuma_trees": [
+    "kuma_core/evolvepro/adapter.py",
+    "kuma_core/evolvepro/runner.py"
+  ],
+  "not_run": [
+    "repository_audit_planner",
+    "product_tests",
+    "model_execution",
+    "native_GUI",
+    "benchmark",
+    "license_clearance",
+    "user_installed_upstream_version_check"
+  ],
+  "fixture_status": "Synthetic expectations from source reading. Not executable test outcomes.",
+  "scope_exclusions": [
+    "No product code or existing audit changes",
+    "No recovery of missing prior audit artifacts",
+    "No new biological efficacy claims"
+  ]
+}
