@@ -196,7 +196,9 @@ export function AppLayout() {
                     // A dropped table is the operator's pick, as with Browse:
                     // the manifest auto-fill must not replace it.
                     useAppStore.getState().setEvolveproCsvUserPicked(true);
-                    useAppStore.getState().loadEvolveproCsv(filePath);
+                    void useAppStore.getState().loadEvolveproCsv(filePath).catch(() => {
+                      // The store retains the actionable error for the strict section and status bar.
+                    });
                     handledOne = true;
                     break;
                   }

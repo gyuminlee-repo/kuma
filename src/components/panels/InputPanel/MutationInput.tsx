@@ -44,7 +44,7 @@ export function MutationInput() {
     if (mutationInputMode !== "evolvepro") return;
     if (evolveproCsvPath !== "") return;
     if (hasRankedCandidates) return;
-    void loadEvolveproCsv(artifact.path);
+    void loadEvolveproCsv(artifact.path).catch(() => { /* The store retains the actionable error. */ });
   }, [artifact, hydrating, userPicked, mutationInputMode, evolveproCsvPath, hasRankedCandidates, loadEvolveproCsv]);
 
   const showArtifactBadge =
@@ -201,7 +201,7 @@ export function MutationInput() {
                     // soon as the path changes, so it is not cleared here.
                     setEvolveproVariantColumn(null);
                     setEvolveproScoreColumn(null);
-                    loadEvolveproCsv(path);
+                    void loadEvolveproCsv(path).catch(() => { /* The store retains the actionable error. */ });
                   },
                 )
               }

@@ -45,6 +45,9 @@ describe("verified strict spatial viewer", () => {
     expect(screen.getByTestId("strict-selection-counts")).toHaveTextContent("95 selected variants across 5 unique sites");
     expect(rows.map((row) => within(row).getAllByRole("cell")[0].textContent)).toEqual(report.selected_variants);
     expect(new Set(rows.map((row) => within(row).getAllByRole("cell")[1].textContent)).size).toBe(5);
+    // The rows render in the same commit that flips the viewer to "ready", but
+    // setHoverable is called from a passive effect that flushes after it.
+    await waitFor(() => expect(mocks.setHoverable).toHaveBeenCalled());
     const hover = mocks.setHoverable.mock.calls.at(-1)?.[2];
     expect(hover).toBeTypeOf("function");
     act(() => hover({ resi: 12, chain: "A", resn: "ALA" }));
@@ -63,7 +66,8 @@ describe("verified strict spatial viewer", () => {
     expect(useAppStore.getState().fetchPdbText).not.toHaveBeenCalled();
     expect(useAppStore.getState().computeDispersion).not.toHaveBeenCalled();
     expect(screen.queryByTestId("upload-input")).not.toBeInTheDocument();
-    expect(mocks.addStyle).toHaveBeenCalledWith({ resi: 12, chain: "A" }, expect.objectContaining({ sphere: expect.any(Object) }));
+    // addStyle also comes from that passive effect, so wait for it rather than for the rows.
+    await waitFor(() => expect(mocks.addStyle).toHaveBeenCalledWith({ resi: 12, chain: "A" }, expect.objectContaining({ sphere: expect.any(Object) })));
   });
   it("preserves uncertain raw evidence without asserting function on selected residues", async () => {
     render(<Selection3DPanel defaultOpen />);

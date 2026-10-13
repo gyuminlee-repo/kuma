@@ -8,7 +8,7 @@ vi.mock("@/lib/keepAwake", () => ({ startKeepAwake: vi.fn(), stopKeepAwake: vi.f
 
 import { useAppStore } from "../appStore";
 import { distinctSpatial95Fixture, strictSpatialFixture, syntheticFullDfTestFixture } from "@/test-utils/strictSpatialFixture";
-import { strictSpatialContextKey } from "@/lib/strictSpatial";
+import { currentStrictSpatialResult, strictSpatialContextKey } from "@/lib/strictSpatial";
 
 function loadResponse(report = strictSpatialFixture()) {
   return { variants: report.selected_variants, y_preds: report.selected_variants.map((_, index) => 2 - index), total_count: report.eligible_variant_count,
@@ -163,5 +163,20 @@ describe("strict spatial design identity", () => {
     finish?.(loadResponse());
     await pending;
     expect(useAppStore.getState().strictSpatialSelection).toBeNull();
+  });
+});
+
+describe("strict spatial load from another input mode", () => {
+  it("requests and keeps a strict selection when a CSV is dropped in text mode", async () => {
+    // AppLayout's drop handler calls loadEvolveproCsv without switching mode
+    // first; the load itself lands in EVOLVEpro mode, so strict mode applies.
+    useAppStore.setState({ mutationInputMode: "text", strictSpatialSelection: null });
+    mocks.send.mockResolvedValue(loadResponse());
+    await useAppStore.getState().loadEvolveproCsv("/tmp/candidates.csv");
+    expect(mocks.send.mock.calls.find(([method]) => method === "load_evolvepro_csv")?.[1]).toMatchObject({ strict_spatial: true });
+    const state = useAppStore.getState();
+    expect(state.mutationInputMode).toBe("evolvepro");
+    expect(state.evolveproSelectedVariants).toEqual(strictSpatialFixture().selected_variants);
+    expect(currentStrictSpatialResult(state)?.selected_variants).toEqual(strictSpatialFixture().selected_variants);
   });
 });

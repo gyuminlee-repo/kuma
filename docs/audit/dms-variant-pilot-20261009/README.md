@@ -16,7 +16,7 @@ retuning was performed.
 
 ## Decision
 
-Keep FPS as the app baseline. The new facility-location comparator stays offline. This retrospective two-assay pilot demonstrates a real coverage-versus-measured-outcome tradeoff; it does not establish a winner or improved biological performance. No weights or datasets were tuned after outcomes were inspected.
+Keep FPS as the app baseline. The new facility-location comparator stays offline. This retrospective two-assay pilot measures only the immediate cost of spatial spread: it scores the selected variants' own measured values in a single round, so it cannot measure the intended benefit (better next-round model predictions). A coverage-versus-measured-outcome tradeoff appears only on RL40A. On GFP, FPS beats top-score on both coverage (2.29 vs 4.33 Angstroms) and measured mean (3.449 vs 3.405), and every method's label1 fraction (top-score 0.895, FPS 0.916, facility 0.874) lies inside the random32 range (0.863 to 0.979), so GFP does not discriminate between methods. The pilot does not establish a winner or improved biological performance. No weights or datasets were tuned after outcomes were inspected.
 
 The budget is exactly **95 distinct single-substitution variant IDs**, not 95 positions. Same-position different-amino-acid variants remain eligible. This corrects the earlier geometry pilot’s residue-pool limitation without treating a predictor as experimental fitness.
 
@@ -33,7 +33,7 @@ The two assays were selected for availability and feasibility before outcome ins
 
 ## Preregistered measured outcomes
 
-DMS_score is oriented higher=better **within each source assay**. GFP measures fluorescence; ubiquitin uses an essential-function growth assay. Their numeric scales must not be pooled. Positive labels use ProteinGym’s existing assay-specific binarization, not a threshold selected in this pilot. Random rows show means across all32 trials and the min–max measured-mean range, without picking a favorable seed.
+DMS_score is oriented higher=better **within each source assay**. GFP measures fluorescence; ubiquitin uses an essential-function growth assay. Their numeric scales must not be pooled. Positive labels use ProteinGym’s existing assay-specific binarization, not a threshold selected in this pilot. Random rows show means across all 32 trials and the min–max measured-mean range, without picking a favorable seed.
 
 | Assay / method | Selected | Observed | Measured mean | Median | Label1 count / observed | Label1 fraction |
 |---|---:|---:|---:|---:|---:|---:|
@@ -48,8 +48,8 @@ DMS_score is oriented higher=better **within each source assay**. GFP measures f
 
 Interpretation:
 
-- GFP facility-location slightly lowers mean geometric coverage distance relative to FPS (2.265709 vs2.291530 Angstroms), but its observed mean assay value is lower (3.338142 vs3.448826); label1 counts are83/95 vs87/95. The random32 mean is3.435238, so this run does not show that the frozen score’s top95 consistently dominates random or FPS on this assay.
-- Ubiquitin FPS and facility-location choose the same95-variant set (different traversal order), cover all75 eligible sites, and achieve the same measured mean −0.115480 and80/95 label1 count. Top-score achieves −0.032446 and94/95 label1 count while covering only35 sites. Full site coverage is therefore not equivalent to a better assay outcome.
+- GFP facility-location slightly lowers mean geometric coverage distance relative to FPS (2.265709 vs 2.291530 Angstroms), but its observed mean assay value is lower (3.338142 vs 3.448826); label1 counts are 83/95 vs 87/95. The random32 mean is 3.435238, so this run does not show that the frozen score’s top95 consistently dominates random or FPS on this assay.
+- Ubiquitin FPS and facility-location choose the same 95-variant set (different traversal order), cover all 75 eligible sites, and achieve the same measured mean −0.115480 and 80/95 label1 count. Top-score achieves −0.032446 and 94/95 label1 count while covering only 35 sites. Full site coverage is therefore not equivalent to a better assay outcome.
 - The complete random32 results are retained. No p-values, confidence claims, aggregate cross-protein winner, or prospective hit-rate guarantee are inferred from these two retrospective cases.
 
 ## Geometry, predictor tradeoff and cost
@@ -71,7 +71,7 @@ Runtime includes per-method input validation, normalization, coordinate/distance
 
 No verified functional-unit membership was supplied for either assay. Functional coverage is **null/unavailable**, never interpreted as no function, linker status or a zero penalty. This experiment evaluates geometric facility location; it does not evaluate functional-unit allocation, annotation overlap or annotation confidence. Synthetic annotation checks, if supplied elsewhere in the PR, are software tests only.
 
-ProteinGym’s AF2-labelled structures map exactly to public reference sequences (GFP238 residues, RL40A128). Ubiquitin candidates occupy only positions2–76 and75 sites; coverage targets those75 sites, not all128 residues or a fusion-domain arrangement. GFP candidates cover233 sites in positions3–237. No biological assembly inference is made. Coordinate correspondence does not certify conformation or interdomain placement.
+ProteinGym’s AF2-labelled structures map exactly to public reference sequences (GFP 238 residues, RL40A 128). Ubiquitin candidates occupy only positions 2–76 and 75 sites; coverage targets those 75 sites, not all 128 residues or a fusion-domain arrangement. GFP candidates cover 233 sites in positions 3–237. No biological assembly inference is made. Coordinate correspondence does not certify conformation or interdomain placement.
 
 structure-quality.json reports raw C-alpha B-column statistics as descriptive provenance only. These PDBs have no header certifying that column’s semantics; no calibrated pLDDT assertion or quality threshold is invented. PAE was not provided in acquired artifacts and remains unknown. This reporting-only inspection did not filter or rerank candidates.
 
@@ -79,14 +79,16 @@ structure-quality.json reports raw C-alpha B-column statistics as descriptive pr
 
 - Selectors accept only variant ID, position, frozen ESM2 score and coordinate. Unexpected fields such as DMS_score are rejected. Both assays’ selections are completed before measured outcomes are consulted.
 - Twelve focused artificial controls pass: label permutation/removal invariance, unknown-outcome denominators, hand-calculated facility medoid/gain, repeated-site saturation, zero geometry, distinct-variant infeasibility, input-order invariance, numeric FPS tie order, and guarded input size.
-- Independent reviewer replayed the entire pilot: every non-timing output and protocol/script/input hash matched. The reviewer also reversed every measured label and then removed all labels: every deterministic and32-random selected ID order stayed identical; unknown labels gave zero observed denominators.
-- The final production distinct-variant adapter was run on both complete eligible pools and matched all95 ordered FPS IDs from this pilot, including75 unique sites for ubiquitin.
-- Final downloader live range/ETag/ZIP-CRC/content-hash verification passed on the ubiquitin score member using933,622 transferred bytes.
-- Focused Python type check across the evaluator/downloader/tests:0 errors,0 warnings. Benchmark execution exit0. These are fresh bounded checks, not a claim that the complete application suite ran in this experiment.
+- Independent reviewer replayed the entire pilot: every non-timing output and protocol/script/input hash matched. The reviewer also reversed every measured label and then removed all labels: every deterministic and 32-random selected ID order stayed identical; unknown labels gave zero observed denominators.
+- The final production distinct-variant adapter was run on both complete eligible pools and matched all 95 ordered FPS IDs from this pilot, including 75 unique sites for ubiquitin.
+- Final downloader live range/ETag/ZIP-CRC/content-hash verification passed on the ubiquitin score member using 933,622 transferred bytes.
+- Focused Python type check across the evaluator/downloader/tests: 0 errors, 0 warnings. Benchmark execution exit 0. These are fresh bounded checks, not a claim that the complete application suite ran in this experiment.
 
 ## Reproduction and public licensing
 
-The ProteinGym v1.3 [dataset release](https://zenodo.org/records/15293562) explicitly declares MIT license in its API metadata. The project [license](https://github.com/OATML-Markslab/ProteinGym/blob/144fe22b07dfaeec2b366f2346203a9838a55b4c/LICENSE) is preserved in PROTEINGYM-LICENSE.txt. Cite Notin et al., ProteinGym: Large-Scale Benchmarks for Protein Fitness Prediction and Design, NeurIPS2023. Original assay titles/authors/years are retained per assay in inputs.json. The compact licensed replay inputs contain only the two declared assays’ necessary single-variant fields and measured labels; no private data or new model weights are included.
+The ProteinGym v1.3 [dataset release](https://zenodo.org/records/15293562) explicitly declares MIT license in its API metadata. The project [license](https://github.com/OATML-Markslab/ProteinGym/blob/144fe22b07dfaeec2b366f2346203a9838a55b4c/LICENSE) is preserved in PROTEINGYM-LICENSE.txt. Cite Notin et al., ProteinGym: Large-Scale Benchmarks for Protein Fitness Prediction and Design, NeurIPS 2023. Original assay titles/authors/years are retained per assay in inputs.json. The GFP source data (Sarkisyan et al. 2016, figshare doi:10.6084/m9.figshare.3102154) are licensed CC BY 4.0. The structure coordinates come from the AlphaFold Protein Structure Database and are licensed CC BY 4.0, which requires attribution. The compact licensed replay inputs contain only the two declared assays’ necessary single-variant fields and measured labels; no private data or new model weights are included.
+
+protocol.md, prerun-hashes.txt, inputs.json and results.json are the pre-registered, hash-pinned record of this run (commit c857b35). protocol.md has the same missing spaces before numbers that were corrected in this README; it is left unchanged so its recorded SHA-256 still matches.
 
 Offline replay:
 
@@ -105,7 +107,7 @@ python scripts/benchmark_dms_variants.py \
   --source-dir /tmp/proteingym-pilot --prepare /tmp/dms-inputs.json
 ```
 
-Acquisition extracted about44MB using HTTP ranges, rather than downloading the1.9GB score archive. ZIP CRC checks and content SHA256 hashes protect extracted members. The final downloader rejects ignored ranges, inconsistent Content-Range/ETag, oversized transfers and oversized expanded members. Raw large files are not committed. Source member names, archive URLs and hashes are embedded in inputs.json. Reference/config source is pinned at ProteinGym144fe22b07dfaeec2b366f2346203a9838a55b4c.
+Acquisition extracted about 44MB using HTTP ranges, rather than downloading the 1.9GB score archive. ZIP CRC checks and content SHA256 hashes protect extracted members. The final downloader rejects ignored ranges, inconsistent Content-Range/ETag, oversized transfers and oversized expanded members. Raw large files are not committed. Source member names, archive URLs and hashes are embedded in inputs.json. Reference/config source is pinned at ProteinGym144fe22b07dfaeec2b366f2346203a9838a55b4c.
 
 Compare parsed selections/metrics/budget fields, excluding timing metadata. Reacquisition local paths and preparation runtime can differ; compare candidate/outcome content and extracted-member hashes rather than requiring byte-identical preparation metadata. The primary experiment’s exact input/protocol/script hashes were captured in prerun-hashes.txt before evaluation and are repeated in results.json. The compact JSON preserves every trial and measured metric.
 

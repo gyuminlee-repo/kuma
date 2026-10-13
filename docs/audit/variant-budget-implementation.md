@@ -117,22 +117,36 @@ check.
 
 ## Full df_test comparison follow-up
 
-The preview compares the spatial result with configured-score Top-N on exactly the
-same eligible pool after the budget and cap policy. Unique-site mode first retains
-one representative per site; distinct-variant mode retains substitutions subject
-to the explicit cap. Missing-coordinate or parser-rejected rows are not silently
-included only in the baseline. Existing exclusion counts remain separately visible.
+The preview compares the spatial result with configured-score Top-N. Since
+2026-10-13 the primary Top-N is taken from every scored substitution in the
+input (`universe: input-variants-before-spatial-eligibility`): only an unchanged
+residue or a non-numeric score keeps a row out of the ranking, while rows dropped
+for an explicit exclusion, a missing coordinate or a low-confidence (pLDDT)
+coordinate stay in it. Top-N members that spatial selection could not use are
+listed with their reason in `top_n_excluded`. Two secondary baselines remain:
+`eligible_top_n`, the Top-N of the eligible variants only, and
+`representative_top_n`, the Top-N after the budget and cap policy (one
+representative per site in unique-site mode, substitutions up to the explicit cap
+in distinct-variant mode). Parser-rejected rows are in no baseline. Existing
+exclusion counts remain separately visible.
+
+Definition history: the first version of this preview ranked the pool after the
+budget and cap policy, and a later one the eligible variants before it. Any
+Top-N membership, overlap, score gap or rank recorded before 2026-10-13 was
+computed under one of those eligible-pool definitions, not the current one.
 
 Both results report variant count, occupied-site count, maximum site multiplicity,
 minimum distance between occupied sites and mean/max candidate-to-selected distance
-in angstroms. Coverage targets are the eligible unique sites with equal weight per
+in angstroms. For the input Top-N the site and distance figures use only its
+members with a usable coordinate (`spatial_variant_count` of `variant_count`);
+with no such member the distances are null, shown as N/A, never zero. Coverage targets are the eligible unique sites with equal weight per
 site, including selected sites at zero distance; this is not whole-protein coverage.
 A single occupied site has no pair-distance statistic. Integer counts are exact.
 
 With available scores, the preview also reports raw mean score, average tied rank,
 Top-N overlap and `score_gap_to_top_n`: the direction-aware difference in **mean**
 raw score. Positive means a worse average under the configured asc/desc ordering,
-not fitness loss. Tied ranks are averaged within the same effective pool. An
+not fitness loss. Tied ranks are averaged within the whole scored input, for every profile. An
 absent score source yields no score baseline or invented rank. Real zero scores
 remain valid scores. Nonfinite diagnostic arithmetic yields an unavailable value
 without changing selection or emitting invalid JSON.

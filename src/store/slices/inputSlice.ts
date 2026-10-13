@@ -94,6 +94,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       const activeDomains = selectionDomains.filter((d) => !disabledDomains.includes(`${d.name}-${d.start}`));
       const excludedDomains = selectionDomains.filter((d) => disabledDomains.includes(`${d.name}-${d.start}`));
       const modeLabel = "EVOLVEpro";
+      const loadingMessage = `Loading ${modeLabel} file...`;
 
       // v0.3 §4: pass protein ref_seq so sidecar can convert EVOLVEpro
       // short-form variants (89W) back to internal notation (F89W).
@@ -107,7 +108,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         return gene?.translation ?? "";
       })();
       set({
-        statusMessage: `Loading ${modeLabel} file...`,
+        statusMessage: loadingMessage,
         evolveproCsvPath: filepath,
         strictSpatialSelection: null,
         strictSpatialError: null,
@@ -162,7 +163,12 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           strictSpatialSiteCap,
           anchorVariants,
         });
-      const strictMode = usePipeline && structuralDiversityEnabled && strictSpatialEnabled;
+      // A finished load always lands in EVOLVEpro mode (inputPatch below), so
+      // strict mode is judged against that mode. A CSV dropped while the text
+      // tab is open would otherwise send a strict request and then discard the
+      // strict response as stale.
+      const strictAfterLoad = () => isStrictSpatialMode({ ...get(), mutationInputMode: "evolvepro" });
+      const strictMode = strictAfterLoad();
       const contextKey = strictSpatialContextKey(get());
       if (strictMode) {
         if (!refSeq || !(get().structureAccession || get().uniprotAccession)
@@ -173,9 +179,22 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         if (!allowed) throw new Error(i18next.t("strictSpatial.permission"));
       }
       const result = await sendRequest("load_evolvepro_csv", params);
+      // A newer load owns the status line, so an older one stays silent. The
+      // newest load, dropped because the strict context moved under it, would
+      // otherwise leave its loading line up for good, and it touches the line
+      // only while the line is still its own. A mode switch (strict turned off
+      // or on mid-load) leaves no strict selection to review and no Reselect
+      // button, so that line is cleared, as sequenceSlice and diversitySlice
+      // clear theirs. A moved context with strict still on says what happened
+      // in the words designSlice uses for the same change.
       if (gen !== csvLoadGeneration) return;
-      if (Boolean(strictMode) !== isStrictSpatialMode(get())) return;
-      if (strictMode && (contextKey !== strictSpatialContextKey(get()) || !isStrictSpatialMode(get()))) return;
+      const modeChanged = strictMode !== strictAfterLoad();
+      if (modeChanged || (strictMode && contextKey !== strictSpatialContextKey(get()))) {
+        if (get().statusMessage === loadingMessage) {
+          set({ statusMessage: modeChanged ? "" : i18next.t("strictSpatial.changedSelection") });
+        }
+        return;
+      }
       if (strictMode && (!result.strict_spatial
         || !sameVariantIds(result.strict_spatial.selected_variants, result.variants)
         || result.strict_spatial.source_accession !== String(params.structure_accession).trim().toUpperCase()
@@ -249,7 +268,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       if (gen === csvLoadGeneration) {
         set({
           strictSpatialSelection: null,
-          strictSpatialError: isStrictSpatialMode(get()) ? formatError(err) : null,
+          strictSpatialError: isStrictSpatialMode({ ...get(), mutationInputMode: "evolvepro" }) ? formatError(err) : null,
           mutationText: "",
           evolveproTotalCount: 0,
           evolveproFilteredCount: null,
