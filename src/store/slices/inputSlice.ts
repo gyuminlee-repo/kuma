@@ -181,14 +181,17 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       const result = await sendRequest("load_evolvepro_csv", params);
       // A newer load owns the status line, so an older one stays silent. The
       // newest load, dropped because the strict context moved under it, would
-      // otherwise leave its loading line up for good. It says what happened in
-      // the words designSlice uses for the same change, and only while the line
-      // is still its own.
+      // otherwise leave its loading line up for good, and it touches the line
+      // only while the line is still its own. A mode switch (strict turned off
+      // or on mid-load) leaves no strict selection to review and no Reselect
+      // button, so that line is cleared, as sequenceSlice and diversitySlice
+      // clear theirs. A moved context with strict still on says what happened
+      // in the words designSlice uses for the same change.
       if (gen !== csvLoadGeneration) return;
-      if (strictMode !== strictAfterLoad()
-        || (strictMode && contextKey !== strictSpatialContextKey(get()))) {
+      const modeChanged = strictMode !== strictAfterLoad();
+      if (modeChanged || (strictMode && contextKey !== strictSpatialContextKey(get()))) {
         if (get().statusMessage === loadingMessage) {
-          set({ statusMessage: i18next.t("strictSpatial.changedSelection") });
+          set({ statusMessage: modeChanged ? "" : i18next.t("strictSpatial.changedSelection") });
         }
         return;
       }

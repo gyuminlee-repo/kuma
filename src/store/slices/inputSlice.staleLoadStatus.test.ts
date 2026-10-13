@@ -91,7 +91,9 @@ describe("loadEvolveproCsv status line when a strict load is abandoned", () => {
     expect(state.strictSpatialSelection).toBeNull();
   });
 
-  it("clears its loading line when strict mode is switched off during the load", async () => {
+  // A mode change is not a changed selection: with strict off there is no strict
+  // selection to review and no Reselect button, so the line is only cleared.
+  it("clears its loading line without a review prompt when strict mode is switched off during the load", async () => {
     const answers = holdRequests();
     const { state, slice } = makeStore();
     const pending = slice.loadEvolveproCsv("/fake/file.csv");
@@ -99,7 +101,43 @@ describe("loadEvolveproCsv status line when a strict load is abandoned", () => {
     state.strictSpatialEnabled = false;
     answers[0](STRICT_RESULT);
     await pending;
-    expect(state.statusMessage).toBe(CHANGED);
+    expect(state.statusMessage).toBe("");
+    expect(state.strictSpatialSelection).toBeNull();
+  });
+
+  it("clears its loading line without a review prompt when structural diversity is switched off during a strict load", async () => {
+    const answers = holdRequests();
+    const { state, slice } = makeStore();
+    const pending = slice.loadEvolveproCsv("/fake/file.csv");
+    await vi.waitFor(() => expect(answers).toHaveLength(1));
+    state.structuralDiversityEnabled = false;
+    answers[0](STRICT_RESULT);
+    await pending;
+    expect(state.statusMessage).toBe("");
+  });
+
+  it("clears its loading line without a review prompt when strict mode is switched on during a non-strict load", async () => {
+    const answers = holdRequests();
+    const { state, slice } = makeStore({ strictSpatialEnabled: false });
+    const pending = slice.loadEvolveproCsv("/fake/file.csv");
+    await vi.waitFor(() => expect(answers).toHaveLength(1));
+    expect(state.statusMessage).toBe(LOADING);
+    state.strictSpatialEnabled = true;
+    answers[0](TOP_N_RESULT);
+    await pending;
+    expect(state.statusMessage).toBe("");
+  });
+
+  it("does not remove a line another action wrote when strict mode is switched off during the load", async () => {
+    const answers = holdRequests();
+    const { state, slice } = makeStore();
+    const pending = slice.loadEvolveproCsv("/fake/file.csv");
+    await vi.waitFor(() => expect(answers).toHaveLength(1));
+    state.statusMessage = "Sequence loaded";
+    state.strictSpatialEnabled = false;
+    answers[0](STRICT_RESULT);
+    await pending;
+    expect(state.statusMessage).toBe("Sequence loaded");
   });
 
   it("leaves the line of a newer load alone when an older load is abandoned", async () => {
