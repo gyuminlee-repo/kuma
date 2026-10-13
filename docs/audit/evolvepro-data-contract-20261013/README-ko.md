@@ -87,7 +87,7 @@
 | 상황 | 관측된 처리 | handoff에서 유의할 점 |
 | --- | --- | --- |
 | 변이 열을 자동으로 찾지 못함 | KURO ValueError | 명시 열 선택을 쓰는 경우 실제 존재도 확인한다 |
-| 명시한 변이 열 이름이 파일에 없음 | 현재 resolver는 원래 문자열로 폴백한다. 모든 row lookup이 blank가 되어 예외 없이 변이 0개를 반환한다. `used_variant_column`에는 파일에 없는 이름이 그대로 남는다 | 빈 후보 목록을 유효한 빈 파일로 읽지 않는다. main `37c6b47`에서 직접 호출로 확인한 현재 동작이다(K3). 이 동작은 결함으로 보고 브랜치 `fix/evolvepro-missing-variant-column-20261013`에서 ValueError를 내도록 고치는 중이며 그 수정은 이 문서의 고정 SHA에 들어 있지 않다 |
+| 명시한 변이 열 이름이 파일에 없음 | 현재 resolver는 원래 문자열로 폴백한다. 모든 row lookup이 blank가 되어 예외 없이 변이 0개를 반환한다. `used_variant_column`에는 파일에 없는 이름이 그대로 남는다 | 빈 후보 목록을 유효한 빈 파일로 읽지 않는다. main `37c6b47`에서 직접 호출로 확인한 현재 동작이다(K3). 이 동작은 결함으로 보고 브랜치 `fix/evolvepro-missing-variant-column-20261013`에서 ValueError를 내도록 고칠 예정이다. 2026-10-13 확인 시점에 그 브랜치에는 수정 커밋이 없었고 이 문서의 고정 SHA에도 수정이 들어 있지 않다 |
 | 점수 열 없음 또는 모든 셀이 빈 값 | KURO 내부 점수 0으로 score-free 처리 | 측정된 0과 미측정값의 의미는 같지 않다. legacy `has_score`는 non-zero 여부를 사용한다. strict의 `score_available`은 별도 소스 존재 여부다 |
 | 일부 점수만 blank·문자·NaN·inf | KURO 해당 행을 버림 | strict는 합계 누락 수를 보고한다. 행별 이유 전체를 보존하는 계약은 아니다 |
 | 명시한 score 열 이름이 틀림 | 현재 resolver는 원래 문자열로 폴백한다. 각 row lookup이 blank가 되면 score-free가 될 수 있음 | 자동 오류로 잡힌다고 가정하지 않는다. 선택된 실제 열 이름과 head를 함께 검토한다 |
@@ -124,7 +124,7 @@
 - 파일 blob을 대조해 변경 여부를 확인했다.
 - 본문 링크와 line range를 고정 SHA에 연결했다.
 - JavaScript orchestration에서 JSON 파싱과 CSV 열 수 일치를 확인했다. 텍스트의 U+FFFD·em dash·unpaired surrogate는 각각 0개였다. 제품 parser를 실행한 검사는 아니다.
-- 2026-10-13 재고정 때 `git archive`로 푼 고정 tree 사본에서 `load_evolvepro_csv`를 직접 호출했다. S1과 S3는 PR #14 최종 head에서 호출했고 K3는 main에서 호출했다. pytest·패키징된 제품·sidecar를 거친 실행이 아니다.
+- 2026-10-13 재고정 때 `git archive`로 푼 고정 tree 사본에서 `load_evolvepro_csv`를 직접 호출했다. S1과 S3는 PR #14 최종 head에서 호출했고 K3는 main과 PR #14 최종 head에서 호출했다. pytest·패키징된 제품·sidecar를 거친 실행이 아니다.
 - 최종 head의 tree와 파일은 로컬 git 객체에서 읽었다. PR #14의 상태와 head SHA는 재고정 때 GitHub에서 다시 조회했다.
 - 재고정한 링크의 줄 범위는 이전 head의 내용과 최종 head의 내용을 줄 단위로 대조해 다시 잡았다.
 

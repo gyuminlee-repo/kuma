@@ -68,7 +68,7 @@
 읽는 법:
 - 명시한 열 이름은 머리와 대소문자·공백을 무시하고 대조한다. 맞는 열이 없으면 입력 문자열로 폴백한다. 그 이름으로 읽은 모든 행의 변이 셀이 blank여서 전부 버려진다.
 - 호출 쪽이 알 수 있는 단서는 빈 목록과 `used_variant_column`에 남은 파일에 없는 이름뿐이다. 빈 목록을 유효한 빈 파일로 보고하지 않는다.
-- 이 동작은 결함으로 보고 브랜치 `fix/evolvepro-missing-variant-column-20261013`에서 ValueError를 내도록 고치는 중이다. 그 수정은 이 문서의 고정 SHA에 들어 있지 않다.
+- 이 동작은 결함으로 보고 브랜치 `fix/evolvepro-missing-variant-column-20261013`에서 ValueError를 내도록 고칠 예정이다. 2026-10-13 확인 시점에 그 브랜치에는 수정 커밋이 없었고 이 문서의 고정 SHA에도 수정이 들어 있지 않다.
 
 ### S1. PR #14 최종 head의 예산과 제외
 
@@ -93,7 +93,7 @@ unique_sites와 N=3에서 확인한 출력:
 - primary profile: variant_count=3. spatial_variant_count=3. site_count=2. max_variants_per_site=2. minimum_site_distance=3.0. coverage_mean_distance=1.3333. coverage_max_distance=4.0. score_mean=9.0. mean_score_rank=2.0.
 - selected profile: variant_count=3. spatial_variant_count=3. site_count=3. max_variants_per_site=1. minimum_site_distance=3.0. coverage_mean_distance=0.0. coverage_max_distance=0.0. score_mean=8.3333. mean_score_rank=2.6667.
 - top_n_overlap_count=2. score_gap_to_top_n=0.6667.
-- 이 입력에서는 입력 전체 Top-N과 적격 Top-N이 같다. 이전 head 대비 관측되는 차이는 universe 리터럴·eligible_top_n 블록·spatial_variant_count 필드뿐이다. 제외 구성원이 Top-N에 드는 경우는 S3에서 다룬다.
+- 이 입력에서는 입력 전체 Top-N과 적격 Top-N이 같다. 이전 head 대비 관측되는 차이는 universe 리터럴·eligible_top_n 블록·spatial_variant_count 필드·top_n_excluded 필드뿐이다. 제외 구성원이 Top-N에 드는 경우는 S3에서 다룬다.
 - N=4이면 ValueError다. 메시지는 `Strict spatial count 4 exceeds 3 eligible unique sites`로 시작한다. N을 3으로 자동 축소하지 않는다.
 
 distinct_variants와 N=4 및 cap=null에서 확인한 출력:
