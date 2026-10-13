@@ -166,7 +166,11 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         if (preserveDesignResults) {
           set({ maxPrimers: clampMaxPrimers(result.total_count) });
         } else {
-          get().setMaxPrimers(result.total_count);
+          // Not setMaxPrimers: it reads the store before this response is
+          // committed below, finds a first load (no count, no mutation text),
+          // and takes its "the file failed to load" recovery path, which sends
+          // this same load request a second time.
+          set(buildKuroDesignInputPatch(get(), { maxPrimers: clampMaxPrimers(result.total_count) }));
         }
       }
       const inputPatch: Partial<AppState> = {
