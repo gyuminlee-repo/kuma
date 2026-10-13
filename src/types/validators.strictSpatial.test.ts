@@ -170,6 +170,47 @@ describe("strict spatial raw-pool Top-N and coordinate confidence", () => {
     expect(valid(response({ ...strict, confidence_source: "unavailable" }))).toBe(false);
     expect(valid(response({ ...strict, confidence_source: "b_factor" } as never))).toBe(false);
   });
+  // The certificate's own pLDDT decides which residues may be picked. `comparison`
+  // is dropped (legacy shape) so only the confidence cross-checks can reject it.
+  function plddtSelection(patch: Record<string, unknown> = {}): unknown {
+    const base = plddtReport({ comparison: undefined });
+    return { ...response(base), strict_spatial: { ...base, ...patch } };
+  }
+  const selectsSiteThree = {
+    selected_variants: ["A3G", "A4V"], selected_positions: [3, 4],
+    site_multiplicities: [{ reference_position: 3, variant_count: 1 }, { reference_position: 4, variant_count: 1 }],
+  };
+  const siteThreeAt = (confidence: number | null) => plddtReport().mapping.map((row) => (
+    row.reference_position === 3 ? { ...row, confidence } : row));
+  it("accepts the consistent pLDDT report once the comparison block is dropped", () => {
+    expect(valid(plddtSelection())).toBe(true);
+  });
+  it("rejects a selection that includes a residue below the pLDDT threshold", () => {
+    // Residue 3 has pLDDT 30, is eligible, selected and also listed as excluded.
+    expect(valid(plddtSelection({ ...selectsSiteThree, eligible_positions: [2, 3, 4] }))).toBe(false);
+  });
+  it("rejects eligible positions that include a residue below the pLDDT threshold", () => {
+    expect(valid(plddtSelection({ eligible_positions: [2, 3, 4, 5], eligible_site_count: 4 }))).toBe(false);
+  });
+  it("rejects a selected variant that is also excluded as low confidence", () => {
+    const patch = { ...selectsSiteThree, eligible_positions: [2, 3, 4], mapping: siteThreeAt(90),
+      coordinate_confidence: { source: "alphafold_plddt", threshold: 50, low_confidence_residue_count: 0, excluded_variant_count: 1 } };
+    expect(valid(plddtSelection(patch))).toBe(false);
+    // The same mapping without the contradictory exclusion is a plain, valid selection.
+    expect(valid(plddtSelection({ ...patch, excluded: [],
+      coordinate_confidence: { ...patch.coordinate_confidence, excluded_variant_count: 0 } }))).toBe(true);
+  });
+  it("treats a residue at exactly the threshold as eligible, as the sidecar does", () => {
+    const patch = { ...selectsSiteThree, eligible_positions: [2, 3, 4], mapping: siteThreeAt(50), excluded: [],
+      coordinate_confidence: { source: "alphafold_plddt", threshold: 50, low_confidence_residue_count: 0, excluded_variant_count: 0 } };
+    expect(valid(plddtSelection(patch))).toBe(true);
+  });
+  it("keeps an unavailable-confidence report free of pLDDT selection checks", () => {
+    const patch = { ...selectsSiteThree, eligible_positions: [2, 3, 4], mapping: siteThreeAt(null).map((row) => ({ ...row, confidence: null })),
+      excluded: [], confidence_source: "unavailable",
+      coordinate_confidence: { source: "unavailable", threshold: null, low_confidence_residue_count: 0, excluded_variant_count: 0 } };
+    expect(valid(plddtSelection(patch))).toBe(true);
+  });
   it.each([
     [{ source: "alphafold_plddt", threshold: 50, low_confidence_residue_count: 1, excluded_variant_count: 1 }, [lowConfidence], true],
     [{ source: "unavailable", threshold: null, low_confidence_residue_count: 0, excluded_variant_count: 0 }, [], true],

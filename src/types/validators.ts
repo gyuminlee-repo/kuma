@@ -646,11 +646,22 @@ function isStrictSpatialCoordinateConfidence(value: unknown, report: StrictSpati
   const threshold = value.threshold;
   if (threshold !== 50) return false;
   let low = 0;
+  const lowPositions = new Set<number>();
   for (const row of report.mapping) {
     if (!isNumber(row.confidence)) return false;
-    if (row.confidence < threshold) low += 1;
+    if (row.confidence < threshold) {
+      low += 1;
+      lowPositions.add(row.reference_position);
+    }
   }
-  return value.low_confidence_residue_count === low;
+  if (value.low_confidence_residue_count !== low) return false;
+  // The selector drops a below-threshold residue before it can be eligible, so
+  // neither the eligible sites nor the picks may contain one, and a variant
+  // cannot be both selected and excluded as low confidence.
+  if (report.eligible_positions.some((position) => lowPositions.has(position))
+    || report.selected_positions.some((position) => lowPositions.has(position))) return false;
+  const selected = new Set(report.selected_variants);
+  return !report.excluded.some((row) => row.reason === "low_confidence_coordinate" && selected.has(row.variant));
 }
 
 function isStrictSpatialResult(value: unknown): boolean {
