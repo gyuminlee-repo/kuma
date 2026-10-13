@@ -2,18 +2,37 @@
   "schema_version": 1,
   "observed_at_utc": "2026-10-13T06:28:00Z",
   "review_type": "bounded_static_contract_documentation",
-  "runtime_status": "NOT_RUN",
+  "runtime_status": "PARTLY_RUN",
+  "runtime_runs": [
+    {
+      "cases": [
+        "S1",
+        "S3"
+      ],
+      "ref": "7d73356afac3d3c306ca76a49a4217b97a41a03a",
+      "executed_at_utc": "2026-10-13T08:22:21Z",
+      "method": "Direct load_evolvepro_csv calls on git archive copies of the pinned trees. Not pytest, not the packaged product, not the sidecar."
+    },
+    {
+      "cases": [
+        "K3"
+      ],
+      "ref": "37c6b474c95812b9f792b3b612f9f0ba84522b48",
+      "executed_at_utc": "2026-10-13T08:22:21Z",
+      "method": "Direct load_evolvepro_csv calls on git archive copies of the pinned trees. Not pytest, not the packaged product, not the sidecar."
+    }
+  ],
   "repositories": {
     "kuma": {
       "repository": "gyuminlee-repo/kuma",
       "refs": {
         "main": "37c6b474c95812b9f792b3b612f9f0ba84522b48",
         "base": "c857b3560f45d2c5fd132b51bfd0920c25043983",
-        "head": "cd234186896cc1271f1cabd6521a435254d71160"
+        "head": "7d73356afac3d3c306ca76a49a4217b97a41a03a"
       },
       "pr_url": "https://github.com/gyuminlee-repo/kuma/pull/14",
       "pr_state_at_read": "open_draft",
-      "actual_base_to_head_commits": 19,
+      "actual_base_to_head_commits": 23,
       "tree_truncated": {
         "main": false,
         "base": false,
@@ -40,7 +59,7 @@
       "path": "kuma_core/kuro/strict_spatial.py",
       "main_blob": null,
       "base_blob": "7a5b72fdc6be153e7072c3e6edcaba02227c3fe6",
-      "head_blob": "30720835aac54dae5c6969c2ed3d4cc1ac9ce86b"
+      "head_blob": "a7fdd182927e4a1316628b8a5d93fade57f5ecfb"
     },
     {
       "path": "kuma_core/mame/activity/build_evolvepro_input.py",
@@ -100,7 +119,7 @@
       "path": "src/store/slices/inputSlice.ts",
       "main_blob": "19be24ba774eb4e44c39c22ee4e63769bc4c642e",
       "base_blob": "80c4aecf669102bacb3245d5bca968a28d708a30",
-      "head_blob": "23440dfce41d030033d651cec2690a1ec2ccf602"
+      "head_blob": "33730e7a22ef50ab199e5c43a53fa2763057e7be"
     },
     {
       "path": "src/store/slices/designSlice.ts",
@@ -148,7 +167,7 @@
       "path": "tests/test_strict_variant_budget.py",
       "main_blob": null,
       "base_blob": "fd87c470e3904ae443abdfbb2235270d510ec1c0",
-      "head_blob": "9fd18329205af355388c8229ccb8444ca12d9939"
+      "head_blob": "ff08b89b6f82cf42020a57dcfb52477d0d222325"
     },
     {
       "path": "tests/mame/activity/test_build_evolvepro_axes.py",
@@ -187,7 +206,8 @@
     },
     {
       "blob": "7f4c2479aa4ce34f6acee343a39bfaf5e3480c83",
-      "source_url": "https://github.com/mat10d/EvolvePro/blob/1c77697d0c09bf6989a1562a55da99301a12e2cd/scripts/exp/README.md"
+      "source_url": "https://github.com/mat10d/EvolvePro/blob/1c77697d0c09bf6989a1562a55da99301a12e2cd/scripts/exp/README.md",
+      "path_omitted_reason": "The repository citation checker reads a quoted bare Markdown path as a citation of a local document and fails on it. A path inside source_url is not read that way, so this record carries its path only there."
     },
     {
       "path": "setup.py",
@@ -213,7 +233,7 @@
     "license_clearance",
     "user_installed_upstream_version_check"
   ],
-  "fixture_status": "Synthetic expectations from source reading. Not executable test outcomes.",
+  "fixture_status": "S1, S3 and K3 values are observed outputs of direct function calls. All other values are synthetic expectations from source reading, not executable test outcomes.",
   "scope_exclusions": [
     "No product code or existing audit changes",
     "No recovery of missing prior audit artifacts",

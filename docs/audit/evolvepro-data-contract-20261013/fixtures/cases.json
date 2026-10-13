@@ -1,6 +1,36 @@
 {
   "schema_version": 1,
-  "status": "proposed_fixture_not_executed",
+  "status": "partly_executed_see_execution",
+  "execution": {
+    "method": "Direct load_evolvepro_csv calls on git archive copies of the pinned trees. Not pytest, not the packaged product, not the sidecar.",
+    "executed_at_utc": "2026-10-13T08:22:21Z",
+    "run": [
+      {
+        "case": "S1",
+        "ref": "7d73356afac3d3c306ca76a49a4217b97a41a03a",
+        "input": "candidate-strict.csv with strict_context"
+      },
+      {
+        "case": "S3",
+        "ref": "7d73356afac3d3c306ca76a49a4217b97a41a03a",
+        "input": "additional_cases.strict_top_n_partly_excluded and strict_top_n_all_excluded with strict_context"
+      },
+      {
+        "case": "K3",
+        "ref": "37c6b474c95812b9f792b3b612f9f0ba84522b48",
+        "input": "additional_cases.missing_variant_column"
+      }
+    ],
+    "not_run": [
+      "K1",
+      "K2",
+      "S2",
+      "M1",
+      "M2",
+      "M3",
+      "U1"
+    ]
+  },
   "reference": "MACDEFGH",
   "reference_scope": "Invented short reference. No biological interpretation.",
   "geometry_unit": "arbitrary synthetic length unit",
@@ -236,6 +266,78 @@
           ]
         ]
       }
-    ]
+    ],
+    "strict_top_n_partly_excluded": {
+      "columns": [
+        "variant",
+        "y_pred"
+      ],
+      "rows": [
+        [
+          "A2V",
+          10
+        ],
+        [
+          "F6Y",
+          9
+        ],
+        [
+          "C3S",
+          8
+        ],
+        [
+          "D4N",
+          7
+        ]
+      ],
+      "top_n": 3,
+      "budget_mode": "unique_sites",
+      "site_cap": null
+    },
+    "strict_top_n_all_excluded": {
+      "columns": [
+        "variant",
+        "y_pred"
+      ],
+      "rows": [
+        [
+          "F6Y",
+          9
+        ],
+        [
+          "E5Q",
+          8
+        ],
+        [
+          "A2V",
+          3
+        ],
+        [
+          "C3S",
+          2
+        ]
+      ],
+      "top_n": 2,
+      "budget_mode": "unique_sites",
+      "site_cap": null
+    },
+    "missing_variant_column": {
+      "columns": [
+        "Variant",
+        "y_pred"
+      ],
+      "rows": [
+        [
+          "A2V",
+          5
+        ],
+        [
+          "C3S",
+          3
+        ]
+      ],
+      "variant_column": "Variantt",
+      "top_n": 2
+    }
   }
 }

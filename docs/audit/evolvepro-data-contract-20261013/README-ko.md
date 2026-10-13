@@ -1,7 +1,7 @@
 # EVOLVEpro → KUMA → 실험 결과 재입력 데이터 계약
 
 작성일: 2026-10-13  
-판정: 고정 소스의 정적 관측. 제품 실행과 테스트 실행은 하지 않았다.
+판정: 고정 소스의 정적 관측. 2026-10-13 재고정 때 S1·S3·K3 사례만 고정 SHA의 함수를 직접 호출해 확인했다. 그 밖의 사례와 제품 실행·테스트 스위트 실행은 하지 않았다.
 
 ## 1. 범위와 가정
 
@@ -9,10 +9,11 @@
 
 - KUMA 공개 main: `37c6b474c95812b9f792b3b612f9f0ba84522b48`
 - PR #14의 실제 base: `c857b3560f45d2c5fd132b51bfd0920c25043983`
-- PR #14의 조회 시점 head: `cd234186896cc1271f1cabd6521a435254d71160`
+- PR #14의 최종 head: `7d73356afac3d3c306ca76a49a4217b97a41a03a`
+- 재고정 이력: 처음 조회한 head는 `cd234186896cc1271f1cabd6521a435254d71160`였다. 그 뒤 PR #14에 4개 커밋이 더해져 2026-10-13에 최종 head로 다시 고정했다. 두 head 사이에서 blob이 바뀐 인용 파일은 `strict_spatial.py`·`inputSlice.ts`·`tests/test_strict_variant_budget.py` 셋이다. 이전 head를 적은 곳은 이 줄뿐이다.
 - upstream 참고본: `mat10d/EvolvePro@1c77697d0c09bf6989a1562a55da99301a12e2cd`
 - main은 제품 스냅샷의 근거다. PR #14 head는 미병합 경로의 근거다. PR의 비교 기준은 main이 아니라 실제 base다.
-- PR #14의 strict 경로 전체가 #14에서 생긴 것은 아니다. `evolvepro.py`와 `designSlice.ts`의 base/head blob은 동일하다. strict confidence와 Top-N 비교 변경은 #14 diff에 있다. 파일별 blob은 [sources.json](sources.json)에 기록했다.
+- PR #14의 strict 경로 전체가 #14에서 생긴 것은 아니다. `evolvepro.py`와 `designSlice.ts`의 base/head blob은 동일하다. strict confidence와 Top-N 비교 변경은 #14 diff에 있다. 파일별 blob은 [sources.json](sources.json)에 기록했다. upstream record 하나는 `path` 필드가 없고 그 이유를 같은 record의 `path_omitted_reason`에 적었다.
 - upstream `setup.py`는 버전 1.0을 선언한다. 공개 KUMA의 dependency 목록만으로 사용자 환경에 설치된 upstream 버전은 확인할 수 없다. 위 SHA는 이 문서의 참고본이다.
 - 문서와 합성 입력만 추가한다. 제품 코드·모델·선정 알고리즘·audit registry·기존 리뷰·벤치마크는 변경하지 않는다.
 
@@ -34,10 +35,10 @@
 근거:
 - [upstream round reader와 단일 치환 표기](https://github.com/mat10d/EvolvePro/blob/1c77697d0c09bf6989a1562a55da99301a12e2cd/evolvepro/src/data.py#L125-L176)
 - [학습 목표와 미측정 test 집합](https://github.com/mat10d/EvolvePro/blob/1c77697d0c09bf6989a1562a55da99301a12e2cd/evolvepro/src/model.py#L101-L162), [df_test 열](https://github.com/mat10d/EvolvePro/blob/1c77697d0c09bf6989a1562a55da99301a12e2cd/evolvepro/src/model.py#L280-L302), [저장 범위](https://github.com/mat10d/EvolvePro/blob/1c77697d0c09bf6989a1562a55da99301a12e2cd/evolvepro/src/evolve.py#L417-L502)
-- [KURO 열 선택·parser](https://github.com/gyuminlee-repo/kuma/blob/37c6b474c95812b9f792b3b612f9f0ba84522b48/kuma_core/kuro/evolvepro.py#L275-L490), [응답 반올림](https://github.com/gyuminlee-repo/kuma/blob/37c6b474c95812b9f792b3b612f9f0ba84522b48/kuma_core/kuro/evolvepro.py#L715-L756), [선택 gene의 reference](https://github.com/gyuminlee-repo/kuma/blob/cd234186896cc1271f1cabd6521a435254d71160/src/store/slices/inputSlice.ts#L99-L109)
-- [legacy 설계 입력](https://github.com/gyuminlee-repo/kuma/blob/cd234186896cc1271f1cabd6521a435254d71160/src/store/slices/designSlice.helpers.ts#L192-L239), [strict 설계 재검증](https://github.com/gyuminlee-repo/kuma/blob/cd234186896cc1271f1cabd6521a435254d71160/src/store/slices/designSlice.ts#L191-L270)
+- [KURO 열 선택·parser](https://github.com/gyuminlee-repo/kuma/blob/37c6b474c95812b9f792b3b612f9f0ba84522b48/kuma_core/kuro/evolvepro.py#L275-L490), [응답 반올림](https://github.com/gyuminlee-repo/kuma/blob/37c6b474c95812b9f792b3b612f9f0ba84522b48/kuma_core/kuro/evolvepro.py#L715-L756), [선택 gene의 reference](https://github.com/gyuminlee-repo/kuma/blob/7d73356afac3d3c306ca76a49a4217b97a41a03a/src/store/slices/inputSlice.ts#L99-L109)
+- [legacy 설계 입력](https://github.com/gyuminlee-repo/kuma/blob/7d73356afac3d3c306ca76a49a4217b97a41a03a/src/store/slices/designSlice.helpers.ts#L192-L239), [strict 설계 재검증](https://github.com/gyuminlee-repo/kuma/blob/7d73356afac3d3c306ca76a49a4217b97a41a03a/src/store/slices/designSlice.ts#L191-L270)
 - [현재 Step 4 설명](https://github.com/gyuminlee-repo/kuma/blob/37c6b474c95812b9f792b3b612f9f0ba84522b48/docs/mame/04-activity.md#L1-L73), [builder](https://github.com/gyuminlee-repo/kuma/blob/37c6b474c95812b9f792b3b612f9f0ba84522b48/kuma_core/mame/activity/build_evolvepro_input.py#L513-L709)
-- [CSV와 XLSX exporter의 단위 차이](https://github.com/gyuminlee-repo/kuma/blob/37c6b474c95812b9f792b3b612f9f0ba84522b48/kuma_core/mame/activity/export_evolvepro.py#L11-L151), [memory hydration](https://github.com/gyuminlee-repo/kuma/blob/cd234186896cc1271f1cabd6521a435254d71160/src/store/slices/inputSlice.ts#L382-L443)
+- [CSV와 XLSX exporter의 단위 차이](https://github.com/gyuminlee-repo/kuma/blob/37c6b474c95812b9f792b3b612f9f0ba84522b48/kuma_core/mame/activity/export_evolvepro.py#L11-L151), [memory hydration](https://github.com/gyuminlee-repo/kuma/blob/7d73356afac3d3c306ca76a49a4217b97a41a03a/src/store/slices/inputSlice.ts#L385-L446)
 
 ## 3. 이름과 번호의 경계
 
@@ -47,7 +48,7 @@
 4. MAME의 `to_evolvepro`는 internal ID에서 첫 아미노산을 제거한다. 이 함수는 WT FASTA와 대조하지 않는다. 출력 short ID를 다른 WT FASTA로 읽으면 다른 internal ID가 만들어질 수 있다. 같은 reference를 사용했다는 근거는 외부 handoff에서 확인해야 한다.
 5. well `A1`은 `A01`로 정규화한다. legacy join은 `(plate_id, well_id)`를 쓴다. 현재 Step 4 well-label 경로는 여러 plate를 한 unscoped layout/verdict로 섞으면 거부한다. numeric-ID는 해당 order source의 순번이며 amino-acid 위치와 다르다.
 
-근거: [short 변환](https://github.com/gyuminlee-repo/kuma/blob/37c6b474c95812b9f792b3b612f9f0ba84522b48/kuma_core/kuro/evolvepro.py#L287-L304), [strict ID·좌표](https://github.com/gyuminlee-repo/kuma/blob/cd234186896cc1271f1cabd6521a435254d71160/kuma_core/kuro/strict_spatial.py#L43-L190), [MAME 표기 변환](https://github.com/gyuminlee-repo/kuma/blob/37c6b474c95812b9f792b3b612f9f0ba84522b48/kuma_core/mame/activity/variant_notation.py#L14-L95), [well join](https://github.com/gyuminlee-repo/kuma/blob/37c6b474c95812b9f792b3b612f9f0ba84522b48/kuma_core/mame/activity/join.py#L38-L94), [Step 4 namespace·cohort](https://github.com/gyuminlee-repo/kuma/blob/37c6b474c95812b9f792b3b612f9f0ba84522b48/kuma_core/mame/activity/build_evolvepro_input.py#L166-L255).
+근거: [short 변환](https://github.com/gyuminlee-repo/kuma/blob/37c6b474c95812b9f792b3b612f9f0ba84522b48/kuma_core/kuro/evolvepro.py#L287-L304), [strict ID·좌표](https://github.com/gyuminlee-repo/kuma/blob/7d73356afac3d3c306ca76a49a4217b97a41a03a/kuma_core/kuro/strict_spatial.py#L47-L199), [MAME 표기 변환](https://github.com/gyuminlee-repo/kuma/blob/37c6b474c95812b9f792b3b612f9f0ba84522b48/kuma_core/mame/activity/variant_notation.py#L14-L95), [well join](https://github.com/gyuminlee-repo/kuma/blob/37c6b474c95812b9f792b3b612f9f0ba84522b48/kuma_core/mame/activity/join.py#L38-L94), [Step 4 namespace·cohort](https://github.com/gyuminlee-repo/kuma/blob/37c6b474c95812b9f792b3b612f9f0ba84522b48/kuma_core/mame/activity/build_evolvepro_input.py#L166-L255).
 
 ## 4. 선택 예산과 PR 상태
 
@@ -71,17 +72,22 @@
 - 표기 정규화 이후 같은 ID의 점수가 충돌하면 오류다. 동일 점수의 중복은 한 번만 남는다.
 - no-op·명시적 제외 구간·좌표 결측/비유한값·저신뢰 좌표는 별도 제외 사유다. 입력 parse 누락과 위치 1 제외는 별도 통계다.
 - AFDB 출처 또는 인식된 AlphaFold TITLE이면 pLDDT 50 미만을 제외한다. 일반 구조의 B-factor를 이 경로에서 pLDDT로 임의 변환하지 않는다.
-- PR #14의 primary Top-N은 validity·좌표·confidence 제외 후이며 budget/cap 적용 전의 eligible variant 집합이다. cap 뒤의 비교는 `representative_top_n`에 따로 남는다. primary baseline과 strict 결과의 site cap이 같다고 단정하지 않는다.
+- PR #14 최종 head의 primary Top-N은 입력 변이 전체에서 잡는다. 순위 우주는 strict 입력 변이에서 `unchanged_amino_acid`와 `nonfinite_score`만 뺀 전부다. `explicit_exclusion`·`missing_or_nonfinite_coordinate`·`low_confidence_coordinate`로 공간 선택에서 빠진 변이도 이 우주에 남는다. `comparison.universe`의 리터럴은 `input-variants-before-spatial-eligibility`다. 위치 1 필터와 중복 제거는 strict 입력보다 앞 단계이므로 거기서 빠진 행은 이 우주에 없다.
+- primary Top-N 구성원 중 공간 선택에서 제외된 변이는 `top_n_excluded`에 `{variant, reason}` 목록으로 나온다. 점수가 없는 입력에서는 이 값이 null이다.
+- 이전의 주 기준이던 적격 변이 Top-N은 `eligible_top_n`에 보조 기준으로 남는다. cap 뒤의 비교는 `representative_top_n`에 따로 남는다. 모든 profile의 순위는 입력 전체 우주에서 매긴다.
+- 각 profile의 `variant_count`는 구성원 전체 수이고 `spatial_variant_count`는 그중 적격 구성원 수다. 부위 수와 거리 지표는 적격 구성원만으로 계산한다. 점수 평균과 순위 평균은 구성원 전체로 계산한다. 적격 구성원이 0명이면 `site_count`와 `max_variants_per_site`는 0이고 거리 지표는 null이다. null을 거리 0으로 읽지 않는다.
+- 이 변경은 비교 보고에만 적용된다. 이 문서의 S1·S3 입력에서 이전 head와 최종 head의 선택 변이·적격 수·제외 목록 출력은 같았다. primary baseline과 strict 결과의 site cap이 같다고 단정하지 않는다.
 - selector 진단에는 variant 수와 site 수가 따로 있다. 같은 위치의 추가 치환은 공간 거리 증가로 세지 않는다.
 - candidate 파일 bytes·reference·구조의 digest와 score 방향·budget·cap을 설계 직전에 다시 대조한다. 이는 해당 app 코드 경로의 계약이다. native GUI 동작이나 전체 실험 handoff를 실행 검증한 것은 아니다.
 
-근거: [strict loader와 누락 통계](https://github.com/gyuminlee-repo/kuma/blob/cd234186896cc1271f1cabd6521a435254d71160/kuma_core/kuro/evolvepro.py#L598-L790), [strict 예산·제외·진단](https://github.com/gyuminlee-repo/kuma/blob/cd234186896cc1271f1cabd6521a435254d71160/kuma_core/kuro/strict_spatial.py#L118-L259), [비교 universe](https://github.com/gyuminlee-repo/kuma/blob/cd234186896cc1271f1cabd6521a435254d71160/kuma_core/kuro/strict_spatial.py#L271-L344), [file fingerprint](https://github.com/gyuminlee-repo/kuma/blob/cd234186896cc1271f1cabd6521a435254d71160/python-core/sidecar_kuro/handlers/misc.py#L276-L345).
+근거: [strict loader와 누락 통계](https://github.com/gyuminlee-repo/kuma/blob/7d73356afac3d3c306ca76a49a4217b97a41a03a/kuma_core/kuro/evolvepro.py#L598-L790), [strict 예산·제외·진단](https://github.com/gyuminlee-repo/kuma/blob/7d73356afac3d3c306ca76a49a4217b97a41a03a/kuma_core/kuro/strict_spatial.py#L122-L270), [비교 universe](https://github.com/gyuminlee-repo/kuma/blob/7d73356afac3d3c306ca76a49a4217b97a41a03a/kuma_core/kuro/strict_spatial.py#L282-L374), [file fingerprint](https://github.com/gyuminlee-repo/kuma/blob/7d73356afac3d3c306ca76a49a4217b97a41a03a/python-core/sidecar_kuro/handlers/misc.py#L276-L345).
 
 ## 5. 누락·중복·불일치의 실제 처리
 
 | 상황 | 관측된 처리 | handoff에서 유의할 점 |
 | --- | --- | --- |
 | 변이 열을 자동으로 찾지 못함 | KURO ValueError | 명시 열 선택을 쓰는 경우 실제 존재도 확인한다 |
+| 명시한 변이 열 이름이 파일에 없음 | 현재 resolver는 원래 문자열로 폴백한다. 모든 row lookup이 blank가 되어 예외 없이 변이 0개를 반환한다. `used_variant_column`에는 파일에 없는 이름이 그대로 남는다 | 빈 후보 목록을 유효한 빈 파일로 읽지 않는다. main `37c6b47`에서 직접 호출로 확인한 현재 동작이다(K3). 이 동작은 결함으로 보고 브랜치 `fix/evolvepro-missing-variant-column-20261013`에서 ValueError를 내도록 고치는 중이며 그 수정은 이 문서의 고정 SHA에 들어 있지 않다 |
 | 점수 열 없음 또는 모든 셀이 빈 값 | KURO 내부 점수 0으로 score-free 처리 | 측정된 0과 미측정값의 의미는 같지 않다. legacy `has_score`는 non-zero 여부를 사용한다. strict의 `score_available`은 별도 소스 존재 여부다 |
 | 일부 점수만 blank·문자·NaN·inf | KURO 해당 행을 버림 | strict는 합계 누락 수를 보고한다. 행별 이유 전체를 보존하는 계약은 아니다 |
 | 명시한 score 열 이름이 틀림 | 현재 resolver는 원래 문자열로 폴백한다. 각 row lookup이 blank가 되면 score-free가 될 수 있음 | 자동 오류로 잡힌다고 가정하지 않는다. 선택된 실제 열 이름과 head를 함께 검토한다 |
@@ -95,7 +101,7 @@
 | upstream round 목록 내/사이 non-WT ID 중복 | duplicate 탐지 후 `(None, None)` 반환 | 다음 round 목록에 기존 실험 행을 중복 누적하지 않는다. 명시적 병합 규칙 없이 첫 값/마지막 값을 선택하지 않는다 |
 | upstream embedding에 없는 실험 ID | labels가 embedding ID 순서로 reindex됨 | 예상 ID 집합과 실측 ID 집합을 사전에 대조해야 한다. 함수의 출력 shape만으로 모든 실험 행 보존을 가정하지 않는다 |
 
-근거: [KURO parser](https://github.com/gyuminlee-repo/kuma/blob/37c6b474c95812b9f792b3b612f9f0ba84522b48/kuma_core/kuro/evolvepro.py#L375-L490), [strict duplicate 검사](https://github.com/gyuminlee-repo/kuma/blob/cd234186896cc1271f1cabd6521a435254d71160/kuma_core/kuro/evolvepro.py#L598-L641), [MAME replicate join](https://github.com/gyuminlee-repo/kuma/blob/37c6b474c95812b9f792b3b612f9f0ba84522b48/kuma_core/mame/activity/join.py#L82-L173), [layout identity](https://github.com/gyuminlee-repo/kuma/blob/37c6b474c95812b9f792b3b612f9f0ba84522b48/kuma_core/mame/activity/build_evolvepro_input.py#L103-L118), [strict NGS gate](https://github.com/gyuminlee-repo/kuma/blob/37c6b474c95812b9f792b3b612f9f0ba84522b48/kuma_core/mame/activity/build_evolvepro_input.py#L392-L434), [verdict duplicate 처리](https://github.com/gyuminlee-repo/kuma/blob/37c6b474c95812b9f792b3b612f9f0ba84522b48/kuma_core/mame/activity/verdict_ngs.py#L32-L144), [확인 측정 우선순위](https://github.com/gyuminlee-repo/kuma/blob/37c6b474c95812b9f792b3b612f9f0ba84522b48/kuma_core/mame/activity/merge.py#L16-L91), [upstream round 누적](https://github.com/mat10d/EvolvePro/blob/1c77697d0c09bf6989a1562a55da99301a12e2cd/evolvepro/src/data.py#L179-L244).
+근거: [KURO parser](https://github.com/gyuminlee-repo/kuma/blob/37c6b474c95812b9f792b3b612f9f0ba84522b48/kuma_core/kuro/evolvepro.py#L375-L490), [명시 변이 열의 폴백](https://github.com/gyuminlee-repo/kuma/blob/37c6b474c95812b9f792b3b612f9f0ba84522b48/kuma_core/kuro/evolvepro.py#L399-L401), [strict duplicate 검사](https://github.com/gyuminlee-repo/kuma/blob/7d73356afac3d3c306ca76a49a4217b97a41a03a/kuma_core/kuro/evolvepro.py#L598-L641), [MAME replicate join](https://github.com/gyuminlee-repo/kuma/blob/37c6b474c95812b9f792b3b612f9f0ba84522b48/kuma_core/mame/activity/join.py#L82-L173), [layout identity](https://github.com/gyuminlee-repo/kuma/blob/37c6b474c95812b9f792b3b612f9f0ba84522b48/kuma_core/mame/activity/build_evolvepro_input.py#L103-L118), [strict NGS gate](https://github.com/gyuminlee-repo/kuma/blob/37c6b474c95812b9f792b3b612f9f0ba84522b48/kuma_core/mame/activity/build_evolvepro_input.py#L392-L434), [verdict duplicate 처리](https://github.com/gyuminlee-repo/kuma/blob/37c6b474c95812b9f792b3b612f9f0ba84522b48/kuma_core/mame/activity/verdict_ngs.py#L32-L144), [확인 측정 우선순위](https://github.com/gyuminlee-repo/kuma/blob/37c6b474c95812b9f792b3b612f9f0ba84522b48/kuma_core/mame/activity/merge.py#L16-L91), [upstream round 누적](https://github.com/mat10d/EvolvePro/blob/1c77697d0c09bf6989a1562a55da99301a12e2cd/evolvepro/src/data.py#L179-L244).
 
 ## 6. 단위와 provenance 체크포인트
 
@@ -111,19 +117,21 @@
 
 ## 7. 합성 fixture와 검증 상태
 
-[expected-behavior.md](expected-behavior.md)는 fixture별 코드로부터 예측한 결과와 추가 수용 기준을 분리한다. 실제 실행 결과가 아니다. CSV는 허구의 짧은 reference와 숫자만 사용한다. 실험 데이터나 검증된 생물학적 후보를 포함하지 않는다.
+[expected-behavior.md](expected-behavior.md)는 fixture별 코드로부터 예측한 결과와 추가 수용 기준을 분리한다. S1·S3·K3는 고정 SHA의 함수를 직접 호출해 확인한 출력이고 나머지는 실제 실행 결과가 아니다. 사례별 상태는 그 문서의 첫 표에 있다. CSV는 허구의 짧은 reference와 숫자만 사용한다. 실험 데이터나 검증된 생물학적 후보를 포함하지 않는다.
 
 수행한 것:
 - GitHub API로 main·PR head/base·전체 tree·해당 파일을 읽었다.
 - 파일 blob을 대조해 변경 여부를 확인했다.
 - 본문 링크와 line range를 고정 SHA에 연결했다.
 - JavaScript orchestration에서 JSON 파싱과 CSV 열 수 일치를 확인했다. 텍스트의 U+FFFD·em dash·unpaired surrogate는 각각 0개였다. 제품 parser를 실행한 검사는 아니다.
+- 2026-10-13 재고정 때 `git archive`로 푼 고정 tree 사본에서 `load_evolvepro_csv`를 직접 호출했다. S1과 S3는 PR #14 최종 head에서 호출했고 K3는 main에서 호출했다. pytest·패키징된 제품·sidecar를 거친 실행이 아니다.
+- 재고정한 링크의 줄 범위는 이전 head의 내용과 최종 head의 내용을 줄 단위로 대조해 다시 잡았다.
 
 수행하지 않은 것:
-- shell·설치·Codex/cloud task·Python/TypeScript 테스트·모델 실행·native UI
+- 설치·Codex/cloud task·Python/TypeScript 테스트 스위트·모델 실행·native UI
 - upstream 소스 수정·복사·배포
 - 로컬 감사 산출물 복구와 기존 벤치마크 재실행
-- fixture의 실제 parser 통과 또는 full-suite/CI 통과 판정
+- K1·K2·S2·M1·M2·M3·U1 fixture의 실제 실행과 full-suite/CI 통과 판정
 
 관련 기존 테스트 소스는 `tests/test_evolvepro.py`, `tests/test_evolvepro_others_mode.py`, `tests/test_strict_variant_budget.py`, `tests/mame/activity/test_build_evolvepro_axes.py`, `test_ngs_gating.py`, `test_export_evolvepro.py`다. 존재와 내용을 읽은 사실은 이번 실행 PASS가 아니다.
 
