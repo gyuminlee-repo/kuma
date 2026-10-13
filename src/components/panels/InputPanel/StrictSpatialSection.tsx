@@ -1,5 +1,6 @@
 import { lazy, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { useAppStore } from "@/store/appStore";
 import { currentStrictSpatialResult } from "@/lib/strictSpatial";
 import type { StrictSpatialResult } from "@/types/models";
@@ -55,6 +56,9 @@ const EXCLUSION_REASONS: Record<string, string> = {
   low_confidence_coordinate: "strictSpatial.reasonLowConfidence",
 };
 
+/** Words for a backend reason code; a code this table does not know is shown as sent. */
+const exclusionReasonLabel = (t: TFunction, reason: string) => EXCLUSION_REASONS[reason] ? t(EXCLUSION_REASONS[reason]) : reason;
+
 function StrictSpatialExclusions({ result }: { result: StrictSpatialResult }) {
   const { t } = useTranslation();
   const confidence = result.coordinate_confidence;
@@ -62,7 +66,7 @@ function StrictSpatialExclusions({ result }: { result: StrictSpatialResult }) {
   for (const row of result.excluded) counts.set(row.reason, (counts.get(row.reason) ?? 0) + 1);
   // Punctuation is locale-owned: zh joins with full-width marks and fr spaces its colon and semicolon.
   const summary = [...counts].map(([reason, count]) => t("strictSpatial.exclusionItem", {
-    reason: EXCLUSION_REASONS[reason] ? t(EXCLUSION_REASONS[reason]) : reason, amount: count,
+    reason: exclusionReasonLabel(t, reason), amount: count,
   })).join(t("strictSpatial.exclusionSeparator"));
   return <>
     {confidence && <p>{confidence.source === "alphafold_plddt"
@@ -160,7 +164,10 @@ export function StrictSpatialSection() {
               cap: result.budget_mode === "unique_sites" ? 1 : result.site_cap ?? t("strictSpatial.unlimited"),
             })}</p>
             {result.excluded.length > 0 && <ul className="max-h-40 overflow-y-auto">
-              {result.excluded.map((row, i) => <li key={`${row.variant}-${i}`}>{row.variant}: {row.reason}</li>)}
+              {/* No joining punctuation here: the locale owns it (zh full-width, fr spaced) and no locale key pairs a variant with a reason. */}
+              {result.excluded.map((row, i) => <li key={`${row.variant}-${i}`}>
+                <span className="font-mono">{row.variant}</span> {exclusionReasonLabel(t, row.reason)}
+              </li>)}
             </ul>}
           </details>
           <button type="button" className="rounded border border-border px-2 py-1 hover:bg-accent"

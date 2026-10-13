@@ -156,3 +156,27 @@ describe("exclusion summary punctuation", () => {
     }
   });
 });
+
+describe("exclusion detail list", () => {
+  // The summary line above the evidence maps backend reason codes to words; the per-variant list must too.
+  it("shows each excluded variant with the translated reason and never the backend code", () => {
+    const report = { ...syntheticFullDfTestFixture(12), excluded: [
+      { variant: "A2C", reason: "low_confidence_coordinate" }, { variant: "A3C", reason: "missing_or_nonfinite_coordinate" },
+      { variant: "A4C", reason: "explicit_exclusion" }, { variant: "A5A", reason: "unchanged_amino_acid" },
+      { variant: "A6C", reason: "nonfinite_score" }, { variant: "A7C", reason: "future_reason_code" }] };
+    useAppStore.setState({ maxPrimers: report.requested_count, strictSpatialBudgetMode: "distinct_variants",
+      evolveproScoreOrder: report.score_order, evolveproSelectedVariants: report.selected_variants,
+      evolveproCsvPath: "/tmp/synthetic_df_test.csv" });
+    useAppStore.setState({ strictSpatialSelection: { result: report, contextKey: strictSpatialContextKey(useAppStore.getState()) } });
+    render(<StrictSpatialSection />);
+    const items = within(screen.getByRole("list")).getAllByRole("listitem");
+    expect(items.map((item) => item.textContent?.replace(/\s+/g, " ").trim())).toEqual([
+      "A2C low-confidence coordinate (pLDDT)", "A3C no usable coordinate", "A4C excluded range",
+      "A5A unchanged amino acid", "A6C missing or non-numeric score",
+      // A code the table does not know stays readable instead of disappearing.
+      "A7C future_reason_code",
+    ]);
+    const detail = items.slice(0, 5).map((item) => item.textContent).join(" ");
+    expect(detail).not.toMatch(/low_confidence_coordinate|missing_or_nonfinite_coordinate|explicit_exclusion|unchanged_amino_acid|nonfinite_score/);
+  });
+});
