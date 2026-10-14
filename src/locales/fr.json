@@ -1334,6 +1334,9 @@
       "chooseFormatManually": "Choisir le format manuellement",
       "clearAdditionalMeasurement": "Retirer le fichier supplémentaire",
       "detectionSummaryLabel": "Résumé de la détection du fichier",
+      "detectedWellColumns": "Colonne de puits : {{value}}",
+      "detectedLabelColumns": "Colonne échantillon/variant : {{value}}",
+      "detectedValueColumns": "Colonne de mesure : {{value}}",
       "detectedSampleRows": "Lignes d'échantillon : {{value}}",
       "detectedRecognizedRows": "Étiquettes reconnues : {{value}} lignes",
       "detectedSkippedRows": "Lignes ignorées : {{value}}",
@@ -3826,7 +3829,9 @@
       }
     },
     "mame": {
-      "labelMismatchBlocked": "Échange d'étiquettes détecté ; export bloqué. Vérifiez le plan et les étiquettes du verdict, puis sélectionnez Autoriser une divergence d'étiquettes vérifiée."
+      "labelMismatchBlocked": "Échange d'étiquettes détecté ; export bloqué. Vérifiez le plan et les étiquettes du verdict, puis sélectionnez Autoriser une divergence d'étiquettes vérifiée.",
+      "measurementIdentityConflict": "Le puits et l’échantillon désignent des variants différents. Export bloqué : {{rows}}",
+      "measurementWellsUnchecked": "Ces puits ne disposent pas de correspondance et n’ont pas été vérifiés. Les noms des échantillons ont été utilisés : {{wells}}"
     }
   },
   "advisoryDecision": {

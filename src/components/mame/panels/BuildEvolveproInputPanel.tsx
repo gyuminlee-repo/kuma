@@ -723,7 +723,10 @@ export function BuildEvolveproInputPanel() {
         buildEvolveproFormSignature(formRef.current) !== buildSignature
       ) return;
       const descRaw = describeRpcError(err, "mame");
-      const description = descRaw.startsWith("errors.")
+      const conflictPrefix = "errors.mame.measurementIdentityConflict|";
+      const description = descRaw.startsWith(conflictPrefix)
+        ? t("errors.mame.measurementIdentityConflict", { rows: descRaw.slice(conflictPrefix.length) })
+        : descRaw.startsWith("errors.")
         ? t(descRaw, {
             method:
               extractMissingMethod(err) ||
@@ -1378,11 +1381,25 @@ function DetectionSummary({ evidence }: { evidence: Record<string, unknown> }) {
     return typeof value === "number" && Number.isFinite(value) && Number.isInteger(value) && value >= 0
       ? [{ key, label, value }] : [];
   });
-  if (counts.length === 0) return null;
+  const columns = [
+    ["well_columns", "mame.buildEvolvepro.detectedWellColumns"],
+    ["label_columns", "mame.buildEvolvepro.detectedLabelColumns"],
+    ["value_columns", "mame.buildEvolvepro.detectedValueColumns"],
+  ].flatMap(([key, label]) => {
+    const value = evidence[key];
+    return Array.isArray(value) && value.length > 0 && value.every((column: unknown) => typeof column === "string")
+      ? [{ key, label, value: value.join(", ") }] : [];
+  });
+  if (counts.length === 0 && columns.length === 0) return null;
   return (
     <ul aria-label={t("mame.buildEvolvepro.detectionSummaryLabel")} className="flex flex-wrap gap-1.5 text-xs text-muted-foreground">
       {counts.map(({ key, label, value }) => (
         <li key={key} className="rounded-full border border-border bg-muted/30 px-2 py-0.5">
+          {t(label, { value })}
+        </li>
+      ))}
+      {columns.map(({ key, label, value }) => (
+        <li key={key} className="rounded-full border border-border bg-muted/30 px-2 py-0.5 break-all">
           {t(label, { value })}
         </li>
       ))}
@@ -1431,7 +1448,9 @@ function BuildResult({ result }: { result: BuildEvolveproInputResult }) {
           </p>
           {result.warnings.map((w, i) => (
             <p key={i} className="text-xs text-amber-700 dark:text-amber-400">
-              {w}
+              {w.startsWith("errors.mame.measurementWellsUnchecked|")
+                ? t("errors.mame.measurementWellsUnchecked", { wells: w.slice("errors.mame.measurementWellsUnchecked|".length) })
+                : w}
             </p>
           ))}
         </div>

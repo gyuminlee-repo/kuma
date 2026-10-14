@@ -1334,6 +1334,9 @@
       "chooseFormatManually": "形式を手動で選択",
       "clearAdditionalMeasurement": "追加ファイルを削除",
       "detectionSummaryLabel": "ファイル判別の概要",
+      "detectedWellColumns": "ウェル列: {{value}}",
+      "detectedLabelColumns": "サンプル/変異体列: {{value}}",
+      "detectedValueColumns": "測定値列: {{value}}",
       "detectedSampleRows": "サンプル行: {{value}}",
       "detectedRecognizedRows": "認識したラベル: {{value}} 行",
       "detectedSkippedRows": "スキップした行: {{value}}",
@@ -3826,7 +3829,9 @@
       }
     },
     "mame": {
-      "labelMismatchBlocked": "ラベルの入れ替わりが検出されたため、エクスポートを停止しました。レイアウトと判定ラベルを確認してから、確認済みのラベル不一致を許可を選択してください。"
+      "labelMismatchBlocked": "ラベルの入れ替わりが検出されたため、エクスポートを停止しました。レイアウトと判定ラベルを確認してから、確認済みのラベル不一致を許可を選択してください。",
+      "measurementIdentityConflict": "ウェルとサンプルの変異体が異なるため、エクスポートを停止しました: {{rows}}",
+      "measurementWellsUnchecked": "次のウェルには対応情報がないため照合していません。サンプル名を使用しました: {{wells}}"
     }
   },
   "advisoryDecision": {

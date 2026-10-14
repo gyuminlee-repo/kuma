@@ -1334,6 +1334,9 @@
       "chooseFormatManually": "手動選擇格式",
       "clearAdditionalMeasurement": "移除附加檔案",
       "detectionSummaryLabel": "檔案辨識摘要",
+      "detectedWellColumns": "孔位欄: {{value}}",
+      "detectedLabelColumns": "樣本/變體欄: {{value}}",
+      "detectedValueColumns": "測量值欄: {{value}}",
       "detectedSampleRows": "樣品列：{{value}}",
       "detectedRecognizedRows": "已辨識標籤：{{value}} 列",
       "detectedSkippedRows": "已略過列：{{value}}",
@@ -3826,7 +3829,9 @@
       }
     },
     "mame": {
-      "labelMismatchBlocked": "偵測到標籤互換，已封鎖匯出。請先檢查版面配置與判定標籤，然後選擇允許已審核的標籤不一致。"
+      "labelMismatchBlocked": "偵測到標籤互換，已封鎖匯出。請先檢查版面配置與判定標籤，然後選擇允許已審核的標籤不一致。",
+      "measurementIdentityConflict": "孔位與樣本對應不同變體，已封鎖匯出: {{rows}}",
+      "measurementWellsUnchecked": "下列孔位缺少對應證據，未交叉核對。已使用樣本名稱: {{wells}}"
     }
   },
   "advisoryDecision": {

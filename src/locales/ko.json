@@ -636,6 +636,9 @@
       "chooseFormatManually": "형식 직접 선택",
       "clearAdditionalMeasurement": "추가 파일 제거",
       "detectionSummaryLabel": "파일 판별 요약",
+      "detectedWellColumns": "well 열: {{value}}",
+      "detectedLabelColumns": "Sample/변이체 열: {{value}}",
+      "detectedValueColumns": "측정값 열: {{value}}",
       "detectedSampleRows": "샘플 행: {{value}}",
       "detectedRecognizedRows": "인식한 라벨: {{value}}행",
       "detectedSkippedRows": "건너뛴 행: {{value}}",
@@ -3844,7 +3847,9 @@
       }
     },
     "mame": {
-      "labelMismatchBlocked": "라벨 교체가 감지되어 내보내기를 차단했습니다. 레이아웃과 판정 라벨을 검토한 뒤 검토한 라벨 불일치 허용을 선택하세요."
+      "labelMismatchBlocked": "라벨 교체가 감지되어 내보내기를 차단했습니다. 레이아웃과 판정 라벨을 검토한 뒤 검토한 라벨 불일치 허용을 선택하세요.",
+      "measurementIdentityConflict": "well과 Sample의 변이체가 달라 내보내기를 차단했습니다: {{rows}}",
+      "measurementWellsUnchecked": "다음 well의 매핑 근거가 없어 교차 검증하지 않았습니다. Sample 이름을 사용했습니다: {{wells}}"
     },
     "sequence": {
       "fastaNotSupported": "CDS annotation이 필요합니다. GenBank(.gb/.gbk) 또는 SnapGene(.dna) 파일을 사용하세요."

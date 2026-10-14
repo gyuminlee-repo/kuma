@@ -59,8 +59,9 @@ will succeed:
 * header and sample-name shape only.  No value is read, converted to a number,
   or range-checked, so a long-format file whose ``area`` column is empty or
   textual still reports ``longFormat``.
-* the long-format test is "exactly one label column and exactly one value
-  column".  It does not check that the pair is one the caller wants: a
+* the long-format test is one label and one value column, optionally with a
+  separate well column beside a Sample/variant column. It does not check
+  that the pair is one the caller wants: a
   ``sample name`` + ``value`` sheet reports ``longFormat`` the same as a
   ``well`` + ``area`` one.
 * block internals.  Only the sample name of each FID1B block is classified.
@@ -77,6 +78,8 @@ from .build_evolvepro_input import (
     _VALUE_COLUMNS,
     _VARIANT_COLUMNS,
     _WELL_COLUMNS,
+    _long_columns,
+    _normalise_activity_header,
     _short_variant,
     _strip_confirmation_rep_suffix,
 )
@@ -129,8 +132,7 @@ def _echo(values: list[str]) -> list[str]:
 
 
 def _classify_long_header(header: list[str]) -> tuple[list[str], list[str]]:
-    label_columns = [column for column in header if column in _WELL_COLUMNS | _VARIANT_COLUMNS]
-    value_columns = [column for column in header if column in _VALUE_COLUMNS]
+    label_columns, value_columns, _ = _long_columns(header)
     return label_columns, value_columns
 
 
@@ -150,11 +152,12 @@ def _detect_tabular(path: Path, evidence: dict[str, Any]) -> MeasurementSourceDe
             reason=f"cannot read {path.name} as a delimited table: {exc}",
         )
 
-    header = [str(column).strip().lower() for column in frame.columns]
+    header = [_normalise_activity_header(column) for column in frame.columns]
     evidence["header"] = header
     label_columns, value_columns = _classify_long_header(header)
     evidence["label_columns"] = label_columns
     evidence["value_columns"] = value_columns
+    evidence["well_columns"] = _long_columns(header)[2]
     if len(label_columns) == 1 and len(value_columns) == 1:
         return MeasurementSourceDetection(
             path=str(path),
@@ -356,13 +359,14 @@ def _detect_workbook(path: Path, sheet_index: int, evidence: dict[str, Any]) -> 
             reason=f"{path.name} has no rows on sheet {sheet_index}",
         )
 
-    header = [_str(cell).lower() for cell in rows[0]]
+    header = [_normalise_activity_header(cell) for cell in rows[0]]
     evidence["header"] = header
     label_columns, value_columns = _classify_long_header(header)
     evidence["label_columns"] = label_columns
     evidence["value_columns"] = value_columns
+    evidence["well_columns"] = _long_columns(header)[2]
 
-    if label_columns == ["sample name"] and value_columns == ["area"]:
+    if not evidence["well_columns"] and label_columns == ["sample name"] and value_columns == ["area"]:
         # Both readings are valid and they disagree about the wild-type rows:
         # _gc_primary skips the wells the verdict calls WT and exports no WT
         # scale, while _read_long collects the WT_n rows and normalises against

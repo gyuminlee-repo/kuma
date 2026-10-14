@@ -1334,6 +1334,9 @@
       "chooseFormatManually": "Format manuell auswählen",
       "clearAdditionalMeasurement": "Zusätzliche Datei entfernen",
       "detectionSummaryLabel": "Zusammenfassung der Dateierkennung",
+      "detectedWellColumns": "Well-Spalte: {{value}}",
+      "detectedLabelColumns": "Proben-/Variantenspalte: {{value}}",
+      "detectedValueColumns": "Messwertspalte: {{value}}",
       "detectedSampleRows": "Probenzeilen: {{value}}",
       "detectedRecognizedRows": "Erkannte Bezeichnungen: {{value}} Zeilen",
       "detectedSkippedRows": "Übersprungene Zeilen: {{value}}",
@@ -3826,7 +3829,9 @@
       }
     },
     "mame": {
-      "labelMismatchBlocked": "Labeltausch erkannt; Export blockiert. Prüfen Sie Layout und Verdict-Labels und wählen Sie dann Geprüfte Labelabweichung zulassen."
+      "labelMismatchBlocked": "Labeltausch erkannt; Export blockiert. Prüfen Sie Layout und Verdict-Labels und wählen Sie dann Geprüfte Labelabweichung zulassen.",
+      "measurementIdentityConflict": "Well und Probe bezeichnen unterschiedliche Varianten. Export blockiert: {{rows}}",
+      "measurementWellsUnchecked": "Für diese Wells fehlen Zuordnungsbelege; kein Abgleich durchgeführt. Probennamen wurden verwendet: {{wells}}"
     }
   },
   "advisoryDecision": {

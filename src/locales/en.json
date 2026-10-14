@@ -636,6 +636,9 @@
       "chooseFormatManually": "Choose format manually",
       "clearAdditionalMeasurement": "Remove additional file",
       "detectionSummaryLabel": "File detection summary",
+      "detectedWellColumns": "Well column: {{value}}",
+      "detectedLabelColumns": "Sample/variant column: {{value}}",
+      "detectedValueColumns": "Value column: {{value}}",
       "detectedSampleRows": "Sample rows: {{value}}",
       "detectedRecognizedRows": "Recognized labels: {{value}} rows",
       "detectedSkippedRows": "Skipped rows: {{value}}",
@@ -3844,7 +3847,9 @@
       }
     },
     "mame": {
-      "labelMismatchBlocked": "Label swap detected; export blocked. Review the layout and verdict labels, then select Allow reviewed label mismatch."
+      "labelMismatchBlocked": "Label swap detected; export blocked. Review the layout and verdict labels, then select Allow reviewed label mismatch.",
+      "measurementIdentityConflict": "Well and sample identify different variants. Export blocked: {{rows}}",
+      "measurementWellsUnchecked": "Well identities were not cross-checked because mapping evidence is absent for these wells. Sample names were used: {{wells}}"
     },
     "sequence": {
       "fastaNotSupported": "CDS annotation required. Use a GenBank (.gb/.gbk) or SnapGene (.dna) file."

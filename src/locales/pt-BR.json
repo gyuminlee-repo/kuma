@@ -1334,6 +1334,9 @@
       "chooseFormatManually": "Escolher formato manualmente",
       "clearAdditionalMeasurement": "Remover arquivo adicional",
       "detectionSummaryLabel": "Resumo da detecção do arquivo",
+      "detectedWellColumns": "Coluna de poço: {{value}}",
+      "detectedLabelColumns": "Coluna de amostra/variante: {{value}}",
+      "detectedValueColumns": "Coluna de valor: {{value}}",
       "detectedSampleRows": "Linhas de amostras: {{value}}",
       "detectedRecognizedRows": "Rótulos reconhecidos: {{value}} linhas",
       "detectedSkippedRows": "Linhas ignoradas: {{value}}",
@@ -3826,7 +3829,9 @@
       }
     },
     "mame": {
-      "labelMismatchBlocked": "Troca de rótulos detectada; exportação bloqueada. Revise o layout e os rótulos do veredito e selecione Permitir divergência de rótulos revisada."
+      "labelMismatchBlocked": "Troca de rótulos detectada; exportação bloqueada. Revise o layout e os rótulos do veredito e selecione Permitir divergência de rótulos revisada.",
+      "measurementIdentityConflict": "O poço e a amostra identificam variantes diferentes. Exportação bloqueada: {{rows}}",
+      "measurementWellsUnchecked": "Estes poços não foram conferidos por falta de evidências de mapeamento. Foram usados os nomes de amostra: {{wells}}"
     }
   },
   "advisoryDecision": {

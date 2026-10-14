@@ -35,7 +35,24 @@ _WT_RE = WT_PATTERN
 _CONFIRMATION_REP_SUFFIX = re.compile(r"^(?P<label>.+)-[1-9]\d*$")
 _WELL_COLUMNS = {"well_id", "well", "well pos.", "sample name", "sample"}
 _VARIANT_COLUMNS = {"variant", "mutation", "mutant", "mutant_id"}
-_VALUE_COLUMNS = {"value", "area", "activity"}
+_VALUE_COLUMNS = {"value", "area", "activity", "peak area"}
+
+
+def _normalise_activity_header(column: object) -> str:
+    """Fold header case and whitespace without changing sample values."""
+    text = str(column).strip().lower()
+    return "peak area" if "".join(text.split()) == "peakarea" else text
+
+
+def _long_columns(header: list[str]) -> tuple[list[str], list[str], list[str]]:
+    """Select one label, optionally accompanied by one explicit well column."""
+    labels = [column for column in header if column in _WELL_COLUMNS | _VARIANT_COLUMNS]
+    values = [column for column in header if column in _VALUE_COLUMNS]
+    wells = [column for column in header if column in _WELL_COLUMNS - {"sample", "sample name"}]
+    names = [column for column in labels if column not in wells]
+    if len(wells) == 1 and len(names) == 1:
+        labels = names
+    return labels, values, wells
 
 
 @dataclass
@@ -183,22 +200,36 @@ def _wt_wells(layout_xlsx: str | Path | None, verdict_xlsx: str | Path) -> set[s
     return wells
 
 
-def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str, str], variant_to_well: dict[str, str], unmapped: list[str]) -> tuple[dict[str, list[float]], dict[str, str], list[str], list[float]]:
+def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str, str], variant_to_well: dict[str, str], unmapped: list[str], wt_wells: set[str] | None = None) -> tuple[dict[str, list[float]], dict[str, str], list[str], list[float]]:
     source = Path(path)
     frame = pd.read_excel(source) if source.suffix.lower() in {".xlsx", ".xls"} else pd.read_csv(source, sep=None, engine="python")
-    frame.columns = [str(column).strip().lower() for column in frame.columns]
-    label_columns = [column for column in frame.columns if column in _WELL_COLUMNS | _VARIANT_COLUMNS]
-    value_columns = [column for column in frame.columns if column in _VALUE_COLUMNS]
+    frame.columns = [_normalise_activity_header(column) for column in frame.columns]
+    label_columns, value_columns, well_columns = _long_columns(list(frame.columns))
     if len(label_columns) != 1:
         raise ValueError("activity_path requires exactly one recognized label column (well or variant/mutation)")
     if len(value_columns) != 1:
         raise ValueError("activity_path requires exactly one recognized value column (value, area, or activity)")
     label_column, value_column = label_columns[0], value_columns[0]
+    paired_well_column = well_columns[0] if len(well_columns) == 1 and well_columns[0] != label_column else None
+    conflicts: list[str] = []
+    unchecked: list[str] = []
     rows: list[tuple[str, float, str]] = []
     namespaces: set[str] = set()
     wt_values: dict[str, list[float]] = {}
-    for _, row in frame.iterrows():
-        label = str(row[label_column]).strip()
+    for row_number, (_, row) in enumerate(frame.iterrows(), start=2):
+        sample = str(row[label_column]).strip()
+        label = _strip_confirmation_rep_suffix(sample)
+        if paired_well_column is not None:
+            well_label = _strip_confirmation_rep_suffix(str(row[paired_well_column]).strip())
+            well = _normalise_well(well_label)
+            layout_variant = "WT" if well in (wt_wells or set()) else well_to_variant.get(well)
+            sample_variant = "WT" if _WT_RE.fullmatch(label) else _short_variant(label)
+            if sample_variant is None:
+                raise ValueError(f"activity_path sample {sample!r} is not a canonical variant")
+            if layout_variant is None:
+                unchecked.append(well)
+            elif sample_variant != layout_variant:
+                conflicts.append(f"row {row_number}: well={well}, sample={sample}, layout_variant={layout_variant}")
         # frame is a flat CSV/Excel read, so the value column holds scalars and a
         # single-label lookup cannot yield a Series. Newer pandas types row[...]
         # as Series | ndarray | Any, which float() refuses, so the cast records
@@ -233,12 +264,14 @@ def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str,
             rows.append((short, value, cohort))
         else:
             raise ValueError(f"activity_path label {label!r} is neither a canonical well nor variant")
+    if conflicts:
+        raise ValueError("errors.mame.measurementIdentityConflict|" + "; ".join(conflicts))
     if not rows:
         raise ValueError("activity_path has no measurement rows outside WT records")
     if len(namespaces) != 1:
         raise ValueError("activity_path cannot mix well and variant label namespaces")
     cohorts = {cohort for _, _, cohort in rows}
-    if namespaces == {"well"} and len(cohorts) > 1:
+    if (namespaces == {"well"} or paired_well_column is not None) and len(cohorts) > 1:
         raise ValueError(
             "well-labeled multi-plate activity requires plate-scoped layout and "
             "verdict evidence; the current workbook contract is unscoped"
@@ -272,7 +305,8 @@ def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str,
         else:
             mean_wt = sum(replicates) / len(replicates)
             wt_relative.extend(replicate / mean_wt for replicate in replicates)
-    return values, well_by_variant, [], wt_relative
+    warnings = ["errors.mame.measurementWellsUnchecked|" + ", ".join(sorted(set(unchecked)))] if unchecked else []
+    return values, well_by_variant, warnings, wt_relative
 
 
 def _raw_report_primary(path: str | Path, well_to_variant: dict[str, str], variant_to_well: dict[str, str], unmapped: list[str], well_values: dict[str, list[float]], wt_wells: set[str]) -> tuple[dict[str, list[float]], dict[str, str], list[tuple[str, float]], list[float]]:
@@ -604,7 +638,7 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
             "layout_xlsx, or a verdict_xlsx that names mutant_id per well"
         )
     if name == "activity_path":
-        fallback, well_by_variant, source_warnings, wt_values = _read_long(source, activity_scale, well_to_variant, variant_to_well, unmapped)
+        fallback, well_by_variant, source_warnings, wt_values = _read_long(source, activity_scale, well_to_variant, variant_to_well, unmapped, wt_wells)
         warnings.extend(source_warnings)
     elif name == "gc_data_xlsx":
         fallback, well_by_variant = _gc_primary(source, well_to_variant, variant_to_well, unmapped, well_values, wt_wells)

@@ -1334,6 +1334,9 @@
       "chooseFormatManually": "Elegir formato manualmente",
       "clearAdditionalMeasurement": "Quitar archivo adicional",
       "detectionSummaryLabel": "Resumen de detección del archivo",
+      "detectedWellColumns": "Columna de pocillo: {{value}}",
+      "detectedLabelColumns": "Columna de muestra/variante: {{value}}",
+      "detectedValueColumns": "Columna de valor: {{value}}",
       "detectedSampleRows": "Filas de muestras: {{value}}",
       "detectedRecognizedRows": "Etiquetas reconocidas: {{value}} filas",
       "detectedSkippedRows": "Filas omitidas: {{value}}",
@@ -3826,7 +3829,9 @@
       }
     },
     "mame": {
-      "labelMismatchBlocked": "Se detectó un intercambio de etiquetas; exportación bloqueada. Revise el diseño y las etiquetas del veredicto, y luego seleccione Permitir discrepancia de etiquetas revisada."
+      "labelMismatchBlocked": "Se detectó un intercambio de etiquetas; exportación bloqueada. Revise el diseño y las etiquetas del veredicto, y luego seleccione Permitir discrepancia de etiquetas revisada.",
+      "measurementIdentityConflict": "El pocillo y la muestra identifican variantes distintas. Exportación bloqueada: {{rows}}",
+      "measurementWellsUnchecked": "Estos pocillos no se cotejaron porque faltan datos de correspondencia. Se usaron los nombres de muestra: {{wells}}"
     }
   },
   "advisoryDecision": {

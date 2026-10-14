@@ -56,7 +56,10 @@ export interface DetectMeasurementSourceResult {
   ambiguous: boolean;
   /**
    * What the detector saw: the header it echoed, whether the FID1B block
-   * signature was present, the sample-name namespaces it counted and a few
+   * signature was present, well_columns/label_columns/value_columns (arrays
+   * of recognized normalized headers; a dual-column sheet uses Sample as the
+   * label and checks well identities against mapping evidence at build time),
+   * the sample-name namespaces it counted and a few
    * examples of each, and optional counts: n_sample_rows (non-WT samples),
    * n_recognized_rows (syntactically recognized non-WT labels), n_control_rows
    * (WT controls used for normalization), n_skipped_rows (only genuinely

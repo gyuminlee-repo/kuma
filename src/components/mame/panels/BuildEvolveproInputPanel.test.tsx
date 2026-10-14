@@ -164,6 +164,43 @@ beforeEach(() => {
 });
 
 describe("BuildEvolveproInputPanel unified Activity-step inputs", () => {
+  it("shows selected columns even when a general Excel detection has no row counts", async () => {
+    seed(readyForm({ activityPath: "" }));
+    vi.mocked(detectMeasurementSource).mockResolvedValue({
+      ...detection(["longFormat"]),
+      evidence: { well_columns: ["well"], label_columns: ["sample"], value_columns: ["peak area"] },
+    });
+    renderPanel();
+    await chooseMeasurement();
+    const summary = await screen.findByRole("list", { name: "File detection summary" });
+    expect(within(summary).getAllByRole("listitem")).toHaveLength(3);
+    expect(summary).toHaveTextContent("well");
+    expect(summary).toHaveTextContent("sample");
+    expect(summary).toHaveTextContent("peak area");
+  });
+
+  it("localizes identity conflicts while preserving every conflicting row", async () => {
+    seed(readyForm());
+    const rows = "row 2: well=A01, sample=Q12V, layout_variant=11I; row 3: well=H12, sample=S11I-1, layout_variant=WT";
+    vi.mocked(buildEvolveproInput).mockRejectedValue(new Error(`errors.mame.measurementIdentityConflict|${rows}`));
+    renderPanel();
+    await build();
+    const error = await screen.findByText(/well=A01/);
+    expect(error).toHaveTextContent(rows);
+    expect(error).not.toHaveTextContent("errors.mame.measurementIdentityConflict");
+  });
+
+  it("localizes unchecked well warnings without dropping the well list", async () => {
+    seed(readyForm());
+    vi.mocked(buildEvolveproInput).mockResolvedValue({
+      ...RESULT, warnings: ["errors.mame.measurementWellsUnchecked|A01, H11, H12"],
+    });
+    renderPanel();
+    await build();
+    const warning = await screen.findByText(/A01, H11, H12/);
+    expect(warning).not.toHaveTextContent("errors.mame.measurementWellsUnchecked");
+  });
+
   it("builds long-format activity with its explicit scale and shared verdict", async () => {
     seed(readyForm({ activityScale: "relative_to_wt" }));
     renderPanel();

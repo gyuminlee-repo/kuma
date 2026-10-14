@@ -1334,6 +1334,9 @@
       "chooseFormatManually": "Выбрать формат вручную",
       "clearAdditionalMeasurement": "Убрать дополнительный файл",
       "detectionSummaryLabel": "Сводка распознавания файла",
+      "detectedWellColumns": "Столбец лунки: {{value}}",
+      "detectedLabelColumns": "Столбец образца/варианта: {{value}}",
+      "detectedValueColumns": "Столбец значения: {{value}}",
       "detectedSampleRows": "Строки образцов: {{value}}",
       "detectedRecognizedRows": "Распознанные метки: {{value}} строк",
       "detectedSkippedRows": "Пропущенные строки: {{value}}",
@@ -3826,7 +3829,9 @@
       }
     },
     "mame": {
-      "labelMismatchBlocked": "Обнаружена перестановка меток; экспорт заблокирован. Проверьте раскладку и метки вердикта, затем выберите Разрешить проверенное несоответствие меток."
+      "labelMismatchBlocked": "Обнаружена перестановка меток; экспорт заблокирован. Проверьте раскладку и метки вердикта, затем выберите Разрешить проверенное несоответствие меток.",
+      "measurementIdentityConflict": "Лунка и образец указывают разные варианты. Экспорт заблокирован: {{rows}}",
+      "measurementWellsUnchecked": "Для этих лунок нет данных сопоставления; проверка не выполнена. Использованы названия образцов: {{wells}}"
     }
   },
   "advisoryDecision": {

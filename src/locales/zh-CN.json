@@ -1334,6 +1334,9 @@
       "chooseFormatManually": "手动选择格式",
       "clearAdditionalMeasurement": "移除附加文件",
       "detectionSummaryLabel": "文件识别摘要",
+      "detectedWellColumns": "孔位列: {{value}}",
+      "detectedLabelColumns": "样本/变体列: {{value}}",
+      "detectedValueColumns": "测量值列: {{value}}",
       "detectedSampleRows": "样品行：{{value}}",
       "detectedRecognizedRows": "已识别标签：{{value}} 行",
       "detectedSkippedRows": "已跳过行：{{value}}",
@@ -3826,7 +3829,9 @@
       }
     },
     "mame": {
-      "labelMismatchBlocked": "检测到标签互换，已阻止导出。请先检查布局和判定标签，然后选择允许已审核的标签不匹配。"
+      "labelMismatchBlocked": "检测到标签互换，已阻止导出。请先检查布局和判定标签，然后选择允许已审核的标签不匹配。",
+      "measurementIdentityConflict": "孔位与样本对应不同变体，已阻止导出: {{rows}}",
+      "measurementWellsUnchecked": "以下孔位缺少映射证据，未交叉核对。已使用样本名称: {{wells}}"
     }
   },
   "advisoryDecision": {
