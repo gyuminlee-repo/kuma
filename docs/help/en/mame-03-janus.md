@@ -1,4 +1,4 @@
-# Step 3. Janus instrument settings
+# Step 3. Cell stock preparation
 
 This screen turns the selected clones into the sheet the robot reads. It is optional and blocks no run. A run that only needs sequencing verdicts goes from step 2 straight to step 4.
 

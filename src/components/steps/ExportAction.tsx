@@ -20,6 +20,9 @@ export function ExportAction() {
   const plateNames = useAppStore((s) => s.exportPlateNames);
   const amount = useAppStore((s) => s.exportAmount);
   const vectormaps = useAppStore((s) => s.exportVectormaps);
+  const artefactKinds = useAppStore((s) => s.exportArtefactKinds);
+  const includeEcho = artefactKinds.includes("echo");
+  const includeMacrogen = artefactKinds.includes("macrogen");
   const echoVol = useAppStore((s) => s.echoTransferVol);
   const janusVol = useAppStore((s) => s.janusTransferVol);
   const echoQuadrant = useAppStore((s) => s.echoQuadrant);
@@ -45,13 +48,13 @@ export function ExportAction() {
     const usedQuadrants = roundIndex === undefined
       ? echoUsedQuadrants
       : usedBeforeRound(roundPicks, roundIndex, echoUsedQuadrants);
-    if (!round && placementIssue !== null) {
+    if (includeEcho && !round && placementIssue !== null) {
       toast.warning(t("validation.actionBlockedTitle"), {
         description: t(`phaseC.export.all.placementBlocked.${placementIssue}`),
       });
       return;
     }
-    const roundIssue = roundIndex === undefined
+    const roundIssue = !includeEcho || roundIndex === undefined
       ? null
       : roundPickIssue(roundPicks, roundIndex, echoUsedQuadrants);
     if (roundIssue !== null) {
@@ -63,6 +66,7 @@ export function ExportAction() {
     const check = validateExportAll({
       fwdPlate,
       rvsPlate,
+      requirePlateNames: includeMacrogen,
       wellCount,
       plateNameRe: PLATE_NAME_RE,
     });
@@ -73,7 +77,7 @@ export function ExportAction() {
       return;
     }
     const sourcePlate = pick?.plate;
-    if (round && sourcePlate == null) return;
+    if (includeEcho && round && sourcePlate == null) return;
     pending.current = true;
     setRunning(true);
     try {
@@ -81,8 +85,8 @@ export function ExportAction() {
         projectId: project?.project_id,
         projectPath: project?.path,
         projectName: projectName || undefined,
-        fwdPlateName: fwdPlate || undefined,
-        rvsPlateName: rvsPlate || undefined,
+        fwdPlateName: includeMacrogen ? fwdPlate || undefined : undefined,
+        rvsPlateName: includeMacrogen ? rvsPlate || undefined : undefined,
         amount,
         echoTransferVol: echoVol,
         janusTransferVol: janusVol,
@@ -90,11 +94,12 @@ export function ExportAction() {
         quadrant,
         usedQuadrants,
         vectormaps,
-        ...(round && sourcePlate != null
+        artefactKinds,
+        ...(round
           ? {
               round: {
                 label: round.label,
-                sourcePlate,
+                sourcePlate: sourcePlate ?? undefined,
                 mappings: round.mappings,
                 dedupInfo: round.dedupInfo,
               },
@@ -122,7 +127,7 @@ export function ExportAction() {
         <Button
           key={round.label}
           className="w-fit"
-          disabled={!canExport || roundPickIssue(roundPicks, index, echoUsedQuadrants) !== null}
+          disabled={!canExport || (includeEcho && roundPickIssue(roundPicks, index, echoUsedQuadrants) !== null)}
           onClick={() => void onExport(index)}
         >
           {running

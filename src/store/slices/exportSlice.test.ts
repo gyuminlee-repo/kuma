@@ -337,6 +337,27 @@ describe("exportSlice — schema_version 0.3", () => {
     expect(typeof snapshot.kuma_version).toBe("string");
   });
 
+  it("saves and restores a platemap-only artefact selection", async () => {
+    store.slice.setExportArtefactKinds([]);
+    const snapshot = store.slice.getWorkspaceSnapshot() as WorkspaceV3;
+    expect(snapshot.settings.exportArtefactKinds).toEqual([]);
+    store.slice.setExportArtefactKinds(["janus"]);
+
+    await store.slice.restoreWorkspace(snapshot);
+
+    expect(store.state.exportArtefactKinds).toEqual([]);
+  });
+
+  it("uses the default artefact selection for a workspace without the field", async () => {
+    const snapshot = store.slice.getWorkspaceSnapshot() as WorkspaceV3;
+    delete snapshot.settings.exportArtefactKinds;
+    store.slice.setExportArtefactKinds(["janus"]);
+
+    await store.slice.restoreWorkspace(snapshot);
+
+    expect(store.state.exportArtefactKinds).toEqual(["macrogen", "primers", "echo"]);
+  });
+
   it("restores the creation defaults for absent EVOLVEpro mode and round", async () => {
     const snapshot = store.slice.getWorkspaceSnapshot() as WorkspaceV3;
     delete snapshot.settings.evolveproMode;

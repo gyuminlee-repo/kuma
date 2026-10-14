@@ -1,4 +1,4 @@
-import type { EchoQuadrant } from "@/types/models";
+import type { EchoQuadrant, ExportArtefactKind } from "@/types/models";
 import type { RoundPicks } from "@/lib/plateRounds";
 /**
  * Pure interface definitions for each Zustand store slice.
@@ -532,6 +532,7 @@ export interface ExportSlice {
   exportPlateNames: ExportPlateNames;
   exportAmount: ExportAmount;
   exportVectormaps: boolean;
+  exportArtefactKinds: ExportArtefactKind[];
   getPlateMap: () => Promise<void>;
   exportExcel: (filepath: string, projectId?: string) => Promise<void>;
   setEchoTransferVol: (value: number) => void;
@@ -543,6 +544,7 @@ export interface ExportSlice {
   setExportPlateName: (key: string, direction: "fwd" | "rvs", value: string) => void;
   setExportAmount: (value: ExportAmount) => void;
   setExportVectormaps: (value: boolean) => void;
+  setExportArtefactKinds: (value: ExportArtefactKind[]) => void;
   setTableSorting: (updater: Updater<SortingState>) => void;
   setStatus: (msg: string) => void;
   getWorkspaceSnapshot: () => WorkspaceV3;

@@ -62,7 +62,7 @@
         "mame-index": "MAME 개요",
         "mame-01-setup": "바코드 설정",
         "mame-02-review": "분석 및 검토",
-        "mame-03-janus": "Janus",
+        "mame-03-janus": "Cell stock 제작",
         "mame-04-activity": "활성",
         "mame-pipeline": "MAME 파이프라인"
       }
@@ -268,13 +268,13 @@
         "saved": "선정한 클론을 결과 워크북 옆에 저장했습니다 ({{rows}}개). 선정 결과 파일이며, 장비용 시트는 그 옆의 파일입니다.",
         "skipped": "선정 기준을 통과한 클론이 없어 선정 결과 파일을 쓰지 않았습니다.",
         "failed": "선정 결과 파일을 쓰지 못했습니다.",
-        "excluded": "{{clones}}개 클론이 선정에서 빠졌습니다. Janus 장비 설정에서 이유를 확인하세요."
+        "excluded": "{{clones}}개 클론이 선정에서 빠졌습니다. Cell stock 제작에서 이유를 확인하세요."
       },
       "janusMappingAutosave": {
         "saved": "장비용 매핑 파일을 결과 워크북 옆에 저장했습니다 ({{rows}}행). 로봇이 읽는 8열 형식입니다.",
         "skipped": "선정 기준을 통과한 클론이 없어 장비용 매핑 파일을 쓰지 않았습니다.",
         "failed": "장비용 매핑 파일을 쓰지 못했습니다.",
-        "excluded": "{{clones}}개 클론이 매핑에서 빠졌습니다. Janus 장비 설정에서 이유를 확인하세요."
+        "excluded": "{{clones}}개 클론이 매핑에서 빠졌습니다. Cell stock 제작에서 이유를 확인하세요."
       },
       "demuxResume": {
         "line": "이 폴더의 이전 산출물에서 demux 단위 {{total}}개 중 {{reused}}개를 재사용했고, {{recomputed}}개를 다시 계산했습니다."
@@ -564,7 +564,7 @@
       "builtFromLabel": "입력 출처",
       "chooseOutput": "출력 파일 선택",
       "noOutputSelected": "출력 파일을 선택하지 않음",
-      "build": "EVOLVEpro 입력 만들기",
+      "build": "EVOLVEpro 입력 형식으로 변환",
       "building": "만드는 중...",
       "resultTitle": "생성 결과",
       "emptyState": "실험 데이터 파일, 필수 NGS 판정, 출력 경로를 선택하세요. 확인 측정 파일이 있으면 추가하세요.",
@@ -879,7 +879,7 @@
       "manifestLoadFailed": "Manifest 로드 실패: {{err}}",
       "barcodeSetupTab": "1. 커스텀 바코드 프라이머 설계",
       "analyzeTab": "2. 시퀀싱 QC",
-      "janusTab": "3. Janus 장비 설정",
+      "janusTab": "3. Cell stock 제작",
       "activityTab": "4. 활성도 데이터",
       "verdictTableTitle": "판정 테이블",
       "platePlanTitle": "플레이트 맵",
@@ -906,7 +906,7 @@
       },
       "activityTabTitle": "활성 데이터 — EVOLVEpro 입력 변환 (PI 워크플로우 단계 ④)",
       "analyzeTabTitle": "시퀀싱 QC — NGS 검증의 일부 (PI 워크플로우 단계 ②)",
-      "janusTabTitle": "Janus 장비 설정 — 셀 스톡 피킹용 선택 단계 (PI 워크플로우 단계 ③)",
+      "janusTabTitle": "Cell stock 제작: 셀 스톡 피킹용 선택 단계 (PI 워크플로우 단계 ③)",
       "barcodeSetupTabTitle": "실행 설정 — NGS 검증의 일부 (PI 워크플로우 단계 ②)",
       "dropUnsupported": "여기서는 그 파일을 쓸 수 없습니다. {{ext}} 는 받지 않습니다. 허용: {{allowed}}",
       "dropNoExtension": "확장자 없음"
@@ -1327,7 +1327,7 @@
     },
     "janus": {
       "settings": {
-        "contextTitle": "Janus 장비 설정",
+        "contextTitle": "Cell stock 제작",
         "contextSubtitle": "장비 매핑 파일에 기록되는 이송 부피·리퀴드 클래스·type 열 값을 설정합니다. 시퀀싱 판정만 필요하면 건너뛸 수 있습니다.",
         "optionalNote": "선택 단계입니다. 분석 실행은 픽 리스트를 스스로 기록하지만, 장비 매핑은 여기서 내보낼 때만 기록됩니다. 시퀀싱 판정만 필요하면 스텝 2에서 스텝 4로 바로 넘어가면 됩니다.",
         "inspectorTitle": "장비 Inspector",
@@ -2119,7 +2119,7 @@
     "kuroInspectorTitle": "Kuro 세부 정보 검토",
     "kuroInspectorBody": "인스펙터에서 단계별 매개변수, 선택 변이, 경고 및 내보내기 설정을 확인합니다.",
     "mameWorkflowTitle": "Mame 워크플로 진행",
-    "mameWorkflowBody": "Setup, Analyze, 선택 단계인 Janus 장비 설정, Activity 를 거쳐 실험 증거를 정리된 학습 테이블로 변환합니다.",
+    "mameWorkflowBody": "Setup, Analyze, 선택 단계인 Cell stock 제작, Activity를 거쳐 실험 증거를 정리된 학습 테이블로 변환합니다.",
     "mameWorkspaceTitle": "Mame 주 작업 영역",
     "mameWorkspaceBody": "런 데이터를 불러오고 유전자형 판정과 플레이트 결과를 검토한 뒤 활성 측정값을 병합해 내보냅니다.",
     "mameInspectorTitle": "Mame 세부 정보 검토",
@@ -3563,6 +3563,14 @@
         "plateNameRev": "Reverse 프라이머 플레이트 이름",
         "wellCount": "{{count}}개 웰",
         "echoVolLabel": "Echo 이송 부피",
+        "artefacts": {
+          "heading": "내보낼 산출물",
+          "macrogen": "Macrogen 주문서 (forward + reverse 프라이머)",
+          "primers": "프라이머 FASTA",
+          "echo": "Echo",
+          "janus": "JANUS",
+          "required": "Plate map (MAME 입력)과 실행 기록: 항상 포함"
+        },
         "janusVolLabel": "JANUS 이송 부피",
         "ruleHint": "정방향 및 역방향 프라이머 플레이트 이름을 모두 입력해야 합니다.",
         "vectormapsLabel": "클론별 GenBank 벡터맵도 내보내기",
@@ -3610,7 +3618,7 @@
         "redirecting": "탭으로 이동 중…"
       },
       "janus": {
-        "settings": "Janus 장비 설정"
+        "settings": "Cell stock 제작"
       }
     }
   },
@@ -3676,7 +3684,7 @@
         "files": "CDS 서열과 바코드 시드를 입력하고 프라이머 설계 파라미터를 설정한 뒤, 출력 폴더를 선택하고 바코드 패키지를 생성합니다."
       },
       "janus": {
-        "settings": "JANUS 셀 스톡 매핑을 준비합니다: 이송 부피, 리퀴드 클래스, type 열 값. 선택 단계이며 실행을 막지 않습니다."
+        "settings": "JANUS로 Cell stock 제작을 준비합니다: 이송 부피, 리퀴드 클래스, type 열 값. 선택 단계이며 실행을 막지 않습니다."
       }
     }
   },

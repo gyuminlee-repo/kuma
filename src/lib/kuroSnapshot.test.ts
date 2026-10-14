@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildKuroSnapshot, KURO_SCHEMA, type KuroSnapshotState } from "./kuroSnapshot";
+import { buildKuroSnapshot, KURO_SCHEMA, readKuroExportForm, type KuroSnapshotState } from "./kuroSnapshot";
 
 const baseState: KuroSnapshotState = {
   fastaPath: "/project/input.gb",
@@ -108,6 +108,7 @@ const baseState: KuroSnapshotState = {
   exportPlateNames: {},
   exportAmount: "0.05",
   exportVectormaps: false,
+  exportArtefactKinds: ["macrogen", "primers", "echo"],
 };
 
 describe("buildKuroSnapshot: schema 7", () => {
@@ -374,6 +375,7 @@ describe("buildKuroSnapshot: schema 8 operator choices", () => {
       },
       exportAmount: "0.2",
       exportVectormaps: true,
+      exportArtefactKinds: [],
     });
     expect(snapshot.export).toEqual({
       export_name: "IspS_R2",
@@ -383,6 +385,14 @@ describe("buildKuroSnapshot: schema 8 operator choices", () => {
       },
       amount: "0.2",
       vectormaps: true,
+      artefact_kinds: [],
     });
+  });
+
+  it("restores selection and preserves defaults for old snapshots", () => {
+    expect(readKuroExportForm({ artefact_kinds: [] }).exportArtefactKinds).toEqual([]);
+    expect(readKuroExportForm({ artefact_kinds: ["janus"] }).exportArtefactKinds).toEqual(["janus"]);
+    expect(readKuroExportForm(undefined).exportArtefactKinds).toEqual(["macrogen", "primers", "echo"]);
+    expect(readKuroExportForm({ artefact_kinds: ["unknown", "echo"] }).exportArtefactKinds).toEqual(["echo"]);
   });
 });

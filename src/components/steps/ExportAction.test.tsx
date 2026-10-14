@@ -37,6 +37,7 @@ function seed(count = 1) {
       single: { fwd: "FWD", rvs: "REV" }, R1: { fwd: "F1", rvs: "R1" }, R2: { fwd: "F2", rvs: "R2" },
     },
     exportAmount: "0.2", exportVectormaps: true,
+    exportArtefactKinds: ["macrogen", "primers", "echo"],
     echoTransferVol: 50, janusTransferVol: 2,
     echoQuadrant: null, echoUsedQuadrants: [],
     echoRoundPicks: [{ plate: 1, quadrant: "A1" }, { plate: 1, quadrant: "A2" }],
@@ -64,6 +65,7 @@ describe("ExportAction", () => {
     expect(exportAll).toHaveBeenCalledWith({
       projectId: "project", projectPath: "/project", projectName: "Test",
       fwdPlateName: "FWD", rvsPlateName: "REV", amount: "0.2", vectormaps: true,
+      artefactKinds: ["macrogen", "primers", "echo"],
       echoTransferVol: 50, janusTransferVol: 2, quadrant: null, usedQuadrants: [], bom: false,
     });
   });
@@ -111,6 +113,31 @@ describe("ExportAction", () => {
     expect(screen.getByRole("button")).toBeDisabled();
     fireEvent.click(screen.getByRole("button"));
     expect(exportAll).not.toHaveBeenCalled();
+  });
+
+  it("allows platemap-only export without order names or Echo placement", async () => {
+    useAppStore.setState({
+      exportArtefactKinds: [], exportPlateNames: {},
+      echoQuadrant: "A1", echoUsedQuadrants: ["A1"],
+    });
+    render(<ExportAction />);
+    fireEvent.click(screen.getByRole("button"));
+    await waitFor(() => expect(exportAll).toHaveBeenCalledOnce());
+    expect(exportAll).toHaveBeenCalledWith(expect.objectContaining({ artefactKinds: [] }));
+    expect(toastWarning).not.toHaveBeenCalled();
+  });
+
+  it("allows every platemap-only round without source plate picks", async () => {
+    seed(97);
+    useAppStore.setState({ exportArtefactKinds: [], exportPlateNames: {}, echoRoundPicks: [] });
+    render(<ExportAction />);
+    for (const button of screen.getAllByRole("button")) expect(button).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Export round 2" }));
+    await waitFor(() => expect(exportAll).toHaveBeenCalledOnce());
+    expect(exportAll).toHaveBeenCalledWith(expect.objectContaining({
+      artefactKinds: [],
+      round: expect.objectContaining({ label: "R2", sourcePlate: undefined }),
+    }));
   });
 
   it("keeps placement warnings and does not invoke export for spent columns", () => {

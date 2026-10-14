@@ -62,7 +62,7 @@
         "mame-index": "MAME 概览",
         "mame-01-setup": "条形码设置",
         "mame-02-review": "分析与审阅",
-        "mame-03-janus": "Janus",
+        "mame-03-janus": "细胞储备液制备",
         "mame-04-activity": "活性",
         "mame-pipeline": "MAME 流程"
       }
@@ -676,7 +676,7 @@
       "manifestLoadFailed": "Manifest 加载失败: {{err}}",
       "barcodeSetupTab": "1. Custom Barcode Primer Design",
       "analyzeTab": "2. Sequencing QC",
-      "janusTab": "3. Janus 设备设置",
+      "janusTab": "3. 细胞储备液制备",
       "activityTab": "4. Activity Data",
       "verdictTableTitle": "Verdict 表",
       "platePlanTitle": "板图",
@@ -702,7 +702,7 @@
       },
       "barcodeSetupTabTitle": "Run Setup — part of NGS Validation (step ② of PI workflow)",
       "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
-      "janusTabTitle": "Janus 设备设置 — 细胞库挑取的可选步骤 (PI 工作流步骤③)",
+      "janusTabTitle": "细胞储备液制备（可选的细胞挑取设置，PI工作流步骤③）",
       "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)",
       "efficiencyChartTitle": "Per-plate verdict breakdown",
       "dropUnsupported": "此处无法使用该文件，不接受 {{ext}}。允许的类型: {{allowed}}",
@@ -886,7 +886,7 @@
     },
     "janus": {
       "settings": {
-        "contextTitle": "Janus 设备设置",
+        "contextTitle": "细胞储备液制备",
         "contextSubtitle": "设置写入设备映射文件的转移体积、liquid class 与 type 列取值。可选：只需测序判定的运行可以跳过此步骤。",
         "optionalNote": "此步骤为可选。分析运行会自行写出挑取清单；设备映射仅在此处导出时才会写出，因此只需测序判定的运行可以从步骤 2 直接进入步骤 4。",
         "inspectorTitle": "设备 Inspector",
@@ -1208,13 +1208,13 @@
         "saved": "已在结果工作簿旁写入选中的克隆（{{rows}} 个）。这是选择列表，仪器表单是旁边的文件。",
         "skipped": "No clone met the selection criteria, so no selection list was written.",
         "failed": "The selection list was not written.",
-        "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
+        "excluded": "{{clones}}个克隆未被选中。请在细胞储备液制备中查看原因。"
       },
       "janusMappingAutosave": {
         "saved": "已在结果工作簿旁写入仪器映射文件（{{rows}} 行），采用机器人读取的 8 列格式。",
         "skipped": "没有克隆符合选择条件，因此未写入仪器映射文件。",
         "failed": "未能写入仪器映射文件。",
-        "excluded": "{{clones}} 个克隆未进入映射文件。可在 Janus 仪器设置中查看原因。"
+        "excluded": "{{clones}}个克隆未进入映射。请在细胞储备液制备中查看原因。"
       },
       "demuxResume": {
         "line": "已从该文件夹的先前输出中复用 {{total}} 个 demux 单元中的 {{reused}} 个；重新计算 {{recomputed}} 个。"
@@ -1262,7 +1262,7 @@
       "builtFromLabel": "构建来源",
       "chooseOutput": "选择输出文件",
       "noOutputSelected": "未选择输出文件",
-      "build": "生成 EVOLVEpro 输入",
+      "build": "转换为EVOLVEpro输入格式",
       "building": "生成中...",
       "resultTitle": "生成结果",
       "emptyState": "请选择实验数据文件、必需的 NGS 判定和输出路径。如有确认测量文件，请一并添加。",
@@ -2077,7 +2077,7 @@
     "kuroInspectorTitle": "查看 Kuro 详情",
     "kuroInspectorBody": "在检查器中查看步骤参数、所选变体、警告和导出控件。",
     "mameWorkflowTitle": "遵循 Mame 工作流",
-    "mameWorkflowBody": "依次完成 Setup、Analyze、可选的 Janus 设备设置和 Activity，将实验数据整理为学习表。",
+    "mameWorkflowBody": "依次完成Setup、Analyze、可选的细胞储备液制备和Activity，将实验数据整理为学习表。",
     "mameWorkspaceTitle": "Mame 主工作区",
     "mameWorkspaceBody": "加载运行数据，检查基因型判定和孔板结果，然后合并活性测量值进行导出。",
     "mameInspectorTitle": "查看 Mame 详情",
@@ -3509,6 +3509,14 @@
         "plateNameRev": "Reverse 引物板名称",
         "wellCount": "{{count}} 孔",
         "echoVolLabel": "Echo 转移体积",
+        "artefacts": {
+          "heading": "要导出的文件",
+          "macrogen": "Macrogen订单表（正向＋反向引物）",
+          "primers": "引物FASTA",
+          "echo": "Echo",
+          "janus": "JANUS",
+          "required": "Plate map（MAME输入）和运行记录：始终包含"
+        },
         "janusVolLabel": "JANUS 转移体积",
         "ruleHint": "正向和反向引物板的名称均为必填项。",
         "vectormapsLabel": "同时导出每个克隆的 GenBank 载体图谱",
@@ -3556,7 +3564,7 @@
         "redirecting": "Redirecting…"
       },
       "janus": {
-        "settings": "Janus 设备设置"
+        "settings": "细胞储备液制备"
       }
     }
   },
@@ -3599,7 +3607,7 @@
         "mergeExport": "将活性数据与基因型判定合并并导出表格，然后通过组合单次重复 (GC) 与三次重复 (相对 WT) 活性来构建 EVOLVEpro 输入。"
       },
       "janus": {
-        "settings": "准备 JANUS 细胞库映射：转移体积、liquid class 与 type 列取值。可选，其中任何一项都不会阻止运行。"
+        "settings": "使用JANUS准备细胞储备液制备：设置转移体积、液体类别和type列值。此步骤可选，不会阻止运行。"
       }
     },
     "summary": {

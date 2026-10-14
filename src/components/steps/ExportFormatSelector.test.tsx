@@ -55,6 +55,7 @@ describe("ExportFormatSelector — Export All form", () => {
       exportPlateNames: {},
       exportAmount: "0.05",
       exportVectormaps: false,
+      exportArtefactKinds: ["macrogen", "primers", "echo"],
     });
     toastWarning.mockClear();
   });
@@ -62,6 +63,33 @@ describe("ExportFormatSelector — Export All form", () => {
   it("keeps export actions outside the options form", () => {
     render(<ExportFormatSelector />);
     expect(screen.queryByRole("button", { name: /export/i })).toBeNull();
+  });
+
+  it("defaults to Macrogen, primer FASTA and Echo, leaving JANUS unchecked", () => {
+    useAppStore.getState().resetAll({ preserveWorkspaceArtifacts: true });
+    render(<ExportFormatSelector />);
+    expect(screen.getByRole("checkbox", { name: /Macrogen order sheet/ })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Primer FASTA" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Echo" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "JANUS" })).not.toBeChecked();
+    expect(screen.getByText(/Plate map.*always included/)).toBeInTheDocument();
+  });
+
+  it("sends the checkbox selection as the bundle request payload", async () => {
+    seedRounds(1);
+    useAppStore.setState({
+      exportPlateNames: { single: { fwd: "F1", rvs: "R1" } },
+      echoQuadrant: null,
+    });
+    const send = vi.mocked(sendRequest);
+    send.mockClear();
+    render(<ExportFormWithAction />);
+    fireEvent.click(screen.getByRole("checkbox", { name: "Echo" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "JANUS" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Export$/ }));
+    await vi.waitFor(() => expect(send).toHaveBeenCalledWith("export_all", expect.objectContaining({
+      artefact_kinds: ["macrogen", "primers", "janus"],
+    })));
   });
 
   it("renders Echo volume range hint 25–500 nL", () => {

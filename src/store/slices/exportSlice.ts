@@ -292,6 +292,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
   exportPlateNames: {},
   exportAmount: "0.05",
   exportVectormaps: false,
+  exportArtefactKinds: ["macrogen", "primers", "echo"],
 
   getPlateMap: async () => {
     try {
@@ -398,6 +399,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
   },
   setExportAmount: (value) => set({ exportAmount: value }),
   setExportVectormaps: (value) => set({ exportVectormaps: value }),
+  setExportArtefactKinds: (value) => set({ exportArtefactKinds: value }),
 
   setStatus: (msg: string) => set({ statusMessage: msg }),
 
@@ -488,6 +490,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         echoRoundQuadrants: persistRoundPicks(s.echoRoundPicks).quadrants,
         echoRoundPlates: persistRoundPicks(s.echoRoundPicks).plates,
         janusTransferVol: s.janusTransferVol,
+        exportArtefactKinds: s.exportArtefactKinds,
       },
       results: {
         designResults: s.designResults,
@@ -784,6 +787,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         restoredEchoPlacement.legacySeen.length > 0 ? restoredEchoPlacement.legacySeen : null,
       echoRoundPicks: normalizeRoundPicks(settings.echoRoundQuadrants, settings.echoRoundPlates),
       janusTransferVol: settings.janusTransferVol ?? 2.0,
+      exportArtefactKinds: settings.exportArtefactKinds ?? ["macrogen", "primers", "echo"],
       yPredMap: preloadedYPred ?? {},
       poolVariants: preloadedPoolVariants ?? [],
       // 두 실패는 독립이다. 분기로 두면 템플릿 실패가 EVOLVEpro 실패를 가려,
@@ -952,6 +956,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       exportPlateNames: {},
       exportAmount: "0.05",
       exportVectormaps: false,
+      exportArtefactKinds: ["macrogen", "primers", "echo"],
     });
     if (!options?.preserveWorkspaceArtifacts && getActiveWorkspace()) {
       void import("../../lib/workspace").then(({ clearWorkspace }) =>

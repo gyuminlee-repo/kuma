@@ -73,6 +73,8 @@ export function ExportFormatSelector() {
   const setAmount = useAppStore((s: AppState) => s.setExportAmount);
   const vectormaps = useAppStore((s: AppState) => s.exportVectormaps);
   const setVectormaps = useAppStore((s: AppState) => s.setExportVectormaps);
+  const artefactKinds = useAppStore((s: AppState) => s.exportArtefactKinds);
+  const setArtefactKinds = useAppStore((s: AppState) => s.setExportArtefactKinds);
   const nameGroups = roundMode
     ? rounds.map((round) => ({ key: round.label, count: round.to - round.from + 1 }))
     : [{ key: "single", count: wellCount }];
@@ -89,6 +91,30 @@ export function ExportFormatSelector() {
       >
         {tx("phaseC.export.all.heading", "Export Package")}
       </h3>
+
+      <fieldset className="flex flex-col gap-2 rounded-md border border-border p-3">
+        <legend className="text-sm font-medium">
+          {tx("phaseC.export.all.artefacts.heading", "Files to export")}
+        </legend>
+        {(["macrogen", "primers", "echo", "janus"] as const).map((kind) => (
+          <label key={kind} className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="h-3.5 w-3.5 accent-primary"
+              checked={artefactKinds.includes(kind)}
+              onChange={(event) => setArtefactKinds(
+                event.target.checked
+                  ? [...artefactKinds, kind]
+                  : artefactKinds.filter((selected) => selected !== kind),
+              )}
+            />
+            {t(`phaseC.export.all.artefacts.${kind}`)}
+          </label>
+        ))}
+        <span className="text-sm text-muted-foreground">
+          {tx("phaseC.export.all.artefacts.required", "Plate map (MAME input) and run manifest: always included")}
+        </span>
+      </fieldset>
 
       {/* Project name */}
       <div className="flex flex-col gap-1">
@@ -340,9 +366,11 @@ export function ExportFormatSelector() {
         </p>
       </div>
 
-      <p className="text-caption text-muted-foreground">
-        {tx("phaseC.export.all.ruleHint", "Forward and reverse plate names are required.")}
-      </p>
+      {artefactKinds.includes("macrogen") && (
+        <p className="text-caption text-muted-foreground">
+          {tx("phaseC.export.all.ruleHint", "Forward and reverse plate names are required.")}
+        </p>
+      )}
 
       {/* Per-clone GenBank maps, written to a sibling <prefix>_vectormaps/ folder. */}
       <div className="flex flex-col gap-1">

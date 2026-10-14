@@ -826,6 +826,13 @@
       "id": "macrogen-export-flow",
       "files": [
         "src/components/layout/export-handlers.ts",
+        "src/components/steps/ExportAction.tsx",
+        "src/components/steps/ExportFormatSelector.tsx",
+        "src/store/slice-interfaces.ts",
+        "src/store/slices/exportSlice.ts",
+        "src/lib/kuroSnapshot.ts",
+        "src/hooks/useKuroAutosave.ts",
+        "src/types/models.generated.ts",
         "python-core/sidecar_kuro/handlers/export.py",
         "python-core/sidecar_kuro/models.py",
         "kuma_core/kuro/plate_mapper.py",
@@ -841,7 +848,7 @@
         "handleExportAll",
         "handleExportMacrogen"
       ],
-      "note": "Export All UI 핸들러 ↔ TS RpcMethodMap/validators ↔ sidecar handler + Pydantic 모델 ↔ kuro exporter 정합성 (spec 2026-05-13)",
+      "note": "Export UI selection and persisted exportArtefactKinds ↔ RPC artefact_kinds ↔ Pydantic and generated models ↔ selected bundle writers. Platemap and run manifest are mandatory; absent selection keeps the legacy full bundle.",
       "severity": "blocking"
     },
     {

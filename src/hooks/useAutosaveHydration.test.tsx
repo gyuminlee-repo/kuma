@@ -1910,6 +1910,7 @@ describe("applyKuroSnapshot: 지문 기반 재도출 건너뛰기 (schema 5)", (
           plate_names: { R1: { fwd: "F1", rvs: "R1x" }, R2: { fwd: "F2", rvs: "" } },
           amount: "0.2",
           vectormaps: true,
+          artefact_kinds: [],
         },
       }),
     );
@@ -1918,6 +1919,7 @@ describe("applyKuroSnapshot: 지문 기반 재도출 건너뛰기 (schema 5)", (
     expect(st.exportPlateNames).toEqual({ R1: { fwd: "F1", rvs: "R1x" }, R2: { fwd: "F2", rvs: "" } });
     expect(st.exportAmount).toBe("0.2");
     expect(st.exportVectormaps).toBe(true);
+    expect(st.exportArtefactKinds).toEqual([]);
   });
 
   it("내보내기 블록이 없거나 값이 틀리면 기본값으로 둔다", async () => {
@@ -1928,6 +1930,7 @@ describe("applyKuroSnapshot: 지문 기반 재도출 건너뛰기 (schema 5)", (
     expect(st.exportPlateNames).toEqual({});
     expect(st.exportAmount).toBe("0.05");
     expect(st.exportVectormaps).toBe(false);
+    expect(st.exportArtefactKinds).toEqual(["macrogen", "primers", "echo"]);
 
     await applyKuroSnapshot(
       fastPathSnapshot({

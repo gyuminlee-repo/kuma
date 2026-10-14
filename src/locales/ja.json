@@ -62,7 +62,7 @@
         "mame-index": "MAME の概要",
         "mame-01-setup": "バーコード設定",
         "mame-02-review": "解析とレビュー",
-        "mame-03-janus": "Janus",
+        "mame-03-janus": "セルストック作製",
         "mame-04-activity": "活性",
         "mame-pipeline": "MAME パイプライン"
       }
@@ -676,7 +676,7 @@
       "manifestLoadFailed": "Manifest 読み込み失敗: {{err}}",
       "barcodeSetupTab": "1. Custom Barcode Primer Design",
       "analyzeTab": "2. Sequencing QC",
-      "janusTab": "3. Janus 装置設定",
+      "janusTab": "3. セルストック作製",
       "activityTab": "4. Activity Data",
       "verdictTableTitle": "Verdict テーブル",
       "platePlanTitle": "プレートマップ",
@@ -702,7 +702,7 @@
       },
       "barcodeSetupTabTitle": "Run Setup — part of NGS Validation (step ② of PI workflow)",
       "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
-      "janusTabTitle": "Janus 装置設定 — セルストック分注用の任意ステップ (PI ワークフロー ステップ③)",
+      "janusTabTitle": "セルストック作製（任意のセルストックピッキング設定、PIワークフローのステップ③）",
       "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)",
       "efficiencyChartTitle": "Per-plate verdict breakdown",
       "dropUnsupported": "このファイルはここでは使えません。{{ext}} は受け付けません。使用可能: {{allowed}}",
@@ -886,7 +886,7 @@
     },
     "janus": {
       "settings": {
-        "contextTitle": "Janus 装置設定",
+        "contextTitle": "セルストック作製",
         "contextSubtitle": "装置マッピングに書き出される移送量・リキッドクラス・type 列の値を設定します。シーケンシング判定のみの実行では省略できます。",
         "optionalNote": "このステップは任意です。解析実行はピックリストを自動で書き出しますが、装置マッピングはここでエクスポートしたときだけ書き出されます。シーケンシング判定だけが必要な場合はステップ 2 からステップ 4 に直接進めます。",
         "inspectorTitle": "装置 Inspector",
@@ -1208,13 +1208,13 @@
         "saved": "選抜したクローンを結果ワークブックの隣に保存しました ({{rows}} 件)。これは選抜リストで、装置用シートは隣のファイルです。",
         "skipped": "No clone met the selection criteria, so no selection list was written.",
         "failed": "The selection list was not written.",
-        "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
+        "excluded": "{{clones}}件のクローンが選択から除外されました。理由はセルストック作製で確認してください。"
       },
       "janusMappingAutosave": {
         "saved": "装置用マッピングを結果ワークブックの隣に保存しました ({{rows}} 行)。ロボットが読む 8 列形式です。",
         "skipped": "選抜基準を満たすクローンがなく、装置用マッピングは書き出されませんでした。",
         "failed": "装置用マッピングを書き出せませんでした。",
-        "excluded": "{{clones}} 件のクローンがマッピングから外れました。理由は Janus 装置設定で確認してください。"
+        "excluded": "{{clones}}件のクローンがマッピングから除外されました。理由はセルストック作製で確認してください。"
       },
       "demuxResume": {
         "line": "このフォルダーの以前の出力から demux 単位 {{total}} 件のうち {{reused}} 件を再利用し、{{recomputed}} 件を再計算しました。"
@@ -1262,7 +1262,7 @@
       "builtFromLabel": "作成元",
       "chooseOutput": "出力ファイルを選択",
       "noOutputSelected": "出力ファイルが未選択です",
-      "build": "EVOLVEpro 入力を生成",
+      "build": "EVOLVEpro入力形式に変換",
       "building": "生成中…",
       "resultTitle": "生成結果",
       "emptyState": "実験データファイル、必須の NGS 判定、出力先を選択してください。確認測定ファイルがあれば追加してください。",
@@ -2077,7 +2077,7 @@
     "kuroInspectorTitle": "Kuro の詳細を確認",
     "kuroInspectorBody": "インスペクターでステップ別パラメーター、選択変異、警告、出力設定を確認します。",
     "mameWorkflowTitle": "Mame ワークフローを進める",
-    "mameWorkflowBody": "Setup、Analyze、任意の Janus 装置設定、Activity を通じて実験データを整理された学習テーブルに変換します。",
+    "mameWorkflowBody": "Setup、Analyze、任意のセルストック作製、Activityの順に進み、実験データを学習用テーブルに整理します。",
     "mameWorkspaceTitle": "Mame のメイン領域",
     "mameWorkspaceBody": "ランデータを読み込み、遺伝子型判定とプレート結果を確認し、活性測定値を統合して出力します。",
     "mameInspectorTitle": "Mame の詳細を確認",
@@ -3509,6 +3509,14 @@
         "plateNameRev": "Reverseプライマープレート名",
         "wellCount": "{{count}} ウェル",
         "echoVolLabel": "Echo移送量",
+        "artefacts": {
+          "heading": "出力するファイル",
+          "macrogen": "Macrogen注文書（forward＋reverseプライマー）",
+          "primers": "プライマーFASTA",
+          "echo": "Echo",
+          "janus": "JANUS",
+          "required": "Plate map（MAME入力）と実行記録：常に含まれます"
+        },
         "janusVolLabel": "JANUS移送量",
         "ruleHint": "フォワードおよびリバースプライマーのプレート名は両方とも必須です。",
         "vectormapsLabel": "クローンごとの GenBank ベクターマップも出力する",
@@ -3556,7 +3564,7 @@
         "redirecting": "Redirecting…"
       },
       "janus": {
-        "settings": "Janus 装置設定"
+        "settings": "セルストック作製"
       }
     }
   },
@@ -3599,7 +3607,7 @@
         "mergeExport": "活性データを遺伝型コールとマージしてテーブルをエクスポートし、単一反復 (GC) と 3 反復 (WT 相対) の活性を組み合わせて EVOLVEpro 入力を生成します。"
       },
       "janus": {
-        "settings": "JANUS セルストックマッピングを準備します: 移送量、リキッドクラス、type 列の値。任意であり、実行を止めることはありません。"
+        "settings": "JANUSでセルストック作製を準備します：移送量、リキッドクラス、type列の値を設定します。任意のステップで、実行を妨げません。"
       }
     },
     "summary": {

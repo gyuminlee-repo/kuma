@@ -8,14 +8,14 @@ MAME 는 4개 major step 으로 구성되며, 각 major 는 하위 sub-step 을 
 2. Analyze
    2.1 Inputs                 (실행 입력, Run/Validate)
    2.2 Review                 (verdict + plate + per-plate verdict bar)
-3. Janus instrument settings
-   3.1 Janus                  (선택 단계. 건너뛰어도 실행에 지장 없음)
+3. Cell stock preparation
+   3.1 Cell stock preparation (선택 단계. 건너뛰어도 실행에 지장 없음)
 4. Activity Data
    4.1 Ingest
    4.2 Signals                (merge + export 포함)
 ```
 
-Janus 장비 설정은 v0.15.12 에서 step 2.1 밖으로 나와 자체 major step 3 이 되었다. Activity 는 4.x 로 밀렸다. 시퀀싱 판정만 필요한 운용자가 쓰지 않을 로봇 설정을 지나치지 않도록 한 분리이며 step 3 은 어떤 실행도 막지 않는다.
+Cell stock 제작은 v0.15.12 에서 step 2.1 밖으로 나와 자체 major step 3 이 되었다. Activity 는 4.x 로 밀렸다. 시퀀싱 판정만 필요한 운용자가 쓰지 않을 로봇 설정을 지나치지 않도록 한 분리이며 step 3 은 어떤 실행도 막지 않는다.
 
 ## step 3 (v0.16.1 기준)
 

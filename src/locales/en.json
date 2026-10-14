@@ -62,7 +62,7 @@
         "mame-index": "MAME overview",
         "mame-01-setup": "Barcode setup",
         "mame-02-review": "Analyze and review",
-        "mame-03-janus": "Janus",
+        "mame-03-janus": "Cell stock preparation",
         "mame-04-activity": "Activity",
         "mame-pipeline": "MAME pipeline"
       }
@@ -268,13 +268,13 @@
         "saved": "Selected clones written next to the result workbook ({{rows}} picks). This is the selection list; the instrument sheet is the file beside it.",
         "skipped": "No clone met the selection criteria, so no selection list was written.",
         "failed": "The selection list was not written.",
-        "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
+        "excluded": "{{clones}} clone(s) left out of the selection. Open Cell stock preparation to see why."
       },
       "janusMappingAutosave": {
         "saved": "Instrument mapping written next to the result workbook ({{rows}} rows), in the 8 columns the robot reads.",
         "skipped": "No clone met the selection criteria, so no instrument mapping was written.",
         "failed": "The instrument mapping was not written.",
-        "excluded": "{{clones}} clone(s) left out of the mapping. Open Janus instrument settings to see why."
+        "excluded": "{{clones}} clone(s) left out of the mapping. Open Cell stock preparation to see why."
       },
       "demuxResume": {
         "line": "{{reused}} of {{total}} demux units reused from earlier output in this folder; {{recomputed}} recomputed."
@@ -564,7 +564,7 @@
       "builtFromLabel": "Built from",
       "chooseOutput": "Choose output file",
       "noOutputSelected": "No output file selected",
-      "build": "Build EVOLVEpro input",
+      "build": "Convert to EVOLVEpro input format",
       "building": "Building...",
       "resultTitle": "Build result",
       "emptyState": "Choose an experiment data file, the required NGS verdict, and an output path. Add a confirmation file if available.",
@@ -879,7 +879,7 @@
       "manifestLoadFailed": "Manifest load failed: {{err}}",
       "barcodeSetupTab": "1. Custom Barcode Primer Design",
       "analyzeTab": "2. Sequencing QC",
-      "janusTab": "3. Janus Setup",
+      "janusTab": "3. Cell stock preparation",
       "activityTab": "4. Activity Data",
       "verdictTableTitle": "Verdict table",
       "platePlanTitle": "Plate map",
@@ -906,7 +906,7 @@
       },
       "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)",
       "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
-      "janusTabTitle": "Janus instrument settings — optional cell-stock picking setup (step ③ of PI workflow)",
+      "janusTabTitle": "Cell stock preparation (optional cell-stock picking setup, PI workflow step ③)",
       "barcodeSetupTabTitle": "Run Setup — part of NGS Validation (step ② of PI workflow)",
       "dropUnsupported": "Cannot use that file here: {{ext}} is not accepted. Allowed: {{allowed}}",
       "dropNoExtension": "no extension"
@@ -1327,7 +1327,7 @@
     },
     "janus": {
       "settings": {
-        "contextTitle": "Janus instrument settings",
+        "contextTitle": "Cell stock preparation",
         "contextSubtitle": "Transfer volume, liquid class and the type column the instrument mapping is written from. Optional: a sequencing-only run can skip this step.",
         "optionalNote": "This step is optional. An analyze run writes the pick list on its own; the instrument mapping is written only when exported here, so a run that only needs sequencing verdicts can go from step 2 straight to step 4.",
         "inspectorTitle": "Instrument Inspector",
@@ -2119,7 +2119,7 @@
     "kuroInspectorTitle": "Review Kuro details",
     "kuroInspectorBody": "Use the inspector for step-specific parameters, selected variants, warnings, and export controls.",
     "mameWorkflowTitle": "Follow the Mame workflow",
-    "mameWorkflowBody": "Proceed through Setup, Analyze, the optional Janus instrument step, and Activity to turn wet-lab evidence into a curated learning table.",
+    "mameWorkflowBody": "Proceed through Setup, Analyze, optional Cell stock preparation, and Activity to turn wet-lab evidence into a curated learning table.",
     "mameWorkspaceTitle": "Work in the main Mame area",
     "mameWorkspaceBody": "Load run data, inspect genotype verdicts and plate results, then merge activity measurements for export.",
     "mameInspectorTitle": "Review Mame details",
@@ -3563,6 +3563,14 @@
         "plateNameRev": "Reverse primer plate name",
         "wellCount": "{{count}} wells",
         "echoVolLabel": "Echo transfer volume",
+        "artefacts": {
+          "heading": "Files to export",
+          "macrogen": "Macrogen order sheet (forward + reverse primers)",
+          "primers": "Primer FASTA",
+          "echo": "Echo",
+          "janus": "JANUS",
+          "required": "Plate map (MAME input) and run manifest: always included"
+        },
         "janusVolLabel": "JANUS transfer volume",
         "ruleHint": "Forward and reverse plate names are required.",
         "vectormapsLabel": "Also export a GenBank vector map per clone",
@@ -3610,7 +3618,7 @@
         "redirecting": "Redirecting…"
       },
       "janus": {
-        "settings": "Janus Instrument Settings"
+        "settings": "Cell stock preparation"
       }
     }
   },
@@ -3676,7 +3684,7 @@
         "files": "Provide the CDS sequence and barcode seeds, set primer design parameters, choose an output folder, and generate the barcode package."
       },
       "janus": {
-        "settings": "Prepare the JANUS cell-stock mapping: transfer volume, liquid class and the type column. Optional, nothing here gates a run."
+        "settings": "Prepare cell stocks with JANUS: transfer volume, liquid class and the type column. Optional, nothing here gates a run."
       }
     }
   },

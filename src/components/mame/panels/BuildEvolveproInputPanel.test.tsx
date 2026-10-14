@@ -120,7 +120,7 @@ function renderPanel() {
 }
 
 async function build(): Promise<void> {
-  fireEvent.click(screen.getByRole("button", { name: "Build EVOLVEpro input" }));
+  fireEvent.click(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" }));
   await waitFor(() => expect(buildEvolveproInput).toHaveBeenCalledTimes(1));
 }
 
@@ -202,7 +202,7 @@ describe("BuildEvolveproInputPanel unified Activity-step inputs", () => {
     expect(screen.getByRole("alert")).toContainElement(checkbox);
 
     fireEvent.click(checkbox);
-    fireEvent.click(screen.getByRole("button", { name: "Build EVOLVEpro input" }));
+    fireEvent.click(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" }));
     await waitFor(() => expect(buildEvolveproInput).toHaveBeenCalledTimes(2));
 
     expect(buildEvolveproInput).toHaveBeenLastCalledWith(
@@ -275,7 +275,7 @@ describe("BuildEvolveproInputPanel unified Activity-step inputs", () => {
     expect(screen.getByLabelText("NGS verdict xlsx")).toHaveValue("");
     expect(screen.getByRole("textbox", { name: "Output EVOLVEpro xlsx" })).toHaveValue("");
     // Still gated on those two inputs.
-    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeDisabled();
   });
 
   it("folds the optional plate layout away, and unfolds it when one is selected", () => {
@@ -385,7 +385,7 @@ describe("BuildEvolveproInputPanel unified Activity-step inputs", () => {
     }));
     renderPanel();
 
-    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeDisabled();
     expect(buildEvolveproInput).not.toHaveBeenCalled();
   });
 
@@ -405,7 +405,7 @@ describe("BuildEvolveproInputPanel unified Activity-step inputs", () => {
     seed(readyForm({ verdictXlsx: "" }));
     renderPanel();
 
-    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeDisabled();
     expect(buildEvolveproInput).not.toHaveBeenCalled();
   });
 
@@ -418,7 +418,7 @@ describe("BuildEvolveproInputPanel unified Activity-step inputs", () => {
     renderPanel();
 
     expect(screen.getByText(/no longer supported/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeDisabled();
     expect(buildEvolveproInput).not.toHaveBeenCalled();
   });
   it("invalidates completion signatures when an input or verdict changes", () => {
@@ -1075,7 +1075,7 @@ describe("BuildEvolveproInputPanel sibling additional experiment file", () => {
       await chooseMeasurement();
     } else await chooseAdditional();
     expect(await screen.findByText(/same well-labeled report can be the primary experiment/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeDisabled();
     expect(loadBuildEvolveproFromStorage(PROJECT).confirmationSource).toBe("none");
     fireEvent.click(screen.getByRole("radio", { name: "Well / variant labels" }));
     await build();
@@ -1103,7 +1103,7 @@ describe("BuildEvolveproInputPanel sibling additional experiment file", () => {
     renderPanel();
     await chooseAdditional();
     expect(await screen.findByText(/ID j counts only the variants/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeDisabled();
     expect(loadBuildEvolveproFromStorage(PROJECT).confirmationSource).toBe("none");
     fireEvent.click(screen.getByRole("button", { name: "File as Numeric-ID replicate report" }));
     await build();
@@ -1118,7 +1118,7 @@ describe("BuildEvolveproInputPanel sibling additional experiment file", () => {
     renderPanel();
     await chooseAdditional();
     fireEvent.click(await screen.findByRole("radio", { name: "Numeric-ID replicate report" }));
-    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeDisabled();
     expect(screen.getByLabelText("Designed variant list")).toHaveValue("");
   });
 
@@ -1129,7 +1129,7 @@ describe("BuildEvolveproInputPanel sibling additional experiment file", () => {
     renderPanel();
     await chooseAdditional();
     const format = await screen.findByRole("radio", { name: "Well / variant labels" });
-    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeDisabled();
     expect(screen.queryByRole("list", { name: "File detection summary" })).not.toBeInTheDocument();
     fireEvent.click(format);
     await build();
@@ -1144,7 +1144,7 @@ describe("BuildEvolveproInputPanel sibling additional experiment file", () => {
     fireEvent.click(await additionalRegion().findByRole("button", { name: "Choose format manually" }));
     expect(screen.queryByRole("radio", { name: "Raw Agilent report" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("radio", { name: "Well / variant labels" }));
-    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeEnabled();
   });
 
   it("does not overwrite the primary when a primary-only file is browsed as additional", async () => {
@@ -1153,7 +1153,7 @@ describe("BuildEvolveproInputPanel sibling additional experiment file", () => {
     renderPanel();
     await chooseAdditional();
     expect(await screen.findByText(/matches a primary experiment format/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeDisabled();
     expect(loadBuildEvolveproFromStorage(PROJECT).activityPath).toBe("/project/activity/activity.csv");
     fireEvent.click(screen.getByRole("button", { name: "Use as experiment data: Generic long-format" }));
     expect(screen.getByRole("textbox", { name: ADDITIONAL_LABEL })).toHaveValue("");
@@ -1240,7 +1240,7 @@ describe("BuildEvolveproInputPanel independent detection lifetimes", () => {
       .mockResolvedValueOnce(detection(["confirmationVariantLabels"], "", "/project/new.xlsx"));
     renderPanel();
     await chooseAdditional("/project/old.xlsx");
-    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeDisabled();
     await chooseAdditional("/project/new.xlsx");
     await screen.findByText("Detected: Well / variant labels");
     await act(async () => old.resolve(detection(["confirmationNumericIds"], "", "/project/old.xlsx")));
@@ -1257,7 +1257,7 @@ describe("BuildEvolveproInputPanel independent detection lifetimes", () => {
     await chooseMeasurement("/project/primary.csv");
     await chooseAdditional("/project/additional.xlsx");
     await act(async () => additional.resolve(detection(["confirmationVariantLabels"], "", "/project/additional.xlsx")));
-    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeDisabled();
     await act(async () => primary.resolve(detection(["longFormat"], "", "/project/primary.csv")));
     await build();
     expect(buildEvolveproInput).toHaveBeenCalledWith(expect.objectContaining({
@@ -1276,7 +1276,7 @@ describe("BuildEvolveproInputPanel independent detection lifetimes", () => {
     expect(screen.getByRole("textbox", { name: ADDITIONAL_LABEL })).toHaveValue("");
     expect(screen.queryByText(/Old error must stay hidden/)).not.toBeInTheDocument();
     expect(screen.queryByRole("radiogroup", { name: "Additional measurement format" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeEnabled();
   });
 
   it("ignores pending detection after clearing restored inputs", async () => {
@@ -1289,7 +1289,7 @@ describe("BuildEvolveproInputPanel independent detection lifetimes", () => {
     await act(async () => request.resolve(detection(["confirmationVariantLabels"])));
     expect(screen.getByRole("textbox", { name: ADDITIONAL_LABEL })).toHaveValue("");
     expect(loadBuildEvolveproFromStorage(PROJECT).confirmationSource).toBe("none");
-    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeDisabled();
   });
 
   it("ignores both detectors after a global reset", async () => {
@@ -1334,7 +1334,7 @@ describe("BuildEvolveproInputPanel independent detection lifetimes", () => {
     await act(async () => fireEvent.click(screen.getByRole("button", { name: `Browse ${ADDITIONAL_LABEL}` })));
     await act(async () => request.resolve(detection(["confirmationVariantLabels"])));
     expect(screen.getByText("Detected: Well / variant labels")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeEnabled();
   });
 
   it("does not apply a native picker result returned after reset", async () => {

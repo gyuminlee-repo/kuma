@@ -2,13 +2,13 @@
 
 Filter this round's activity measurements by the NGS verdicts of the same round, then apply WT normalization and replicate merging to build the EVOLVEpro input xlsx. Build the file in 4.1 and read the direction for the next round in 4.2.
 
-## 4.1 Build EVOLVEpro Input
+## 4.1 Convert to EVOLVEpro input format
 
 1. Choose the **Measurement file**. The format is read from the file contents, and csv, xlsx and xls are accepted.
 2. If one file reads as two formats, pick one. The screen states what separates them.
 3. Add a confirmation measurement under **Optional confirmation** if there is one. Leave it as None otherwise.
 4. Choose the **NGS verdict xlsx**. This is the verdict Analyze produced for this round, and it is required.
-5. Choose the **Output EVOLVEpro xlsx** path and press **Build EVOLVEpro input**.
+5. Choose the **Output EVOLVEpro xlsx** path and press **Convert to EVOLVEpro input format**.
 
 Everything after the format choice is the same. Normalization, replicate merging, the NGS verdict and the export form one pipeline.
 

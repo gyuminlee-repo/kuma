@@ -110,18 +110,19 @@ export interface ExportAllInput {
   rvsPlate: string;
   wellCount: number;
   plateNameRe: RegExp;
+  requirePlateNames?: boolean;
 }
 
 export function validateExportAll(inp: ExportAllInput): ValidationResult {
   const missing: string[] = [];
-  if (inp.fwdPlate.trim() === "") {
+  if (inp.requirePlateNames !== false && inp.fwdPlate.trim() === "") {
     missing.push("validation.missing.fwdPlateName");
-  } else if (!inp.plateNameRe.test(inp.fwdPlate)) {
+  } else if (inp.requirePlateNames !== false && !inp.plateNameRe.test(inp.fwdPlate)) {
     missing.push("validation.missing.fwdPlateNameInvalid");
   }
-  if (inp.rvsPlate.trim() === "") {
+  if (inp.requirePlateNames !== false && inp.rvsPlate.trim() === "") {
     missing.push("validation.missing.rvsPlateName");
-  } else if (!inp.plateNameRe.test(inp.rvsPlate)) {
+  } else if (inp.requirePlateNames !== false && !inp.plateNameRe.test(inp.rvsPlate)) {
     missing.push("validation.missing.rvsPlateNameInvalid");
   }
   if (inp.wellCount <= 0) {

@@ -46,7 +46,7 @@ describe("builder state audit", () => {
   it("allows a fully resolved stored source to reach the build boundary", async () => {
     seed("/project");
     render(panel("/project"));
-    fireEvent.click(screen.getByRole("button", { name: "Build EVOLVEpro input" }));
+    fireEvent.click(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" }));
     await screen.findByRole("alert");
     expect(mocks.build).toHaveBeenCalledWith(expect.objectContaining({ activity_path: "/project/old.csv" }));
   });
@@ -59,13 +59,13 @@ describe("builder state audit", () => {
     fireEvent.click(screen.getByRole("button", { name: "Browse Experiment data file" }));
     await screen.findByText(/reads as two formats/i);
     expect(screen.getByLabelText("Experiment data file")).toHaveValue("new.xlsx");
-    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: "Build EVOLVEpro input" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeInTheDocument());
     expect(mocks.build).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("radio", { name: "Generic long-format" }));
-    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeEnabled();
-    fireEvent.click(screen.getByRole("button", { name: "Build EVOLVEpro input" }));
+    expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" }));
     await screen.findByRole("alert");
     expect(mocks.build).toHaveBeenCalledWith(expect.objectContaining({ activity_path: "/project/new.xlsx" }));
   });

@@ -62,7 +62,7 @@
         "mame-index": "MAME 概覽",
         "mame-01-setup": "條碼設定",
         "mame-02-review": "分析與審閱",
-        "mame-03-janus": "Janus",
+        "mame-03-janus": "細胞儲備液製備",
         "mame-04-activity": "活性",
         "mame-pipeline": "MAME 流程"
       }
@@ -676,7 +676,7 @@
       "manifestLoadFailed": "Manifest 載入失敗: {{err}}",
       "barcodeSetupTab": "1. Custom Barcode Primer Design",
       "analyzeTab": "2. Sequencing QC",
-      "janusTab": "3. Janus 設備設定",
+      "janusTab": "3. 細胞儲備液製備",
       "activityTab": "4. Activity Data",
       "verdictTableTitle": "Verdict 表",
       "platePlanTitle": "板圖",
@@ -702,7 +702,7 @@
       },
       "barcodeSetupTabTitle": "Run Setup — part of NGS Validation (step ② of PI workflow)",
       "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
-      "janusTabTitle": "Janus 設備設定 — 細胞庫挑取的選用步驟 (PI 工作流程步驟③)",
+      "janusTabTitle": "細胞儲備液製備（選用的細胞挑取設定，PI工作流程步驟③）",
       "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)",
       "efficiencyChartTitle": "Per-plate verdict breakdown",
       "dropUnsupported": "此處無法使用該檔案，不接受 {{ext}}。允許的類型: {{allowed}}",
@@ -886,7 +886,7 @@
     },
     "janus": {
       "settings": {
-        "contextTitle": "Janus 設備設定",
+        "contextTitle": "細胞儲備液製備",
         "contextSubtitle": "設定寫入設備對應檔的轉移體積、liquid class 與 type 欄位值。選用：只需定序判定的執行可略過此步驟。",
         "optionalNote": "此步驟為選用。分析執行會自行寫出挑取清單；設備對應檔僅在此處匯出時才會寫出，因此只需定序判定的執行可從步驟 2 直接進入步驟 4。",
         "inspectorTitle": "設備 Inspector",
@@ -1208,13 +1208,13 @@
         "saved": "已在結果活頁簿旁寫入選取的選殖株（{{rows}} 個）。這是選擇清單，儀器表單是旁邊的檔案。",
         "skipped": "No clone met the selection criteria, so no selection list was written.",
         "failed": "The selection list was not written.",
-        "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
+        "excluded": "{{clones}}個選殖株未被選取。請在細胞儲備液製備中查看原因。"
       },
       "janusMappingAutosave": {
         "saved": "已在結果活頁簿旁寫入儀器對應檔（{{rows}} 列），採用機器人讀取的 8 欄格式。",
         "skipped": "沒有選殖株符合選擇條件，因此未寫入儀器對應檔。",
         "failed": "未能寫入儀器對應檔。",
-        "excluded": "{{clones}} 個選殖株未進入對應檔。可在 Janus 儀器設定中查看原因。"
+        "excluded": "{{clones}}個選殖株未納入對應。請在細胞儲備液製備中查看原因。"
       },
       "demuxResume": {
         "line": "已從該資料夾的先前輸出中重複使用 {{total}} 個 demux 單元中的 {{reused}} 個；重新計算 {{recomputed}} 個。"
@@ -1262,7 +1262,7 @@
       "builtFromLabel": "建置來源",
       "chooseOutput": "選擇輸出檔案",
       "noOutputSelected": "未選擇輸出檔案",
-      "build": "建立 EVOLVEpro 輸入",
+      "build": "轉換為EVOLVEpro輸入格式",
       "building": "建立中...",
       "resultTitle": "建立結果",
       "emptyState": "請選擇實驗資料檔案、必要的 NGS 判定和輸出路徑。如有確認測量檔案，請一併加入。",
@@ -2077,7 +2077,7 @@
     "kuroInspectorTitle": "檢視 Kuro 詳情",
     "kuroInspectorBody": "在檢查器中查看步驟參數、所選變體、警告與匯出控制項。",
     "mameWorkflowTitle": "遵循 Mame 工作流程",
-    "mameWorkflowBody": "依序完成 Setup、Analyze、選用的 Janus 設備設定與 Activity，將實驗資料整理成學習表。",
+    "mameWorkflowBody": "依序完成Setup、Analyze、選用的細胞儲備液製備與Activity，將實驗資料整理成學習表。",
     "mameWorkspaceTitle": "Mame 主工作區",
     "mameWorkspaceBody": "載入執行資料，檢查基因型判定與孔板結果，再合併活性測量值進行匯出。",
     "mameInspectorTitle": "檢視 Mame 詳情",
@@ -3509,6 +3509,14 @@
         "plateNameRev": "Reverse 引子盤名稱",
         "wellCount": "{{count}} 孔",
         "echoVolLabel": "Echo 轉移體積",
+        "artefacts": {
+          "heading": "要匯出的檔案",
+          "macrogen": "Macrogen訂購單（正向＋反向引子）",
+          "primers": "引子FASTA",
+          "echo": "Echo",
+          "janus": "JANUS",
+          "required": "Plate map（MAME輸入）與執行記錄：一律包含"
+        },
         "janusVolLabel": "JANUS 轉移體積",
         "ruleHint": "正向與反向引子盤的名稱皆為必填項目。",
         "vectormapsLabel": "同時匯出每個選殖株的 GenBank 載體圖譜",
@@ -3556,7 +3564,7 @@
         "redirecting": "Redirecting…"
       },
       "janus": {
-        "settings": "Janus 設備設定"
+        "settings": "細胞儲備液製備"
       }
     }
   },
@@ -3599,7 +3607,7 @@
         "mergeExport": "將活性資料與基因型判定合併並匯出表格，然後結合單次重複 (GC) 與三次重複 (相對 WT) 活性來建立 EVOLVEpro 輸入。"
       },
       "janus": {
-        "settings": "準備 JANUS 細胞庫對應：轉移體積、liquid class 與 type 欄位值。選用，其中任何一項都不會阻擋執行。"
+        "settings": "使用JANUS準備細胞儲備液製備：設定轉移體積、液體類別和type欄位值。此步驟為選用，不會阻擋執行。"
       }
     },
     "summary": {

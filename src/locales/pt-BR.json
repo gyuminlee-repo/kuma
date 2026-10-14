@@ -62,7 +62,7 @@
         "mame-index": "Visão geral do MAME",
         "mame-01-setup": "Configuração de códigos de barras",
         "mame-02-review": "Análise e revisão",
-        "mame-03-janus": "Janus",
+        "mame-03-janus": "Preparação de estoques celulares",
         "mame-04-activity": "Atividade",
         "mame-pipeline": "Pipeline do MAME"
       }
@@ -676,7 +676,7 @@
       "manifestLoadFailed": "Falha ao carregar manifest: {{err}}",
       "barcodeSetupTab": "1. Custom Barcode Primer Design",
       "analyzeTab": "2. QC de sequenciamento",
-      "janusTab": "3. Configuração Janus",
+      "janusTab": "3. Preparação de estoques celulares",
       "activityTab": "4. Dados de atividade",
       "verdictTableTitle": "Tabela de verdict",
       "platePlanTitle": "Mapa de placa",
@@ -702,7 +702,7 @@
       },
       "barcodeSetupTabTitle": "Run Setup — part of NGS Validation (step ② of PI workflow)",
       "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
-      "janusTabTitle": "Configurações do instrumento Janus — etapa opcional para coleta de estoques celulares (etapa ③ do fluxo do PI)",
+      "janusTabTitle": "Preparação de estoques celulares (configuração opcional da coleta, etapa ③ do fluxo do PI)",
       "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)",
       "efficiencyChartTitle": "Per-plate verdict breakdown",
       "dropUnsupported": "Não é possível usar esse arquivo aqui: {{ext}} não é aceito. Permitidos: {{allowed}}",
@@ -886,7 +886,7 @@
     },
     "janus": {
       "settings": {
-        "contextTitle": "Configurações do instrumento Janus",
+        "contextTitle": "Preparação de estoques celulares",
         "contextSubtitle": "Volume de transferência, liquid class e valor da coluna type usados para escrever o mapeamento do instrumento. Opcional: uma execução apenas de sequenciamento pode pular esta etapa.",
         "optionalNote": "Esta etapa e opcional. Uma execucao de analise escreve sozinha a lista de picks; o mapeamento do instrumento so e escrito ao ser exportado aqui, entao uma execucao que so precisa dos verdicts de sequenciamento vai da etapa 2 direto para a etapa 4.",
         "inspectorTitle": "Inspector do instrumento",
@@ -1208,13 +1208,13 @@
         "saved": "Clones selecionados gravados ao lado da planilha de resultados ({{rows}} selecoes). Esta e a lista de selecao; a folha do instrumento fica ao lado.",
         "skipped": "No clone met the selection criteria, so no selection list was written.",
         "failed": "The selection list was not written.",
-        "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
+        "excluded": "{{clones}} clone(s) excluídos da seleção. Consulte Preparação de estoques celulares para ver o motivo."
       },
       "janusMappingAutosave": {
         "saved": "Mapeamento do instrumento gravado ao lado da planilha de resultados ({{rows}} linhas), nas 8 colunas que o robo le.",
         "skipped": "Nenhum clone atendeu aos criterios de selecao, portanto nenhum mapeamento do instrumento foi gravado.",
         "failed": "O mapeamento do instrumento nao foi gravado.",
-        "excluded": "{{clones}} clone(s) ficaram fora do mapeamento. Abra as configuracoes do instrumento Janus para ver o motivo."
+        "excluded": "{{clones}} clone(s) excluídos do mapeamento. Consulte Preparação de estoques celulares para ver o motivo."
       },
       "demuxResume": {
         "line": "{{reused}} de {{total}} unidades de demux reutilizadas de resultados anteriores nesta pasta; {{recomputed}} recalculadas."
@@ -1262,7 +1262,7 @@
       "builtFromLabel": "Construído a partir de",
       "chooseOutput": "Escolher arquivo de saída",
       "noOutputSelected": "Nenhum arquivo de saída selecionado",
-      "build": "Gerar entrada EVOLVEpro",
+      "build": "Converter para o formato de entrada do EVOLVEpro",
       "building": "Gerando...",
       "resultTitle": "Resultado da geração",
       "emptyState": "Escolha um arquivo de dados do experimento, o veredito NGS obrigatório e um caminho de saída. Adicione um arquivo de confirmação, se disponível.",
@@ -2077,7 +2077,7 @@
     "kuroInspectorTitle": "Revisar detalhes do Kuro",
     "kuroInspectorBody": "O inspetor mostra parâmetros, variantes selecionadas, avisos e controles de exportação de cada etapa.",
     "mameWorkflowTitle": "Seguir o fluxo do Mame",
-    "mameWorkflowBody": "Passe por Setup, Analyze, a etapa opcional do instrumento Janus e Activity para transformar evidências experimentais em uma tabela de aprendizado curada.",
+    "mameWorkflowBody": "Siga Setup, Analyze, a preparação opcional de estoques celulares e Activity para transformar dados experimentais em uma tabela de aprendizado organizada.",
     "mameWorkspaceTitle": "Trabalhar na área principal do Mame",
     "mameWorkspaceBody": "Carregue dados, revise vereditos e placas e combine medições de atividade para exportação.",
     "mameInspectorTitle": "Revisar detalhes do Mame",
@@ -3509,6 +3509,14 @@
         "plateNameRev": "Nome da placa de primers reverse",
         "wellCount": "{{count}} poços",
         "echoVolLabel": "Volume de transferência Echo",
+        "artefacts": {
+          "heading": "Arquivos para exportar",
+          "macrogen": "Folha de pedido Macrogen (primers forward + reverse)",
+          "primers": "FASTA de primers",
+          "echo": "Echo",
+          "janus": "JANUS",
+          "required": "Plate map (entrada do MAME) e registro da execução: sempre incluídos"
+        },
         "janusVolLabel": "Volume de transferência JANUS",
         "ruleHint": "Os nomes das placas de primers diretos e reversos são obrigatórios.",
         "vectormapsLabel": "Exportar também um mapa de vetor GenBank por clone",
@@ -3556,7 +3564,7 @@
         "redirecting": "Redirecting…"
       },
       "janus": {
-        "settings": "Configurações do instrumento Janus"
+        "settings": "Preparação de estoques celulares"
       }
     }
   },
@@ -3599,7 +3607,7 @@
         "mergeExport": "Combine os dados de atividade com as chamadas de genótipo e exporte a tabela combinada; em seguida, crie a entrada do EVOLVEpro combinando a atividade de réplica única (GC) e de tripla réplica (relativa ao WT)."
       },
       "janus": {
-        "settings": "Prepare o mapeamento de estoques celulares do JANUS: volume de transferência, liquid class e valor da coluna type. Opcional, nada aqui bloqueia uma execução."
+        "settings": "Prepare estoques celulares com JANUS: volume de transferência, classe de líquido e valor da coluna type. Esta etapa é opcional e não bloqueia a execução."
       }
     },
     "summary": {

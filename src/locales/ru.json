@@ -62,7 +62,7 @@
         "mame-index": "Обзор MAME",
         "mame-01-setup": "Настройка штрихкодов",
         "mame-02-review": "Анализ и проверка",
-        "mame-03-janus": "Janus",
+        "mame-03-janus": "Подготовка клеточных стоков",
         "mame-04-activity": "Активность",
         "mame-pipeline": "Конвейер MAME"
       }
@@ -676,7 +676,7 @@
       "manifestLoadFailed": "Загрузка manifest не удалась: {{err}}",
       "barcodeSetupTab": "1. Custom Barcode Primer Design",
       "analyzeTab": "2. Sequencing QC",
-      "janusTab": "3. Настройка Janus",
+      "janusTab": "3. Подготовка клеточных стоков",
       "activityTab": "4. Activity Data",
       "verdictTableTitle": "Таблица verdict",
       "platePlanTitle": "Карта планшета",
@@ -702,7 +702,7 @@
       },
       "barcodeSetupTabTitle": "Run Setup — part of NGS Validation (step ② of PI workflow)",
       "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
-      "janusTabTitle": "Настройки прибора Janus — необязательный шаг для отбора клеточных стоков (шаг ③ рабочего процесса PI)",
+      "janusTabTitle": "Подготовка клеточных стоков (необязательные настройки отбора, шаг ③ рабочего процесса PI)",
       "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)",
       "efficiencyChartTitle": "Per-plate verdict breakdown",
       "dropUnsupported": "Этот файл здесь использовать нельзя: {{ext}} не принимается. Допустимые: {{allowed}}",
@@ -886,7 +886,7 @@
     },
     "janus": {
       "settings": {
-        "contextTitle": "Настройки прибора Janus",
+        "contextTitle": "Подготовка клеточных стоков",
         "contextSubtitle": "Объём переноса, liquid class и значение столбца type, из которых записывается карта для прибора. Необязательно: запуск только для секвенирования может пропустить этот шаг.",
         "optionalNote": "Этот шаг необязателен. Запуск анализа сам записывает список пиков; карта для прибора записывается только при экспорте здесь, поэтому запуск, которому нужны только вердикты секвенирования, переходит с шага 2 сразу к шагу 4.",
         "inspectorTitle": "Inspector прибора",
@@ -1208,13 +1208,13 @@
         "saved": "Otobrannye klony zapisany ryadom s knigoi rezultatov ({{rows}} shtuk). Eto spisok otbora; list dlya pribora nakhoditsya ryadom.",
         "skipped": "No clone met the selection criteria, so no selection list was written.",
         "failed": "The selection list was not written.",
-        "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
+        "excluded": "{{clones}} клон(ов) исключено из отбора. Причины указаны в разделе «Подготовка клеточных стоков»."
       },
       "janusMappingAutosave": {
         "saved": "Kartu dlya pribora zapisali ryadom s knigoi rezultatov ({{rows}} strok) v 8 stolbtsakh, kotorye chitaet robot.",
         "skipped": "Ni odin klon ne proshel kriterii otbora, poetomu karta dlya pribora ne zapisana.",
         "failed": "Kartu dlya pribora zapisat ne udalos.",
-        "excluded": "{{clones}} klon(ov) ne voshli v kartu. Otkroite nastroiki pribora Janus, chtoby uznat prichinu."
+        "excluded": "{{clones}} клон(ов) исключено из карты. Причины указаны в разделе «Подготовка клеточных стоков»."
       },
       "demuxResume": {
         "line": "Повторно использовано {{reused}} из {{total}} единиц demux из прежних результатов в этой папке; пересчитано: {{recomputed}}."
@@ -1262,7 +1262,7 @@
       "builtFromLabel": "Собрано из",
       "chooseOutput": "Выбрать выходной файл",
       "noOutputSelected": "Выходной файл не выбран",
-      "build": "Создать входные данные EVOLVEpro",
+      "build": "Преобразовать в формат входных данных EVOLVEpro",
       "building": "Создание...",
       "resultTitle": "Результат создания",
       "emptyState": "Выберите файл данных эксперимента, обязательные результаты NGS и путь вывода. Добавьте подтверждающий файл, если он есть.",
@@ -2077,7 +2077,7 @@
     "kuroInspectorTitle": "Детали Kuro",
     "kuroInspectorBody": "Инспектор показывает параметры шага, выбранные варианты, предупреждения и настройки экспорта.",
     "mameWorkflowTitle": "Рабочий процесс Mame",
-    "mameWorkflowBody": "Пройдите Setup, Analyze, необязательный шаг прибора Janus и Activity, чтобы преобразовать экспериментальные данные в подготовленную таблицу обучения.",
+    "mameWorkflowBody": "Пройдите Setup, Analyze, необязательную подготовку клеточных стоков и Activity, чтобы преобразовать экспериментальные данные в подготовленную таблицу обучения.",
     "mameWorkspaceTitle": "Основная область Mame",
     "mameWorkspaceBody": "Загрузите данные, проверьте генотипы и планшеты, затем объедините измерения активности для экспорта.",
     "mameInspectorTitle": "Детали Mame",
@@ -3509,6 +3509,14 @@
         "plateNameRev": "Название планшета reverse-праймеров",
         "wellCount": "{{count}} лунок",
         "echoVolLabel": "Объём переноса Echo",
+        "artefacts": {
+          "heading": "Файлы для экспорта",
+          "macrogen": "Лист заказа Macrogen (прямые + обратные праймеры)",
+          "primers": "FASTA праймеров",
+          "echo": "Echo",
+          "janus": "JANUS",
+          "required": "Plate map (вход MAME) и журнал запуска: включены всегда"
+        },
         "janusVolLabel": "Объём переноса JANUS",
         "ruleHint": "Названия планшетов для прямых и обратных праймеров обязательны.",
         "vectormapsLabel": "Также экспортировать карту вектора GenBank для каждого клона",
@@ -3556,7 +3564,7 @@
         "redirecting": "Redirecting…"
       },
       "janus": {
-        "settings": "Настройки прибора Janus"
+        "settings": "Подготовка клеточных стоков"
       }
     }
   },
@@ -3599,7 +3607,7 @@
         "mergeExport": "Объедините данные активности с вызовами генотипа и экспортируйте таблицу, затем создайте входные данные EVOLVEpro, объединив активность с одной репликой (GC) и тремя репликами (относительно WT)."
       },
       "janus": {
-        "settings": "Подготовьте карту клеточных стоков JANUS: объём переноса, liquid class и значение столбца type. Необязательно, ничто здесь не блокирует запуск."
+        "settings": "Подготовьте клеточные стоки с JANUS: объём переноса, класс жидкости и значение столбца type. Этот необязательный шаг не блокирует запуск."
       }
     },
     "summary": {

@@ -82,6 +82,7 @@ import type { AppState } from "@/store/types";
 import type { SourceFingerprint } from "./sourceFingerprint";
 import { toPortablePath } from "./projectPath";
 import { persistRoundPicks } from "./plateRounds";
+import type { ExportArtefactKind } from "@/types/models";
 
 export const KURO_SCHEMA = 8;
 
@@ -121,7 +122,7 @@ export interface KuroSnapshotState
     | "evolveproTotalCount" | "evolveproFilteredCount" | "evolveproParetoExchanges"
     | "evolveproStepStats" | "domainStats"
     | "evolveproSelectionManual" | "evolveproCsvUserPicked"
-    | "exportName" | "exportPlateNames" | "exportAmount" | "exportVectormaps"
+    | "exportName" | "exportPlateNames" | "exportAmount" | "exportVectormaps" | "exportArtefactKinds"
   > {}
 
 /**
@@ -315,6 +316,7 @@ export function buildKuroSnapshot(
       plate_names: state.exportPlateNames,
       amount: state.exportAmount,
       vectormaps: state.exportVectormaps,
+      artefact_kinds: state.exportArtefactKinds,
     },
     // schema 5+
     navigation: {
@@ -444,6 +446,7 @@ export interface KuroExportForm {
   exportPlateNames: AppState["exportPlateNames"];
   exportAmount: AppState["exportAmount"];
   exportVectormaps: AppState["exportVectormaps"];
+  exportArtefactKinds: AppState["exportArtefactKinds"];
 }
 
 /**
@@ -471,5 +474,11 @@ export function readKuroExportForm(value: unknown): KuroExportForm {
     exportPlateNames: plateNames,
     exportAmount: record.amount === "0.2" ? "0.2" : "0.05",
     exportVectormaps: record.vectormaps === true,
+    exportArtefactKinds: Array.isArray(record.artefact_kinds)
+      ? record.artefact_kinds.filter(
+          (kind): kind is ExportArtefactKind =>
+            kind === "macrogen" || kind === "primers" || kind === "echo" || kind === "janus",
+        )
+      : ["macrogen", "primers", "echo"],
   };
 }

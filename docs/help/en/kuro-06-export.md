@@ -2,19 +2,21 @@
 
 Save the design output as order files and instrument transfer files in one batch.
 
+Select the files to export: the Macrogen order sheet (forward and reverse primers together), primer FASTA, Echo, and JANUS. Macrogen, FASTA and Echo are selected by default; JANUS is not. The plate map for MAME and the run manifest are always included. Clearing every checkbox exports just those two files. The selection is saved with the project and applies to every round.
+
 ## Fields to fill
 
 1. `Export name` sets the folder name and the file prefix. Leave it empty for an automatic `kuro_YYMMDD_HHMM` name. Up to 40 letters, numbers, Korean characters, underscores, or hyphens.
-2. `Forward primer plate name` and `Reverse primer plate name` take 1-20 letters, numbers, underscores, or hyphens. The hint calls them optional, but the export does not run while either is blank.
+2. `Forward primer plate name` and `Reverse primer plate name` take 1-20 letters, numbers, underscores, or hyphens. Both are required when the Macrogen order sheet is selected.
 3. `Order vendor` is fixed to Macrogen Plate Oligo. Choose 0.05 or 0.2 μmole for the amount. Purification is fixed to MOPC.
 4. `Echo transfer volume` accepts 25-500 nL.
 5. `Echo source plate quadrant` is where a 96-head starts stamping the 384 plate. Forward primers start there and reverse primers go to the paired quadrant. Name the quadrants already spent on the plate and an overlapping choice is refused.
 6. `JANUS transfer volume` accepts 0.5-10 μL.
-7. Click `Export all`, then choose the destination folder. With a project open, the picker starts in the `design` folder of that project.
+7. Click `Export`, then choose the destination folder. With a project open, the picker starts in the `design` folder of that project. Designs exceeding 96 wells export one round at a time.
 
 ## Output files
 
-A folder named `<Export name>_YYYYMMDD` is created inside the folder you chose, or `kuro_YYMMDD_HHMM` when the name was left empty. An existing name gets `_2` appended. All eight files inside carry that folder name as their prefix.
+A folder named `<Export name>_YYYYMMDD` is created inside the folder you chose, or `kuro_YYMMDD_HHMM` when the name was left empty. An existing name gets `_2` appended. Only selected files and the two mandatory files are written, all with that folder name as their prefix. Echo source plate choices are required only when Echo is selected.
 
 | File | When you use it |
 |---|---|

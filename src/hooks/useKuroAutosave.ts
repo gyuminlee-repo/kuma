@@ -143,6 +143,7 @@ function kuroAutosaveSelector(s: AppState): readonly unknown[] {
     s.exportPlateNames,
     s.exportAmount,
     s.exportVectormaps,
+    s.exportArtefactKinds,
     // results extras (schema 5+)
     s.rescuedMutations,
     s.showBenchmark,
