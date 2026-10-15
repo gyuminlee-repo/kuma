@@ -20,6 +20,18 @@ import { RESULT_CONTRACT, RESULT_CONTRACT_REVISIONS } from "./resultContract";
 const NEWEST_SINCE = RESULT_CONTRACT_REVISIONS[RESULT_CONTRACT_REVISIONS.length - 1]!.since;
 
 describe("classifyResultVersion", () => {
+  it.each(["0.16.25", "0.16.59", "0.16.63", "0.16.64"])(
+    "requires reanalysis of a revision-7 run saved by %s",
+    (version) => {
+      expect(classifyResultVersion(version, "0.16.73", 7)).toBe("older");
+      expect(provenanceFor(version, "0.16.73", 7)?.changes.map((c) => c.since))
+        .toEqual([
+          "0.16.25.1", "0.16.32", "0.16.38", "0.16.56",
+          "0.16.60", "0.16.64", "0.16.65",
+        ]);
+    },
+  );
+
   it("takes the stamped contract as authoritative", () => {
     // The version is only a fallback: a snapshot that says which contract it
     // was produced at is judged by that, whatever release wrote it.

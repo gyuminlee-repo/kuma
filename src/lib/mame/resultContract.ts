@@ -46,6 +46,13 @@ export const RESULT_CONTRACT_REVISIONS: readonly ResultContractRevision[] = [
   { revision: 5, since: "0.15.19", key: "barcodePlateShapeRefused" },
   { revision: 6, since: "0.16.16", key: "declaredWellsOnly" },
   { revision: 7, since: "0.16.25", key: "declaredWellsDenominator" },
+  { revision: 8, since: "0.16.25.1", key: "runMembership" },
+  { revision: 9, since: "0.16.32", key: "explicitWellPlacement" },
+  { revision: 10, since: "0.16.38", key: "filteredDepthApplied" },
+  { revision: 11, since: "0.16.56", key: "baseQualityApplied" },
+  { revision: 12, since: "0.16.60", key: "decidedDeletionEvidence" },
+  { revision: 13, since: "0.16.64", key: "deletionMajorityRequired" },
+  { revision: 14, since: "0.16.65", key: "inclusiveIndelBoundary" },
 ] as const;
 
 /** The revision this build's analyze produces. */

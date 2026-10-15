@@ -279,7 +279,7 @@ def test_handle_analyze_consensus_dir_backward_compatible(
         "verdicts", "replicates", "output_path", "summary", "distribution_stats",
         "designed_mutant_ids", "janus_autosave", "layout_provenance",
         "mapping_integrity", "compare_params", "off_layout_records",
-        "run_quality",
+        "run_quality", "run_meta", "barcode_prefix_note", "analysis_conditions",
     }
     assert "assigned_reads" not in result
     assert "wells_with_reads" not in result
@@ -293,6 +293,19 @@ def test_handle_analyze_consensus_dir_backward_compatible(
     # this mode has no matrix. Absent, not six unavailable signals that would
     # describe the mode rather than the run.
     assert "contamination" not in result
+
+    # The real analyze response, not a hand-built replay payload, must carry
+    # exactly the provenance cached for immediate workbook re-export.
+    from dataclasses import asdict
+    from sidecar_mame.core import get_state
+
+    state = get_state()
+    assert result["run_meta"] == (
+        asdict(state.last_run_meta) if state.last_run_meta is not None else None
+    )
+    assert result["barcode_prefix_note"] == state.last_barcode_prefix_note
+    assert state.last_analysis_conditions is not None
+    assert result["analysis_conditions"] == asdict(state.last_analysis_conditions)
 
 
 def test_compare_params_reports_the_thresholds_that_actually_applied(

@@ -10,6 +10,7 @@ from __future__ import annotations
 import tempfile
 import threading
 import time
+from dataclasses import asdict
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -2667,6 +2668,9 @@ def handle_analyze(params: dict) -> dict:
         "verdicts": [_serialize_verdict(v) for v in verdicts],
         "replicates": [_serialize_replicate(r) for r in replicates],
         "output_path": str(output),
+        "run_meta": asdict(run_meta) if run_meta is not None else None,
+        "barcode_prefix_note": _barcode_prefix_note,
+        "analysis_conditions": asdict(_conditions[0]) if _conditions else None,
         "janus_autosave": janus_autosave,
         "designed_mutant_ids": sorted(dids),
         "summary": _summarize(verdicts),

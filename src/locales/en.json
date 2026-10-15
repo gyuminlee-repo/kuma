@@ -1290,7 +1290,14 @@
         "plateColumnRowOrder": "Result rows follow the plate column, like every other placement rule.",
         "barcodePlateShapeRefused": "A barcode file that does not describe an 8 by 12 plate stops the run.",
         "declaredWellsOnly": "Wells left out of the selection are no longer scored. They used to be compared against the whole variant list and fail.",
-        "declaredWellsDenominator": "The success rate counts only the variants in the declared wells. It used to divide by the whole variant list, so a run declaring ten wells reported 9 percent with every variant passing."
+        "declaredWellsDenominator": "The success rate counts only the variants in the declared wells. It used to divide by the whole variant list, so a run declaring ten wells reported 9 percent with every variant passing.",
+        "runMembership": "Analysis reads only the plates recorded for this run, excluding stale output from earlier runs.",
+        "explicitWellPlacement": "Scoring follows explicit well addresses and the selected wild-type placement instead of inferring a different plate.",
+        "filteredDepthApplied": "The selected minimum filtered depth now reaches the classifier instead of silently using 30.",
+        "baseQualityApplied": "Low-quality bases are filtered before consensus calling instead of contributing votes.",
+        "decidedDeletionEvidence": "Decided deletions no longer count as unresolved or mixed bases, and translation reconstructs the molecule with its called indels.",
+        "deletionMajorityRequired": "Only deletions supported by more than half the covering reads are exempt from the no-call gate.",
+        "inclusiveIndelBoundary": "An indel event fraction exactly at the threshold now reaches review instead of passing the gate."
       }
     },
     "janus": {

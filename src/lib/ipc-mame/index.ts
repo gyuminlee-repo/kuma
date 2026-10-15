@@ -109,25 +109,16 @@ export async function sendRequest<T>(
   timeoutMs = 60_000,
 ): Promise<T> {
   const validateResult = getMameRpcResultValidator(method);
-  const request = rawSidecarRpc<unknown>("mame", method, params, timeoutMs);
-  const timeout = new Promise<never>((_, reject) => {
-    const timer = setTimeout(() => {
-      reject(new Error(`RPC timeout: ${method} after ${timeoutMs}ms`));
-    }, timeoutMs);
-    // The catch keeps the derived promise handled. Without it a rejecting request
-    // raises an unhandled rejection on top of the error the caller already gets,
-    // once per failed RPC. The rejection itself still reaches the caller below.
-    void request.finally(() => clearTimeout(timer)).catch(() => {});
-  });
-
-  const result = await Promise.race([request, timeout]);
+  // The host starts its deadline after cold startup and the request write.
+  // A frontend timer would charge startup against that execution budget.
+  const result = await rawSidecarRpc<unknown>("mame", method, params, timeoutMs);
   // The sidecar answered, so it is running whatever the payload turned out to
   // be. `isSidecarRunning()` gates the reset in `src/store/mame/resetAll.ts`,
   // and setting this after the shape check would skip a reset the app owes
   // because the answer was malformed.
   running = true;
   if (validateResult && !validateResult(result)) {
-    // Plain message, like the timeout above: this module carries no i18next
+    // Plain message: this module carries no i18next
     // dependency and a refused payload is a sidecar-contract fault an operator
     // reports rather than acts on.
     throw new Error(`Invalid RPC result shape: ${method}`);

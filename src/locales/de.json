@@ -878,7 +878,14 @@
         "plateColumnRowOrder": "Ergebniszeilen folgen der Plattenspalte, wie jede andere Platzierungsregel.",
         "barcodePlateShapeRefused": "Eine Barcode-Datei, die keine 8-mal-12-Platte beschreibt, stoppt den Lauf.",
         "declaredWellsOnly": "Nicht ausgewaehlte Wells werden nicht mehr bewertet. Zuvor wurden sie gegen die ganze Variantenliste geprueft und fielen durch.",
-        "declaredWellsDenominator": "Die Erfolgsrate zaehlt nur noch die Varianten in den deklarierten Wells. Zuvor wurde durch die ganze Variantenliste geteilt, sodass ein Lauf mit zehn deklarierten Wells 9 Prozent meldete, obwohl jede Variante bestand."
+        "declaredWellsDenominator": "Die Erfolgsrate zaehlt nur noch die Varianten in den deklarierten Wells. Zuvor wurde durch die ganze Variantenliste geteilt, sodass ein Lauf mit zehn deklarierten Wells 9 Prozent meldete, obwohl jede Variante bestand.",
+        "runMembership": "Die Analyse liest nur die fuer diesen Lauf erfassten Platten und schliesst alte Ausgaben aus.",
+        "explicitWellPlacement": "Die Bewertung folgt den angegebenen Wells und der gewaehlten Wildtyp-Platzierung.",
+        "filteredDepthApplied": "Die gewaehlte Mindesttiefe nach Filterung erreicht jetzt den Klassifikator statt des stillen Werts 30.",
+        "baseQualityApplied": "Basen geringer Qualitaet werden vor der Konsensusbildung herausgefiltert.",
+        "decidedDeletionEvidence": "Bestaetigte Deletionen gelten nicht mehr als ungeklaert oder gemischt. Die Translation rekonstruiert das Molekuel mit seinen Indels.",
+        "deletionMajorityRequired": "Nur Deletionen mit Unterstuetzung durch mehr als die Haelfte der abdeckenden Reads sind vom No-call-Gate ausgenommen.",
+        "inclusiveIndelBoundary": "Ein Indel-Ereignisanteil genau am Schwellenwert wird jetzt zur Pruefung markiert."
       }
     },
     "janus": {
