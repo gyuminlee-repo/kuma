@@ -11,6 +11,11 @@ import sys
 import threading
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from kuma_core.mame.export.analysis_meta import AnalysisConditions
+    from kuma_core.mame.ingest.run_meta import NgsRunMeta
 
 # ---------------------------------------------------------------------------
 # sys.path shim: make the existing ``mame`` package importable.
@@ -66,19 +71,17 @@ class SidecarState:
     last_verdicts: list | None = None        # list[VerdictRecord]
     last_replicates: list | None = None      # list[ReplicateResult]
     last_output_path: str | None = None
-    last_run_meta: object | None = None      # NgsRunMeta | None — discovered at analyze time
+    last_run_meta: NgsRunMeta | None = None
     last_designed_mutant_ids: frozenset[str] | None = None  # designed-mutant set for recovery (재현율); None = unavailable
     # How this run cut the barcode seeds (BarcodePrefixResolution.note), so a
     # re-export writes the same __kuma_meta__ row the analyze run wrote. Stays
-    # None after ``load_analyze_result``, which restores a payload that does not
-    # carry it: an omitted row is honest, a row copied from another run is not.
+    # None for legacy payloads that did not carry it.
     last_barcode_prefix_note: str | None = None
     # The conditions the analyze ran under (AnalysisConditions | None), so a
     # re-export writes the same __kuma_meta__ rows the analyze wrote. Same rule
-    # as the note above: None after ``load_analyze_result``, because a restored
-    # payload does not carry them and inventing them would be worse than a
-    # missing row.
-    last_analysis_conditions: object | None = None
+    # as the note above: absent legacy provenance stays None rather than being
+    # invented or copied from a different run.
+    last_analysis_conditions: AnalysisConditions | None = None
 
 
 _state = SidecarState()
@@ -94,10 +97,10 @@ def set_last_analyze(
     verdicts: list,
     replicates: list,
     output_path: str,
-    run_meta: object | None = None,
+    run_meta: NgsRunMeta | None = None,
     designed_mutant_ids: frozenset[str] | None = None,
     barcode_prefix_note: str | None = None,
-    analysis_conditions: object | None = None,
+    analysis_conditions: AnalysisConditions | None = None,
 ) -> None:
     with _state_lock:
         _state.last_verdicts = verdicts

@@ -878,7 +878,14 @@
         "plateColumnRowOrder": "Les lignes de résultat suivent la colonne de la plaque, comme toute autre règle de placement.",
         "barcodePlateShapeRefused": "Un fichier de barcodes qui ne décrit pas une plaque 8 par 12 arrête le run.",
         "declaredWellsOnly": "Les puits exclus de la selection ne sont plus evalues. Ils etaient auparavant compares a toute la liste de variants et echouaient.",
-        "declaredWellsDenominator": "Le taux de reussite ne compte que les variants des puits declares. Il divisait auparavant par la liste complete des variants, si bien qu un run declarant dix puits affichait 9 pour cent alors que tous passaient."
+        "declaredWellsDenominator": "Le taux de reussite ne compte que les variants des puits declares. Il divisait auparavant par la liste complete des variants, si bien qu un run declarant dix puits affichait 9 pour cent alors que tous passaient.",
+        "runMembership": "L'analyse ne lit que les plaques enregistrees pour cette execution et exclut les anciennes sorties.",
+        "explicitWellPlacement": "Le classement suit les puits explicites et le placement choisi du type sauvage.",
+        "filteredDepthApplied": "La profondeur minimale filtree choisie atteint le classificateur au lieu de la valeur implicite 30.",
+        "baseQualityApplied": "Les bases de faible qualite sont filtrees avant le vote du consensus.",
+        "decidedDeletionEvidence": "Les deletions confirmees ne comptent plus comme bases non resolues ou mixtes. La traduction reconstruit la molecule avec ses indels.",
+        "deletionMajorityRequired": "Seules les deletions soutenues par plus de la moitie des lectures couvrantes sont exclues du filtre no-call.",
+        "inclusiveIndelBoundary": "Une fraction d'evenements indel exactement au seuil est maintenant soumise a verification."
       }
     },
     "janus": {

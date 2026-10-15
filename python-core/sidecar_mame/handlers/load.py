@@ -22,6 +22,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
+from kuma_core.mame.export.analysis_meta import AnalysisConditions
 from sidecar_mame.core import set_last_analyze
 from sidecar_mame.handlers.analyze import (
     _deserialize_replicate,
@@ -48,6 +49,8 @@ class LoadAnalyzeResultParams(BaseModel):
     replicates: list[dict[str, Any]]
     output_path: str
     run_meta: dict[str, Any] | None = None
+    barcode_prefix_note: str | None = None
+    analysis_conditions: AnalysisConditions | None = None
     # Distinct designed mutant_ids (sorted list in the analyze response). Absent
     # in pre-recovery workspaces → None → recovery renders "n/a", not "0%".
     designed_mutant_ids: list[str] | None = None
@@ -110,6 +113,8 @@ def handle_load_analyze_result(params: dict) -> dict:
         p.output_path,
         run_meta=run_meta,
         designed_mutant_ids=designed,
+        barcode_prefix_note=p.barcode_prefix_note,
+        analysis_conditions=p.analysis_conditions,
     )
 
     return {

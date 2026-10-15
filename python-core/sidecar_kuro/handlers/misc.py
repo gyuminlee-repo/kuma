@@ -241,7 +241,7 @@ def _frame_checked_ca_coords(
     """Drop cached coordinates that do not cover the reference frame.
 
     3D coordinates are indexed by reference-sequence position, so a structure
-    that is not identical to (or a clean substring of) the reference would place
+    that does not contain the reference as an exact substring would place
     Cα coordinates on the wrong residues, silently corrupting any 3D-aware
     selection. When it does not match, return None so callers fall back to 1-D
     distance, plus a flag the UI can surface. Both load_evolvepro_csv and
@@ -262,6 +262,12 @@ def _frame_checked_ca_coords(
         structure_seq = fetch_ca_seq(structure_accession)
     if structure_seq and not structure_matches_reference(structure_seq, ref_seq):
         return None, True
+    if structure_seq:
+        structure_seq = structure_seq.rstrip("*").strip()
+        reference = ref_seq.rstrip("*").strip()
+        offset = structure_seq.index(reference)
+        if offset or len(structure_seq) != len(reference):
+            return [None] + ca_coords[offset + 1:offset + len(reference) + 1], False
     return ca_coords, False
 
 

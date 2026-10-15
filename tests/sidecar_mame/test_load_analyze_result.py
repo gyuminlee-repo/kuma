@@ -8,6 +8,8 @@ deserialize pair is lossless at the dataclass level.
 from __future__ import annotations
 
 import json
+from contextlib import closing
+from dataclasses import asdict
 from pathlib import Path
 
 import pytest
@@ -21,14 +23,15 @@ from kuma_core.mame.models import (
 )
 from kuma_core.mame.detected import compute_recovery
 from kuma_core.mame.ingest.run_meta import NgsRunMeta
-from sidecar_mame.core import SidecarState, get_state, set_last_analyze
+from kuma_core.mame.export.analysis_meta import AnalysisConditions
+from sidecar_mame.core import SidecarState, get_state, reset_state, set_last_analyze
 from sidecar_mame.handlers.analyze import (
     _deserialize_replicate,
     _deserialize_verdict,
     _serialize_replicate,
     _serialize_verdict,
 )
-from sidecar_mame.handlers.export import handle_get_plate_data
+from sidecar_mame.handlers.export import handle_export_excel, handle_get_plate_data
 from sidecar_mame.handlers.load import (
     LoadAnalyzeResultParams,
     handle_load_analyze_result,
@@ -93,6 +96,63 @@ def test_verdict_serialize_roundtrip_lossless() -> None:
     assert rebuilt.verdict is VerdictClass.MIXED
     assert rebuilt.translated.barcode.custom_barcode == "1_1"
     assert rebuilt.translated.barcode.read_count == 123
+
+
+@pytest.mark.parametrize("depth,n_fraction", [(17, 0.02), (None, None)])
+def test_restored_workbook_keeps_original_meta_rows(tmp_path, depth, n_fraction) -> None:
+    openpyxl = pytest.importorskip("openpyxl")
+    verdicts, replicates = _sample_state()
+    meta = NgsRunMeta("GridION", "X1", "FC1", "sample", "kit", "2026-10-01", True, "/run")
+    conditions = AnalysisConditions.build(
+        reference_path=Path("ref.fasta"), reference_seq="ATGGGGTTT",
+        cds_start=0, cds_end=9, mode="amplicon", ingest_mode="barcode",
+        min_read_count=depth, max_consensus_n_fraction=n_fraction,
+        min_file_size_kb=0.0, many_cutoff=4,
+    )
+    note = "Barcode seed prefixes retained for this run."
+    set_last_analyze(
+        verdicts, replicates, str(tmp_path / "initial.xlsx"),
+        run_meta=meta, barcode_prefix_note=note, analysis_conditions=conditions,
+    )
+    original = tmp_path / "original.xlsx"
+    handle_export_excel({"output": str(original)})
+    payload = json.loads(json.dumps({
+        "verdicts": [_serialize_verdict(v) for v in verdicts],
+        "replicates": [_serialize_replicate(r) for r in replicates],
+        "output_path": str(original),
+        "run_meta": asdict(meta),
+        "barcode_prefix_note": note,
+        "analysis_conditions": asdict(conditions),
+    }))
+    reset_state()
+
+    handle_load_analyze_result(payload)
+    restored = tmp_path / "restored.xlsx"
+    handle_export_excel({"output": str(restored)})
+
+    with closing(openpyxl.load_workbook(original)) as before, closing(openpyxl.load_workbook(restored)) as after:
+        rows_before = list(before["__kuma_meta__"].values)
+        rows_after = list(after["__kuma_meta__"].values)
+    # generated_at is the export clock, so two exports a second apart differ there
+    # by design; every row the restore is responsible for must match exactly.
+    def without_clock(rows):
+        return [row for row in rows if row[0] != "generated_at"]
+
+    assert [row[0] for row in rows_after].count("generated_at") == 1
+    assert without_clock(rows_after) == without_clock(rows_before)
+    assert get_state().last_run_meta == meta
+    assert get_state().last_barcode_prefix_note == note
+    assert get_state().last_analysis_conditions == conditions
+
+
+def test_legacy_restore_clears_previous_run_export_provenance() -> None:
+    set_last_analyze([], [], "/tmp/prior.xlsx", barcode_prefix_note="another run")
+
+    handle_load_analyze_result({"verdicts": [], "replicates": [], "output_path": "/tmp/out.xlsx"})
+
+    assert get_state().last_run_meta is None
+    assert get_state().last_barcode_prefix_note is None
+    assert get_state().last_analysis_conditions is None
 
 
 def test_verdict_roundtrip_keeps_noise_floor_and_n_fraction_basis() -> None:

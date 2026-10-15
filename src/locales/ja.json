@@ -878,7 +878,14 @@
         "plateColumnRowOrder": "結果行がほかの配置規則と同じくプレートの列方向に従います。",
         "barcodePlateShapeRefused": "8×12 プレートを記述していない barcode ファイルは実行を停止します。",
         "declaredWellsOnly": "選択から外れたウェルはもう判定しない。以前は変異リスト全体と照合されて失敗になっていた。",
-        "declaredWellsDenominator": "成功率の分母が宣言したウェルにある変異だけになった。以前は変異リスト全体で割っていたため、10ウェルを宣言して全て通過した実行が9%と表示された。"
+        "declaredWellsDenominator": "成功率の分母が宣言したウェルにある変異だけになった。以前は変異リスト全体で割っていたため、10ウェルを宣言して全て通過した実行が9%と表示された。",
+        "runMembership": "この実行に記録されたプレートだけを解析し、以前の出力を除外します。",
+        "explicitWellPlacement": "明示されたウェルと選択した野生型の配置に従って判定します。",
+        "filteredDepthApplied": "選択したフィルター後の最小深度が判定器に渡され、暗黙の30は適用されません。",
+        "baseQualityApplied": "低品質の塩基はコンセンサスの投票前に除外されます。",
+        "decidedDeletionEvidence": "確定した欠失を未決定や混合塩基として数えず、呼び出されたindelで分子を復元して翻訳します。",
+        "deletionMajorityRequired": "その位置を覆うリードの過半数が支持する欠失だけをno-call判定から除外します。",
+        "inclusiveIndelBoundary": "indelイベントの割合が閾値と等しい場合も検討対象になります。"
       }
     },
     "janus": {

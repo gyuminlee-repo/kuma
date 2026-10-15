@@ -6,6 +6,9 @@ Panel C: Novel Discovery by strategy (boxplot, all vs bacteria/yeast)
 Panel D: Bacteria/Yeast subset grouped bar (coverage + novel discovery)
 """
 
+import os
+from pathlib import Path
+
 import matplotlib
 matplotlib.use("Agg")
 
@@ -22,10 +25,15 @@ plt.rcParams["pdf.fonttype"] = 42
 plt.rcParams["ps.fonttype"] = 42
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-DATA_ALL = "/mnt/d/_workspace/030.repos/kuro/benchmark/results/proteingym_benchmark_all.csv"
-DATA_SUM = "/mnt/d/_workspace/030.repos/kuro/benchmark/results/proteingym_benchmark_summary.csv"
-OUT_PDF  = "/mnt/d/_workspace/030.repos/kuro/benchmark/results/figure3_diversity_benchmark.pdf"
-OUT_PNG  = "/mnt/d/_workspace/030.repos/kuro/benchmark/results/figure3_diversity_benchmark.png"
+ROOT = Path(__file__).resolve().parents[1]
+RESULTS_DIR = ROOT / "benchmark" / "results"
+# External inputs and destination may be configured without editing the script.
+DATA_ALL = Path(os.environ.get("KUMA_BENCHMARK_DATA_ALL", RESULTS_DIR / "proteingym_benchmark_all.csv"))
+DATA_SUM = Path(os.environ.get("KUMA_BENCHMARK_DATA_SUM", RESULTS_DIR / "proteingym_benchmark_summary.csv"))
+OUT_DIR = Path(os.environ.get("KUMA_BENCHMARK_OUTPUT_DIR", RESULTS_DIR))
+OUT_DIR.mkdir(parents=True, exist_ok=True)
+OUT_PDF = OUT_DIR / "figure3_diversity_benchmark.pdf"
+OUT_PNG = OUT_DIR / "figure3_diversity_benchmark.png"
 
 # ── Palette (color-blind safe, Okabe-Ito inspired) ────────────────────────────
 PALETTE = {
@@ -311,7 +319,6 @@ plt.close(fig)
 print(f"[DONE] PDF saved: {OUT_PDF}")
 print(f"[DONE] PNG saved: {OUT_PNG}")
 
-import os
 pdf_kb = os.path.getsize(OUT_PDF) / 1024
 png_kb = os.path.getsize(OUT_PNG) / 1024
 print(f"[SIZE] PDF: {pdf_kb:.1f} KB  |  PNG: {png_kb:.1f} KB")

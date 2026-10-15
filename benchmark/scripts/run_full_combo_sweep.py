@@ -1,12 +1,15 @@
 import csv, glob, json, os, subprocess, sys, time, urllib.request, urllib.parse
-ROOT="/mnt/d/_workspace/cc/kuma"; B=ROOT+"/benchmark"
+from pathlib import Path
+
+ROOT=str(Path(__file__).resolve().parents[2]); B=ROOT+"/benchmark"
 sys.path.insert(0,ROOT); sys.path.insert(0,B); os.chdir(B)
 from al.kuro_real_bench import _load_multimut
 from kuma_core.kuro.alphafold import fetch_ca_coords
-DMS=B+"/data/DMS_substitutions/DMS_ProteinGym_substitutions"
+# Override external data and interpreter locations through the environment.
+DMS=os.environ.get("KUMA_BENCHMARK_DMS_DIR", B+"/data/DMS_substitutions/DMS_ProteinGym_substitutions")
 OUT=B+"/results/qa/kuro_real/expanded"; os.makedirs(OUT,exist_ok=True)
 LOG=B+"/results/qa/kuro_real/full_sweep.log"
-PY=B+"/.venv-al/bin/python"
+PY=os.environ.get("KUMA_BENCHMARK_PYTHON", sys.executable)
 ENV=dict(os.environ); ENV["PYTHONPATH"]=ROOT
 DONE9={"F7YBW8_MESOW_Aakre_2015","RASK_HUMAN_Weng_2022_abundance","GRB2_HUMAN_Faure_2021","GCN4_YEAST_Staller_2018","DLG4_HUMAN_Faure_2021","GFP_AEQVI_Sarkisyan_2016","PABP_YEAST_Melamed_2013","A4_HUMAN_Seuma_2022","HIS7_YEAST_Pokusaeva_2019"}
 def log(m):
