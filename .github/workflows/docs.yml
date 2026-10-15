@@ -10,15 +10,6 @@ on:
       - 'mkdocs.ko.yml'
       - '.github/workflows/docs.yml'
       - 'requirements-docs.txt'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'docs/help/**'
-      - 'docs/site/**'
-      - 'mkdocs.yml'
-      - 'mkdocs.ko.yml'
-      - '.github/workflows/docs.yml'
-      - 'requirements-docs.txt'
 
 jobs:
   build:
@@ -38,7 +29,6 @@ jobs:
           mkdocs build --strict -f mkdocs.yml
           mkdocs build --strict -f mkdocs.ko.yml
       - name: Publish to gh-pages
-        if: github.event_name == 'push'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
