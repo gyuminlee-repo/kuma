@@ -68,7 +68,7 @@ def figure(png: Path, regions: list[dict], alt: str, max_w: int, quality: int) -
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser = argparse.ArgumentParser(description="Turn user-guide screen captures into annotated SVG figures.")
     parser.add_argument("--quality", type=int, default=80)
     parser.add_argument("--max-width", type=int, default=1440)
     args = parser.parse_args()
