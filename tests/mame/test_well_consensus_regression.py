@@ -367,8 +367,7 @@ class TestReferenceGroundTruth:
             min_mapq=0,
             require_full_span=False,
         )
-        if not alignments:
-            pytest.skip("No alignments — skipping self-consistency check")
+        assert alignments, "Eligible well 1_1 reads produced no alignments"
 
         from kuma_core.mame.ingest.align import _get_reference_length
         ref_len = _get_reference_length(ref_fasta_from_first_read)
@@ -413,8 +412,7 @@ class TestReferenceGroundTruth:
                 if consensus[pos] == majority_base.upper():
                     n_consistent += 1
 
-        if n_covered == 0:
-            pytest.skip("No covered positions — skipping self-consistency check")
+        assert n_covered > 0, "Eligible well 1_1 alignments covered no positions"
 
         consistency_rate = n_consistent / n_covered
         assert consistency_rate >= 0.999, (
