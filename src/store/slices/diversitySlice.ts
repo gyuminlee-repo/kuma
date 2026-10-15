@@ -166,6 +166,11 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   uniprotSearching: false,
   structuralDiversityEnabled: false,
   structuralKappa: 0.3,
+  strictSpatialEnabled: false,
+  strictSpatialBudgetMode: "unique_sites",
+  strictSpatialSiteCap: null,
+  strictSpatialSelection: null,
+  strictSpatialError: null,
   refDomains: [],
   refDomainsLoading: false,
   refDomainHash: "",
@@ -298,9 +303,39 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     if (enabled) maybeBackfillUniprotSearch();
   },
 
+  setStrictSpatialEnabled: (enabled: boolean) => {
+    set(buildKuroDesignInputPatch(get(), {
+      strictSpatialEnabled: enabled,
+      strictSpatialSelection: null,
+      strictSpatialError: null,
+    }));
+    debouncedReload();
+  },
+
   setStructuralKappa: (v: number) => {
     const clamped = Math.max(0, Math.min(1, v));
     set(buildKuroDesignInputPatch(get(), { structuralKappa: clamped }));
+    debouncedReload();
+  },
+
+  setStrictSpatialBudgetMode: (mode) => {
+    if (get().strictSpatialBudgetMode === mode) return;
+    set(buildKuroDesignInputPatch(get(), {
+      strictSpatialBudgetMode: mode,
+      strictSpatialSelection: null,
+      strictSpatialError: null,
+    }));
+    debouncedReload();
+  },
+
+  setStrictSpatialSiteCap: (cap) => {
+    if (cap !== null && (!Number.isSafeInteger(cap) || cap < 1)) return;
+    if (get().strictSpatialSiteCap === cap) return;
+    set(buildKuroDesignInputPatch(get(), {
+      strictSpatialSiteCap: cap,
+      strictSpatialSelection: null,
+      strictSpatialError: null,
+    }));
     debouncedReload();
   },
 

@@ -490,7 +490,78 @@ export interface EvolveproStepStats {
   start_codon_removed_variants?: string[] | null;
 }
 
+export type StrictSpatialBudgetMode = "unique_sites" | "distinct_variants";
+
+/** Descriptive metrics over the same eligible, mapped candidate-site universe. */
+export interface StrictSpatialProfile {
+  variant_count: number;
+  site_count: number;
+  max_variants_per_site: number;
+  minimum_site_distance: number | null;
+  coverage_mean_distance: number;
+  coverage_max_distance: number;
+  score_mean: number | null;
+  mean_score_rank: number | null;
+}
+
+export interface StrictSpatialComparison {
+  baseline: "configured-score-top-n";
+  universe: "eligible-variants-after-budget-and-cap-policy";
+  candidate_site_count: number;
+  score_available: boolean;
+  selected: StrictSpatialProfile;
+  top_n: StrictSpatialProfile | null;
+  top_n_variants: string[] | null;
+  top_n_overlap_count: number | null;
+  /** Direction-aware difference in raw score means; not measured fitness loss. */
+  score_gap_to_top_n: number | null;
+}
+
+/** Verified single-site substitutions and the exact structure used to select them. */
+export interface StrictSpatialResult {
+  schema_version: 1;
+  source_accession: string;
+  source_sha256: string;
+  reference_sha256: string;
+  candidate_sha256: string;
+  score_order: "asc" | "desc";
+  score_available: boolean;
+  pdb_text: string;
+  coordinate_frame: "reference";
+  selection_policy: "single-site-full-pool-fps-v1" | "distinct-variant-full-pool-fps-v1";
+  budget_mode: StrictSpatialBudgetMode;
+  site_cap: number | null;
+  selected_variants: string[];
+  /** Variant-aligned positions; distinct substitutions may share a site. */
+  selected_positions: number[];
+  selected_variant_count: number;
+  selected_site_count: number;
+  mapping: Array<{
+    reference_position: number;
+    structure_position: number;
+    chain_id: string;
+    insertion_code: string;
+    coordinate: [number, number, number];
+  }>;
+  eligible_positions: number[];
+  excluded: Array<{ variant: string; reason: string }>;
+  requested_count: number;
+  eligible_site_count: number;
+  eligible_variant_count: number;
+  site_multiplicities: Array<{ reference_position: number; variant_count: number }>;
+  geometry_variant_min_pair_distance: number | null;
+  geometry_site_min_pair_distance: number | null;
+  source_row_count: number;
+  parsed_variant_count: number;
+  parsing_omitted_count: number;
+  start_position_omitted_count: number;
+  duplicate_variant_omitted_count: number;
+  /** Older certificates may omit diagnostics without losing selection identity. */
+  comparison?: StrictSpatialComparison;
+}
+
 export interface EvolveproLoadResult {
+  strict_spatial?: StrictSpatialResult;
   variants: string[];
   y_preds: number[];
   total_count: number;
@@ -962,6 +1033,11 @@ export interface PredictStructureEsmfoldResult {
 }
 
 export interface FetchActiveSiteResult {
+  /** Raw source records retain uncertain locations, ligand details and evidence. */
+  features?: Record<string, unknown>[];
+  annotation_status?: "present" | "no_matching_features" | "error";
+  sequence_version?: number | null;
+  projection_status?: "unverified";
   accession: string;
   active_site_positions: number[];
   binding_positions: number[];
