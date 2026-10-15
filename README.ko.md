@@ -2,7 +2,7 @@
 
 **한국어** | [English](README.md)
 
-[설치](#설치) · [문서](docs/README.ko.md) · [릴리스](https://github.com/gyuminlee-repo/kuma/releases) · [설치·튜토리얼 영상](docs/kuro_install%26tutorial.mp4)
+[설치](#설치) · [사용자 가이드](https://gyuminlee-repo.github.io/kuma/) · [문서](docs/README.ko.md) · [릴리스](https://github.com/gyuminlee-repo/kuma/releases) · [설치·튜토리얼 영상](docs/kuro_install%26tutorial.mp4)
 
 [![License: GPL-2.0-or-later](https://img.shields.io/badge/license-GPL--2.0--or--later-blue)](LICENSE) [![Latest release](https://img.shields.io/github/v/release/gyuminlee-repo/kuma?color=blue)](https://github.com/gyuminlee-repo/kuma/releases) ![Platforms: Windows, macOS, Linux](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
 
