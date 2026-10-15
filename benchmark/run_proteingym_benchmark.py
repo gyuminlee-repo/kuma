@@ -5,7 +5,7 @@ across 217 DMS assays from ProteinGym.
 
 Usage
 -----
-    cd /mnt/d/_workspace/030.repos/kuro
+    cd <repository root>
     python3 benchmark/run_proteingym_benchmark.py
 
 Outputs
