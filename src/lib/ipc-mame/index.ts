@@ -109,8 +109,10 @@ export async function sendRequest<T>(
   timeoutMs = 60_000,
 ): Promise<T> {
   const validateResult = getMameRpcResultValidator(method);
-  // The host starts its deadline after cold startup and the request write.
-  // A frontend timer would charge startup against that execution budget.
+  // One deadline, owned by the host (sidecar.rs). It starts once the request is
+  // written to stdin; spawning does not wait for the ready line, so a cold
+  // Python startup still counts against it. A second, frontend timer would only
+  // race that one and reject a request whose side effects keep running.
   const result = await rawSidecarRpc<unknown>("mame", method, params, timeoutMs);
   // The sidecar answered, so it is running whatever the payload turned out to
   // be. `isSidecarRunning()` gates the reset in `src/store/mame/resetAll.ts`,
