@@ -1,3 +1,0 @@
-{"command": ["git", "-c", "http.sslBackend=openssl", "ls-remote", "https://github.com/gyuminlee-repo/kuma.git", "refs/heads/feat/strict-spatial-confidence-topn-20261012", "refs/heads/feat/variant-budget-residue-mapping-20261009"], "exit_code": 0, "cwd": "<local>", "PYTHON_BIN": "<local>\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe", "utc": "2026-10-12T09:04:59.939469+00:00"}
-0b5fb940ad9effc4eb9b9cb1f4bf96819c574efa	refs/heads/feat/strict-spatial-confidence-topn-20261012
-c857b3560f45d2c5fd132b51bfd0920c25043983	refs/heads/feat/variant-budget-residue-mapping-20261009

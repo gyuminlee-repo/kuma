@@ -1,2 +1,0 @@
-{"name": "python-focused", "command": ["<local>\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe", "-m", "pytest", "tests/test_strict_confidence_topn.py", "tests/test_strict_spatial.py", "tests/test_strict_variant_budget.py", "-v", "-p", "no:cacheprovider"], "cwd": "<local>", "exit_code": 1, "utc": "2026-10-12T09:01:04.411890+00:00"}
-<local>\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe: No module named pytest
