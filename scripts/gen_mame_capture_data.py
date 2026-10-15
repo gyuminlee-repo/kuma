@@ -226,6 +226,14 @@ def main() -> int:
 
         bundle["kuma_meta"] = sidecar.call("read_kuma_meta", {"path": str(workbook)})
         log("read_kuma_meta ok")
+
+        # Public guide input, recorded rather than invented in the browser stub.
+        bundle["measurement_detection"] = sidecar.call(
+            "mame.activity.detect_measurement_source",
+            {"measurement_path": str(ROOT / "src-tauri" / "samples" / "mame"
+                                     / "15_mame_activity_variant.csv")},
+        )
+        log("mame.activity.detect_measurement_source ok")
     finally:
         sidecar.close()
 
