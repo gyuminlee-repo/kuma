@@ -1,0 +1,23 @@
+INHERIT: mkdocs.yml
+site_name: KUMA 사용자 가이드
+site_url: https://gyuminlee-repo.github.io/kuma/ko/
+docs_dir: docs/site/ko
+site_dir: site/ko
+
+extra:
+  help_dir: docs/help/ko
+
+theme:
+  name: material
+  language: ko
+  palette:
+    - scheme: default
+      primary: indigo
+      toggle:
+        icon: material/weather-night
+        name: 다크 모드
+    - scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: 라이트 모드
