@@ -52,7 +52,7 @@
 | 판정 | 의미 |
 |---|---|
 | Pass | 관측된 아미노산 변화가 설계와 정확히 일치한다 |
-| Ambiguous | 기대 변이는 모두 일치하고 기대 위치의 indel window 안에서 아미노산 변화가 하나 더 관측됐다. 검출로 계산한다 |
+| Ambiguous | 기대 변이는 모두 일치한다. 여기에 기대 위치의 indel window 안에서 아미노산 변화가 하나 더 관측됐거나 read 의 indel 이벤트 신호가 임계값 이상이다(WT 대조군에도 붙을 수 있다). 검출로 계산한다 |
 | Mixed | well 내 오염이다. consensus 신호에 두 번째 대립유전자가 상당량 섞여 있다 |
 | Wrong AA | 기대 위치의 아미노산이 다르거나, 기대한 변이가 없거나, window 밖에 예상치 못한 변화가 있다 |
 | Frameshift | consensus 의 순 삽입 또는 결실 길이가 3 의 배수가 아니어서 reading frame 이 어긋났다 |

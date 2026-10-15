@@ -12,8 +12,9 @@ MinKNOW run 폴더 하나가 들어가 웰별 판정으로 나오기까지 MAME 
 - 전체 웰을 합친 `final/consensus_all_dna.fasta`.
 - 화면의 판정표와 plate 그림.
 - 선정 클론 pick 목록 `..._picks.csv`. 실행이 자동으로 쓴다.
+- Excel 워크북. 실행에 지정한 출력 경로에 쓴다.
 
-Excel 워크북과 로봇 매핑 시트(`..._janus.csv`)는 자동으로 나오지 않는다. Excel 은 실행이 끝난 뒤 "Excel 내보내기" 로 저장하고 매핑 시트는 step 3 에서 내보낸다.
+로봇 매핑 시트(`..._janus.csv`)는 자동으로 나오지 않는다. step 3 에서 내보낸다.
 
 ## 거치는 단계
 
