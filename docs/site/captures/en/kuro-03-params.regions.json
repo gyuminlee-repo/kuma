@@ -1,0 +1,46 @@
+[
+  {
+    "label": "1",
+    "ref": "`Strategy:`",
+    "role_or_testid": "#design-strategy-select",
+    "bbox": [
+      0.23958333333333334,
+      0.5453645833333334,
+      0.39305555555555555,
+      0.035555555555555556
+    ]
+  },
+  {
+    "label": "2",
+    "ref": "`Polymerase:`",
+    "role_or_testid": "#polymerase-select",
+    "bbox": [
+      0.23958333333333334,
+      0.6186979166666666,
+      0.39305555555555555,
+      0.035555555555555556
+    ]
+  },
+  {
+    "label": "3",
+    "ref": "`Design count:`",
+    "role_or_testid": "main role=spinbutton first",
+    "bbox": [
+      0.23958333333333334,
+      0.7075868055555555,
+      0.05555555555555555,
+      0.035555555555555556
+    ]
+  },
+  {
+    "label": "4",
+    "ref": "`Advanced options`",
+    "role_or_testid": "role=button[name=\"Advanced options\"]",
+    "bbox": [
+      0.15069444444444444,
+      0.7564756944444444,
+      0.09180772569444444,
+      0.028888888888888888
+    ]
+  }
+]
