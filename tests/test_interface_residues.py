@@ -1,6 +1,6 @@
 """Deterministic unit tests for KURO dimer interface-residue computation.
 
-All fixtures are real downloads/extractions (no synthetic data):
+Structural baseline fixtures are real downloads/extractions:
   - 3N0G.pdb            : RCSB crystal structure of isoprene synthase.
   - Q9AR86.fasta        : UniProt P. canescens IspS (595aa, the 3N0G accession).
   - Q9AR86_mature.fasta : residues 38-595 of the same UniProt entry (558aa),
@@ -14,7 +14,10 @@ ref_seq frame it is {385,389,395,396,397,399,400,475,476,477}.
 
 from __future__ import annotations
 
+import io
+import json
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -141,3 +144,130 @@ def test_hydrogen_excluded(pdb_3n0g):
     got = compute_interface_residues(pdb_3n0g + probe, "A", "B")
     assert _PROBE_RESSEQ not in got
     assert got == base
+
+
+def _mock_sifts_responses(
+    author_numbers=(5, 6, 7), *, second_chain_start=101,
+    insertion_code="", unp_end=103, include_ligand=False,
+):
+    mappings = {
+        "1abc": {"UniProt": {"P12345": {"mappings": [
+            {
+                "chain_id": chain,
+                "struct_asym_id": chain,
+                "unp_start": 101 if chain == "A" else second_chain_start,
+                "unp_end": unp_end if chain == "A" else second_chain_start + 2,
+                "start": {"residue_number": 1},
+                "end": {"residue_number": 3},
+            }
+            for chain in ("A", "B")
+        ]}}}
+    }
+    listing = {"1abc": {"molecules": [{"chains": [
+        {"chain_id": chain, "struct_asym_id": chain, "residues": [
+            {
+                "residue_number": i,
+                "author_residue_number": author,
+                "author_insertion_code": insertion_code,
+            }
+            for i, author in enumerate(author_numbers, 1)
+        ]}
+        for chain in ("A", "B")
+    ]}]}}
+    if include_ligand:
+        listing["1abc"]["molecules"].append({"chains": [{
+            "chain_id": "A", "struct_asym_id": "C", "residues": [{
+                "residue_number": 1, "author_residue_number": 999,
+                "author_insertion_code": "",
+            }],
+        }]})
+
+    def urlopen(request, **_kwargs):
+        if "/mappings/" in request.full_url:
+            return io.BytesIO(json.dumps(mappings).encode())
+        if "/residue_listing/" in request.full_url:
+            return io.BytesIO(json.dumps(listing).encode())
+        if "/download/" in request.full_url:
+            pdb = "".join(
+                f"ATOM  {i:5d}  CA  GLY {chain}{author:4d}    "
+                f"{x:8.3f}{0.0:8.3f}{0.0:8.3f}  1.00  0.00           C\n"
+                for i, (chain, author, x) in enumerate(
+                    [("A", 5, 0.0), ("B", 5, 1.0),
+                     ("A", 6, 20.0), ("B", 6, 21.0),
+                     ("A", 7, 40.0), ("B", 7, 41.0)], 1
+                )
+            )
+            return io.BytesIO(pdb.encode())
+        raise AssertionError(f"Unexpected request: {request.full_url}")
+
+    return urlopen
+
+
+def test_interface_maps_offset_author_numbers_to_uniprot():
+    from sidecar_kuro.handlers import external
+
+    with patch.object(external, "_select_pdb_id", return_value="1abc"), \
+         patch.object(external.urllib.request, "urlopen", side_effect=_mock_sifts_responses()), \
+         patch.object(external, "_fetch_oligomeric_state", return_value="dimeric"):
+        result = external.handle_fetch_interface_residues({"accession": "P12345"})
+
+    assert result["interface_positions"] == [101, 102, 103]
+    assert result["source"] == "crystal_contact"
+
+
+def test_sifts_uses_individual_author_numbers_across_discontinuity():
+    from sidecar_kuro.handlers import external
+
+    with patch.object(external.urllib.request, "urlopen",
+                      side_effect=_mock_sifts_responses((5, 20, 7))):
+        chains, mappings = external._fetch_sifts_chains("1abc", "P12345")
+
+    assert chains == ["A", "B"]
+    assert mappings == {
+        "A": {5: 101, 20: 102, 7: 103},
+        "B": {5: 101, 20: 102, 7: 103},
+    }
+
+
+def test_sifts_protein_mapping_survives_ligand_with_same_author_chain():
+    from sidecar_kuro.handlers import external
+
+    with patch.object(external.urllib.request, "urlopen",
+                      side_effect=_mock_sifts_responses(include_ligand=True)):
+        _, mappings = external._fetch_sifts_chains("1abc", "P12345")
+
+    assert mappings["A"] == {5: 101, 6: 102, 7: 103}
+
+
+def test_interface_keeps_chain_specific_mapping_before_union():
+    from sidecar_kuro.handlers import external
+
+    sequence = "A" * 203
+    with patch.object(external, "_select_pdb_id", return_value="1abc"), \
+         patch.object(external.urllib.request, "urlopen",
+                      side_effect=_mock_sifts_responses(second_chain_start=201)), \
+         patch.object(external, "_fetch_accession_seq", return_value=sequence), \
+         patch.object(external, "_fetch_oligomeric_state", return_value="dimeric"):
+        result = external.handle_fetch_interface_residues({
+            "accession": "P12345", "ref_seq": sequence,
+        })
+
+    assert result["interface_positions"] == [101, 102, 103, 201, 202, 203]
+
+
+@pytest.mark.parametrize("unsupported", [
+    {"insertion_code": "A"},
+    {"unp_end": 104},
+    {"author_numbers": (5, 5, 7)},
+])
+def test_interface_rejects_unrepresentable_sifts_mapping(unsupported):
+    from sidecar_kuro.handlers import external
+
+    with patch.object(external, "_select_pdb_id", return_value="1abc"), \
+         patch.object(external.urllib.request, "urlopen",
+                      side_effect=_mock_sifts_responses(**unsupported)):
+        result = external.handle_fetch_interface_residues({"accession": "P12345"})
+
+    assert result["interface_positions"] == []
+    assert result["source"] == "error"
+    assert result["error"]

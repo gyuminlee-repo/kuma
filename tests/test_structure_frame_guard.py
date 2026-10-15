@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 _PROJECT_ROOT = Path(__file__).parent.parent
 _SIDECAR_DIR = _PROJECT_ROOT / "python-core"
 if str(_SIDECAR_DIR) not in sys.path:
@@ -102,6 +104,38 @@ class TestHandlerGuard:
 
         assert captured["ca_coords"] is fake_coords
         assert result["structure_frame_mismatch"] is False
+
+    @pytest.mark.parametrize("handler", ["selection", "benchmark"])
+    def test_n_terminal_tag_coordinates_are_reindexed(self, handler, tmp_path) -> None:
+        from sidecar_kuro.handlers import misc as _misc
+
+        tag = "MHHHHHH"
+        coords = [None] + [
+            (float(i * i), 0.0, 0.0) for i in range(1, len(tag + _REF) + 1)
+        ]
+        expected = [None] + coords[len(tag) + 1:]
+        csv = tmp_path / "df.csv"
+        csv.write_text("variant,y_pred\nK2G,0.9\n")
+        with patch.object(_misc, "_get_cached_ca_coords", return_value=coords), \
+             patch.object(_misc, "_get_cached_ca_seq", return_value=tag + _REF), \
+             patch.object(_misc, "_validate_filepath", return_value=csv), \
+             patch.object(_misc, "load_evolvepro_csv", return_value={}) as select, \
+             patch("kuma_core.kuro.benchmark.run_benchmark", return_value={}) as bench:
+            if handler == "selection":
+                result = _misc.handle_load_evolvepro_csv(self._base_params())
+                passed_coords = select.call_args.kwargs["ca_coords"]
+            else:
+                result = _misc.handle_run_benchmark({
+                    "landscape": [{"variant": "K2G", "fitness": 0.9}],
+                    "ground_truth": {"K2G": 0.9},
+                    "structure_accession": "P12345",
+                    "ref_seq": _REF,
+                })
+                passed_coords = bench.call_args.kwargs["ca_coords"]
+
+        assert passed_coords == expected
+        assert result["structure_frame_mismatch"] is False
+        assert coords[1] != expected[1]
 
 
 class TestBenchmarkFrameGuard:
