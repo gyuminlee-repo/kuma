@@ -173,7 +173,10 @@ def test_demux_rerun_replaces_previous_wells(tmp_path: Path, use_cutadapt: bool)
     # Then only C's well is counted and published; A and the partial are gone,
     # and files that are not demux outputs are left alone.
     assert second.per_well_counts == {"1_3": 1}
-    assert not (output_dir / "1_1.fasta").exists()
+    # cutadapt may leave an empty file for an adapter it did not match, which
+    # downstream counting ignores; what must not survive is A's record.
+    stale = output_dir / "1_1.fasta"
+    assert not stale.exists() or ">" not in stale.read_text()
     assert not (output_dir / "2_2.fasta.tmp").exists()
     assert (output_dir / "1_3.fasta").exists()
     assert (output_dir / "notes.txt").read_text() == "kept"
