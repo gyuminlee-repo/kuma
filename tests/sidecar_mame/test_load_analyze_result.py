@@ -133,7 +133,13 @@ def test_restored_workbook_keeps_original_meta_rows(tmp_path, depth, n_fraction)
     with closing(openpyxl.load_workbook(original)) as before, closing(openpyxl.load_workbook(restored)) as after:
         rows_before = list(before["__kuma_meta__"].values)
         rows_after = list(after["__kuma_meta__"].values)
-    assert rows_after == rows_before
+    # generated_at is the export clock, so two exports a second apart differ there
+    # by design; every row the restore is responsible for must match exactly.
+    def without_clock(rows):
+        return [row for row in rows if row[0] != "generated_at"]
+
+    assert [row[0] for row in rows_after].count("generated_at") == 1
+    assert without_clock(rows_after) == without_clock(rows_before)
     assert get_state().last_run_meta == meta
     assert get_state().last_barcode_prefix_note == note
     assert get_state().last_analysis_conditions == conditions
