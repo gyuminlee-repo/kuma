@@ -150,6 +150,31 @@ def test_demux_python_counts(fastq_dir: Path, tmp_path: Path) -> None:
     assert result.per_well_counts == {"1_1": 3, "1_2": 3, "1_3": 3}
 
 
+def test_demux_python_refuses_output_reuse(tmp_path: Path) -> None:
+    # Given run A already owns a FASTA in the destination.
+    fastq_dir = tmp_path / "fastq"
+    output_dir = tmp_path / "out"
+    seq_a = BARCODES["1_1"] + "ACGT"
+    _make_fastq(fastq_dir / "reads.fastq", [("A", seq_a, "I" * len(seq_a))])
+    first = demux_native_barcode(
+        fastq_dir, BARCODES, output_dir, use_cutadapt=False,
+    )
+    assert first.per_well_counts == {"1_1": 1}
+    original = (output_dir / "1_1.fasta").read_bytes()
+    seq_c = BARCODES["1_3"] + "ACGT"
+    _make_fastq(fastq_dir / "reads.fastq", [("C", seq_c, "I" * len(seq_c))])
+
+    # When run C tries to reuse that directory, refuse before writing anything.
+    with pytest.raises(ValueError, match="non-empty output directory"):
+        demux_native_barcode(
+            fastq_dir, BARCODES, output_dir, use_cutadapt=False,
+        )
+
+    # Then no mixed-generation output is published and A is left intact.
+    assert (output_dir / "1_1.fasta").read_bytes() == original
+    assert sorted(path.name for path in output_dir.iterdir()) == ["1_1.fasta"]
+
+
 def test_demux_python_fasta_files_created(fastq_dir: Path, tmp_path: Path) -> None:
     """Each assigned barcode produces a FASTA file."""
     output_dir = tmp_path / "demux_out"

@@ -460,6 +460,13 @@ def _demux_python(
         When True, write ``>{well_name}`` as the FASTA header for every read
         in the well file instead of the original ONT UUID.
     """
+    # This legacy backend cannot distinguish stale well files from this run.
+    # Refuse reuse rather than publish a mixture that downstream FASTA scans
+    # would count as current evidence.
+    output_dir.mkdir(parents=True, exist_ok=True)
+    if any(output_dir.iterdir()):
+        raise ValueError(f"Cannot demux into non-empty output directory: {output_dir}")
+
     # Precompute max allowed mismatches per barcode.
     max_mm: dict[str, int] = {
         name: math.ceil(len(seq) * error_tolerance)
@@ -480,8 +487,6 @@ def _demux_python(
     # than a truncated final FASTA that a consumer would treat as complete.
     writers: dict[str, object] = {}
     tmp_paths: dict[str, Path] = {}
-    output_dir.mkdir(parents=True, exist_ok=True)
-
     n_input = 0
     n_assigned = 0
     n_unassigned = 0
