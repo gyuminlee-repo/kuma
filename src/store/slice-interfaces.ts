@@ -26,6 +26,7 @@ import type {
   DomainStrategy,
   EvolveproPreview,
   EvolveproStepStats,
+  StrictSpatialResult,
   FailedMutation,
   FetchActiveSiteResult,
   FetchPdbTextResult,
@@ -187,6 +188,10 @@ export interface DiversitySlice {
   uniprotSearching: boolean;
   structuralDiversityEnabled: boolean;
   structuralKappa: number;
+  /** Session-only opt-in; restored workspaces require an explicit new selection. */
+  strictSpatialEnabled: boolean;
+  strictSpatialSelection: { result: StrictSpatialResult; contextKey: string } | null;
+  strictSpatialError: string | null;
   refDomains: DomainInfo[];
   refDomainsLoading: boolean;
   refDomainHash: string;
@@ -224,6 +229,7 @@ export interface DiversitySlice {
   cancelDiversityReload: () => void;
   setStructuralDiversityEnabled: (enabled: boolean) => void;
   setStructuralKappa: (v: number) => void;
+  setStrictSpatialEnabled: (enabled: boolean) => void;
   /** Fetch PDB text for a given UniProt accession. Results are cached per accession. */
   fetchPdbText: (accession: string) => Promise<FetchPdbTextResult | null>;
   /** Fetch active-site and binding-site residues for a given UniProt accession. */

@@ -705,8 +705,14 @@ export interface FetchActiveSiteParams {
 export interface FetchActiveSiteResult {
   accession: string;
   active_site_positions?: number[];
+  annotation_status?: string;
   binding_positions?: number[];
+  features?: {
+    [k: string]: unknown;
+  }[];
   has_annotation?: boolean;
+  projection_status?: string;
+  sequence_version?: number | null;
   source?: string;
   [k: string]: unknown;
 }
@@ -819,6 +825,7 @@ export interface LoadEvolveproParams {
   score_column?: string | null;
   score_order?: "desc" | "asc";
   sheet_name?: string | null;
+  strict_spatial?: boolean;
   structural_diversity?: boolean;
   structural_kappa?: number;
   structure_accession?: string | null;

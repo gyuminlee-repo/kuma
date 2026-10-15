@@ -490,7 +490,40 @@ export interface EvolveproStepStats {
   start_codon_removed_variants?: string[] | null;
 }
 
+/** Verified single-site selection and the exact structure used to select it. */
+export interface StrictSpatialResult {
+  schema_version: 1;
+  source_accession: string;
+  source_sha256: string;
+  reference_sha256: string;
+  candidate_sha256: string;
+  score_order: "asc" | "desc";
+  score_available: boolean;
+  pdb_text: string;
+  coordinate_frame: "reference";
+  selection_policy: "single-site-full-pool-fps-v1";
+  selected_variants: string[];
+  selected_positions: number[];
+  mapping: Array<{
+    reference_position: number;
+    structure_position: number;
+    chain_id: string;
+    insertion_code: string;
+    coordinate: [number, number, number];
+  }>;
+  eligible_positions: number[];
+  excluded: Array<{ variant: string; reason: string }>;
+  requested_count: number;
+  eligible_site_count: number;
+  source_row_count: number;
+  parsed_variant_count: number;
+  parsing_omitted_count: number;
+  start_position_omitted_count: number;
+  duplicate_variant_omitted_count: number;
+}
+
 export interface EvolveproLoadResult {
+  strict_spatial?: StrictSpatialResult;
   variants: string[];
   y_preds: number[];
   total_count: number;
@@ -962,6 +995,11 @@ export interface PredictStructureEsmfoldResult {
 }
 
 export interface FetchActiveSiteResult {
+  /** Raw source records retain uncertain locations, ligand details and evidence. */
+  features?: Record<string, unknown>[];
+  annotation_status?: "present" | "no_matching_features" | "error";
+  sequence_version?: number | null;
+  projection_status?: "unverified";
   accession: string;
   active_site_positions: number[];
   binding_positions: number[];

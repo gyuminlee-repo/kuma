@@ -552,6 +552,7 @@ def load_evolvepro_csv(
     structural_diversity: bool = False,
     structural_kappa: float = 0.0,
     anchor_variants: Sequence[str] = (),
+    strict_spatial_context: dict | None = None,
 ) -> dict:
     """Load EVOLVEpro df_test.csv and return selected variants.
 
@@ -580,7 +581,7 @@ def load_evolvepro_csv(
         filtered_count, domain_stats, pareto_replaced.
     """
     ext = Path(str(filepath)).suffix.lower()
-    _, source_columns = _read_table_rows(filepath, sheet_name, ext)
+    source_rows, source_columns = _read_table_rows(filepath, sheet_name, ext)
     used_variant_column, used_score_column = _resolve_evolvepro_columns(
         source_columns,
         variant_column,
@@ -594,6 +595,21 @@ def load_evolvepro_csv(
         score_order=score_order,
         sheet_name=sheet_name,
     )
+    parsed_variant_count = len(raw_rows)
+    if strict_spatial_context is not None:
+        strict_spatial_context = {**strict_spatial_context, "score_available": bool(
+            used_score_column and any(
+                row.get(used_score_column) is not None and str(row.get(used_score_column)).strip()
+                for row in source_rows
+            )
+        )}
+        if top_n <= 0:
+            raise ValueError("Strict spatial selection requires a positive explicit count")
+        duplicate_scores: dict[str, float] = {}
+        for variant, score, _ in raw_rows:
+            if variant in duplicate_scores and duplicate_scores[variant] != score:
+                raise ValueError("Conflicting duplicate variant scores in strict spatial input")
+            duplicate_scores[variant] = score
     # Remove start-codon variants (position 1) before any downstream logic.
     # Substituting the initiator Met abolishes translation; this is a biological
     # constant, not a configurable filter.
@@ -612,6 +628,7 @@ def load_evolvepro_csv(
         _seen_variants.add(_row[0])
         _unique_rows.append(_row)
     raw_rows = _unique_rows
+    duplicate_variant_count = len(_seen_variants)  # unique parser output after position-one filtering
     # Build (variant, sort_score) pairs for all downstream filters/selectors.
     # raw_map keeps the original score for the final response yPredMap.
     score_rows: list[tuple[str, float]] = [(v, s) for v, s, _ in raw_rows]
@@ -656,14 +673,22 @@ def load_evolvepro_csv(
 
     # Position diversity filter (with Grantham tie-break)
     pre_filter_count = len(rows)
-    if max_per_position > 0:
+    if max_per_position > 0 and strict_spatial_context is None:
         rows = _position_filter_with_tiebreak(rows, max_per_position)
 
     domain_info = domains or []
     domain_stats = None
     pareto_replaced = 0
 
-    if structural_diversity:
+    strict_report = None
+    if strict_spatial_context is not None:
+        from kuma_core.kuro.strict_spatial import select_single_sites
+
+        selected, strict_report = select_single_sites(
+            rows, ref_seq, strict_spatial_context, top_n,
+            [dict(r) for r in excluded_ranges] if excluded_ranges else None,
+        )
+    elif structural_diversity:
         # Structure-aware diversity (full pool + revealed-anchor + 3D Ca-centroid
         # maximin + kappa fitness blend). Beats Top-N only conditionally -- in the
         # early/low-data rounds of epistatic combinatorial campaigns; neutral-to-harmful
@@ -733,7 +758,7 @@ def load_evolvepro_csv(
         for v in ordered if v in keep
     ]
 
-    return {
+    result = {
         "variants": [v for v, _ in selected],
         "y_preds": [round(raw_map[v], 4) for v, _ in selected],
         "total_count": pre_filter_count,
@@ -755,6 +780,16 @@ def load_evolvepro_csv(
         },
         "ranked_candidates": ranked_candidates,
     }
+    if strict_report is not None:
+        strict_report.update({
+            "source_row_count": len(source_rows),
+            "parsed_variant_count": parsed_variant_count,
+            "parsing_omitted_count": len(source_rows) - parsed_variant_count,
+            "start_position_omitted_count": start_codon_removed,
+            "duplicate_variant_omitted_count": parsed_variant_count - start_codon_removed - duplicate_variant_count,
+        })
+        result["strict_spatial"] = strict_report
+    return result
 
 
 def domain_aware_select(

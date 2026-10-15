@@ -815,6 +815,11 @@ class FetchActiveSiteResult(BaseModel):
     binding_positions: list[int] = Field(default_factory=list)
     source: str = ""
     has_annotation: bool = False
+    # Source-frame records are explanatory, never selector weights.
+    features: list[dict] = Field(default_factory=list)
+    annotation_status: str = "unknown"
+    sequence_version: Optional[int] = None
+    projection_status: str = "unverified"
 
 
 class NullHistogram(BaseModel):
@@ -955,6 +960,7 @@ class LoadEvolveproParams(BaseModel):
     # Structure-aware diversity selector (validated 'kuro_ca' recipe): full pool +
     # revealed-anchor + 3D Ca-centroid maximin + kappa fitness blend. Off by default.
     structural_diversity: bool = False
+    strict_spatial: bool = False
     structural_kappa: float = Field(default=0.0, ge=0.0, le=1.0)
     anchor_variants: list[str] = Field(default_factory=list)
 

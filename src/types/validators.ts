@@ -543,6 +543,33 @@ function isEvolveproStepStats(value: unknown): boolean {
   );
 }
 
+function isStrictSpatialResult(value: unknown): boolean {
+  const positiveInteger = (item: unknown) => isNumber(item) && Number.isInteger(item) && item > 0;
+  return isRecord(value) && value.schema_version === 1
+    && isString(value.source_accession) && isString(value.source_sha256)
+    && isString(value.reference_sha256) && isString(value.candidate_sha256)
+    && (value.score_order === "asc" || value.score_order === "desc")
+    && isBoolean(value.score_available) && isString(value.pdb_text)
+    && value.coordinate_frame === "reference"
+    && value.selection_policy === "single-site-full-pool-fps-v1"
+    && isStringArray(value.selected_variants)
+    && isArrayOf(value.selected_positions, positiveInteger)
+    && isArrayOf(value.eligible_positions, positiveInteger)
+    && isNumber(value.source_row_count) && isNumber(value.parsed_variant_count)
+    && isNumber(value.parsing_omitted_count) && isNumber(value.start_position_omitted_count)
+    && isNumber(value.duplicate_variant_omitted_count)
+    && positiveInteger(value.requested_count) && positiveInteger(value.eligible_site_count)
+    && value.requested_count === value.selected_variants.length
+    && value.selected_positions.length === value.selected_variants.length
+    && new Set(value.selected_variants).size === value.selected_variants.length
+    && new Set(value.selected_positions).size === value.selected_positions.length
+    && isArrayOf(value.excluded, (row) => isRecord(row) && isString(row.variant) && isString(row.reason))
+    && isArrayOf(value.mapping, (row) => isRecord(row)
+      && positiveInteger(row.reference_position) && isNumber(row.structure_position)
+      && isString(row.chain_id) && isString(row.insertion_code)
+      && isNumberArray(row.coordinate) && row.coordinate.length === 3);
+}
+
 function isEvolveproLoadResult(value: unknown): value is EvolveproLoadResult {
   return (
     isRecord(value) &&
@@ -556,7 +583,8 @@ function isEvolveproLoadResult(value: unknown): value is EvolveproLoadResult {
     isOptionalNullable(value.pool_variants, isStringArray) &&
     isOptionalNullable(value.used_variant_column, isString) &&
     isOptionalNullable(value.used_score_column, isString) &&
-    isOptionalNullable(value.step_stats, isEvolveproStepStats)
+    isOptionalNullable(value.step_stats, isEvolveproStepStats) &&
+    isOptional(value.strict_spatial, isStrictSpatialResult)
   );
 }
 
@@ -1073,7 +1101,11 @@ function isFetchActiveSiteResult(value: unknown): value is FetchActiveSiteResult
     isNumberArray(value.active_site_positions) &&
     isNumberArray(value.binding_positions) &&
     isString(value.source) &&
-    isBoolean(value.has_annotation)
+    isBoolean(value.has_annotation) &&
+    isOptional(value.features, (items) => isArrayOf(items, isRecord)) &&
+    isOptional(value.annotation_status, (item) => item === "present" || item === "no_matching_features" || item === "error") &&
+    isOptionalNullable(value.sequence_version, isNumber) &&
+    isOptional(value.projection_status, (item) => item === "unverified")
   );
 }
 function isNullHistogram(value: unknown): boolean {

@@ -6,6 +6,7 @@ import { sendRequest } from "../../lib/ipc-kuro";
 import { formatError } from "../../lib/utils";
 import { buildKuroDesignInputPatch } from "../../lib/kuroResultReset";
 import { clampMaxPrimers } from "../../lib/inputThresholds";
+import { isStrictSpatialMode, sameVariantIds, strictSpatialContextKey } from "../../lib/strictSpatial";
 import { resizeEvolveproSelection } from "../../lib/evolveproSelection";
 import type { AppState } from "../types";
 import type { Round } from "../../types/round";
@@ -84,6 +85,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         maxPrimers,
         structuralDiversityEnabled,
         structuralKappa,
+        strictSpatialEnabled,
       } = get();
       const effectiveTopN = topNOverride ?? maxPrimers;
       const selectionDomains = resolveSelectionDomains(refDomains);
@@ -105,6 +107,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       set({
         statusMessage: `Loading ${modeLabel} file...`,
         evolveproCsvPath: filepath,
+        strictSpatialSelection: null,
+        strictSpatialError: null,
       });
 
       // §3 Input Guards: column header validation now delegated entirely to
@@ -151,10 +155,32 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           refSeq,
           structuralDiversityEnabled,
           structuralKappa,
+          strictSpatialEnabled,
           anchorVariants,
         });
+      const strictMode = usePipeline && structuralDiversityEnabled && strictSpatialEnabled;
+      const contextKey = strictSpatialContextKey(get());
+      if (strictMode) {
+        if (!refSeq || !(get().structureAccession || get().uniprotAccession)
+          || (get().structureAccession || get().uniprotAccession).startsWith("file:")) {
+          throw new Error(i18next.t("strictSpatial.unsupported"));
+        }
+        const allowed = await get().requireNetworkConsent("alphafold");
+        if (!allowed) throw new Error(i18next.t("strictSpatial.permission"));
+      }
       const result = await sendRequest("load_evolvepro_csv", params);
       if (gen !== csvLoadGeneration) return;
+      if (Boolean(strictMode) !== isStrictSpatialMode(get())) return;
+      if (strictMode && (contextKey !== strictSpatialContextKey(get()) || !isStrictSpatialMode(get()))) return;
+      if (strictMode && (!result.strict_spatial
+        || !sameVariantIds(result.strict_spatial.selected_variants, result.variants)
+        || result.strict_spatial.source_accession !== String(params.structure_accession).trim().toUpperCase()
+        || result.strict_spatial.score_order !== evolveproScoreOrder
+        || result.strict_spatial.requested_count !== effectiveTopN
+        || result.variants.length !== effectiveTopN
+        || result.y_preds.length !== result.variants.length)) {
+        throw new Error(i18next.t("strictSpatial.invalidResponse"));
+      }
       const update = buildEvolveproLoadStateUpdate({
         result,
         currentMode: get().mutationInputMode,
@@ -170,6 +196,9 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         }
       }
       const inputPatch: Partial<AppState> = {
+        strictSpatialSelection: strictMode && result.strict_spatial
+          ? { result: result.strict_spatial, contextKey } : null,
+        strictSpatialError: null,
         mutationText: update.mutationText,
         mutationInputMode: "evolvepro",
         yPredMap: update.yPredMap,
@@ -179,7 +208,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         evolveproFilteredCount: update.evolveproFilteredCount,
         evolveproParetoExchanges: update.evolveproParetoExchanges,
         evolveproStepStats: update.evolveproStepStats,
-        structure3dState: update.structure3dState,
+        structure3dState: strictMode ? "active" : update.structure3dState,
         evolveproRankedCandidates: result.ranked_candidates ?? [],
         // Initialize selection directly from result.variants (pipeline source-of-truth).
         // ranked_candidates is guaranteed to contain all selected variants (backend invariant:
@@ -190,7 +219,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         // keeping the load-time set there is what froze Run Design at the
         // count the CSV was first loaded with.
         evolveproSelectedVariants:
-          preserveSelection && get().evolveproSelectionManual
+          strictMode ? result.variants : preserveSelection && get().evolveproSelectionManual
             ? get().evolveproSelectedVariants
             : preserveSelection
               ? resizeEvolveproSelection(
@@ -199,7 +228,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
                   get().maxPrimers,
                 )
               : result.variants ?? [],
-        evolveproSelectionManual: preserveSelection ? get().evolveproSelectionManual : false,
+        evolveproSelectionManual: !strictMode && preserveSelection ? get().evolveproSelectionManual : false,
         evolveproUsedVariantColumn: result.used_variant_column ?? null,
         evolveproUsedScoreColumn: result.used_score_column ?? null,
       };
@@ -212,6 +241,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     } catch (err) {
       if (gen === csvLoadGeneration) {
         set({
+          strictSpatialSelection: null,
+          strictSpatialError: isStrictSpatialMode(get()) ? formatError(err) : null,
           mutationText: "",
           evolveproTotalCount: 0,
           evolveproFilteredCount: null,
@@ -239,7 +270,9 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     // the already-loaded file so the backend re-applies the correct pipeline.
     const path = get().evolveproCsvPath;
     if (path) {
-      void get().loadEvolveproCsv(path);
+      void get().loadEvolveproCsv(path).catch(() => {
+        // The input slice retains the failure, including strict capacity errors.
+      });
     }
   },
   setEvolveproVariantColumn: (col) => set(buildKuroDesignInputPatch(get(), { evolveproVariantColumn: col, evolveproUsedVariantColumn: null })),
@@ -250,6 +283,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   setEvolveproCsvUserPicked: (picked) => set({ evolveproCsvUserPicked: picked }),
 
   setEvolveproVariantSelected: (variant, selected) => {
+    if (isStrictSpatialMode(get())) return;
     const current = get().evolveproSelectedVariants;
     if (selected) {
       if (!current.includes(variant)) {

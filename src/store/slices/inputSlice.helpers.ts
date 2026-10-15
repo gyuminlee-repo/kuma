@@ -45,6 +45,7 @@ export interface EvolveproLoadConfig {
   refSeq: string;
   structuralDiversityEnabled: boolean;
   structuralKappa: number;
+  strictSpatialEnabled?: boolean;
   /**
    * Cumulative already-explored variant IDs (internal notation, e.g. `F89W`)
    * for structural-diversity revealed-anchor maximin. Empty = no anchor
@@ -103,6 +104,18 @@ export function buildEvolveproLoadParams(config: EvolveproLoadConfig): Record<st
     structuralKappa,
     anchorVariants,
   } = config;
+
+  if (usePipeline && structuralDiversityEnabled && config.strictSpatialEnabled) {
+    // The opt-in method owns its full-pool eligibility and selection. Legacy
+    // quotas, Pareto shortlists, anchors and kappa must not narrow its pool.
+    return {
+      filepath, top_n: topN, ref_seq: refSeq, structure_accession: structureAccession,
+      score_order: evolveproScoreOrder, strict_spatial: true, structural_diversity: true,
+      ...(evolveproVariantColumn && { variant_column: evolveproVariantColumn }),
+      ...(evolveproScoreColumn && { score_column: evolveproScoreColumn }),
+      ...(evolveproSheetName && { sheet_name: evolveproSheetName }),
+    };
+  }
 
   const params: Record<string, unknown> = {
     filepath,

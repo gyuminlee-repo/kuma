@@ -265,3 +265,22 @@ describe("buildEvolveproLoadStateUpdate: a missing prediction is not a fitness",
     expect(update.yPredMap).toEqual({ B2C: 0, A1V: 0.8 });
   });
 });
+
+describe("strict spatial opt-in requests", () => {
+  it("sends a full-pool request without legacy weighting or narrowing", () => {
+    const params = buildEvolveproLoadParams(makeConfig({
+      structuralDiversityEnabled: true, strictSpatialEnabled: true,
+      paretoDiversityEnabled: true, positionDiversityEnabled: true, domainDiversityEnabled: true,
+      anchorVariants: ["F89W"], activeDomains: [{ id: "D1", db: "test", name: "domain", start: 2, end: 30 }],
+      structureAccession: "P12345", refSeq: "MAAAA",
+    }));
+    expect(params).toMatchObject({ strict_spatial: true, structural_diversity: true, structure_accession: "P12345", ref_seq: "MAAAA" });
+    for (const key of ["structural_kappa", "anchor_variants", "max_per_position", "domain_diversity", "pareto_diversity", "pool_multiplier"]) {
+      expect(params).not.toHaveProperty(key);
+    }
+  });
+  it("leaves legacy and Top-N requests unchanged unless both opt-ins are active", () => {
+    expect(buildEvolveproLoadParams(makeConfig({ strictSpatialEnabled: true }))).not.toHaveProperty("strict_spatial");
+    expect(buildEvolveproLoadParams(makeConfig({ strictSpatialEnabled: true, structuralDiversityEnabled: true, usePipeline: false }))).not.toHaveProperty("strict_spatial");
+  });
+});
