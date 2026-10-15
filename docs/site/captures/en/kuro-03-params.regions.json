@@ -34,7 +34,7 @@
   },
   {
     "label": "4",
-    "ref": "Expand `Advanced options`",
+    "ref": "`Advanced options`",
     "role_or_testid": "role=button[name=\"Advanced options\"]",
     "bbox": [
       0.15069444444444444,

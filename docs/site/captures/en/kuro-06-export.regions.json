@@ -1,7 +1,7 @@
 [
   {
     "label": "1",
-    "ref": "`Export name` sets the folder name",
+    "ref": "`Export name`",
     "role_or_testid": "#project-name",
     "bbox": [
       0.15833333333333333,
@@ -23,7 +23,7 @@
   },
   {
     "label": "3",
-    "ref": "and `Reverse primer plate name`",
+    "ref": "`Reverse primer plate name`",
     "role_or_testid": "#rvs-plate",
     "bbox": [
       0.15833333333333333,

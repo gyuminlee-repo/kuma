@@ -1,7 +1,7 @@
 [
   {
     "label": "1",
-    "ref": "Click `Run Design`.",
+    "ref": "`Run Design`",
     "role_or_testid": "role=region[name=\"Run Design\"] role=button",
     "bbox": [
       0.33611111111111114,

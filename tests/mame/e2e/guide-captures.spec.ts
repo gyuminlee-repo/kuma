@@ -5,14 +5,17 @@ import { expect, openWorkspace, test } from "./browser-fixture";
 
 const root = resolve(process.cwd());
 const samples = "src-tauri/samples";
-const mame: { readonly inputs: {
+type MameRecording = { readonly inputs: {
   readonly run_dir: string;
   readonly barcodes: string;
   readonly expected: string;
   readonly reference: string;
   readonly output_dir: string;
-} } =
-  JSON.parse(readFileSync(resolve(root, "scripts/mame-real-data.json"), "utf8"));
+} };
+
+// This file regenerates the tracked guide figures' inputs (docs/site/captures),
+// so it runs only on request, never as part of the regular MAME e2e suite.
+test.skip(!process.env.KUMA_GUIDE_CAPTURE, "Set KUMA_GUIDE_CAPTURE=1 to regenerate the user-guide captures");
 
 test.use({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
 
@@ -31,6 +34,8 @@ async function answer(page: Page, path: string, kind: "open" | "save" = "open") 
 for (const locale of ["en", "ko"] as const) {
   test(`public guide captures ${locale}`, async ({ page }, testInfo) => {
     test.setTimeout(300_000);
+    const mame: MameRecording =
+      JSON.parse(readFileSync(resolve(root, "scripts/mame-real-data.json"), "utf8"));
     const strings: unknown = JSON.parse(readFileSync(resolve(root, `src/locales/${locale}.json`), "utf8"));
     const t = (key: string): string => {
       const value = key.split(".").reduce<unknown>((node, part) => {
@@ -125,9 +130,9 @@ for (const locale of ["en", "ko"] as const) {
     await expect(main.getByText(/pSampleKURO_EGFP/)).toBeVisible();
     await expect(main.getByRole("button", { name: t("phaseE.wizard.next"), exact: true })).toBeEnabled();
     await capture("kuro-01-load", [
-      named(main.getByRole("button", { name: t("sequenceInput.browse"), exact: true }), `role=button[name="${t("sequenceInput.browse")}"]`, "Press `Browse`", "`찾아보기` 를 누르거나"),
-      named(main.getByRole("combobox").filter({ has: page.locator('option[value="60"]') }), 'role=combobox[has option[value="60"]]', "Pick the target CDS under `Target Gene`", "`타겟 유전자` 에서 설계 대상 CDS 를 고른다."),
-      named(main.getByRole("combobox").filter({ has: page.locator('option[value="ecoli"]') }), 'role=combobox[has option[value="ecoli"]]', "Check `Organism`", "`생물체` 에서 코돈 사용 빈도표를 확인한다."),
+      named(main.getByRole("button", { name: t("sequenceInput.browse"), exact: true }), `role=button[name="${t("sequenceInput.browse")}"]`, "`Browse`", "`찾아보기`"),
+      named(main.getByRole("combobox").filter({ has: page.locator('option[value="60"]') }), 'role=combobox[has option[value="60"]]', "`Target Gene`", "`타겟 유전자`"),
+      named(main.getByRole("combobox").filter({ has: page.locator('option[value="ecoli"]') }), 'role=combobox[has option[value="ecoli"]]', "`Organism`", "`생물체`"),
     ]);
     await next();
     await browseKuro(`${samples}/sample_evolvepro.csv`, "Browse");
@@ -137,10 +142,10 @@ for (const locale of ["en", "ko"] as const) {
     await expect(round).toHaveCount(0);
     await expect(main.getByText("sample_evolvepro.csv", { exact: true })).toBeVisible();
     await capture("kuro-02-mutation", [
-      named(main.getByRole("button", { name: "Browse", exact: true }), 'role=button[name="Browse"]', "Press `Browse` and pick the prediction file.", "`Browse` 로 예측 파일을 고른다."),
-      named(main.getByRole("spinbutton", { name: t("mutationInput.roundNumberAriaLabel") }), `role=spinbutton[name="${t("mutationInput.roundNumberAriaLabel")}"]`, "Check `Round` and `Size` under `Campaign round`.", "`캠페인 라운드` 에서 `라운드` 번호와 `크기` 를 확인한다."),
-      named(main.getByRole("combobox", { name: t("mutationInput.othersVariantColumn"), exact: true }), `role=combobox[name="${t("mutationInput.othersVariantColumn")}"]`, "Confirm `Mutation column`", "`Mutation column` 과 `Ranking column` 이 제대로 잡혔는지 본다."),
-      named(main.getByRole("combobox", { name: t("mutationInput.othersScoreColumn"), exact: true }), `role=combobox[name="${t("mutationInput.othersScoreColumn")}"]`, "and `Ranking column` under `Column mapping`.", "`Column 매핑` 에서"),
+      named(main.getByRole("button", { name: "Browse", exact: true }), 'role=button[name="Browse"]', "`Browse` (prediction file)", "`Browse` (예측 파일)"),
+      named(main.getByRole("spinbutton", { name: t("mutationInput.roundNumberAriaLabel") }), `role=spinbutton[name="${t("mutationInput.roundNumberAriaLabel")}"]`, "`Round` and `Size` under `Campaign round`", "`캠페인 라운드` 의 `라운드` 와 `크기`"),
+      named(main.getByRole("combobox", { name: t("mutationInput.othersVariantColumn"), exact: true }), `role=combobox[name="${t("mutationInput.othersVariantColumn")}"]`, "`Mutation column`", "`Mutation column`"),
+      named(main.getByRole("combobox", { name: t("mutationInput.othersScoreColumn"), exact: true }), `role=combobox[name="${t("mutationInput.othersScoreColumn")}"]`, "`Ranking column`", "`Ranking column`"),
     ]);
     await next();
     await main.getByRole("spinbutton").first().fill("24");
@@ -149,21 +154,21 @@ for (const locale of ["en", "ko"] as const) {
       named(main.locator("#design-strategy-select"), "#design-strategy-select", "`Strategy:`", "`전략:`"),
       named(main.locator("#polymerase-select"), "#polymerase-select", "`Polymerase:`", "`중합효소:`"),
       named(main.getByRole("spinbutton").first(), "main role=spinbutton first", "`Design count:`", "`설계 후보 수:`"),
-      named(main.getByRole("button", { name: t("parameterPanel.advancedToggleShow"), exact: true }), `role=button[name="${t("parameterPanel.advancedToggleShow")}"]`, "Expand `Advanced options`", "`고급 옵션` 을 펼치면"),
+      named(main.getByRole("button", { name: t("parameterPanel.advancedToggleShow"), exact: true }), `role=button[name="${t("parameterPanel.advancedToggleShow")}"]`, "`Advanced options`", "`고급 옵션`"),
     ]);
     await next();
     const run = main.getByRole("region", { name: t("phaseC.run.primary"), exact: true })
       .getByRole("button", { name: t("phaseC.run.primary"), exact: true });
     await capture("kuro-04-submit", [
-      named(run, `role=region[name="${t("phaseC.run.primary")}"] role=button`, "Click `Run Design`.", "`설계 실행` 을 누른다."),
+      named(run, `role=region[name="${t("phaseC.run.primary")}"] role=button`, "`Run Design`", "`설계 실행`"),
     ]);
     await run.click();
     await expect(page.getByRole("alertdialog")).toBeVisible();
     await page.getByRole("alertdialog").getByRole("button").last().click();
     await expect(page.getByTestId("output-primer-panel")).toBeVisible();
     await capture("kuro-05-output", [
-      named(page.getByTestId("output-primer-panel"), 'testid=output-primer-panel', "The left side holds a statistics line, the result table", "왼쪽은 통계 한 줄과 결과 표"),
-      named(page.getByTestId("output-plate-panel"), 'testid=output-plate-panel', "The right side holds the plate map.", "오른쪽은 플레이트 맵이다."),
+      named(page.getByTestId("output-primer-panel"), 'testid=output-primer-panel', "Statistics line and result table", "통계 한 줄과 결과 표"),
+      named(page.getByTestId("output-plate-panel"), 'testid=output-plate-panel', "Plate map", "플레이트 맵"),
     ]);
     await next();
     await main.locator("#project-name").fill("Synthetic_EGFP");
@@ -171,10 +176,10 @@ for (const locale of ["en", "ko"] as const) {
     await main.locator("#rvs-plate").fill("EGFP_REV");
     await main.locator("#project-name").evaluate((el) => el.scrollIntoView({ block: "start" }));
     await capture("kuro-06-export", [
-      named(main.locator("#project-name"), "#project-name", "`Export name` sets the folder name", "`내보내기 이름`, 폴더 이름과 파일 앞머리가 된다."),
+      named(main.locator("#project-name"), "#project-name", "`Export name`", "`내보내기 이름`"),
       named(main.locator("#fwd-plate"), "#fwd-plate", "`Forward primer plate name`", "`Forward 프라이머 플레이트 이름`"),
-      named(main.locator("#rvs-plate"), "#rvs-plate", "and `Reverse primer plate name`", "`Reverse 프라이머 플레이트 이름`"),
-      named(main.locator("#amount"), "#amount", "Choose 0.05 or 0.2 μmole for the amount.", "합성량은 0.05 또는 0.2 μmole 중 고르고"),
+      named(main.locator("#rvs-plate"), "#rvs-plate", "`Reverse primer plate name`", "`Reverse 프라이머 플레이트 이름`"),
+      named(main.locator("#amount"), "#amount", "Amount (0.05 or 0.2 μmole)", "합성량 (0.05 또는 0.2 μmole)"),
     ]);
     await page.getByRole("tab", { name: "Mame", exact: true }).click();
     await goMame("setup.files");
@@ -183,9 +188,9 @@ for (const locale of ["en", "ko"] as const) {
     await expect(main.locator("#cds-candidate")).toBeVisible();
     await main.locator("#polymerase").scrollIntoViewIfNeeded();
     await capture("mame-01-setup", [
-      named(main.locator("#cds-candidate"), "#cds-candidate", "Check **Gene coordinates**.", "**유전자 좌표** 를 확인한다."),
-      named(main.locator("#gene-name"), "#gene-name", "enter the gene name", "유전자 이름을 넣고"),
-      named(main.locator("#polymerase"), "#polymerase", "and pick a polymerase.", "중합효소를 고른다."),
+      named(main.locator("#cds-candidate"), "#cds-candidate", "**Gene coordinates**", "**유전자 좌표**"),
+      named(main.locator("#gene-name"), "#gene-name", "Gene name", "유전자 이름"),
+      named(main.locator("#polymerase"), "#polymerase", "Polymerase", "중합효소"),
     ]);
     await goMame("analyze.inputs");
     await browseMame(mame.inputs.run_dir, "mame.inputPanel.raw_run.label");
@@ -208,17 +213,17 @@ for (const locale of ["en", "ko"] as const) {
     await goMame("analyze.review");
     await expect(main.getByText("F28A", { exact: true }).first()).toBeVisible({ timeout: 120_000 });
     await capture("mame-02-review", [
-      named(main.getByRole("table").first(), "main role=table first", "The verdict table sits on the left.", "왼쪽에 판정표"),
-      named(main.getByRole("region", { name: t("mame.plateView.expandedRegionAriaLabel"), exact: true }), `role=region[name="${t("mame.plateView.expandedRegionAriaLabel")}"]`, "The 96-well plate map", "오른쪽에 96-well 플레이트 맵"),
+      named(main.getByRole("table").first(), "main role=table first", "Verdict table", "판정표"),
+      named(main.getByRole("region", { name: t("mame.plateView.expandedRegionAriaLabel"), exact: true }), `role=region[name="${t("mame.plateView.expandedRegionAriaLabel")}"]`, "96-well plate map", "96-well 플레이트 맵"),
     ]);
     await goMame("janus.settings");
     await expect(main.getByRole("region", { name: t("mame.dialogs.janusMapping.previewHeading") })).toContainText("F28A");
     await main.getByRole("radiogroup", { name: t("mame.dialogs.janusMapping.destLayoutAriaLabel") }).evaluate((el) => el.scrollIntoView({ block: "start" }));
     await capture("mame-03-janus", [
-      named(main.getByRole("radiogroup", { name: t("mame.dialogs.janusMapping.destLayoutAriaLabel") }), `role=radiogroup[name="${t("mame.dialogs.janusMapping.destLayoutAriaLabel")}"]`, "Pick a **Destination layout**.", "**대상 배치** 를 고른다."),
-      named(main.locator("#janus-volume"), "#janus-volume", "enter Volume (µL)", "Volume (µL)"),
+      named(main.getByRole("radiogroup", { name: t("mame.dialogs.janusMapping.destLayoutAriaLabel") }), `role=radiogroup[name="${t("mame.dialogs.janusMapping.destLayoutAriaLabel")}"]`, "**Destination layout**", "**대상 배치**"),
+      named(main.locator("#janus-volume"), "#janus-volume", "Volume (µL)", "Volume (µL)"),
       named(main.locator("#janus-liquid-class"), "#janus-liquid-class", "Liquid class", "Liquid class"),
-      named(main.locator("#janus-sample-type"), "#janus-sample-type", "and the type column value.", "type 열 값을 넣는다."),
+      named(main.locator("#janus-sample-type"), "#janus-sample-type", "type column value", "type 열 값"),
     ]);
     await goMame("activity.ingest");
     await answer(page, `${samples}/mame/15_mame_activity_variant.csv`);
@@ -227,8 +232,8 @@ for (const locale of ["en", "ko"] as const) {
     }).click();
     await expect(main.locator("#bep-measurement")).toBeVisible();
     await capture("mame-04-activity", [
-      named(main.locator("#bep-measurement"), "#bep-measurement", "Choose the **Measurement file**.", "**측정 파일**을 고른다."),
-      named(main.getByRole("radiogroup", { name: t("mame.buildEvolvepro.activityScale"), exact: true }), `role=radiogroup[name="${t("mame.buildEvolvepro.activityScale")}"]`, "Activity scale selects raw or relative to WT", "활성값 스케일에서 raw 또는 WT 상대값을 고른다"),
+      named(main.locator("#bep-measurement"), "#bep-measurement", "**Measurement file**", "**측정 파일**"),
+      named(main.getByRole("radiogroup", { name: t("mame.buildEvolvepro.activityScale"), exact: true }), `role=radiogroup[name="${t("mame.buildEvolvepro.activityScale")}"]`, "Activity scale (raw or relative to WT)", "활성값 스케일 (raw 또는 WT 상대값)"),
     ]);
   });
 }

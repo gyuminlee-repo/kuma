@@ -1,7 +1,7 @@
 [
   {
     "label": "1",
-    "ref": "왼쪽은 통계 한 줄과 결과 표",
+    "ref": "통계 한 줄과 결과 표",
     "role_or_testid": "testid=output-primer-panel",
     "bbox": [
       0.14166666666666666,
@@ -12,7 +12,7 @@
   },
   {
     "label": "2",
-    "ref": "오른쪽은 플레이트 맵이다.",
+    "ref": "플레이트 맵",
     "role_or_testid": "testid=output-plate-panel",
     "bbox": [
       0.45625,

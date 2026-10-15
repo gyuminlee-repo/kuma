@@ -1,7 +1,7 @@
 [
   {
     "label": "1",
-    "ref": "**대상 배치** 를 고른다.",
+    "ref": "**대상 배치**",
     "role_or_testid": "role=radiogroup[name=\"Janus 대상 well 배치\"]",
     "bbox": [
       0.14166666666666666,
@@ -34,7 +34,7 @@
   },
   {
     "label": "4",
-    "ref": "type 열 값을 넣는다.",
+    "ref": "type 열 값",
     "role_or_testid": "#janus-sample-type",
     "bbox": [
       0.15069444444444444,

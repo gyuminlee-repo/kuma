@@ -1,7 +1,7 @@
 [
   {
     "label": "1",
-    "ref": "Check **Gene coordinates**.",
+    "ref": "**Gene coordinates**",
     "role_or_testid": "#cds-candidate",
     "bbox": [
       0.16944444444444445,
@@ -12,7 +12,7 @@
   },
   {
     "label": "2",
-    "ref": "enter the gene name",
+    "ref": "Gene name",
     "role_or_testid": "#gene-name",
     "bbox": [
       0.16944444444444445,
@@ -23,7 +23,7 @@
   },
   {
     "label": "3",
-    "ref": "and pick a polymerase.",
+    "ref": "Polymerase",
     "role_or_testid": "#polymerase",
     "bbox": [
       0.3958333333333333,

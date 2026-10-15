@@ -12,6 +12,7 @@ its title, with a caption naming each numbered mark. The figure is added here
 rather than in the help markdown so the app help panel stays text only.
 """
 
+import html
 import json
 from pathlib import Path
 
@@ -43,9 +44,15 @@ def on_page_markdown(markdown, page, config, files):
         return markdown
     root = Path(config.config_file_path).parent
     regions_file = root / "docs" / "site" / "captures" / lang / f"{stem}.regions.json"
+    if not regions_file.exists():
+        raise FileNotFoundError(f"{figure} has no regions file at {regions_file}")
     regions = json.loads(regions_file.read_text(encoding="utf-8"))
-    marks = "; ".join(f"**{r['label']}** {r['ref']}" for r in regions)
-    block = f"![{page.title}](figures/{stem}.svg)\n\n<small>{CAPTION_LEAD[lang]}: {marks}</small>\n"
+    # ref is markdown from the repo; escape HTML so it cannot open tags in the caption.
+    marks = "; ".join(
+        f"**{html.escape(str(r['label']))}** {html.escape(r['ref'], quote=False)}" for r in regions
+    )
+    lead = CAPTION_LEAD.get(lang, CAPTION_LEAD["en"])
+    block = f"![{page.title}](figures/{stem}.svg)\n\n<small>{lead}: {marks}</small>\n"
     head, sep, rest = markdown.partition("\n")
     if not head.startswith("# "):
         return f"{block}\n{markdown}"

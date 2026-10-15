@@ -1,7 +1,7 @@
 [
   {
     "label": "1",
-    "ref": "Choose the **Measurement file**.",
+    "ref": "**Measurement file**",
     "role_or_testid": "#bep-measurement",
     "bbox": [
       0.6004774305555556,
@@ -12,7 +12,7 @@
   },
   {
     "label": "2",
-    "ref": "Activity scale selects raw or relative to WT",
+    "ref": "Activity scale (raw or relative to WT)",
     "role_or_testid": "role=radiogroup[name=\"Activity scale\"]",
     "bbox": [
       0.14166666666666666,

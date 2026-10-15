@@ -1,7 +1,7 @@
 [
   {
     "label": "1",
-    "ref": "`설계 실행` 을 누른다.",
+    "ref": "`설계 실행`",
     "role_or_testid": "role=region[name=\"설계 실행\"] role=button",
     "bbox": [
       0.33611111111111114,

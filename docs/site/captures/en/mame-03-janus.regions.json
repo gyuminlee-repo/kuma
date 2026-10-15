@@ -1,7 +1,7 @@
 [
   {
     "label": "1",
-    "ref": "Pick a **Destination layout**.",
+    "ref": "**Destination layout**",
     "role_or_testid": "role=radiogroup[name=\"Janus destination well layout\"]",
     "bbox": [
       0.14166666666666666,
@@ -12,7 +12,7 @@
   },
   {
     "label": "2",
-    "ref": "enter Volume (µL)",
+    "ref": "Volume (µL)",
     "role_or_testid": "#janus-volume",
     "bbox": [
       0.15069444444444444,
@@ -34,7 +34,7 @@
   },
   {
     "label": "4",
-    "ref": "and the type column value.",
+    "ref": "type column value",
     "role_or_testid": "#janus-sample-type",
     "bbox": [
       0.15069444444444444,

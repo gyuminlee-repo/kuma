@@ -1,7 +1,7 @@
 [
   {
     "label": "1",
-    "ref": "The verdict table sits on the left.",
+    "ref": "Verdict table",
     "role_or_testid": "main role=table first",
     "bbox": [
       0.1423611111111111,
@@ -12,7 +12,7 @@
   },
   {
     "label": "2",
-    "ref": "The 96-well plate map",
+    "ref": "96-well plate map",
     "role_or_testid": "role=region[name=\"Expanded plate view\"]",
     "bbox": [
       0.45625,

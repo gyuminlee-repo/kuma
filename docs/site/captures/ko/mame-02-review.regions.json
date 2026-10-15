@@ -1,7 +1,7 @@
 [
   {
     "label": "1",
-    "ref": "왼쪽에 판정표",
+    "ref": "판정표",
     "role_or_testid": "main role=table first",
     "bbox": [
       0.1423611111111111,
@@ -12,7 +12,7 @@
   },
   {
     "label": "2",
-    "ref": "오른쪽에 96-well 플레이트 맵",
+    "ref": "96-well 플레이트 맵",
     "role_or_testid": "role=region[name=\"확대된 플레이트 보기\"]",
     "bbox": [
       0.45625,

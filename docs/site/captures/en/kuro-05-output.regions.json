@@ -1,7 +1,7 @@
 [
   {
     "label": "1",
-    "ref": "The left side holds a statistics line, the result table",
+    "ref": "Statistics line and result table",
     "role_or_testid": "testid=output-primer-panel",
     "bbox": [
       0.14166666666666666,
@@ -12,7 +12,7 @@
   },
   {
     "label": "2",
-    "ref": "The right side holds the plate map.",
+    "ref": "Plate map",
     "role_or_testid": "testid=output-plate-panel",
     "bbox": [
       0.45625,

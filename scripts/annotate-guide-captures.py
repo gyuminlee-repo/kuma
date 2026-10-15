@@ -14,7 +14,9 @@ regions file and running this script again.
 Usage: python3 scripts/annotate-guide-captures.py [--quality=80] [--max-width=1440]
 """
 
+import argparse
 import base64
+import html
 import io
 import json
 import sys
@@ -40,7 +42,7 @@ def encode(png: Path, max_w: int, quality: int) -> tuple[str, int, int]:
 def figure(png: Path, regions: list[dict], alt: str, max_w: int, quality: int) -> str:
     b64, w, h = encode(png, max_w, quality)
     out = [
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" role="img" aria-label="{alt}">',
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" role="img" aria-label="{html.escape(alt)}">',
         f'<image href="data:image/jpeg;base64,{b64}" x="0" y="0" width="{w}" height="{h}"/>',
     ]
     for region in regions:
@@ -51,7 +53,7 @@ def figure(png: Path, regions: list[dict], alt: str, max_w: int, quality: int) -
             f'<rect x="{px:.0f}" y="{py:.0f}" width="{pw:.0f}" height="{ph:.0f}" rx="8" '
             f'fill="none" stroke="{RED}" stroke-width="4"/>'
         )
-        label = str(region.get("label", ""))
+        label = html.escape(str(region.get("label", "")))
         if label:
             bx = min(max(px, 20), w - 20)
             by = min(max(py, 20), h - 20)
@@ -66,9 +68,11 @@ def figure(png: Path, regions: list[dict], alt: str, max_w: int, quality: int) -
 
 
 def main() -> int:
-    opts = dict(a[2:].split("=", 1) for a in sys.argv[1:] if a.startswith("--") and "=" in a)
-    quality = int(opts.get("quality", 80))
-    max_w = int(opts.get("max-width", 1440))
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--quality", type=int, default=80)
+    parser.add_argument("--max-width", type=int, default=1440)
+    args = parser.parse_args()
+    quality, max_w = args.quality, args.max_width
     written = 0
     for regions_file in sorted(CAPTURES.glob("*/*.regions.json")):
         lang = regions_file.parent.name

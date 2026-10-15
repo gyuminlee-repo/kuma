@@ -1,7 +1,7 @@
 [
   {
     "label": "1",
-    "ref": "Press `Browse` and pick the prediction file.",
+    "ref": "`Browse` (prediction file)",
     "role_or_testid": "role=button[name=\"Browse\"]",
     "bbox": [
       0.14166666666666666,
@@ -12,7 +12,7 @@
   },
   {
     "label": "2",
-    "ref": "Check `Round` and `Size` under `Campaign round`.",
+    "ref": "`Round` and `Size` under `Campaign round`",
     "role_or_testid": "role=spinbutton[name=\"EVOLVEpro campaign round number\"]",
     "bbox": [
       0.18021918402777778,

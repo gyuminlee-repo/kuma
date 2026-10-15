@@ -1,7 +1,7 @@
 [
   {
     "label": "1",
-    "ref": "`찾아보기` 를 누르거나",
+    "ref": "`찾아보기`",
     "role_or_testid": "role=button[name=\"찾아보기\"]",
     "bbox": [
       0.1423611111111111,
@@ -12,7 +12,7 @@
   },
   {
     "label": "2",
-    "ref": "`타겟 유전자` 에서 설계 대상 CDS 를 고른다.",
+    "ref": "`타겟 유전자`",
     "role_or_testid": "role=combobox[has option[value=\"60\"]]",
     "bbox": [
       0.14166666666666666,
@@ -23,7 +23,7 @@
   },
   {
     "label": "3",
-    "ref": "`생물체` 에서 코돈 사용 빈도표를 확인한다.",
+    "ref": "`생물체`",
     "role_or_testid": "role=combobox[has option[value=\"ecoli\"]]",
     "bbox": [
       0.14166666666666666,

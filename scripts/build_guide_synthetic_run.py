@@ -32,7 +32,8 @@ def main() -> None:
     barcode_sheet = openpyxl.load_workbook(
         samples / "04_mame_custom_barcodes.xlsx", data_only=True
     ).active
-    assert barcode_sheet is not None
+    if barcode_sheet is None:
+        raise ValueError("04_mame_custom_barcodes.xlsx has no active sheet")
     primers = {
         str(name): str(sequence).upper()
         for name, sequence in barcode_sheet.iter_rows(min_row=2, values_only=True)
@@ -50,7 +51,8 @@ def main() -> None:
             if sample in mutations:
                 mutation = mutations[sample]
                 offset = (mutation.position - 1) * 3
-                assert reference[offset:offset + 3] == mutation.wt_codon
+                if reference[offset:offset + 3] != mutation.wt_codon:
+                    raise ValueError(f"{sample}: reference codon at {mutation.position} is not {mutation.wt_codon}")
                 amplicon = reference[:offset] + mutation.mt_codon + reference[offset + 3:]
             row = "ABCDEFGH".index(well[0]) + 1
             column = int(well[1:])

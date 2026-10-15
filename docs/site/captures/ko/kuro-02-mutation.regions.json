@@ -1,7 +1,7 @@
 [
   {
     "label": "1",
-    "ref": "`Browse` 로 예측 파일을 고른다.",
+    "ref": "`Browse` (예측 파일)",
     "role_or_testid": "role=button[name=\"Browse\"]",
     "bbox": [
       0.14166666666666666,
@@ -12,7 +12,7 @@
   },
   {
     "label": "2",
-    "ref": "`캠페인 라운드` 에서 `라운드` 번호와 `크기` 를 확인한다.",
+    "ref": "`캠페인 라운드` 의 `라운드` 와 `크기`",
     "role_or_testid": "role=spinbutton[name=\"EVOLVEpro 캠페인 라운드 번호\"]",
     "bbox": [
       0.1792534722222222,
