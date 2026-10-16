@@ -1,0 +1,24 @@
+[
+  {
+    "label": "7",
+    "ref": "Per-round EVOLVEpro result xlsx files (4.2)",
+    "role_or_testid": "role=button hasText[addFiles]",
+    "bbox": [
+      0.3050130208333333,
+      0.45555555555555555,
+      0.08014322916666666,
+      0.03111111111111111
+    ]
+  },
+  {
+    "label": "8",
+    "ref": "**Run classification** (4.2)",
+    "role_or_testid": "role=button hasText[classify]",
+    "bbox": [
+      0.40737847222222223,
+      0.45555555555555555,
+      0.09453125,
+      0.03111111111111111
+    ]
+  }
+]
