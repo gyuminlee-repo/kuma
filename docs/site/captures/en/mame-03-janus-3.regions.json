@@ -1,0 +1,35 @@
+[
+  {
+    "label": "6",
+    "ref": "**Excluded**",
+    "role_or_testid": "text=excludedHeading",
+    "bbox": [
+      0.14166666666666666,
+      0.5575,
+      0.5,
+      0.02
+    ]
+  },
+  {
+    "label": "7",
+    "ref": "**Output file path**",
+    "role_or_testid": "#janus-output-path",
+    "bbox": [
+      0.14166666666666666,
+      0.6497222222222222,
+      0.4666666666666667,
+      0.04
+    ]
+  },
+  {
+    "label": "8",
+    "ref": "**Export Janus Mapping**",
+    "role_or_testid": "role=button[exportJanus]",
+    "bbox": [
+      0.5252821180555556,
+      0.7686111111111111,
+      0.11638454861111111,
+      0.03111111111111111
+    ]
+  }
+]
