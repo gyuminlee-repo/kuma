@@ -2,7 +2,7 @@
   {
     "label": "5",
     "ref": "`Selection mode`",
-    "role_or_testid": "text=selectionMode/..",
+    "role_or_testid": "testid=selection-mode",
     "bbox": [
       0.14166666666666666,
       0.6003645833333333,

@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { Locator, Page } from "@playwright/test";
 import { expect, openWorkspace, test } from "./browser-fixture";
@@ -82,18 +82,28 @@ for (const locale of ["en", "ko"] as const) {
       await expect(page.locator("body")).not.toContainText("errorBoundary.");
       // A stale capture recording shows up as a rejected reply, not a crash.
       await expect(page.locator("body")).not.toContainText("Invalid RPC result shape");
-      const state = shotsOf.get(slug) ?? { shots: 0, labels: 0 };
       const out = resolve(root, "docs/site/captures", locale);
       mkdirSync(out, { recursive: true });
+      if (!shotsOf.has(slug)) {
+        // A page that now needs fewer shots must not keep the extra ones from an
+        // earlier run: the site would publish them with clashing numbers.
+        const extra = new RegExp(`^${slug}-\\d+\\.(png|regions\\.json)$`);
+        for (const name of readdirSync(out)) if (extra.test(name)) rmSync(resolve(out, name));
+      }
+      const state = shotsOf.get(slug) ?? { shots: 0, labels: 0 };
       let pending = [...targets];
       while (pending.length > 0) {
         for (const target of pending) await expect(target.locator, `${slug}: ${target.selector}`).toBeVisible();
         // Lift the first unmarked control to the top of its panel so it, and as
         // many of the rest as fit, are in view for this shot.
         await pending[0].locator.evaluate((el) => {
-          // Leave room above so the label of the control stays in the shot.
+          if (!(el instanceof HTMLElement)) throw new Error("Capture target must be an HTML element");
+          // Leave room above so the label of the control stays in the shot, then
+          // put the app style back so later clicks scroll as they normally do.
+          const before = el.style.scrollMarginTop;
           el.style.scrollMarginTop = "56px";
           el.scrollIntoView({ block: "start" });
+          el.style.scrollMarginTop = before;
         });
         const regions = [];
         const later: Target[] = [];
@@ -183,7 +193,7 @@ for (const locale of ["en", "ko"] as const) {
       named(main.getByRole("spinbutton", { name: t("mutationInput.roundNumberAriaLabel") }), `role=spinbutton[name="${t("mutationInput.roundNumberAriaLabel")}"]`, "`Round` and `Size` under `Campaign round`", "`캠페인 라운드` 의 `라운드` 와 `크기`"),
       named(main.getByRole("combobox", { name: t("mutationInput.othersVariantColumn"), exact: true }), `role=combobox[name="${t("mutationInput.othersVariantColumn")}"]`, "`Mutation column`", "`Mutation column`"),
       named(main.getByRole("combobox", { name: t("mutationInput.othersScoreColumn"), exact: true }), `role=combobox[name="${t("mutationInput.othersScoreColumn")}"]`, "`Ranking column`", "`Ranking column`"),
-      named(main.getByText(t("mutationInput.selectionMode"), { exact: true }).locator("xpath=.."), "text=selectionMode/..", "`Selection mode`", "`선택 방식`"),
+      named(main.getByTestId("selection-mode"), "testid=selection-mode", "`Selection mode`", "`선택 방식`"),
       named(main.getByRole("table").filter({ has: page.getByRole("checkbox") }).first(), "role=table has checkbox", "Candidate table", "후보 표"),
     ]);
     await next();
@@ -223,7 +233,7 @@ for (const locale of ["en", "ko"] as const) {
       named(main.getByRole("radiogroup", { name: t("phaseC.export.all.quadrantLabel") }), `role=radiogroup[name="${t("phaseC.export.all.quadrantLabel")}"]`, "`Echo source plate quadrant`", "`Echo 소스 플레이트 사분면`"),
       named(main.locator("#janus-vol"), "#janus-vol", "`JANUS transfer volume`", "`JANUS 이송 부피`"),
       named(main.getByRole("button", { name: t("phaseC.export.all.runExport"), exact: true }), `role=button[name="${t("phaseC.export.all.runExport")}"]`, "`Export all`", "`전체 내보내기`"),
-      named(main.getByText(t("exportPreview.title"), { exact: true }).locator("xpath=ancestor::*[contains(concat(' ', normalize-space(@class), ' '), ' border ')][1]"), "card containing exportPreview.title", "Echo and JANUS mapping preview", "Echo·JANUS 매핑 미리보기"),
+      named(main.getByTestId("export-plate-preview"), "testid=export-plate-preview", "Echo and JANUS mapping preview", "Echo·JANUS 매핑 미리보기"),
       named(main.getByRole("region", { name: t("phaseC.subSteps.export.summary"), exact: true }), `role=region[name="${t("phaseC.subSteps.export.summary")}"]`, "`Order summary`", "`주문 요약`"),
     ]);
     await page.getByRole("tab", { name: "Mame", exact: true }).click();
@@ -279,7 +289,7 @@ for (const locale of ["en", "ko"] as const) {
       named(main.locator("#janus-liquid-class"), "#janus-liquid-class", "Liquid class", "Liquid class"),
       named(main.locator("#janus-sample-type"), "#janus-sample-type", "type column value", "type 열 값"),
       named(main.getByRole("region", { name: t("mame.dialogs.janusMapping.previewHeading") }), "role=region[previewHeading]", "**Preview**", "**미리보기**"),
-      named(main.getByText(t("mame.dialogs.janusMapping.excludedHeading").split("{{")[0].trim()).first(), "text=excludedHeading", "**Excluded**", "**제외**"),
+      named(main.getByText(new RegExp(`^${t("mame.dialogs.janusMapping.excludedHeading").split("{{count}}").map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\d+")}$`)), "text=excludedHeading", "**Excluded**", "**제외**"),
       named(main.locator("#janus-output-path"), "#janus-output-path", "**Output file path**", "**출력 파일 경로**"),
       named(main.getByRole("button", { name: t("mame.dialogs.janusMapping.exportJanus"), exact: true }), "role=button[exportJanus]", "**Export Janus Mapping**", "**Janus 매핑 내보내기**"),
     ]);

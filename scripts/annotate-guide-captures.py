@@ -19,6 +19,7 @@ import base64
 import html
 import io
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -74,15 +75,28 @@ def main() -> int:
     args = parser.parse_args()
     quality, max_w = args.quality, args.max_width
     written = 0
+    # Capture runs remove obsolete numbered inputs. Prune only their matching
+    # SVGs, never hand-authored figures or another page's captures.
+    for regions_file in CAPTURES.glob("*/*.regions.json"):
+        page = regions_file.name.removesuffix(".regions.json")
+        if re.search(r"-\d+$", page) or not regions_file.with_name(f"{page}.png").exists():
+            continue
+        figures_dir = ROOT / "docs" / "site" / regions_file.parent.name / "figures"
+        for target in figures_dir.glob(f"{page}-*.svg"):
+            if not target.stem.removeprefix(f"{page}-").isdigit():
+                continue
+            if not all((regions_file.parent / f"{target.stem}{suffix}").exists()
+                       for suffix in (".png", ".regions.json")):
+                target.unlink()
     for regions_file in sorted(CAPTURES.glob("*/*.regions.json")):
         lang = regions_file.parent.name
         page = regions_file.name.removesuffix(".regions.json")
         png = regions_file.with_name(f"{page}.png")
+        target = ROOT / "docs" / "site" / lang / "figures" / f"{page}.svg"
         if not png.exists():
             print(f"skip {lang}/{page}: no capture", file=sys.stderr)
             continue
         regions = json.loads(regions_file.read_text(encoding="utf-8"))
-        target = ROOT / "docs" / "site" / lang / "figures" / f"{page}.svg"
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(figure(png, regions, f"{page} screen", max_w, quality), encoding="utf-8")
         print(f"{lang}/{page}.svg {target.stat().st_size // 1024} KB, {len(regions)} marks")
