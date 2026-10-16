@@ -9,7 +9,6 @@ from types import SimpleNamespace
 from xml.etree import ElementTree
 
 import pytest
-from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
 SLUG = "kuro-06-export"
@@ -43,6 +42,8 @@ def test_generation_removes_only_stale_numbered_artifacts(tmp_path: Path, monkey
     # Given: two current shots, two obsolete extras, and unrelated figures.
     captures = tmp_path / "docs/site/captures/en"
     figures = tmp_path / "docs/site/en/figures"
+    # Pillow is a docs-machine dependency, not a test extra: skip only this test.
+    Image = pytest.importorskip("PIL.Image", reason="annotate script needs Pillow")
     captures.mkdir(parents=True)
     figures.mkdir(parents=True)
     for suffix, label in [("", "1"), ("-2", "2")]:
