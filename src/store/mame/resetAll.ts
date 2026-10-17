@@ -1,4 +1,8 @@
-import { BUILD_EVOLVEPRO_STORAGE_KEY } from "@/lib/mame/buildEvolveproFormStorage";
+import {
+  BUILD_EVOLVEPRO_DEFAULT_STATE,
+  BUILD_EVOLVEPRO_STORAGE_KEY,
+  saveBuildEvolveproToStorage,
+} from "@/lib/mame/buildEvolveproFormStorage";
 import { clearBarcodeSetupForm } from "@/lib/mame/barcodeSetupFormStorage";
 import i18next from "i18next";
 import { toast } from "sonner";
@@ -33,6 +37,9 @@ export async function resetMameAll(options?: { preserveWorkspaceArtifacts?: bool
   // resetEpoch makes the mounted panel reload from storage either way.
   if (!options?.preserveWorkspaceArtifacts) {
     clearBarcodeSetupForm(formProjectPath);
+    // The Activity form too. Its panel reloads from storage on a reset rather
+    // than erasing it, so the erasing happens here, for Clear All only.
+    saveBuildEvolveproToStorage(BUILD_EVOLVEPRO_DEFAULT_STATE, formProjectPath);
   }
   try {
     window.localStorage.removeItem(BUILD_EVOLVEPRO_STORAGE_KEY);
