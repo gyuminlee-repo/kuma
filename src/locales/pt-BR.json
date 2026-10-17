@@ -878,7 +878,14 @@
         "plateColumnRowOrder": "As linhas de resultado seguem a coluna da placa, como qualquer outra regra de posicionamento.",
         "barcodePlateShapeRefused": "Um arquivo de barcodes que não descreve uma placa 8 por 12 para a execução.",
         "declaredWellsOnly": "Os pocos fora da selecao nao sao mais avaliados. Antes eram comparados com toda a lista de variantes e falhavam.",
-        "declaredWellsDenominator": "A taxa de sucesso conta apenas as variantes dos pocos declarados. Antes dividia pela lista completa de variantes, de modo que uma execucao com dez pocos declarados informava 9 por cento mesmo com todas aprovadas."
+        "declaredWellsDenominator": "A taxa de sucesso conta apenas as variantes dos pocos declarados. Antes dividia pela lista completa de variantes, de modo que uma execucao com dez pocos declarados informava 9 por cento mesmo com todas aprovadas.",
+        "runMembership": "A analise le apenas as placas registradas para esta execucao e exclui saidas antigas.",
+        "explicitWellPlacement": "A classificacao segue os pocos explicitos e a posicao escolhida do tipo selvagem.",
+        "filteredDepthApplied": "A profundidade minima filtrada escolhida chega ao classificador em vez do valor implicito 30.",
+        "baseQualityApplied": "Bases de baixa qualidade sao filtradas antes de participar do consenso.",
+        "decidedDeletionEvidence": "Delecoes confirmadas nao contam mais como bases indefinidas ou mistas. A traducao reconstroi a molecula com seus indels.",
+        "deletionMajorityRequired": "Somente delecoes apoiadas por mais da metade das leituras que cobrem o local sao excluidas do filtro no-call.",
+        "inclusiveIndelBoundary": "Uma fracao de eventos indel exatamente no limiar agora e encaminhada para revisao."
       }
     },
     "janus": {

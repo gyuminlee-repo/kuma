@@ -17,7 +17,7 @@ FASTA directly.
 
 from __future__ import annotations
 
-import time
+import threading
 from pathlib import Path
 
 import openpyxl
@@ -287,13 +287,19 @@ def test_handle_analyze_progress_monotonic_with_slow_ingest(
     # module used to also import core's `_progress` and this test patched it,
     # but nothing had called it since `_emit` was introduced.
     values: list[int] = []
-    monkeypatch.setattr(
-        analyze_mod,
-        "_send",
-        lambda obj: values.append(obj["params"]["value"])
-        if obj.get("method") == "progress"
-        else None,
-    )
+    ingest_started = threading.Event()
+    heartbeat = threading.Event()
+
+    def _record(obj: dict) -> None:
+        if obj.get("method") == "progress":
+            values.append(obj["params"]["value"])
+            if (
+                ingest_started.is_set()
+                and threading.current_thread().name == "analyze-heartbeat"
+            ):
+                heartbeat.set()
+
+    monkeypatch.setattr(analyze_mod, "_send", _record)
 
     # Make the FIRST ingest (dist_stats, before any milestone past 10) slow so
     # the heartbeat fires while the holder should still read the ingest phase.
@@ -304,7 +310,8 @@ def test_handle_analyze_progress_monotonic_with_slow_ingest(
     real_route_ingest = ingest_mod.route_ingest
 
     def _slow_route_ingest(*args, **kwargs):
-        time.sleep(0.12)  # several heartbeat beats during the ingest phase
+        ingest_started.set()
+        assert heartbeat.wait(timeout=5), "heartbeat did not emit during ingest"
         return real_route_ingest(*args, **kwargs)
 
     monkeypatch.setattr(ingest_mod, "route_ingest", _slow_route_ingest)
@@ -324,7 +331,7 @@ def test_handle_analyze_progress_monotonic_with_slow_ingest(
     # The merged emitted value sequence must be non-decreasing: a heartbeat
     # during the slow ingest must not surface a value ahead of the next
     # milestone (which would make the bar jump 10 -> 60 -> 30).
-    assert values, "expected progress emissions"
+    assert heartbeat.is_set(), "expected a heartbeat during ingest"
     assert values == sorted(values), (
         f"progress values must be non-decreasing; got {values}"
     )

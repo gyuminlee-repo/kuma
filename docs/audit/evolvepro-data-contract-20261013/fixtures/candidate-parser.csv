@@ -1,0 +1,9 @@
+source_row,variant,y_pred,y_actual,y_actual_scaled,y_actual_binary,dist_metric,std_predictions
+0,2V,9.876543,,,,,
+1,A2V,8.0,,,,,
+2,D4N,6.0,,,,,
+3,C3S,,,,,,
+4,E5Q,NaN,,,,,
+5,M1A,100.0,,,,,
+6,,4.0,,,,,
+7,C3S,0.0,,,,,

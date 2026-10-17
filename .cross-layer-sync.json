@@ -562,6 +562,10 @@
       "files": [
         "python-core/sidecar_mame/dispatcher.py",
         "python-core/sidecar_mame/handlers/load.py",
+        "python-core/sidecar_mame/handlers/analyze.py",
+        "python-core/sidecar_mame/core.py",
+        "src/lib/mame/resultSnapshot.ts",
+        "src/hooks/useAutosaveHydration.ts",
         "src/types/mame/models.ts"
       ],
       "symbols": [
@@ -572,7 +576,7 @@
         "LoadAnalyzeResultRequest",
         "LoadAnalyzeResultResponse"
       ],
-      "note": "load_analyze_result RPC: dispatcher 등록 <-> Pydantic params <-> handler. Frontend resultSnapshot.ts persists analyze response AS-IS (replicates[].plate_verdicts) and replays it here on restart; LoadAnalyzeResultParams mirrors analyze.py serializers, co-evolution risk if deserializers drift.",
+      "note": "load_analyze_result RPC: dispatcher 등록 <-> Pydantic params <-> handler. resultSnapshot.ts persists analyze response AS-IS including run_meta, barcode_prefix_note and analysis_conditions; hydration replays them into SidecarState for lossless workbook provenance. LoadAnalyzeResultParams mirrors analyze.py serializers.",
       "severity": "blocking"
     },
     {

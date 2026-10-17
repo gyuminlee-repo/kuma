@@ -599,10 +599,37 @@ export interface DemuxResume {
   recomputed_units: number;
 }
 
+/**
+ * The conditions an analyze run was executed under, as the sidecar serialises
+ * `AnalysisConditions` (`kuma_core/mame/export/analysis_meta.py`). Written to
+ * the workbook `__kuma_meta__` sheet and replayed on restore.
+ */
+export interface AnalysisConditions {
+  reference_file: string;
+  reference_length: number;
+  reference_sha256: string;
+  cds_start: number;
+  cds_end: number;
+  mode: string;
+  ingest_mode: string;
+  min_read_count: number | null;
+  max_consensus_n_fraction: number | null;
+  min_file_size_kb: number;
+  many_cutoff: number;
+}
+
 export interface AnalyzeResult extends AnalyzeYield {
   verdicts: VerdictRecord[];
   replicates: ReplicateResult[];
   output_path: string;
+  /**
+   * Export provenance the restore path replays so a workbook re-exported after
+   * a restart keeps its `__kuma_meta__` rows. Optional because a result
+   * persisted before these fields existed is replayed verbatim.
+   */
+  run_meta?: Record<string, unknown> | null;
+  barcode_prefix_note?: string | null;
+  analysis_conditions?: AnalysisConditions | null;
   summary: AnalyzeSummary;
   distribution_stats: DistributionStats;
   /**
@@ -699,6 +726,8 @@ export interface LoadAnalyzeResultRequest {
   replicates: ReplicateResult[];
   output_path: string;
   run_meta?: Record<string, unknown> | null;
+  barcode_prefix_note?: string | null;
+  analysis_conditions?: AnalysisConditions | null;
   /**
    * The recovery denominator, replayed so a restored run can report recovery
    * (재현율) instead of n/a. Unlike the three fields below this one IS stored

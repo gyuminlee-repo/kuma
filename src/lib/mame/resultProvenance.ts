@@ -54,14 +54,35 @@ export function compareVersions(left: number[], right: number[]): number {
  * judged by behaviour. Only when neither can be established is the origin
  * unknown, and unknown is treated as suspect.
  */
+/**
+ * The last value the revision table held before it fell behind. Releases
+ * 0.16.25.1 through 0.16.73 changed what a run produces seven times but kept
+ * stamping 7, so a stamp of 7 only says "at least revision 7". For those
+ * snapshots the recorded version is the better witness of what the producer
+ * implemented; every other stamp was written while the table was current.
+ */
+const FROZEN_STAMP = 7;
+
+/** The stamped contract, corrected for the builds that froze it at 7. */
+function stampedContract(
+  contract: number | null | undefined,
+  recorded: string | null | undefined,
+): number | null {
+  if (typeof contract !== "number" || !Number.isInteger(contract)) return null;
+  if (contract !== FROZEN_STAMP) return contract;
+  const fromVersion = revisionForVersion(recorded);
+  return fromVersion !== null && fromVersion > contract ? fromVersion : contract;
+}
+
 export function classifyResultVersion(
   recorded: string | null | undefined,
   current: string,
   contract?: number | null,
 ): ResultVersionRelation {
-  if (typeof contract === "number" && Number.isInteger(contract)) {
-    if (contract === RESULT_CONTRACT) return "same";
-    return contract < RESULT_CONTRACT ? "older" : "newer";
+  const stamped = stampedContract(contract, recorded);
+  if (stamped !== null) {
+    if (stamped === RESULT_CONTRACT) return "same";
+    return stamped < RESULT_CONTRACT ? "older" : "newer";
   }
   if (typeof recorded !== "string") return "unknown";
   // An exact version match settles it before any parsing: a build string is not
@@ -120,10 +141,7 @@ export function provenanceFor(
 ): RestoredResultProvenance | null {
   const relation = classifyResultVersion(version, current, contract);
   if (relation === "same") return null;
-  const resolved =
-    typeof contract === "number" && Number.isInteger(contract)
-      ? contract
-      : revisionForVersion(version);
+  const resolved = stampedContract(contract, version) ?? revisionForVersion(version);
   // Same reason as in `classifyResultVersion`: the changes being demanded are
   // the ones between the saved revision and what this build produces.
   const target = RESULT_CONTRACT;

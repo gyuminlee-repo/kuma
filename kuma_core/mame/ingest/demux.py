@@ -437,6 +437,20 @@ def _trim_rev_primer(
     return seq
 
 
+def _clear_previous_wells(output_dir: Path) -> None:
+    """Remove well FASTAs a previous demux left in this directory.
+
+    A run publishes only the wells it assigned reads to, and downstream scans
+    count every ``*.fasta`` in the directory. Without this, re-running a unit
+    into its old directory would mix the previous generation's wells into the
+    new counts. Only FASTA outputs directly inside the directory are touched,
+    so a unit that is re-run after an interruption simply starts over.
+    """
+    for path in output_dir.iterdir():
+        if path.is_file() and (path.name.endswith(".fasta") or path.name.endswith(".fasta.tmp")):
+            path.unlink()
+
+
 def _demux_python(
     fastq_files: list[Path],
     custom_barcodes: dict[str, str],
@@ -460,6 +474,9 @@ def _demux_python(
         When True, write ``>{well_name}`` as the FASTA header for every read
         in the well file instead of the original ONT UUID.
     """
+    output_dir.mkdir(parents=True, exist_ok=True)
+    _clear_previous_wells(output_dir)
+
     # Precompute max allowed mismatches per barcode.
     max_mm: dict[str, int] = {
         name: math.ceil(len(seq) * error_tolerance)
@@ -480,8 +497,6 @@ def _demux_python(
     # than a truncated final FASTA that a consumer would treat as complete.
     writers: dict[str, object] = {}
     tmp_paths: dict[str, Path] = {}
-    output_dir.mkdir(parents=True, exist_ok=True)
-
     n_input = 0
     n_assigned = 0
     n_unassigned = 0
@@ -670,6 +685,7 @@ def _demux_cutadapt(
     logger = _logger
 
     output_dir.mkdir(parents=True, exist_ok=True)
+    _clear_previous_wells(output_dir)
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         adapters_fasta = _build_adapters_fasta(custom_barcodes, tmp_dir)

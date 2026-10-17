@@ -333,17 +333,6 @@ CLI_KNOWN_GAP: dict[str, str] = {
     for cls, names in {
         "BarcodeRecord": (
             "consensus_n_fraction_evaluable",
-            "n_indel_event_positions",
-            "max_indel_event_fraction",
-            "min_variant_support",
-            "n_variant_positions",
-            "min_variant_support_depth",
-            "median_minor_allele_fraction",
-            "max_minor_allele_strand_share",
-            "max_minor_allele_plus_count",
-            "max_minor_allele_minus_count",
-            "n_eligible_positions",
-            "noisy_positions",
             "del_majority_positions",
             "n_del_majority_positions",
             "ins_majority_bases",
@@ -353,15 +342,7 @@ CLI_KNOWN_GAP: dict[str, str] = {
             "n_no_call_deletion_majority",
             "n_no_call_ambiguous",
             "n_no_call_no_majority",
-            "depth_cv",
-            "depth_p10",
-            "depth_min_covered",
-            "breadth_at_mix_min_depth",
-            "consensus_identity",
         ),
-        "TranslatedRecord": ("n_no_call_aa",),
-        "VerdictRecord": ("mutant_id",),
-        "ReplicateResult": ("is_fallback", "fallback_reason"),
     }.items()
     for name in names
 }

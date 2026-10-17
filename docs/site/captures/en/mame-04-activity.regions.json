@@ -1,0 +1,35 @@
+[
+  {
+    "label": "1",
+    "ref": "**Measurement file**",
+    "role_or_testid": "row containing #bep-measurement",
+    "bbox": [
+      0.14166666666666666,
+      0.4675,
+      0.5,
+      0.03111111111111111
+    ]
+  },
+  {
+    "label": "2",
+    "ref": "Activity scale (raw or relative to WT)",
+    "role_or_testid": "role=radiogroup[name=\"Activity scale\"]",
+    "bbox": [
+      0.14166666666666666,
+      0.5819444444444445,
+      0.5,
+      0.03111111111111111
+    ]
+  },
+  {
+    "label": "3",
+    "ref": "**Optional confirmation**",
+    "role_or_testid": "role=radiogroup[confirmationSourceLabel]",
+    "bbox": [
+      0.14166666666666666,
+      0.7408333333333333,
+      0.5,
+      0.03111111111111111
+    ]
+  }
+]

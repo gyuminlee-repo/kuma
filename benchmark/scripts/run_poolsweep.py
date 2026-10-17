@@ -1,8 +1,11 @@
-import subprocess, os, time
-ROOT="/mnt/d/_workspace/cc/kuma"; B=ROOT+"/benchmark"
-DMS=B+"/data/DMS_substitutions/DMS_ProteinGym_substitutions"
+import subprocess, os, sys, time
+from pathlib import Path
+
+ROOT=str(Path(__file__).resolve().parents[2]); B=ROOT+"/benchmark"
+# Override external data and interpreter locations through the environment.
+DMS=os.environ.get("KUMA_BENCHMARK_DMS_DIR", B+"/data/DMS_substitutions/DMS_ProteinGym_substitutions")
 OUT=B+"/results/qa/kuro_real/poolsweep"; os.makedirs(OUT,exist_ok=True)
-LOG=B+"/results/qa/kuro_real/poolsweep.log"; PY=B+"/.venv-al/bin/python"
+LOG=B+"/results/qa/kuro_real/poolsweep.log"; PY=os.environ.get("KUMA_BENCHMARK_PYTHON", sys.executable)
 ENV=dict(os.environ); ENV["PYTHONPATH"]=ROOT
 REPS=[("F7YBW8_MESOW_Aakre_2015","F7YBW8"),("RASK_HUMAN_Weng_2022_abundance","P01116"),("A4_HUMAN_Seuma_2022","P05067")]
 POOLS=[1000,2000]

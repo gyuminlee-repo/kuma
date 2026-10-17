@@ -1767,6 +1767,9 @@ async function restoreMameResult(
     verdicts: result.verdicts,
     replicates: result.replicates,
     output_path: result.output_path,
+    run_meta: result.run_meta ?? null,
+    barcode_prefix_note: result.barcode_prefix_note ?? null,
+    analysis_conditions: result.analysis_conditions ?? null,
     // The recovery denominator. Without it the sidecar stores None and
     // build_run_health reports recovery_rate / total_mutants /
     // recovered_mutants as n/a on every restart, even though the persisted

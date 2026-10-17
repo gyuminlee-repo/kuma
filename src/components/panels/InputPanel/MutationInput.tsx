@@ -277,7 +277,7 @@ export function MutationInput() {
           <SourceColumnPanel />
 
           {/* Selection mode radiogroup */}
-          <div className="space-y-1">
+          <div className="space-y-1" data-testid="selection-mode">
             <div className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
               {t("mutationInput.selectionMode")}
             </div>

@@ -1,0 +1,24 @@
+[
+  {
+    "label": "6",
+    "ref": "**Output location**",
+    "role_or_testid": "section-output-loc",
+    "bbox": [
+      0.16944444444444445,
+      0.5597222222222222,
+      0.4444444444444444,
+      0.15555555555555556
+    ]
+  },
+  {
+    "label": "7",
+    "ref": "**Generate Barcode Package**",
+    "role_or_testid": "role=button[generateBarcodePackage]",
+    "bbox": [
+      0.16944444444444445,
+      0.7419444444444444,
+      0.4444444444444444,
+      0.04
+    ]
+  }
+]

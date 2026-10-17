@@ -96,6 +96,18 @@ describe("revisionForVersion", () => {
     expect(revisionForVersion("0.16.25")).toBe(7);
   });
 
+  it.each([
+    ["0.16.25.1", 8],
+    ["0.16.32", 9],
+    ["0.16.38", 10],
+    ["0.16.56", 11],
+    ["0.16.60", 12],
+    ["0.16.64", 13],
+    ["0.16.65", 14],
+  ] as const)("dates the scoring change in %s to revision %i", (version, revision) => {
+    expect(revisionForVersion(version)).toBe(revision);
+  });
+
   it("reads a leading-zero segment decimally", () => {
     expect(revisionForVersion("0.15.17.02")).toBe(3);
     expect(revisionForVersion("0.15.17.03")).toBe(4);
@@ -111,7 +123,9 @@ describe("revisionForVersion", () => {
 describe("changesSince", () => {
   it("lists only what came after the given revision", () => {
     expect(changesSince(RESULT_CONTRACT)).toEqual([]);
-    expect(changesSince(4).map((entry) => entry.revision)).toEqual([5, 6, 7]);
+    expect(changesSince(4).map((entry) => entry.revision)).toEqual(
+      [5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+    );
     expect(changesSince(0)).toHaveLength(RESULT_CONTRACT_REVISIONS.length);
   });
 });

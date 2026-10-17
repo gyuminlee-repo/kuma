@@ -1,0 +1,24 @@
+[
+  {
+    "label": "1",
+    "ref": "Statistics line and result table",
+    "role_or_testid": "testid=output-primer-panel",
+    "bbox": [
+      0.14166666666666666,
+      0.5559201388888889,
+      0.30486111111111114,
+      0.2618576388888889
+    ]
+  },
+  {
+    "label": "2",
+    "ref": "Plate map",
+    "role_or_testid": "testid=output-plate-panel",
+    "bbox": [
+      0.45625,
+      0.5559201388888889,
+      0.30486111111111114,
+      0.2618576388888889
+    ]
+  }
+]

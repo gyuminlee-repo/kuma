@@ -1,0 +1,13 @@
+[
+  {
+    "label": "4",
+    "ref": "`Advanced options`",
+    "role_or_testid": "role=button[name=\"Advanced options\"]",
+    "bbox": [
+      0.15069444444444444,
+      0.7564756944444444,
+      0.09180772569444444,
+      0.028888888888888888
+    ]
+  }
+]
