@@ -1540,6 +1540,19 @@
       ],
       "note": "What the codon-table seed folder ships and what copies it into the user folder. ensure_user_codon_dir writes exactly the names in _CODON_SEED_FILES, so a seed added, renamed or removed without touching that tuple never reaches a user and nothing fails. The README states the built-in key set that cannot be replaced, which is _ORGANISM_ALIASES plus the bundled stems, so the README goes stale the moment the bundled set changes: that is how it kept listing mextorquens after the table became an installable seed. mextorquens_am1.json.txt is a finished table rather than a placeholder and keeps the .json.txt suffix so seeding it is not installing it.",
       "severity": "warning"
+    },
+    {
+      "id": "vendor-minimap2-archive-integrity",
+      "files": [
+        "python-core/scripts/vendor-minimap2.py",
+        "tests/scripts/test_vendor_integrity_audit.py"
+      ],
+      "symbols": [
+        "ARCHIVE_SHA256",
+        "BINARY_SHA256"
+      ],
+      "note": "The Linux release archive full SHA256 is pinned and checked before extraction or execution. BINARY_SHA256 pins the executable inside that archive: a vendored binary whose bytes and executable bit match it is reused without any download, and every fresh install refuses an extracted executable that differs from it, so the two digests cannot drift apart and a version change must replace both. Other platform slots are inspected but remain unverified and unexecuted by this script.",
+      "severity": "blocking"
     }
   ]
 }

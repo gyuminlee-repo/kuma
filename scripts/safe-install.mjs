@@ -48,12 +48,12 @@ function runOnce(attempt) {
       buffers.push(chunk);
     });
 
-    child.on("close", (code) => {
+    child.on("close", (code, signal) => {
       const output = Buffer.concat(buffers).toString();
       const retryable =
-        code !== 0 &&
+        signal === null && code !== 0 &&
         /EACCES|EBUSY|EPERM|ENOTEMPTY|Cannot find module/i.test(output);
-      resolve({ code, retryable, output });
+      resolve({ code: code ?? 1, signal, retryable, output });
     });
 
     child.on("error", (err) => {
@@ -122,7 +122,7 @@ async function main() {
       );
       await sleep(RETRY_DELAY_MS);
     }
-    const { code, retryable, output } = await runOnce(attempt);
+    const { code, signal, retryable, output } = await runOnce(attempt);
     lastOutput = output;
     if (code === 0) {
       console.log(`\n[safe-install] OK (attempt ${attempt}/${MAX_ATTEMPTS})`);
@@ -131,7 +131,7 @@ async function main() {
     }
     if (!retryable) {
       console.error(
-        `\n[safe-install] non-retryable failure (exit ${code}). Stopping.`,
+        `\n[safe-install] non-retryable failure (${signal ? `signal ${signal}` : `exit ${code}`}). Stopping.`,
       );
       process.exit(code);
     }
