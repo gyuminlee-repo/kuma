@@ -1,3 +1,4 @@
+import { beginKuroExport } from "../../lib/exportActivity";
 import type { EchoQuadrant, ExportArtefactKind, PlateMapping, RpcMethodResult } from "@/types/models";
 import type { RoundLabel } from "@/lib/plateRounds";
 import { open, save } from "@tauri-apps/plugin-dialog";
@@ -103,7 +104,7 @@ export async function handleSaveBenchmarkJson(data: unknown) {
     if (decision === "cancel") return;
   }
 
-  useAppStore.setState({ isExporting: true });
+  const finishExport = beginKuroExport((isExporting) => useAppStore.setState({ isExporting }));
   try {
     await sendRequest("save_json", { filepath: path, data });
     useAppStore.getState().setStatus(`Benchmark JSON saved: ${path}`);
@@ -115,7 +116,7 @@ export async function handleSaveBenchmarkJson(data: unknown) {
   } catch (err) {
     useAppStore.getState().setStatus(`Benchmark JSON save failed: ${err instanceof Error ? err.message : String(err)}`);
   } finally {
-    useAppStore.setState({ isExporting: false });
+    finishExport();
   }
 }
 
@@ -131,7 +132,7 @@ export async function handleExportBenchmarkCsv(results: Record<string, Benchmark
     if (decision === "cancel") return;
   }
 
-  useAppStore.setState({ isExporting: true });
+  const finishExport = beginKuroExport((isExporting) => useAppStore.setState({ isExporting }));
   try {
     await sendRequest("export_benchmark_csv", { filepath: path, results });
     useAppStore.getState().setStatus(`Benchmark CSV exported: ${path}`);
@@ -143,7 +144,7 @@ export async function handleExportBenchmarkCsv(results: Record<string, Benchmark
   } catch (err) {
     useAppStore.getState().setStatus(`Benchmark CSV export failed: ${err instanceof Error ? err.message : String(err)}`);
   } finally {
-    useAppStore.setState({ isExporting: false });
+    finishExport();
   }
 }
 
@@ -267,8 +268,11 @@ export async function handleExportAll(
   // has its own folder as the workspace from the moment it opened, a scratch
   // session has none (its `projectPath` is a synthetic app-data path). Only a
   // project session hands its export to MAME.
+  // The workspace this export belongs to, fixed before any await. The user can
+  // open another project while the RPC runs; its files still belong here.
+  const originWorkspace = getActiveWorkspace();
   const projectSession =
-    params.projectPath !== undefined && getActiveWorkspace() === params.projectPath;
+    params.projectPath !== undefined && originWorkspace === params.projectPath;
   // Default the picker to the project folder so exports land inside the
   // project by default, the way MAME routes its artifacts. The folder is
   // created first, otherwise the dialog silently ignores a missing defaultPath.
@@ -295,6 +299,7 @@ export async function handleExportAll(
   if (!dir || typeof dir !== "string") {
     return null;
   }
+  const finishExport = beginKuroExport((isExporting) => useAppStore.setState({ isExporting }));
   try {
     // Mirror exportExcel: pass UI-capped mappings so Export All respects
     // maxPrimers cap (frontend designResults is the source of truth, backend
@@ -370,8 +375,13 @@ export async function handleExportAll(
         .filter((a): a is NonNullable<typeof a> => a !== null);
       if (artifacts.length > 0) {
         try {
-          await ensureWorkspaceFromExportPath(joinPath(outputDir, result.success[0]));
-          await registerArtifacts(artifacts);
+          // A session without a workspace records into the export folder, the
+          // folder ensureWorkspaceFromExportPath opens (it opens nothing when
+          // another project became active meanwhile).
+          const firstFile = joinPath(outputDir, result.success[0]);
+          const registryDir = originWorkspace ?? firstFile.replace(/[\\/][^\\/]*$/, "");
+          if (originWorkspace === null) await ensureWorkspaceFromExportPath(firstFile);
+          await registerArtifacts(artifacts, registryDir);
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           toast.warning("Export saved, but not recorded in the project", {
@@ -382,7 +392,9 @@ export async function handleExportAll(
       }
     }
 
-    const platemapFile = projectSession
+    // MAME is the screen of whatever project is open now, so the plate map is
+    // handed over only if that is still the project that exported it.
+    const platemapFile = projectSession && getActiveWorkspace() === originWorkspace
       ? result.success?.find((filename) => filename.endsWith("_platemap.xlsx"))
       : undefined;
     if (platemapFile) {
@@ -452,6 +464,8 @@ export async function handleExportAll(
     const msg = err instanceof Error ? err.message : String(err);
     toast.error("Export all failed", { description: msg, duration: 8000 });
     return null;
+  } finally {
+    finishExport();
   }
 }
 

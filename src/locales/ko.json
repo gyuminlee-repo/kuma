@@ -89,6 +89,7 @@
     "updateInstalling": "설치 중…",
     "updateRelaunching": "재시작 중…",
     "updateInstallFailed": "업데이트 실패: {{message}}",
+    "updateBusy": "업데이트를 설치하기 전에 실행 중인 설계, 분석 또는 내보내기가 끝나기를 기다리거나 취소하세요.",
     "downloadAndInstall": "다운로드 및 설치",
     "installing": "설치 중...",
     "later": "나중에",
@@ -2010,6 +2011,7 @@
     "warningHashMismatch": "해시 불일치: {{paths}}",
     "warningHashUnverifiable": "기록 당시 해시를 못 떠서 대조할 수 없음: {{paths}}",
     "exportOnlyNotice": "이 manifest는 export 전용 작업으로 직접 재실행할 수 없습니다. 원본 데이터에서 다시 export 하세요.",
+    "unappliedConditions": "이 재실행은 기록된 실행의 일부만 적용합니다. 다음 기록 조건은 적용하지 않고 현재 세션의 값을 씁니다: {{keys}}. 결과가 기록된 실행과 다를 수 있습니다.",
     "btnCancel": "취소",
     "btnRerun": "재실행",
     "btnRunning": "실행 중...",
@@ -2099,6 +2101,7 @@
     "workspace": "워크스페이스",
     "scratch": "임시",
     "autosaveOn": "자동 저장 켜짐",
+    "exporting": "내보내는 중…",
     "autosaveSaving": "저장 중…",
     "autosaveSavedJustNow": "방금 저장됨",
     "autosaveSavedAgo": "{{time}}에 저장됨",
@@ -2588,6 +2591,11 @@
     "missingColumn": "필수 컬럼 누락: \"{{column}}\"{{aliasNote}}"
   },
   "toast": {
+    "designCancelledByReset": "작업 공간을 비워 실행 중이던 설계를 취소했습니다. 결과가 필요하면 설계를 다시 실행하세요.",
+    "analysisCancelledByReset": "작업 공간을 비우거나 다른 프로젝트를 열어 실행 중이던 분석을 취소했습니다. 결과가 필요하면 분석을 다시 실행하세요.",
+    "analysisCancelFailed": "작업 공간을 비운 뒤 실행 중이던 분석을 멈추지 못했습니다: {{message}}",
+    "designInputsChangedDuringRun": "설계는 끝났지만 실행 중에 입력이 바뀌었습니다. 이 결과는 시작할 때의 입력 기준입니다. 현재 입력으로 결과를 얻으려면 설계를 다시 실행하세요.",
+    "analysisInputsChangedDuringRun": "분석은 끝났지만 실행 중에 입력이 바뀌었습니다. 이 결과는 시작할 때의 입력 기준입니다. 현재 입력으로 결과를 얻으려면 분석을 다시 실행하세요.",
     "completedWithDuration": "완료 ({{duration}})"
   },
   "exportSlice": {

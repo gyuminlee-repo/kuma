@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { type RunManifest } from "@/lib/runManifest";
-import { reRunFromManifest, type InputVerifyResult } from "@/lib/reRun";
+import { reRunFromManifest, unappliedConditions, type InputVerifyResult } from "@/lib/reRun";
 
 // ── 타입 ─────────────────────────────────────────────────────────────────────
 
@@ -55,6 +55,7 @@ export function ReRunManifestDialog({
   if (!manifest) return null;
 
   const isExportOnly = EXPORT_ONLY.has(manifest.method);
+  const unapplied = unappliedConditions(manifest);
   const inputKeys = Object.keys(manifest.inputs);
   const paramKeys = Object.keys(manifest.params);
   const mismatchResult =
@@ -177,6 +178,16 @@ export function ReRunManifestDialog({
             className="rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground"
           >
             {t("reRunManifest.exportOnlyNotice")}
+          </div>
+        )}
+
+        {/* 기록됐지만 이 재실행이 적용하지 않는 조건 */}
+        {unapplied.length > 0 && (
+          <div
+            role="status"
+            className="rounded-md border border-warning/40 bg-warning/8 px-3 py-2 text-sm text-foreground"
+          >
+            {t("reRunManifest.unappliedConditions", { keys: unapplied.join(", ") })}
           </div>
         )}
 

@@ -3,6 +3,7 @@ import type { StateCreator } from "zustand";
 import { sendRequest } from "../../lib/ipc-kuro";
 import { formatError } from "../../lib/utils";
 import { buildKuroDesignInputPatch } from "../../lib/kuroResultReset";
+import { isNetworkServicePermitted } from "./networkConsentSlice";
 import type { AppState } from "../types";
 import type {
   ComputeDispersionResult,
@@ -102,10 +103,12 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     return i18next.t("diversity.consentReason");
   }
 
-  // NOTE: 호출자(searchUniprot)가 requireNetworkConsent 통과를 보장함.
-  // 이 함수를 다른 곳에서 직접 호출할 경우 consent 가드를 별도로 추가할 것.
+  // 배지 조회는 AlphaFold 서버로 가는 요청이다. UniProt 동의는 그 서비스를 허락하지
+  // 않으므로 AlphaFold 가 이미 허락돼 있을 때만 보낸다. 사용자가 요청하지 않은
+  // 부가 조회라 동의 창을 띄우지 않는다.
   async function enrichUniprotStructureFlags(searchGeneration: number, accessions: string[]) {
     if (accessions.length === 0) return;
+    if (!isNetworkServicePermitted(get(), "alphafold")) return;
     try {
       const result = await sendRequest(
         "check_structures_available",

@@ -103,6 +103,29 @@ export async function verifyInputs(manifest: RunManifest): Promise<InputVerifyRe
   return { mismatched, missing, unverifiable };
 }
 
+// ── 적용하지 않는 기록 조건 ──────────────────────────────────────────────────
+
+/** Recorded params each replay applies. Everything else comes from the open session. */
+const APPLIED_PARAMS: Readonly<Record<string, readonly string[]>> = {
+  design_sdm_primers: ["mutation_text"],
+  merge_for_evolvepro: ["round_id", "mismatch_threshold", "ref_seq"],
+};
+
+/**
+ * Recorded conditions a replay of `manifest` does not apply: every recorded
+ * param outside APPLIED_PARAMS, and the seed. The replay runs with the open
+ * session's values for these, so the dialog names them before it runs instead
+ * of letting a partial replay pass for the recorded run. Empty for a method
+ * that is not replayed.
+ */
+export function unappliedConditions(manifest: RunManifest): string[] {
+  const applied = APPLIED_PARAMS[manifest.method];
+  if (!applied) return [];
+  const keys = Object.keys(manifest.params).filter((key) => !applied.includes(key));
+  if (manifest.seed !== null && manifest.seed !== undefined) keys.push("seed");
+  return keys;
+}
+
 // ── method 별 실행 ────────────────────────────────────────────────────────────
 
 /**

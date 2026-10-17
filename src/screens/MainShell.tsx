@@ -8,7 +8,8 @@ import { pingSidecar as pingMameSidecar } from "@/lib/ipc-mame";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { GlobalAppBar, type AppTab } from "@/components/layout/GlobalAppBar";
 import { useKumaProject } from "@/state/projectContext";
-import { flushAutosave, retryAutosave, onAutosaveEvent, type AutosaveTarget, type AutosaveEvent } from "@/lib/autosave";
+import { flushAutosave, retryAutosave, onAutosaveEvent, isAutosaveEventFor, type AutosaveTarget, type AutosaveEvent } from "@/lib/autosave";
+import { registerUpdateInstallGuard } from "@/lib/updateCheck";
 import { useKuroAutosave } from "@/hooks/useKuroAutosave";
 import { useAutosaveHydration, type HydrationStatusMessage } from "@/hooks/useAutosaveHydration";
 import { Spinner } from "@/components/ui/Spinner";
@@ -206,9 +207,15 @@ export function MainShell() {
     window.dispatchEvent(new Event("kuma:return-to-home"));
   }, [cancelHydration]);
 
-  // ── autosave 이벤트 옵저버 등록
+  // ── autosave 이벤트 옵저버 등록. 이전 프로젝트에 고정된 쓰기가 전환 뒤 끝나도
+  //    이 프로젝트를 저장됨으로 표시하지 않도록 현재 프로젝트 이벤트만 받는다.
   useEffect(() => {
+    setAutosaveState("idle");
+    setAutosaveLabel(t("mainShell.autosaveOn"));
+    lastSavedAtRef.current = null;
+    errorStreakRef.current = 0;
     const unsub = onAutosaveEvent((ev: AutosaveEvent) => {
+      if (!isAutosaveEventFor(ev, project)) return;
       if (ev.type === "saving") {
         setAutosaveState("saving");
         setAutosaveLabel(t("mainShell.autosaveSaving"));
@@ -227,7 +234,7 @@ export function MainShell() {
       }
     });
     return unsub;
-  }, [showStatusMessage, t]);
+  }, [showStatusMessage, t, project]);
 
   // ── 1분 단위 상대 시간 갱신 (saved 상태 전용)
   useEffect(() => {
@@ -291,6 +298,26 @@ export function MainShell() {
       }
     }
   }, []);
+
+  // ── 업데이트 설치 가드: 같은 작업 판정으로 설치를 막고, 설치 전에 저장한다.
+  useEffect(() => {
+    const target: AutosaveTarget = {
+      projectPath: project?.path ?? null,
+      scratch: project?.scratch ?? true,
+      scratchFallback: true,
+    };
+    return registerUpdateInstallGuard({
+      busy: () => {
+        const { isDesigning, isExporting: kuroExporting } = useAppStore.getState();
+        const { isAnalyzing, isExporting: mameExporting } = useMameAppStore.getState();
+        const activityExporting = getActivityStore()?.getState().isExporting ?? false;
+        return isDesigning || isAnalyzing || kuroExporting || mameExporting || activityExporting;
+      },
+      save: async () => {
+        await Promise.all([flushAutosave(target, "kuro"), flushAutosave(target, "mame")]);
+      },
+    });
+  }, [project?.path, project?.scratch]);
 
   // ── isBusy 실시간 추적 (다이얼로그 Wait → 자동 close 용)
   useEffect(() => {

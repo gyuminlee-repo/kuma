@@ -89,6 +89,7 @@
     "updateInstalling": "Instalando…",
     "updateRelaunching": "Reiniciando…",
     "updateInstallFailed": "Falha na atualização: {{message}}",
+    "updateBusy": "Aguarde o término do desenho, da análise ou da exportação em andamento, ou cancele-o, antes de instalar a atualização.",
     "downloadAndInstall": "Baixar e instalar",
     "installing": "Instalando...",
     "later": "Mais tarde",
@@ -1968,6 +1969,7 @@
     "warningHashMismatch": "Hash mismatch: {{paths}}",
     "warningHashUnverifiable": "Registrado sem resumo criptográfico, portanto não é possível conferir com a execução: {{paths}}",
     "exportOnlyNotice": "Este manifest é uma operação somente de exportação e não pode ser re-executado diretamente. Reexportar a partir dos dados originais.",
+    "unappliedConditions": "Esta reexecução aplica apenas parte da execução registrada. Estas condições registradas não são aplicadas e os valores da sessão atual são usados no lugar: {{keys}}. O resultado pode diferir da execução registrada.",
     "btnCancel": "Cancelar",
     "btnRerun": "Re-executar",
     "btnRunning": "Executando...",
@@ -2057,6 +2059,7 @@
     "workspace": "Workspace",
     "scratch": "Scratch",
     "autosaveOn": "Salvamento automático ativo",
+    "exporting": "Exportando…",
     "autosaveSaving": "Salvando…",
     "autosaveSavedJustNow": "Salvo agora mesmo",
     "autosaveSavedAgo": "Salvo {{time}}",
@@ -2546,6 +2549,11 @@
     "missingColumn": "Coluna obrigatória ausente: \"{{column}}\"{{aliasNote}}"
   },
   "toast": {
+    "designCancelledByReset": "O desenho em andamento foi cancelado porque o espaço de trabalho foi limpo. Execute o desenho novamente para obter resultados.",
+    "analysisCancelledByReset": "A análise em andamento foi cancelada porque o espaço de trabalho foi limpo ou outro projeto foi aberto. Execute a análise novamente para obter resultados.",
+    "analysisCancelFailed": "Não foi possível interromper a análise em andamento após limpar o espaço de trabalho: {{message}}",
+    "designInputsChangedDuringRun": "O desenho terminou, mas suas entradas mudaram durante a execução. Estes resultados correspondem às entradas iniciais; execute o desenho novamente para as entradas atuais.",
+    "analysisInputsChangedDuringRun": "A análise terminou, mas suas entradas mudaram durante a execução. Estes resultados correspondem às entradas iniciais; execute a análise novamente para as entradas atuais.",
     "completedWithDuration": "Concluído ({{duration}})"
   },
   "exportSlice": {

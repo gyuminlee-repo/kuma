@@ -14,6 +14,7 @@ import {
 import { Input } from "../components/ui/input";
 import { Card, CardDescription, CardTitle } from "../components/ui/card";
 import { cn, formatError } from "../lib/utils";
+import { loadWorkspaceFile } from "../lib/workspaceFile";
 import {
   createProject,
   deleteProjectFolder,
@@ -52,9 +53,11 @@ type HomeProps = {
   onOpenProject: (path: string, options?: { newlyCreated?: boolean }) => void;
   onOpenScratch: (kuroJsonPath: string) => void;
   onOpenSettings: () => void;
+  /** Shown on arrival, e.g. why the workspace file that was open could not be restored. */
+  initialError?: string;
 };
 
-export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps) {
+export function Home({ onOpenProject, onOpenScratch, onOpenSettings, initialError = "" }: HomeProps) {
   const { i18n } = useTranslation();
   // First screen is always English regardless of the selected app locale.
   const t = useMemo(() => i18n.getFixedT("en"), [i18n]);
@@ -62,7 +65,7 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(initialError);
   const [pendingDelete, setPendingDelete] = useState<RecentProject | null>(null);
   const [deleteStage, setDeleteStage] = useState<DeleteStage>("choice");
   // Guards the delete actions while a request is in flight: trashing a large
@@ -208,6 +211,9 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
       }
 
       if (selected.endsWith(".kuro.json")) {
+        // Read it here first: a file that cannot be restored is refused with the
+        // error on this screen, before a session opens on it and saves over it.
+        await loadWorkspaceFile(selected);
         onOpenScratch(selected);
         return;
       }

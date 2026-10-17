@@ -336,6 +336,62 @@ describe("useAutosaveHydration: analyze-result restore", () => {
     });
   });
 
+  // Changing an analyze input clears the results, but the result file stays on
+  // disk. A newer input snapshot with other inputs proves that happened; every
+  // case that cannot prove it (no snapshot, an older one, files from before the
+  // identity existed) restores exactly as before.
+  describe("a result whose inputs changed after it was written", () => {
+    const RESULT_AT = "2026-10-17T10:00:00.000Z";
+    const LATER = "2026-10-17T11:00:00.000Z";
+    const EARLIER = "2026-10-17T09:00:00.000Z";
+
+    function serveInputs(savedAt: string, identity: string | undefined): void {
+      const snapshot = { ...buildMameSnapshot(useMameAppStore.getState(), undefined, "/proj"), saved_at: savedAt };
+      if (identity === undefined) delete snapshot.input_identity;
+      else snapshot.input_identity = identity;
+      hooks.readAutosave.mockImplementation((_path: string, kind: string) =>
+        Promise.resolve(kind === "mame" ? { status: "ok", snapshot } : { status: "missing" }),
+      );
+    }
+    function serveResult(identity: string | undefined): void {
+      hooks.readMameResultSnapshot.mockResolvedValue({
+        status: "ok",
+        snapshot: {
+          schema: 1,
+          saved_at: RESULT_AT,
+          kuma_version: "0.0.0-test",
+          result_contract: RESULT_CONTRACT,
+          ...(identity === undefined ? {} : { input_identity: identity }),
+          result: ANALYZE_RESULT,
+        },
+      });
+    }
+    const loadCalls = () => hooks.sendMameRequest.mock.calls.filter((c) => c[0] === "load_analyze_result");
+
+    it("is not restored when a later input snapshot holds other inputs", async () => {
+      serveInputs(LATER, "inputs-B");
+      serveResult("inputs-A");
+      renderHydration();
+      await waitFor(() => expect(hooks.detectProjectFiles).toHaveBeenCalled());
+      expect(loadCalls()).toHaveLength(0);
+      expect(useMameAppStore.getState().verdicts).toEqual([]);
+    });
+
+    it.each([
+      ["the inputs still match", (): void => serveInputs(LATER, "inputs-A"), "inputs-A"],
+      ["the input snapshot predates the result", (): void => serveInputs(EARLIER, "inputs-B"), "inputs-A"],
+      ["there is no input snapshot", (): void => undefined, "inputs-A"],
+      ["the result file predates identities", (): void => serveInputs(LATER, "inputs-B"), undefined],
+      ["the input snapshot predates identities", (): void => serveInputs(LATER, undefined), "inputs-A"],
+    ] as const)("is restored when %s", async (_why, inputs, resultIdentity) => {
+      inputs();
+      serveResult(resultIdentity);
+      renderHydration();
+      await waitFor(() => expect(useMameAppStore.getState().verdicts).toEqual(ANALYZE_RESULT.verdicts));
+      expect(loadCalls()).toHaveLength(1);
+    });
+  });
+
   it("replays the persisted result into the sidecar and lands on analyze.review", async () => {
     hooks.readMameResultSnapshot.mockResolvedValue({
       status: "ok",

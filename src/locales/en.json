@@ -89,6 +89,7 @@
     "updateInstalling": "Installing…",
     "updateRelaunching": "Restarting…",
     "updateInstallFailed": "Update failed: {{message}}",
+    "updateBusy": "Wait for the running design, analysis or export to finish, or cancel it, before installing the update.",
     "downloadAndInstall": "Download and Install",
     "installing": "Installing...",
     "later": "Later",
@@ -2010,6 +2011,7 @@
     "warningHashMismatch": "Hash mismatch: {{paths}}",
     "warningHashUnverifiable": "Recorded without a digest, so the file cannot be checked against the run: {{paths}}",
     "exportOnlyNotice": "This manifest is an export-only operation and cannot be re-run directly. Re-export from the original data.",
+    "unappliedConditions": "This re-run applies only part of the recorded run. These recorded conditions are not applied, and the current session's values are used instead: {{keys}}. The result may differ from the recorded run.",
     "btnCancel": "Cancel",
     "btnRerun": "Re-run",
     "btnRunning": "Running...",
@@ -2099,6 +2101,7 @@
     "workspace": "Workspace",
     "scratch": "Scratch",
     "autosaveOn": "Autosave on",
+    "exporting": "Exporting…",
     "autosaveSaving": "Saving…",
     "autosaveSavedJustNow": "Saved just now",
     "autosaveSavedAgo": "Saved {{time}}",
@@ -2588,6 +2591,11 @@
     "missingColumn": "Required column missing: \"{{column}}\"{{aliasNote}}"
   },
   "toast": {
+    "designCancelledByReset": "The running design was cancelled because the workspace was cleared. Run design again to get results.",
+    "analysisCancelledByReset": "The running analysis was cancelled because the workspace was cleared or another project was opened. Run the analysis again to get results.",
+    "analysisCancelFailed": "The running analysis could not be stopped after the workspace was cleared: {{message}}",
+    "designInputsChangedDuringRun": "The design finished, but its inputs changed while it ran. These results are for the inputs it started with; run design again for the current inputs.",
+    "analysisInputsChangedDuringRun": "The analysis finished, but its inputs changed while it ran. These results are for the inputs it started with; run the analysis again for the current inputs.",
     "completedWithDuration": "Completed ({{duration}})"
   },
   "exportSlice": {

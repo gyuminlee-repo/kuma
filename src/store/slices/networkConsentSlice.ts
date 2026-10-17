@@ -36,6 +36,20 @@ export const CONSENT_DIALOG_SERVICES: readonly NetworkService[] = [
  */
 const LEGACY_CONSENT_SERVICES: readonly string[] = ["uniprot", "blast", "alphafold", "interpro"];
 
+/**
+ * True when a request to `service` is already permitted without asking:
+ * online, the service switched on, and a grant whose dialog listed it. For
+ * background requests the user did not start, which must not open the dialog.
+ */
+export function isNetworkServicePermitted(
+  state: Pick<AppState, "offlineMode" | "networkConsentGranted" | "networkConsentServices" | "isNetworkServiceEnabled">,
+  service: NetworkService,
+): boolean {
+  if (state.offlineMode || !state.isNetworkServiceEnabled(service)) return false;
+  if (!state.networkConsentGranted) return false;
+  return (state.networkConsentServices ?? LEGACY_CONSENT_SERVICES).includes(service);
+}
+
 export const createNetworkConsentSlice: StateCreator<
   AppState,
   [],

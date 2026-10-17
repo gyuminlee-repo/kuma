@@ -19,6 +19,9 @@ const dialogMocks = vi.hoisted(() => ({ open: vi.fn() }));
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({ open: dialogMocks.open }));
 
+const kuro = vi.hoisted(() => ({ sendRequest: vi.fn() }));
+vi.mock("../lib/ipc-kuro", () => kuro);
+
 vi.mock("../lib/project", async () => {
   const actual = await vi.importActual<typeof import("../lib/project")>("../lib/project");
   return {
@@ -102,6 +105,7 @@ describe("Home: Open file", () => {
 
   it("still hands the FILE to onOpenScratch for a .kuro.json pick", async () => {
     dialogMocks.open.mockResolvedValue("/tmp/scratch/work.kuro.json");
+    kuro.sendRequest.mockResolvedValue({ schema_version: "0.3" });
 
     const { onOpenScratch } = await clickOpenFile();
 
@@ -119,6 +123,33 @@ describe("Home: Open file", () => {
     await waitFor(() => expect(dialogMocks.open).toHaveBeenCalled());
     expect(loadProjectMock).not.toHaveBeenCalled();
     expect(onOpenProject).not.toHaveBeenCalled();
+    expect(onOpenScratch).not.toHaveBeenCalled();
+  });
+});
+
+// A workspace file that cannot be restored is refused here, with the reason on
+// this screen, rather than after a session opened on it: that session showed
+// the error for four seconds and then saved over the file.
+describe("opening a .kuro.json that cannot be restored", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    listRecentProjectsMock.mockResolvedValue([]);
+    listRestorableProjectsMock.mockResolvedValue([]);
+    dialogMocks.open.mockResolvedValue("/tmp/scratch/broken.kuro.json");
+  });
+
+  it("keeps Home open with the read error", async () => {
+    kuro.sendRequest.mockRejectedValue(new Error("Expecting value: line 1 column 1"));
+    const { onOpenScratch } = await clickOpenFile();
+    expect(await screen.findByText(/Expecting value/)).toBeInTheDocument();
+    expect(onOpenScratch).not.toHaveBeenCalled();
+  });
+
+  it("refuses a workspace older than the oldest readable schema", async () => {
+    kuro.sendRequest.mockResolvedValue({ schema_version: "0.2" });
+    const { onOpenScratch } = await clickOpenFile();
+    await waitFor(() => expect(kuro.sendRequest).toHaveBeenCalledWith("load_workspace", { filepath: "/tmp/scratch/broken.kuro.json" }));
+    await waitFor(() => expect(document.body.textContent).toMatch(/0\.3|older|unsupported/i));
     expect(onOpenScratch).not.toHaveBeenCalled();
   });
 });

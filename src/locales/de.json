@@ -89,6 +89,7 @@
     "updateInstalling": "Wird installiert…",
     "updateRelaunching": "Wird neu gestartet…",
     "updateInstallFailed": "Aktualisierung fehlgeschlagen: {{message}}",
+    "updateBusy": "Warten Sie, bis das laufende Design, die Analyse oder der Export abgeschlossen ist, oder brechen Sie ihn ab, bevor Sie das Update installieren.",
     "downloadAndInstall": "Download und Install",
     "installing": "Installiere...",
     "later": "Später",
@@ -1968,6 +1969,7 @@
     "warningHashMismatch": "Hash mismatch: {{paths}}",
     "warningHashUnverifiable": "Ohne Prüfsumme aufgezeichnet, daher nicht gegen den Lauf prüfbar: {{paths}}",
     "exportOnlyNotice": "This manifest ist ein export-only operation und cannot be re-ausführen directly. Re-export von die original data.",
+    "unappliedConditions": "Diese Wiederholung übernimmt nur einen Teil des aufgezeichneten Laufs. Diese aufgezeichneten Bedingungen werden nicht übernommen, stattdessen gelten die Werte der aktuellen Sitzung: {{keys}}. Das Ergebnis kann vom aufgezeichneten Lauf abweichen.",
     "btnCancel": "Abbrechen",
     "btnRerun": "Re-ausführen",
     "btnRunning": "Läuft...",
@@ -2057,6 +2059,7 @@
     "workspace": "Workspace",
     "scratch": "Scratch",
     "autosaveOn": "Autosave auf",
+    "exporting": "Exportiere…",
     "autosaveSaving": "Speichere…",
     "autosaveSavedJustNow": "Gespeichert just now",
     "autosaveSavedAgo": "Gespeichert {{time}}",
@@ -2546,6 +2549,11 @@
     "missingColumn": "Erforderlich column missing: \"{{column}}\"{{aliasNote}}"
   },
   "toast": {
+    "designCancelledByReset": "Das laufende Design wurde abgebrochen, weil der Arbeitsbereich geleert wurde. Starten Sie das Design erneut, um Ergebnisse zu erhalten.",
+    "analysisCancelledByReset": "Die laufende Analyse wurde abgebrochen, weil der Arbeitsbereich geleert oder ein anderes Projekt geöffnet wurde. Starten Sie die Analyse erneut, um Ergebnisse zu erhalten.",
+    "analysisCancelFailed": "Die laufende Analyse konnte nach dem Leeren des Arbeitsbereichs nicht gestoppt werden: {{message}}",
+    "designInputsChangedDuringRun": "Das Design ist fertig, aber seine Eingaben wurden während des Laufs geändert. Diese Ergebnisse gelten für die Eingaben beim Start; starten Sie das Design für die aktuellen Eingaben erneut.",
+    "analysisInputsChangedDuringRun": "Die Analyse ist fertig, aber ihre Eingaben wurden während des Laufs geändert. Diese Ergebnisse gelten für die Eingaben beim Start; starten Sie die Analyse für die aktuellen Eingaben erneut.",
     "completedWithDuration": "Abgeschlossen ({{duration}})"
   },
   "exportSlice": {
