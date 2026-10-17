@@ -158,6 +158,7 @@ def test_handler_forwards_complete_build_arguments_to_core(
         "numeric_report_xlsx": str(primary),
         "remeasure_report_xlsx": None,
         "remeasure_numeric_xlsx": str(confirmation),
+        "remeasure_well_xlsx": None,
         "verdict_xlsx": str(verdict),
         "layout_xlsx": None,
         "expected_xlsx": str(expected),

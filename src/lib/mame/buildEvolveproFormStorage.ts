@@ -4,7 +4,9 @@ export const BUILD_EVOLVEPRO_STORAGE_KEY = "kuma:mame:buildEvolvepro";
 const STORAGE_VERSION = 2;
 
 export type BuildEvolveproPrimarySource = "longFormat" | "gcSheet" | "rawReport" | "numericReport";
-export type BuildEvolveproConfirmationSource = "none" | "variantLabels" | "numericIds";
+export type BuildEvolveproConfirmationSource = "none" | "variantLabels" | "numericIds" | "wellLabels";
+// Forms saved before "wellLabels" existed hold one of the first three and still load.
+const CONFIRMATION_SOURCES = ["none", "variantLabels", "numericIds", "wellLabels"];
 
 export interface BuildEvolveproFormState {
   primarySource: BuildEvolveproPrimarySource;
@@ -18,6 +20,7 @@ export interface BuildEvolveproFormState {
   numericReportXlsx: string;
   remeasureReportXlsx: string;
   remeasureNumericXlsx: string;
+  remeasureWellXlsx: string;
   /**
    * Designed variant list, the order source a numeric-ID report is decoded
    * against. Preferred over the hand-written plate file: it states the order
@@ -48,6 +51,7 @@ export const BUILD_EVOLVEPRO_DEFAULT_STATE: BuildEvolveproFormState = {
   numericReportXlsx: "",
   remeasureReportXlsx: "",
   remeasureNumericXlsx: "",
+  remeasureWellXlsx: "",
   expectedXlsx: "",
   verdictXlsx: "",
   verdictEvidenceSignature: "",
@@ -82,6 +86,7 @@ const CURRENT_PATH_KEYS = [
   "numericReportXlsx",
   "remeasureReportXlsx",
   "remeasureNumericXlsx",
+  "remeasureWellXlsx",
   "expectedXlsx",
   "verdictXlsx",
   "outputXlsx",
@@ -108,6 +113,7 @@ const LEGACY_PATH_KEYS = [
   "numericReportXlsx",
   "remeasureReportXlsx",
   "remeasureNumericXlsx",
+  "remeasureWellXlsx",
   "expectedXlsx",
   "verdictXlsx",
   "outputXlsx",
@@ -145,7 +151,7 @@ function hasRemovedSelection(payload: Record<string, unknown>): boolean {
   return (Boolean(primarySource) &&
       !["longFormat", "gcSheet", "rawReport", "numericReport"].includes(primarySource)) ||
     (Boolean(confirmationSource) &&
-      !["none", "variantLabels", "numericIds"].includes(confirmationSource)) ||
+      !CONFIRMATION_SOURCES.includes(confirmationSource)) ||
     payload.sourceMode === "rank" ||
     (payload.sourceMode === "reports" && payload.round1Source !== "raw") ||
     ["prev", "numeric"].includes(String(payload.round1Source));
@@ -160,7 +166,7 @@ function readState(
     : payload.sourceMode === "reports" && payload.round1Source === "raw"
       ? "rawReport"
       : BUILD_EVOLVEPRO_DEFAULT_STATE.primarySource;
-  const confirmationSource = ["none", "variantLabels", "numericIds"].includes(String(payload.confirmationSource))
+  const confirmationSource = CONFIRMATION_SOURCES.includes(String(payload.confirmationSource))
     ? payload.confirmationSource as BuildEvolveproConfirmationSource
     : payload.sourceMode === "reports" && stringValue(payload, "remeasureReportXlsx")
       ? "variantLabels"
@@ -182,6 +188,8 @@ function readState(
     numericReportXlsx: fromPortablePath(stringValue(payload, "numericReportXlsx"), projectPath),
     remeasureReportXlsx: fromPortablePath(stringValue(payload, "remeasureReportXlsx"), projectPath),
     remeasureNumericXlsx: fromPortablePath(stringValue(payload, "remeasureNumericXlsx"), projectPath),
+    // Absent on records saved before well-labeled confirmation existed.
+    remeasureWellXlsx: fromPortablePath(stringValue(payload, "remeasureWellXlsx"), projectPath),
     expectedXlsx: fromPortablePath(stringValue(payload, "expectedXlsx"), projectPath),
     verdictXlsx: fromPortablePath(stringValue(payload, "verdictXlsx"), projectPath),
     verdictEvidenceSignature: stringValue(payload, "verdictEvidenceSignature"),
@@ -266,6 +274,7 @@ export function hasBuildEvolveproConfirmationInputs(state: BuildEvolveproFormSta
     case "none": return true;
     case "variantLabels": return Boolean(state.remeasureReportXlsx);
     case "numericIds": return Boolean(state.remeasureNumericXlsx);
+    case "wellLabels": return Boolean(state.remeasureWellXlsx);
   }
 }
 
@@ -321,6 +330,7 @@ export function seedBuildEvolveproForm(
     | "numericReportXlsx"
     | "remeasureReportXlsx"
     | "remeasureNumericXlsx"
+    | "remeasureWellXlsx"
     | "expectedXlsx"
     | "verdictXlsx"
     | "outputXlsx"
@@ -349,6 +359,7 @@ export function seedBuildEvolveproForm(
   if (current.confirmationSource === "none" && !current.remeasureReportXlsx) {
     if (paths.remeasureReportXlsx) next.confirmationSource = "variantLabels";
     else if (paths.remeasureNumericXlsx) next.confirmationSource = "numericIds";
+    else if (paths.remeasureWellXlsx) next.confirmationSource = "wellLabels";
   }
   saveBuildEvolveproToStorage(next, projectPath);
 }

@@ -123,16 +123,33 @@ def test_numeric_report_is_a_primary_source_of_its_own(files):
         })
 
 
-def test_only_one_confirmation_source_is_accepted(files):
+@pytest.mark.parametrize(
+    "pair",
+    [
+        ("remeasure_report_xlsx", "remeasure_numeric_xlsx"),
+        ("remeasure_report_xlsx", "remeasure_well_xlsx"),
+        ("remeasure_numeric_xlsx", "remeasure_well_xlsx"),
+    ],
+)
+def test_only_one_confirmation_source_is_accepted(files, pair):
     with pytest.raises(ValidationError, match="at most one confirmation source"):
         BuildEvolveproInputParams.model_validate({
             "gc_data_xlsx": files["gc"],
             "layout_xlsx": files["layout"],
-            "remeasure_report_xlsx": files["round1"],
-            "remeasure_numeric_xlsx": files["round1"],
+            **{name: files["round1"] for name in pair},
             "verdict_xlsx": files["verdict"],
             "output_xlsx": files["out"],
         })
+
+
+def test_well_labeled_confirmation_needs_no_order_source(files):
+    validated = BuildEvolveproInputParams.model_validate({
+        "gc_data_xlsx": files["gc"],
+        "remeasure_well_xlsx": files["round1"],
+        "verdict_xlsx": files["verdict"],
+        "output_xlsx": files["out"],
+    })
+    assert validated.remeasure_well_xlsx == files["round1"]
 
 
 def test_well_labeled_primary_sources_accept_a_missing_layout(files):

@@ -39,7 +39,7 @@ CORPUS: list[tuple[str, list[str]]] = [
     # 'sample name' is a label column and 'area' is a value column.  The two
     # readings disagree about the wild-type rows, so both are reported.
     ("10_mame_gc_prenormalised.xlsx", [GC_SHEET, LONG_FORMAT]),
-    ("11_mame_gc_fid_round1_raw.xlsx", [RAW_REPORT, CONFIRMATION_WELL_LABELS]),
+    ("11_mame_gc_fid_round1_raw.xlsx", [RAW_REPORT]),
     ("12_mame_agilent_numeric_index.xlsx", [NUMERIC_REPORT, CONFIRMATION_NUMERIC_IDS]),
     ("09_mame_agilent_rep_batch.xlsx", [CONFIRMATION_VARIANT_LABELS]),
 ]
@@ -229,3 +229,87 @@ def test_unsupported_extension_is_refused(tmp_path: Path) -> None:
     result = detect_measurement_source(path)
     assert result.candidates == []
     assert ".json" in result.reason
+
+
+# --- confirmation slot and well-labeled confirmation ------------------------
+
+
+@pytest.mark.parametrize(
+    ("names", "expected"),
+    [
+        (["A1-1", "A1-2", "H12-1"], [CONFIRMATION_WELL_LABELS]),
+        # A bare well is replicate 1, and the slot says this is a confirmation.
+        (["WT1", "A1", "B2"], [CONFIRMATION_WELL_LABELS]),
+        (["A1", "A1-2", "H12-1"], [CONFIRMATION_WELL_LABELS]),
+        # The slot names the round, so the numeric pair is not a pair here.
+        (["WT1", "1", "1-2", "2"], [CONFIRMATION_NUMERIC_IDS]),
+        (["WT1", "S11I", "E42D"], [CONFIRMATION_VARIANT_LABELS]),
+    ],
+)
+def test_confirmation_slot_names_one_confirmation_source(
+    tmp_path: Path, names: list[str], expected: list[str]
+) -> None:
+    path = _write_block_workbook(tmp_path / "confirm.xlsx", names)
+    result = detect_measurement_source(path, slot="confirmation")
+    assert result.candidates == expected
+    assert result.ambiguous is False
+    assert result.reason == ""
+    assert result.evidence["slot"] == "confirmation"
+
+
+def test_well_labeled_confirmation_reports_the_samples_it_will_skip(tmp_path: Path) -> None:
+    """Unrelated samples are allowed for this type only: its reader skips them."""
+    path = _write_block_workbook(
+        tmp_path / "shared_run.xlsx",
+        ["A1-1", "A1-2", "H12-1", "Other-A-1", "Other2-Y0.0-2"],
+    )
+    result = detect_measurement_source(path, slot="confirmation")
+    assert result.candidates == [CONFIRMATION_WELL_LABELS]
+    assert result.evidence["sample_name_namespaces"]["well"] == 3
+    assert result.evidence["sample_name_namespaces"]["unclassified"] == 2
+    assert result.evidence["sample_name_samples"]["unclassified"] == [
+        "Other-A-1",
+        "Other2-Y0.0-2",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("names", "fragment"),
+    [
+        # The variant-label and numeric readers refuse a name they cannot place.
+        (["WT1", "S11I", "Other-A-1"], "unrecognised"),
+        (["WT1", "1", "1-2", "Other-A-1"], "unrecognised"),
+        (["A1-1", "S11I"], "variant label"),
+        (["A1-1", "1-2"], "numeric id"),
+    ],
+)
+def test_confirmation_slot_refuses_what_no_reader_takes(
+    tmp_path: Path, names: list[str], fragment: str
+) -> None:
+    path = _write_block_workbook(tmp_path / "confirm.xlsx", names)
+    result = detect_measurement_source(path, slot="confirmation")
+    assert result.candidates == []
+    assert "mixes sample-name namespaces" in result.reason
+    assert fragment in result.reason
+
+
+def test_confirmation_slot_refuses_a_file_that_is_not_a_block_report() -> None:
+    for filename in ("10_mame_gc_prenormalised.xlsx", "07_mame_activity_long.csv"):
+        result = detect_measurement_source(TEMPLATES / filename, slot="confirmation")
+        assert result.candidates == []
+        assert "no FID1B block signature" in result.reason
+
+
+def test_primary_slot_reads_wells_as_the_raw_report_alone(tmp_path: Path) -> None:
+    """A well-labeled report in the primary field is one reading, not a question."""
+    for names in (["WT1", "A1", "B2"], ["WT1", "A1-1", "A1-2", "B2-1"]):
+        path = _write_block_workbook(tmp_path / "screen.xlsx", names)
+        for result in (detect_measurement_source(path), detect_measurement_source(path, slot="primary")):
+            assert result.candidates == [RAW_REPORT]
+            assert result.ambiguous is False
+
+
+def test_unknown_slot_raises(tmp_path: Path) -> None:
+    path = _write_block_workbook(tmp_path / "screen.xlsx", ["WT1", "A1"])
+    with pytest.raises(ValueError, match="slot must be"):
+        detect_measurement_source(path, slot="other")  # type: ignore[arg-type]

@@ -24,8 +24,14 @@ genuinely the same file, and neither pair is separable by reading:
 
 Both pairs are reported with ``ambiguous`` set and the caller chooses.
 
-A well-label block file can be a primary screen or an additional confirmation.
-The detector reports both roles; only the operator can decide which was measured.
+A well-label block file is a primary screen or an additional confirmation, and
+the file cannot say which, so the slot it was chosen for decides: ``slot="primary"``
+(the default) names it ``rawReport`` alone and ``slot="confirmation"`` names it
+``confirmationWellLabels`` alone.  In the confirmation slot every namespace has one
+reading (numeric IDs are ``confirmationNumericIds``, variant labels
+``confirmationVariantLabels``), so no pair is reported there.  A well-labeled
+confirmation is the one block shape allowed to carry sample names of no namespace:
+a GC run is shared, and ``_well_confirmation`` skips them with a warning.
 Canonical positive replicate suffixes (A1-1, S11I-1) identify repeat labels,
 not new coordinates or inferred mutations.
 
@@ -72,7 +78,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from .build_evolvepro_input import (
     _VALUE_COLUMNS,
@@ -94,6 +100,8 @@ NUMERIC_REPORT = "numericReport"
 CONFIRMATION_VARIANT_LABELS = "confirmationVariantLabels"
 CONFIRMATION_NUMERIC_IDS = "confirmationNumericIds"
 CONFIRMATION_WELL_LABELS = "confirmationWellLabels"
+
+Slot = Literal["primary", "confirmation"]
 
 MEASUREMENT_SOURCES = (
     LONG_FORMAT,
@@ -178,7 +186,7 @@ def _detect_tabular(path: Path, evidence: dict[str, Any]) -> MeasurementSourceDe
     )
 
 
-def _detect_block(path: Path, rows: list[list], evidence: dict[str, Any]) -> MeasurementSourceDetection:
+def _detect_block(path: Path, rows: list[list], evidence: dict[str, Any], slot: Slot = "primary") -> MeasurementSourceDetection:
     """A FID1B block workbook, told apart by its sample-name namespace."""
     try:
         names = [name for name, _ in _iter_fid1b_blocks(rows)]
@@ -232,12 +240,34 @@ def _detect_block(path: Path, rows: list[list], evidence: dict[str, Any]) -> Mea
         "wt": _echo(wt),
     }
 
-    populated = {
-        RAW_REPORT: wells,
-        NUMERIC_REPORT: numeric,
-        CONFIRMATION_VARIANT_LABELS: variants,
-    }
+    if slot == "confirmation":
+        # The slot names the round, so a namespace has one reading here and
+        # nothing is a pair: wells are a well-labeled confirmation, numeric IDs
+        # a numeric confirmation, variant labels a variant-labeled one.
+        populated = {
+            CONFIRMATION_WELL_LABELS: wells,
+            CONFIRMATION_NUMERIC_IDS: numeric,
+            CONFIRMATION_VARIANT_LABELS: variants,
+        }
+    else:
+        populated = {
+            RAW_REPORT: wells,
+            NUMERIC_REPORT: numeric,
+            CONFIRMATION_VARIANT_LABELS: variants,
+        }
     occupied = [source for source, members in populated.items() if members]
+    if occupied == [CONFIRMATION_WELL_LABELS]:
+        # The one shape allowed to carry names of no namespace: a GC run is
+        # shared, so the export holds other experiments' samples beside the
+        # re-measured wells, and `_well_confirmation` skips them with a warning
+        # where every other reader refuses.  `unclassified` is counted in the
+        # evidence above.
+        return MeasurementSourceDetection(
+            path=str(path),
+            candidates=[CONFIRMATION_WELL_LABELS],
+            ambiguous=False,
+            evidence=evidence,
+        )
     if occupied == [NUMERIC_REPORT] and not unclassified:
         # The numeric namespace does not say which round it came from.  Both
         # consumers call the same parser on the same file and differ only in
@@ -263,11 +293,12 @@ def _detect_block(path: Path, rows: list[list], evidence: dict[str, Any]) -> Mea
             evidence=evidence,
         )
     if occupied == [RAW_REPORT] and not unclassified:
-        evidence["ambiguity"] = "well labels identify coordinates, not primary versus additional measurements"
+        # Not a pair: the slot the file was chosen for names the round, and a
+        # confirmation is read with slot="confirmation".
         return MeasurementSourceDetection(
             path=str(path),
-            candidates=[RAW_REPORT, CONFIRMATION_WELL_LABELS],
-            ambiguous=True,
+            candidates=[RAW_REPORT],
+            ambiguous=False,
             evidence=evidence,
         )
     if occupied == [CONFIRMATION_VARIANT_LABELS] and not unclassified:
@@ -327,7 +358,20 @@ def _detect_block(path: Path, rows: list[list], evidence: dict[str, Any]) -> Mea
     )
 
 
-def _detect_workbook(path: Path, sheet_index: int, evidence: dict[str, Any]) -> MeasurementSourceDetection:
+def _not_a_confirmation(path: Path, evidence: dict[str, Any]) -> MeasurementSourceDetection:
+    return MeasurementSourceDetection(
+        path=str(path),
+        candidates=[],
+        ambiguous=False,
+        evidence=evidence,
+        reason=(
+            f"{path.name} carries no FID1B block signature; a confirmation "
+            "report is a raw Agilent block workbook"
+        ),
+    )
+
+
+def _detect_workbook(path: Path, sheet_index: int, evidence: dict[str, Any], slot: Slot = "primary") -> MeasurementSourceDetection:
     try:
         rows = _extract_rows(path, sheet_index)
     except Exception as exc:  # pragma: no cover - calamine raises many types
@@ -348,7 +392,9 @@ def _detect_workbook(path: Path, sheet_index: int, evidence: dict[str, Any]) -> 
     )
     evidence["fid1b_signature"] = signature
     if signature:
-        return _detect_block(path, rows, evidence)
+        return _detect_block(path, rows, evidence, slot)
+    if slot == "confirmation":
+        return _not_a_confirmation(path, evidence)
 
     if not rows:
         return MeasurementSourceDetection(
@@ -404,6 +450,7 @@ def detect_measurement_source(
     path: str | Path,
     *,
     sheet_index: int = 0,
+    slot: Slot = "primary",
 ) -> MeasurementSourceDetection:
     """Report which step 4.1 measurement sources *path* could be.
 
@@ -412,20 +459,31 @@ def detect_measurement_source(
     with ``candidates=[]`` and a ``reason`` that echoes what was seen, rather
     than an exception, because "this is not one of the four" is an answer.
 
+    *slot* is the field the file was chosen for.  ``"confirmation"`` reports
+    one of the three confirmation sources or nothing: each sample-name
+    namespace has a single reading there, so a well-labeled report is
+    ``confirmationWellLabels`` alone.  ``"primary"`` (the default) never names
+    a confirmation source for a well-labeled report.
+
     Raises:
         FileNotFoundError: *path* does not exist.
+        ValueError: *slot* is not ``"primary"`` or ``"confirmation"``.
     """
+    if slot not in ("primary", "confirmation"):
+        raise ValueError("slot must be 'primary' or 'confirmation'")
     resolved = Path(path)
     if not resolved.is_file():
         raise FileNotFoundError(f"measurement file not found: {resolved}")
 
     suffix = resolved.suffix.lower()
-    evidence: dict[str, Any] = {"extension": suffix, "sheet_index": sheet_index}
+    evidence: dict[str, Any] = {"extension": suffix, "sheet_index": sheet_index, "slot": slot}
 
     if suffix in _TABULAR_SUFFIXES:
+        if slot == "confirmation":
+            return _not_a_confirmation(resolved, evidence)
         return _detect_tabular(resolved, evidence)
     if suffix in _WORKBOOK_SUFFIXES:
-        return _detect_workbook(resolved, sheet_index, evidence)
+        return _detect_workbook(resolved, sheet_index, evidence, slot)
     return MeasurementSourceDetection(
         path=str(resolved),
         candidates=[],
@@ -441,6 +499,7 @@ def detect_measurement_source(
 __all__ = [
     "CONFIRMATION_NUMERIC_IDS",
     "CONFIRMATION_VARIANT_LABELS",
+    "CONFIRMATION_WELL_LABELS",
     "GC_SHEET",
     "LONG_FORMAT",
     "MEASUREMENT_SOURCES",

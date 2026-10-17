@@ -19,7 +19,9 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   BUILD_EVOLVEPRO_DEFAULT_STATE,
   BUILD_EVOLVEPRO_STORAGE_KEY,
+  hasBuildEvolveproConfirmationInputs,
   loadBuildEvolveproFromStorage,
+  saveBuildEvolveproToStorage,
   seedBuildEvolveproForm,
 } from "./buildEvolveproFormStorage";
 
@@ -81,5 +83,62 @@ describe("loadBuildEvolveproFromStorage, empty-paths legacy record (defect 2)", 
 
   it("leaves a fresh project (no legacy or scoped record) on the untouched default", () => {
     expect(loadBuildEvolveproFromStorage(PROJECT)).toEqual(BUILD_EVOLVEPRO_DEFAULT_STATE);
+  });
+});
+
+describe("confirmation sources saved before well labels existed", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  const SCOPED_KEY = `${BUILD_EVOLVEPRO_STORAGE_KEY}:v2:${encodeURIComponent(PROJECT)}`;
+
+  it.each(["none", "variantLabels", "numericIds"] as const)(
+    "still loads a %s form written by the previous release, with no well path",
+    (confirmationSource) => {
+      localStorage.setItem(
+        SCOPED_KEY,
+        JSON.stringify({
+          version: 2,
+          projectPath: PROJECT,
+          primarySource: "rawReport",
+          confirmationSource,
+          round1ReportXlsx: "/project/activity/report.xlsx",
+          remeasureReportXlsx: "/project/activity/wells.xlsx",
+          remeasureNumericXlsx: "/project/activity/numeric.xlsx",
+          verdictXlsx: "",
+          outputXlsx: "",
+        }),
+      );
+
+      const state = loadBuildEvolveproFromStorage(PROJECT);
+
+      expect(state.migrationNotice).toBe(false);
+      expect(state.confirmationSource).toBe(confirmationSource);
+      expect(state.remeasureWellXlsx).toBe("");
+      expect(state.remeasureReportXlsx).toBe("/project/activity/wells.xlsx");
+    },
+  );
+
+  it("round-trips a wellLabels form and seeds it from a well path", () => {
+    saveBuildEvolveproToStorage(
+      { ...BUILD_EVOLVEPRO_DEFAULT_STATE, confirmationSource: "wellLabels", remeasureWellXlsx: "/project/activity/rep.xlsx" },
+      PROJECT,
+    );
+    expect(loadBuildEvolveproFromStorage(PROJECT)).toMatchObject({
+      migrationNotice: false, confirmationSource: "wellLabels", remeasureWellXlsx: "/project/activity/rep.xlsx",
+    });
+
+    localStorage.clear();
+    seedBuildEvolveproForm({ remeasureWellXlsx: "/project/sample/rep.xlsx" }, PROJECT);
+    expect(loadBuildEvolveproFromStorage(PROJECT)).toMatchObject({
+      confirmationSource: "wellLabels", remeasureWellXlsx: "/project/sample/rep.xlsx",
+    });
+  });
+
+  it("is only complete once the chosen kind has its path", () => {
+    const base = { ...BUILD_EVOLVEPRO_DEFAULT_STATE, confirmationSource: "wellLabels" as const };
+    expect(hasBuildEvolveproConfirmationInputs(base)).toBe(false);
+    expect(hasBuildEvolveproConfirmationInputs({ ...base, remeasureWellXlsx: "/project/a.xlsx" })).toBe(true);
   });
 });

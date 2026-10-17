@@ -102,7 +102,7 @@ const SOURCE_LABEL: Record<MeasurementSource, string> = {
   rawReport: "mame.buildEvolvepro.primarySourceRawReport",
   numericReport: "mame.buildEvolvepro.primarySourceNumericReport",
   confirmationVariantLabels: "mame.buildEvolvepro.confirmationSourceVariantLabels",
-  confirmationWellLabels: "mame.buildEvolvepro.confirmationSourceVariantLabels",
+  confirmationWellLabels: "mame.buildEvolvepro.confirmationSourceWellLabels",
   confirmationNumericIds: "mame.buildEvolvepro.confirmationSourceNumericIds",
 };
 
@@ -147,6 +147,7 @@ function primaryPathOf(form: FormState): string {
 function confirmationPathOf(form: FormState): string {
   if (form.confirmationSource === "variantLabels") return form.remeasureReportXlsx;
   if (form.confirmationSource === "numericIds") return form.remeasureNumericXlsx;
+  if (form.confirmationSource === "wellLabels") return form.remeasureWellXlsx;
   return "";
 }
 
@@ -162,9 +163,6 @@ function ambiguityHelpKey(candidates: MeasurementSource[]): string {
   }
   if (found.has("numericReport") && found.has("confirmationNumericIds")) {
     return "mame.buildEvolvepro.ambiguityNumericRound";
-  }
-  if (found.has("rawReport") && found.has("confirmationWellLabels")) {
-    return "mame.buildEvolvepro.ambiguityWellRound";
   }
   return "mame.buildEvolvepro.ambiguityGeneric";
 }
@@ -434,9 +432,14 @@ export function BuildEvolveproInputPanel() {
       setAdditionalDetection(sourceDetection);
       setAdditionalPendingPath("");
       setAdditionalManualFormat(false);
+      // Exactly one confirmation path field holds a value: the backend refuses
+      // a call that names two.
+      const clearedConfirmationPaths = { remeasureReportXlsx: "", remeasureNumericXlsx: "", remeasureWellXlsx: "" };
       setForm(source === "confirmationNumericIds"
-        ? { confirmationSource: "numericIds", remeasureNumericXlsx: path, remeasureReportXlsx: "" }
-        : { confirmationSource: "variantLabels", remeasureReportXlsx: path, remeasureNumericXlsx: "" });
+        ? { ...clearedConfirmationPaths, confirmationSource: "numericIds", remeasureNumericXlsx: path }
+        : source === "confirmationWellLabels"
+          ? { ...clearedConfirmationPaths, confirmationSource: "wellLabels", remeasureWellXlsx: path }
+          : { ...clearedConfirmationPaths, confirmationSource: "variantLabels", remeasureReportXlsx: path });
     }
     if (slot === "primary" && !isPrimarySource(source)) {
       detectGenerationRef.current += 1;
@@ -482,7 +485,13 @@ export function BuildEvolveproInputPanel() {
     setBuildError(null);
     setAllowLabelMismatch(false);
     try {
-      const res = await detectMeasurementSource({ measurement_path: selected });
+      // The slot names the round, so the detector reads a well-labeled report as
+      // the primary experiment in one field and as a confirmation in the other.
+      const res = await detectMeasurementSource(
+        slot === "primary"
+          ? { measurement_path: selected }
+          : { measurement_path: selected, slot: "confirmation" },
+      );
       if (generationRef.current !== generation) return;
       const observed: DetectionState = { status: "detected", path: selected, result: res };
       updateDetection(observed);
@@ -510,7 +519,7 @@ export function BuildEvolveproInputPanel() {
     setAdditionalDetection({ status: "idle" });
     setAdditionalPendingPath("");
     setAdditionalManualFormat(false);
-    setForm({ confirmationSource: "none", remeasureReportXlsx: "", remeasureNumericXlsx: "" });
+    setForm({ confirmationSource: "none", remeasureReportXlsx: "", remeasureNumericXlsx: "", remeasureWellXlsx: "" });
   }
 
   const browseOutput = useCallback(async () => {
@@ -588,19 +597,21 @@ export function BuildEvolveproInputPanel() {
   const additionalUnresolved = additionalPendingPath !== "";
   const additionalResult = additionalDetection.status === "detected" ? additionalDetection.result : null;
   const additionalCandidates = additionalResult?.candidates ?? [];
-  const additionalFormat = form.confirmationSource === "numericIds"
-    ? "confirmationNumericIds" : "confirmationVariantLabels";
+  const additionalFormat: MeasurementSource = form.confirmationSource === "numericIds"
+    ? "confirmationNumericIds"
+    : form.confirmationSource === "wellLabels"
+      ? "confirmationWellLabels"
+      : "confirmationVariantLabels";
   const additionalAppliedDetection = additionalResult !== null &&
     additionalDetection.status === "detected" && additionalDetection.path === additionalPath &&
     additionalResult.candidates.length === 1 &&
-    (additionalResult.candidates[0] === additionalFormat ||
-      (form.confirmationSource === "variantLabels" && additionalResult.candidates[0] === "confirmationWellLabels"));
+    additionalResult.candidates[0] === additionalFormat;
   const additionalPreviews: FormatPreviewEntry[] = [
     ...(form.confirmationSource !== "numericIds" || additionalUnresolved || additionalManualFormat ? [
       { id: "confirmationWellLabels" as const, title: t("mame.buildEvolvepro.confirmationWellPreview") },
       { id: "confirmationVariantLabels" as const, title: t("mame.buildEvolvepro.confirmationVariantPreview") },
     ] : []),
-    ...(form.confirmationSource !== "variantLabels" || additionalUnresolved || additionalManualFormat ? [
+    ...(form.confirmationSource === "none" || form.confirmationSource === "numericIds" || additionalUnresolved || additionalManualFormat ? [
       { id: "confirmationNumericIds" as const, title: t(SOURCE_LABEL.confirmationNumericIds), note: t("mame.buildEvolvepro.numericConfirmationNote") },
     ] : []),
   ];
@@ -618,6 +629,9 @@ export function BuildEvolveproInputPanel() {
     need("additionalMeasurementFile", "bep-additional-measurement");
   }
   if (form.confirmationSource === "numericIds" && !form.remeasureNumericXlsx) {
+    need("additionalMeasurementFile", "bep-additional-measurement");
+  }
+  if (form.confirmationSource === "wellLabels" && !form.remeasureWellXlsx) {
     need("additionalMeasurementFile", "bep-additional-measurement");
   }
   // A numeric sample name is a position, so one order source has to say which
@@ -652,6 +666,8 @@ export function BuildEvolveproInputPanel() {
         form.confirmationSource === "variantLabels" ? form.remeasureReportXlsx : undefined,
       remeasure_numeric_xlsx:
         form.confirmationSource === "numericIds" ? form.remeasureNumericXlsx : undefined,
+      remeasure_well_xlsx:
+        form.confirmationSource === "wellLabels" ? form.remeasureWellXlsx : undefined,
       verdict_xlsx: form.verdictXlsx,
       output_xlsx: form.outputXlsx,
       allow_label_mismatch: allowLabelMismatch,
@@ -1018,7 +1034,9 @@ export function BuildEvolveproInputPanel() {
                 <p className="text-xs text-muted-foreground">
                   {t(form.confirmationSource === "numericIds"
                     ? "mame.buildEvolvepro.confirmationSourceNumericIdsHelper"
-                    : "mame.buildEvolvepro.confirmationSourceVariantLabelsHelper")}
+                    : form.confirmationSource === "wellLabels"
+                      ? "mame.buildEvolvepro.confirmationSourceWellLabelsHelper"
+                      : "mame.buildEvolvepro.confirmationSourceVariantLabelsHelper")}
                 </p>
               </>
             )}
@@ -1065,6 +1083,7 @@ export function BuildEvolveproInputPanel() {
                 label={t("mame.buildEvolvepro.confirmationSourceLabel")}
                 options={[
                   { value: "confirmationVariantLabels", label: t(SOURCE_LABEL.confirmationVariantLabels) },
+                  { value: "confirmationWellLabels", label: t(SOURCE_LABEL.confirmationWellLabels) },
                   { value: "confirmationNumericIds", label: t(SOURCE_LABEL.confirmationNumericIds) },
                 ]}
                 selected={additionalUnresolved ? "" : additionalFormat}
