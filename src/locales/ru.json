@@ -89,6 +89,7 @@
     "updateInstalling": "Установка…",
     "updateRelaunching": "Перезапуск…",
     "updateInstallFailed": "Ошибка обновления: {{message}}",
+    "updateBusy": "Перед установкой обновления дождитесь завершения выполняющегося дизайна, анализа или экспорта либо отмените его.",
     "downloadAndInstall": "Скачать и установить",
     "installing": "Установка...",
     "later": "Позже",

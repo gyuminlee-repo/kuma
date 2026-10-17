@@ -89,6 +89,7 @@
     "updateInstalling": "Installing…",
     "updateRelaunching": "Restarting…",
     "updateInstallFailed": "Update failed: {{message}}",
+    "updateBusy": "Wait for the running design, analysis or export to finish, or cancel it, before installing the update.",
     "downloadAndInstall": "Download and Install",
     "installing": "Installing...",
     "later": "Later",

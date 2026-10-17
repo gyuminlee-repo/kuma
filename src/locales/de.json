@@ -89,6 +89,7 @@
     "updateInstalling": "Wird installiert…",
     "updateRelaunching": "Wird neu gestartet…",
     "updateInstallFailed": "Aktualisierung fehlgeschlagen: {{message}}",
+    "updateBusy": "Warten Sie, bis das laufende Design, die Analyse oder der Export abgeschlossen ist, oder brechen Sie ihn ab, bevor Sie das Update installieren.",
     "downloadAndInstall": "Download und Install",
     "installing": "Installiere...",
     "later": "Später",

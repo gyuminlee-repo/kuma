@@ -89,6 +89,7 @@
     "updateInstalling": "Instalando…",
     "updateRelaunching": "Reiniciando…",
     "updateInstallFailed": "Error de actualización: {{message}}",
+    "updateBusy": "Espere a que termine el diseño, el análisis o la exportación en curso, o cancélelo, antes de instalar la actualización.",
     "downloadAndInstall": "Descargar e instalar",
     "installing": "Instalando...",
     "later": "Más tarde",

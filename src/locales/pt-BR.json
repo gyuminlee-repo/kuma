@@ -89,6 +89,7 @@
     "updateInstalling": "Instalando…",
     "updateRelaunching": "Reiniciando…",
     "updateInstallFailed": "Falha na atualização: {{message}}",
+    "updateBusy": "Aguarde o término do desenho, da análise ou da exportação em andamento, ou cancele-o, antes de instalar a atualização.",
     "downloadAndInstall": "Baixar e instalar",
     "installing": "Instalando...",
     "later": "Mais tarde",

@@ -89,6 +89,7 @@
     "updateInstalling": "Installation…",
     "updateRelaunching": "Redémarrage…",
     "updateInstallFailed": "Échec de la mise à jour : {{message}}",
+    "updateBusy": "Attendez la fin de la conception, de l’analyse ou de l’export en cours, ou annulez-le, avant d’installer la mise à jour.",
     "downloadAndInstall": "Télécharger et installer",
     "installing": "Installation...",
     "later": "Plus tard",

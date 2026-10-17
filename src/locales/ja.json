@@ -89,6 +89,7 @@
     "updateInstalling": "インストール中…",
     "updateRelaunching": "再起動中…",
     "updateInstallFailed": "更新に失敗しました: {{message}}",
+    "updateBusy": "アップデートをインストールする前に、実行中の設計・解析・エクスポートの完了を待つか、キャンセルしてください。",
     "downloadAndInstall": "ダウンロードしてインストール",
     "installing": "インストール中...",
     "later": "後で",

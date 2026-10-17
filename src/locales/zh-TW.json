@@ -89,6 +89,7 @@
     "updateInstalling": "安裝中…",
     "updateRelaunching": "正在重新啟動…",
     "updateInstallFailed": "更新失敗：{{message}}",
+    "updateBusy": "安裝更新前，請等待執行中的設計、分析或匯出完成，或將其取消。",
     "downloadAndInstall": "下載並安裝",
     "installing": "安裝中...",
     "later": "稍後",

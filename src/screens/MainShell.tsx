@@ -9,6 +9,7 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { GlobalAppBar, type AppTab } from "@/components/layout/GlobalAppBar";
 import { useKumaProject } from "@/state/projectContext";
 import { flushAutosave, retryAutosave, onAutosaveEvent, isAutosaveEventFor, type AutosaveTarget, type AutosaveEvent } from "@/lib/autosave";
+import { registerUpdateInstallGuard } from "@/lib/updateCheck";
 import { useKuroAutosave } from "@/hooks/useKuroAutosave";
 import { useAutosaveHydration, type HydrationStatusMessage } from "@/hooks/useAutosaveHydration";
 import { Spinner } from "@/components/ui/Spinner";
@@ -297,6 +298,26 @@ export function MainShell() {
       }
     }
   }, []);
+
+  // ── 업데이트 설치 가드: 같은 작업 판정으로 설치를 막고, 설치 전에 저장한다.
+  useEffect(() => {
+    const target: AutosaveTarget = {
+      projectPath: project?.path ?? null,
+      scratch: project?.scratch ?? true,
+      scratchFallback: true,
+    };
+    return registerUpdateInstallGuard({
+      busy: () => {
+        const { isDesigning, isExporting: kuroExporting } = useAppStore.getState();
+        const { isAnalyzing, isExporting: mameExporting } = useMameAppStore.getState();
+        const activityExporting = getActivityStore()?.getState().isExporting ?? false;
+        return isDesigning || isAnalyzing || kuroExporting || mameExporting || activityExporting;
+      },
+      save: async () => {
+        await Promise.all([flushAutosave(target, "kuro"), flushAutosave(target, "mame")]);
+      },
+    });
+  }, [project?.path, project?.scratch]);
 
   // ── isBusy 실시간 추적 (다이얼로그 Wait → 자동 close 용)
   useEffect(() => {
