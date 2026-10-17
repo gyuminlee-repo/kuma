@@ -1215,22 +1215,24 @@ async function promoteScratchToProject(
  * @returns 비운 필드의 사용자 표기 라벨. 자동 감지가 다시 채우지 못한 항목을
  *          호출부가 가려내 사용자에게 재지정을 요청하는 데 쓴다.
  */
-async function clearStaleMamePaths(): Promise<MamePathField[]> {
-  const store = useMameAppStore.getState();
-  const stale = await findStaleMamePaths(
-    {
-      inputDir: store.inputDir,
-      expectedPath: store.expectedPath,
-      referencePath: store.referencePath,
-      customBarcodesPath: store.rawRunParams.customBarcodesPath ?? "",
-      sequencingSummaryPath: store.rawRunParams.sequencingSummaryPath ?? "",
-    },
-    exists,
-  );
-  if (stale.length === 0) return [];
-
+export async function clearStaleMamePaths(isCurrent: () => boolean = () => true): Promise<MamePathField[]> {
+  const pathsOf = (s: MameAppState): Record<MamePathField, string> => ({
+    inputDir: s.inputDir,
+    expectedPath: s.expectedPath,
+    referencePath: s.referencePath,
+    customBarcodesPath: s.rawRunParams.customBarcodesPath ?? "",
+    sequencingSummaryPath: s.rawRunParams.sequencingSummaryPath ?? "",
+  });
+  const checked = pathsOf(useMameAppStore.getState());
+  const stale = await findStaleMamePaths(checked, exists);
+  // The existence checks take a round trip each. A cancelled restore (another
+  // project opened meanwhile) clears nothing, and a field the user or the next
+  // restore has set since it was checked is not the dead path that was found.
+  if (!isCurrent()) return [];
   const fresh = useMameAppStore.getState();
-  for (const field of stale) {
+  const current = pathsOf(fresh);
+  const cleared = stale.filter((field) => current[field] === checked[field]);
+  for (const field of cleared) {
     switch (field) {
       case "inputDir":
         fresh.setInputDir("");
@@ -1249,7 +1251,7 @@ async function clearStaleMamePaths(): Promise<MamePathField[]> {
         break;
     }
   }
-  return stale;
+  return cleared;
 }
 
 /** 스냅샷 input 블록에서 필드에 대응하는 저장값을 꺼낸다. */
@@ -2282,7 +2284,7 @@ export function useAutosaveHydration(
       // ── 죽은 경로 정리: 복원된 절대 경로 중 더 이상 존재하지 않는 것을 비운다.
       //    비우지 않으면 바로 아래 자동 감지가 "이미 채워짐"으로 보고 건너뛰어,
       //    같은 파일이 프로젝트 폴더 안에 있어도 영영 못 찾는다.
-      const droppedFields = await clearStaleMamePaths();
+      const droppedFields = await clearStaleMamePaths(isCurrent);
       if (!isCurrent()) return;
 
       // ── auto-detect: autosave 복원 후 여전히 비어있는 필드를 프로젝트 디렉토리에서 채운다

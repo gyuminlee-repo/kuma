@@ -16,7 +16,7 @@ import { ProjectProvider } from "@/state/projectContext";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { buildMameSnapshot } from "@/lib/mame/autosaveSnapshot";
 import { useRoundStore } from "@/store/round/roundSlice";
-import { useAutosaveHydration } from "./useAutosaveHydration";
+import { clearStaleMamePaths, useAutosaveHydration } from "./useAutosaveHydration";
 
 const hooks = vi.hoisted(() => ({
   readAutosave: vi.fn(),
@@ -240,5 +240,47 @@ describe("useAutosaveHydration: MAME inputs chosen on another screen", () => {
     await waitFor(() => {
       expect(useMameAppStore.getState().expectedPath).toBe("/proj/design/sdm_primers.xlsx");
     });
+  });
+});
+
+// The existence checks are round trips. A restore cancelled meanwhile (another
+// project opened) clears nothing, and a path set after it was checked is not
+// the dead path that was found. A path still dead and untouched is cleared.
+describe("clearStaleMamePaths after its existence checks", () => {
+  function holdExistence() {
+    const answers: Array<(present: boolean) => void> = [];
+    hooks.exists.mockImplementation(() => new Promise<boolean>((resolve) => { answers.push(resolve); }));
+    return answers;
+  }
+  beforeEach(() => {
+    useMameAppStore.getState().resetInput();
+    useMameAppStore.setState({ inputDir: "/old/run" });
+  });
+
+  it("clears nothing for a cancelled restore", async () => {
+    const answers = holdExistence();
+    let current = true;
+    const pending = clearStaleMamePaths(() => current);
+    await vi.waitFor(() => expect(answers.length).toBeGreaterThan(0));
+    current = false;
+    answers.forEach((answer) => answer(false));
+    await expect(pending).resolves.toEqual([]);
+    expect(useMameAppStore.getState().inputDir).toBe("/old/run");
+  });
+
+  it("keeps a path set while it was being checked", async () => {
+    const answers = holdExistence();
+    const pending = clearStaleMamePaths();
+    await vi.waitFor(() => expect(answers.length).toBeGreaterThan(0));
+    useMameAppStore.setState({ inputDir: "/new/run" });
+    answers.forEach((answer) => answer(false));
+    await expect(pending).resolves.toEqual([]);
+    expect(useMameAppStore.getState().inputDir).toBe("/new/run");
+  });
+
+  it("still clears a dead path nobody touched", async () => {
+    hooks.exists.mockImplementation(async (path: string) => path !== "/old/run");
+    await expect(clearStaleMamePaths()).resolves.toEqual(["inputDir"]);
+    expect(useMameAppStore.getState().inputDir).toBe("");
   });
 });
