@@ -11,7 +11,7 @@ Score the sequencing run well by well and read the outcome on a 96-well plate. P
 | Reference construct | Required |
 | Wells used | Optional. Left untouched, the leading wells are used |
 
-Choose the inputs, then press Run or Validate. Janus instrument settings are not on this screen. They belong to step 3.
+Choose the inputs, then press Run or Validate. Cell stock preparation are not on this screen. They belong to step 3.
 
 ### Wells used
 
@@ -60,6 +60,6 @@ The flow cell id and pore count appear in the same place. They are reference val
 | Low depth | Too few reads to call this well reliably |
 | No call | Consensus has too many ambiguous (N) positions to trust the amino-acid calls |
 
-→ [Step 3. Janus instrument settings](mame-03-janus.md) is optional. Stop here if only a sequencing verdict is needed.
+→ [Step 3. Cell stock preparation](mame-03-janus.md) is optional. Stop here if only a sequencing verdict is needed.
 
 → [Step 4. Activity Data](mame-04-activity.md) filters activity measurements by these verdicts to build the EVOLVEpro input.

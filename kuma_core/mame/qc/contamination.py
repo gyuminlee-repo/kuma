@@ -80,6 +80,8 @@ class Signal:
     value: float | None = None
     reason: str | None = None
     detail: dict[str, Any] | None = None
+    # Optional for callers/persisted payloads from before localized reasons.
+    reason_code: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
         out: dict[str, Any] = {"state": self.state}
@@ -89,6 +91,8 @@ class Signal:
                 out.update(self.detail)
         else:
             out["reason"] = self.reason
+            if self.reason_code is not None:
+                out["reason_code"] = self.reason_code
         return out
 
 
@@ -96,8 +100,8 @@ def _ok(value: float, **detail: Any) -> Signal:
     return Signal(state=STATE_OK, value=value, detail=detail or None)
 
 
-def _unavailable(reason: str) -> Signal:
-    return Signal(state=STATE_UNAVAILABLE, reason=reason)
+def _unavailable(reason: str, *, reason_code: str) -> Signal:
+    return Signal(state=STATE_UNAVAILABLE, reason=reason, reason_code=reason_code)
 
 
 def _occupied_axes(occupied: set[str]) -> tuple[set[int], set[int]]:
@@ -268,7 +272,8 @@ def analyze_contamination(
     if not plates:
         no_matrix = _unavailable(
             "no demux matrix was produced, so no read can be placed on a "
-            "barcode combination"
+            "barcode combination",
+            reason_code="no_demux_matrix",
         )
         return {
             "occupancy_source": occupancy_source,
@@ -291,7 +296,8 @@ def analyze_contamination(
     if not occupied:
         no_occupancy = _unavailable(
             "this run states no occupied wells, so no barcode combination can "
-            "be called unoccupied"
+            "be called unoccupied",
+            reason_code="no_occupied_wells",
         )
         signals["unused_index_reads"] = no_occupancy
         signals["unexpected_well_reads"] = no_occupancy
@@ -324,7 +330,8 @@ def analyze_contamination(
         else:
             signals["unused_index_reads"] = _unavailable(
                 "the occupied wells use every reverse and every forward barcode "
-                "index, so no read can arrive on an index this campaign did not use"
+                "index, so no read can arrive on an index this campaign did not use",
+                reason_code="all_indices_used",
             )
 
         if len(occupied) < PLATE_CAPACITY:
@@ -335,7 +342,8 @@ def analyze_contamination(
         else:
             signals["unexpected_well_reads"] = _unavailable(
                 f"the campaign occupies all {PLATE_CAPACITY} wells, so no read "
-                "can arrive on a well nobody pipetted"
+                "can arrive on a well nobody pipetted",
+                reason_code="all_wells_occupied",
             )
 
         # The leak bucket only. Handing both buckets over would sum them behind
@@ -363,7 +371,8 @@ def analyze_contamination(
     else:
         signals["ambiguity_rate"] = _unavailable(
             "no read cleared the coverage gate, so no read reached barcode "
-            "matching and none could be called ambiguous"
+            "matching and none could be called ambiguous",
+            reason_code="no_coverage_reads",
         )
 
     # Denominator: DemuxStats.assigned_reads, the reads that took a well. A
@@ -380,7 +389,8 @@ def analyze_contamination(
     else:
         signals["chimera_rate"] = _unavailable(
             "no read was assigned to a well, so there is nothing for a chimeric "
-            "read to have been split against"
+            "read to have been split against",
+            reason_code="no_assigned_reads",
         )
 
     signals["leak_well_sharing"] = leak
@@ -421,17 +431,20 @@ def _leak_well_sharing(
     if pooled:
         return _unavailable(
             "this run pooled its reads into one plate, so it has no replicate "
-            "axis to compare a leak across"
+            "axis to compare a leak across",
+            reason_code="pooled_leak_scope",
         )
     if replicate_count < 2:
         return _unavailable(
             "this run scored one plate copy, so a leak cannot be compared "
-            "across replicates"
+            "across replicates",
+            reason_code="single_replicate_leak_scope",
         )
     if not leaks:
         return _unavailable(
             "no read landed on an unoccupied combination of the indices this "
-            "campaign uses, so there is no leak between wells to attribute"
+            "campaign uses, so there is no leak between wells to attribute",
+            reason_code="no_leak_reads",
         )
 
     shared_reads = sum(s.total for s in leaks if s.plates_with_reads >= 2)
@@ -477,18 +490,21 @@ def _plate_yield_skew(
     if pooled:
         return _unavailable(
             "this run pooled its reads into one plate, so there is no second "
-            "copy to be skewed against"
+            "copy to be skewed against",
+            reason_code="pooled_yield_scope",
         )
     if len(plates) < 2:
         return _unavailable(
             "this run scored one plate copy, so there is no second copy to be "
-            "skewed against"
+            "skewed against",
+            reason_code="single_replicate_yield_scope",
         )
     yields = [int((p.get("stats") or {}).get("assigned_reads", 0)) for p in plates]
     top = max(yields)
     if top <= 0:
         return _unavailable(
-            "no plate copy was assigned a read, so there is no yield to compare"
+            "no plate copy was assigned a read, so there is no yield to compare",
+            reason_code="no_plate_yield",
         )
     return Signal(
         state=STATE_OK,

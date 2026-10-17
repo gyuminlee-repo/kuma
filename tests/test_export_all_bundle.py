@@ -13,8 +13,10 @@ one without writing it) fails here rather than in a docstring nobody reruns.
 """
 
 from pathlib import Path
+import json
 
 import pytest
+from pydantic import ValidationError
 
 import sidecar_kuro.core as _core
 from kuma_core.kuro.plate_mapper import PlateMapping
@@ -104,3 +106,50 @@ def test_multi_file_kinds_are_the_csv_xlsx_pairs():
         "echo": ("echo.csv", "echo.xlsx"),
         "janus": ("janus.csv", "janus.xlsx"),
     }
+
+
+@pytest.mark.parametrize(
+    ("kinds", "suffixes"),
+    [
+        (["macrogen", "primers", "echo"], [
+            "macrogen.xls", "primers.fasta", "echo.csv", "echo.xlsx",
+            "platemap.xlsx", "run.json",
+        ]),
+        (["janus"], ["janus.csv", "janus.xlsx", "platemap.xlsx", "run.json"]),
+        ([], ["platemap.xlsx", "run.json"]),
+        (None, list(EXPORT_ALL_FILE_SUFFIXES)),
+    ],
+)
+def test_selected_bundle_matches_files_and_manifest(tmp_path, kinds, suffixes):
+    res = handle_export_all({
+        "output_dir": str(tmp_path),
+        "fwd_plate_name": "F1",
+        "rev_plate_name": "R1",
+        "artefact_kinds": kinds,
+    })
+    assert res["failed"] == []
+    out_dir = Path(res["output_dir"])
+    expected = [f"{out_dir.name}_{suffix}" for suffix in suffixes]
+    assert res["success"] == expected
+    assert sorted(p.name for p in out_dir.iterdir()) == sorted(expected)
+    manifest = json.loads((out_dir / f"{out_dir.name}_run.json").read_text())
+    assert manifest["extra"]["files"] == expected
+
+
+def test_unknown_artefact_refused_before_output_directory(tmp_path):
+    output = tmp_path / "unknown"
+    with pytest.raises(ValidationError):
+        handle_export_all({"output_dir": str(output), "artefact_kinds": ["unknown"]})
+    assert not output.exists()
+
+
+@pytest.mark.parametrize("round_label", ["R1", "R2"])
+def test_platemap_only_round_does_not_require_echo_placement(tmp_path, round_label):
+    res = handle_export_all({
+        "output_dir": str(tmp_path),
+        "round_label": round_label,
+        "artefact_kinds": [],
+    })
+    assert res["failed"] == []
+    assert len(res["success"]) == 2
+    assert all(name.endswith(("_platemap.xlsx", "_run.json")) for name in res["success"])

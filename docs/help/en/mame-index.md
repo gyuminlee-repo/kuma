@@ -8,10 +8,10 @@ MAME runs in four steps, from barcode primer design through sequencing verdicts 
 |---|---|
 | 1. Custom Barcode Primer Design | Builds a barcode package from a CDS sequence and a barcode seeds xlsx |
 | 2. Sequencing QC | Analyzes a MinKNOW run folder and produces a verdict per well |
-| 3. Janus Setup | Exports the selected clones as the sheet the robot reads |
+| 3. Cell stock preparation | Exports the selected clones as the sheet the robot reads |
 | 4. Activity Data | Turns activity measurements into an EVOLVEpro input |
 
-The rail numbers a sub-step under each step. There are six: 1.1 Barcode Package, 2.1 Inputs, 2.2 Review, 3.1 Janus Instrument Settings, 4.1 Activity Data, 4.2 Signals and Handoff.
+The rail numbers a sub-step under each step. There are six: 1.1 Barcode Package, 2.1 Inputs, 2.2 Review, 3.1 Cell stock preparation, 4.1 Activity Data, 4.2 Signals and Handoff.
 
 ## Step 3 is optional
 
@@ -25,6 +25,6 @@ Step 2 takes the run folder MinKNOW wrote, as it is. Sorting it into barcode dir
 
 - [Barcode setup](mame-01-setup.md)
 - [Analyze and review](mame-02-review.md)
-- [Janus](mame-03-janus.md)
+- [Cell stock preparation](mame-03-janus.md)
 - [Activity](mame-04-activity.md)
 - [MAME pipeline](mame-pipeline.md)

@@ -68,7 +68,7 @@ describe("MameWorkflowRail", () => {
     expect(screen.getByText("4.1")).toBeInTheDocument();
     expect(screen.getByText("4.2")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /Janus Instrument Settings/i }),
+      screen.getByRole("button", { name: /Cell stock preparation/i }),
     ).toBeInTheDocument();
   });
 
@@ -77,7 +77,7 @@ describe("MameWorkflowRail", () => {
 
     await userEvent
       .setup()
-      .click(screen.getByRole("button", { name: /Janus Instrument Settings/i }));
+      .click(screen.getByRole("button", { name: /Cell stock preparation/i }));
 
     expect(useMameAppStore.getState().mamePhase).toBe("janus");
     expect(useMameAppStore.getState().currentMameSubStep).toBe("janus.settings");
@@ -93,7 +93,7 @@ describe("MameWorkflowRail", () => {
     render(<MameWorkflowRail />);
 
     expect(
-      screen.queryByRole("button", { name: /Janus Instrument Settings done/i }),
+      screen.queryByRole("button", { name: /Cell stock preparation done/i }),
     ).not.toBeInTheDocument();
   });
 
@@ -108,7 +108,7 @@ describe("MameWorkflowRail", () => {
     render(<MameWorkflowRail />);
 
     expect(
-      screen.getByRole("button", { name: /Janus Instrument Settings done/i }),
+      screen.getByRole("button", { name: /Cell stock preparation done/i }),
     ).toBeInTheDocument();
   });
 
@@ -131,7 +131,7 @@ describe("MameWorkflowRail", () => {
     render(<MameWorkflowRail />);
 
     expect(
-      screen.getByRole("button", { name: /Janus Instrument Settings done/i }),
+      screen.getByRole("button", { name: /Cell stock preparation done/i }),
     ).toBeInTheDocument();
   });
 

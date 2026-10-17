@@ -62,7 +62,7 @@
         "mame-index": "MAME 개요",
         "mame-01-setup": "바코드 설정",
         "mame-02-review": "분석 및 검토",
-        "mame-03-janus": "Janus",
+        "mame-03-janus": "Cell stock 제작",
         "mame-04-activity": "활성",
         "mame-pipeline": "MAME 파이프라인"
       }
@@ -268,13 +268,13 @@
         "saved": "선정한 클론을 결과 워크북 옆에 저장했습니다 ({{rows}}개). 선정 결과 파일이며, 장비용 시트는 그 옆의 파일입니다.",
         "skipped": "선정 기준을 통과한 클론이 없어 선정 결과 파일을 쓰지 않았습니다.",
         "failed": "선정 결과 파일을 쓰지 못했습니다.",
-        "excluded": "{{clones}}개 클론이 선정에서 빠졌습니다. Janus 장비 설정에서 이유를 확인하세요."
+        "excluded": "{{clones}}개 클론이 선정에서 빠졌습니다. Cell stock 제작에서 이유를 확인하세요."
       },
       "janusMappingAutosave": {
         "saved": "장비용 매핑 파일을 결과 워크북 옆에 저장했습니다 ({{rows}}행). 로봇이 읽는 8열 형식입니다.",
         "skipped": "선정 기준을 통과한 클론이 없어 장비용 매핑 파일을 쓰지 않았습니다.",
         "failed": "장비용 매핑 파일을 쓰지 못했습니다.",
-        "excluded": "{{clones}}개 클론이 매핑에서 빠졌습니다. Janus 장비 설정에서 이유를 확인하세요."
+        "excluded": "{{clones}}개 클론이 매핑에서 빠졌습니다. Cell stock 제작에서 이유를 확인하세요."
       },
       "demuxResume": {
         "line": "이 폴더의 이전 산출물에서 demux 단위 {{total}}개 중 {{reused}}개를 재사용했고, {{recomputed}}개를 다시 계산했습니다."
@@ -523,7 +523,7 @@
       "sectionExport": "EVOLVEpro 입력 내보내기"
     },
     "buildEvolvepro": {
-      "title": "EVOLVEpro 입력 만들기",
+      "title": "EVOLVEpro 입력 파일 변환",
       "subtitle": "이번 라운드의 활성 측정값을 NGS 판정으로 거른 EVOLVEpro [Variant, activity] 입력으로 변환합니다.",
       "routeNote": "모든 측정값 형식은 같은 NGS 판정, 정규화, replicate 병합, EVOLVEpro export 파이프라인을 사용합니다.",
       "inputFiles": "입력 파일",
@@ -547,13 +547,13 @@
       "gcDataXlsxHelper": "well별 사전 정규화 상대 활성값(Sample Name, Area 열)입니다.",
       "round1ReportXlsx": "Raw Agilent report xlsx",
       "round1ReportXlsxHelper": "well 위치와 WT 블록이 있는 raw Agilent FID1B report입니다.",
-      "confirmationSourceLabel": "선택적 확인 측정",
+      "confirmationSourceLabel": "추가 측정 형식",
       "confirmationSourceNone": "없음",
       "confirmationSourceNoneHelper": "NGS를 통과한 모든 variant에 1차 측정값을 사용합니다.",
-      "confirmationSourceVariantLabels": "Variant 라벨 Agilent report",
-      "confirmationSourceVariantLabelsHelper": "sample name이 variant 라벨인 선택적 raw Agilent report입니다. 독립적으로 WT 정규화한 replicate 평균이 해당 1차 값을 대체합니다.",
-      "remeasureReportXlsx": "확인 측정 report xlsx (variant 라벨)",
-      "remeasureReportXlsxHelper": "variant 라벨 sample과 WT 행이 있는 raw Agilent report입니다. 숫자 또는 rank 기반 라벨은 지원하지 않습니다.",
+      "confirmationSourceVariantLabels": "Well / variant 라벨",
+      "confirmationSourceVariantLabelsHelper": "well 라벨(A1, A1-1) 또는 variant 라벨(S11I, S11I-1)과 WT 행이 있는 raw Agilent report입니다. well은 layout 또는 NGS 판정으로 매핑하고, 독립적으로 WT 정규화한 반복 평균이 해당 1차 값을 대체합니다.",
+      "remeasureReportXlsx": "확인 측정 report xlsx (well / variant 라벨)",
+      "remeasureReportXlsxHelper": "well 또는 variant 라벨과 WT 행이 있는 raw Agilent report입니다. 숫자 위치 번호는 숫자 ID 형식을 명시적으로 선택해야 합니다.",
       "verdictXlsx": "NGS 판정 xlsx",
       "verdictXlsxHelper": "이번 라운드 Analyze 판정 근거가 필수입니다. failed나 fallback이 아닌 명시적 PASS만 export합니다.",
       "outputXlsx": "출력 EVOLVEpro xlsx",
@@ -564,10 +564,10 @@
       "builtFromLabel": "입력 출처",
       "chooseOutput": "출력 파일 선택",
       "noOutputSelected": "출력 파일을 선택하지 않음",
-      "build": "EVOLVEpro 입력 만들기",
+      "build": "EVOLVEpro 입력 형식으로 변환",
       "building": "만드는 중...",
       "resultTitle": "생성 결과",
-      "emptyState": "측정값 형식 하나, 필수 NGS 판정, 출력 경로를 선택하세요.",
+      "emptyState": "실험 데이터 파일, 필수 NGS 판정, 출력 경로를 선택하세요. 확인 측정 파일이 있으면 추가하세요.",
       "nVariants": "저장된 variant",
       "nAuthoritative": "확인 측정 대체",
       "nFallbackOnly": "1차 측정값",
@@ -604,7 +604,7 @@
       "mismatchThreshold": "불일치 임계값",
       "mismatchThresholdHelper": "불일치로 표시하고 검토 전까지 내보내기를 막는 절대 활성값 차이입니다. 0보다 커야 합니다.",
       "changeFile": "변경",
-      "measurementFile": "측정 파일",
+      "measurementFile": "실험 데이터 파일",
       "measurementFileHelper": "파일을 먼저 고르십시오. 형식은 파일 내용에서 읽습니다. csv, xlsx, xls 를 받습니다.",
       "detectingFormat": "파일을 읽어 형식을 판별하는 중입니다...",
       "detectedFormat": "감지: {{format}}",
@@ -627,7 +627,25 @@
         "requiredColumnsNote": "이 파일은 앱이 예시를 제공하지 않으므로 행 대신 반드시 포함해야 하는 컬럼을 보여 준다. 이름이 정확히 일치해야 한다."
       },
       "numericPrimaryNote": "ID i 는 플레이트 전체를 설계 목록 순서로 번호 매겼을 때 i 번째 변이체다.",
-      "numericConfirmationNote": "ID j 는 1차 스크린에서 야생형을 넘긴 변이체만 같은 플레이트 순서로 번호 매긴 것이며 각각을 다시 측정한다."
+      "numericConfirmationNote": "ID j 는 1차 스크린에서 야생형을 넘긴 변이체만 같은 플레이트 순서로 번호 매긴 것이며 각각을 다시 측정한다.",
+      "additionalMeasurementFile": "추가 실험 데이터 파일(선택)",
+      "additionalMeasurementFileHelper": "확인 측정 파일을 추가하면 독립적으로 WT 정규화한 뒤 해당 1차 측정값을 대체합니다. 형식은 파일 내용에서 읽습니다.",
+      "ambiguityWellRound": "같은 well 라벨 report가 1차 실험 또는 추가 확인 측정일 수 있습니다. 역할을 선택하세요. 확인 측정값은 해당 1차 값을 대체합니다.",
+      "primaryOnlyFile": "이 파일은 1차 실험 형식입니다. 실험 데이터 파일로 사용하거나 추가 측정 형식을 직접 선택하세요.",
+      "useAsPrimary": "실험 데이터로 사용: {{format}}",
+      "chooseFormatManually": "형식 직접 선택",
+      "clearAdditionalMeasurement": "추가 파일 제거",
+      "detectionSummaryLabel": "파일 판별 요약",
+      "detectedWellColumns": "well 열: {{value}}",
+      "detectedLabelColumns": "Sample/변이체 열: {{value}}",
+      "detectedValueColumns": "측정값 열: {{value}}",
+      "detectedSampleRows": "샘플 행: {{value}}",
+      "detectedRecognizedRows": "인식한 라벨: {{value}}행",
+      "detectedSkippedRows": "건너뛴 행: {{value}}",
+      "detectedUniqueLabels": "고유 샘플 라벨: {{value}}",
+      "confirmationWellPreview": "Well 라벨",
+      "confirmationVariantPreview": "Variant 라벨",
+      "detectedControlRows": "WT 대조군 행: {{value}}"
     },
     "runHealth": {
       "panelAriaLabel": "실행 상태 패널",
@@ -718,7 +736,10 @@
       "expand": "확대",
       "collapse": "축소",
       "expandAriaLabel": "플레이트 보기 확대 전환",
-      "expandedRegionAriaLabel": "확대된 플레이트 보기"
+      "expandedRegionAriaLabel": "확대된 플레이트 보기",
+      "finalCompositePlate": "최종 합성 플레이트",
+      "selectedWellSource": "선택한 웰 {{well}} · 원본: {{barcode}}",
+      "sourceUnknown": "알 수 없음"
     },
     "drawer": {
       "stat": {
@@ -861,7 +882,7 @@
       "manifestLoadFailed": "Manifest 로드 실패: {{err}}",
       "barcodeSetupTab": "1. 커스텀 바코드 프라이머 설계",
       "analyzeTab": "2. 시퀀싱 QC",
-      "janusTab": "3. Janus 장비 설정",
+      "janusTab": "3. Cell stock 제작",
       "activityTab": "4. 활성도 데이터",
       "verdictTableTitle": "판정 테이블",
       "platePlanTitle": "플레이트 맵",
@@ -888,7 +909,7 @@
       },
       "activityTabTitle": "활성 데이터 — EVOLVEpro 입력 변환 (PI 워크플로우 단계 ④)",
       "analyzeTabTitle": "시퀀싱 QC — NGS 검증의 일부 (PI 워크플로우 단계 ②)",
-      "janusTabTitle": "Janus 장비 설정 — 셀 스톡 피킹용 선택 단계 (PI 워크플로우 단계 ③)",
+      "janusTabTitle": "Cell stock 제작: 셀 스톡 피킹용 선택 단계 (PI 워크플로우 단계 ③)",
       "barcodeSetupTabTitle": "실행 설정 — NGS 검증의 일부 (PI 워크플로우 단계 ②)",
       "dropUnsupported": "여기서는 그 파일을 쓸 수 없습니다. {{ext}} 는 받지 않습니다. 허용: {{allowed}}",
       "dropNoExtension": "확장자 없음"
@@ -1131,9 +1152,9 @@
         "inspectorReads": "읽기 수",
         "inspectorReason": "이유",
         "inspectorNoWellSelected": "well을 클릭하여 검사",
-        "clusterAlertTitle": "클러스터 실패 감지",
-        "clusterAlertDesc": "{{wells}} — 인접 well이 동시에 실패했습니다. 피펫팅 문제가 의심됩니다.",
-        "clusterAlertAriaLabel": "플레이트 클러스터 실패 경고"
+        "clusterAlertTitle": "인접 웰의 낮은 깊이 / 판정 불가",
+        "clusterAlertDesc": "{{barcode}}의 {{wells}}에서 깊이가 낮거나 판정할 수 없습니다. 분주 이력을 확인해 보세요. 이 패턴만으로 원인을 단정할 수는 없습니다.",
+        "clusterAlertAriaLabel": "깊이가 낮거나 판정 불가인 인접 웰"
       },
       "review": {
         "contextTitle": "시퀀싱 QC — 검토",
@@ -1187,6 +1208,20 @@
         "sharing": {
           "shared_across_replicates": "엉뚱한 read 가 plate 사본 전체에서 반복된다.",
           "single_replicate": "엉뚱한 read 가 plate 사본 하나에만 있다."
+        },
+        "reason": {
+          "no_demux_matrix": "디멀티플렉싱 행렬이 생성되지 않아 리드를 바코드 조합에 배치할 수 없습니다.",
+          "no_occupied_wells": "이 실행에는 사용한 웰이 지정되어 있지 않아 미사용 바코드 조합을 구분할 수 없습니다.",
+          "all_indices_used": "사용한 웰이 모든 역방향 및 정방향 바코드 인덱스를 사용하므로 측정할 미사용 인덱스가 없습니다.",
+          "all_wells_occupied": "캠페인이 모든 웰을 사용하므로 비정상 유입 리드를 측정할 미사용 웰이 없습니다.",
+          "no_coverage_reads": "커버리지 기준을 통과해 바코드 매칭에 도달한 리드가 없어 모호성을 측정할 수 없습니다.",
+          "no_assigned_reads": "웰에 할당된 리드가 없어 키메라 비율을 계산할 분모가 없습니다.",
+          "pooled_leak_scope": "리드를 하나의 플레이트로 합쳤으므로 반복 플레이트 간 누출 분포를 비교할 수 없습니다.",
+          "single_replicate_leak_scope": "플레이트 사본 하나만 분석했으므로 반복 플레이트 간 누출 분포를 비교할 수 없습니다.",
+          "no_leak_reads": "캠페인이 사용하는 인덱스의 미사용 조합에 리드가 없어 비교할 웰 간 누출이 없습니다.",
+          "pooled_yield_scope": "리드를 하나의 플레이트로 합쳤으므로 수율을 비교할 두 번째 사본이 없습니다.",
+          "single_replicate_yield_scope": "플레이트 사본 하나만 분석했으므로 수율을 비교할 두 번째 사본이 없습니다.",
+          "no_plate_yield": "어떤 플레이트 사본에도 리드가 할당되지 않아 수율을 비교할 수 없습니다."
         }
       },
       "legacySampleMap": {
@@ -1302,7 +1337,7 @@
     },
     "janus": {
       "settings": {
-        "contextTitle": "Janus 장비 설정",
+        "contextTitle": "Cell stock 제작",
         "contextSubtitle": "장비 매핑 파일에 기록되는 이송 부피·리퀴드 클래스·type 열 값을 설정합니다. 시퀀싱 판정만 필요하면 건너뛸 수 있습니다.",
         "optionalNote": "선택 단계입니다. 분석 실행은 픽 리스트를 스스로 기록하지만, 장비 매핑은 여기서 내보낼 때만 기록됩니다. 시퀀싱 판정만 필요하면 스텝 2에서 스텝 4로 바로 넘어가면 됩니다.",
         "inspectorTitle": "장비 Inspector",
@@ -2094,7 +2129,7 @@
     "kuroInspectorTitle": "Kuro 세부 정보 검토",
     "kuroInspectorBody": "인스펙터에서 단계별 매개변수, 선택 변이, 경고 및 내보내기 설정을 확인합니다.",
     "mameWorkflowTitle": "Mame 워크플로 진행",
-    "mameWorkflowBody": "Setup, Analyze, 선택 단계인 Janus 장비 설정, Activity 를 거쳐 실험 증거를 정리된 학습 테이블로 변환합니다.",
+    "mameWorkflowBody": "Setup, Analyze, 선택 단계인 Cell stock 제작, Activity를 거쳐 실험 증거를 정리된 학습 테이블로 변환합니다.",
     "mameWorkspaceTitle": "Mame 주 작업 영역",
     "mameWorkspaceBody": "런 데이터를 불러오고 유전자형 판정과 플레이트 결과를 검토한 뒤 활성 측정값을 병합해 내보냅니다.",
     "mameInspectorTitle": "Mame 세부 정보 검토",
@@ -3308,7 +3343,9 @@
     "excludedRowAriaLabel": "{{mutation}}은(는) downstream 출력에서 제외됨",
     "pipelineFillHint": "파이프라인 + 실패 시 채우기가 이미 해당 위치를 대체했으므로 재시도가 비활성화됩니다.",
     "pipelineFillNote": "파이프라인 + 실패 시 채우기가 해당 위치를 대체했으므로 재시도가 불필요합니다.",
-    "removeCustomRescueTitle": "커스텀 rescue 제거: 실패로 복원"
+    "removeCustomRescueTitle": "커스텀 rescue 제거: 실패로 복원",
+    "well": "웰",
+    "wellHint": "현재 내보내기 배치의 정방향 프라이머 웰입니다. 정렬하면 내보내기 순서도 바뀝니다. R1, R2 등은 각각의 내보내기 라운드입니다."
   },
   "mameSidebar": {
     "runStateLabel": "실행 상태",
@@ -3490,9 +3527,9 @@
       },
       "all": {
         "heading": "내보내기 패키지",
-        "runExport": "모두 내보내기",
+        "runExport": "내보내기",
         "orderVendor": "주문 업체",
-        "orderVendorHint": "모두 내보내기에 타임스탬프 prefix가 붙은 Macrogen .xls 파일로 포함됩니다.",
+        "orderVendorHint": "타임스탬프가 앞에 붙은 Macrogen .xls 파일이 내보내기에 포함됩니다.",
         "amountLabel": "합성량",
         "purificationLabel": "정제",
         "purificationTooltip": "MOPC (Macrogen Oligo Purification Cartridge): Macrogen 표준 정제 방식, 변경 불가.",
@@ -3536,10 +3573,19 @@
         "plateNameRev": "Reverse 프라이머 플레이트 이름",
         "wellCount": "{{count}}개 웰",
         "echoVolLabel": "Echo 이송 부피",
+        "artefacts": {
+          "heading": "내보낼 산출물",
+          "macrogen": "Macrogen 주문서 (forward + reverse 프라이머)",
+          "primers": "프라이머 FASTA",
+          "echo": "Echo",
+          "janus": "JANUS",
+          "required": "Plate map (MAME 입력)과 실행 기록: 항상 포함"
+        },
         "janusVolLabel": "JANUS 이송 부피",
         "ruleHint": "정방향 및 역방향 프라이머 플레이트 이름을 모두 입력해야 합니다.",
         "vectormapsLabel": "클론별 GenBank 벡터맵도 내보내기",
-        "vectormapsHint": "웰마다 .gb 파일 1개를 씁니다. 모벡터에 그 클론의 변이를 표시한 지도이며 내보내기 폴더 옆 {{folder}}로 끝나는 폴더에 저장됩니다. GenBank 또는 SnapGene 참조가 필요합니다."
+        "vectormapsHint": "웰마다 .gb 파일 1개를 씁니다. 모벡터에 그 클론의 변이를 표시한 지도이며 내보내기 폴더 옆 {{folder}}로 끝나는 폴더에 저장됩니다. GenBank 또는 SnapGene 참조가 필요합니다.",
+        "exportError": "내보내기 실패"
       },
       "macrogen": {
         "title": "프라이머 주문 (Macrogen)",
@@ -3582,7 +3628,7 @@
         "redirecting": "탭으로 이동 중…"
       },
       "janus": {
-        "settings": "Janus 장비 설정"
+        "settings": "Cell stock 제작"
       }
     }
   },
@@ -3648,7 +3694,7 @@
         "files": "CDS 서열과 바코드 시드를 입력하고 프라이머 설계 파라미터를 설정한 뒤, 출력 폴더를 선택하고 바코드 패키지를 생성합니다."
       },
       "janus": {
-        "settings": "JANUS 셀 스톡 매핑을 준비합니다: 이송 부피, 리퀴드 클래스, type 열 값. 선택 단계이며 실행을 막지 않습니다."
+        "settings": "JANUS로 Cell stock 제작을 준비합니다: 이송 부피, 리퀴드 클래스, type 열 값. 선택 단계이며 실행을 막지 않습니다."
       }
     }
   },
@@ -3808,7 +3854,9 @@
       }
     },
     "mame": {
-      "labelMismatchBlocked": "라벨 교체가 감지되어 내보내기를 차단했습니다. 레이아웃과 판정 라벨을 검토한 뒤 검토한 라벨 불일치 허용을 선택하세요."
+      "labelMismatchBlocked": "라벨 교체가 감지되어 내보내기를 차단했습니다. 레이아웃과 판정 라벨을 검토한 뒤 검토한 라벨 불일치 허용을 선택하세요.",
+      "measurementIdentityConflict": "well과 Sample의 변이체가 달라 내보내기를 차단했습니다: {{rows}}",
+      "measurementWellsUnchecked": "다음 well의 매핑 근거가 없어 교차 검증하지 않았습니다. Sample 이름을 사용했습니다: {{wells}}"
     },
     "sequence": {
       "fastaNotSupported": "CDS annotation이 필요합니다. GenBank(.gb/.gbk) 또는 SnapGene(.dna) 파일을 사용하세요."

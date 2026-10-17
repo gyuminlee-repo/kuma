@@ -24,6 +24,11 @@ genuinely the same file, and neither pair is separable by reading:
 
 Both pairs are reported with ``ambiguous`` set and the caller chooses.
 
+A well-label block file can be a primary screen or an additional confirmation.
+The detector reports both roles; only the operator can decide which was measured.
+Canonical positive replicate suffixes (A1-1, S11I-1) identify repeat labels,
+not new coordinates or inferred mutations.
+
 A variant-label block file is not a pair.  Only ``_confirmation`` reads it: the
 primary path ``_raw_report_primary`` puts every non-WT sample name through
 ``_normalise_well`` and turns the failure into a refusal
@@ -54,8 +59,9 @@ will succeed:
 * header and sample-name shape only.  No value is read, converted to a number,
   or range-checked, so a long-format file whose ``area`` column is empty or
   textual still reports ``longFormat``.
-* the long-format test is "exactly one label column and exactly one value
-  column".  It does not check that the pair is one the caller wants: a
+* the long-format test is one label and one value column, optionally with a
+  separate well column beside a Sample/variant column. It does not check
+  that the pair is one the caller wants: a
   ``sample name`` + ``value`` sheet reports ``longFormat`` the same as a
   ``well`` + ``area`` one.
 * block internals.  Only the sample name of each FID1B block is classified.
@@ -72,7 +78,10 @@ from .build_evolvepro_input import (
     _VALUE_COLUMNS,
     _VARIANT_COLUMNS,
     _WELL_COLUMNS,
+    _long_columns,
+    _normalise_activity_header,
     _short_variant,
+    _strip_confirmation_rep_suffix,
 )
 from .constants import WT_PATTERN
 from .evolvepro_xlsx import _BLOCK_REP_ID_RE, _extract_rows, _iter_fid1b_blocks, _str
@@ -84,6 +93,7 @@ RAW_REPORT = "rawReport"
 NUMERIC_REPORT = "numericReport"
 CONFIRMATION_VARIANT_LABELS = "confirmationVariantLabels"
 CONFIRMATION_NUMERIC_IDS = "confirmationNumericIds"
+CONFIRMATION_WELL_LABELS = "confirmationWellLabels"
 
 MEASUREMENT_SOURCES = (
     LONG_FORMAT,
@@ -92,6 +102,7 @@ MEASUREMENT_SOURCES = (
     NUMERIC_REPORT,
     CONFIRMATION_VARIANT_LABELS,
     CONFIRMATION_NUMERIC_IDS,
+    CONFIRMATION_WELL_LABELS,
 )
 
 _TABULAR_SUFFIXES = {".csv", ".tsv", ".txt"}
@@ -112,16 +123,8 @@ class MeasurementSourceDetection:
 
 
 def _is_wt(sample_name: str) -> bool:
-    """Wild-type test taken from the widest consumer of a block file.
-
-    ``WT_PATTERN`` alone is the test ``parse_agilent_standard`` uses
-    (``evolvepro_xlsx.py:448``) and it requires a replicate number, but
-    ``parse_agilent_block_rep_batch`` also accepts a bare ``WT``
-    (``evolvepro_xlsx.py:654``).  A numeric-ID report with one bare ``WT`` block
-    is a file that path reads, so refusing it here would put the detector
-    stricter than the parser it is describing.
-    """
-    return bool(WT_PATTERN.match(sample_name)) or sample_name.strip().upper() == "WT"
+    """Use exactly the same WT contract as the activity readers."""
+    return WT_PATTERN.fullmatch(sample_name) is not None
 
 
 def _echo(values: list[str]) -> list[str]:
@@ -129,8 +132,7 @@ def _echo(values: list[str]) -> list[str]:
 
 
 def _classify_long_header(header: list[str]) -> tuple[list[str], list[str]]:
-    label_columns = [column for column in header if column in _WELL_COLUMNS | _VARIANT_COLUMNS]
-    value_columns = [column for column in header if column in _VALUE_COLUMNS]
+    label_columns, value_columns, _ = _long_columns(header)
     return label_columns, value_columns
 
 
@@ -150,11 +152,12 @@ def _detect_tabular(path: Path, evidence: dict[str, Any]) -> MeasurementSourceDe
             reason=f"cannot read {path.name} as a delimited table: {exc}",
         )
 
-    header = [str(column).strip().lower() for column in frame.columns]
+    header = [_normalise_activity_header(column) for column in frame.columns]
     evidence["header"] = header
     label_columns, value_columns = _classify_long_header(header)
     evidence["label_columns"] = label_columns
     evidence["value_columns"] = value_columns
+    evidence["well_columns"] = _long_columns(header)[2]
     if len(label_columns) == 1 and len(value_columns) == 1:
         return MeasurementSourceDetection(
             path=str(path),
@@ -197,15 +200,22 @@ def _detect_block(path: Path, rows: list[list], evidence: dict[str, Any]) -> Mea
     for name in names:
         if _is_wt(name):
             continue
-        if _WELL_RE.match(name):
+        label = _strip_confirmation_rep_suffix(name)
+        if _WELL_RE.fullmatch(label):
             wells.append(name)
         elif _BLOCK_REP_ID_RE.match(name):
             numeric.append(name)
-        elif _short_variant(name) is not None:
+        elif _short_variant(label) is not None:
             variants.append(name)
         else:
             unclassified.append(name)
 
+    evidence["n_sample_rows"] = len(names) - len(wt)
+    evidence["n_recognized_rows"] = len(wells) + len(numeric) + len(variants)
+    evidence["n_control_rows"] = len(wt)
+    evidence["n_unique_labels"] = len({
+        _strip_confirmation_rep_suffix(name) for name in wells + numeric + variants
+    })
     evidence["n_block_rows"] = len(names)
     evidence["n_wt_rows"] = len(wt)
     evidence["sample_name_namespaces"] = {
@@ -249,6 +259,14 @@ def _detect_block(path: Path, rows: list[list], evidence: dict[str, Any]) -> Mea
         return MeasurementSourceDetection(
             path=str(path),
             candidates=[NUMERIC_REPORT, CONFIRMATION_NUMERIC_IDS],
+            ambiguous=True,
+            evidence=evidence,
+        )
+    if occupied == [RAW_REPORT] and not unclassified:
+        evidence["ambiguity"] = "well labels identify coordinates, not primary versus additional measurements"
+        return MeasurementSourceDetection(
+            path=str(path),
+            candidates=[RAW_REPORT, CONFIRMATION_WELL_LABELS],
             ambiguous=True,
             evidence=evidence,
         )
@@ -341,13 +359,14 @@ def _detect_workbook(path: Path, sheet_index: int, evidence: dict[str, Any]) -> 
             reason=f"{path.name} has no rows on sheet {sheet_index}",
         )
 
-    header = [_str(cell).lower() for cell in rows[0]]
+    header = [_normalise_activity_header(cell) for cell in rows[0]]
     evidence["header"] = header
     label_columns, value_columns = _classify_long_header(header)
     evidence["label_columns"] = label_columns
     evidence["value_columns"] = value_columns
+    evidence["well_columns"] = _long_columns(header)[2]
 
-    if label_columns == ["sample name"] and value_columns == ["area"]:
+    if not evidence["well_columns"] and label_columns == ["sample name"] and value_columns == ["area"]:
         # Both readings are valid and they disagree about the wild-type rows:
         # _gc_primary skips the wells the verdict calls WT and exports no WT
         # scale, while _read_long collects the WT_n rows and normalises against

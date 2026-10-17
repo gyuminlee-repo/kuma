@@ -124,8 +124,8 @@ def _is_wt_key(key: str) -> bool:
 
     Covers both plain 'WT' (EVOLVEpro convention) and 'WT_1'/'WT1' patterns
     (well-level replicate names from normalize.WT_PATTERN).
-    Plain 'WT' is not matched by WT_PATTERN (which requires a numeric suffix),
-    so this function unions both checks.
+    WT_PATTERN also matches a bare 'WT' (case-insensitive), so the explicit
+    equality check only short-circuits the common exact spelling.
     """
     from kuma_core.mame.activity.normalize import WT_PATTERN
     return key == "WT" or bool(WT_PATTERN.match(key))

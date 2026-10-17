@@ -1102,6 +1102,8 @@ def _check_round_payload(
     used_quadrants: list[str],
     round_label: str,
     source_plate: int | None,
+    *,
+    include_echo: bool = True,
 ) -> None:
     """Refuse a round whose payload is not one plate, before any folder exists.
 
@@ -1140,6 +1142,8 @@ def _check_round_payload(
                     f"twice. Two rounds were merged into one payload."
                 )
             seen.add(m.well)
+    if not include_echo:
+        return
     if quadrant is None:
         raise ValueError(
             f"Round {round_label}: choose the Echo source plate columns "
@@ -1175,6 +1179,16 @@ def handle_export_all(params: dict) -> dict:
     started_at = datetime.now(timezone.utc)
 
     p = ExportAllParams(**params)
+    selected_kinds = (
+        {artefact.kind for artefact in EXPORT_ALL_BUNDLE}
+        if p.artefact_kinds is None else set(p.artefact_kinds)
+    )
+    selected_suffixes = tuple(
+        suffix
+        for artefact in EXPORT_ALL_BUNDLE
+        if artefact.kind in selected_kinds or artefact.kind in ("platemap", "run")
+        for suffix in artefact.suffixes
+    )
     out_dir = Path(p.output_dir).expanduser().resolve()
     if not out_dir.is_absolute():
         raise ValueError(f"output_dir must be absolute: {p.output_dir}")
@@ -1205,6 +1219,7 @@ def handle_export_all(params: dict) -> dict:
         _check_round_payload(
             mappings, p.quadrant, list(p.used_quadrants or []), p.round_label,
             p.source_plate,
+            include_echo="echo" in selected_kinds,
         )
 
     fwd, rev = _split_fwd_rev(mappings)
@@ -1252,6 +1267,7 @@ def handle_export_all(params: dict) -> dict:
         manifest_extra["mappings_source"] = (
             "payload" if p.mappings is not None else "state"
         )
+        manifest_extra["files"] = [*success, _name("run.json")]
         manifest = build_run_manifest(
             method="export_all",
             inputs=manifest_inputs,
@@ -1335,7 +1351,7 @@ def handle_export_all(params: dict) -> dict:
     success: list[str] = []
     failed: list[dict] = []
 
-    for suffix in EXPORT_ALL_FILE_SUFFIXES:
+    for suffix in selected_suffixes:
         name = _name(suffix)
         try:
             writers[suffix]()
