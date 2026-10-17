@@ -894,7 +894,7 @@
   <span class="md-ellipsis">
     
   
-    Step 3. Janus instrument settings
+    Step 3. Cell stock preparation
   
 
     
@@ -1007,18 +1007,19 @@
 <p><img alt="Step 6. Export" src="../figures/kuro-06-export-7.svg" /></p>
 <p><small>Numbered marks: <strong>10</strong> <code>Order summary</code></small></p>
 <p>Save the design output as order files and instrument transfer files in one batch.</p>
+<p>Select the files to export: the Macrogen order sheet (forward and reverse primers together), primer FASTA, Echo, and JANUS. Macrogen, FASTA and Echo are selected by default; JANUS is not. The plate map for MAME and the run manifest are always included. Clearing every checkbox exports just those two files. The selection is saved with the project and applies to every round.</p>
 <h2 id="fields-to-fill">Fields to fill<a class="headerlink" href="#fields-to-fill" title="Permanent link">&para;</a></h2>
 <ol>
 <li><code>Export name</code> sets the folder name and the file prefix. Leave it empty for an automatic <code>kuro_YYMMDD_HHMM</code> name. Up to 40 letters, numbers, Korean characters, underscores, or hyphens.</li>
-<li><code>Forward primer plate name</code> and <code>Reverse primer plate name</code> take 1-20 letters, numbers, underscores, or hyphens. The hint calls them optional, but the export does not run while either is blank.</li>
+<li><code>Forward primer plate name</code> and <code>Reverse primer plate name</code> take 1-20 letters, numbers, underscores, or hyphens. Both are required when the Macrogen order sheet is selected.</li>
 <li><code>Order vendor</code> is fixed to Macrogen Plate Oligo. Choose 0.05 or 0.2 μmole for the amount. Purification is fixed to MOPC.</li>
 <li><code>Echo transfer volume</code> accepts 25-500 nL.</li>
 <li><code>Echo source plate quadrant</code> is where a 96-head starts stamping the 384 plate. Forward primers start there and reverse primers go to the paired quadrant. Name the quadrants already spent on the plate and an overlapping choice is refused.</li>
 <li><code>JANUS transfer volume</code> accepts 0.5-10 μL.</li>
-<li>Click <code>Export all</code>, then choose the destination folder. With a project open, the picker starts in the <code>design</code> folder of that project.</li>
+<li>Click <code>Export</code>, then choose the destination folder. With a project open, the picker starts in the <code>design</code> folder of that project. Designs exceeding 96 wells export one round at a time.</li>
 </ol>
 <h2 id="output-files">Output files<a class="headerlink" href="#output-files" title="Permanent link">&para;</a></h2>
-<p>A folder named <code>&lt;Export name&gt;_YYYYMMDD</code> is created inside the folder you chose, or <code>kuro_YYMMDD_HHMM</code> when the name was left empty. An existing name gets <code>_2</code> appended. All eight files inside carry that folder name as their prefix.</p>
+<p>A folder named <code>&lt;Export name&gt;_YYYYMMDD</code> is created inside the folder you chose, or <code>kuro_YYMMDD_HHMM</code> when the name was left empty. An existing name gets <code>_2</code> appended. Only selected files and the two mandatory files are written, all with that folder name as their prefix. Echo source plate choices are required only when Echo is selected.</p>
 <table>
 <thead>
 <tr>

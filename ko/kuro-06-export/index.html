@@ -894,7 +894,7 @@
   <span class="md-ellipsis">
     
   
-    단계 3. Janus 장비 설정
+    단계 3. Cell stock 제작
   
 
     
@@ -1007,18 +1007,19 @@
 <p><img alt="단계 6. 내보내기" src="../figures/kuro-06-export-7.svg" /></p>
 <p><small>번호 표시: <strong>10</strong> <code>주문 요약</code></small></p>
 <p>설계 결과를 주문 파일과 장비 이송 파일로 한 번에 저장한다.</p>
+<p>내보낼 산출물에서 Macrogen 주문서(forward와 reverse 프라이머를 함께 포함), 프라이머 FASTA, Echo, JANUS를 고른다. 기본값은 Macrogen, FASTA, Echo 선택이며 JANUS는 선택하지 않는다. MAME 입력용 plate map과 실행 기록은 항상 포함된다. 모든 체크를 풀면 이 두 파일만 저장한다. 선택은 프로젝트에 저장되며 모든 라운드에 적용된다.</p>
 <h2 id="_1">입력 항목<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
 <ol>
 <li><code>내보내기 이름</code>, 폴더 이름과 파일 앞머리가 된다. 비우면 <code>kuro_YYMMDD_HHMM</code> 형식으로 자동 생성된다. 영문, 숫자, 한글, 밑줄, 하이픈 40자 이내.</li>
-<li><code>Forward 프라이머 플레이트 이름</code> 과 <code>Reverse 프라이머 플레이트 이름</code>, 영문, 숫자, 밑줄, 하이픈 1-20자. 화면에는 선택 사항이라고 적혀 있으나 비워 두면 내보내기가 진행되지 않는다.</li>
+<li><code>Forward 프라이머 플레이트 이름</code> 과 <code>Reverse 프라이머 플레이트 이름</code>, 영문, 숫자, 밑줄, 하이픈 1-20자. Macrogen 주문서를 선택했을 때 두 이름이 필수다.</li>
 <li><code>주문 업체</code>, Macrogen Plate Oligo 고정이다. 합성량은 0.05 또는 0.2 μmole 중 고르고 정제는 MOPC 로 고정이다.</li>
 <li><code>Echo 이송 부피</code>, 25-500 nL.</li>
 <li><code>Echo 소스 플레이트 quadrant</code>, 96-head 가 384 플레이트에서 찍기 시작할 자리다. Forward 가 여기서 시작하고 reverse 는 짝 quadrant 로 간다. 플레이트에서 이미 쓴 quadrant 를 함께 지정하면 겹치는 조합이 거부된다.</li>
 <li><code>JANUS 이송 부피</code>, 0.5-10 μL.</li>
-<li><code>모두 내보내기</code> 를 누른 뒤 저장할 폴더를 고른다. 프로젝트를 열어 두었으면 프로젝트의 <code>design</code> 폴더가 기본으로 열린다.</li>
+<li><code>내보내기</code>를 누른 뒤 저장할 폴더를 고른다. 프로젝트를 열어 두었으면 프로젝트의 <code>design</code> 폴더가 기본으로 열린다. 96개 웰을 넘는 설계는 라운드별로 내보낸다.</li>
 </ol>
 <h2 id="_2">산출물<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
-<p>고른 폴더 안에 <code>&lt;내보내기 이름&gt;_YYYYMMDD</code> 폴더가 만들어진다. 이름을 비웠으면 <code>kuro_YYMMDD_HHMM</code> 이 된다. 같은 이름이 이미 있으면 뒤에 <code>_2</code> 가 붙는다. 폴더 안 파일 여덟 개는 모두 그 폴더 이름을 앞머리로 쓴다.</p>
+<p>고른 폴더 안에 <code>&lt;내보내기 이름&gt;_YYYYMMDD</code> 폴더가 만들어진다. 이름을 비웠으면 <code>kuro_YYMMDD_HHMM</code>이 된다. 같은 이름이 이미 있으면 뒤에 <code>_2</code>가 붙는다. 선택한 산출물과 필수 파일 두 개만 저장하며 모두 그 폴더 이름을 앞머리로 쓴다. Echo 소스 플레이트 선택은 Echo를 선택했을 때만 필요하다.</p>
 <table>
 <thead>
 <tr>
