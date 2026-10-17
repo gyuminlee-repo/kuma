@@ -10,6 +10,7 @@ import { formatError } from "../../lib/utils";
 import { DEFAULT_EXPORT_ARTEFACT_KINDS, LEGACY_EXPORT_ARTEFACT_KINDS } from "../../lib/exportArtefactKinds";
 import { readKuroDesignOutcome } from "../../lib/kuroSnapshot";
 import { notifyJobDone, notifyJobError } from "../../lib/toast";
+import { toast } from "sonner";
 import { registerArtifacts, ensureWorkspaceFromExportPath, getActiveWorkspace } from "../../lib/workspace";
 import type { AppState } from "../types";
 import type { ExpectedCodonTable } from "../../lib/codonTableRestore";
@@ -840,6 +841,11 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
   },
 
   resetAll: (options) => {
+    // A reset ends the running design rather than letting its reply land in the
+    // cleared workspace. Its results belong to inputs that no longer exist, so
+    // the backend run is cancelled and the user is told why the run stopped.
+    const designWasRunning = get().isDesigning;
+    get().invalidateDesignRuns();
     set({
       fastaPath: "",
       seqInfo: null,
@@ -959,6 +965,14 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       exportVectormaps: false,
       exportArtefactKinds: [...DEFAULT_EXPORT_ARTEFACT_KINDS],
     });
+    if (designWasRunning) {
+      void sendRequest("cancel_design", {}).catch((err: unknown) => {
+        console.warn("[resetAll] cancel_design failed:", err);
+      });
+      const notice = i18next.t("toast.designCancelledByReset");
+      set({ statusMessage: notice });
+      toast.info(notice);
+    }
     if (!options?.preserveWorkspaceArtifacts && getActiveWorkspace()) {
       void import("../../lib/workspace").then(({ clearWorkspace }) =>
         clearWorkspace("kuro").catch(() => {

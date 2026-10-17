@@ -366,6 +366,8 @@ export interface DesignSlice {
   showReport: boolean;
 
   // Actions
+  /** Retire every in-flight design, retry and commit reply (reset boundary). */
+  invalidateDesignRuns: () => void;
   designPrimers: () => Promise<void>;
   /** @deprecated See showReport — legacy Dialog wrapper only. */
   setShowReport: (show: boolean) => void;

@@ -2546,6 +2546,7 @@
     "missingColumn": "必須カラムが欠落: \"{{column}}\"{{aliasNote}}"
   },
   "toast": {
+    "designCancelledByReset": "ワークスペースをクリアしたため、実行中の設計をキャンセルしました。結果が必要な場合は設計を再実行してください。",
     "completedWithDuration": "完了 ({{duration}})"
   },
   "exportSlice": {

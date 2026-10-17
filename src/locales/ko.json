@@ -2588,6 +2588,7 @@
     "missingColumn": "필수 컬럼 누락: \"{{column}}\"{{aliasNote}}"
   },
   "toast": {
+    "designCancelledByReset": "작업 공간을 비워 실행 중이던 설계를 취소했습니다. 결과가 필요하면 설계를 다시 실행하세요.",
     "completedWithDuration": "완료 ({{duration}})"
   },
   "exportSlice": {

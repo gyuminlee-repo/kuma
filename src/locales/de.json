@@ -2546,6 +2546,7 @@
     "missingColumn": "Erforderlich column missing: \"{{column}}\"{{aliasNote}}"
   },
   "toast": {
+    "designCancelledByReset": "Das laufende Design wurde abgebrochen, weil der Arbeitsbereich geleert wurde. Starten Sie das Design erneut, um Ergebnisse zu erhalten.",
     "completedWithDuration": "Abgeschlossen ({{duration}})"
   },
   "exportSlice": {

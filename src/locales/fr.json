@@ -2546,6 +2546,7 @@
     "missingColumn": "Colonne requise manquante : « {{column}} »{{aliasNote}}"
   },
   "toast": {
+    "designCancelledByReset": "La conception en cours a été annulée car l’espace de travail a été vidé. Relancez la conception pour obtenir des résultats.",
     "completedWithDuration": "Terminé ({{duration}})"
   },
   "exportSlice": {

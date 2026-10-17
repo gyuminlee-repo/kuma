@@ -2588,6 +2588,7 @@
     "missingColumn": "Required column missing: \"{{column}}\"{{aliasNote}}"
   },
   "toast": {
+    "designCancelledByReset": "The running design was cancelled because the workspace was cleared. Run design again to get results.",
     "completedWithDuration": "Completed ({{duration}})"
   },
   "exportSlice": {

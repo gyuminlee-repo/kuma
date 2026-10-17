@@ -2546,6 +2546,7 @@
     "missingColumn": "Отсутствует обязательная колонка: \"{{column}}\"{{aliasNote}}"
   },
   "toast": {
+    "designCancelledByReset": "Выполнявшийся дизайн отменён, так как рабочее пространство было очищено. Запустите дизайн снова, чтобы получить результаты.",
     "completedWithDuration": "Завершено ({{duration}})"
   },
   "exportSlice": {

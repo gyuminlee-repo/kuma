@@ -2546,6 +2546,7 @@
     "missingColumn": "Coluna obrigatória ausente: \"{{column}}\"{{aliasNote}}"
   },
   "toast": {
+    "designCancelledByReset": "O desenho em andamento foi cancelado porque o espaço de trabalho foi limpo. Execute o desenho novamente para obter resultados.",
     "completedWithDuration": "Concluído ({{duration}})"
   },
   "exportSlice": {

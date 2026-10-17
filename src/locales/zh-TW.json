@@ -2546,6 +2546,7 @@
     "missingColumn": "缺少必需列: \"{{column}}\"{{aliasNote}}"
   },
   "toast": {
+    "designCancelledByReset": "工作區已清空，執行中的設計已取消。如需結果，請重新執行設計。",
     "completedWithDuration": "已完成 ({{duration}})"
   },
   "exportSlice": {
