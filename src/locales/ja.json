@@ -2552,6 +2552,8 @@
     "designCancelledByReset": "ワークスペースをクリアしたため、実行中の設計をキャンセルしました。結果が必要な場合は設計を再実行してください。",
     "analysisCancelledByReset": "ワークスペースをクリアしたか別のプロジェクトを開いたため、実行中の解析をキャンセルしました。結果が必要な場合は解析を再実行してください。",
     "analysisCancelFailed": "ワークスペースをクリアした後、実行中の解析を停止できませんでした: {{message}}",
+    "designInputsChangedDuringRun": "設計は完了しましたが、実行中に入力が変更されました。この結果は開始時の入力に基づきます。現在の入力で結果を得るには設計を再実行してください。",
+    "analysisInputsChangedDuringRun": "解析は完了しましたが、実行中に入力が変更されました。この結果は開始時の入力に基づきます。現在の入力で結果を得るには解析を再実行してください。",
     "completedWithDuration": "完了 ({{duration}})"
   },
   "exportSlice": {

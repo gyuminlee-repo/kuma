@@ -2552,6 +2552,8 @@
     "designCancelledByReset": "El diseño en curso se canceló porque se vació el espacio de trabajo. Vuelva a ejecutar el diseño para obtener resultados.",
     "analysisCancelledByReset": "El análisis en curso se canceló porque se vació el espacio de trabajo o se abrió otro proyecto. Vuelva a ejecutar el análisis para obtener resultados.",
     "analysisCancelFailed": "No se pudo detener el análisis en curso después de vaciar el espacio de trabajo: {{message}}",
+    "designInputsChangedDuringRun": "El diseño terminó, pero sus entradas cambiaron mientras se ejecutaba. Estos resultados corresponden a las entradas iniciales; vuelva a ejecutar el diseño para las entradas actuales.",
+    "analysisInputsChangedDuringRun": "El análisis terminó, pero sus entradas cambiaron mientras se ejecutaba. Estos resultados corresponden a las entradas iniciales; vuelva a ejecutar el análisis para las entradas actuales.",
     "completedWithDuration": "Completado ({{duration}})"
   },
   "exportSlice": {

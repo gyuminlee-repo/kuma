@@ -22,7 +22,10 @@ const mocks = vi.hoisted(() => ({
   sendRequest: vi.fn(),
   notifyJobError: vi.fn(),
   notifyJobDone: vi.fn(),
+  toast: { info: vi.fn(), warning: vi.fn(), success: vi.fn(), error: vi.fn() },
 }));
+
+vi.mock("sonner", () => ({ toast: mocks.toast }));
 
 vi.mock("../../lib/ipc-kuro", () => ({
   sendRequest: mocks.sendRequest,
@@ -336,6 +339,18 @@ describe("a design run belongs to the workspace that started it", () => {
     expect(state.designResults.map((r) => r.mutation)).toEqual(["V1A", "V2A"]);
     expect(state.lastDesignRun?.outcome).toBe("success");
     expect(state.isDesigning).toBe(false);
+    // Kept, and marked: the user is told these are for the inputs it began with.
+    expect(mocks.toast.warning).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not mark a run whose inputs stayed put", async () => {
+    const releases = pendingDesigns();
+    mocks.toast.warning.mockClear();
+    const run = useAppStore.getState().designPrimers();
+    await vi.waitFor(() => expect(releases).toHaveLength(1));
+    releases[0](designResponse(["V1A", "V2A"]));
+    await run;
+    expect(mocks.toast.warning).not.toHaveBeenCalled();
   });
 
   it("drops a retry reply that lands after a reset", async () => {

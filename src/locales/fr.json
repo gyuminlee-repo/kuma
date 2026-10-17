@@ -2552,6 +2552,8 @@
     "designCancelledByReset": "La conception en cours a été annulée car l’espace de travail a été vidé. Relancez la conception pour obtenir des résultats.",
     "analysisCancelledByReset": "L’analyse en cours a été annulée car l’espace de travail a été vidé ou un autre projet a été ouvert. Relancez l’analyse pour obtenir des résultats.",
     "analysisCancelFailed": "Impossible d’arrêter l’analyse en cours après le vidage de l’espace de travail : {{message}}",
+    "designInputsChangedDuringRun": "La conception est terminée, mais ses entrées ont changé pendant l’exécution. Ces résultats correspondent aux entrées de départ ; relancez la conception pour les entrées actuelles.",
+    "analysisInputsChangedDuringRun": "L’analyse est terminée, mais ses entrées ont changé pendant l’exécution. Ces résultats correspondent aux entrées de départ ; relancez l’analyse pour les entrées actuelles.",
     "completedWithDuration": "Terminé ({{duration}})"
   },
   "exportSlice": {

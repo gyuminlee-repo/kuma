@@ -2552,6 +2552,8 @@
     "designCancelledByReset": "Das laufende Design wurde abgebrochen, weil der Arbeitsbereich geleert wurde. Starten Sie das Design erneut, um Ergebnisse zu erhalten.",
     "analysisCancelledByReset": "Die laufende Analyse wurde abgebrochen, weil der Arbeitsbereich geleert oder ein anderes Projekt geöffnet wurde. Starten Sie die Analyse erneut, um Ergebnisse zu erhalten.",
     "analysisCancelFailed": "Die laufende Analyse konnte nach dem Leeren des Arbeitsbereichs nicht gestoppt werden: {{message}}",
+    "designInputsChangedDuringRun": "Das Design ist fertig, aber seine Eingaben wurden während des Laufs geändert. Diese Ergebnisse gelten für die Eingaben beim Start; starten Sie das Design für die aktuellen Eingaben erneut.",
+    "analysisInputsChangedDuringRun": "Die Analyse ist fertig, aber ihre Eingaben wurden während des Laufs geändert. Diese Ergebnisse gelten für die Eingaben beim Start; starten Sie die Analyse für die aktuellen Eingaben erneut.",
     "completedWithDuration": "Abgeschlossen ({{duration}})"
   },
   "exportSlice": {

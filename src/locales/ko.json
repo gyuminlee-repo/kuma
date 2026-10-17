@@ -2594,6 +2594,8 @@
     "designCancelledByReset": "작업 공간을 비워 실행 중이던 설계를 취소했습니다. 결과가 필요하면 설계를 다시 실행하세요.",
     "analysisCancelledByReset": "작업 공간을 비우거나 다른 프로젝트를 열어 실행 중이던 분석을 취소했습니다. 결과가 필요하면 분석을 다시 실행하세요.",
     "analysisCancelFailed": "작업 공간을 비운 뒤 실행 중이던 분석을 멈추지 못했습니다: {{message}}",
+    "designInputsChangedDuringRun": "설계는 끝났지만 실행 중에 입력이 바뀌었습니다. 이 결과는 시작할 때의 입력 기준입니다. 현재 입력으로 결과를 얻으려면 설계를 다시 실행하세요.",
+    "analysisInputsChangedDuringRun": "분석은 끝났지만 실행 중에 입력이 바뀌었습니다. 이 결과는 시작할 때의 입력 기준입니다. 현재 입력으로 결과를 얻으려면 분석을 다시 실행하세요.",
     "completedWithDuration": "완료 ({{duration}})"
   },
   "exportSlice": {

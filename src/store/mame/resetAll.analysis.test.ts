@@ -16,7 +16,7 @@ const ipc = vi.hoisted(() => ({
   isSidecarRunning: vi.fn(() => false),
 }));
 const writeResult = vi.hoisted(() => vi.fn(async () => undefined));
-const toasts = vi.hoisted(() => ({ info: vi.fn(), error: vi.fn() }));
+const toasts = vi.hoisted(() => ({ info: vi.fn(), error: vi.fn(), warning: vi.fn() }));
 
 vi.mock("@/lib/ipc-mame", () => ipc);
 vi.mock("@/lib/mame/resultSnapshot", () => ({ writeMameResultSnapshot: writeResult }));
@@ -120,6 +120,23 @@ describe("a reset ends the running analysis", () => {
     pending[0].resolve({ wells: [{ well: "A1", selected: true }] });
     await load;
     expect(useMameAppStore.getState().wells).toEqual([]);
+  });
+});
+
+describe("an input changed while the analysis ran", () => {
+  it("lands the results, says they are for the starting inputs, and stamps the file with those", async () => {
+    consensusInputs();
+    const startIdentity = buildMameSnapshot(useMameAppStore.getState(), undefined, useMameAppStore.getState().projectPath).input_identity;
+    const pending = holdCalls("analyze");
+    const run = useMameAppStore.getState().runAnalysis();
+    await vi.waitFor(() => expect(pending).toHaveLength(1));
+    useMameAppStore.getState().setReferencePath("/p/other-ref.fa");
+    pending[0].resolve(RESULT);
+    await run;
+
+    expect(useMameAppStore.getState().verdicts).toEqual([VERDICT]);
+    expect(toasts.warning).toHaveBeenCalledTimes(1);
+    expect(writeResult).toHaveBeenCalledWith(useMameAppStore.getState().projectPath, expect.anything(), startIdentity);
   });
 });
 

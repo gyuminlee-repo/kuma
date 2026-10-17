@@ -2552,6 +2552,8 @@
     "designCancelledByReset": "O desenho em andamento foi cancelado porque o espaço de trabalho foi limpo. Execute o desenho novamente para obter resultados.",
     "analysisCancelledByReset": "A análise em andamento foi cancelada porque o espaço de trabalho foi limpo ou outro projeto foi aberto. Execute a análise novamente para obter resultados.",
     "analysisCancelFailed": "Não foi possível interromper a análise em andamento após limpar o espaço de trabalho: {{message}}",
+    "designInputsChangedDuringRun": "O desenho terminou, mas suas entradas mudaram durante a execução. Estes resultados correspondem às entradas iniciais; execute o desenho novamente para as entradas atuais.",
+    "analysisInputsChangedDuringRun": "A análise terminou, mas suas entradas mudaram durante a execução. Estes resultados correspondem às entradas iniciais; execute a análise novamente para as entradas atuais.",
     "completedWithDuration": "Concluído ({{duration}})"
   },
   "exportSlice": {

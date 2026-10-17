@@ -1,4 +1,6 @@
 import type { StateCreator } from "zustand";
+import i18next from "i18next";
+import { toast } from "sonner";
 import { cancelAndRespawn, sendRequest } from "@/lib/ipc-mame";
 import { formatError } from "@/lib/utils";
 import { defaultMameExportFilename } from "@/lib/mameFilename";
@@ -295,6 +297,15 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   // the run explicitly (resetAll.ts cancels the backend and tells the user), so
   // a reply that arrives afterwards belongs to inputs that no longer exist.
   let analysisRun = 0;
+  // An input changed while the run was going (the form stays editable). The
+  // results still land, as before, but the user is told they belong to the
+  // inputs the run started with; the result file is stamped with those, so a
+  // restart does not present them as the current inputs' answer.
+  const warnIfInputsChanged = (startIdentity: string) => {
+    if (mameInputIdentity(get(), get().projectPath) !== startIdentity) {
+      toast.warning(i18next.t("toast.analysisInputsChangedDuringRun"));
+    }
+  };
   return ({
   ...mameInputInitialState,
   setCdsCandidates: (cdsCandidates) => set({ cdsCandidates, selectedCdsIndex: 0 }),
@@ -675,6 +686,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   _demuxAndAnalyze: async (nativeBarcodes: string[] | null) => {
     const run = analysisRun;
     const state = get();
+    const startIdentity = mameInputIdentity(state, state.projectPath);
     const { rawRunParams } = state;
 
     set({
@@ -707,6 +719,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       MAME_RAWRUN_RPC_TIMEOUT_MS,
     );
     if (run !== analysisRun) return;
+    warnIfInputsChanged(startIdentity);
     persistRoundAnalyzeEvidence(targetRoundId, runId, result);
 
     get().setVerdicts(result.verdicts);
@@ -749,7 +762,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     // review view. Awaited so an immediate app-close does not lose it. Failure
     // must not break the in-memory flow (best-effort).
     try {
-      await writeMameResultSnapshot(get().projectPath, result, mameInputIdentity(get(), get().projectPath));
+      await writeMameResultSnapshot(get().projectPath, result, startIdentity);
     } catch (err) {
       console.warn("[inputSlice] persist analyze result failed:", err);
     }
@@ -834,6 +847,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       }
 
       // Non-raw_run modes: analyze the inputDir directly (current behaviour).
+      const startIdentity = mameInputIdentity(state, state.projectPath);
       const targetRoundId = useRoundStore.getState().active_round_id;
       const runId = createAnalyzeRunId();
       const result = await sendRequest<AnalyzeResult>(
@@ -853,6 +867,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         MAME_ANALYZE_RPC_TIMEOUT_MS,
       );
       if (run !== analysisRun) return;
+      warnIfInputsChanged(startIdentity);
       persistRoundAnalyzeEvidence(targetRoundId, runId, result);
 
       get().setVerdicts(result.verdicts);
@@ -884,7 +899,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       // this run's `clearResults()` already left it (null).
       set({ janusAutosave: result.janus_autosave ?? null });
       try {
-        await writeMameResultSnapshot(get().projectPath, result, mameInputIdentity(get(), get().projectPath));
+        await writeMameResultSnapshot(get().projectPath, result, startIdentity);
       } catch (err) {
         console.warn("[inputSlice] persist analyze result failed:", err);
       }

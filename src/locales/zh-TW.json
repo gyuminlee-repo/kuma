@@ -2552,6 +2552,8 @@
     "designCancelledByReset": "工作區已清空，執行中的設計已取消。如需結果，請重新執行設計。",
     "analysisCancelledByReset": "工作區已清空或已開啟其他專案，執行中的分析已取消。如需結果，請重新執行分析。",
     "analysisCancelFailed": "清空工作區後未能停止執行中的分析：{{message}}",
+    "designInputsChangedDuringRun": "設計已完成，但執行期間輸入有所變更。這些結果對應開始時的輸入；如需目前輸入的結果，請重新執行設計。",
+    "analysisInputsChangedDuringRun": "分析已完成，但執行期間輸入有所變更。這些結果對應開始時的輸入；如需目前輸入的結果，請重新執行分析。",
     "completedWithDuration": "已完成 ({{duration}})"
   },
   "exportSlice": {

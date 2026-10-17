@@ -1,4 +1,6 @@
 import type { StateCreator } from "zustand";
+import i18next from "i18next";
+import { toast } from "sonner";
 import { notifyJobComplete } from "../../lib/notify";
 import { notifyJobDone, notifyJobError } from "../../lib/toast";
 import { startKeepAwake, stopKeepAwake } from "../../lib/keepAwake";
@@ -260,6 +262,10 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       statusMessage: "Designing primers...",
       alternativesCache: {},
     });
+    // A design input changed during the run (a domain or BLAST lookup landing,
+    // an edit) replaces this array through buildKuroDesignInputPatch. The
+    // results still land, marked as belonging to the inputs the run began with.
+    const resultsAtStart = get().designResults;
 
     // Every exit from this run writes one of these, so an empty result table
     // can always tell "never ran" from "ran and the results are gone".
@@ -312,6 +318,9 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         });
         return;
       }
+      const staleNotice = get().designResults !== resultsAtStart
+        ? i18next.t("toast.designInputsChangedDuringRun")
+        : null;
       const processed = processDesignResult({
         result,
         maxPrimers,
@@ -333,13 +342,14 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         rescuedMutations: processed.rescuedMutations,
         plateMappings: plateState.plateMappings,
         dedupInfo: plateState.dedupInfo,
-        statusMessage: processed.statusMessage,
+        statusMessage: staleNotice ? `${processed.statusMessage} ${staleNotice}` : processed.statusMessage,
         lastDesignRun: runRecord("success", null, {
           successCount: processed.capped.length,
           totalCount: prepared.intendedMuts.size,
           failedCount: processed.intendedFailed.length,
         }),
       });
+      if (staleNotice) toast.warning(staleNotice);
 
       const fillSourcePath = get().evolveproCsvPath;
       if (fillOnFailure && isEvolveMode && fillSourcePath) {
