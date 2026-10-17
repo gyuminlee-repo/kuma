@@ -24,6 +24,8 @@ Header matching ignores case, surrounding spaces, and the byte-order mark Excel 
 
 When auto-detect misses, pick the columns yourself. The column mapping panel below the file picker lists the headers found in the file; choose the mutation and ranking columns, set the ranking direction, and apply. The panel populates as soon as a file is chosen, so a failed auto-detect does not block the file.
 
+A column you pick has to exist in the file. If the mutation or ranking column sent with the load is not among the headers, the load stops with an error that names the requested column and lists the headers found; it is not read as an empty or score-free table. Leaving a column on auto-detect keeps the behaviour above, including the score-free read when no score alias is present.
+
 Variant notation accepted:
 - Internal form `Q232A` (`{WT}{position}{MT}`)
 - EVOLVEpro short form `232A` (position + mutant only) — converted to internal form using the loaded protein sequence as reference. Conversion requires a sequence to be loaded first; otherwise short-form rows pass through unchanged.

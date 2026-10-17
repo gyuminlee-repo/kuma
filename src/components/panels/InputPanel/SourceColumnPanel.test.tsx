@@ -47,6 +47,25 @@ function removeSelectShims() {
   }
 }
 
+// Captured before any test swaps it for a spy, so the stale-override tests can
+// drive the real slice and read the request it sends.
+const realLoadEvolveproCsv = useAppStore.getState().loadEvolveproCsv;
+
+function loadParams(): Record<string, unknown>[] {
+  return mocks.sendRequest.mock.calls
+    .filter((c) => c[0] === "load_evolvepro_csv")
+    .map((c) => c[1] as Record<string, unknown>);
+}
+
+const LOAD_RESULT = {
+  variants: ["A10G"],
+  y_preds: [0.9],
+  total_count: 1,
+  selected_count: 1,
+  used_variant_column: "Variant",
+  used_score_column: "fitness",
+};
+
 function resetStore(path: string) {
   useAppStore.setState({
     evolveproCsvPath: path,
@@ -148,5 +167,105 @@ describe("SourceColumnPanel, manual column mapping", () => {
       await screen.findByText("Preview failed: sidecar unavailable"),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Mutation column")).toBeDisabled();
+  });
+});
+
+describe("SourceColumnPanel, the request carries what the dropdowns show", () => {
+  beforeEach(() => {
+    installSelectShims();
+    mocks.sendRequest.mockReset();
+    useAppStore.setState({ loadEvolveproCsv: realLoadEvolveproCsv });
+  });
+
+  afterEach(() => {
+    removeSelectShims();
+  });
+
+  it("drops overrides the previewed file lacks before Apply sends the request", async () => {
+    mocks.sendRequest.mockImplementation(async (method: string) =>
+      method === "preview_evolvepro_source" ? PREVIEW : LOAD_RESULT,
+    );
+    resetStore("/tmp/variants.csv");
+    // Left over from a file with other headers (restored project, edited file).
+    useAppStore.setState({
+      evolveproVariantColumn: "old_variant",
+      evolveproScoreColumn: "old_score",
+    });
+
+    render(<SourceColumnPanel />);
+
+    const variantTrigger = await screen.findByLabelText("Mutation column");
+    const scoreTrigger = screen.getByLabelText("Ranking column");
+    await waitFor(() => expect(variantTrigger).not.toBeDisabled());
+    // Neither name is among the headers, so both dropdowns read as auto.
+    expect(variantTrigger).toHaveTextContent("Auto-detect");
+    expect(scoreTrigger).toHaveTextContent("Auto-detect");
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Apply selected columns" }));
+
+    await waitFor(() => expect(loadParams()).toHaveLength(1));
+    expect(loadParams()[0]).not.toHaveProperty("variant_column");
+    expect(loadParams()[0]).not.toHaveProperty("score_column");
+    expect(useAppStore.getState().evolveproVariantColumn).toBeNull();
+    expect(useAppStore.getState().evolveproScoreColumn).toBeNull();
+  });
+
+  it("still sends an override that the previewed file has", async () => {
+    mocks.sendRequest.mockImplementation(async (method: string) =>
+      method === "preview_evolvepro_source" ? PREVIEW : LOAD_RESULT,
+    );
+    resetStore("/tmp/variants.csv");
+    useAppStore.setState({
+      evolveproVariantColumn: "Variant",
+      evolveproScoreColumn: "old_score",
+    });
+
+    render(<SourceColumnPanel />);
+
+    const variantTrigger = await screen.findByLabelText("Mutation column");
+    await waitFor(() => expect(variantTrigger).not.toBeDisabled());
+    expect(variantTrigger).toHaveTextContent("Variant");
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Apply selected columns" }));
+
+    await waitFor(() => expect(loadParams()).toHaveLength(1));
+    expect(loadParams()[0].variant_column).toBe("Variant");
+    expect(loadParams()[0]).not.toHaveProperty("score_column");
+  });
+
+  it("keeps restored overrides while the preview has not arrived", async () => {
+    // The preview never resolves: the panel has no headers to compare against.
+    mocks.sendRequest.mockImplementation((method: string) =>
+      method === "preview_evolvepro_source"
+        ? new Promise(() => {})
+        : Promise.resolve(LOAD_RESULT),
+    );
+    resetStore("/tmp/variants.csv");
+    useAppStore.setState({
+      evolveproVariantColumn: "mutation_id",
+      evolveproScoreColumn: "ranking_score",
+    });
+
+    render(<SourceColumnPanel />);
+
+    await waitFor(() =>
+      expect(mocks.sendRequest).toHaveBeenCalledWith(
+        "preview_evolvepro_source",
+        expect.anything(),
+      ),
+    );
+    expect(useAppStore.getState().evolveproVariantColumn).toBe("mutation_id");
+    expect(useAppStore.getState().evolveproScoreColumn).toBe("ranking_score");
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Apply selected columns" }));
+
+    await waitFor(() => expect(loadParams()).toHaveLength(1));
+    expect(loadParams()[0].variant_column).toBe("mutation_id");
+    expect(loadParams()[0].score_column).toBe("ranking_score");
+    expect(useAppStore.getState().evolveproVariantColumn).toBe("mutation_id");
+    expect(useAppStore.getState().evolveproScoreColumn).toBe("ranking_score");
   });
 });

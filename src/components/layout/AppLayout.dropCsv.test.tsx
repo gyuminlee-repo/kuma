@@ -66,4 +66,26 @@ describe("AppLayout CSV drop", () => {
     await waitFor(() => expect(loadSpy).toHaveBeenCalledWith("/elsewhere/dropped.csv"));
     expect(useAppStore.getState().evolveproCsvUserPicked).toBe(true);
   });
+
+  it("drops the previous file's column overrides before loading, as Browse does", async () => {
+    // The sidecar refuses a variant column the file does not have, so a name
+    // picked for the previous table must not travel to the dropped one.
+    const seen: Array<{ variant: string | null; score: string | null }> = [];
+    const loadSpy = vi.fn(async () => {
+      const s = useAppStore.getState();
+      seen.push({ variant: s.evolveproVariantColumn, score: s.evolveproScoreColumn });
+    });
+    useAppStore.setState({
+      loadEvolveproCsv: loadSpy as unknown as typeof originalLoad,
+      evolveproVariantColumn: "mutant_id",
+      evolveproScoreColumn: "rank",
+    });
+    render(<AppLayout />);
+    await waitFor(() => expect(drop.handler).not.toBeNull());
+
+    drop.handler!({ payload: { type: "drop", paths: ["/elsewhere/dropped.csv"] } });
+
+    await waitFor(() => expect(loadSpy).toHaveBeenCalledWith("/elsewhere/dropped.csv"));
+    expect(seen).toEqual([{ variant: null, score: null }]);
+  });
 });
