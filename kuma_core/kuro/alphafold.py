@@ -10,6 +10,7 @@ at ~/.kuro/embeddings/{accession}_ca.json.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 import logging
 import re
 import urllib.request as _urllib_req
@@ -334,7 +335,9 @@ def ca_max_dist(coords: list[tuple[float, float, float] | None]) -> float:
     return max_d if max_d > 0 else 1.0
 
 
-def check_structure_available(accession: str) -> bool:
+def check_structure_available(
+    accession: str, *, network_allowed: Callable[[], bool] | None = None,
+) -> bool:
     """Return True if an AlphaFold predicted structure exists for *accession*.
 
     Checks local cache first (instant), then queries the AlphaFold DB API
@@ -348,6 +351,11 @@ def check_structure_available(accession: str) -> bool:
     cache_file = _CACHE_DIR / f"{accession}{_CA_SUFFIX}"
     if cache_file.exists():
         return True
+
+    # Recheck caller policy at the network boundary, after cache lookup. This
+    # permits local cache use while a disabled/offline service stays offline.
+    if network_allowed is not None and not network_allowed():
+        return False
 
     # Lightweight API check (small JSON, no PDB download)
     api_url = _AF_API.format(acc=accession)

@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from typing import cast
 
+from kuma_core.shared.atomic_write import atomic_write_text
+
 from kuma_core.mame.ingest.run_meta import NgsRunMeta
 from sidecar_mame.core import _validate_output_path, get_state
 
@@ -91,7 +93,7 @@ def handle_export_run_report(params: dict) -> dict:
     if requested_format == "html":
         html_content = render_html(report_data)
         try:
-            output.write_text(html_content, encoding="utf-8")
+            atomic_write_text(output, html_content, encoding="utf-8")
         except OSError as exc:
             raise RuntimeError(f"Failed to write HTML report: {exc}") from exc
         return {

@@ -83,6 +83,7 @@ class WtReplicateRecord(BaseModel):
 
 
 DropReason = Literal[
+    "plate_id_missing",
     "value_unparseable",
     "value_nan_or_negative",
     "well_unparseable",

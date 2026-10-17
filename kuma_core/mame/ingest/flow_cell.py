@@ -18,6 +18,7 @@ hidden.
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
@@ -86,6 +87,27 @@ def find_report_json(run_dir: Path) -> Path | None:
     return None
 
 
+def _scan_seconds(stamp: object) -> int | None:
+    """Seconds into the acquisition for one mux scan, or ``None`` if unreadable.
+
+    MinKNOW writes ``mux_scan_timestamp`` as a string of digits (``"120"``), so
+    a numeric string is the ordinary case and not a malformed one. An absent
+    stamp is an older report and reads as zero. Anything that is not a finite,
+    non-negative number is refused, and the caller drops that scan.
+    """
+    if stamp is None:
+        return 0
+    if isinstance(stamp, bool) or not isinstance(stamp, (int, float, str)):
+        return None
+    try:
+        seconds = float(stamp)
+    except ValueError:
+        return None
+    if not math.isfinite(seconds) or seconds < 0:
+        return None
+    return int(seconds)
+
+
 def read_flow_cell_history(run_dir: Path) -> FlowCellHistory:
     """Read pore counts and cell identity from a MinKNOW ``report_*.json``.
 
@@ -96,44 +118,53 @@ def read_flow_cell_history(run_dir: Path) -> FlowCellHistory:
     empty, so a silent zero can never be read as a measurement.
     """
     history = FlowCellHistory()
-    report = find_report_json(run_dir)
-    if report is None:
-        return history
     try:
+        report = find_report_json(run_dir)
+        if report is None:
+            return history
         data = json.loads(report.read_text(encoding="utf-8", errors="replace"))
     except (OSError, ValueError):
         return history
 
-    flow_cell = ((data.get("protocol_run_info") or {}).get("flow_cell")) or {}
-    if isinstance(flow_cell, dict):
-        history.flow_cell_id = flow_cell.get("flow_cell_id") or None
-        history.product_code = flow_cell.get("product_code") or None
-        count = flow_cell.get("channel_count")
-        history.channel_count = int(count) if isinstance(count, int) else None
+    if not isinstance(data, dict):
+        return history
 
-    # Scans hang off whichever acquisition actually sequenced; the earlier ones
-    # in a run folder are calibration and carry none, so every acquisition is
-    # read and the results concatenated in order rather than picking one by
-    # index.
-    for acquisition in data.get("acquisitions") or []:
+    protocol = data.get("protocol_run_info")
+    flow_cell = protocol.get("flow_cell") if isinstance(protocol, dict) else None
+    if isinstance(flow_cell, dict):
+        cell_id = flow_cell.get("flow_cell_id")
+        product = flow_cell.get("product_code")
+        history.flow_cell_id = cell_id if isinstance(cell_id, str) and cell_id else None
+        history.product_code = product if isinstance(product, str) and product else None
+        count = flow_cell.get("channel_count")
+        history.channel_count = count if type(count) is int and count >= 0 else None
+
+    # Optional report JSON is not a schema guarantee. Validate each container
+    # before traversing it and retain only well-formed measurements.
+    acquisitions = data.get("acquisitions")
+    for acquisition in acquisitions if isinstance(acquisitions, list) else []:
         if not isinstance(acquisition, dict):
             continue
-        bream = (
-            (acquisition.get("acquisition_run_info") or {}).get("bream_info")
-        ) or {}
-        for scan in (bream.get("mux_scan_results") or []):
+        info = acquisition.get("acquisition_run_info")
+        if not isinstance(info, dict):
+            continue
+        bream = info.get("bream_info")
+        if not isinstance(bream, dict):
+            continue
+        scans = bream.get("mux_scan_results")
+        for scan in scans if isinstance(scans, list) else []:
             if not isinstance(scan, dict):
                 continue
-            pores = (scan.get("counts") or {}).get("single_pore")
-            if not isinstance(pores, int):
+            counts = scan.get("counts")
+            if not isinstance(counts, dict):
                 continue
-            stamp = scan.get("mux_scan_timestamp")
-            history.scans.append(
-                PoreScan(
-                    at_seconds=int(stamp) if isinstance(stamp, (int, float)) else 0,
-                    single_pore=pores,
-                )
-            )
+            pores = counts.get("single_pore")
+            if type(pores) is not int or pores < 0:
+                continue
+            seconds = _scan_seconds(scan.get("mux_scan_timestamp"))
+            if seconds is None:
+                continue
+            history.scans.append(PoreScan(at_seconds=seconds, single_pore=pores))
     return history
 
 
@@ -148,7 +179,11 @@ def read_ledger(project_root: Path) -> list[dict]:
 
 
 def find_previous_use(
-    ledger: list[dict], flow_cell_id: str | None, run_dir: str
+    ledger: list[dict],
+    flow_cell_id: str | None,
+    run_dir: str,
+    *,
+    former_run_dir: str | None = None,
 ) -> dict | None:
     """The most recent earlier entry for this cell, or ``None``.
 
@@ -157,13 +192,19 @@ def find_previous_use(
     whole difference between "this cell carried an earlier campaign" and "this
     campaign was scored twice", and conflating them would make the warning fire
     on every repeat analysis until nobody read it.
+
+    ``former_run_dir`` is a second name the same run may already be recorded
+    under. A raw run was once recorded by its demux output directory and is now
+    recorded by the run folder, so a ledger written before that change holds
+    this very run under the older name.
     """
     if not flow_cell_id:
         return None
+    own = {str(run_dir)} | ({str(former_run_dir)} if former_run_dir else set())
     for entry in reversed(ledger):
         if entry.get("flow_cell_id") != flow_cell_id:
             continue
-        if str(entry.get("run_dir") or "") == str(run_dir):
+        if str(entry.get("run_dir") or "") in own:
             continue
         return entry
     return None
@@ -174,18 +215,21 @@ def record_use(
     history: FlowCellHistory,
     run_dir: str,
     started: str | None,
+    *,
+    former_run_dir: str | None = None,
 ) -> None:
     """Append this run to the ledger, replacing any entry for the same folder.
 
     Re-analysing a folder updates its entry instead of adding one, so the ledger
     counts campaigns rather than analyse clicks. Failure to write is swallowed:
     a read-only project directory is a reason to lose the warning, not the run.
+    An entry under ``former_run_dir`` is this run under its older name (see
+    :func:`find_previous_use`) and is replaced the same way.
     """
     if not history.flow_cell_id:
         return
-    entries = [
-        e for e in read_ledger(project_root) if str(e.get("run_dir") or "") != str(run_dir)
-    ]
+    own = {str(run_dir)} | ({str(former_run_dir)} if former_run_dir else set())
+    entries = [e for e in read_ledger(project_root) if str(e.get("run_dir") or "") not in own]
     entries.append(
         {
             "flow_cell_id": history.flow_cell_id,

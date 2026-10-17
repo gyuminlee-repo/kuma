@@ -262,13 +262,16 @@
       "id": "mame-activity-models",
       "files": [
         "src/types/mame/activity.ts",
-        "kuma_core/mame/activity/models.py"
+        "kuma_core/mame/activity/models.py",
+        "kuma_core/mame/activity/ingest_long_csv.py"
       ],
       "symbols": [
         "ActivityRecord",
         "MergedRow",
         "MergeStats",
-        "PlateMeta"
+        "PlateMeta",
+        "DropReason",
+        "DroppedRow"
       ],
       "note": "MAME activity TS interfaces ↔ Pydantic models",
       "severity": "blocking"
@@ -1513,6 +1516,29 @@
       ],
       "note": "What the codon-table seed folder ships and what copies it into the user folder. ensure_user_codon_dir writes exactly the names in _CODON_SEED_FILES, so a seed added, renamed or removed without touching that tuple never reaches a user and nothing fails. The README states the built-in key set that cannot be replaced, which is _ORGANISM_ALIASES plus the bundled stems, so the README goes stale the moment the bundled set changes: that is how it kept listing mextorquens after the table became an installable seed. mextorquens_am1.json.txt is a finished table rather than a placeholder and keeps the .json.txt suffix so seeding it is not installing it.",
       "severity": "warning"
+    },
+    {
+      "id": "generic-export-atomic-publication",
+      "files": [
+        "kuma_core/shared/atomic_write.py",
+        "kuma_core/mame/report/pdf_export.py",
+        "python-core/sidecar_mame/handlers/report.py",
+        "python-core/sidecar_kuro/handlers/export.py",
+        "tests/shared/test_audit_io_boundaries.py"
+      ],
+      "note": "Exports are staged beside their target and published by an atomic rename that replaces whatever is already at that name, including the HTML a PDF export falls back to when weasyprint is absent; a failed write leaves the previous file intact. A new file takes the mode the process umask gives it and a replaced file keeps the mode it had.",
+      "severity": "blocking"
+    },
+    {
+      "id": "spreadsheet-literal-text-boundary",
+      "files": [
+        "kuma_core/shared/xlsx_text.py",
+        "kuma_core/mame/export/excel_writer.py",
+        "kuma_core/mame/export/janus_mapping.py",
+        "tests/shared/test_audit_io_boundaries.py"
+      ],
+      "note": "Data-derived spreadsheet strings remain literal cells, never formulas, across report and mapping exports.",
+      "severity": "blocking"
     }
   ]
 }

@@ -39,6 +39,7 @@ SUPPORTED_SUFFIXES = CIF_SUFFIXES | PDB_SUFFIXES | ZIP_SUFFIXES
 # A structure file large enough to be a trajectory or a whole assembly is not
 # what this path is for, and parsing one would stall the sidecar.
 MAX_BYTES = 64 * 1024 * 1024
+MAX_ZIP_MEMBERS = 1024
 
 
 class StructureFileError(ValueError):
@@ -253,22 +254,67 @@ class LoadedStructure:
 _MODEL_INDEX_RE = re.compile(r"_model_(\d+)\.(?:cif|mmcif)$", re.IGNORECASE)
 
 
-def _summary_ranking_score(archive: zipfile.ZipFile, member: str) -> float | None:
-    """Read ranking_score from the summary confidences file paired with a model."""
+def _validate_zip_limits(archive: zipfile.ZipFile, read_names: set[str]) -> None:
+    """Reject oversized archives before invoking any domain parser.
+
+    The member count and the duplicate check cover the whole archive. The
+    expanded-size limit covers only ``read_names``, the members the loader will
+    decompress: an AlphaFold Server archive also carries a ``full_data`` JSON
+    per model, larger than the models themselves, that is never opened here and
+    so costs no memory.
+    """
+    entries = archive.infolist()
+    if len(entries) > MAX_ZIP_MEMBERS:
+        raise StructureFileError(f"archive exceeds the {MAX_ZIP_MEMBERS} member limit")
+    total = 0
+    names: set[str] = set()
+    for info in entries:
+        if info.filename in names:
+            raise StructureFileError("archive contains duplicate member names")
+        names.add(info.filename)
+        if info.filename not in read_names:
+            continue
+        total += info.file_size
+        if info.file_size < 0 or info.file_size > MAX_BYTES or total > MAX_BYTES:
+            raise StructureFileError(f"archive exceeds the {MAX_BYTES} byte expanded-size limit")
+
+
+def _read_zip_member(
+    archive: zipfile.ZipFile, member: str, remaining: list[int] | None = None,
+) -> bytes:
+    """Bound actual decompression as well as trusting the directory preflight."""
+    limit = MAX_BYTES if remaining is None else min(MAX_BYTES, remaining[0])
+    with archive.open(member) as stream:
+        payload = stream.read(limit + 1)
+    if len(payload) > limit:
+        raise StructureFileError(f"archive exceeds the {MAX_BYTES} byte expanded-size limit")
+    if remaining is not None:
+        remaining[0] -= len(payload)
+    return payload
+
+
+def _summary_candidates(member: str) -> list[str]:
+    """Names the summary confidences file paired with a model may carry."""
     match = _MODEL_INDEX_RE.search(member)
     if match is None:
-        return None
+        return []
     index = match.group(1)
     stem = member[: match.start()]
-    candidates = [
+    return [
         f"{stem}_summary_confidences_{index}.json",
         f"{stem}_summary_confidence_{index}.json",
     ]
+
+
+def _summary_ranking_score(
+    archive: zipfile.ZipFile, member: str, remaining: list[int] | None = None,
+) -> float | None:
+    """Read ranking_score from the summary confidences file paired with a model."""
     names = set(archive.namelist())
-    for name in candidates:
+    for name in _summary_candidates(member):
         if name not in names:
             continue
-        raw = archive.read(name).decode("utf-8", errors="replace")
+        raw = _read_zip_member(archive, name, remaining).decode("utf-8", errors="replace")
         try:
             payload = json.loads(raw)
         except json.JSONDecodeError as err:
@@ -299,19 +345,24 @@ def _load_from_zip(resolved: Path) -> LoadedStructure:
             # Ignore anything a zip viewer would hide, and any AppleDouble twin.
             and not Path(info.filename).name.startswith("._")
         ]
+        _validate_zip_limits(
+            archive,
+            set(members) | {name for member in members for name in _summary_candidates(member)},
+        )
+        remaining = [MAX_BYTES]
         if not members:
             raise StructureFileError("the archive contains no .cif model")
 
         candidates: list[ModelCandidate] = []
         parsed: dict[str, tuple[list[tuple[float, float, float] | None], str, float | None]] = {}
         for member in sorted(members):
-            text = archive.read(member).decode("utf-8", errors="replace")
+            text = _read_zip_member(archive, member, remaining).decode("utf-8", errors="replace")
             ca, sequence, mean_plddt = _parse_cif_ca(text)
             parsed[member] = (ca, sequence, mean_plddt)
             candidates.append(
                 ModelCandidate(
                     name=member,
-                    ranking_score=_summary_ranking_score(archive, member),
+                    ranking_score=_summary_ranking_score(archive, member, remaining),
                     mean_plddt=mean_plddt,
                     residue_count=len(sequence),
                 )

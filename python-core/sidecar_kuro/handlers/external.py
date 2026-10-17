@@ -426,18 +426,43 @@ def handle_check_structures_available(params: dict) -> dict:
     if not accessions:
         return {"availability": {}}
 
+    from collections.abc import Callable
     from concurrent.futures import ThreadPoolExecutor, as_completed
     from kuma_core.kuro.alphafold import check_structure_available
+    from sidecar_kuro.handlers.settings import load_bundle
+
+    def network_allowed() -> bool:
+        # The frontend checks the global grant; enforce persisted service/offline
+        # settings again for each worker immediately before its network request.
+        # No early return on a refusal here: the core answers from its local
+        # cache first, and a cached structure is still available offline.
+        network = load_bundle().network
+        return not network.offline_mode and network.consent_alphafold
+
+    # An accession whose lookup was refused at the network boundary is unknown,
+    # not absent: it is left out so the caller keeps whatever it showed before.
+    refused: set[str] = set()
+
+    def allowed_for(acc: str) -> Callable[[], bool]:
+        def allowed() -> bool:
+            ok = network_allowed()
+            if not ok:
+                refused.add(acc)
+            return ok
+        return allowed
 
     availability: dict[str, bool] = {}
     with ThreadPoolExecutor(max_workers=min(5, len(accessions))) as ex:
-        futures = {ex.submit(check_structure_available, acc): acc for acc in accessions}
+        futures = {ex.submit(check_structure_available, acc, network_allowed=allowed_for(acc)): acc
+                   for acc in accessions}
         for fut in as_completed(futures):
             acc = futures[fut]
             try:
-                availability[acc] = fut.result()
+                found = fut.result()
             except Exception:
-                availability[acc] = False
+                found = False
+            if found or acc not in refused:
+                availability[acc] = found
 
     return {"availability": availability}
 
