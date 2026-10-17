@@ -1958,7 +1958,7 @@ describe("applyKuroSnapshot: 지문 기반 재도출 건너뛰기 (schema 5)", (
     expect(st.exportPlateNames).toEqual({});
     expect(st.exportAmount).toBe("0.05");
     expect(st.exportVectormaps).toBe(false);
-    expect(st.exportArtefactKinds).toEqual(["macrogen", "primers", "echo"]);
+    expect(st.exportArtefactKinds).toEqual(["macrogen", "primers", "echo", "janus"]);
 
     await applyKuroSnapshot(
       fastPathSnapshot({

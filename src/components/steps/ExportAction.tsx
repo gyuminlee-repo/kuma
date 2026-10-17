@@ -77,7 +77,6 @@ export function ExportAction() {
       return;
     }
     const sourcePlate = pick?.plate;
-    if (includeEcho && round && sourcePlate == null) return;
     pending.current = true;
     setRunning(true);
     try {

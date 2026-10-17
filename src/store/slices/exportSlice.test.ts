@@ -348,14 +348,18 @@ describe("exportSlice — schema_version 0.3", () => {
     expect(store.state.exportArtefactKinds).toEqual([]);
   });
 
-  it("uses the default artefact selection for a workspace without the field", async () => {
+  it("selects all four kinds for a workspace saved before the field existed", async () => {
     const snapshot = store.slice.getWorkspaceSnapshot() as WorkspaceV3;
     delete snapshot.settings.exportArtefactKinds;
-    store.slice.setExportArtefactKinds(["janus"]);
+    store.slice.setExportArtefactKinds(["echo"]);
 
     await store.slice.restoreWorkspace(snapshot);
 
-    expect(store.state.exportArtefactKinds).toEqual(["macrogen", "primers", "echo"]);
+    expect(store.state.exportArtefactKinds).toEqual(["macrogen", "primers", "echo", "janus"]);
+  });
+
+  it("gives a fresh project the three-kind default", () => {
+    expect(store.slice.exportArtefactKinds).toEqual(["macrogen", "primers", "echo"]);
   });
 
   it("restores the creation defaults for absent EVOLVEpro mode and round", async () => {

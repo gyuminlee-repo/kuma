@@ -83,6 +83,7 @@ import type { SourceFingerprint } from "./sourceFingerprint";
 import { toPortablePath } from "./projectPath";
 import { persistRoundPicks } from "./plateRounds";
 import type { ExportArtefactKind } from "@/types/models";
+import { LEGACY_EXPORT_ARTEFACT_KINDS } from "./exportArtefactKinds";
 
 export const KURO_SCHEMA = 8;
 
@@ -479,6 +480,6 @@ export function readKuroExportForm(value: unknown): KuroExportForm {
           (kind): kind is ExportArtefactKind =>
             kind === "macrogen" || kind === "primers" || kind === "echo" || kind === "janus",
         )
-      : ["macrogen", "primers", "echo"],
+      : [...LEGACY_EXPORT_ARTEFACT_KINDS],
   };
 }

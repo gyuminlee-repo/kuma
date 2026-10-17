@@ -1036,9 +1036,9 @@ export interface HealthInfo {
 }
 
 
-/** Outcome of the optional per-clone GenBank maps written beside `export_all`. */
 export type ExportArtefactKind = "macrogen" | "primers" | "echo" | "janus";
 
+/** Outcome of the optional per-clone GenBank maps written beside `export_all`. */
 export interface ExportAllVectormapsResult {
   output_dir: string;
   success: string[];

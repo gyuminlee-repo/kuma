@@ -392,7 +392,7 @@ describe("buildKuroSnapshot: schema 8 operator choices", () => {
   it("restores selection and preserves defaults for old snapshots", () => {
     expect(readKuroExportForm({ artefact_kinds: [] }).exportArtefactKinds).toEqual([]);
     expect(readKuroExportForm({ artefact_kinds: ["janus"] }).exportArtefactKinds).toEqual(["janus"]);
-    expect(readKuroExportForm(undefined).exportArtefactKinds).toEqual(["macrogen", "primers", "echo"]);
+    expect(readKuroExportForm(undefined).exportArtefactKinds).toEqual(["macrogen", "primers", "echo", "janus"]);
     expect(readKuroExportForm({ artefact_kinds: ["unknown", "echo"] }).exportArtefactKinds).toEqual(["echo"]);
   });
 });
