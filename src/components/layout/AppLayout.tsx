@@ -200,7 +200,9 @@ export function AppLayout() {
                     // Browse: a name this table lacks is refused by the loader.
                     useAppStore.getState().setEvolveproVariantColumn(null);
                     useAppStore.getState().setEvolveproScoreColumn(null);
-                    useAppStore.getState().loadEvolveproCsv(filePath);
+                    void useAppStore.getState().loadEvolveproCsv(filePath).catch(() => {
+                      // The store retains the actionable error for the strict section and status bar.
+                    });
                     handledOne = true;
                     break;
                   }

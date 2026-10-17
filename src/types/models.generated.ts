@@ -706,8 +706,14 @@ export interface FetchActiveSiteParams {
 export interface FetchActiveSiteResult {
   accession: string;
   active_site_positions?: number[];
+  annotation_status?: "present" | "no_matching_features" | "error";
   binding_positions?: number[];
+  features?: {
+    [k: string]: unknown;
+  }[];
   has_annotation?: boolean;
+  projection_status?: string;
+  sequence_version?: number | null;
   source?: string;
   [k: string]: unknown;
 }
@@ -820,6 +826,9 @@ export interface LoadEvolveproParams {
   score_column?: string | null;
   score_order?: "desc" | "asc";
   sheet_name?: string | null;
+  strict_spatial?: boolean;
+  strict_spatial_budget?: "unique_sites" | "distinct_variants";
+  strict_spatial_site_cap?: number | null;
   structural_diversity?: boolean;
   structural_kappa?: number;
   structure_accession?: string | null;
@@ -914,6 +923,7 @@ export interface PredictStructureEsmfoldResult {
   residue_count?: number;
   seq_hash?: string;
   source?: "esmfold" | "esmfold_cache" | "error";
+  structure_key?: string;
   success?: boolean;
   [k: string]: unknown;
 }

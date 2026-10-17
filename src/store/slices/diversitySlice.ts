@@ -37,6 +37,16 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     return state.evolveproCsvPath;
   }
 
+  /**
+   * A call that drops its answer because the context it started from moved
+   * on would leave its progress line up for good. Empty is the slice's own
+   * "nothing to say" (sequenceSlice clears the same way); a line another
+   * action wrote since is not ours to remove.
+   */
+  function clearOwnStatus(own: string) {
+    if (get().statusMessage === own) set({ statusMessage: "" });
+  }
+
   async function reloadEvolveproCsv(reason: string) {
     const state = get();
     const activePath = getActiveEvolveproPath(state);
@@ -162,10 +172,16 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   structureLoading: false,
   structureAccession: "",
   structure3dState: "off",
+  structureCoverage: null,
   uniprotCandidates: [],
   uniprotSearching: false,
   structuralDiversityEnabled: false,
   structuralKappa: 0.3,
+  strictSpatialEnabled: false,
+  strictSpatialBudgetMode: "unique_sites",
+  strictSpatialSiteCap: null,
+  strictSpatialSelection: null,
+  strictSpatialError: null,
   refDomains: [],
   refDomainsLoading: false,
   refDomainHash: "",
@@ -298,9 +314,39 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     if (enabled) maybeBackfillUniprotSearch();
   },
 
+  setStrictSpatialEnabled: (enabled: boolean) => {
+    set(buildKuroDesignInputPatch(get(), {
+      strictSpatialEnabled: enabled,
+      strictSpatialSelection: null,
+      strictSpatialError: null,
+    }));
+    debouncedReload();
+  },
+
   setStructuralKappa: (v: number) => {
     const clamped = Math.max(0, Math.min(1, v));
     set(buildKuroDesignInputPatch(get(), { structuralKappa: clamped }));
+    debouncedReload();
+  },
+
+  setStrictSpatialBudgetMode: (mode) => {
+    if (get().strictSpatialBudgetMode === mode) return;
+    set(buildKuroDesignInputPatch(get(), {
+      strictSpatialBudgetMode: mode,
+      strictSpatialSelection: null,
+      strictSpatialError: null,
+    }));
+    debouncedReload();
+  },
+
+  setStrictSpatialSiteCap: (cap) => {
+    if (cap !== null && (!Number.isSafeInteger(cap) || cap < 1)) return;
+    if (get().strictSpatialSiteCap === cap) return;
+    set(buildKuroDesignInputPatch(get(), {
+      strictSpatialSiteCap: cap,
+      strictSpatialSelection: null,
+      strictSpatialError: null,
+    }));
     debouncedReload();
   },
 
@@ -398,7 +444,12 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       // frame mismatch is not silent in the benchmark path either.
       const benchMismatch = result.structure_frame_mismatch
         ? ` | ${i18next.t("inputSlice.structureFrameMismatch")}`
-        : "";
+        : result.structure_coverage
+          ? ` | ${i18next.t("inputSlice.structureCoverage", {
+              covered: result.structure_coverage.covered,
+              length: result.structure_coverage.reference_length,
+            })}`
+          : "";
       set({
         benchmarkRunning: false,
         benchmarkResults: result.results,
@@ -504,10 +555,11 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     const requestedAccession = accession.trim();
     if (!requestedAccession) return;
     const fetchGeneration = ++structureFetchGeneration;
+    const loadingMessage = "AlphaFold structure loading...";
     set({
       structureLoading: true,
       structureLoaded: get().structureAccession === requestedAccession,
-      statusMessage: "AlphaFold structure loading...",
+      statusMessage: loadingMessage,
     });
     try {
       const result = await sendRequest(
@@ -515,10 +567,9 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
         { accession: requestedAccession },
         30_000,
       );
-      if (
-        fetchGeneration !== structureFetchGeneration
-        || get().uniprotAccession !== requestedAccession
-      ) {
+      if (fetchGeneration !== structureFetchGeneration) return;
+      if (get().uniprotAccession !== requestedAccession) {
+        clearOwnStatus(loadingMessage);
         return;
       }
       if (result.success) {
@@ -545,10 +596,9 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
         }
       }
     } catch (err) {
-      if (
-        fetchGeneration !== structureFetchGeneration
-        || get().uniprotAccession !== requestedAccession
-      ) {
+      if (fetchGeneration !== structureFetchGeneration) return;
+      if (get().uniprotAccession !== requestedAccession) {
+        clearOwnStatus(loadingMessage);
         return;
       }
       set({
@@ -691,6 +741,23 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     return promise;
   },
 
+  adoptReferenceEsmfold: async (sequence: string): Promise<"used" | "refused" | "failed"> => {
+    const consentGranted = await get().requireNetworkConsent("esmfold");
+    if (!consentGranted) return "refused";
+    const result = await get().predictStructureEsmfold(sequence);
+    if (!result || !result.success || !result.structure_key) return "failed";
+    set({
+      structureLoaded: true,
+      structureLoading: false,
+      structureAccession: result.structure_key,
+    });
+    const state = get();
+    if (shouldReloadAfterStructureFetch(state)) {
+      await state.loadEvolveproCsv(getActiveEvolveproPath(state));
+    }
+    return "used";
+  },
+
   fetchActiveSite: async (accession: string): Promise<FetchActiveSiteResult | null> => {
     const consentGranted = await get().requireNetworkConsent("uniprot");
     if (!consentGranted) {
@@ -776,9 +843,10 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     const translation = gene?.translation;
     if (!translation) return;
     const generation = ++refDomainGeneration;
+    const scanningMessage = i18next.t("diversity.sequenceDomainScanning");
     set({
       refDomainsLoading: true,
-      statusMessage: i18next.t("diversity.sequenceDomainScanning"),
+      statusMessage: scanningMessage,
     });
     try {
       const scan = () => sendRequest(
@@ -809,6 +877,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       const nowSeqInfo = nowState.seqInfo;
       if (!nowSeqInfo) {
         set({ refDomainsLoading: false });
+        clearOwnStatus(scanningMessage);
         return;
       }
       const nowGene =
@@ -816,6 +885,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
         ?? nowSeqInfo.genes[0];
       if (nowGene?.translation !== translation) {
         set({ refDomainsLoading: false });
+        clearOwnStatus(scanningMessage);
         return;
       }
       if (result.source === "error") {

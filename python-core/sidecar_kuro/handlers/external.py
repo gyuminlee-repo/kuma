@@ -840,12 +840,26 @@ def handle_predict_structure_esmfold(params: dict) -> dict:
             "residue_count": 0,
             "coordinate_frame": "reference",
             "seq_hash": "",
+            "structure_key": "",
             "cache_hit": False,
             "error_msg": str(exc),
         }
 
+    # Register the coordinates under a key so selection and benchmark reach them
+    # through the same structure_accession path an accession or a file uses. The
+    # prediction is in the reference frame, so its cached sequence is the input.
+    from kuma_core.kuro.alphafold import _parse_pdb_ca
+    from kuma_core.kuro.esmfold import structure_key
+
+    key = structure_key(seq_hash)
+    with _core._state_lock:
+        _core._state.ca_coords = _parse_pdb_ca(pdb_text or "")
+        _core._state.ca_coords_accession = key
+        _core._state.ca_coords_seq = sequence.rstrip("*")
+
     return {
         "success": True,
+        "structure_key": key,
         "source": "esmfold_cache" if cache_hit else "esmfold",
         "pdb_text": pdb_text,
         "plddt_mean": plddt_mean,

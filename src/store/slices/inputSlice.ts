@@ -6,6 +6,13 @@ import { sendRequest } from "../../lib/ipc-kuro";
 import { formatError } from "../../lib/utils";
 import { buildKuroDesignInputPatch } from "../../lib/kuroResultReset";
 import { clampMaxPrimers } from "../../lib/inputThresholds";
+import { isStrictSpatialMode, sameVariantIds, strictSpatialContextKey } from "../../lib/strictSpatial";
+import { isEsmfoldKey } from "../../lib/structureFrameRecovery";
+
+// The sidecar's refusal when the structure does not hold the reference exactly
+// (python-core strict_spatial.exact_pdb_context). Reported as a frame mismatch so
+// the panel can recover with a structure of the reference itself.
+const STRICT_FRAME_MISMATCH = /unique exact reference placement/;
 import { resizeEvolveproSelection } from "../../lib/evolveproSelection";
 import type { AppState } from "../types";
 import type { Round } from "../../types/round";
@@ -84,12 +91,16 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         maxPrimers,
         structuralDiversityEnabled,
         structuralKappa,
+        strictSpatialEnabled,
+        strictSpatialBudgetMode,
+        strictSpatialSiteCap,
       } = get();
       const effectiveTopN = topNOverride ?? maxPrimers;
       const selectionDomains = resolveSelectionDomains(refDomains);
       const activeDomains = selectionDomains.filter((d) => !disabledDomains.includes(`${d.name}-${d.start}`));
       const excludedDomains = selectionDomains.filter((d) => disabledDomains.includes(`${d.name}-${d.start}`));
       const modeLabel = "EVOLVEpro";
+      const loadingMessage = `Loading ${modeLabel} file...`;
 
       // v0.3 §4: pass protein ref_seq so sidecar can convert EVOLVEpro
       // short-form variants (89W) back to internal notation (F89W).
@@ -103,8 +114,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         return gene?.translation ?? "";
       })();
       set({
-        statusMessage: `Loading ${modeLabel} file...`,
+        statusMessage: loadingMessage,
         evolveproCsvPath: filepath,
+        strictSpatialSelection: null,
+        strictSpatialError: null,
       });
 
       // §3 Input Guards: column header validation now delegated entirely to
@@ -151,10 +164,60 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           refSeq,
           structuralDiversityEnabled,
           structuralKappa,
+          strictSpatialEnabled,
+          strictSpatialBudgetMode,
+          strictSpatialSiteCap,
           anchorVariants,
         });
+      // A finished load always lands in EVOLVEpro mode (inputPatch below), so
+      // strict mode is judged against that mode. A CSV dropped while the text
+      // tab is open would otherwise send a strict request and then discard the
+      // strict response as stale.
+      const strictAfterLoad = () => isStrictSpatialMode({ ...get(), mutationInputMode: "evolvepro" });
+      const strictMode = strictAfterLoad();
+      const contextKey = strictSpatialContextKey(get());
+      if (strictMode) {
+        if (!refSeq || !(get().structureAccession || get().uniprotAccession)
+          || (get().structureAccession || get().uniprotAccession).startsWith("file:")) {
+          throw new Error(i18next.t("strictSpatial.unsupported"));
+        }
+        // An ESMFold key names a prediction already in the sidecar cache, so
+        // the AlphaFold lookup consent does not apply to it.
+        const strictKey = get().structureAccession || get().uniprotAccession;
+        if (!isEsmfoldKey(strictKey)) {
+          const allowed = await get().requireNetworkConsent("alphafold");
+          if (!allowed) throw new Error(i18next.t("strictSpatial.permission"));
+        }
+      }
       const result = await sendRequest("load_evolvepro_csv", params);
+      // A newer load owns the status line, so an older one stays silent. The
+      // newest load, dropped because the strict context moved under it, would
+      // otherwise leave its loading line up for good, and it touches the line
+      // only while the line is still its own. A mode switch (strict turned off
+      // or on mid-load) leaves no strict selection to review and no Reselect
+      // button, so that line is cleared, as sequenceSlice and diversitySlice
+      // clear theirs. A moved context with strict still on says what happened
+      // in the words designSlice uses for the same change.
       if (gen !== csvLoadGeneration) return;
+      const modeChanged = strictMode !== strictAfterLoad();
+      if (modeChanged || (strictMode && contextKey !== strictSpatialContextKey(get()))) {
+        if (get().statusMessage === loadingMessage) {
+          set({ statusMessage: modeChanged ? "" : i18next.t("strictSpatial.changedSelection") });
+        }
+        return;
+      }
+      if (strictMode && (!result.strict_spatial
+        || !sameVariantIds(result.strict_spatial.selected_variants, result.variants)
+        || result.strict_spatial.source_accession !== String(params.structure_accession).trim().toUpperCase()
+        || result.strict_spatial.score_order !== evolveproScoreOrder
+        || result.strict_spatial.budget_mode !== params.strict_spatial_budget
+        || result.strict_spatial.site_cap !== params.strict_spatial_site_cap
+        || result.strict_spatial.requested_count !== effectiveTopN
+        || result.selected_count !== effectiveTopN
+        || result.variants.length !== effectiveTopN
+        || result.y_preds.length !== result.variants.length)) {
+        throw new Error(i18next.t("strictSpatial.invalidResponse"));
+      }
       const update = buildEvolveproLoadStateUpdate({
         result,
         currentMode: get().mutationInputMode,
@@ -174,6 +237,9 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         }
       }
       const inputPatch: Partial<AppState> = {
+        strictSpatialSelection: strictMode && result.strict_spatial
+          ? { result: result.strict_spatial, contextKey } : null,
+        strictSpatialError: null,
         mutationText: update.mutationText,
         mutationInputMode: "evolvepro",
         yPredMap: update.yPredMap,
@@ -183,7 +249,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         evolveproFilteredCount: update.evolveproFilteredCount,
         evolveproParetoExchanges: update.evolveproParetoExchanges,
         evolveproStepStats: update.evolveproStepStats,
-        structure3dState: update.structure3dState,
+        structure3dState: strictMode ? "active" : update.structure3dState,
+        structureCoverage: update.structureCoverage,
         evolveproRankedCandidates: result.ranked_candidates ?? [],
         // Initialize selection directly from result.variants (pipeline source-of-truth).
         // ranked_candidates is guaranteed to contain all selected variants (backend invariant:
@@ -194,7 +261,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         // keeping the load-time set there is what froze Run Design at the
         // count the CSV was first loaded with.
         evolveproSelectedVariants:
-          preserveSelection && get().evolveproSelectionManual
+          strictMode ? result.variants : preserveSelection && get().evolveproSelectionManual
             ? get().evolveproSelectedVariants
             : preserveSelection
               ? resizeEvolveproSelection(
@@ -203,7 +270,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
                   get().maxPrimers,
                 )
               : result.variants ?? [],
-        evolveproSelectionManual: preserveSelection ? get().evolveproSelectionManual : false,
+        evolveproSelectionManual: !strictMode && preserveSelection ? get().evolveproSelectionManual : false,
         evolveproUsedVariantColumn: result.used_variant_column ?? null,
         evolveproUsedScoreColumn: result.used_score_column ?? null,
       };
@@ -216,6 +283,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     } catch (err) {
       if (gen === csvLoadGeneration) {
         set({
+          strictSpatialSelection: null,
+          strictSpatialError: isStrictSpatialMode({ ...get(), mutationInputMode: "evolvepro" }) ? formatError(err) : null,
+          ...(isStrictSpatialMode({ ...get(), mutationInputMode: "evolvepro" })
+            && STRICT_FRAME_MISMATCH.test(formatError(err)) && { structure3dState: "frame_mismatch" as const }),
           mutationText: "",
           evolveproTotalCount: 0,
           evolveproFilteredCount: null,
@@ -243,7 +314,9 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     // the already-loaded file so the backend re-applies the correct pipeline.
     const path = get().evolveproCsvPath;
     if (path) {
-      void get().loadEvolveproCsv(path);
+      void get().loadEvolveproCsv(path).catch(() => {
+        // The input slice retains the failure, including strict capacity errors.
+      });
     }
   },
   setEvolveproVariantColumn: (col) => set(buildKuroDesignInputPatch(get(), { evolveproVariantColumn: col, evolveproUsedVariantColumn: null })),
@@ -254,6 +327,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   setEvolveproCsvUserPicked: (picked) => set({ evolveproCsvUserPicked: picked }),
 
   setEvolveproVariantSelected: (variant, selected) => {
+    if (isStrictSpatialMode(get())) return;
     const current = get().evolveproSelectedVariants;
     if (selected) {
       if (!current.includes(variant)) {

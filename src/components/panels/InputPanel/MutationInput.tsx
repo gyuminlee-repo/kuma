@@ -1,3 +1,4 @@
+import { isStrictSpatialMode } from "@/lib/strictSpatial";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "../../../store/appStore";
@@ -43,12 +44,13 @@ export function MutationInput() {
     if (mutationInputMode !== "evolvepro") return;
     if (evolveproCsvPath !== "") return;
     if (hasRankedCandidates) return;
-    void loadEvolveproCsv(artifact.path);
+    void loadEvolveproCsv(artifact.path).catch(() => { /* The store retains the actionable error. */ });
   }, [artifact, hydrating, userPicked, mutationInputMode, evolveproCsvPath, hasRankedCandidates, loadEvolveproCsv]);
 
   const showArtifactBadge =
     artifact !== null && !userPicked && artifact.path === evolveproCsvPath;
   const evolveproMode = useAppStore((s) => s.evolveproMode);
+  const strictSpatial = useAppStore(isStrictSpatialMode);
   const setEvolveproMode = useAppStore((s) => s.setEvolveproMode);
   const evolveproTotalCount = useAppStore((s) => s.evolveproTotalCount);
   const evolveproRankedCandidates = useAppStore((s) => s.evolveproRankedCandidates);
@@ -199,7 +201,7 @@ export function MutationInput() {
                     // soon as the path changes, so it is not cleared here.
                     setEvolveproVariantColumn(null);
                     setEvolveproScoreColumn(null);
-                    loadEvolveproCsv(path);
+                    void loadEvolveproCsv(path).catch(() => { /* The store retains the actionable error. */ });
                   },
                 )
               }
@@ -324,6 +326,7 @@ export function MutationInput() {
                   <span className="text-caption">{t("mutationInput.extraExposedHint")}</span>
                 </div>
                 <EvolveproSelectTable
+                  disabled={strictSpatial}
                   rows={pickerRows}
                   onToggle={(variant, checked) => setEvolveproVariantSelected(variant, checked)}
                 />

@@ -819,6 +819,13 @@ class FetchActiveSiteResult(BaseModel):
     binding_positions: list[int] = Field(default_factory=list)
     source: str = ""
     has_annotation: bool = False
+    # Source-frame records are explanatory, never selector weights.
+    features: list[dict] = Field(default_factory=list)
+    # Same three values `isFetchActiveSiteResult` accepts (src/types/validators.ts).
+    # A missing status reads as unavailable, which the UI shows like a fetch error.
+    annotation_status: Literal["present", "no_matching_features", "error"] = "error"
+    sequence_version: Optional[int] = None
+    projection_status: str = "unverified"
 
 
 class NullHistogram(BaseModel):
@@ -878,6 +885,7 @@ class PredictStructureEsmfoldResult(BaseModel):
     residue_count: int = 0
     coordinate_frame: Literal["reference"] = "reference"
     seq_hash: str = ""
+    structure_key: str = ""
     cache_hit: bool = False
     error_msg: Optional[str] = None
 
@@ -959,6 +967,9 @@ class LoadEvolveproParams(BaseModel):
     # Structure-aware diversity selector (validated 'kuro_ca' recipe): full pool +
     # revealed-anchor + 3D Ca-centroid maximin + kappa fitness blend. Off by default.
     structural_diversity: bool = False
+    strict_spatial: bool = False
+    strict_spatial_budget: Literal["unique_sites", "distinct_variants"] = "unique_sites"
+    strict_spatial_site_cap: Optional[int] = Field(default=None, ge=1, strict=True)
     structural_kappa: float = Field(default=0.0, ge=0.0, le=1.0)
     anchor_variants: list[str] = Field(default_factory=list)
 
