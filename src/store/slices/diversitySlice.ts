@@ -20,6 +20,7 @@ import { CONTACT_EMAIL_REQUIRED } from "../../types/models";
 export type { DiversitySlice };
 
 import { resolveSelectionDomains } from "./inputSlice.helpers";
+import { isEsmfoldKey } from "../../lib/structureFrameRecovery";
 export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice> = (set, get) => {
   let reloadTimer: ReturnType<typeof setTimeout> | null = null;
   let domainFetchGeneration = 0;
@@ -31,6 +32,15 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   const pdbTextCache = new Map<string, Promise<FetchPdbTextResult | null>>();
   /** Per-sequence ESMFold prediction cache — avoids redundant folds within a session. */
   const esmfoldCache = new Map<string, Promise<PredictStructureEsmfoldResult | null>>();
+  /** Sequences whose last prediction request ended at the consent prompt, so a null result can be told from a failure. */
+  const esmfoldRefused = new Set<string>();
+
+  /** The selected gene's translation: the reference an ESMFold prediction is made for. */
+  function currentReferenceSequence(state: AppState): string {
+    const gene = state.seqInfo?.genes.find((g) => String(g.cds_start) === state.selectedGene)
+      ?? state.seqInfo?.genes[0];
+    return gene?.translation ?? "";
+  }
 
 
   function getActiveEvolveproPath(state: AppState): string {
@@ -234,13 +244,17 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     const requestedAccession = accession.trim();
     const fetchGeneration = ++domainFetchGeneration;
     uniprotSearchGeneration += 1;
+    // An ESMFold key names a prediction of the reference itself; replacing it with
+    // the AlphaFold accession would bring back the structure it was adopted to replace.
+    const keepsStructure = (s: AppState) =>
+      s.structureAccession === requestedAccession || isEsmfoldKey(s.structureAccession);
     set({
       domainLoading: true,
       uniprotSearching: false,
       ...(clearCandidates && { uniprotCandidates: [] }),
       uniprotAccession: requestedAccession,
-      structureLoaded: get().structureAccession === requestedAccession,
-      ...(get().structureAccession !== requestedAccession && {
+      structureLoaded: keepsStructure(get()),
+      ...(!keepsStructure(get()) && {
         structureLoading: false,
       }),
       statusMessage: "Fetching domain info...",
@@ -253,7 +267,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       );
       if (fetchGeneration !== domainFetchGeneration) return;
       const state = get();
-      const structureMatches = state.structureAccession === requestedAccession;
+      const structureMatches = keepsStructure(state);
       const deferReloadToStructureFetch = (
         requestedAccession !== ""
         && !structureMatches
@@ -710,8 +724,10 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
         const reason = refusalReason("esmfold");
         set({ statusMessage: i18next.t("diversity.esmfoldCancelled", { reason }) });
         esmfoldCache.delete(clean);
+        esmfoldRefused.add(clean);
         return null;
       }
+      esmfoldRefused.delete(clean);
       set({ statusMessage: i18next.t("diversity.esmfoldPredicting") });
       try {
         const result = await sendRequest("predict_structure_esmfold", { sequence: clean }, 180_000);
@@ -742,10 +758,20 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   },
 
   adoptReferenceEsmfold: async (sequence: string): Promise<"used" | "refused" | "failed"> => {
-    const consentGranted = await get().requireNetworkConsent("esmfold");
-    if (!consentGranted) return "refused";
+    // The prediction can take 180 s. A newer structure request or a change of
+    // reference or accession in that time owns the structure, so this result is dropped.
+    // Consent is asked once, inside predictStructureEsmfold.
+    const generation = ++structureFetchGeneration;
+    const startRefSeq = currentReferenceSequence(get());
+    const startAccession = get().uniprotAccession;
     const result = await get().predictStructureEsmfold(sequence);
+    if (!result && esmfoldRefused.has(sequence.trim())) return "refused";
     if (!result || !result.success || !result.structure_key) return "failed";
+    if (
+      generation !== structureFetchGeneration
+      || currentReferenceSequence(get()) !== startRefSeq
+      || get().uniprotAccession !== startAccession
+    ) return "failed";
     set({
       structureLoaded: true,
       structureLoading: false,

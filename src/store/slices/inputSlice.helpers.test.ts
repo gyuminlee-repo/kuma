@@ -336,4 +336,15 @@ describe("buildEvolveproLoadStateUpdate: structure coverage", () => {
     expect(mismatch.structure3dState).toBe("frame_mismatch");
     expect(mismatch.structureCoverage).toBeNull();
   });
+
+  it("reports 3D active only when the sidecar says it used coordinates", () => {
+    const state = (used: boolean | undefined) => buildEvolveproLoadStateUpdate({
+      ...input,
+      result: { ...base, structure_frame_mismatch: false, structure_coordinates_used: used },
+    }).structure3dState;
+    expect(state(true)).toBe("active");
+    expect(state(false)).toBe("no_structure");
+    // A sidecar that does not report it is read from structureLoaded, as before.
+    expect(state(undefined)).toBe("active");
+  });
 });

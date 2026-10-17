@@ -51,6 +51,9 @@ vi.mock("@/store/appStore", () => ({
   useAppStore: (selector: (s: StoreShape) => unknown) => selector(storeRef.current),
 }));
 
+import { createViewer } from "3dmol";
+import { strictSpatialContextKey } from "@/lib/strictSpatial";
+import type { AppState } from "@/store/types";
 import { Selection3DPanel } from "./Selection3DPanel";
 
 function seqInfo(length: number) {
@@ -62,7 +65,7 @@ function seqInfo(length: number) {
   };
 }
 
-function setStore(patch: Partial<StoreShape> = {}) {
+function setStore(patch: Partial<StoreShape> & Record<string, unknown> = {}) {
   storeRef.current = {
     structureAccession: "",
     uniprotAccession: "P12345",
@@ -81,13 +84,70 @@ function setStore(patch: Partial<StoreShape> = {}) {
     adoptReferenceEsmfold: vi.fn<(sequence: string) => Promise<Outcome>>().mockResolvedValue("used"),
     loadStructureFile: vi.fn(),
     ...patch,
+  } as StoreShape;
+}
+
+/** A store in strict spatial mode with a current certificate for the given structure. */
+function setStrictStore(accession: string) {
+  const base = {
+    structureAccession: accession,
+    evolveproSelectedVariants: ["A2V"],
+    maxPrimers: 1,
+    evolveproCsvPath: "/tmp/c.csv",
+    evolveproVariantColumn: "variant",
+    evolveproScoreColumn: "y_pred",
+    evolveproScoreOrder: "desc",
+    evolveproSheetName: "",
+    strictSpatialEnabled: true,
+    structuralDiversityEnabled: true,
+    evolveproMode: "pipeline",
+    mutationInputMode: "evolvepro",
+    strictSpatialBudgetMode: "unique_sites",
+    strictSpatialSiteCap: null,
   };
+  setStore(base);
+  const result = {
+    selected_variants: ["A2V"],
+    selected_positions: [2],
+    mapping: [{ reference_position: 2, structure_position: 2, coordinate: [0, 0, 0], confidence: 90 }],
+    pdb_text: "ATOM      1  CA  ALA A   2       0.000   0.000   0.000  1.00 90.00           C\n",
+    source_accession: accession,
+    budget_mode: "unique_sites",
+    site_cap: null,
+    score_available: true,
+    requested_count: 1,
+    selected_site_count: 1,
+    eligible_site_count: 1,
+  };
+  setStore({
+    ...base,
+    strictSpatialSelection: { result, contextKey: strictSpatialContextKey(storeRef.current as unknown as AppState) },
+  });
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
   mockBrowseFile.mockResolvedValue();
   setStore();
+});
+
+describe("Selection3DPanel: strict mode active-site lookup", () => {
+  it("looks up active sites for an AlphaFold accession", async () => {
+    setStrictStore("P12345");
+    render(<Selection3DPanel defaultOpen />);
+    await waitFor(() => expect(storeRef.current.fetchActiveSite).toHaveBeenCalledWith("P12345"));
+  });
+
+  it("does not send an ESMFold key to the UniProt lookup", async () => {
+    setStrictStore("ESMFOLD:ABC123");
+    render(<Selection3DPanel defaultOpen />);
+    // The viewer is rendered right before the lookup would run.
+    await waitFor(() => {
+      const viewer = vi.mocked(createViewer).mock.results[0]?.value as { render: ReturnType<typeof vi.fn> } | undefined;
+      expect(viewer?.render).toHaveBeenCalled();
+    });
+    expect(storeRef.current.fetchActiveSite).not.toHaveBeenCalled();
+  });
 });
 
 describe("Selection3DPanel: accession structure does not cover the reference", () => {

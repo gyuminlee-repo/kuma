@@ -4,15 +4,12 @@ import { resolveResource } from "@tauri-apps/api/path";
 import { exists } from "@tauri-apps/plugin-fs";
 import { sendRequest } from "../../lib/ipc-kuro";
 import { formatError } from "../../lib/utils";
+import { isStrictFrameMismatchError } from "../../lib/errors";
 import { buildKuroDesignInputPatch } from "../../lib/kuroResultReset";
 import { clampMaxPrimers } from "../../lib/inputThresholds";
 import { isStrictSpatialMode, sameVariantIds, strictSpatialContextKey } from "../../lib/strictSpatial";
 import { isEsmfoldKey } from "../../lib/structureFrameRecovery";
 
-// The sidecar's refusal when the structure does not hold the reference exactly
-// (python-core strict_spatial.exact_pdb_context). Reported as a frame mismatch so
-// the panel can recover with a structure of the reference itself.
-const STRICT_FRAME_MISMATCH = /unique exact reference placement/;
 import { resizeEvolveproSelection } from "../../lib/evolveproSelection";
 import type { AppState } from "../types";
 import type { Round } from "../../types/round";
@@ -286,7 +283,9 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           strictSpatialSelection: null,
           strictSpatialError: isStrictSpatialMode({ ...get(), mutationInputMode: "evolvepro" }) ? formatError(err) : null,
           ...(isStrictSpatialMode({ ...get(), mutationInputMode: "evolvepro" })
-            && STRICT_FRAME_MISMATCH.test(formatError(err)) && { structure3dState: "frame_mismatch" as const }),
+            // The sidecar's refusal when the structure does not hold the reference
+            // (strict_spatial.StrictFrameMismatchError); the panel recovers from it.
+            && isStrictFrameMismatchError(formatError(err)) && { structure3dState: "frame_mismatch" as const }),
           mutationText: "",
           evolveproTotalCount: 0,
           evolveproFilteredCount: null,

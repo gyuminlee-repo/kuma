@@ -255,12 +255,32 @@ def _cancel_active_design() -> bool:
     return True
 
 
+def _esmfold_cached_structure(structure_accession: str | None) -> tuple[list, str] | None:
+    """Coordinates and sequence of an ``ESMFOLD:`` key read from the on-disk prediction cache.
+
+    A prediction is deterministic per sequence hash, so the disk cache can always
+    answer for its key. The key stays resolvable after a restored project, a
+    sidecar restart or another structure taking the single slot.
+    """
+    from kuma_core.kuro.esmfold import STRUCTURE_KEY_PREFIX, load_cached_prediction
+
+    if not structure_accession or not structure_accession.upper().startswith(STRUCTURE_KEY_PREFIX):
+        return None
+    pdb_text = load_cached_prediction(structure_accession)
+    if not pdb_text:
+        return None
+    from kuma_core.kuro.alphafold import _parse_pdb_ca, _parse_pdb_seq
+
+    return _parse_pdb_ca(pdb_text), _parse_pdb_seq(pdb_text)
+
+
 def _get_cached_ca_coords(structure_accession: str | None) -> list | None:
     """Return cached Cα coordinates if accession matches, else None. Thread-safe."""
     with _state_lock:
         if structure_accession and _state.ca_coords_accession == structure_accession:
             return _state.ca_coords
-        return None
+    resolved = _esmfold_cached_structure(structure_accession)
+    return resolved[0] if resolved else None
 
 
 def _get_cached_ca_seq(structure_accession: str | None) -> str | None:
@@ -273,7 +293,8 @@ def _get_cached_ca_seq(structure_accession: str | None) -> str | None:
     with _state_lock:
         if structure_accession and _state.ca_coords_accession == structure_accession:
             return _state.ca_coords_seq
-        return None
+    resolved = _esmfold_cached_structure(structure_accession)
+    return resolved[1] if resolved else None
 
 
 _rpc_writer = JsonRpcWriter()

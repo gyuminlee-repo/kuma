@@ -281,6 +281,9 @@ def exact_reference_offset(accession_seq: str, ref_seq: str) -> int | None:
     return offset
 
 
+MIN_REFERENCE_COVERAGE = 0.5
+
+
 def reference_structure_overlap(structure_seq: str, ref_seq: str) -> dict | None:
     """Unique exact overlap of a structure sequence with the reference.
 
@@ -288,10 +291,13 @@ def reference_structure_overlap(structure_seq: str, ref_seq: str) -> dict | None
     structure missing N-terminal residues has a negative offset. Only a
     structure that contains the reference, or a contiguous piece of it (terminal
     residues missing, nothing else), qualifies. Substitutions, internal gaps and
-    repeated placements return None.
+    repeated placements return None, and so does a piece covering less than
+    ``MIN_REFERENCE_COVERAGE`` of the reference: a one-residue substring would
+    otherwise pass as a frame and give almost every position no coordinate.
     """
-    s = structure_seq.strip().rstrip("*")
-    r = ref_seq.strip().rstrip("*")
+    # Case is not part of the identity of a residue; compare upper-cased on both sides.
+    s = structure_seq.strip().rstrip("*").upper()
+    r = ref_seq.strip().rstrip("*").upper()
     if not s or not r:
         return None
     offset = exact_reference_offset(s, r)
@@ -301,6 +307,8 @@ def reference_structure_overlap(structure_seq: str, ref_seq: str) -> dict | None
         return None
     start = r.find(s)
     if start < 0 or r.find(s, start + 1) >= 0:
+        return None
+    if len(s) < MIN_REFERENCE_COVERAGE * len(r):
         return None
     return {"offset": -start, "covered": len(s), "reference_length": len(r)}
 

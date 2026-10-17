@@ -240,7 +240,9 @@ export function buildEvolveproLoadStateUpdate(params: {
       ? "off"
       : result.structure_frame_mismatch
         ? "frame_mismatch"
-        : structureLoaded
+        // "active" only when the sidecar says it used coordinates. A sidecar that
+        // does not report it (older build) is read as before, from structureLoaded.
+        : (result.structure_coordinates_used ?? structureLoaded)
           ? "active"
           : "no_structure";
   const modeLabel = "EVOLVEpro";

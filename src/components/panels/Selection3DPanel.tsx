@@ -945,7 +945,10 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
       if (strictMode && strictResult) {
         bFactorMapRef.current = parseBFactors(strictResult.pdb_text);
         await initViewer(strictResult.pdb_text, "pdb", isCancelled);
-        const annotations = await fetchActiveSite(strictResult.source_accession);
+        // An ESMFold key is not a UniProt accession: no lookup, no consent prompt.
+        const annotations = isEsmfoldKey(strictResult.source_accession)
+          ? null
+          : await fetchActiveSite(strictResult.source_accession);
         if (isCancelled()) return;
         setActiveSiteResult(annotations);
         setActiveSitePositions([]);

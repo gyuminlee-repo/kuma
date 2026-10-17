@@ -371,6 +371,8 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
     )
     result["structure_frame_mismatch"] = structure_frame_mismatch
     result["structure_coverage"] = structure_coverage
+    # What the selection actually ran on, so the UI reports 3D only when it was used.
+    result["structure_coordinates_used"] = strict_context is not None or ca_coords is not None
     if strict_context is not None:
         if hashlib.sha256(resolved.read_bytes()).hexdigest() != strict_context["candidate_sha256"]:
             raise ValueError("Candidate input changed during strict spatial selection; retry")
@@ -414,5 +416,6 @@ def handle_run_benchmark(params: dict) -> dict:
     return {
         "results": bench_results,
         "structure_frame_mismatch": structure_frame_mismatch,
+        "structure_coordinates_used": ca_coords is not None,
         "structure_coverage": structure_coverage,
     }

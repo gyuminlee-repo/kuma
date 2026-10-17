@@ -106,6 +106,24 @@ describe("predictStructureEsmfold", () => {
   });
 });
 
+describe("fetchDomains with an ESMFold structure", () => {
+  beforeEach(() => mockedSendRequest.mockReset());
+
+  it("keeps the ESMFold key instead of reverting to the AlphaFold accession", async () => {
+    mockedSendRequest.mockResolvedValueOnce({ domains: [], source: "interpro" } as never);
+    const { state, slice } = makeStore();
+    state.structureAccession = "ESMFOLD:ABC";
+    state.structureLoaded = true;
+    state.fetchStructure = vi.fn();
+
+    await slice.fetchDomains("P12345");
+
+    expect(state.structureAccession).toBe("ESMFOLD:ABC");
+    expect(state.structureLoaded).toBe(true);
+    expect(state.fetchStructure).not.toHaveBeenCalled();
+  });
+});
+
 describe("adoptReferenceEsmfold", () => {
   beforeEach(() => mockedSendRequest.mockReset());
 
@@ -127,6 +145,46 @@ describe("adoptReferenceEsmfold", () => {
 
     expect(outcome).toBe("refused");
     expect(mockedSendRequest).not.toHaveBeenCalled();
+    expect(state.structureAccession).toBe("");
+  });
+
+  it("asks for network consent once", async () => {
+    mockedSendRequest.mockResolvedValueOnce({ ...OK_RESULT, structure_key: "ESMFOLD:ABC" });
+    const { state, slice } = makeStore();
+
+    await slice.adoptReferenceEsmfold("MKTAYIAKQR");
+
+    expect(state.requireNetworkConsent).toHaveBeenCalledTimes(1);
+  });
+
+  it("drops a prediction that finishes after the accession changed", async () => {
+    let finish!: (value: unknown) => void;
+    mockedSendRequest.mockReturnValueOnce(new Promise((resolve) => { finish = resolve; }) as never);
+    const { state, slice } = makeStore();
+    state.uniprotAccession = "P12345";
+
+    const pending = slice.adoptReferenceEsmfold("MKTAYIAKQR");
+    await vi.waitFor(() => expect(mockedSendRequest).toHaveBeenCalledTimes(1));
+    state.uniprotAccession = "Q99999";
+    finish({ ...OK_RESULT, structure_key: "ESMFOLD:ABC" });
+
+    expect(await pending).toBe("failed");
+    expect(state.structureAccession).toBe("");
+    expect(state.structureLoaded).toBe(false);
+  });
+
+  it("drops a prediction that finishes after the reference sequence changed", async () => {
+    let finish!: (value: unknown) => void;
+    mockedSendRequest.mockReturnValueOnce(new Promise((resolve) => { finish = resolve; }) as never);
+    const { state, slice } = makeStore();
+    state.seqInfo = { genes: [{ cds_start: 1, translation: "MKTAYIAKQR" }] };
+
+    const pending = slice.adoptReferenceEsmfold("MKTAYIAKQR");
+    await vi.waitFor(() => expect(mockedSendRequest).toHaveBeenCalledTimes(1));
+    state.seqInfo = { genes: [{ cds_start: 1, translation: "MKTAYIAKQRLL" }] };
+    finish({ ...OK_RESULT, structure_key: "ESMFOLD:ABC" });
+
+    expect(await pending).toBe("failed");
     expect(state.structureAccession).toBe("");
   });
 

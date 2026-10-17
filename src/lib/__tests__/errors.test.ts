@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { isExportBlockedError, describeRpcError } from "../errors";
+import { isExportBlockedError, isStrictFrameMismatchError, describeRpcError } from "../errors";
+
+describe("isStrictFrameMismatchError", () => {
+  it("reads the sidecar's frame-mismatch code, not its wording", () => {
+    expect(isStrictFrameMismatchError("[-32010] anything the sidecar says")).toBe(true);
+    expect(isStrictFrameMismatchError("[-32602] Strict spatial selection requires a unique exact reference placement")).toBe(false);
+  });
+});
 
 describe("isExportBlockedError", () => {
   it("detects -32004 in message", () => {

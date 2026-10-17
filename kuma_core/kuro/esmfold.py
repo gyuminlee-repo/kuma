@@ -104,6 +104,10 @@ def normalise_plddt_scale(pdb_text: str) -> str:
     (the < 50 low-confidence rule, the mean shown to the user) reads 0-100, so a
     fraction would read as uniformly very low. A file whose largest B-factor is
     above 1 is already on the percent scale and is returned unchanged.
+
+    The scale is inferred from the maximum alone, so a genuine 0-100 file in
+    which every residue is at or below 1 would be read as a fraction. A real
+    prediction does not look like that (a folded residue scores well above 1).
     """
     lines = pdb_text.splitlines()
     atoms = [i for i, line in enumerate(lines)

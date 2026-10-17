@@ -16,6 +16,7 @@ from sidecar_kuro.core import (
     _send,
     logger,
 )
+from kuma_core.kuro.strict_spatial import StrictFrameMismatchError
 from sidecar_kuro.handlers.sequence import handle_load_fasta, handle_parse_mutations_text
 from sidecar_kuro.handlers.design import (
     handle_commit_design_result,
@@ -169,6 +170,9 @@ _ASYNC_METHODS = {
     "predict_structure_esmfold",
 }
 
+# JSON-RPC code for a structure that does not hold the reference (strict spatial).
+STRICT_FRAME_MISMATCH_CODE = -32010
+
 # Frozen-Windows worker dispatch starves the worker thread while the main loop
 # blocks on stdin, so async responses are not delivered until the client's NEXT
 # request. Run handlers synchronously on the main thread there (same rationale
@@ -185,6 +189,10 @@ def _dispatch_handler(req_id: int | None, method: str, handler, params: dict) ->
     except FileNotFoundError as exc:
         _append_crash_log(method, str(params)[:200], traceback.format_exc())
         _error(req_id, -32001, str(exc))
+    except StrictFrameMismatchError as exc:
+        # Expected refusal, not a crash: no crash-log entry. Own code so the UI
+        # recovers on the code (see isStrictFrameMismatchError in src/lib/errors.ts).
+        _error(req_id, STRICT_FRAME_MISMATCH_CODE, str(exc))
     except (KeyError, ValueError) as exc:
         _append_crash_log(method, str(params)[:200], traceback.format_exc())
         _error(req_id, -32602, str(exc))

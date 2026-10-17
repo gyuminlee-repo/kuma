@@ -544,7 +544,7 @@ export interface StrictSpatialComparison extends StrictSpatialBaseline {
  * "unavailable" and no threshold.
  */
 export interface StrictSpatialCoordinateConfidence {
-  source: "alphafold_plddt" | "unavailable";
+  source: "alphafold_plddt" | "esmfold_plddt" | "unavailable";
   threshold: number | null;
   low_confidence_residue_count: number;
   excluded_variant_count: number;
@@ -615,6 +615,9 @@ export interface EvolveproLoadResult {
    *  so 3D Cα coordinates were dropped and structural/pareto selection fell back
    *  to 1-D sequence distance. */
   structure_frame_mismatch?: boolean;
+  /** True when the sidecar selected on 3D coordinates, false when it fell back to
+   *  1-D distance (no coordinates for the structure key). Absent from an older sidecar. */
+  structure_coordinates_used?: boolean;
   /** Set when the structure lacks terminal reference residues (an exact overlap):
    *  3D selection uses it and those positions have no coordinate. */
   structure_coverage?: StructureCoverage | null;
@@ -1129,6 +1132,7 @@ export interface RunBenchmarkResult {
   // True when a loaded structure did not cover the reference frame, so the
   // benchmark ran on 1D distance instead of 3D. Same guard as load_evolvepro.
   structure_frame_mismatch?: boolean;
+  structure_coordinates_used?: boolean;
   structure_coverage?: StructureCoverage | null;
 }
 

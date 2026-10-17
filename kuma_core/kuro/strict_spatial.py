@@ -33,8 +33,17 @@ SOURCE_ALPHAFOLD_DB = "alphafold_db"
 # B-factor column holds pLDDT rescaled to 0-100 (esmfold.normalise_plddt_scale).
 SOURCE_ESMFOLD = "esmfold"
 _PLDDT_SOURCES = (SOURCE_ALPHAFOLD_DB, SOURCE_ESMFOLD)
+_PLDDT_CONFIDENCE_SOURCES = ("alphafold_plddt", "esmfold_plddt")
 
 logger = logging.getLogger(__name__)
+
+
+class StrictFrameMismatchError(ValueError):
+    """The structure does not hold the reference as one exact, sufficiently covered placement.
+
+    A ValueError subclass so existing callers keep working; the sidecar maps it to
+    its own JSON-RPC code so the UI reads the cause from the code, not the text.
+    """
 
 
 def _is_alphafold_model(pdb_text: str) -> bool:
@@ -105,7 +114,7 @@ def exact_pdb_context(pdb_text: str, reference: str, accession: str, *, source: 
     sequence = "".join(residues[p][0] for p in sorted(residues))
     overlap = reference_structure_overlap(sequence, reference)
     if overlap is None:
-        raise ValueError("Strict spatial selection requires a unique exact reference placement")
+        raise StrictFrameMismatchError("Strict spatial selection requires a unique exact reference placement")
     offset = overlap["offset"]
     chain = next(iter(chains))
     mapping = [
@@ -120,7 +129,8 @@ def exact_pdb_context(pdb_text: str, reference: str, accession: str, *, source: 
         "source_sha256": hashlib.sha256(pdb_text.encode()).hexdigest(),
         "reference_sha256": hashlib.sha256(reference.encode()).hexdigest(),
         "coordinate_frame": "reference", "mapping": mapping, "pdb_text": pdb_text,
-        "confidence_source": "alphafold_plddt" if alphafold else "unavailable",
+        "confidence_source": ("esmfold_plddt" if source == SOURCE_ESMFOLD
+                               else "alphafold_plddt" if alphafold else "unavailable"),
         "selection_policy": "single-site-full-pool-fps-v1",
     }
 
@@ -146,7 +156,7 @@ def select_single_sites(rows: list[tuple[str, float]], reference: str, context: 
         raise ValueError("Explicit site cap requires distinct-variant budget mode")
     reference = reference.strip().rstrip("*")
     confidence_source = context.get("confidence_source", "unavailable")
-    if confidence_source not in ("alphafold_plddt", "unavailable"):
+    if confidence_source not in ("alphafold_plddt", "esmfold_plddt", "unavailable"):
         raise ValueError("Unknown coordinate confidence source")
     coordinate_map = {}
     low_confidence: set[int] = set()
@@ -162,7 +172,7 @@ def select_single_sites(rows: list[tuple[str, float]], reference: str, context: 
             if not all(math.isfinite(x) for x in coordinate):
                 coordinate = None
         coordinate_map[position] = coordinate
-        if confidence_source == "alphafold_plddt":
+        if confidence_source in _PLDDT_CONFIDENCE_SOURCES:
             plddt = m.get("confidence")
             if isinstance(plddt, bool) or not isinstance(plddt, (int, float)) or not math.isfinite(plddt):
                 raise ValueError("AlphaFold mapping requires a numeric pLDDT per residue")
@@ -266,7 +276,7 @@ def select_single_sites(rows: list[tuple[str, float]], reference: str, context: 
               "comparison": comparison,
               "coordinate_confidence": {
                   "source": confidence_source,
-                  "threshold": PLDDT_VERY_LOW if confidence_source == "alphafold_plddt" else None,
+                  "threshold": PLDDT_VERY_LOW if confidence_source in _PLDDT_CONFIDENCE_SOURCES else None,
                   "low_confidence_residue_count": len(low_confidence),
                   "excluded_variant_count": sum(r["reason"] == "low_confidence_coordinate" for r in excluded),
               },

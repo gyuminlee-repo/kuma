@@ -681,12 +681,12 @@ function isStrictSpatialComparison(value: unknown, report: StrictSpatialResult):
 function isStrictSpatialCoordinateConfidence(value: unknown, report: StrictSpatialResult): boolean {
   if (value === undefined) return true; // Certificates from before the filter carry no claim.
   const count = (item: unknown) => isNumber(item) && Number.isSafeInteger(item) && item >= 0;
-  if (!(isRecord(value) && (value.source === "alphafold_plddt" || value.source === "unavailable")
+  if (!(isRecord(value) && (value.source === "alphafold_plddt" || value.source === "esmfold_plddt" || value.source === "unavailable")
     && count(value.low_confidence_residue_count) && count(value.excluded_variant_count))) return false;
   if (report.confidence_source !== undefined && report.confidence_source !== value.source) return false;
   const excluded = report.excluded.filter((row) => row.reason === "low_confidence_coordinate").length;
   if (value.excluded_variant_count !== excluded) return false;
-  if (value.source !== "alphafold_plddt") {
+  if (value.source === "unavailable") {
     return value.threshold === null && value.low_confidence_residue_count === 0 && excluded === 0;
   }
   // Every mapped residue of an AlphaFold model carries its pLDDT, and the
@@ -782,7 +782,8 @@ function isStrictSpatialResult(value: unknown): boolean {
     && (report.geometry_site_min_pair_distance === null) === (report.selected_site_count < 2)
     && isStrictSpatialComparison(value.comparison, report)
     && (value.confidence_source === undefined
-      || value.confidence_source === "alphafold_plddt" || value.confidence_source === "unavailable")
+      || value.confidence_source === "alphafold_plddt" || value.confidence_source === "esmfold_plddt"
+      || value.confidence_source === "unavailable")
     && isStrictSpatialCoordinateConfidence(value.coordinate_confidence, report);
 }
 
@@ -1364,6 +1365,7 @@ function isRunBenchmarkResult(value: unknown): value is RunBenchmarkResult {
     isRecord(value) &&
     isRecordOf(value.results, isBenchmarkResult) &&
     isOptional(value.structure_frame_mismatch, isBoolean) &&
+    isOptional(value.structure_coordinates_used, isBoolean) &&
     isOptional(value.structure_coverage, isNullableStructureCoverage)
   );
 }
