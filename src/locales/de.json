@@ -2057,6 +2057,7 @@
     "workspace": "Workspace",
     "scratch": "Scratch",
     "autosaveOn": "Autosave auf",
+    "exporting": "Exportiere…",
     "autosaveSaving": "Speichere…",
     "autosaveSavedJustNow": "Gespeichert just now",
     "autosaveSavedAgo": "Gespeichert {{time}}",

@@ -2099,6 +2099,7 @@
     "workspace": "워크스페이스",
     "scratch": "임시",
     "autosaveOn": "자동 저장 켜짐",
+    "exporting": "내보내는 중…",
     "autosaveSaving": "저장 중…",
     "autosaveSavedJustNow": "방금 저장됨",
     "autosaveSavedAgo": "{{time}}에 저장됨",

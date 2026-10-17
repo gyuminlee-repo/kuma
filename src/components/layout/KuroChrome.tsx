@@ -18,8 +18,11 @@
  *   export.all      100%
  */
 
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "@/store/appStore";
+import { isAutosaveEventFor, onAutosaveEvent, type AutosaveEvent } from "@/lib/autosave";
+import { useKumaProject } from "@/state/projectContext";
 import { useShallow } from "zustand/react/shallow";
 import { WorkflowRail, type WorkflowStep } from "@/components/widgets/WorkflowRail";
 import { ContextHeader } from "@/components/widgets/ContextHeader";
@@ -205,10 +208,35 @@ export function KuroContextHeader() {
 export function KuroDrawerStrip() {
   const { t } = useTranslation();
   const currentSubStep = useAppStore((s) => s.currentSubStep);
-  const { statusMessage } = useAppStore(
-    useShallow((s) => ({ statusMessage: s.statusMessage })),
+  const { statusMessage, isDesigning, isExporting, resultCount, successCount, totalCount } = useAppStore(
+    useShallow((s) => ({
+      statusMessage: s.statusMessage,
+      isDesigning: s.isDesigning,
+      isExporting: s.isExporting,
+      resultCount: s.designResults.length,
+      successCount: s.successCount,
+      totalCount: s.totalCount,
+    })),
   );
 
+  // Last KURO autosave of the project on screen. A write fixed to a previous
+  // project can finish after the switch, so events are matched to this one.
+  const project = useKumaProject();
+  const [saveEvent, setSaveEvent] = useState<AutosaveEvent | null>(null);
+  useEffect(() => {
+    setSaveEvent(null);
+    return onAutosaveEvent((event) => {
+      if (event.kind === "kuro" && isAutosaveEventFor(event, project)) setSaveEvent(event);
+    });
+  }, [project]);
+
+  const saveLabel = saveEvent === null ? "-"
+    : saveEvent.type === "saving" ? t("mainShell.autosaveSaving")
+    : saveEvent.type === "error" ? t("mainShell.autosaveFailed")
+    : new Date(saveEvent.savedAt).toLocaleTimeString();
+  const queueLabel = isDesigning ? t("appLayout.designing")
+    : isExporting ? t("mainShell.exporting")
+    : "-";
   const logText = statusMessage ?? "Sidecar ready";
 
   switch (currentSubStep) {
@@ -228,7 +256,7 @@ export function KuroDrawerStrip() {
           }}
           right={{
             title: t("kuro.load.drawerAutosave"),
-            children: <MiniRow label="Saved" value="just now" />,
+            children: <MiniRow label="Saved" value={saveLabel} />,
           }}
         />
       );
@@ -250,7 +278,7 @@ export function KuroDrawerStrip() {
           }}
           right={{
             title: t("kuro.nominate.drawerAutosave"),
-            children: <MiniRow label="Saved" value="just now" />,
+            children: <MiniRow label="Saved" value={saveLabel} />,
           }}
         />
       );
@@ -287,7 +315,7 @@ export function KuroDrawerStrip() {
           <DrawerStrip
             left={{
               title: t("kuro.submit.drawerJobQueue"),
-              children: <MiniRow label="Queue" value="idle" />,
+              children: <MiniRow label="Queue" value={queueLabel} />,
             }}
             center={{
               title: "Sidecar log",
@@ -295,7 +323,7 @@ export function KuroDrawerStrip() {
             }}
             right={{
               title: t("kuro.submit.drawerRecovery"),
-              children: <MiniRow label="Autosave" value="ready" />,
+              children: <MiniRow label="Autosave" value={saveLabel} />,
             }}
           />
         </div>
@@ -305,11 +333,13 @@ export function KuroDrawerStrip() {
         <DrawerStrip
           left={{
             title: t("kuro.output.drawerDesignReport"),
-            children: <MiniRow label="Status" value="complete" />,
+            children: (
+              <MiniRow label="Status" value={resultCount > 0 ? `${successCount} / ${totalCount}` : "-"} />
+            ),
           }}
           center={{
             title: "Finish log",
-            children: <LogLine level="ok" text={logText} />,
+            children: <LogLine level={resultCount > 0 ? "ok" : "dim"} text={logText} />,
           }}
           right={{
             title: t("kuro.output.drawerNext"),
@@ -322,7 +352,7 @@ export function KuroDrawerStrip() {
         <DrawerStrip
           left={{
             title: t("kuro.export.drawerExportQueue"),
-            children: <MiniRow label="Queue" value="idle" />,
+            children: <MiniRow label="Queue" value={queueLabel} />,
           }}
           center={{
             title: "Output log",
@@ -330,7 +360,7 @@ export function KuroDrawerStrip() {
           }}
           right={{
             title: t("kuro.export.drawerNext"),
-            children: <MiniRow label="Done" value="all targets" />,
+            children: <MiniRow label="Done" value="-" />,
           }}
         />
       );

@@ -2057,6 +2057,7 @@
     "workspace": "工作區",
     "scratch": "Scratch",
     "autosaveOn": "自動儲存已啟用",
+    "exporting": "正在匯出…",
     "autosaveSaving": "儲存中…",
     "autosaveSavedJustNow": "剛剛已儲存",
     "autosaveSavedAgo": "已儲存 {{time}}",

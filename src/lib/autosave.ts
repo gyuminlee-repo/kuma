@@ -46,11 +46,25 @@ const SCRATCH_FILE_NAME = "kuro-scratch-autosave.json";
 
 export type AutosaveKind = "kuro" | "mame";
 
-/** autosave 라이프사이클 이벤트. UI 상태 인디케이터용. */
-export type AutosaveEvent =
+/**
+ * autosave 라이프사이클 이벤트. UI 상태 인디케이터용.
+ * `target` 은 그 쓰기가 고정된 대상이다. 프로젝트를 바꾼 뒤 도착한 이전
+ * 프로젝트의 완료 이벤트를 화면이 걸러 낼 수 있도록 함께 싣는다.
+ */
+export type AutosaveEvent = { target: Readonly<AutosaveTarget> } & (
   | { kind: AutosaveKind; type: "saving" }
   | { kind: AutosaveKind; type: "saved"; savedAt: string /* ISO */ }
-  | { kind: AutosaveKind; type: "error"; error: Error };
+  | { kind: AutosaveKind; type: "error"; error: Error }
+);
+
+/** 이벤트가 지금 열린 프로젝트(없으면 scratch)의 저장인지 판정한다. */
+export function isAutosaveEventFor(
+  event: AutosaveEvent,
+  project: { path: string; scratch: boolean } | null,
+): boolean {
+  return event.target.projectPath === (project?.path ?? null)
+    && event.target.scratch === (project?.scratch ?? true);
+}
 
 type AutosaveListener = (event: AutosaveEvent) => void;
 
@@ -440,17 +454,18 @@ function drainQueue(kind: AutosaveKind): void {
   state.pending = null;
   state.lastError = null;
 
-  emit({ kind, type: "saving" });
+  const target = Object.freeze({ ...task.target });
+  emit({ kind, target, type: "saving" });
 
   state.inFlight = task.run()
     .then(() => {
       state.failedTask = null;
-      emit({ kind, type: "saved", savedAt: new Date().toISOString() });
+      emit({ kind, target, type: "saved", savedAt: new Date().toISOString() });
     })
     .catch((err: unknown) => {
       const error = err instanceof Error ? err : new Error(String(err));
       console.warn(`[autosave] Write failed (${kind}):`, error);
-      emit({ kind, type: "error", error });
+      emit({ kind, target, type: "error", error });
       state.lastError = error;
       state.failedTask = task;
     })

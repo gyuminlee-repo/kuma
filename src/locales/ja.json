@@ -2057,6 +2057,7 @@
     "workspace": "ワークスペース",
     "scratch": "Scratch",
     "autosaveOn": "Autosave 有効",
+    "exporting": "エクスポート中…",
     "autosaveSaving": "保存中…",
     "autosaveSavedJustNow": "今 保存しました",
     "autosaveSavedAgo": "保存 {{time}}",
