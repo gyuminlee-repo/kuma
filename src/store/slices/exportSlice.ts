@@ -12,6 +12,7 @@ import { readKuroDesignOutcome } from "../../lib/kuroSnapshot";
 import { notifyJobDone, notifyJobError } from "../../lib/toast";
 import { toast } from "sonner";
 import { beginKuroExport } from "../../lib/exportActivity";
+import { assertRestorableWorkspace } from "../../lib/workspaceFile";
 import { registerArtifacts, ensureWorkspaceFromExportPath, getActiveWorkspace } from "../../lib/workspace";
 import type { AppState } from "../types";
 import type { ExpectedCodonTable } from "../../lib/codonTableRestore";
@@ -522,14 +523,9 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
     return snapshot;
   },
 
-  restoreWorkspace: async (ws: WorkspaceData) => {
+  restoreWorkspace: async (ws: WorkspaceData, options) => {
     // schema_version "0.3" 이전 워크스페이스는 지원하지 않음
-    const wsWithSchema = ws as WorkspaceData & { schema_version?: string };
-    if (!wsWithSchema.schema_version || wsWithSchema.schema_version < "0.3") {
-      throw new Error(
-        i18next.t("exportSlice.legacyWorkspaceUnsupported")
-      );
-    }
+    assertRestorableWorkspace(ws);
     // The guard rejects V1/V2 before this point, so migrating them here was
     // unreachable and could silently discard V3 fields such as overlapMode.
     const { inputs, settings, results, ui, cache } = ws as WorkspaceV3;
@@ -610,6 +606,9 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       }
     }
 
+    // Every await is above this line and every store write below it, so one
+    // check keeps a restore that was cancelled meanwhile off the next project.
+    if (options?.isCurrent && !options.isCurrent()) return null;
     const store = get();
     store.resetAll();
     // designResults 와 두 카운트는 저장 측이 조건 없이 한 객체 리터럴로 함께 쓴다
@@ -820,6 +819,15 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
     });
     // 템플릿 로딩이 실패했으면 seqInfo가 없으므로 자동 재설계를 시도하지 않는다.
     if ((settings.autoRedesignOnLoad ?? true) && restoredDesignResults.length === 0 && inputs.mutationText && inputs.fastaPath && !evolveproReloadError && !templateLoadError) {
+      // A caller restoring behind a blocking overlay (project hydration) runs
+      // the redesign itself once the overlay is down, rather than holding it up
+      // for the length of a design.
+      if (options?.deferRedesign) return redesign;
+      await redesign();
+    }
+    return null;
+
+    async function redesign(): Promise<void> {
       await get().designPrimers();
       const redesignedResults = get().designResults;
       const redesignedPlateState = buildIncludedPlateState({

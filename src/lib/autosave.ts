@@ -16,6 +16,7 @@ import {
 } from "@tauri-apps/plugin-fs";
 import { appDataDir } from "@tauri-apps/api/path";
 import { setHydrationActive } from "./hydrationSignal";
+import type { WorkspaceV3 } from "../types/models";
 
 // ─── 상수 ─────────────────────────────────────────────────────────────────
 
@@ -77,6 +78,11 @@ export interface AutosaveTarget {
    * 저장한다 (kind === "kuro" 한정). 미지정이면 기존 동작대로 silent skip.
    */
   scratchFallback?: boolean;
+  /**
+   * A `.kuro.json` opened from Home. KURO saves go into that file, in the
+   * workspace format it was read in, instead of the scratch file.
+   */
+  workspaceFile?: string;
 }
 
 export interface AutosaveSnapshot {
@@ -485,7 +491,7 @@ function drainQueue(kind: AutosaveKind): void {
 export function scheduleAutosave(
   target: AutosaveTarget,
   kind: AutosaveKind,
-  buildSnapshot: () => AutosaveSnapshot,
+  buildSnapshot: () => AutosaveSnapshot | WorkspaceV3,
 ): void {
   if (!hasWritableTarget(target, kind)) return;
   // 읽지 못한 스냅샷 위에 덮어쓰지 않는다.
@@ -507,6 +513,12 @@ export function scheduleAutosave(
 
   const snapshot = buildSnapshot();
   const task: AutosaveTask = { target: resolvedTarget, run: async (): Promise<void> => {
+    if (kind === "kuro" && resolvedTarget.workspaceFile) {
+      // The user's own file: written atomically, but no generation copies
+      // next to it.
+      await atomicWriteJson(resolvedTarget.workspaceFile, snapshot);
+      return;
+    }
     const filePath = await resolveTargetPath(resolvedTarget, kind);
     if (filePath === null) return;
     // 덮어쓰기 전에만 세대를 뜬다. 내부에서 간격을 보고 대부분 즉시 빠진다.

@@ -171,10 +171,11 @@ export function useKuroAutosave(): void {
   // path / scratch만 의존성으로 사용한다.
   const projectPath = project?.path ?? null;
   const scratch = project?.scratch ?? true;
+  const workspaceFile = project?.workspaceFile;
 
   // target ref: subscribe 콜백 안에서 항상 최신 target을 참조하도록 보관
-  const targetRef = useRef<AutosaveTarget>({ projectPath, scratch, scratchFallback: true });
-  targetRef.current = { projectPath, scratch, scratchFallback: true };
+  const targetRef = useRef<AutosaveTarget>({ projectPath, scratch, scratchFallback: true, workspaceFile });
+  targetRef.current = { projectPath, scratch, scratchFallback: true, workspaceFile };
 
   /**
    * 서열/EVOLVEpro CSV 파일 지문 캐시.
@@ -247,6 +248,9 @@ export function useKuroAutosave(): void {
         // 경로 상대화 기준은 쓰기 시점의 대상 프로젝트다. targetRef를 따라가야
         // 프로젝트 전환 직후 예약분이 옛 폴더 기준으로 상대화되지 않는다.
         () => {
+          // A workspace file opened from Home is saved back in its own format,
+          // the one Home reads it in.
+          if (targetRef.current.workspaceFile) return useAppStore.getState().getWorkspaceSnapshot();
           const extras: KuroSnapshotExtras = {
             sequenceFingerprint: fingerprintsRef.current.sequence,
             evolveproCsvFingerprint: fingerprintsRef.current.evolveproCsv,

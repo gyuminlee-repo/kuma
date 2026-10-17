@@ -23,6 +23,8 @@ import {
   atomicWriteJson,
 } from "@/lib/autosave";
 import { readMameResultSnapshot, type MameResultSnapshot } from "@/lib/mame/resultSnapshot";
+import { loadWorkspaceFile } from "@/lib/workspaceFile";
+import { formatError } from "@/lib/utils";
 import { provenanceFor } from "@/lib/mame/resultProvenance";
 import { pickAnalyzeYield } from "@/lib/mame/analyzeYield";
 import { sendRequest as sendMameRequest } from "@/lib/ipc-mame";
@@ -2017,6 +2019,10 @@ export function useAutosaveHydration(
     // 동기 호출이어야 한다. 아래 IIFE의 첫 await 전에 resetAll이 실행된다.
     beginHydration();
 
+    // Work the restore asks for that must not hold the overlay up: a workspace
+    // file's automatic redesign. Started once this run has finished.
+    const deferred: { redesign: (() => Promise<void>) | null } = { redesign: null };
+
     void (async () => {
       setRunPhase("reset");
       // scratch 진입이나 이후 조기 return 경로에서도 이전 프로젝트의 배너
@@ -2037,6 +2043,25 @@ export function useAutosaveHydration(
         closeWorkspace();
         // scratch 스냅샷도 KURO 복원이라 같은 단계로 묶는다.
         setRunPhase("kuro");
+        // A workspace file opened from Home is restored from that file, and its
+        // saves go back into it (useKuroAutosave). Home has already read it; if
+        // it cannot be read now (moved or edited since), the session closes
+        // with the reason on Home instead of staying open on an empty
+        // workspace whose next save would overwrite the file.
+        const workspaceFile = project.workspaceFile;
+        if (workspaceFile) {
+          try {
+            const ws = await loadWorkspaceFile(workspaceFile);
+            if (!isCurrent()) return;
+            deferred.redesign = await useAppStore.getState().restoreWorkspace(ws, { deferRedesign: true, isCurrent });
+            if (!isCurrent()) return;
+            clearAutosaveBlock("kuro");
+          } catch (err) {
+            if (!isCurrent()) return;
+            window.dispatchEvent(new CustomEvent("kuma:return-to-home", { detail: { error: formatError(err) } }));
+          }
+          return;
+        }
         const scratchResult = await readScratchAutosave(KURO_SCHEMA);
         if (!isCurrent()) return;
         // 읽기에 성공한 경우에만 봉인을 해제한다. read_failed/schema_too_new는
@@ -2357,6 +2382,7 @@ export function useAutosaveHydration(
       if (activeRunRef.current === run) {
         setHydrating(false);
         setPhase(null);
+        if (deferred.redesign) void deferred.redesign();
       }
     });
   }, [project?.path, project?.scratch, onMessage]);
