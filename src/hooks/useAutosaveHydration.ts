@@ -22,7 +22,7 @@ import {
   autosavePath,
   atomicWriteJson,
 } from "@/lib/autosave";
-import { readMameResultSnapshot } from "@/lib/mame/resultSnapshot";
+import { readMameResultSnapshot, type MameResultSnapshot } from "@/lib/mame/resultSnapshot";
 import { provenanceFor } from "@/lib/mame/resultProvenance";
 import { pickAnalyzeYield } from "@/lib/mame/analyzeYield";
 import { sendRequest as sendMameRequest } from "@/lib/ipc-mame";
@@ -1727,13 +1727,31 @@ async function injectSnapshotResultsIntoSidecar(
   return alive();
 }
 
+/**
+ * True when the input snapshot proves the operator changed the analyze inputs
+ * after this result was written. Changing an input clears the results, so the
+ * file on disk no longer describes what was on screen. Every case that cannot
+ * prove it restores as before: no readable input snapshot (the app can die
+ * between the result file and the next autosave), a snapshot older than the
+ * result, or either side written before the identity existed.
+ */
+function inputsChangedSinceResult(inputRead: ReadAutosaveResult, result: MameResultSnapshot): boolean {
+  if (inputRead.status !== "ok") return false;
+  const inputs = inputRead.snapshot as MameAutosaveSnapshot;
+  if (typeof inputs.input_identity !== "string" || typeof result.input_identity !== "string") return false;
+  if (inputs.saved_at < result.saved_at) return false;
+  return inputs.input_identity !== result.input_identity;
+}
+
 async function restoreMameResult(
   projectPath: string,
+  inputRead: ReadAutosaveResult,
   isCurrent?: () => boolean,
 ): Promise<boolean> {
   const alive = () => isCurrent?.() ?? true;
   const read = await readMameResultSnapshot(projectPath);
   if (read.status !== "ok") return false;
+  if (inputsChangedSinceResult(inputRead, read.snapshot)) return false;
   // RPC 자체가 사이드카 쓰기다. 호출 전에 막아야 한다.
   if (!alive()) return false;
 
@@ -2221,7 +2239,7 @@ export function useAutosaveHydration(
       //    스냅샷 "apply snapshot failed" 메시지를 오염시키지 않도록 별도 try/catch.
       setRunPhase("mame");
       try {
-        const restored = await restoreMameResult(path, isCurrent);
+        const restored = await restoreMameResult(path, mameResult, isCurrent);
         if (!isCurrent()) return;
         if (restored) {
           onMessage({

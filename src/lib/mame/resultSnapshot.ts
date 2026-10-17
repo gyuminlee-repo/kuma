@@ -58,6 +58,11 @@ export interface MameResultSnapshot {
    * `kuma_version` instead.
    */
   result_contract?: number;
+  /**
+   * `mameInputIdentity` of the inputs this result belongs to. Absent in files
+   * written before it existed, which restore as they always did.
+   */
+  input_identity?: string;
   result: AnalyzeResult & AnalyzeExportProvenance;
 }
 
@@ -70,6 +75,7 @@ export interface MameResultSnapshot {
 export async function writeMameResultSnapshot(
   projectPath: string | null,
   result: AnalyzeResult & AnalyzeExportProvenance,
+  inputIdentity: string,
 ): Promise<void> {
   if (!projectPath) return;
   await ensureAutosaveDir(projectPath);
@@ -78,6 +84,7 @@ export async function writeMameResultSnapshot(
     saved_at: new Date().toISOString(),
     kuma_version: __APP_VERSION__,
     result_contract: RESULT_CONTRACT,
+    input_identity: inputIdentity,
     result,
   };
   await atomicWriteJson(mameResultPath(projectPath), snapshot);

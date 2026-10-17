@@ -3,6 +3,7 @@ import { cancelAndRespawn, sendRequest } from "@/lib/ipc-mame";
 import { formatError } from "@/lib/utils";
 import { defaultMameExportFilename } from "@/lib/mameFilename";
 import { writeMameResultSnapshot } from "@/lib/mame/resultSnapshot";
+import { mameInputIdentity } from "@/lib/mame/autosaveSnapshot";
 import { pickAnalyzeYield } from "@/lib/mame/analyzeYield";
 import { isPlateOrderReportable } from "@/lib/mame/plateOrderMessage";
 // Store-free module on purpose: `janus.ts` imports this store, so importing
@@ -748,7 +749,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     // review view. Awaited so an immediate app-close does not lose it. Failure
     // must not break the in-memory flow (best-effort).
     try {
-      await writeMameResultSnapshot(get().projectPath, result);
+      await writeMameResultSnapshot(get().projectPath, result, mameInputIdentity(get(), get().projectPath));
     } catch (err) {
       console.warn("[inputSlice] persist analyze result failed:", err);
     }
@@ -883,7 +884,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       // this run's `clearResults()` already left it (null).
       set({ janusAutosave: result.janus_autosave ?? null });
       try {
-        await writeMameResultSnapshot(get().projectPath, result);
+        await writeMameResultSnapshot(get().projectPath, result, mameInputIdentity(get(), get().projectPath));
       } catch (err) {
         console.warn("[inputSlice] persist analyze result failed:", err);
       }

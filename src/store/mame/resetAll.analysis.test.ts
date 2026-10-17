@@ -25,6 +25,7 @@ vi.mock("sonner", () => ({ toast: toasts }));
 
 import { resetMameAll } from "./resetAll";
 import { useMameAppStore } from "./mameAppStore";
+import { buildMameSnapshot } from "@/lib/mame/autosaveSnapshot";
 import type { VerdictRecord } from "@/types/mame/models";
 
 const VERDICT = { native_barcode: "barcode01", custom_barcode: "1_1", verdict: "PASS" } as unknown as VerdictRecord;
@@ -96,6 +97,11 @@ describe("a reset ends the running analysis", () => {
     expect(state.isAnalyzing).toBe(false);
     expect(state.analyzeMessage).toBe("Analysis complete");
     expect(writeResult).toHaveBeenCalledTimes(1);
+    // The result file and the input snapshot must name these inputs the same
+    // way, or a restore would read every saved run as superseded.
+    const identity = buildMameSnapshot(state, undefined, state.projectPath).input_identity;
+    expect(identity).toEqual(expect.any(String));
+    expect(writeResult).toHaveBeenCalledWith(state.projectPath, expect.anything(), identity);
   });
 
   it("counts every reset, so consecutive resets stay distinguishable", async () => {
