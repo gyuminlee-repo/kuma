@@ -281,6 +281,30 @@ def exact_reference_offset(accession_seq: str, ref_seq: str) -> int | None:
     return offset
 
 
+def reference_structure_overlap(structure_seq: str, ref_seq: str) -> dict | None:
+    """Unique exact overlap of a structure sequence with the reference.
+
+    ``offset`` is zero-based: structure index = reference index + offset, so a
+    structure missing N-terminal residues has a negative offset. Only a
+    structure that contains the reference, or a contiguous piece of it (terminal
+    residues missing, nothing else), qualifies. Substitutions, internal gaps and
+    repeated placements return None.
+    """
+    s = structure_seq.strip().rstrip("*")
+    r = ref_seq.strip().rstrip("*")
+    if not s or not r:
+        return None
+    offset = exact_reference_offset(s, r)
+    if offset is not None:
+        return {"offset": offset, "covered": len(r), "reference_length": len(r)}
+    if len(s) >= len(r):
+        return None
+    start = r.find(s)
+    if start < 0 or r.find(s, start + 1) >= 0:
+        return None
+    return {"offset": -start, "covered": len(s), "reference_length": len(r)}
+
+
 def structure_matches_reference(accession_seq: str, ref_seq: str) -> bool:
     """Whether a unique exact placement exists (not a geometry confidence test)."""
     return exact_reference_offset(accession_seq, ref_seq) is not None

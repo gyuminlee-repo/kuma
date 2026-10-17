@@ -306,3 +306,34 @@ describe("strict spatial opt-in requests", () => {
     expect(params).toMatchObject({ strict_spatial_budget: "unique_sites", strict_spatial_site_cap: null });
   });
 });
+
+describe("buildEvolveproLoadStateUpdate: structure coverage", () => {
+  const base = {
+    variants: ["A1V"],
+    y_preds: [0.8],
+    ranked_candidates: [],
+    total_count: 1,
+    selected_count: 1,
+  };
+  const input = { currentMode: "evolvepro" as const, maxPerPosition: 5, threeDConsumerOn: true, structureLoaded: true };
+
+  it("keeps 3D active and carries the coverage of a terminally truncated structure", () => {
+    const update = buildEvolveproLoadStateUpdate({
+      ...input,
+      result: { ...base, structure_frame_mismatch: false, structure_coverage: { covered: 90, reference_length: 100 } },
+    });
+    expect(update.structure3dState).toBe("active");
+    expect(update.structureCoverage).toEqual({ covered: 90, reference_length: 100 });
+  });
+
+  it("reports no coverage for a complete structure and none for a frame mismatch", () => {
+    const complete = buildEvolveproLoadStateUpdate({ ...input, result: { ...base, structure_frame_mismatch: false } });
+    expect(complete.structureCoverage).toBeNull();
+    const mismatch = buildEvolveproLoadStateUpdate({
+      ...input,
+      result: { ...base, structure_frame_mismatch: true, structure_coverage: { covered: 5, reference_length: 100 } },
+    });
+    expect(mismatch.structure3dState).toBe("frame_mismatch");
+    expect(mismatch.structureCoverage).toBeNull();
+  });
+});

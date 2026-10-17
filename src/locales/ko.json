@@ -2598,6 +2598,7 @@
   },
   "inputSlice": {
     "csvFormatError": "{{mode}} CSV 형식 오류: {{detail}}",
+    "structureCoverage": "3D 구조가 참조 잔기 {{length}}개 중 {{covered}}개를 덮습니다",
     "structureFrameMismatch": "3D 구조가 참조 서열과 일치하지 않아 1D 서열 거리를 사용합니다"
   },
   "benchmarkDialog": {
@@ -3979,6 +3980,13 @@
     "uploadLabel": "Upload structure",
     "uploadButton": "Upload PDB/CIF",
     "uploadSourceNote": "pLDDT coloring not available for uploaded structures.",
+    "framePredicting": "ESMFold로 내 서열의 구조를 예측하는 중...",
+    "esmfoldReferenceNote": "AlphaFold DB 모델이 내 서열과 달라 내 서열의 ESMFold 예측 구조를 사용합니다.",
+    "frameAlphaFoldServer": "3D를 사용하지 않습니다: 내 서열({{length}}잔기)이 ESMFold 한도 400잔기를 넘고 AlphaFold DB 모델도 일치하지 않습니다. AlphaFold Server에서 예측한 뒤 내려받은 ZIP을 불러오세요.",
+    "frameNeedsConsentOrFile": "3D를 사용하지 않습니다: AlphaFold DB 모델이 내 서열과 다릅니다. 3D를 쓰려면 ESMFold 네트워크 동의 또는 구조 파일이 필요합니다.",
+    "frameEsmfoldFailed": "3D를 사용하지 않습니다: 내 서열의 ESMFold 예측이 실패했습니다. 구조 파일을 불러오세요.",
+    "frameLoadStructureFile": "구조 파일 불러오기",
+    "frameCoverage": "구조가 참조 잔기 {{length}}개 중 {{covered}}개를 덮으며 그 밖의 위치에는 3D 좌표가 없습니다.",
     "esmfoldNoAccessionNote": "서열에서 예측한 ESMFold 구조입니다(참조 좌표계). Active/Binding site 오버레이는 UniProt accession이 필요하므로 숨겨집니다.",
     "esmfoldTooLong": "서열이 ESMFold의 400잔기 한도를 초과합니다. AlphaFold 구조를 불러오려면 UniProt accession을 입력하세요.",
     "removePosition": "Remove position {{position}}",

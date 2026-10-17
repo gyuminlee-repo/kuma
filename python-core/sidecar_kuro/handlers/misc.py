@@ -239,7 +239,22 @@ def _frame_checked_ca_coords(
     structure_accession: str | None,
     ref_seq: str,
 ) -> tuple[list | None, bool]:
+    """Two-value form of ``_frame_checked_ca_projection`` for callers that ignore coverage."""
+    projected, mismatch, _ = _frame_checked_ca_projection(ca_coords, structure_accession, ref_seq)
+    return projected, mismatch
+
+
+def _frame_checked_ca_projection(
+    ca_coords: list | None,
+    structure_accession: str | None,
+    ref_seq: str,
+) -> tuple[list | None, bool, dict | None]:
     """Project a unique exact reference interval or report an unavailable frame.
+
+    Returns ``(coords, frame_mismatch, coverage)``. ``coverage`` is
+    ``{"covered", "reference_length"}`` when the structure lacks terminal
+    reference residues (those positions are None in ``coords``) and None when it
+    covers the whole reference.
 
     3D coordinates are indexed by reference-sequence position, so a structure
     that does not contain the reference exactly once would place
@@ -257,26 +272,29 @@ def _frame_checked_ca_coords(
     accession, which has no cached sequence.
     """
     if ca_coords is None or not structure_accession or not ref_seq.strip():
-        return ca_coords, False
-    from kuma_core.kuro.interface import exact_reference_offset
+        return ca_coords, False, None
+    from kuma_core.kuro.interface import reference_structure_overlap
 
     structure_seq = _get_cached_ca_seq(structure_accession)
     if structure_seq is None:
         from kuma_core.kuro.alphafold import fetch_ca_seq
 
         structure_seq = fetch_ca_seq(structure_accession)
-    offset = exact_reference_offset(structure_seq or "", ref_seq)
-    if offset is None:
-        return None, True
-    if offset == 0 and len((structure_seq or "").strip().rstrip("*")) == len(ref_seq.strip().rstrip("*")):
-        return ca_coords, False
+    overlap = reference_structure_overlap(structure_seq or "", ref_seq)
+    if overlap is None:
+        return None, True, None
+    offset = overlap["offset"]
+    length = overlap["reference_length"]
+    partial = overlap["covered"] < length
+    coverage = {"covered": overlap["covered"], "reference_length": length} if partial else None
+    if offset == 0 and not partial and len((structure_seq or "").strip().rstrip("*")) == length:
+        return ca_coords, False, None
     # Coordinates are 1-indexed in the source frame. Preserve missing entries;
     # never shift a tagged construct's residue 1 onto reference residue 1.
-    length = len(ref_seq.strip().rstrip("*"))
     return [None] + [
-        ca_coords[p + offset] if p + offset < len(ca_coords) else None
+        ca_coords[p + offset] if 1 <= p + offset < len(ca_coords) else None
         for p in range(1, length + 1)
-    ], False
+    ], False, coverage
 
 
 def handle_load_evolvepro_csv(params: dict) -> dict:
@@ -292,15 +310,21 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
         if not p.structural_diversity or not p.structure_accession or p.structure_accession.startswith("file:"):
             raise ValueError("Strict spatial selection requires an AlphaFold accession and structural mode")
         from kuma_core.kuro.alphafold import fetch_pdb_text
-        from kuma_core.kuro.strict_spatial import SOURCE_ALPHAFOLD_DB, exact_pdb_context
+        from kuma_core.kuro.esmfold import STRUCTURE_KEY_PREFIX, load_cached_prediction
+        from kuma_core.kuro.strict_spatial import SOURCE_ALPHAFOLD_DB, SOURCE_ESMFOLD, exact_pdb_context
 
         strict_accession = p.structure_accession.strip().upper()
-        pdb_text = fetch_pdb_text(strict_accession)
+        # An ESMFold key names a prediction of the reference made in this app;
+        # anything else is an AlphaFold DB accession. Neither is guessed from TITLE.
+        if strict_accession.startswith(STRUCTURE_KEY_PREFIX):
+            pdb_text = load_cached_prediction(strict_accession)
+            strict_source = SOURCE_ESMFOLD
+        else:
+            pdb_text = fetch_pdb_text(strict_accession)
+            strict_source = SOURCE_ALPHAFOLD_DB
         if not pdb_text:
             raise ValueError("Strict spatial source PDB is unavailable")
-        # fetch_pdb_text only downloads from AlphaFold DB (file: sources are
-        # rejected above), so the origin is known here, not guessed from TITLE.
-        strict_context = exact_pdb_context(pdb_text, p.ref_seq, strict_accession, source=SOURCE_ALPHAFOLD_DB)
+        strict_context = exact_pdb_context(pdb_text, p.ref_seq, strict_accession, source=strict_source)
         strict_context["candidate_sha256"] = hashlib.sha256(resolved.read_bytes()).hexdigest()
         strict_context["score_order"] = p.score_order
         strict_context["budget_mode"] = p.strict_spatial_budget
@@ -310,11 +334,11 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
     # Strict mode validates the actual source PDB independently and never falls
     # back to sequence distances.
     if strict_context is None:
-        ca_coords, structure_frame_mismatch = _frame_checked_ca_coords(
+        ca_coords, structure_frame_mismatch, structure_coverage = _frame_checked_ca_projection(
             ca_coords, p.structure_accession, p.ref_seq
         )
     else:
-        structure_frame_mismatch = False
+        structure_frame_mismatch, structure_coverage = False, None
     result = load_evolvepro_csv(
         filepath=str(resolved),
         top_n=p.top_n,
@@ -346,6 +370,7 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
         strict_spatial_context=strict_context,
     )
     result["structure_frame_mismatch"] = structure_frame_mismatch
+    result["structure_coverage"] = structure_coverage
     if strict_context is not None:
         if hashlib.sha256(resolved.read_bytes()).hexdigest() != strict_context["candidate_sha256"]:
             raise ValueError("Candidate input changed during strict spatial selection; retry")
@@ -366,7 +391,7 @@ def handle_run_benchmark(params: dict) -> dict:
     ca_coords = _get_cached_ca_coords(p.structure_accession)
     # Same frame guard load_evolvepro_csv uses: a structure that does not cover
     # the reference frame must not feed 3D coordinates into the benchmark.
-    ca_coords, structure_frame_mismatch = _frame_checked_ca_coords(
+    ca_coords, structure_frame_mismatch, structure_coverage = _frame_checked_ca_projection(
         ca_coords, p.structure_accession, p.ref_seq
     )
 
@@ -386,4 +411,8 @@ def handle_run_benchmark(params: dict) -> dict:
         random_seed=p.random_seed,
         ca_coords=ca_coords,
     )
-    return {"results": bench_results, "structure_frame_mismatch": structure_frame_mismatch}
+    return {
+        "results": bench_results,
+        "structure_frame_mismatch": structure_frame_mismatch,
+        "structure_coverage": structure_coverage,
+    }

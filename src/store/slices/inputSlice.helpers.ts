@@ -67,6 +67,7 @@ export interface EvolveproLoadStateUpdate {
   evolveproParetoExchanges: number | null;
   evolveproStepStats: EvolveproStepStats | null;
   structure3dState: "off" | "active" | "no_structure" | "frame_mismatch";
+  structureCoverage: { covered: number; reference_length: number } | null;
   statusMessage: string;
 }
 
@@ -222,9 +223,15 @@ export function buildEvolveproLoadStateUpdate(params: {
   const paretoMsg = result.pareto_replaced != null && result.pareto_replaced > 0
     ? ` | Pareto: ${result.pareto_replaced} diversified`
     : "";
+  const structureCoverage = result.structure_frame_mismatch ? null : result.structure_coverage ?? null;
   const structureMsg = result.structure_frame_mismatch
     ? ` | ${i18next.t("inputSlice.structureFrameMismatch")}`
-    : "";
+    : structureCoverage
+      ? ` | ${i18next.t("inputSlice.structureCoverage", {
+          covered: structureCoverage.covered,
+          length: structureCoverage.reference_length,
+        })}`
+      : "";
 
   // Persist why 3D distance was or was not used, so the fallback is visible in
   // the panel rather than only in this transient status line.
@@ -248,6 +255,7 @@ export function buildEvolveproLoadStateUpdate(params: {
     evolveproParetoExchanges: result.pareto_replaced ?? null,
     evolveproStepStats: result.step_stats ?? null,
     structure3dState,
+    structureCoverage,
     statusMessage: `${modeLabel}: ${result.selected_count}/${result.total_count} variants${filteredMsg}${domainMsg}${paretoMsg}${structureMsg}`,
   };
 }

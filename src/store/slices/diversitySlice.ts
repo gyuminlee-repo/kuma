@@ -172,6 +172,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   structureLoading: false,
   structureAccession: "",
   structure3dState: "off",
+  structureCoverage: null,
   uniprotCandidates: [],
   uniprotSearching: false,
   structuralDiversityEnabled: false,
@@ -443,7 +444,12 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       // frame mismatch is not silent in the benchmark path either.
       const benchMismatch = result.structure_frame_mismatch
         ? ` | ${i18next.t("inputSlice.structureFrameMismatch")}`
-        : "";
+        : result.structure_coverage
+          ? ` | ${i18next.t("inputSlice.structureCoverage", {
+              covered: result.structure_coverage.covered,
+              length: result.structure_coverage.reference_length,
+            })}`
+          : "";
       set({
         benchmarkRunning: false,
         benchmarkResults: result.results,
@@ -733,6 +739,23 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     })();
     esmfoldCache.set(clean, promise);
     return promise;
+  },
+
+  adoptReferenceEsmfold: async (sequence: string): Promise<"used" | "refused" | "failed"> => {
+    const consentGranted = await get().requireNetworkConsent("esmfold");
+    if (!consentGranted) return "refused";
+    const result = await get().predictStructureEsmfold(sequence);
+    if (!result || !result.success || !result.structure_key) return "failed";
+    set({
+      structureLoaded: true,
+      structureLoading: false,
+      structureAccession: result.structure_key,
+    });
+    const state = get();
+    if (shouldReloadAfterStructureFetch(state)) {
+      await state.loadEvolveproCsv(getActiveEvolveproPath(state));
+    }
+    return "used";
   },
 
   fetchActiveSite: async (accession: string): Promise<FetchActiveSiteResult | null> => {

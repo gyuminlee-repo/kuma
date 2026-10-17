@@ -7,6 +7,12 @@ import { formatError } from "../../lib/utils";
 import { buildKuroDesignInputPatch } from "../../lib/kuroResultReset";
 import { clampMaxPrimers } from "../../lib/inputThresholds";
 import { isStrictSpatialMode, sameVariantIds, strictSpatialContextKey } from "../../lib/strictSpatial";
+import { isEsmfoldKey } from "../../lib/structureFrameRecovery";
+
+// The sidecar's refusal when the structure does not hold the reference exactly
+// (python-core strict_spatial.exact_pdb_context). Reported as a frame mismatch so
+// the panel can recover with a structure of the reference itself.
+const STRICT_FRAME_MISMATCH = /unique exact reference placement/;
 import { resizeEvolveproSelection } from "../../lib/evolveproSelection";
 import type { AppState } from "../types";
 import type { Round } from "../../types/round";
@@ -175,8 +181,13 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           || (get().structureAccession || get().uniprotAccession).startsWith("file:")) {
           throw new Error(i18next.t("strictSpatial.unsupported"));
         }
-        const allowed = await get().requireNetworkConsent("alphafold");
-        if (!allowed) throw new Error(i18next.t("strictSpatial.permission"));
+        // An ESMFold key names a prediction already in the sidecar cache, so
+        // the AlphaFold lookup consent does not apply to it.
+        const strictKey = get().structureAccession || get().uniprotAccession;
+        if (!isEsmfoldKey(strictKey)) {
+          const allowed = await get().requireNetworkConsent("alphafold");
+          if (!allowed) throw new Error(i18next.t("strictSpatial.permission"));
+        }
       }
       const result = await sendRequest("load_evolvepro_csv", params);
       // A newer load owns the status line, so an older one stays silent. The
@@ -239,6 +250,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         evolveproParetoExchanges: update.evolveproParetoExchanges,
         evolveproStepStats: update.evolveproStepStats,
         structure3dState: strictMode ? "active" : update.structure3dState,
+        structureCoverage: update.structureCoverage,
         evolveproRankedCandidates: result.ranked_candidates ?? [],
         // Initialize selection directly from result.variants (pipeline source-of-truth).
         // ranked_candidates is guaranteed to contain all selected variants (backend invariant:
@@ -273,6 +285,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         set({
           strictSpatialSelection: null,
           strictSpatialError: isStrictSpatialMode({ ...get(), mutationInputMode: "evolvepro" }) ? formatError(err) : null,
+          ...(isStrictSpatialMode({ ...get(), mutationInputMode: "evolvepro" })
+            && STRICT_FRAME_MISMATCH.test(formatError(err)) && { structure3dState: "frame_mismatch" as const }),
           mutationText: "",
           evolveproTotalCount: 0,
           evolveproFilteredCount: null,

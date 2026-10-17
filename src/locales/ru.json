@@ -2556,6 +2556,7 @@
   },
   "inputSlice": {
     "csvFormatError": "{{mode}} ошибка формата CSV: {{detail}}",
+    "structureCoverage": "3D-структура покрывает {{covered}}/{{length}} референсных остатков",
     "structureFrameMismatch": "3D-структура не соответствует референсной последовательности — используется 1D-расстояние"
   },
   "benchmarkDialog": {
@@ -3979,6 +3980,13 @@
     "uploadLabel": "Upload structure",
     "uploadButton": "Upload PDB/CIF",
     "uploadSourceNote": "pLDDT coloring not available for uploaded structures.",
+    "framePredicting": "Предсказание структуры вашей последовательности с помощью ESMFold...",
+    "esmfoldReferenceNote": "Модель AlphaFold DB отличается от вашей последовательности; используется предсказание ESMFold для вашей последовательности.",
+    "frameAlphaFoldServer": "3D не используется: ваша последовательность ({{length}} остатков) превышает лимит ESMFold в 400 остатков, а модель AlphaFold DB не совпадает. Предскажите структуру на AlphaFold Server и загрузите скачанный ZIP.",
+    "frameNeedsConsentOrFile": "3D не используется: модель AlphaFold DB отличается от вашей последовательности. Для 3D нужно сетевое согласие для ESMFold или файл структуры.",
+    "frameEsmfoldFailed": "3D не используется: предсказание ESMFold для вашей последовательности не удалось. Загрузите файл структуры.",
+    "frameLoadStructureFile": "Загрузить файл структуры",
+    "frameCoverage": "Структура покрывает {{covered}} из {{length}} референсных остатков; у позиций вне неё нет 3D-координат.",
     "esmfoldNoAccessionNote": "Это предсказание ESMFold по последовательности (референсный кадр). Наложения активных/связывающих сайтов требуют accession UniProt и скрыты.",
     "esmfoldTooLong": "Последовательность превышает лимит ESMFold в 400 остатков. Укажите accession UniProt, чтобы загрузить структуру AlphaFold.",
     "removePosition": "Remove position {{position}}",

@@ -16,6 +16,8 @@ import { toast } from "sonner";
 
 
 import { currentStrictSpatialResult, isStrictSpatialMode } from "@/lib/strictSpatial";
+import { decideFrameRecovery, isEsmfoldKey } from "@/lib/structureFrameRecovery";
+import { browseFile } from "@/lib/file-utils";
 import { useAppStore } from "@/store/appStore";
 import { StateView } from "@/components/ui/StateView";
 import { InlineHelp } from "@/components/ui/InlineHelp";
@@ -700,7 +702,10 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
     fetchActiveSite,
     computeDispersion,
     predictStructureEsmfold,
-
+    adoptReferenceEsmfold,
+    loadStructureFile,
+    structure3dState,
+    structureCoverage,
   } = useAppStore(
     useShallow((s) => ({
       structureAccession: s.structureAccession,
@@ -715,7 +720,10 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
       fetchActiveSite: s.fetchActiveSite,
       computeDispersion: s.computeDispersion,
       predictStructureEsmfold: s.predictStructureEsmfold,
-
+      adoptReferenceEsmfold: s.adoptReferenceEsmfold,
+      loadStructureFile: s.loadStructureFile,
+      structure3dState: s.structure3dState,
+      structureCoverage: s.structureCoverage,
     })),
   );
 
@@ -810,11 +818,51 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
   // 10..400 residues (esmfold._validate_sequence). Gating on the raw length would
   // desync the disabled state from what the backend actually accepts.
   const esmfoldLen = refSeq.replace(/\*+$/, "").length;
-  const structureSource: "alphafold" | "esmfold" | "none" = accession
-    ? "alphafold"
-    : esmfoldLen >= 10 && esmfoldLen <= 400
-      ? "esmfold"
-      : "none";
+  const esmfoldReferenceInUse = isEsmfoldKey(structureAccession);
+  const structureSource: "alphafold" | "esmfold" | "none" = esmfoldReferenceInUse
+    ? "esmfold"
+    : accession
+      ? "alphafold"
+      : esmfoldLen >= 10 && esmfoldLen <= 400
+        ? "esmfold"
+        : "none";
+
+  // The accession structure does not hold the reference: predict the reference
+  // itself, or tell the user why 3D is off and how to supply a structure.
+  const [esmfoldRefused, setEsmfoldRefused] = useState(false);
+  const [esmfoldFailed, setEsmfoldFailed] = useState(false);
+  const [recoveryBusy, setRecoveryBusy] = useState(false);
+  const recoveryAttemptRef = useRef("");
+  const recovery = decideFrameRecovery({
+    frameMismatch: structure3dState === "frame_mismatch" && accession !== "" && !esmfoldReferenceInUse,
+    refLength: esmfoldLen,
+    esmfoldRefused,
+  });
+
+  useEffect(() => {
+    setEsmfoldRefused(false);
+    setEsmfoldFailed(false);
+  }, [accession, refSeq]);
+
+  useEffect(() => {
+    if (recovery !== "esmfold") return;
+    const attemptKey = `${accession}|${refSeq}`;
+    if (recoveryAttemptRef.current === attemptKey) return;
+    recoveryAttemptRef.current = attemptKey;
+    setRecoveryBusy(true);
+    void adoptReferenceEsmfold(refSeq)
+      .then((outcome) => {
+        if (outcome === "refused") setEsmfoldRefused(true);
+        if (outcome === "failed") setEsmfoldFailed(true);
+      })
+      .finally(() => setRecoveryBusy(false));
+  }, [recovery, accession, refSeq, adoptReferenceEsmfold]);
+
+  const pickStructureFile = () =>
+    void browseFile(
+      [{ name: "Structure", extensions: ["cif", "mmcif", "pdb", "ent", "zip"] }],
+      (path) => loadStructureFile(path),
+    );
 
 
   // Derived at render time; stable for the current render cycle
@@ -1282,6 +1330,47 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
           {t("selection3d.esmfoldTooLong")}
         </p>
       )}
+      {recoveryBusy && (
+        <p className="px-4 pb-2 text-xs italic text-muted-foreground" data-testid="frame-predicting">
+          {t("selection3d.framePredicting")}
+        </p>
+      )}
+      {esmfoldReferenceInUse && (
+        <p className="px-4 pb-2 text-xs text-info" data-testid="esmfold-reference-note">
+          {t("selection3d.esmfoldReferenceNote")}
+        </p>
+      )}
+      {(recovery === "alphafold_server" || recovery === "structure_file" || (recovery === "esmfold" && esmfoldFailed)) && (
+        <div
+          className="mx-4 mb-2 flex flex-wrap items-center gap-2 rounded border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning"
+          role="status"
+          data-testid={recovery === "alphafold_server" ? "frame-alphafold-server" : "frame-needs-file"}
+        >
+          <span className="min-w-0">
+            {recovery === "alphafold_server"
+              ? t("selection3d.frameAlphaFoldServer", { length: esmfoldLen })
+              : esmfoldFailed
+                ? t("selection3d.frameEsmfoldFailed")
+                : t("selection3d.frameNeedsConsentOrFile")}
+          </span>
+          <button
+            type="button"
+            className="rounded border border-border bg-muted px-2 py-0.5 text-foreground hover:bg-accent"
+            onClick={pickStructureFile}
+            data-testid="frame-load-structure-file"
+          >
+            {t("selection3d.frameLoadStructureFile")}
+          </button>
+        </div>
+      )}
+      {structureCoverage && structure3dState === "active" && (
+        <p className="px-4 pb-2 text-xs text-muted-foreground" data-testid="frame-coverage">
+          {t("selection3d.frameCoverage", {
+            covered: structureCoverage.covered,
+            length: structureCoverage.reference_length,
+          })}
+        </p>
+      )}
 
 
       {open && (
@@ -1420,7 +1509,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
                 {/* Structural Dispersion: numeric/graph summary directly under the viewer */}
                 {!strictMode && !uploadSource && dispersion !== null && <DispersionCard result={dispersion} />}
 
-                {structureSource === "esmfold" && (
+                {structureSource === "esmfold" && !esmfoldReferenceInUse && (
                   <div
                     className="rounded border border-info/40 bg-info/10 px-3 py-2 text-xs text-info"
                     data-testid="esmfold-no-accession-note"

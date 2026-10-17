@@ -885,6 +885,7 @@ class PredictStructureEsmfoldResult(BaseModel):
     residue_count: int = 0
     coordinate_frame: Literal["reference"] = "reference"
     seq_hash: str = ""
+    structure_key: str = ""
     cache_hit: bool = False
     error_msg: Optional[str] = None
 

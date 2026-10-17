@@ -2556,6 +2556,7 @@
   },
   "inputSlice": {
     "csvFormatError": "{{mode}} CSV フォーマットエラー: {{detail}}",
+    "structureCoverage": "3D 構造は参照残基 {{length}} 個のうち {{covered}} 個を含みます",
     "structureFrameMismatch": "3D 構造が参照配列と一致しないため、1D 配列距離を使用します"
   },
   "benchmarkDialog": {
@@ -3979,6 +3980,13 @@
     "uploadLabel": "Upload structure",
     "uploadButton": "Upload PDB/CIF",
     "uploadSourceNote": "pLDDT coloring not available for uploaded structures.",
+    "framePredicting": "ESMFold で配列の構造を予測しています...",
+    "esmfoldReferenceNote": "AlphaFold DB のモデルが配列と異なるため、配列から予測した ESMFold 構造を使用します。",
+    "frameAlphaFoldServer": "3D は使用していません。配列（{{length}} 残基）が ESMFold の上限 400 残基を超え、AlphaFold DB のモデルも一致しません。AlphaFold Server で予測し、ダウンロードした ZIP を読み込んでください。",
+    "frameNeedsConsentOrFile": "3D は使用していません。AlphaFold DB のモデルが配列と異なります。3D には ESMFold のネットワーク同意または構造ファイルが必要です。",
+    "frameEsmfoldFailed": "3D は使用していません。配列の ESMFold 予測に失敗しました。構造ファイルを読み込んでください。",
+    "frameLoadStructureFile": "構造ファイルを読み込む",
+    "frameCoverage": "構造は参照残基 {{length}} 個のうち {{covered}} 個を含み、範囲外の位置には 3D 座標がありません。",
     "esmfoldNoAccessionNote": "これは配列から予測した ESMFold 構造です（参照座標系）。Active/Binding site オーバーレイは UniProt accession が必要なため非表示です。",
     "esmfoldTooLong": "配列が ESMFold の 400 残基上限を超えています。AlphaFold 構造を読み込むには UniProt accession を入力してください。",
     "removePosition": "Remove position {{position}}",

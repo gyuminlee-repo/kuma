@@ -16,6 +16,7 @@ Constraints:
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -76,6 +77,43 @@ def _save_cache(seq_hash: str, pdb_text: str) -> None:
 # ---------------------------------------------------------------------------
 # pLDDT extraction
 # ---------------------------------------------------------------------------
+
+
+STRUCTURE_KEY_PREFIX = "ESMFOLD:"
+
+_BFACTOR_FIELD = re.compile(r"\s*\d+(\.\d*)?\s*")
+
+
+def structure_key(seq_hash: str) -> str:
+    """Key under which the sidecar caches a prediction's coordinates (upper case, as strict mode folds its accession)."""
+    return STRUCTURE_KEY_PREFIX + seq_hash.upper()
+
+
+def load_cached_prediction(key: str) -> Optional[str]:
+    """PDB text of a prediction previously made for ``key`` (see structure_key), or None."""
+    if not key.upper().startswith(STRUCTURE_KEY_PREFIX):
+        return None
+    cached = _load_cache(key[len(STRUCTURE_KEY_PREFIX):].lower())
+    return normalise_plddt_scale(cached) if cached is not None else None
+
+
+def normalise_plddt_scale(pdb_text: str) -> str:
+    """Return the PDB with B-factor pLDDT on the 0-100 scale.
+
+    The ESM Atlas server can write pLDDT as a 0-1 fraction. Every consumer
+    (the < 50 low-confidence rule, the mean shown to the user) reads 0-100, so a
+    fraction would read as uniformly very low. A file whose largest B-factor is
+    above 1 is already on the percent scale and is returned unchanged.
+    """
+    lines = pdb_text.splitlines()
+    atoms = [i for i, line in enumerate(lines)
+             if line.startswith(("ATOM", "HETATM")) and _BFACTOR_FIELD.fullmatch(line[60:66])]
+    if not atoms or max(float(lines[i][60:66]) for i in atoms) > 1.0:
+        return pdb_text
+    for i in atoms:
+        line = lines[i]
+        lines[i] = f"{line[:60]}{float(line[60:66]) * 100:6.2f}{line[66:]}"
+    return "\n".join(lines) + ("\n" if pdb_text.endswith("\n") else "")
 
 
 def _mean_plddt(pdb_text: str) -> float:
@@ -146,6 +184,7 @@ def predict_structure(
 
     cached = _load_cache(seq_hash)
     if cached is not None:
+        cached = normalise_plddt_scale(cached)
         logger.info("ESMFold cache hit: %s… (len=%d)", seq_hash[:8], len(seq))
         if progress:
             progress(100, "cache_hit")
@@ -168,6 +207,8 @@ def predict_structure(
 
     if not pdb_text.strip() or "ATOM" not in pdb_text:
         raise ValueError("ESMFold returned an empty or invalid structure")
+
+    pdb_text = normalise_plddt_scale(pdb_text)
 
     if progress:
         progress(96, "parsing")

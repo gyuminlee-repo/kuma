@@ -2556,6 +2556,7 @@
   },
   "inputSlice": {
     "csvFormatError": "{{mode}} CSV Format Fehler: {{detail}}",
+    "structureCoverage": "Die 3D-Struktur deckt {{covered}}/{{length}} Referenzreste ab",
     "structureFrameMismatch": "3D-Struktur stimmt nicht mit der Referenzsequenz überein — 1D-Sequenzabstand wird verwendet"
   },
   "benchmarkDialog": {
@@ -3979,6 +3980,13 @@
     "uploadLabel": "Upload structure",
     "uploadButton": "Upload PDB/CIF",
     "uploadSourceNote": "pLDDT coloring not available for uploaded structures.",
+    "framePredicting": "Die Struktur Ihrer Sequenz wird mit ESMFold vorhergesagt...",
+    "esmfoldReferenceNote": "Das AlphaFold-DB-Modell weicht von Ihrer Sequenz ab; es wird eine ESMFold-Vorhersage Ihrer Sequenz verwendet.",
+    "frameAlphaFoldServer": "3D wird nicht verwendet: Ihre Sequenz ({{length}} Reste) überschreitet das ESMFold-Limit von 400 Resten und das AlphaFold-DB-Modell passt nicht. Sagen Sie sie auf dem AlphaFold Server voraus und laden Sie dann die heruntergeladene ZIP-Datei.",
+    "frameNeedsConsentOrFile": "3D wird nicht verwendet: Das AlphaFold-DB-Modell weicht von Ihrer Sequenz ab. 3D benötigt entweder die ESMFold-Netzwerkzustimmung oder eine Strukturdatei.",
+    "frameEsmfoldFailed": "3D wird nicht verwendet: Die ESMFold-Vorhersage Ihrer Sequenz ist fehlgeschlagen. Laden Sie stattdessen eine Strukturdatei.",
+    "frameLoadStructureFile": "Strukturdatei laden",
+    "frameCoverage": "Die Struktur deckt {{covered}} von {{length}} Referenzresten ab; Positionen außerhalb haben keine 3D-Koordinate.",
     "esmfoldNoAccessionNote": "Dies ist eine ESMFold-Vorhersage aus der Sequenz (Referenzrahmen). Aktive/Bindungsstellen-Overlays erfordern eine UniProt-Accession und sind ausgeblendet.",
     "esmfoldTooLong": "Die Sequenz überschreitet das ESMFold-Limit von 400 Resten. Geben Sie eine UniProt-Accession an, um eine AlphaFold-Struktur zu laden.",
     "removePosition": "Remove position {{position}}",

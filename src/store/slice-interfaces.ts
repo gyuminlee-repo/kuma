@@ -184,6 +184,9 @@ export interface DiversitySlice {
   // Persisted from the load result so the fallback is visible, not just a
   // transient status line.
   structure3dState: "off" | "active" | "no_structure" | "frame_mismatch";
+  // Set when the structure in use lacks terminal reference residues (an exact
+  // overlap); those positions have no coordinate. Null when it covers all of them.
+  structureCoverage: { covered: number; reference_length: number } | null;
   poolVariants: string[];
   uniprotCandidates: UniprotCandidate[];
   uniprotSearching: boolean;
@@ -251,6 +254,8 @@ export interface DiversitySlice {
   }) => Promise<ComputeDispersionResult | null>;
   /** Predict a reference-frame structure from sequence alone via ESMFold (<=400 aa). */
   predictStructureEsmfold: (sequence: string) => Promise<PredictStructureEsmfoldResult | null>;
+  /** Predict the reference with ESMFold and make it the structure selection and benchmark use. */
+  adoptReferenceEsmfold: (sequence: string) => Promise<"used" | "refused" | "failed">;
   /** Annotate reference-frame domains by submitting the selected gene translation to InterProScan. */
   annotateReferenceDomains: () => Promise<void>;
 }

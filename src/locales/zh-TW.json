@@ -2556,6 +2556,7 @@
   },
   "inputSlice": {
     "csvFormatError": "{{mode}} CSV 格式錯誤: {{detail}}",
+    "structureCoverage": "3D 結構涵蓋 {{length}} 個參考殘基中的 {{covered}} 個",
     "structureFrameMismatch": "3D 結構與參考序列不匹配 — 使用 1D 序列距離"
   },
   "benchmarkDialog": {
@@ -3979,6 +3980,13 @@
     "uploadLabel": "Upload structure",
     "uploadButton": "Upload PDB/CIF",
     "uploadSourceNote": "pLDDT coloring not available for uploaded structures.",
+    "framePredicting": "正在用 ESMFold 預測您的序列結構...",
+    "esmfoldReferenceNote": "AlphaFold DB 模型與您的序列不同，正在使用針對您序列的 ESMFold 預測結構。",
+    "frameAlphaFoldServer": "未使用 3D：您的序列（{{length}} 個殘基）超過 ESMFold 的 400 殘基上限，且 AlphaFold DB 模型不匹配。請在 AlphaFold Server 上預測，然後載入下載的 ZIP。",
+    "frameNeedsConsentOrFile": "未使用 3D：AlphaFold DB 模型與您的序列不同。3D 需要 ESMFold 網路授權或結構檔案。",
+    "frameEsmfoldFailed": "未使用 3D：您序列的 ESMFold 預測失敗。請改為載入結構檔案。",
+    "frameLoadStructureFile": "載入結構檔案",
+    "frameCoverage": "該結構涵蓋 {{length}} 個參考殘基中的 {{covered}} 個；範圍之外的位置沒有 3D 座標。",
     "esmfoldNoAccessionNote": "這是基於序列的 ESMFold 預測（參考座標系）。活性/結合位點疊加需要 UniProt accession，已隱藏。",
     "esmfoldTooLong": "序列超過 ESMFold 的 400 殘基上限。請提供 UniProt accession 以載入 AlphaFold 結構。",
     "removePosition": "Remove position {{position}}",

@@ -615,6 +615,9 @@ export interface EvolveproLoadResult {
    *  so 3D Cα coordinates were dropped and structural/pareto selection fell back
    *  to 1-D sequence distance. */
   structure_frame_mismatch?: boolean;
+  /** Set when the structure lacks terminal reference residues (an exact overlap):
+   *  3D selection uses it and those positions have no coordinate. */
+  structure_coverage?: StructureCoverage | null;
   /** Ranked candidates beyond the selected set: selected + up to BUFFER_CAP extras, y_pred desc. */
   ranked_candidates?: import("./models.generated").RankedCandidateItem[];
   /**
@@ -1067,8 +1070,15 @@ export interface PredictStructureEsmfoldResult {
   residue_count: number;
   coordinate_frame: "reference";
   seq_hash: string;
+  /** Key the sidecar caches this prediction's coordinates under; pass it as structure_accession. */
+  structure_key?: string;
   cache_hit: boolean;
   error_msg?: string;
+}
+
+export interface StructureCoverage {
+  covered: number;
+  reference_length: number;
 }
 
 export interface FetchActiveSiteResult {
@@ -1119,6 +1129,7 @@ export interface RunBenchmarkResult {
   // True when a loaded structure did not cover the reference frame, so the
   // benchmark ran on 1D distance instead of 3D. Same guard as load_evolvepro.
   structure_frame_mismatch?: boolean;
+  structure_coverage?: StructureCoverage | null;
 }
 
 export interface JsonRpcError {

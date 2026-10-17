@@ -105,3 +105,36 @@ describe("predictStructureEsmfold", () => {
     expect(mockedSendRequest).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("adoptReferenceEsmfold", () => {
+  beforeEach(() => mockedSendRequest.mockReset());
+
+  it("makes the prediction the structure selection reads", async () => {
+    mockedSendRequest.mockResolvedValueOnce({ ...OK_RESULT, structure_key: "ESMFOLD:ABC" });
+    const { state, slice } = makeStore();
+
+    const outcome = await slice.adoptReferenceEsmfold("MKTAYIAKQR");
+
+    expect(outcome).toBe("used");
+    expect(state.structureAccession).toBe("ESMFOLD:ABC");
+    expect(state.structureLoaded).toBe(true);
+  });
+
+  it("reports a refusal without calling the service or touching the structure", async () => {
+    const { state, slice } = makeStore(false);
+
+    const outcome = await slice.adoptReferenceEsmfold("MKTAYIAKQR");
+
+    expect(outcome).toBe("refused");
+    expect(mockedSendRequest).not.toHaveBeenCalled();
+    expect(state.structureAccession).toBe("");
+  });
+
+  it("reports a prediction without a structure key as failed", async () => {
+    mockedSendRequest.mockResolvedValueOnce({ ...OK_RESULT, success: false, source: "error", pdb_text: null });
+    const { state, slice } = makeStore();
+
+    expect(await slice.adoptReferenceEsmfold("MKTAYIAKQR")).toBe("failed");
+    expect(state.structureAccession).toBe("");
+  });
+});

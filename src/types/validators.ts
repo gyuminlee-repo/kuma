@@ -1305,6 +1305,7 @@ function isPredictStructureEsmfoldResult(value: unknown): value is PredictStruct
     isNumber(value.residue_count) &&
     value.coordinate_frame === "reference" &&
     isString(value.seq_hash) &&
+    isOptional(value.structure_key, isString) &&
     isBoolean(value.cache_hit) &&
     isOptional(value.error_msg, isString)
   );
@@ -1354,11 +1355,16 @@ function isComputeDispersionResult(value: unknown): value is ComputeDispersionRe
 }
 
 
+function isNullableStructureCoverage(value: unknown): boolean {
+  return value === null || (isRecord(value) && isNumber(value.covered) && isNumber(value.reference_length));
+}
+
 function isRunBenchmarkResult(value: unknown): value is RunBenchmarkResult {
   return (
     isRecord(value) &&
     isRecordOf(value.results, isBenchmarkResult) &&
-    isOptional(value.structure_frame_mismatch, isBoolean)
+    isOptional(value.structure_frame_mismatch, isBoolean) &&
+    isOptional(value.structure_coverage, isNullableStructureCoverage)
   );
 }
 

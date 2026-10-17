@@ -923,6 +923,7 @@ export interface PredictStructureEsmfoldResult {
   residue_count?: number;
   seq_hash?: string;
   source?: "esmfold" | "esmfold_cache" | "error";
+  structure_key?: string;
   success?: boolean;
   [k: string]: unknown;
 }

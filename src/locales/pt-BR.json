@@ -2556,6 +2556,7 @@
   },
   "inputSlice": {
     "csvFormatError": "Erro de formato CSV de {{mode}}: {{detail}}",
+    "structureCoverage": "A estrutura 3D cobre {{covered}}/{{length}} resíduos de referência",
     "structureFrameMismatch": "A estrutura 3D não corresponde à sequência de referência — usando a distância de sequência 1D"
   },
   "benchmarkDialog": {
@@ -3979,6 +3980,13 @@
     "uploadLabel": "Upload structure",
     "uploadButton": "Upload PDB/CIF",
     "uploadSourceNote": "pLDDT coloring not available for uploaded structures.",
+    "framePredicting": "Prevendo a estrutura da sua sequência com o ESMFold...",
+    "esmfoldReferenceNote": "O modelo do AlphaFold DB difere da sua sequência; usando uma predição do ESMFold da sua sequência.",
+    "frameAlphaFoldServer": "O 3D não está em uso: sua sequência ({{length}} resíduos) excede o limite de 400 resíduos do ESMFold e o modelo do AlphaFold DB não corresponde. Preveja no AlphaFold Server e carregue o ZIP baixado.",
+    "frameNeedsConsentOrFile": "O 3D não está em uso: o modelo do AlphaFold DB difere da sua sequência. O 3D precisa do consentimento de rede do ESMFold ou de um arquivo de estrutura.",
+    "frameEsmfoldFailed": "O 3D não está em uso: a predição do ESMFold da sua sequência falhou. Carregue um arquivo de estrutura.",
+    "frameLoadStructureFile": "Carregar arquivo de estrutura",
+    "frameCoverage": "A estrutura cobre {{covered}} de {{length}} resíduos de referência; as posições fora dela não têm coordenada 3D.",
     "esmfoldNoAccessionNote": "Esta é uma predição do ESMFold a partir da sequência (referencial de referência). As sobreposições de sítios ativos/de ligação exigem um accession do UniProt e estão ocultas.",
     "esmfoldTooLong": "A sequência excede o limite de 400 resíduos do ESMFold. Forneça um accession do UniProt para carregar uma estrutura do AlphaFold.",
     "removePosition": "Remove position {{position}}",

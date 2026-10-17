@@ -20,7 +20,7 @@ import sys
 from collections import Counter
 
 from kuma_core.kuro.alphafold import _THREE_TO_ONE
-from kuma_core.kuro.interface import exact_reference_offset
+from kuma_core.kuro.interface import reference_structure_overlap
 
 # AlphaFold DB colours pLDDT < 50 as "very low" confidence (Jumper et al. 2021,
 # Nature 596:583; AlphaFold DB FAQ). Such regions are often disordered and their
@@ -29,6 +29,10 @@ PLDDT_VERY_LOW = 50.0
 # Caller-declared origin: the file was downloaded from AlphaFold DB, whose PDB
 # files store per-residue pLDDT in the B-factor column.
 SOURCE_ALPHAFOLD_DB = "alphafold_db"
+# Caller-declared origin: a kuma ESMFold prediction of the reference, whose
+# B-factor column holds pLDDT rescaled to 0-100 (esmfold.normalise_plddt_scale).
+SOURCE_ESMFOLD = "esmfold"
+_PLDDT_SOURCES = (SOURCE_ALPHAFOLD_DB, SOURCE_ESMFOLD)
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +54,7 @@ def exact_pdb_context(pdb_text: str, reference: str, accession: str, *, source: 
     The declared origin decides pLDDT reading; the TITLE is only a cross-check.
     Without ``source`` the TITLE alone decides, as before.
     """
-    if source not in (None, SOURCE_ALPHAFOLD_DB):
+    if source not in (None, *_PLDDT_SOURCES):
         raise ValueError(f"Unknown strict spatial structure source: {source}")
     reference = reference.strip().rstrip("*")
     residues: dict[int, tuple[str, tuple[float, float, float] | None, float | None]] = {}
@@ -58,7 +62,7 @@ def exact_pdb_context(pdb_text: str, reference: str, accession: str, *, source: 
     if source == SOURCE_ALPHAFOLD_DB and not titled:
         logger.warning("AlphaFold DB file %s has no recognised AlphaFold TITLE; "
                        "reading its B-factors as pLDDT because of the declared source", accession)
-    alphafold = titled or source == SOURCE_ALPHAFOLD_DB
+    alphafold = titled or source in _PLDDT_SOURCES
     chains: set[str] = set()
     models = 0
     model_id = 1
@@ -99,15 +103,17 @@ def exact_pdb_context(pdb_text: str, reference: str, accession: str, *, source: 
     if len(chains) != 1 or not residues or sorted(residues) != list(range(1, len(residues) + 1)):
         raise ValueError("Strict spatial selection requires one chain with contiguous numbering from 1")
     sequence = "".join(residues[p][0] for p in sorted(residues))
-    offset = exact_reference_offset(sequence, reference)
-    if offset is None:
+    overlap = reference_structure_overlap(sequence, reference)
+    if overlap is None:
         raise ValueError("Strict spatial selection requires a unique exact reference placement")
+    offset = overlap["offset"]
     chain = next(iter(chains))
     mapping = [
         {"reference_position": p, "structure_position": p + offset,
          "chain_id": chain, "model_id": model_id, "insertion_code": "", "coordinate": residues[p + offset][1],
          "confidence": residues[p + offset][2]}
-        for p in range(1, len(reference) + 1) if residues[p + offset][1] is not None
+        for p in range(1, len(reference) + 1)
+        if 1 <= p + offset <= len(residues) and residues[p + offset][1] is not None
     ]
     return {
         "schema_version": 1, "source_accession": accession,

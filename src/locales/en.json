@@ -2598,6 +2598,7 @@
   },
   "inputSlice": {
     "csvFormatError": "{{mode}} CSV format error: {{detail}}",
+    "structureCoverage": "3D structure covers {{covered}}/{{length}} reference residues",
     "structureFrameMismatch": "3D structure does not match the reference sequence — using 1D sequence distance"
   },
   "benchmarkDialog": {
@@ -3979,6 +3980,13 @@
     "uploadLabel": "Upload structure",
     "uploadButton": "Upload PDB/CIF",
     "uploadSourceNote": "pLDDT coloring not available for uploaded structures.",
+    "framePredicting": "Predicting the structure of your sequence with ESMFold...",
+    "esmfoldReferenceNote": "AlphaFold DB model differs from your sequence; using an ESMFold prediction of your sequence.",
+    "frameAlphaFoldServer": "3D is not in use: your sequence ({{length}} residues) is over the 400-residue ESMFold limit and the AlphaFold DB model does not match it. Predict it on AlphaFold Server, then load the downloaded ZIP.",
+    "frameNeedsConsentOrFile": "3D is not in use: the AlphaFold DB model differs from your sequence. 3D needs either ESMFold network consent or a structure file.",
+    "frameEsmfoldFailed": "3D is not in use: the ESMFold prediction of your sequence failed. Load a structure file instead.",
+    "frameLoadStructureFile": "Load structure file",
+    "frameCoverage": "The structure covers {{covered}} of {{length}} reference residues; positions outside it have no 3D coordinate.",
     "esmfoldNoAccessionNote": "This is an ESMFold prediction from sequence (reference frame). Active/binding-site overlays require a UniProt accession and are hidden.",
     "esmfoldTooLong": "Sequence exceeds the 400-residue ESMFold limit. Provide a UniProt accession to load an AlphaFold structure.",
     "removePosition": "Remove position {{position}}",
