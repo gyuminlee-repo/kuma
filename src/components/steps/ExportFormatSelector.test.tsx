@@ -36,8 +36,13 @@ vi.mock("sonner", () => ({
 }));
 
 import { ExportFormatSelector } from "./ExportFormatSelector";
+import { ExportAction } from "./ExportAction";
 import { useAppStore } from "@/store/appStore";
 import { sendRequest } from "@/lib/ipc-kuro";
+
+function ExportFormWithAction() {
+  return <><ExportFormatSelector /><ExportAction /></>;
+}
 
 describe("ExportFormatSelector — Export All form", () => {
   beforeEach(() => {
@@ -50,27 +55,60 @@ describe("ExportFormatSelector — Export All form", () => {
       exportPlateNames: {},
       exportAmount: "0.05",
       exportVectormaps: false,
+      exportArtefactKinds: ["macrogen", "primers", "echo"],
     });
     toastWarning.mockClear();
   });
 
-  it("renders Echo volume range hint 25–500 nL", () => {
+  it("keeps export actions outside the options form", () => {
     render(<ExportFormatSelector />);
+    expect(screen.queryByRole("button", { name: /export/i })).toBeNull();
+  });
+
+  it("defaults to Macrogen, primer FASTA and Echo, leaving JANUS unchecked", () => {
+    useAppStore.getState().resetAll({ preserveWorkspaceArtifacts: true });
+    render(<ExportFormatSelector />);
+    expect(screen.getByRole("checkbox", { name: /Macrogen order sheet/ })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Primer FASTA" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Echo" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "JANUS" })).not.toBeChecked();
+    expect(screen.getByText(/Plate map.*always included/)).toBeInTheDocument();
+  });
+
+  it("sends the checkbox selection as the bundle request payload", async () => {
+    seedRounds(1);
+    useAppStore.setState({
+      exportPlateNames: { single: { fwd: "F1", rvs: "R1" } },
+      echoQuadrant: null,
+    });
+    const send = vi.mocked(sendRequest);
+    send.mockClear();
+    render(<ExportFormWithAction />);
+    fireEvent.click(screen.getByRole("checkbox", { name: "Echo" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "JANUS" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Export$/ }));
+    await vi.waitFor(() => expect(send).toHaveBeenCalledWith("export_all", expect.objectContaining({
+      artefact_kinds: ["macrogen", "primers", "janus"],
+    })));
+  });
+
+  it("renders Echo volume range hint 25–500 nL", () => {
+    render(<ExportFormWithAction />);
     expect(screen.getByText(/25.*500.*nL/)).toBeInTheDocument();
   });
 
   it("explains that both plate names are required", () => {
-    render(<ExportFormatSelector />);
+    render(<ExportFormWithAction />);
     expect(screen.getByText(/forward and reverse plate names are required/i)).toBeInTheDocument();
   });
 
   it("renders JANUS volume range hint 0.5–10 μL", () => {
-    render(<ExportFormatSelector />);
+    render(<ExportFormWithAction />);
     expect(screen.getByText(/0\.5.*10.*μL/)).toBeInTheDocument();
   });
 
   it("renders fixed Macrogen vendor without standalone order button", () => {
-    render(<ExportFormatSelector />);
+    render(<ExportFormWithAction />);
     // Vendor is fixed to Macrogen, shown as static text in the "Order Vendor"
     // group (not a selectable control); the standalone order button is gone.
     expect(screen.getByText(/Macrogen Plate Oligo/i)).toBeInTheDocument();
@@ -79,7 +117,7 @@ describe("ExportFormatSelector — Export All form", () => {
 
   it("blocks Export with toast.warning when no design results", async () => {
     useAppStore.setState({ designResults: [] });
-    render(<ExportFormatSelector />);
+    render(<ExportFormWithAction />);
     const btn = screen.getByRole("button");
     // PI 2026-05-15 (Item 2): button stays clickable so the warning toast can fire.
     expect(btn).not.toBeDisabled();
@@ -107,7 +145,7 @@ describe("ExportFormatSelector — Export All form", () => {
         has_offtarget: false,
       }),
     });
-    render(<ExportFormatSelector />);
+    render(<ExportFormWithAction />);
     const btn = screen.getByRole("button");
     expect(btn).not.toBeDisabled();
   });
@@ -131,7 +169,7 @@ describe("ExportFormatSelector — Export All form", () => {
         has_offtarget: false,
       }),
     });
-    render(<ExportFormatSelector />);
+    render(<ExportFormWithAction />);
     const fwdInput = screen.getByLabelText(/forward primer plate name/i);
     fireEvent.change(fwdInput, { target: { value: "한글이름" } });
     // PI 2026-05-15 (Item 2): visual error via border-destructive, button stays clickable.
@@ -162,13 +200,13 @@ describe("ExportFormatSelector — Export All form", () => {
         has_offtarget: false,
       }),
     });
-    render(<ExportFormatSelector />);
+    render(<ExportFormWithAction />);
     expect(screen.getByText("50 wells")).toBeInTheDocument();
   });
 
   it("splits 193 results into three rounds instead of refusing them", () => {
     seedRounds(193);
-    render(<ExportFormatSelector />);
+    render(<ExportFormWithAction />);
     expect(screen.getByRole("button", { name: "Export round 3" })).toBeDisabled();
     expect(screen.queryByRole("button", { name: "Export all" })).toBeNull();
     expect(screen.queryAllByRole("alert")).toHaveLength(0);
@@ -200,7 +238,7 @@ describe("ExportFormatSelector — Export All form", () => {
 
   it("shows each order plate's well count when 97 results require two rounds", () => {
     seedRounds(97);
-    render(<ExportFormatSelector />);
+    render(<ExportFormWithAction />);
     expect(screen.getByText("96 wells")).toBeInTheDocument();
     expect(screen.getByText("1 wells")).toBeInTheDocument();
   });
@@ -233,7 +271,7 @@ describe("ExportFormatSelector — Export All form", () => {
 
   it("offers one export per round with no plate or parity chosen for either", () => {
     seedRounds(192);
-    render(<ExportFormatSelector />);
+    render(<ExportFormWithAction />);
     expect(screen.getByRole("button", { name: "Export round 1" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Export round 2" })).toBeDisabled();
     expect(screen.queryByRole("button", { name: "Export all" })).toBeNull();
@@ -252,7 +290,7 @@ describe("ExportFormatSelector — Export All form", () => {
     seedRounds(193);
     const send = vi.mocked(sendRequest);
     send.mockClear();
-    render(<ExportFormatSelector />);
+    render(<ExportFormWithAction />);
     expect(screen.getByRole("button", { name: "Export round 3" })).toBeDisabled();
     const plateOptions = Array.from(
       (screen.getByLabelText("Round 3 source plate") as HTMLSelectElement).options,
@@ -283,7 +321,7 @@ describe("ExportFormatSelector — Export All form", () => {
 
   it("refuses the same plate and parity on two rounds whichever is picked first", () => {
     seedRounds(192);
-    render(<ExportFormatSelector />);
+    render(<ExportFormWithAction />);
     pickRound(2, 1, "A1");
     pickRound(1, 1, null);
     const r1 = screen.getByLabelText("Round 1 columns") as HTMLSelectElement;
@@ -302,7 +340,7 @@ describe("ExportFormatSelector — Export All form", () => {
     // unseen into the export.
     seedRounds(193);
     useAppStore.setState({ echoRoundPicks: [{ plate: 5, quadrant: "A1" }] });
-    render(<ExportFormatSelector />);
+    render(<ExportFormWithAction />);
     expect((screen.getByLabelText("Round 1 source plate") as HTMLSelectElement).value).toBe("");
     expect(screen.getByRole("button", { name: "Export round 1" })).toBeDisabled();
     expect(useAppStore.getState().echoRoundPicks[0]).toEqual({ plate: null, quadrant: null });
@@ -310,7 +348,7 @@ describe("ExportFormatSelector — Export All form", () => {
 
   it("applies the parities marked as spent to plate 1 only", () => {
     seedRounds(193);
-    render(<ExportFormatSelector />);
+    render(<ExportFormWithAction />);
     fireEvent.click(screen.getByRole("checkbox", { name: "A1" }));
     pickRound(1, 1, null);
     pickRound(3, 2, null);
@@ -324,7 +362,7 @@ describe("ExportFormatSelector — Export All form", () => {
     seedRounds(192);
     const send = vi.mocked(sendRequest);
     send.mockClear();
-    render(<ExportFormatSelector />);
+    render(<ExportFormWithAction />);
     pickRound(1, 1, "A2");
     pickRound(2, 1, null);
     const r2 = screen.getByLabelText("Round 2 columns") as HTMLSelectElement;
@@ -354,7 +392,7 @@ describe("ExportFormatSelector — Export All form", () => {
     seedRounds(192);
     const send = vi.mocked(sendRequest);
     send.mockClear();
-    render(<ExportFormatSelector />);
+    render(<ExportFormWithAction />);
     pickRound(1, 1, "A1");
     pickRound(2, 1, "A2");
     fireEvent.change(screen.getByLabelText("Forward primer plate name (R1)"), { target: { value: "Batch1_F" } });

@@ -179,6 +179,61 @@
         "col": 1
       }
     },
+    "confirmationWellLabels": {
+      "source": "templates/17_mame_well_labeled_confirmation.xlsx",
+      "headerRow": false,
+      "windows": [
+        {
+          "startRow": 1,
+          "rows": [
+            [
+              "Signal:",
+              "FID1B"
+            ],
+            [
+              "Area",
+              "Sample Name"
+            ],
+            [
+              "100",
+              "WT"
+            ],
+            [
+              "Sum",
+              "100"
+            ]
+          ]
+        },
+        {
+          "startRow": 16,
+          "rows": [
+            [
+              "Signal:",
+              "FID1B"
+            ],
+            [
+              "Area",
+              "Sample Name"
+            ],
+            [
+              "100",
+              "A1-1"
+            ],
+            [
+              "Sum",
+              "100"
+            ]
+          ]
+        }
+      ],
+      "ellipsisBetweenWindows": true,
+      "truncatedAfter": true,
+      "highlight": {
+        "window": 1,
+        "row": 2,
+        "col": 1
+      }
+    },
     "confirmationVariantLabels": {
       "source": "templates/09_mame_agilent_rep_batch.xlsx",
       "headerRow": false,

@@ -142,3 +142,29 @@ describe("hairpin column", () => {
     expect(screen.getByText("—")).toBeInTheDocument();
   });
 });
+
+
+describe("export well column", () => {
+  it("is immediately after rank, non-sortable, and reads identity rather than row index", () => {
+    const selected = row();
+    const columns = makeResultTableColumns({
+      groupColorMap: new Map(), overlapMode: "partial", swapped: {},
+      customCandidates: {}, rescuedMutations: new Set(), rescueDetailMap: new Map(),
+      removeDesignResult: vi.fn(), yPredMap: {}, t: ((key: string) => key) as never,
+      exportWells: new Map([[selected, "R2: H12"]]),
+    });
+    expect(columns[0].id).toBe("rank");
+    const well = columns[1];
+    expect(well.id).toBe("well");
+    expect(well.enableSorting).toBe(false);
+    expect(well.header).toBe("resultTable.well");
+    const cell = well.cell as (info: { row: { original: SdmPrimerResult; index: number } }) => ReactNode;
+    // A filtered/page-local row index must never become a physical well.
+    const { rerender } = render(<>{cell({ row: { original: selected, index: 0 } })}</>);
+    expect(screen.getByText("R2: H12")).toBeInTheDocument();
+    rerender(<>{cell({ row: { original: selected, index: 95 } })}</>);
+    expect(screen.getByText("R2: H12")).toBeInTheDocument();
+    rerender(<>{cell({ row: { original: row({ forward_seq: "OTHER" }), index: 0 } })}</>);
+    expect(screen.getByText("—")).toBeInTheDocument();
+  });
+});

@@ -537,6 +537,7 @@ export interface ExcludedRange {
  */
 export interface ExportAllParams {
   amount?: "0.05" | "0.2";
+  artefact_kinds?: ("macrogen" | "primers" | "echo" | "janus")[] | null;
   bom?: boolean;
   dedup_info?: {
     [k: string]: string[];
@@ -1134,6 +1135,7 @@ export interface WorkspaceSettingsModel {
   entropyWeightEnabled?: boolean | null;
   evolveproMode?: ("topN" | "pipeline" | "others") | null;
   evolveproRound?: number | null;
+  exportArtefactKinds?: ("macrogen" | "primers" | "echo" | "janus")[] | null;
   fillOnFailure?: boolean | null;
   fwdLenMax?: number | null;
   fwdLenMin?: number | null;

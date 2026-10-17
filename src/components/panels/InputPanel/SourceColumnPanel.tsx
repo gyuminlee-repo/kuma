@@ -185,6 +185,18 @@ function SourceColumnPanelInner() {
     if (!canApply) return;
     setApplyLoading(true);
     setApplyError(null);
+    // Send what the dropdowns show. An override the previewed file lacks is
+    // displayed as auto (columnToSentinel), so it is dropped here rather than
+    // sent again and refused again. Without headers there is nothing to
+    // compare against, and a restored override is left as it is.
+    if (hasHeaders) {
+      if (evolveproVariantColumn !== null && !headers.includes(evolveproVariantColumn)) {
+        setEvolveproVariantColumn(null);
+      }
+      if (evolveproScoreColumn !== null && !headers.includes(evolveproScoreColumn)) {
+        setEvolveproScoreColumn(null);
+      }
+    }
     try {
       await loadEvolveproCsv(evolveproCsvPath);
     } catch (err) {
@@ -192,7 +204,17 @@ function SourceColumnPanelInner() {
     } finally {
       setApplyLoading(false);
     }
-  }, [canApply, loadEvolveproCsv, evolveproCsvPath]);
+  }, [
+    canApply,
+    loadEvolveproCsv,
+    evolveproCsvPath,
+    hasHeaders,
+    headers,
+    evolveproVariantColumn,
+    evolveproScoreColumn,
+    setEvolveproVariantColumn,
+    setEvolveproScoreColumn,
+  ]);
 
   return (
     <div className="space-y-3">

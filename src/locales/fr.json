@@ -62,7 +62,7 @@
         "mame-index": "Présentation de MAME",
         "mame-01-setup": "Configuration des codes-barres",
         "mame-02-review": "Analyse et revue",
-        "mame-03-janus": "Janus",
+        "mame-03-janus": "Préparation des stocks cellulaires",
         "mame-04-activity": "Activité",
         "mame-pipeline": "Pipeline MAME"
       }
@@ -530,7 +530,10 @@
       "expand": "Agrandir",
       "collapse": "Réduire",
       "expandAriaLabel": "Basculer la vue de plaque agrandie",
-      "expandedRegionAriaLabel": "Vue de plaque agrandie"
+      "expandedRegionAriaLabel": "Vue de plaque agrandie",
+      "finalCompositePlate": "Plaque composite finale",
+      "selectedWellSource": "Puits sélectionné {{well}} · Source : {{barcode}}",
+      "sourceUnknown": "Inconnue"
     },
     "drawer": {
       "stat": {
@@ -673,7 +676,7 @@
       "manifestLoadFailed": "Échec du chargement du manifest : {{err}}",
       "barcodeSetupTab": "1. Custom Barcode Primer Design",
       "analyzeTab": "2. QC séquençage",
-      "janusTab": "3. Configuration Janus",
+      "janusTab": "3. Préparation des stocks cellulaires",
       "activityTab": "4. Données d'activité",
       "verdictTableTitle": "Table de verdicts",
       "platePlanTitle": "Carte de plaque",
@@ -699,7 +702,7 @@
       },
       "barcodeSetupTabTitle": "Run Setup — part of NGS Validation (step ② of PI workflow)",
       "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
-      "janusTabTitle": "Réglages de l'instrument Janus — étape optionnelle pour le prélèvement de stocks cellulaires (étape ③ du flux PI)",
+      "janusTabTitle": "Préparation des stocks cellulaires (réglages facultatifs du prélèvement, étape ③ du flux PI)",
       "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)",
       "efficiencyChartTitle": "Per-plate verdict breakdown",
       "dropUnsupported": "Ce fichier ne peut pas être utilisé ici : {{ext}} n'est pas accepté. Autorisés : {{allowed}}",
@@ -890,7 +893,7 @@
     },
     "janus": {
       "settings": {
-        "contextTitle": "Réglages de l'instrument Janus",
+        "contextTitle": "Préparation des stocks cellulaires",
         "contextSubtitle": "Volume de transfert, liquid class et valeur de la colonne type à partir desquels le mapping instrument est écrit. Optionnel : un run purement séquençage peut sauter cette étape.",
         "optionalNote": "Cette etape est optionnelle. Un run d'analyse ecrit lui-meme la liste de picks ; le mapping instrument n'est ecrit que lors d'un export ici, donc un run qui n'a besoin que des verdicts de sequencage passe de l'etape 2 directement a l'etape 4.",
         "inspectorTitle": "Inspector instrument",
@@ -985,9 +988,9 @@
         "inspectorReads": "Reads",
         "inspectorReason": "Reason",
         "inspectorNoWellSelected": "Click a well to inspect",
-        "clusterAlertTitle": "Cluster failure detected",
-        "clusterAlertDesc": "{{wells}} — adjacent wells failed simultaneously. This may indicate a pipetting issue.",
-        "clusterAlertAriaLabel": "Plate cluster failure alert"
+        "clusterAlertTitle": "Puits adjacents à faible profondeur / sans résultat",
+        "clusterAlertDesc": "Sur {{barcode}}, {{wells}} présentent une faible profondeur ou aucun résultat. Vérifiez l'historique de pipetage ; ce motif ne permet pas, à lui seul, d'en déterminer la cause.",
+        "clusterAlertAriaLabel": "Puits adjacents à faible profondeur ou sans résultat"
       },
       "review": {
         "contextTitle": "Sequencing QC — Review",
@@ -1041,6 +1044,20 @@
         "sharing": {
           "shared_across_replicates": "Les lectures égarées se répètent sur toutes les copies de plaque.",
           "single_replicate": "Les lectures égarées se trouvent dans une seule copie de plaque."
+        },
+        "reason": {
+          "no_demux_matrix": "Aucune matrice de démultiplexage n'a été produite ; les lectures ne peuvent donc pas être affectées aux combinaisons de codes-barres.",
+          "no_occupied_wells": "Cette analyse ne précise aucun puits occupé ; les combinaisons de codes-barres inoccupées ne peuvent donc pas être identifiées.",
+          "all_indices_used": "Les puits occupés utilisent tous les index de codes-barres inverses et directs ; aucun index inutilisé ne reste à mesurer.",
+          "all_wells_occupied": "La campagne occupe tous les puits ; aucun puits inoccupé ne reste pour mesurer les lectures égarées.",
+          "no_coverage_reads": "Aucune lecture n'a franchi le filtre de couverture pour atteindre l'appariement des codes-barres ; l'ambiguïté n'a donc pas pu être mesurée.",
+          "no_assigned_reads": "Aucune lecture n'a été affectée aux puits ; il n'y a donc pas de dénominateur pour le taux de chimères.",
+          "pooled_leak_scope": "Les lectures ont été regroupées sur une seule plaque ; la répartition des fuites entre réplicats ne peut donc pas être comparée.",
+          "single_replicate_leak_scope": "Une seule copie de plaque a été évaluée ; la répartition des fuites entre réplicats ne peut donc pas être comparée.",
+          "no_leak_reads": "Aucune lecture n'a été trouvée sur les combinaisons inoccupées des index utilisés par cette campagne ; il n'y a donc aucune fuite entre puits à comparer.",
+          "pooled_yield_scope": "Les lectures ont été regroupées sur une seule plaque ; il n'y a donc pas de deuxième copie pour comparer les rendements.",
+          "single_replicate_yield_scope": "Une seule copie de plaque a été évaluée ; il n'y a donc pas de deuxième copie pour comparer les rendements.",
+          "no_plate_yield": "Aucune lecture n'a été affectée à une copie de plaque ; il n'y a donc aucun rendement à comparer."
         }
       },
       "legacySampleMap": {
@@ -1198,20 +1215,20 @@
         "saved": "Clones selectionnes ecrits a cote du classeur de resultats ({{rows}} selections). Ceci est la liste de selection ; la feuille instrument est le fichier voisin.",
         "skipped": "No clone met the selection criteria, so no selection list was written.",
         "failed": "The selection list was not written.",
-        "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
+        "excluded": "{{clones}} clone(s) exclus de la sélection. Consultez Préparation des stocks cellulaires pour en connaître la raison."
       },
       "janusMappingAutosave": {
         "saved": "Mapping instrument ecrit a cote du classeur de resultats ({{rows}} lignes), dans les 8 colonnes que lit le robot.",
         "skipped": "Aucun clone n'a satisfait aux criteres de selection, aucun mapping instrument n'a donc ete ecrit.",
         "failed": "Le mapping instrument n'a pas ete ecrit.",
-        "excluded": "{{clones}} clone(s) exclus du mapping. Ouvrir les reglages instrument Janus pour en connaitre la raison."
+        "excluded": "{{clones}} clone(s) exclus du mapping. Consultez Préparation des stocks cellulaires pour en connaître la raison."
       },
       "demuxResume": {
         "line": "{{reused}} unités de demux sur {{total}} réutilisées à partir de résultats antérieurs dans ce dossier ; {{recomputed}} recalculées."
       }
     },
     "buildEvolvepro": {
-      "title": "Créer l'entrée EVOLVEpro",
+      "title": "Convertir le fichier d'entrée EVOLVEpro",
       "subtitle": "Convert this round's activity measurements into an NGS-qualified EVOLVEpro [Variant, activity] input.",
       "routeNote": "Every measurement format uses the same NGS verdict, normalization, replicate merge, and EVOLVEpro export pipeline.",
       "inputFiles": "Fichiers d'entrée",
@@ -1235,13 +1252,13 @@
       "gcDataXlsxHelper": "Pre-normalized relative activity per well (Sample Name, Area columns).",
       "round1ReportXlsx": "Raw Agilent report xlsx",
       "round1ReportXlsxHelper": "Raw Agilent FID1B report with well positions and WT blocks.",
-      "confirmationSourceLabel": "Optional confirmation",
+      "confirmationSourceLabel": "Format de la mesure supplémentaire",
       "confirmationSourceNone": "None",
       "confirmationSourceNoneHelper": "Use the primary measurement value for every NGS-qualified variant.",
-      "confirmationSourceVariantLabels": "Variant-labeled Agilent report",
-      "confirmationSourceVariantLabelsHelper": "Optional raw Agilent report whose sample names are variant labels. Its independently WT-normalized replicate means override matching primary values.",
-      "remeasureReportXlsx": "Confirmation report xlsx (variant-labeled)",
-      "remeasureReportXlsxHelper": "Raw Agilent report with variant-labeled samples and WT rows; numeric or rank-derived labels are not supported.",
+      "confirmationSourceVariantLabels": "Étiquettes de puits / de variante",
+      "confirmationSourceVariantLabelsHelper": "Rapport brut Agilent avec des étiquettes de puits (A1, A1-1) ou de variante (S11I, S11I-1) et des lignes WT. Les étiquettes de puits sont associées via la disposition de plaque ou le verdict NGS ; les moyennes des réplicats remplacent les valeurs primaires correspondantes après une normalisation indépendante par rapport à WT.",
+      "remeasureReportXlsx": "Rapport de confirmation xlsx (étiquettes de puits / de variante)",
+      "remeasureReportXlsxHelper": "Rapport brut Agilent avec des étiquettes d'échantillon par puits ou variante et des lignes WT. Les positions numériques nécessitent de choisir explicitement le format à ID numériques.",
       "verdictXlsx": "NGS verdict xlsx",
       "verdictXlsxHelper": "Required Analyze verdict evidence for this round. Only explicit PASS rows that are neither failed nor fallback are exported.",
       "outputXlsx": "xlsx EVOLVEpro de sortie",
@@ -1252,10 +1269,10 @@
       "builtFromLabel": "Construit à partir de",
       "chooseOutput": "Choisir le fichier de sortie",
       "noOutputSelected": "Aucun fichier de sortie sélectionné",
-      "build": "Créer l'entrée EVOLVEpro",
+      "build": "Convertir au format d’entrée EVOLVEpro",
       "building": "Création...",
       "resultTitle": "Résultat de la création",
-      "emptyState": "Select one measurement format, the required NGS verdict, and an output path.",
+      "emptyState": "Choisissez un fichier de données expérimentales, le verdict NGS requis et un chemin de sortie. Ajoutez un fichier de confirmation si vous en disposez.",
       "nVariants": "Variants écrits",
       "nAuthoritative": "Confirmation overrides",
       "nFallbackOnly": "Primary values",
@@ -1292,7 +1309,7 @@
       "mismatchThreshold": "Seuil de divergence",
       "mismatchThresholdHelper": "Différence absolue d’activité qui signale une divergence et bloque l’export jusqu’à vérification. Doit être supérieure à zéro.",
       "changeFile": "Modifier",
-      "measurementFile": "Fichier de mesure",
+      "measurementFile": "Fichier de données expérimentales",
       "measurementFileHelper": "Choisir d'abord le fichier. Le format est lu dans le fichier lui-même. Accepte csv, xlsx et xls.",
       "detectingFormat": "Lecture du fichier pour en déterminer le format...",
       "detectedFormat": "Détecté : {{format}}",
@@ -1315,7 +1332,25 @@
         "requiredColumnsNote": "L'application ne fournit aucun exemple de ce fichier, les colonnes exigées sont donc listées à la place des lignes. Les noms doivent correspondre exactement."
       },
       "numericPrimaryNote": "L'ID i désigne la i-ème variante de la plaque entière, numérotée dans l'ordre de la liste de conception.",
-      "numericConfirmationNote": "L'ID j ne numérote que les variantes mesurées au-dessus du type sauvage lors du criblage primaire, dans ce même ordre de plaque, et chacune est remesurée."
+      "numericConfirmationNote": "L'ID j ne numérote que les variantes mesurées au-dessus du type sauvage lors du criblage primaire, dans ce même ordre de plaque, et chacune est remesurée.",
+      "additionalMeasurementFile": "Fichier de données expérimentales supplémentaire (facultatif)",
+      "additionalMeasurementFileHelper": "Ajoutez une mesure de confirmation pour remplacer les valeurs primaires correspondantes après une normalisation indépendante par rapport à WT. Le format est lu dans le fichier.",
+      "ambiguityWellRound": "Le même rapport étiqueté par puits peut correspondre à l'expérience primaire ou à une confirmation supplémentaire. Choisissez son rôle ; les valeurs de confirmation remplacent les valeurs primaires correspondantes.",
+      "primaryOnlyFile": "Ce fichier correspond à un format d'expérience primaire. Utilisez-le comme fichier de données expérimentales ou choisissez manuellement le format supplémentaire.",
+      "useAsPrimary": "Utiliser comme données expérimentales : {{format}}",
+      "chooseFormatManually": "Choisir le format manuellement",
+      "clearAdditionalMeasurement": "Retirer le fichier supplémentaire",
+      "detectionSummaryLabel": "Résumé de la détection du fichier",
+      "detectedWellColumns": "Colonne de puits : {{value}}",
+      "detectedLabelColumns": "Colonne échantillon/variant : {{value}}",
+      "detectedValueColumns": "Colonne de mesure : {{value}}",
+      "detectedSampleRows": "Lignes d'échantillon : {{value}}",
+      "detectedRecognizedRows": "Étiquettes reconnues : {{value}} lignes",
+      "detectedSkippedRows": "Lignes ignorées : {{value}}",
+      "detectedUniqueLabels": "Étiquettes d'échantillon uniques : {{value}}",
+      "confirmationWellPreview": "Étiquettes de puits",
+      "confirmationVariantPreview": "Étiquettes de variante",
+      "detectedControlRows": "Lignes de contrôle WT : {{value}}"
     },
     "verdictBadge": {
       "help": {
@@ -2052,7 +2087,7 @@
     "kuroInspectorTitle": "Examiner les détails Kuro",
     "kuroInspectorBody": "L’inspecteur affiche les paramètres, variants sélectionnés, avertissements et contrôles d’exportation.",
     "mameWorkflowTitle": "Suivre le workflow Mame",
-    "mameWorkflowBody": "Parcourez Setup, Analyze, l'étape optionnelle de l'instrument Janus et Activity pour transformer les preuves expérimentales en table d’apprentissage organisée.",
+    "mameWorkflowBody": "Parcourez Setup, Analyze, la préparation facultative des stocks cellulaires et Activity pour transformer les données expérimentales en une table d’apprentissage organisée.",
     "mameWorkspaceTitle": "Travailler dans la zone principale Mame",
     "mameWorkspaceBody": "Chargez les données, examinez les verdicts et plaques, puis fusionnez les mesures d’activité pour l’exportation.",
     "mameInspectorTitle": "Examiner les détails Mame",
@@ -3254,7 +3289,9 @@
     "includeAriaLabel": "Include {{mutation}} in downstream outputs",
     "includeTitle": "Include this row in plate map and exports",
     "excludeTitle": "Exclude this row from plate map and exports",
-    "excludedRowAriaLabel": "{{mutation}} is excluded from downstream outputs"
+    "excludedRowAriaLabel": "{{mutation}} is excluded from downstream outputs",
+    "well": "Puits",
+    "wellHint": "Puits de l'amorce directe dans la disposition d'export actuelle. Le tri modifie l'ordre d'export ; R1, R2, etc. désignent des séries d'export distinctes."
   },
   "mameSidebar": {
     "runStateLabel": "État du run",
@@ -3436,9 +3473,9 @@
       },
       "all": {
         "heading": "Export Package",
-        "runExport": "Export all",
+        "runExport": "Exporter",
         "orderVendor": "Order vendor",
-        "orderVendorHint": "Included in Export all as a timestamp-prefixed Macrogen .xls file.",
+        "orderVendorHint": "Inclus dans l'export sous forme de fichier .xls Macrogen dont le nom est préfixé par un horodatage.",
         "amountLabel": "Amount",
         "purificationLabel": "Purification",
         "purificationTooltip": "MOPC (Macrogen Oligo Purification Cartridge): Macrogen's standard purification method, not changeable.",
@@ -3482,10 +3519,19 @@
         "plateNameRev": "Nom de la plaque d'amorces reverse",
         "wellCount": "{{count}} puits",
         "echoVolLabel": "Volume de transfert Echo",
+        "artefacts": {
+          "heading": "Fichiers à exporter",
+          "macrogen": "Bon de commande Macrogen (amorces forward + reverse)",
+          "primers": "FASTA des amorces",
+          "echo": "Echo",
+          "janus": "JANUS",
+          "required": "Plate map (entrée MAME) et journal d’exécution : toujours inclus"
+        },
         "janusVolLabel": "Volume de transfert JANUS",
         "ruleHint": "Les noms des plaques d’amorces sens et antisens sont obligatoires.",
         "vectormapsLabel": "Exporter aussi une carte de vecteur GenBank par clone",
-        "vectormapsHint": "Écrit un fichier .gb par puits, le vecteur parental avec la mutation de ce clone marquée, dans un dossier se terminant par {{folder}} à côté du dossier d'export. Nécessite une référence GenBank ou SnapGene."
+        "vectormapsHint": "Écrit un fichier .gb par puits, le vecteur parental avec la mutation de ce clone marquée, dans un dossier se terminant par {{folder}} à côté du dossier d'export. Nécessite une référence GenBank ou SnapGene.",
+        "exportError": "Échec de l'export"
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",
@@ -3528,7 +3574,7 @@
         "redirecting": "Redirecting…"
       },
       "janus": {
-        "settings": "Réglages de l'instrument Janus"
+        "settings": "Préparation des stocks cellulaires"
       }
     }
   },
@@ -3571,7 +3617,7 @@
         "mergeExport": "Fusionnez les données d'activité avec les appels de génotype et exportez le tableau fusionné, puis créez l'entrée EVOLVEpro en combinant l'activité à réplicat unique (GC) et à triple réplicat (relative au WT)."
       },
       "janus": {
-        "settings": "Préparer le mapping de stocks cellulaires JANUS : volume de transfert, liquid class et valeur de la colonne type. Optionnel, rien ici ne bloque un run."
+        "settings": "Préparez les stocks cellulaires avec JANUS : volume de transfert, classe de liquide et valeur de la colonne type. Cette étape facultative ne bloque pas l’exécution."
       }
     },
     "summary": {
@@ -3790,7 +3836,9 @@
       }
     },
     "mame": {
-      "labelMismatchBlocked": "Échange d'étiquettes détecté ; export bloqué. Vérifiez le plan et les étiquettes du verdict, puis sélectionnez Autoriser une divergence d'étiquettes vérifiée."
+      "labelMismatchBlocked": "Échange d'étiquettes détecté ; export bloqué. Vérifiez le plan et les étiquettes du verdict, puis sélectionnez Autoriser une divergence d'étiquettes vérifiée.",
+      "measurementIdentityConflict": "Le puits et l’échantillon désignent des variants différents. Export bloqué : {{rows}}",
+      "measurementWellsUnchecked": "Ces puits ne disposent pas de correspondance et n’ont pas été vérifiés. Les noms des échantillons ont été utilisés : {{wells}}"
     }
   },
   "advisoryDecision": {

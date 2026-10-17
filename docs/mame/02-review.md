@@ -19,7 +19,7 @@ per-barcode mutation verdict 와 96-well plate view 를 나란히 본다.
 
 ## 2.1 Inputs
 
-실행 입력(run 폴더, expected 워크북, reference FASTA, 그리고 이 run 이 점유한다고 선언하는 웰)을 고르고 Run 또는 Validate 를 누른다. 웰 선택은 "사용할 웰" 패널에서 하고, 손대지 않으면 앞쪽 웰을 쓴다. sample map 은 v0.16.0 에 입력에서 빠졌다. Janus 장비 설정은 이 화면에 없다. step 3 소관이다.
+실행 입력(run 폴더, expected 워크북, reference FASTA, 그리고 이 run 이 점유한다고 선언하는 웰)을 고르고 Run 또는 Validate 를 누른다. 웰 선택은 "사용할 웰" 패널에서 하고, 손대지 않으면 앞쪽 웰을 쓴다. sample map 은 v0.16.0 에 입력에서 빠졌다. Cell stock 제작은 이 화면에 없다. step 3 소관이다.
 
 ### 웰 선택은 배치를 좁힐 뿐 옮기지 않는다 (v0.16.11, v0.16.16)
 
@@ -125,6 +125,6 @@ analyze 응답에 `layout_provenance` 가 항상 실린다. well 과 sample 의 
 - Verdicts table min-height 480 px, Plate plate view min-height 360 px.
 - 또는 resizable splitter 로 두 영역 자유 조절.
 
-→ [Step 3. Janus 장비 설정](03-janus.md) 은 선택 단계다. 시퀀싱 판정만 필요하면 여기서 멈춰도 된다.
+→ [Step 3. Cell stock 제작](03-janus.md) 은 선택 단계다. 시퀀싱 판정만 필요하면 여기서 멈춰도 된다.
 
 → [Step 4. Activity Data](04-activity.md)

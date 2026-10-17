@@ -1,4 +1,4 @@
-import type { EchoQuadrant, PlateMapping, RpcMethodResult } from "@/types/models";
+import type { EchoQuadrant, ExportArtefactKind, PlateMapping, RpcMethodResult } from "@/types/models";
 import type { RoundLabel } from "@/lib/plateRounds";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { mkdir } from "@tauri-apps/plugin-fs";
@@ -238,6 +238,7 @@ export interface ExportAllUiParams {
    * come back under `vectormaps`, not in `success`.
    */
   vectormaps?: boolean;
+  artefactKinds?: ExportArtefactKind[];
   /**
    * One round of a design split past one plate (`splitIntoRounds`). When set,
    * these mappings are sent instead of the full store order, and the sidecar
@@ -247,7 +248,7 @@ export interface ExportAllUiParams {
   round?: {
     label: RoundLabel;
     /** Echo source plate (1-based) the operator picked for this round. */
-    sourcePlate: number;
+    sourcePlate?: number;
     mappings: PlateMapping[];
     dedupInfo: Record<string, string[]>;
   };
@@ -339,6 +340,7 @@ export async function handleExportAll(
       mappings: enriched,
       dedup_info: dedupInfo,
       vectormaps: params.vectormaps ?? false,
+      artefact_kinds: params.artefactKinds,
       round_label: params.round?.label ?? null,
       source_plate: params.round?.sourcePlate ?? null,
     })) as ExportAllResult;
@@ -388,7 +390,7 @@ export async function handleExportAll(
     }
 
     if (failedCount === 0 && successCount > 0) {
-      toast.success("Export all complete", {
+      toast.success("Export complete", {
         description: `${successCount} of ${totalCount} files exported to ${outputDir}`,
         duration: 6000,
         action: { label: "Open folder", onClick: () => void revealInOSFolder(outputDir) },
@@ -398,7 +400,7 @@ export async function handleExportAll(
         .slice(0, 3)
         .map((f) => f.path)
         .join(", ");
-      toast.warning("Export all: partial success", {
+      toast.warning("Export: partial success", {
         description: `${successCount} of ${totalCount} files exported to ${outputDir}. Failed: ${firstFailed}${failedCount > 3 ? ` (+${failedCount - 3} more)` : ""}`,
         duration: 8000,
         action: { label: "Open folder", onClick: () => void revealInOSFolder(outputDir) },
@@ -408,7 +410,7 @@ export async function handleExportAll(
         .slice(0, 3)
         .map((f) => `${f.path}: ${f.reason}`)
         .join("; ");
-      toast.error("Export all failed", {
+      toast.error("Export failed", {
         description: `0 of ${totalCount} files exported. ${firstFailed}${failedCount > 3 ? ` (+${failedCount - 3} more)` : ""}`,
         duration: 8000,
       });

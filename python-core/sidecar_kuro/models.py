@@ -374,6 +374,9 @@ class WorkspaceInputsModel(WorkspaceModel):
     othersSourcePath: Optional[str] = None
 
 
+ExportArtefactKind = Literal["macrogen", "primers", "echo", "janus"]
+
+
 class WorkspaceSettingsModel(WorkspaceModel):
     selectedPolymerase: Optional[str] = None
     codonStrategy: Literal["closest", "optimal"]
@@ -440,6 +443,7 @@ class WorkspaceSettingsModel(WorkspaceModel):
     #: reads as plate 1 for both rounds. Loose for the same reason as above.
     echoRoundPlates: Optional[list[Optional[int]]] = None
     janusTransferVol: Optional[float] = None
+    exportArtefactKinds: Optional[list[ExportArtefactKind]] = None
 
 
 class WorkspaceResultsModel(WorkspaceModel):
@@ -1025,6 +1029,9 @@ class ExportAllParams(BaseModel):
     project_id: Optional[str] = None
     project_name: Optional[str] = None
     output_dir: str
+    #: Absent keeps the legacy full bundle; an empty list writes only the
+    #: mandatory plate map and run manifest.
+    artefact_kinds: Optional[list[ExportArtefactKind]] = None
     fwd_plate_name: str = ""
     rev_plate_name: str = ""
     amount: Literal["0.05", "0.2"] = "0.05"

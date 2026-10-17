@@ -4,5 +4,5 @@ from __future__ import annotations
 
 import re
 
-# Covers both 'WT_1' and 'WT1' variants found in real data (spec §11-B).
-WT_PATTERN = re.compile(r"^WT_?\d+$")
+# One contract shared by detection and every activity reader.
+WT_PATTERN = re.compile(r"^WT(?:_?\d+)?$", re.IGNORECASE)

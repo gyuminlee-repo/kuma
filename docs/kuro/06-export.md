@@ -2,6 +2,8 @@
 
 설계 결과를 외주 합성·liquid handler 포맷으로 내보낸다.
 
+Step 6에서 Macrogen 주문서(forward와 reverse 프라이머를 한 파일에 포함), 프라이머 FASTA, Echo, JANUS를 선택한다. 기본값은 Macrogen, FASTA, Echo 선택이며 JANUS는 선택하지 않는다. MAME 입력용 `_platemap.xlsx`와 `_run.json`은 항상 포함된다. 모든 선택을 해제해도 이 두 파일은 저장된다. 선택은 프로젝트와 함께 저장되며 96개 웰을 넘는 설계의 각 라운드에도 적용된다.
+
 ## 산출물
 
 | 포맷 | 용도 |

@@ -824,6 +824,7 @@ export interface WorkspaceSettings {
    */
   echoRoundPlates?: (number | null)[];
   janusTransferVol?: number;
+  exportArtefactKinds?: ExportArtefactKind[];
 }
 
 export interface WorkspaceResults {
@@ -1035,6 +1036,8 @@ export interface HealthInfo {
 }
 
 
+export type ExportArtefactKind = "macrogen" | "primers" | "echo" | "janus";
+
 /** Outcome of the optional per-clone GenBank maps written beside `export_all`. */
 export interface ExportAllVectormapsResult {
   output_dir: string;
@@ -1229,6 +1232,8 @@ export interface RpcMethodMap {
       project_name?: string | null;
       output_dir: string;
       fwd_plate_name?: string;
+      /** Absent/null exports all; [] exports only the mandatory plate map and manifest. */
+      artefact_kinds?: ExportArtefactKind[] | null;
       rev_plate_name?: string;
       amount?: "0.05" | "0.2";
       purification?: "MOPC";

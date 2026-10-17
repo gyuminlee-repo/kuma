@@ -13,13 +13,17 @@ Usage:
     python python-core/scripts/vendor-minimap2.py        # auto-detect OS
     python python-core/scripts/vendor-minimap2.py --all  # report all plats
 
-Idempotent: binary already present and correct version => skip re-download.
+A Linux binary already in place is reused offline only when its bytes match
+the pinned digest of the executable inside the pinned official archive.
+Anything else is replaced from a freshly downloaded and verified archive.
+Preplaced platform slots are reported without executing unverified binaries.
 """
 
 from __future__ import annotations
 
 import argparse
 import hashlib
+import os
 import platform
 import shutil
 import stat
@@ -47,6 +51,35 @@ ASSETS: dict[str, tuple[str, str]] = {
         f"minimap2-{MINIMAP2_VERSION}_x64-linux/minimap2",
     ),
 }
+
+
+# Reviewed upstream GitHub release-asset digest, pinned in source rather than
+# downloaded alongside the asset at install time. Asset 264213542, v2.30:
+# https://api.github.com/repos/lh3/minimap2/releases/assets/264213542
+# Recorded 2026-10-05. A version change requires reviewing a new full digest.
+ARCHIVE_SHA256 = {
+    "linux-x64": "b4c0677f282f448dac7bc1cd2fe5a45d12cb07a8b1edc316a45a26bbf75b7f07",
+}
+
+# SHA256 of the executable member ASSETS names inside the archive pinned above,
+# so a vendored copy can be recognised without downloading. Derived 2026-10-06
+# by hashing that member of an archive whose digest equalled ARCHIVE_SHA256.
+# It is bound to that archive: every install re-checks the extracted member
+# against it, and a version change must replace both digests together.
+BINARY_SHA256 = {
+    "linux-x64": "176de991772f37d1ecc7701d60354c3856bd487bdd927824f8c76e02018d1225",
+}
+
+
+def file_sha256(path: Path) -> str:
+    with path.open("rb") as source:
+        return hashlib.file_digest(source, "sha256").hexdigest()
+
+
+def verify_sha256(path: Path, expected: str) -> None:
+    actual = file_sha256(path)
+    if len(expected) != 64 or actual != expected:
+        raise RuntimeError(f"SHA256 mismatch for {path}: expected {expected}, got {actual}")
 
 
 def script_root() -> Path:
@@ -77,16 +110,18 @@ def check_version(binary: Path) -> tuple[bool, str]:
         return False, str(exc)
 
 
-def is_already_present(dest: Path) -> bool:
-    """Return True if dest exists, is executable, and reports the right version."""
+def is_already_present(dest: Path, expected_sha256: str) -> bool:
+    """Compare bytes with the pinned digest; never execute to establish trust."""
     if not dest.is_file():
         return False
-    ok, ver = check_version(dest)
-    if ok:
-        print(f"  [skip] {dest} already at {ver}")
-    else:
-        print(f"  [stale] {dest} version mismatch ({ver}), will re-download")
-    return ok
+    if file_sha256(dest) != expected_sha256:
+        print(f"  [stale] {dest} differs from the verified release, will replace")
+        return False
+    if not dest.stat().st_mode & stat.S_IXUSR:
+        print(f"  [stale] {dest} has verified bytes but is not executable; will replace")
+        return False
+    print(f"  [skip] {dest} matches the verified release SHA256")
+    return True
 
 
 def download_with_progress(url: str, dest_file: Path) -> None:
@@ -106,34 +141,49 @@ def install_linux_x64() -> None:
     plat_dir = vendor_dir() / "linux-x64"
     dest = plat_dir / "minimap2"
 
-    if is_already_present(dest):
+    # No network when the vendored bytes already equal the pinned executable.
+    if is_already_present(dest, BINARY_SHA256["linux-x64"]):
         return
 
     plat_dir.mkdir(parents=True, exist_ok=True)
 
-    with tempfile.TemporaryDirectory() as tmp:
+    # Keep staging on the destination filesystem; failures preserve the old
+    # vendor file.
+    with tempfile.TemporaryDirectory(dir=plat_dir, prefix=".verify-") as tmp:
         tmp_path = Path(tmp)
         archive = tmp_path / "minimap2.tar.bz2"
         download_with_progress(url, archive)
+        verify_sha256(archive, ARCHIVE_SHA256["linux-x64"])
 
-        print(f"  Extracting {inner} ...")
+        staged = tmp_path / "minimap2"
+        print(f"  Extracting verified {inner} ...")
         with tarfile.open(archive, "r:bz2") as tf:
             member = tf.getmember(inner)
-            with tf.extractfile(member) as src, open(dest, "wb") as out:  # type: ignore[arg-type]
-                shutil.copyfileobj(src, out)
+            if not member.isfile():
+                raise RuntimeError(f"Expected a regular executable archive member: {inner}")
+            source = tf.extractfile(member)
+            if source is None:
+                raise RuntimeError(f"Missing executable archive member: {inner}")
+            with source, staged.open("wb") as out:
+                shutil.copyfileobj(source, out)
+        binary_sha256 = file_sha256(staged)
+        if binary_sha256 != BINARY_SHA256["linux-x64"]:
+            raise RuntimeError(
+                f"{inner} in the verified archive does not match the pinned binary "
+                f"SHA256: expected {BINARY_SHA256['linux-x64']}, got {binary_sha256}"
+            )
 
-    dest.chmod(dest.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-
-    ok, ver = check_version(dest)
-    sha256 = hashlib.sha256(dest.read_bytes()).hexdigest()[:16]
-    print(f"  Version check: {ver}")
-    print(f"  SHA256 (first 16): {sha256}")
-    if not ok:
-        dest.unlink(missing_ok=True)
-        raise RuntimeError(
-            f"Version check failed for {dest}. Got: {ver!r}. "
-            f"Expected to contain: {expected_version_string()!r}"
-        )
+        staged.chmod(staged.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        # Only the executable from the pinned, verified archive is probed.
+        ok, ver = check_version(staged)
+        print(f"  Version check: {ver}")
+        print(f"  Verified binary SHA256: {binary_sha256}")
+        if not ok:
+            raise RuntimeError(
+                f"Version check failed for verified {staged}. Got: {ver!r}. "
+                f"Expected to contain: {expected_version_string()!r}"
+            )
+        os.replace(staged, dest)
     print(f"  OK: {dest}")
 
 
@@ -143,8 +193,10 @@ def skip_platform(plat: str, reason: str) -> None:
     exe_name = "minimap2.exe" if "windows" in plat else "minimap2"
     dest = plat_dir / exe_name
     if dest.is_file():
-        ok, ver = check_version(dest)
-        print(f"  [found] {dest}: {ver} (pre-placed by CI or user)")
+        # These slots have no pinned reproducible binary digest yet. Reporting
+        # their existence is not verification and must not execute their bytes.
+        print(f"  [unverified] {dest}: pre-placed by CI or user; not executed")
+        print(f"  SHA256 (untrusted observation): {file_sha256(dest)}")
     else:
         print(f"  [slot] {plat}: {reason}")
         print(f"         Expected path: {dest}")

@@ -833,6 +833,13 @@
       "id": "macrogen-export-flow",
       "files": [
         "src/components/layout/export-handlers.ts",
+        "src/components/steps/ExportAction.tsx",
+        "src/components/steps/ExportFormatSelector.tsx",
+        "src/store/slice-interfaces.ts",
+        "src/store/slices/exportSlice.ts",
+        "src/lib/kuroSnapshot.ts",
+        "src/hooks/useKuroAutosave.ts",
+        "src/types/models.generated.ts",
         "python-core/sidecar_kuro/handlers/export.py",
         "python-core/sidecar_kuro/models.py",
         "kuma_core/kuro/plate_mapper.py",
@@ -848,7 +855,7 @@
         "handleExportAll",
         "handleExportMacrogen"
       ],
-      "note": "Export All UI 핸들러 ↔ TS RpcMethodMap/validators ↔ sidecar handler + Pydantic 모델 ↔ kuro exporter 정합성 (spec 2026-05-13)",
+      "note": "Export UI selection and persisted exportArtefactKinds ↔ RPC artefact_kinds ↔ Pydantic and generated models ↔ selected bundle writers. Platemap and run manifest are mandatory; absent selection keeps the legacy full bundle.",
       "severity": "blocking"
     },
     {
@@ -864,7 +871,9 @@
         "src/components/steps/ExportFormatSelector.tsx",
         "src/components/widgets/PlateMap.tsx",
         "src/lib/plateRounds.ts",
-        "python-core/sidecar_kuro/handlers/export.py"
+        "python-core/sidecar_kuro/handlers/export.py",
+        "src/components/widgets/resultTableWells.ts",
+        "src/components/steps/ExportAction.tsx"
       ],
       "symbols": [
         "PLATE_WELL_COUNT",
@@ -1255,14 +1264,18 @@
         "python-core/sidecar_mame/handlers/analyze.py",
         "src/types/mame/models.ts",
         "src/store/mame/slices/analysisSlice.ts",
-        "src/components/mame/widgets/ContaminationPanel.tsx"
+        "src/components/mame/widgets/ContaminationPanel.tsx",
+        "src/components/mame/widgets/RunQcSection.tsx",
+        "src/components/mame/steps/AnalyzeStepView.tsx"
       ],
       "symbols": [
         "analyze_contamination",
         "per_nb_out",
         "POOLED_PLATE_NAME",
         "ContaminationReport",
-        "CONTAMINATION_SIGNAL_NAMES"
+        "CONTAMINATION_SIGNAL_NAMES",
+        "CONTAMINATION_REASON_CODES",
+        "reason_code"
       ],
       "note": "Stray-read signals: the per-NB demux matrix (per_nb_out sink) -> qc.contamination -> raw-run-only `contamination` response key -> TS ContaminationReport -> store field -> panel. Signal names are a fixed list on both sides; adding one on the Python side without extending CONTAMINATION_SIGNAL_NAMES drops it before the panel. Every signal is `ok` with a value or `unavailable` with a reason, never zero-filled, so nothing in this chain may substitute 0 for a missing measurement.",
       "severity": "blocking"
@@ -1334,6 +1347,7 @@
     {
       "id": "mame-detect-measurement-source",
       "files": [
+        "src/components/mame/panels/BuildEvolveproInputPanel.tsx",
         "kuma_core/mame/activity/detect_measurement_source.py",
         "kuma_core/mame/activity/build_evolvepro_input.py",
         "kuma_core/mame/activity/evolvepro_xlsx.py",
@@ -1352,7 +1366,20 @@
         "DetectMeasurementSourceResult",
         "detectMeasurementSource"
       ],
-      "note": "Step 4.1 measurement source detection: the detector reads the file and reports every source it could be, so the six names in MEASUREMENT_SOURCES must match the MeasurementSource union in TS and the membership set the result validator checks. The membership tests are borrowed rather than re-written (_WELL_RE from plate_layout_xlsx, _BLOCK_REP_ID_RE and _iter_fid1b_blocks from evolvepro_xlsx, _short_variant and the column sets from build_evolvepro_input), so a change to any of those changes what this reports. Two pairs are reported as two candidates rather than resolved: a gcSheet is also a valid longFormat file, and a numeric-ID block file is numericReport or confirmationNumericIds because decode_primary_screen and decode_confirmation_against call the same parse_agilent_block_rep_batch.",
+      "note": "Step 4.1 measurement source detection: the detector reads the file and reports every source it could be, so the seven names in MEASUREMENT_SOURCES must match the MeasurementSource union in TS and the membership set the result validator checks. The membership tests are borrowed rather than re-written (_WELL_RE from plate_layout_xlsx, _BLOCK_REP_ID_RE and _iter_fid1b_blocks from evolvepro_xlsx, _short_variant and the column sets from build_evolvepro_input), so a change to any of those changes what this reports. Three pairs are reported as two candidates rather than resolved: a well-label block file can be rawReport or confirmationWellLabels, a gcSheet is also a valid longFormat file, and a numeric-ID block file is numericReport or confirmationNumericIds because decode_primary_screen and decode_confirmation_against call the same parse_agilent_block_rep_batch.",
+      "severity": "warning"
+    },
+    {
+      "id": "mame-measurement-identity-messages",
+      "files": [
+        "kuma_core/mame/activity/build_evolvepro_input.py",
+        "python-core/sidecar_mame/handlers/activity.py",
+        "src/components/mame/panels/BuildEvolveproInputPanel.tsx",
+        "src/locales/en.json",
+        "src/locales/ko.json",
+        "tests/mame/activity/test_general_excel.py"
+      ],
+      "note": "Dual-column activity checks well/Sample identities including WT before export. Conflict errors and unchecked-well warnings use stable errors.mame keys followed by | and row/well details. The panel localizes only the prefix and preserves the details. Detection evidence column arrays stay within the existing open evidence contract.",
       "severity": "warning"
     },
     {
@@ -1538,6 +1565,19 @@
         "tests/shared/test_audit_io_boundaries.py"
       ],
       "note": "Data-derived spreadsheet strings remain literal cells, never formulas, across report and mapping exports.",
+      "severity": "blocking"
+    },
+    {
+      "id": "vendor-minimap2-archive-integrity",
+      "files": [
+        "python-core/scripts/vendor-minimap2.py",
+        "tests/scripts/test_vendor_integrity_audit.py"
+      ],
+      "symbols": [
+        "ARCHIVE_SHA256",
+        "BINARY_SHA256"
+      ],
+      "note": "The Linux release archive full SHA256 is pinned and checked before extraction or execution. BINARY_SHA256 pins the executable inside that archive: a vendored binary whose bytes and executable bit match it is reused without any download, and every fresh install refuses an extracted executable that differs from it, so the two digests cannot drift apart and a version change must replace both. Other platform slots are inspected but remain unverified and unexecuted by this script.",
       "severity": "blocking"
     }
   ]

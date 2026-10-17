@@ -88,6 +88,14 @@ beforeEach(() => {
 });
 
 describe("handleExportAll project routing", () => {
+  it("forwards an empty selection instead of falling back to every artefact", async () => {
+    mockOpen.mockResolvedValue("/proj/design");
+    await handleExportAll({ ...BASE_PARAMS, artefactKinds: [] });
+    expect(mockSendRequest).toHaveBeenCalledWith("export_all", expect.objectContaining({
+      artefact_kinds: [],
+    }));
+  });
+
   it("creates the project export folder and defaults the picker to it", async () => {
     mockOpen.mockResolvedValue("/proj/design");
 
