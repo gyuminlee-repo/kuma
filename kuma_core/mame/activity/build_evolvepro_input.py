@@ -460,6 +460,60 @@ def _confirmation(path: str | Path, well_to_variant: dict[str, str] | None = Non
     return values
 
 
+def _well_confirmation(path: str | Path, well_to_variant: dict[str, str], wt_wells: set[str], mapping_source: str, warnings: list[str]) -> dict[str, list[float]]:
+    """Replicated confirmation whose sample names are wells (``A1-1``, ``A1-2``).
+
+    The bench re-measures the wells it picked and names each injection after
+    the well, so the report carries no ``WT1`` block: wild-type is the well the
+    run declared as WT. Its areas, together with any ``WT<n>`` rows the report
+    does carry, are the mean every other area is divided by. A bare well is
+    replicate 1. Unlike ``_confirmation`` this reader skips a sample name that
+    is not a well and does not refuse it: a GC run is shared, so the real export
+    carries other experiments' samples beside the re-measured wells.
+    """
+    wt: list[float] = []
+    areas: list[tuple[str, float]] = []
+    skipped: list[str] = []
+    for record in parse_agilent_standard(path):
+        if record.is_wt:
+            wt.append(record.area)
+            continue
+        label = _strip_confirmation_rep_suffix(record.sample_name)
+        if not _WELL_RE.fullmatch(label):
+            skipped.append(record.sample_name)
+            continue
+        well = _normalise_well(label)
+        if well in wt_wells:
+            wt.append(record.area)
+        else:
+            areas.append((well, record.area))
+    if not wt:
+        raise ValueError(
+            "remeasure_well_xlsx has no WT areas: declare the WT well in "
+            f"{mapping_source} or include WT1/WT_1 rows in the report"
+        )
+    mean_wt = sum(wt) / len(wt)
+    values: dict[str, list[float]] = {}
+    unmapped: set[str] = set()
+    for well, area in areas:
+        variant = well_to_variant.get(well)
+        if variant is None:
+            unmapped.add(well)
+            continue
+        values.setdefault(variant, []).append(area / mean_wt)
+    if skipped:
+        warnings.append(
+            f"remeasure_well_xlsx skipped {len(skipped)} sample(s) that are not "
+            "well labels: " + ", ".join(skipped)
+        )
+    if unmapped:
+        warnings.append(
+            f"remeasure_well_xlsx has {len(unmapped)} well(s) absent from "
+            f"{mapping_source}: " + ", ".join(sorted(unmapped))
+        )
+    return values
+
+
 def _strict_ngs_gate(merged: dict[Variant, float], variant_to_well: dict[str, str], verdict_xlsx: str | Path, layout_xlsx: str | Path | None) -> tuple[list[str], list[str], LabelAudit | None, dict[str, int]]:
     verdicts = parse_verdict_rows(verdict_xlsx)
     identity_wells: dict[str, str] = {}
@@ -581,7 +635,7 @@ def _publish_artifact_bundle(
     return artifact_hashes
 
 
-def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path | None = None, activity_scale: str = "raw", gc_data_xlsx: str | Path | None = None, round1_report_xlsx: str | Path | None = None, numeric_report_xlsx: str | Path | None = None, remeasure_report_xlsx: str | Path | None = None, remeasure_numeric_xlsx: str | Path | None = None, verdict_xlsx: str | Path, layout_xlsx: str | Path | None = None, expected_xlsx: str | Path | None = None, mismatch_threshold: float = 0.1, gc_export_xlsx: str | Path | None = None, allow_label_mismatch: bool = False) -> BuildEvolveproResult:
+def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path | None = None, activity_scale: str = "raw", gc_data_xlsx: str | Path | None = None, round1_report_xlsx: str | Path | None = None, numeric_report_xlsx: str | Path | None = None, remeasure_report_xlsx: str | Path | None = None, remeasure_numeric_xlsx: str | Path | None = None, remeasure_well_xlsx: str | Path | None = None, verdict_xlsx: str | Path, layout_xlsx: str | Path | None = None, expected_xlsx: str | Path | None = None, mismatch_threshold: float = 0.1, gc_export_xlsx: str | Path | None = None, allow_label_mismatch: bool = False) -> BuildEvolveproResult:
     """Build Step 3 output from exactly one supported primary source.
 
     Raw generic activity uses WT rows per file/plate cohort; relative generic
@@ -607,10 +661,11 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
             "provide exactly one primary source: activity_path, gc_data_xlsx, "
             "round1_report_xlsx, or numeric_report_xlsx"
         )
-    if remeasure_report_xlsx is not None and remeasure_numeric_xlsx is not None:
+    if sum(source is not None for source in (remeasure_report_xlsx, remeasure_numeric_xlsx, remeasure_well_xlsx)) > 1:
         raise ValueError(
             "provide at most one confirmation source: remeasure_report_xlsx "
-            "(well/variant-labeled) or remeasure_numeric_xlsx (numeric IDs)"
+            "(well/variant-labeled), remeasure_numeric_xlsx (numeric IDs), or "
+            "remeasure_well_xlsx (well-labeled, WT from the plate)"
         )
     if verdict_xlsx is None:
         raise ValueError("verdict_xlsx is required")
@@ -686,6 +741,8 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
                 raise ValueError(f"confirmation mapping has conflicting full identities for {short!r}")
             internal_identities[short] = label
         authoritative = _confirmation(remeasure_report_xlsx, well_to_variant, internal_identities)
+    elif remeasure_well_xlsx is not None:
+        authoritative = _well_confirmation(remeasure_well_xlsx, well_to_variant, wt_wells, mapping_source, warnings)
     else:
         authoritative = {}
     merged, stats = merge_replicates_priority({Variant(key): value for key, value in authoritative.items()}, {Variant(key): value for key, value in fallback.items()}, mismatch_threshold=mismatch_threshold)
@@ -754,6 +811,8 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
         normalization_sources.append("remeasure_report_xlsx:report_wt")
     if remeasure_numeric_xlsx is not None:
         normalization_sources.append("remeasure_numeric_xlsx:report_wt")
+    if remeasure_well_xlsx is not None:
+        normalization_sources.append("remeasure_well_xlsx:report_wt")
     evidence_hash = _sha256(Path(verdict_xlsx))
     evaluable_count = input_count - reason_counts.get("missing", 0) - reason_counts.get("CONFLICT", 0)
     manifest = {

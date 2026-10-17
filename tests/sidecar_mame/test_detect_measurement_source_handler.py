@@ -28,8 +28,8 @@ def test_method_is_registered() -> None:
 
 def test_unambiguous_workbook_round_trips_as_json() -> None:
     result = _call(measurement_path=str(TEMPLATES / "11_mame_gc_fid_round1_raw.xlsx"))
-    assert result["candidates"] == ["rawReport", "confirmationWellLabels"]
-    assert result["ambiguous"] is True
+    assert result["candidates"] == ["rawReport"]
+    assert result["ambiguous"] is False
     assert result["reason"] == ""
     # The evidence dict crosses JSON-RPC, so it has to survive the encoder.
     assert json.loads(json.dumps(result))["evidence"]["fid1b_signature"] is True
@@ -68,3 +68,20 @@ def test_unknown_parameter_is_refused() -> None:
             measurement_path=str(TEMPLATES / "07_mame_activity_long.csv"),
             format="gcSheet",
         )
+
+
+def test_confirmation_slot_reaches_the_detector() -> None:
+    """The slot settles the numeric pair, so the same file answers differently."""
+    path = str(TEMPLATES / "12_mame_agilent_numeric_index.xlsx")
+    assert _call(measurement_path=path)["candidates"] == [
+        "numericReport",
+        "confirmationNumericIds",
+    ]
+    result = _call(measurement_path=path, slot="confirmation")
+    assert result["candidates"] == ["confirmationNumericIds"]
+    assert result["ambiguous"] is False
+
+
+def test_unknown_slot_is_refused() -> None:
+    with pytest.raises(ValueError):
+        _call(measurement_path=str(TEMPLATES / "07_mame_activity_long.csv"), slot="other")

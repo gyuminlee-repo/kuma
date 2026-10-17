@@ -581,6 +581,7 @@ def handle_build_evolvepro_input(params: dict) -> dict:
             numeric_report_xlsx=p.numeric_report_xlsx,
             remeasure_report_xlsx=p.remeasure_report_xlsx,
             remeasure_numeric_xlsx=p.remeasure_numeric_xlsx,
+            remeasure_well_xlsx=p.remeasure_well_xlsx,
             verdict_xlsx=p.verdict_xlsx,
             layout_xlsx=p.layout_xlsx,
             expected_xlsx=p.expected_xlsx,
@@ -655,7 +656,7 @@ def handle_detect_measurement_source(params: dict) -> dict:
     path = _validate_filepath(
         p.measurement_path, allowed_extensions=_ALLOWED_ACTIVITY_EXTENSIONS
     )
-    detection = detect_measurement_source(path, sheet_index=p.sheet_index)
+    detection = detect_measurement_source(path, sheet_index=p.sheet_index, slot=p.slot)
     return DetectMeasurementSourceResult(
         path=detection.path,
         candidates=detection.candidates,

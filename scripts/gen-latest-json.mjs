@@ -40,7 +40,16 @@ if (!outFile) fail("missing output file argument");
 
 const tagMatch = tagArg.match(/^v?(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?$/);
 if (!tagMatch) fail(`tag '${tagArg}' is not v<A>.<B>.<C>[.<D>]`);
-const version = tagArg.replace(/^v/, "");
+const [, major, minor, patch] = tagMatch;
+if ([major, minor, patch].some((part) => part.length > 1 && part.startsWith("0"))) {
+  fail(`tag '${tagArg}' has a leading-zero SemVer component`);
+}
+if ([major, minor, patch].some((part) => BigInt(part) > 18_446_744_073_709_551_615n)) {
+  fail(`tag '${tagArg}' exceeds the updater's SemVer integer range`);
+}
+// Four-part tags label rebuild filenames only; the binary still embeds A.B.C.
+// Equal-version rebuilds do not trigger an automatic upgrade, by design.
+const version = `${major}.${minor}.${patch}`;
 
 function walk(dir, acc = []) {
   for (const entry of readdirSync(dir)) {
@@ -91,7 +100,7 @@ for (const { key, sigSuffix } of platformRules) {
 
 const manifest = {
   version,
-  notes: `See the release notes for v${version}.`,
+  notes: `See the release notes for ${tagArg.startsWith("v") ? tagArg : `v${tagArg}`}.`,
   pub_date: new Date().toISOString(),
   platforms,
 };

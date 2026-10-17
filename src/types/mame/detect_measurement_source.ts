@@ -37,17 +37,26 @@ export interface DetectMeasurementSourceParams {
   measurement_path: string;
   /** Zero-based sheet index for a workbook. Ignored for a csv. */
   sheet_index?: number;
+  /**
+   * The field the file was chosen for. `"confirmation"` reports one of the
+   * three confirmation sources or nothing, one candidate per sample-name
+   * namespace: a well-labeled report is `confirmationWellLabels` alone and a
+   * numeric-ID report `confirmationNumericIds` alone. Defaults to `"primary"`,
+   * where a well-labeled report is `rawReport` alone.
+   */
+  slot?: "primary" | "confirmation";
 }
 
 export interface DetectMeasurementSourceResult {
   /** The file that was read, resolved. */
   path: string;
   /**
-   * Every source the file could be, never narrowed to a guess. Three pairs are
-   * the same file: a pre-normalized GC sheet is also a valid long-format file,
-   * a well-labeled block file can be primary or confirmation, and a numeric-ID
-   * block file is a primary screen or a numeric confirmation because both
-   * decoders call the same parser. Each pair is reported whole
+   * Every source the file could be, never narrowed to a guess. Two pairs are
+   * the same file in the primary slot: a pre-normalized GC sheet is also a valid
+   * long-format file, and a numeric-ID block file is a primary screen or a
+   * numeric confirmation because both decoders call the same parser. A
+   * well-labeled confirmation may carry sample names of no namespace, which its
+   * reader skips; `evidence.sample_name_namespaces.unclassified` counts them. Each pair is reported whole
    * and the operator chooses. An empty list is an answer: the file is none of
    * them, and `reason` says what was seen.
    */

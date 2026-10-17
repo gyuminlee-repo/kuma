@@ -1060,7 +1060,7 @@ function deferred<T>() {
 async function chooseAdditional(path = CHOSEN): Promise<void> {
   vi.mocked(open).mockResolvedValueOnce(path);
   fireEvent.click(screen.getByRole("button", { name: `Browse ${ADDITIONAL_LABEL}` }));
-  await waitFor(() => expect(detectMeasurementSource).toHaveBeenCalledWith({ measurement_path: path }));
+  await waitFor(() => expect(detectMeasurementSource).toHaveBeenCalledWith({ measurement_path: path, slot: "confirmation" }));
 }
 
 function additionalRegion() {
@@ -1103,35 +1103,46 @@ describe("BuildEvolveproInputPanel sibling additional experiment file", () => {
     expect(detectMeasurementSource).not.toHaveBeenCalled();
   });
 
-  it.each(["primary", "additional"] as const)("requires an explicit role for well labels browsed in the %s slot", async (slot) => {
+  it("applies a well-labeled report in the primary slot as the raw report without a role question", async () => {
     seed(readyForm());
-    vi.mocked(detectMeasurementSource).mockResolvedValue(detection(["rawReport", "confirmationWellLabels"]));
+    vi.mocked(detectMeasurementSource).mockResolvedValue(detection(["rawReport"]));
     renderPanel();
-    if (slot === "primary") {
-      fireEvent.click(screen.getByRole("button", { name: `Change: ${MEASUREMENT_LABEL}` }));
-      await chooseMeasurement();
-    } else await chooseAdditional();
-    expect(await screen.findByText(/same well-labeled report can be the primary experiment/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeDisabled();
-    expect(loadBuildEvolveproFromStorage(PROJECT).confirmationSource).toBe("none");
-    fireEvent.click(screen.getByRole("radio", { name: "Well / variant labels" }));
+    fireEvent.click(screen.getByRole("button", { name: `Change: ${MEASUREMENT_LABEL}` }));
+    await chooseMeasurement();
+    expect(await screen.findByText("Detected: Raw Agilent report")).toBeInTheDocument();
+    expect(screen.queryByText(/same well-labeled report/i)).not.toBeInTheDocument();
+    expect(loadBuildEvolveproFromStorage(PROJECT)).toMatchObject({
+      primarySource: "rawReport", round1ReportXlsx: CHOSEN, confirmationSource: "none",
+    });
     await build();
     expect(buildEvolveproInput).toHaveBeenCalledWith(expect.objectContaining({
-      activity_path: "/project/activity/activity.csv", remeasure_report_xlsx: CHOSEN,
+      round1_report_xlsx: CHOSEN, remeasure_report_xlsx: undefined, remeasure_well_xlsx: undefined,
     }));
   });
 
-  it("can explicitly move a well report from the additional slot to the primary slot", async () => {
+  it("asks the detector for the confirmation slot and applies a well-labeled confirmation", async () => {
     seed(readyForm());
-    vi.mocked(detectMeasurementSource).mockResolvedValue(detection(["rawReport", "confirmationWellLabels"]));
+    vi.mocked(detectMeasurementSource).mockResolvedValue(detection(["confirmationWellLabels"]));
     renderPanel();
     await chooseAdditional();
-    fireEvent.click(await screen.findByRole("radio", { name: "Raw Agilent report" }));
-    expect(screen.getByRole("textbox", { name: ADDITIONAL_LABEL })).toHaveValue("");
+    expect(await screen.findByText("Detected: Well-labeled replicate report")).toBeInTheDocument();
+    expect(loadBuildEvolveproFromStorage(PROJECT)).toMatchObject({
+      confirmationSource: "wellLabels", remeasureWellXlsx: CHOSEN,
+      remeasureReportXlsx: "", remeasureNumericXlsx: "",
+      activityPath: "/project/activity/activity.csv",
+    });
     await build();
     expect(buildEvolveproInput).toHaveBeenCalledWith(expect.objectContaining({
-      round1_report_xlsx: CHOSEN, remeasure_report_xlsx: undefined,
+      activity_path: "/project/activity/activity.csv", remeasure_well_xlsx: CHOSEN,
+      remeasure_report_xlsx: undefined, remeasure_numeric_xlsx: undefined,
     }));
+  });
+
+  it("keeps the primary field detection on the default slot", async () => {
+    seed(readyForm({ activityPath: "" }));
+    renderPanel();
+    await chooseMeasurement();
+    expect(detectMeasurementSource).not.toHaveBeenCalledWith(expect.objectContaining({ slot: expect.anything() }));
   });
 
   it("requires numeric above-WT confirmation even if the detector returns it alone", async () => {
@@ -1175,11 +1186,12 @@ describe("BuildEvolveproInputPanel sibling additional experiment file", () => {
 
   it("can manually override an ambiguous result without forcing its candidates", async () => {
     seed(readyForm());
-    vi.mocked(detectMeasurementSource).mockResolvedValue(detection(["rawReport", "confirmationWellLabels"]));
+    vi.mocked(detectMeasurementSource).mockResolvedValue(detection(["numericReport", "confirmationNumericIds"]));
     renderPanel();
     await chooseAdditional();
     fireEvent.click(await additionalRegion().findByRole("button", { name: "Choose format manually" }));
-    expect(screen.queryByRole("radio", { name: "Raw Agilent report" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: "Numeric-ID Agilent report" })).not.toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Well-labeled replicate report" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("radio", { name: "Well / variant labels" }));
     expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeEnabled();
   });
@@ -1197,24 +1209,25 @@ describe("BuildEvolveproInputPanel sibling additional experiment file", () => {
     expect(loadBuildEvolveproFromStorage(PROJECT).activityPath).toBe(CHOSEN);
   });
 
-  it.each(["variantLabels", "numericIds"] as const)("restores and removes %s without resurrecting inactive paths", async (confirmationSource) => {
+  it.each(["variantLabels", "numericIds", "wellLabels"] as const)("restores and removes %s without resurrecting inactive paths", async (confirmationSource) => {
     seed(readyForm({
       confirmationSource, remeasureReportXlsx: "/project/wells.xlsx",
-      remeasureNumericXlsx: "/project/numeric.xlsx", expectedXlsx: "/project/expected.xlsx",
+      remeasureNumericXlsx: "/project/numeric.xlsx", remeasureWellXlsx: "/project/well.xlsx",
+      expectedXlsx: "/project/expected.xlsx",
     }));
     renderPanel();
     expect(detectMeasurementSource).not.toHaveBeenCalled();
     expect(screen.getByRole("textbox", { name: ADDITIONAL_LABEL })).toHaveValue(
-      confirmationSource === "variantLabels" ? "wells.xlsx" : "numeric.xlsx",
+      { variantLabels: "wells.xlsx", numericIds: "numeric.xlsx", wellLabels: "well.xlsx" }[confirmationSource],
     );
     fireEvent.click(screen.getByRole("button", { name: "Remove additional file" }));
     expect(loadBuildEvolveproFromStorage(PROJECT)).toMatchObject({
-      confirmationSource: "none", remeasureReportXlsx: "", remeasureNumericXlsx: "",
+      confirmationSource: "none", remeasureReportXlsx: "", remeasureNumericXlsx: "", remeasureWellXlsx: "",
     });
     expect(screen.queryByLabelText("Mismatch threshold")).not.toBeInTheDocument();
     await build();
     expect(buildEvolveproInput).toHaveBeenCalledWith(expect.objectContaining({
-      remeasure_report_xlsx: undefined, remeasure_numeric_xlsx: undefined,
+      remeasure_report_xlsx: undefined, remeasure_numeric_xlsx: undefined, remeasure_well_xlsx: undefined,
     }));
   });
 

@@ -24,6 +24,15 @@ export interface BuildEvolveproInputParams {
    * put above wild-type, in plate order, so it needs an order source too.
    */
   remeasure_numeric_xlsx?: string | null
+  /**
+   * Optional replicated confirmation whose sample names are wells
+   * (`A1-1`, `A1-2`, ...; a bare `A1` is replicate 1). Wells map to variants as
+   * the well-labeled primaries do, and each area is divided by the mean of the
+   * WT well plus any `WT<n>` rows, so the report needs no WT block. Sample names
+   * that are not wells are skipped with a warning. At most one of the three
+   * confirmation fields may be set.
+   */
+  remeasure_well_xlsx?: string | null
   /** Mandatory strict NGS evidence workbook. */
   verdict_xlsx: string
   /** Mapping metadata required by well-labeled inputs. */
