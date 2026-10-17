@@ -1,0 +1,46 @@
+[
+  {
+    "label": "1",
+    "ref": "**Destination layout**",
+    "role_or_testid": "role=radiogroup[name=\"Janus destination well layout\"]",
+    "bbox": [
+      0.14166666666666666,
+      0.4675,
+      0.5,
+      0.022222222222222223
+    ]
+  },
+  {
+    "label": "2",
+    "ref": "Volume (µL)",
+    "role_or_testid": "#janus-volume",
+    "bbox": [
+      0.15069444444444444,
+      0.6013888888888889,
+      0.23819444444444443,
+      0.04
+    ]
+  },
+  {
+    "label": "3",
+    "ref": "Liquid class",
+    "role_or_testid": "#janus-liquid-class",
+    "bbox": [
+      0.39444444444444443,
+      0.6013888888888889,
+      0.23819444444444443,
+      0.04
+    ]
+  },
+  {
+    "label": "4",
+    "ref": "type column value",
+    "role_or_testid": "#janus-sample-type",
+    "bbox": [
+      0.15069444444444444,
+      0.7563888888888889,
+      0.48194444444444445,
+      0.04
+    ]
+  }
+]

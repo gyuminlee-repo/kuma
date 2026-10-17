@@ -7,7 +7,8 @@
 # it can only weaken structural, never inflate it).
 set -u
 cd "$(dirname "$0")/.." || exit 1
-export PYTHONPATH=/mnt/d/_workspace/cc/kuma
+# The working directory is benchmark/, so the repository root is its parent.
+export PYTHONPATH="${KUMA_ROOT:-$(cd .. && pwd)}"
 PY=.venv-al/bin/python
 DMS=data/DMS_substitutions/DMS_ProteinGym_substitutions
 OUT=results/qa/kuro_real/expanded

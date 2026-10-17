@@ -1,0 +1,13 @@
+[
+  {
+    "label": "1",
+    "ref": "`Run Design`",
+    "role_or_testid": "role=region[name=\"Run Design\"] role=button",
+    "bbox": [
+      0.33611111111111114,
+      0.7248090277777778,
+      0.1111111111111111,
+      0.04
+    ]
+  }
+]

@@ -550,13 +550,15 @@ def _select_pdb_id(accession: str) -> str | None:
     return None
 
 
-def _fetch_sifts_chains(pdb_id: str, accession: str) -> tuple[list[str], dict[int, int]]:
-    """Return (chains, author->UniProt map) for *accession* in *pdb_id* via SIFTS.
+def _fetch_sifts_chains(
+    pdb_id: str, accession: str,
+) -> tuple[list[str], dict[str, dict[int, int]]]:
+    """Return chains and per-chain author->UniProt maps via PDBe/SIFTS.
 
-    Uses the spike-verified offset-0 contract for 3N0G-class IspS structures:
-    PDB author numbering equals UniProt numbering, so the author->UniProt map is
-    identity across the SIFTS-covered ``[unp_start, unp_end]`` range. SIFTS label
-    numbering (``residue_number``) is deliberately NOT used.
+    SIFTS ranges use label residue numbers. Join those labels to PDBe's
+    residue-level author numbering rather than assuming author == UniProt.
+    Unequal label/UniProt spans and insertion codes cannot be represented by
+    this integer-residue interface and are rejected instead of guessed.
     """
     req = urllib.request.Request(
         f"https://www.ebi.ac.uk/pdbe/api/mappings/{pdb_id.lower()}",
@@ -570,19 +572,39 @@ def _fetch_sifts_chains(pdb_id: str, accession: str) -> tuple[list[str], dict[in
     if not seg:
         return [], {}
 
-    chains: list[str] = []
-    author_to_unp: dict[int, int] = {}
+    req = urllib.request.Request(
+        f"https://www.ebi.ac.uk/pdbe/api/pdb/entry/residue_listing/{pdb_id.lower()}",
+        headers={"Accept": "application/json"},
+    )
+    with urllib.request.urlopen(req, context=_get_ssl_ctx(), timeout=15) as resp:
+        listing = json.loads(resp.read().decode("utf-8"))
+    residues_by_asym = {
+        chain["struct_asym_id"]: chain["residues"]
+        for molecule in listing[pdb_id.lower()]["molecules"]
+        for chain in molecule["chains"]
+    }
+
+    author_to_unp: dict[str, dict[int, int]] = {}
     for m in seg.get("mappings", []):
-        chain = m.get("chain_id")
-        if chain and chain not in chains:
-            chains.append(chain)
-        unp_start = m.get("unp_start")
-        unp_end = m.get("unp_end")
-        # author == UniProt numbering (offset 0): identity over covered range.
-        if isinstance(unp_start, int) and isinstance(unp_end, int):
-            for pos in range(unp_start, unp_end + 1):
-                author_to_unp[pos] = pos
-    return sorted(chains), author_to_unp
+        chain = m["chain_id"]
+        start = m["start"]["residue_number"]
+        end = m["end"]["residue_number"]
+        unp_start, unp_end = m["unp_start"], m["unp_end"]
+        if end < start or end - start != unp_end - unp_start:
+            raise ValueError(f"Unsupported discontinuous SIFTS mapping for chain {chain}")
+        chain_map = author_to_unp.setdefault(chain, {})
+        for residue in residues_by_asym[m["struct_asym_id"]]:
+            label = residue["residue_number"]
+            if not start <= label <= end:
+                continue
+            author = residue["author_residue_number"]
+            if residue.get("author_insertion_code") or not isinstance(author, int):
+                raise ValueError(f"Unsupported SIFTS author residue in chain {chain}")
+            unp_position = unp_start + label - start
+            if author in chain_map and chain_map[author] != unp_position:
+                raise ValueError(f"Ambiguous SIFTS author residue {author} in chain {chain}")
+            chain_map[author] = unp_position
+    return sorted(author_to_unp), author_to_unp
 
 
 def handle_fetch_interface_residues(params: dict) -> dict:
@@ -655,13 +677,17 @@ def handle_fetch_interface_residues(params: dict) -> dict:
             "error": f"PDB download failed: {exc}",
         }
 
-    # 4. Union interface residues over all ordered chain pairs.
-    author_residues: set[int] = set()
-    for i, chain_a in enumerate(chains):
+    # 4. Map each chain's contacts before union: author numbers are chain-local.
+    accession_positions: set[int] = set()
+    for chain_a in chains:
         for chain_b in chains:
             if chain_a == chain_b:
                 continue
-            author_residues |= compute_interface_residues(pdb_text, chain_a, chain_b)
+            author_residues = compute_interface_residues(pdb_text, chain_a, chain_b)
+            chain_map = author_to_unp[chain_a]
+            accession_positions.update(
+                chain_map[r] for r in author_residues if r in chain_map
+            )
 
     # 5. Map into the ref_seq frame (identity when ref_seq matches accession seq).
     if ref_seq:
@@ -677,10 +703,13 @@ def handle_fetch_interface_residues(params: dict) -> dict:
                 "source": "error",
                 "error": f"accession FASTA fetch failed for {accession}; cannot map to ref_seq frame",
             }
-        positions = map_residues(author_residues, author_to_unp, accession_seq, ref_seq)
+        positions = map_residues(
+            accession_positions, {r: r for r in accession_positions},
+            accession_seq, ref_seq,
+        )
     else:
         # No ref_seq supplied: report accession-frame positions directly.
-        positions = {author_to_unp[r] for r in author_residues if r in author_to_unp}
+        positions = accession_positions
 
     # 6. Oligomeric state (assembly API, reference only, never an interface filter).
     oligomeric_state = _fetch_oligomeric_state(pdb_id)

@@ -881,7 +881,14 @@
         "plateColumnRowOrder": "Las filas de resultado siguen la columna de la placa, como cualquier otra regla de colocación.",
         "barcodePlateShapeRefused": "Un archivo de barcodes que no describe una placa de 8 por 12 detiene la ejecución.",
         "declaredWellsOnly": "Los pocillos fuera de la seleccion ya no se evaluan. Antes se comparaban con toda la lista de variantes y fallaban.",
-        "declaredWellsDenominator": "La tasa de exito solo cuenta las variantes de los pocillos declarados. Antes se dividia por la lista completa de variantes, de modo que una ejecucion con diez pocillos declarados informaba 9 por ciento aunque todas pasaran."
+        "declaredWellsDenominator": "La tasa de exito solo cuenta las variantes de los pocillos declarados. Antes se dividia por la lista completa de variantes, de modo que una ejecucion con diez pocillos declarados informaba 9 por ciento aunque todas pasaran.",
+        "runMembership": "El analisis solo lee las placas registradas para esta ejecucion y excluye salidas anteriores.",
+        "explicitWellPlacement": "La evaluacion respeta los pocillos explicitos y la ubicacion elegida del tipo silvestre.",
+        "filteredDepthApplied": "La profundidad minima filtrada elegida llega al clasificador en lugar del valor implicito 30.",
+        "baseQualityApplied": "Las bases de baja calidad se filtran antes de votar en el consenso.",
+        "decidedDeletionEvidence": "Las deleciones confirmadas ya no cuentan como bases sin resolver o mixtas. La traduccion reconstruye la molecula con sus indels.",
+        "deletionMajorityRequired": "Solo las deleciones apoyadas por mas de la mitad de las lecturas que cubren el sitio se excluyen del filtro no-call.",
+        "inclusiveIndelBoundary": "Una fraccion de eventos indel igual al umbral pasa ahora a revision."
       }
     },
     "janus": {

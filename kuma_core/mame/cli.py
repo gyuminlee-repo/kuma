@@ -5,12 +5,14 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from dataclasses import asdict
 from pathlib import Path
 
 from kuma_core.mame.export import WellMapper, write_excel
 from kuma_core.mame.ingest import IngestMode, route_ingest
 from kuma_core.mame.models import (
     BarcodeRecord,
+    NoisyPosition,
     ReplicateResult,
     TranslatedRecord,
     VerdictClass,
@@ -170,6 +172,24 @@ def _dump_verdicts(
                 "n_aligned_reads": vr.translated.barcode.n_aligned_reads,
                 "n_mapq_failed": vr.translated.barcode.n_mapq_failed,
                 "n_span_failed": vr.translated.barcode.n_span_failed,
+                "min_variant_support": vr.translated.barcode.min_variant_support,
+                "n_variant_positions": vr.translated.barcode.n_variant_positions,
+                "min_variant_support_depth": vr.translated.barcode.min_variant_support_depth,
+                "median_minor_allele_fraction": vr.translated.barcode.median_minor_allele_fraction,
+                "max_minor_allele_strand_share": vr.translated.barcode.max_minor_allele_strand_share,
+                "max_minor_allele_plus_count": vr.translated.barcode.max_minor_allele_plus_count,
+                "max_minor_allele_minus_count": vr.translated.barcode.max_minor_allele_minus_count,
+                "n_eligible_positions": vr.translated.barcode.n_eligible_positions,
+                "noisy_positions": [
+                    asdict(position) for position in vr.translated.barcode.noisy_positions
+                ],
+                "n_indel_event_positions": vr.translated.barcode.n_indel_event_positions,
+                "max_indel_event_fraction": vr.translated.barcode.max_indel_event_fraction,
+                "depth_cv": vr.translated.barcode.depth_cv,
+                "depth_p10": vr.translated.barcode.depth_p10,
+                "depth_min_covered": vr.translated.barcode.depth_min_covered,
+                "breadth_at_mix_min_depth": vr.translated.barcode.breadth_at_mix_min_depth,
+                "consensus_identity": vr.translated.barcode.consensus_identity,
                 "source_path": str(vr.translated.barcode.source_path),
                 "consensus_seq": vr.translated.barcode.consensus_seq,
                 # The consensus indel evidence. Same fields the sidecar
@@ -188,11 +208,13 @@ def _dump_verdicts(
                 ),
                 "length_true_nt": vr.translated.length_true_nt,
                 "aa_sequence": vr.translated.aa_sequence,
+                "n_no_call_aa": vr.translated.n_no_call_aa,
                 "observed_nt_changes": vr.translated.observed_nt_changes,
                 "observed_aa_changes": vr.translated.observed_aa_changes,
                 "expected_mutations": vr.expected_mutations,
                 "verdict": vr.verdict.value,
                 "verdict_notes": vr.verdict_notes,
+                "mutant_id": vr.mutant_id,
             }
             for vr in verdicts
         ],
@@ -202,6 +224,8 @@ def _dump_verdicts(
                 "selected_plate": rr.selected_plate,
                 "selection_reason": rr.selection_reason,
                 "failed": rr.failed,
+                "is_fallback": rr.is_fallback,
+                "fallback_reason": rr.fallback_reason,
                 "plate_keys": list(rr.plate_verdicts.keys()),
                 "plate_barcodes": {
                     plate: vr.translated.barcode.custom_barcode
@@ -244,6 +268,24 @@ def _load_verdicts(path: Path) -> tuple[list[VerdictRecord], list[ReplicateResul
             n_aligned_reads=item.get("n_aligned_reads"),
             n_mapq_failed=int(item.get("n_mapq_failed", 0)),
             n_span_failed=int(item.get("n_span_failed", 0)),
+            min_variant_support=item.get("min_variant_support"),
+            n_variant_positions=int(item.get("n_variant_positions", 0)),
+            min_variant_support_depth=int(item.get("min_variant_support_depth", 0)),
+            median_minor_allele_fraction=float(item.get("median_minor_allele_fraction", 0.0)),
+            max_minor_allele_strand_share=item.get("max_minor_allele_strand_share"),
+            max_minor_allele_plus_count=int(item.get("max_minor_allele_plus_count", 0)),
+            max_minor_allele_minus_count=int(item.get("max_minor_allele_minus_count", 0)),
+            n_eligible_positions=int(item.get("n_eligible_positions", 0)),
+            noisy_positions=tuple(
+                NoisyPosition(**position) for position in item.get("noisy_positions", [])
+            ),
+            n_indel_event_positions=int(item.get("n_indel_event_positions", 0)),
+            max_indel_event_fraction=float(item.get("max_indel_event_fraction", 0.0)),
+            depth_cv=item.get("depth_cv"),
+            depth_p10=item.get("depth_p10"),
+            depth_min_covered=_opt_int(item, "depth_min_covered"),
+            breadth_at_mix_min_depth=item.get("breadth_at_mix_min_depth"),
+            consensus_identity=item.get("consensus_identity"),
             # Absent in a dump written before these keys existed, in which case
             # BarcodeRecord's own defaults stand and the record restores exactly
             # as it did. ``None`` is passed through rather than coerced, so an
@@ -268,6 +310,7 @@ def _load_verdicts(path: Path) -> tuple[list[VerdictRecord], list[ReplicateResul
             expected_mutations=list(item["expected_mutations"]),
             verdict=VerdictClass(item["verdict"]),
             verdict_notes=item["verdict_notes"],
+            mutant_id=item.get("mutant_id", ""),
         )
         verdicts.append(vr)
         by_key[(barcode.native_barcode, barcode.custom_barcode)] = vr
@@ -295,6 +338,8 @@ def _load_verdicts(path: Path) -> tuple[list[VerdictRecord], list[ReplicateResul
             selected_plate=item.get("selected_plate"),
             selection_reason=item.get("selection_reason", ""),
             failed=bool(item.get("failed", False)),
+            is_fallback=bool(item.get("is_fallback", False)),
+            fallback_reason=item.get("fallback_reason"),
         )
         replicates.append(rr)
     return verdicts, replicates

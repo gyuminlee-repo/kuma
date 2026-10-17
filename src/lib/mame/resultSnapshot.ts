@@ -16,12 +16,19 @@
 
 import { exists, readTextFile, rename } from "@tauri-apps/plugin-fs";
 import { ensureAutosaveDir, atomicWriteJson } from "@/lib/autosave";
-import type { AnalyzeResult } from "@/types/mame/models";
+import type { AnalysisConditions, AnalyzeResult } from "@/types/mame/models";
 import { RESULT_CONTRACT } from "@/lib/mame/resultContract";
 import { hasValidRunQuality } from "@/types/mame/runQualityValidator";
 
 /** Result snapshot schema. Bumped independently of the input snapshot schema. */
 export const MAME_RESULT_SCHEMA = 1;
+
+/** Export provenance travels with the response, never with current UI inputs. */
+export interface AnalyzeExportProvenance {
+  readonly run_meta?: Record<string, unknown> | null;
+  readonly barcode_prefix_note?: string | null;
+  readonly analysis_conditions?: AnalysisConditions | null;
+}
 
 const RESULT_FILE_NAME = "mame-result.json";
 
@@ -51,7 +58,7 @@ export interface MameResultSnapshot {
    * `kuma_version` instead.
    */
   result_contract?: number;
-  result: AnalyzeResult;
+  result: AnalyzeResult & AnalyzeExportProvenance;
 }
 
 /**
@@ -62,7 +69,7 @@ export interface MameResultSnapshot {
  */
 export async function writeMameResultSnapshot(
   projectPath: string | null,
-  result: AnalyzeResult,
+  result: AnalyzeResult & AnalyzeExportProvenance,
 ): Promise<void> {
   if (!projectPath) return;
   await ensureAutosaveDir(projectPath);

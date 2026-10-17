@@ -1325,7 +1325,14 @@
         "plateColumnRowOrder": "결과 행이 다른 배치 규칙과 동일하게 플레이트 열 방향을 따릅니다.",
         "barcodePlateShapeRefused": "8×12 플레이트를 기술하지 않는 barcode 파일은 실행을 멈춥니다.",
         "declaredWellsOnly": "선택에서 빠진 웰은 더 이상 판정하지 않는다. 예전에는 전체 변이 목록과 대조되어 실패로 찍혔다.",
-        "declaredWellsDenominator": "성공률의 분모가 선언한 웰에 있는 변이만으로 좁혀졌다. 예전에는 전체 변이 목록으로 나누어, 웰 10개를 선언하고 전부 통과한 런이 9%로 표시됐다."
+        "declaredWellsDenominator": "성공률의 분모가 선언한 웰에 있는 변이만으로 좁혀졌다. 예전에는 전체 변이 목록으로 나누어, 웰 10개를 선언하고 전부 통과한 런이 9%로 표시됐다.",
+        "runMembership": "이 실행에 기록된 플레이트만 분석하며 이전 실행이 남긴 출력은 제외합니다.",
+        "explicitWellPlacement": "추정 배치 대신 명시된 웰 주소와 선택한 wild-type 배치에 따라 판정합니다.",
+        "filteredDepthApplied": "선택한 최소 filtered depth가 판정기에 전달되며 더 이상 30이 묵시적으로 적용되지 않습니다.",
+        "baseQualityApplied": "품질이 낮은 염기는 consensus 투표에 참여하기 전에 걸러집니다.",
+        "decidedDeletionEvidence": "확정된 deletion은 미결정 또는 혼합 염기로 세지 않으며 호출된 indel로 분자를 복원해 번역합니다.",
+        "deletionMajorityRequired": "해당 위치를 덮는 read의 과반수가 지지하는 deletion만 no-call 판정에서 제외합니다.",
+        "inclusiveIndelBoundary": "indel event fraction이 임계값과 같아도 판정을 통과하지 않고 검토 대상으로 분류합니다."
       }
     },
     "janus": {

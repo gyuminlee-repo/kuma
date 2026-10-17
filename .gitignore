@@ -168,3 +168,8 @@ docs/kuma_overview.png
 docs/kuma_overview_900.png
 docs/kuma_overview_hero.png
 docs/kuma_overview_hero_900.png
+
+# MkDocs build output
+/site/
+# Raw user-guide captures; the annotated SVGs under docs/site/<lang>/figures are tracked
+docs/site/captures/*/*.png

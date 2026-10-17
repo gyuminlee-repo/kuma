@@ -12,8 +12,9 @@ Inputs are the MinKNOW run folder, a reference FASTA, the barcode workbook, and 
 - `final/consensus_all_dna.fasta`, all wells merged.
 - The verdict table and plate view on screen.
 - The picked clone list `..._picks.csv`, written by the run itself.
+- The Excel workbook, written to the output path chosen for the run.
 
-The Excel workbook and the robot mapping sheet (`..._janus.csv`) are not produced automatically. Save the workbook with "Export Excel" once the run finishes, and export the mapping sheet from step 3.
+The robot mapping sheet (`..._janus.csv`) is not produced automatically. Export it from step 3.
 
 ## Stages
 

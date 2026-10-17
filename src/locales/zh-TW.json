@@ -881,7 +881,14 @@
         "plateColumnRowOrder": "結果列依板的欄方向排列，與其他放置規則一致。",
         "barcodePlateShapeRefused": "未描述 8×12 板的 barcode 檔會停止執行。",
         "declaredWellsOnly": "未選中的孔位不再判定。以前它們會與整個變異列表比對並判為失敗。",
-        "declaredWellsDenominator": "成功率的分母只計入已宣告孔位中的變異。以前按整個變異列表相除，因此宣告十個孔位且全部通過的執行顯示為9%。"
+        "declaredWellsDenominator": "成功率的分母只計入已宣告孔位中的變異。以前按整個變異列表相除，因此宣告十個孔位且全部通過的執行顯示為9%。",
+        "runMembership": "分析只讀取本次執行記錄的板，排除先前執行留下的輸出。",
+        "explicitWellPlacement": "判定遵循明確的孔位位址和所選的野生型位置。",
+        "filteredDepthApplied": "所選的篩選後最小深度現在傳遞給分類器，不再預設為30。",
+        "baseQualityApplied": "低品質鹼基會在參與共識投票前被篩除。",
+        "decidedDeletionEvidence": "已確認的缺失不再計為未確定或混合鹼基，轉譯依已檢出的indel重建分子。",
+        "deletionMajorityRequired": "只有超過一半覆蓋讀段支持的缺失才會從no-call判定中排除。",
+        "inclusiveIndelBoundary": "indel事件比例恰好等於閾值時，現在也會進入複核。"
       }
     },
     "janus": {

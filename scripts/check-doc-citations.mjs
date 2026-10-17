@@ -55,8 +55,13 @@ const SCANNED_EXTENSIONS = [
  */
 const SELF_EXCLUDED = new Set([ALLOWLIST_FILE, CORPUS_FILE]);
 
-/** mkdocs resolves nav and exclude entries against docs_dir, so that root is tried too. */
-const DOCS_DIR = "docs";
+/**
+ * mkdocs resolves nav and exclude entries against docs_dir, so those roots are tried too.
+ * The user guide takes its page bodies from docs/help/<lang> through
+ * docs/site/help_pages.py, so a nav entry such as kuro-index.md names a file
+ * there. Both language folders hold the same file names.
+ */
+const DOCS_ROOTS = ["docs", "docs/help/en"];
 
 /**
  * Kept in step with the category list documented in the allowlist header.
@@ -128,8 +133,10 @@ export function resolveReference(ref, sourcePath, trackedSet) {
   const fromSibling = insideRoot(posixPath.join(posixPath.dirname(sourcePath), ref));
   if (fromSibling && trackedSet.has(fromSibling)) return "relative";
 
-  const fromDocs = insideRoot(posixPath.join(DOCS_DIR, ref));
-  if (fromDocs && trackedSet.has(fromDocs)) return "docs";
+  for (const root of DOCS_ROOTS) {
+    const fromDocs = insideRoot(posixPath.join(root, ref));
+    if (fromDocs && trackedSet.has(fromDocs)) return "docs";
+  }
 
   return null;
 }

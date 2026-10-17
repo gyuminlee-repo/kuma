@@ -52,7 +52,7 @@ The flow cell id and pore count appear in the same place. They are reference val
 | Verdict | Meaning |
 |---|---|
 | Pass | Observed amino-acid changes exactly match the expected design |
-| Ambiguous | All expected mutations matched, plus an extra AA change within the indel window of an expected site. Still counts as detected |
+| Ambiguous | All expected mutations matched, and either an extra AA change sits within the indel window of an expected site or the reads carry an indel-event signal at or above the threshold (this can mark a WT control too). Still counts as detected |
 | Mixed | Within-well contamination: a substantial second allele in the consensus signal |
 | Wrong AA | An expected site shows a different amino acid, an expected mutation is missing, or an unexpected extra change sits outside the window |
 | Frameshift | The consensus carries a net insertion or deletion whose length is not a multiple of 3, so the reading frame is shifted |

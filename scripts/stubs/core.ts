@@ -93,6 +93,17 @@ const KURO_REPLIES: Record<string, (params?: unknown) => unknown> = {
     error_msg: "MOCK_MODE: not in the capture bundle",
   }),
   fetch_structure: () => ({ success: false, error: "MOCK_MODE: not in the capture bundle" }),
+  predict_structure_esmfold: () => ({
+    success: false,
+    source: "error",
+    pdb_text: null,
+    plddt_mean: 0,
+    residue_count: 0,
+    coordinate_frame: "reference",
+    seq_hash: "",
+    cache_hit: false,
+    error_msg: "MOCK_MODE: not in the capture bundle",
+  }),
   // After a design with failed mutations the app retries each one with
   // suggested parameters (designSlice autoRetryFailedWithSuggestion). No retry
   // was recorded, so every retry finds nothing and the recorded failures stand.
@@ -138,6 +149,7 @@ const MAME_REPLIES: Record<string, (params?: unknown) => unknown> = {
   "mame.ingest.parse_reference": () => mameBundle.parse_reference ?? {},
   "mame.build_well_layout": () => mameBundle.well_layout ?? {},
   "mame.detect_native_barcodes": () => mameBundle.native_barcodes ?? {},
+  "mame.activity.detect_measurement_source": () => mameBundle.measurement_detection ?? {},
   ping: () => ({ ok: true }),
 };
 

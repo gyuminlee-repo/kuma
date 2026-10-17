@@ -290,7 +290,7 @@ export function ExportPlatePreview() {
   }
 
   return (
-    <Card>
+    <Card data-testid="export-plate-preview">
       <CardHeader>
         <CardTitle>{t("exportPreview.title")}</CardTitle>
         <CardDescription>{t("exportPreview.subtitle")}</CardDescription>

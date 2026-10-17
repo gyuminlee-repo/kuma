@@ -6,7 +6,7 @@ import { buildKuroSnapshot, readKuroBenchmarkResults } from "@/lib/kuroSnapshot"
 import { ProjectProvider } from "@/state/projectContext";
 import { useAppStore } from "@/store/appStore";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
-import { RESULT_CONTRACT } from "@/lib/mame/resultContract";
+import { RESULT_CONTRACT, RESULT_CONTRACT_REVISIONS } from "@/lib/mame/resultContract";
 import { buildMameSnapshot } from "@/lib/mame/autosaveSnapshot";
 import { useRoundStore } from "@/store/round/roundSlice";
 import type { AutosaveSnapshot } from "@/lib/autosave";
@@ -408,6 +408,34 @@ describe("useAutosaveHydration: analyze-result restore", () => {
       (c) => c[0] === "load_analyze_result",
     ) as [string, { designed_mutant_ids: string[] | null }];
     expect(params.designed_mutant_ids).toEqual(designed);
+  });
+
+  it("replays export provenance from the saved analyze response", async () => {
+    const provenance = {
+      run_meta: { instrument: "GridION", flow_cell_id: "FC1", basecalling_enabled: true },
+      barcode_prefix_note: "Saved barcode prefix rule",
+      analysis_conditions: {
+        reference_file: "ref.fasta", reference_length: 9, reference_sha256: "abc",
+        cds_start: 0, cds_end: 9, mode: "amplicon", ingest_mode: "barcode",
+        min_read_count: null, max_consensus_n_fraction: null,
+        min_file_size_kb: 0, many_cutoff: 4,
+      },
+    };
+    hooks.readMameResultSnapshot.mockResolvedValue({
+      status: "ok",
+      snapshot: {
+        schema: 1, kuma_version: "0.0.0-test",
+        result: { ...ANALYZE_RESULT, ...provenance },
+      },
+    });
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(hooks.sendMameRequest).toHaveBeenCalledWith(
+        "load_analyze_result", expect.objectContaining(provenance),
+      );
+    });
   });
 
   it("carries the off-layout records of the saved run through a restart", async () => {
@@ -2320,14 +2348,8 @@ describe("useAutosaveHydration — saved runs from another build", () => {
   });
 
   it("restores a run from a release that changed nothing about results", async () => {
-    // v0.16.25 is the newest recorded result change, so a run saved by it is
-    // this build's answer even though the version strings differ. The version
-    // here has to move with the table: pinning an older one asserts that a run
-    // scored by a superseded rule is current, which is the thing the notice
-    // exists to prevent. It was left at 0.16.16 when revision 7
-    // (declaredWellsDenominator) shipped, and this test failed on main until
-    // it was moved.
-    hooks.readMameResultSnapshot.mockResolvedValue(resultSnapshotFrom("0.16.25"));
+    const newest = RESULT_CONTRACT_REVISIONS[RESULT_CONTRACT_REVISIONS.length - 1];
+    hooks.readMameResultSnapshot.mockResolvedValue(resultSnapshotFrom(newest?.since));
 
     renderHydration();
 
@@ -2350,6 +2372,22 @@ describe("useAutosaveHydration — saved runs from another build", () => {
     });
     expect(useMameAppStore.getState().restoredResultProvenance).toBeNull();
   });
+
+  it.each(["0.16.59", "0.16.63", "0.16.64"])(
+    "does not replay revision-7 verdicts saved by %s",
+    async (version) => {
+      hooks.readMameResultSnapshot.mockResolvedValue(resultSnapshotFrom(version, 7));
+
+      renderHydration();
+
+      await waitFor(() => {
+        expect(useMameAppStore.getState().restoredResultProvenance?.relation).toBe("older");
+      });
+      expect(useMameAppStore.getState().verdicts).toEqual([]);
+      expect(useMameAppStore.getState().currentMameSubStep).not.toBe("analyze.review");
+      expect(loadAnalyzeCalls()).toHaveLength(0);
+    },
+  );
 
   it("refuses to show a run scored before a result change", async () => {
     hooks.readMameResultSnapshot.mockResolvedValue(resultSnapshotFrom("0.15.9"));

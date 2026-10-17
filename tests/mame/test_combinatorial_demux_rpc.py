@@ -510,10 +510,8 @@ class TestDispatcherRegistration:
 class TestHeartbeat:
     """Verify heartbeat keep-alive emits during run_combinatorial_demux.
 
-    Strategy: monkeypatch _HEARTBEAT_INTERVAL_S to 0.05 s and make the
-    core sleep for 0.2 s.  The heartbeat thread must fire at least once
-    during that window, emitting a progress notification with stage="demux"
-    and value=50 (initial holder state, alignment phase).
+    Keep the core blocked until a heartbeat progress notification arrives.
+    Only the heartbeat thread can release the alignment stub.
     """
 
     def test_heartbeat_emits_during_alignment(
@@ -524,8 +522,8 @@ class TestHeartbeat:
         output_dir: "Path",
         monkeypatch: "pytest.MonkeyPatch",
     ) -> None:
-        import time
-        from unittest.mock import MagicMock, call, patch
+        import threading
+        from unittest.mock import patch
 
         import sidecar_mame.handlers.combinatorial_demux as hb_mod
 
@@ -533,16 +531,27 @@ class TestHeartbeat:
         monkeypatch.setattr(hb_mod, "_HEARTBEAT_INTERVAL_S", 0.05)
 
         mock_result = _MockDemuxResult()
+        alignment_started = threading.Event()
+        heartbeat = threading.Event()
 
         def _slow_demux(**kwargs):
             """Simulate a long-running alignment with no progress callbacks."""
-            time.sleep(0.25)
+            alignment_started.set()
+            assert heartbeat.wait(timeout=5), "heartbeat did not emit during alignment"
             return mock_result
 
         emitted: list[dict] = []
 
         def _capture_send(obj: dict) -> None:
             emitted.append(obj)
+            if (
+                alignment_started.is_set()
+                and threading.current_thread().name == "demux-heartbeat"
+                and obj.get("method") == "progress"
+                and obj["params"]["stage"] == "demux"
+                and obj["params"]["value"] == 50
+            ):
+                heartbeat.set()
 
         with (
             patch(
@@ -570,7 +579,7 @@ class TestHeartbeat:
             if obj.get("method") == "progress"
         ]
         # At least the initial emit (value=50) + 1 heartbeat re-emit must exist.
-        # With 0.05 s interval and 0.25 s sleep we expect ~4-5 heartbeats.
+        assert heartbeat.is_set(), "expected a heartbeat during alignment"
         heartbeat_events = [
             e for e in progress_events
             if e.get("params", {}).get("value") == 50

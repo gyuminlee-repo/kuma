@@ -16,6 +16,7 @@
   ],
   "tracked": [
     "AGENTS.md",
+    "docs/help/en/kuro-index.md",
     "CHANGELOG.md",
     "NOTICE-bundled.md",
     "README.md",
@@ -172,6 +173,13 @@
       "source": "scripts/check-doc-citations.mjs",
       "line": "const DOC_EXTENSIONS = new Set([\".py\", \".ts\", \".tsx\", \".rs\", \".mjs\"]);",
       "expect": []
+    },
+    {
+      "id": "neg-mkdocs-nav-help-page",
+      "why": "negative: a user-guide nav entry names an in-app help page that docs/site/help_pages.py pulls from docs/help/en at build time",
+      "source": "mkdocs.yml",
+      "line": "    - kuro-index.md",
+      "expect": [{ "ref": "kuro-index.md", "via": "docs" }]
     }
   ],
   "allowlistCases": [

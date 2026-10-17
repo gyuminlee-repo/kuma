@@ -11,7 +11,7 @@ import io
 import json
 import subprocess
 import sys
-import time
+import threading
 from pathlib import Path
 
 import pytest
@@ -91,7 +91,7 @@ def _spawn_kuro_dispatcher() -> subprocess.Popen:
                 "import sys; "
                 f"sys.path.insert(0, {str(_SIDECAR_DIR)!r}); "
                 "from sidecar_kuro.dispatcher import main; "
-                "main(emit_ready=False)"
+                "main()"
             ),
         ],
         stdin=subprocess.PIPE,
@@ -102,72 +102,78 @@ def _spawn_kuro_dispatcher() -> subprocess.Popen:
     )
 
 
+def _shutdown_dispatcher(request_id: int) -> int:
+    """Wait for ready, drain both pipes, and bound shutdown independently."""
+    proc = _spawn_kuro_dispatcher()
+    assert proc.stdin is not None
+    assert proc.stdout is not None
+    assert proc.stderr is not None
+    stdout_pipe = proc.stdout
+    stderr_pipe = proc.stderr
+    ready = threading.Event()
+    ack = threading.Event()
+    stdout: list[str] = []
+    stderr: list[str] = []
+
+    def collect_stdout() -> None:
+        for line in stdout_pipe:
+            stdout.append(line)
+            try:
+                msg = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if msg.get("method") == "ready":
+                ready.set()
+            if msg.get("id") == request_id and msg.get("result", {}).get("ok") is True:
+                ack.set()
+
+    def collect_stderr() -> None:
+        stderr.extend(stderr_pipe)
+
+    readers = [
+        threading.Thread(target=collect_stdout, daemon=True),
+        threading.Thread(target=collect_stderr, daemon=True),
+    ]
+    for reader in readers:
+        reader.start()
+    failure = ""
+    exit_code = None
+    try:
+        if not ready.wait(timeout=30):
+            failure = "Dispatcher did not emit ready within 30s"
+        else:
+            proc.stdin.write(json.dumps({
+                "jsonrpc": "2.0", "id": request_id, "method": "shutdown", "params": {},
+            }) + "\n")
+            proc.stdin.flush()
+            # stdin stays open: only the shutdown RPC may drive this exit.
+            try:
+                exit_code = proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                failure = "Dispatcher did not exit within 5s after ready + shutdown"
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+            proc.wait(timeout=5)
+        for reader in readers:
+            reader.join(timeout=5)
+        proc.stdin.close()
+        proc.stdout.close()
+        proc.stderr.close()
+
+    diagnostics = f"stdout={''.join(stdout)!r}\nstderr={''.join(stderr)!r}"
+    assert not failure, f"{failure}\n{diagnostics}"
+    assert all(not reader.is_alive() for reader in readers), diagnostics
+    assert ack.is_set(), f"Expected shutdown ack before exit\n{diagnostics}"
+    assert exit_code == 0, f"Expected clean exit (0), got {exit_code}\n{diagnostics}"
+    return exit_code
+
+
 class TestShutdownProcessExit:
     def test_shutdown_rpc_causes_process_exit_within_5s(self):
         """Dispatcher exits after shutdown RPC while stdin remains open."""
-        proc = _spawn_kuro_dispatcher()
-        assert proc.stdin is not None
-        assert proc.stdout is not None
-        try:
-            shutdown_msg = json.dumps(
-                {"jsonrpc": "2.0", "id": 1, "method": "shutdown", "params": {}}
-            ) + "\n"
-            proc.stdin.write(shutdown_msg)
-            proc.stdin.flush()
-            # stdin is intentionally NOT closed — exit must come from shutdown handler
-
-            # Read ack from stdout
-            proc.wait(timeout=30)
-            deadline = time.monotonic() + 30.0
-            ack_received = False
-            while time.monotonic() < deadline:
-                line = proc.stdout.readline()
-                if not line:
-                    break
-                try:
-                    msg = json.loads(line.strip())
-                    if msg.get("id") == 1 and "result" in msg:
-                        ack_received = True
-                        break
-                except json.JSONDecodeError:
-                    pass
-
-            # Process must exit with stdin open — proves shutdown handler drove the exit
-            # 30 s, not 5. This asserts a clean exit rather than a fast
-            # one, and spawn alone costs 0.63 s of imports on an idle
-            # machine. Under load the old budget timed out on a process
-            # that was exiting correctly. A hang still fails here.
-            exit_code = proc.wait(timeout=30)
-        finally:
-            if proc.poll() is None:
-                proc.kill()
-                proc.wait()
-
-        assert ack_received, "Expected shutdown ack before process exit"
-        assert exit_code == 0, f"Expected exit code 0, got {exit_code}"
+        assert _shutdown_dispatcher(1) == 0
 
     def test_dispatcher_exits_cleanly_not_via_sigkill(self):
         """Exit code 0 (clean), not negative (signal-killed)."""
-        proc = _spawn_kuro_dispatcher()
-        assert proc.stdin is not None
-        try:
-            msg = json.dumps(
-                {"jsonrpc": "2.0", "id": 2, "method": "shutdown", "params": {}}
-            ) + "\n"
-            proc.stdin.write(msg)
-            proc.stdin.flush()
-            # stdin NOT closed
-            # 30 s, not 5. This asserts a clean exit rather than a fast
-            # one, and spawn alone costs 0.63 s of imports on an idle
-            # machine. Under load the old budget timed out on a process
-            # that was exiting correctly. A hang still fails here.
-            exit_code = proc.wait(timeout=30)
-        finally:
-            if proc.poll() is None:
-                proc.kill()
-                proc.wait()
-
-        assert exit_code == 0, (
-            f"Expected clean exit (0), got {exit_code}. "
-            "Negative codes indicate signal-based termination."
-        )
+        assert _shutdown_dispatcher(2) == 0
