@@ -261,7 +261,9 @@ def _detect_block(path: Path, rows: list[list], evidence: dict[str, Any], slot: 
         # shared, so the export holds other experiments' samples beside the
         # re-measured wells, and `_well_confirmation` skips them with a warning
         # where every other reader refuses.  `unclassified` is counted in the
-        # evidence above.
+        # evidence above, and reported as skipped rows so the panel shows the
+        # count before the build runs.
+        evidence["n_skipped_rows"] = len(unclassified)
         return MeasurementSourceDetection(
             path=str(path),
             candidates=[CONFIRMATION_WELL_LABELS],

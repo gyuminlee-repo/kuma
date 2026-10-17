@@ -267,6 +267,7 @@ def test_well_labeled_confirmation_reports_the_samples_it_will_skip(tmp_path: Pa
     assert result.candidates == [CONFIRMATION_WELL_LABELS]
     assert result.evidence["sample_name_namespaces"]["well"] == 3
     assert result.evidence["sample_name_namespaces"]["unclassified"] == 2
+    assert result.evidence["n_skipped_rows"] == 2
     assert result.evidence["sample_name_samples"]["unclassified"] == [
         "Other-A-1",
         "Other2-Y0.0-2",
