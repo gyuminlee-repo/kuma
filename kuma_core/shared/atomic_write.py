@@ -26,6 +26,8 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from collections.abc import Iterator
+import codecs
+import errno
 import logging
 import os
 import stat
@@ -57,7 +59,9 @@ def _temp_path_for(path: Path) -> Path:
     and the suffix kept last so the shape matches the per-call staging name
     ``_publish_artifact_bundle`` already uses.
     """
-    return path.with_name(f".{path.stem}.{uuid4().hex}{_TMP_SUFFIX}{path.suffix}")
+    # 12 hex digits keep the staging name short enough for paths near the
+    # Windows MAX_PATH limit while staying unique per call.
+    return path.with_name(f".{path.stem}.{uuid4().hex[:12]}{_TMP_SUFFIX}{path.suffix}")
 
 
 def _replace_with_retry(tmp_path: Path, path: Path) -> None:
@@ -86,6 +90,21 @@ def _replace_with_retry(tmp_path: Path, path: Path) -> None:
             time.sleep(delay)
             delay *= 2
     os.replace(tmp_path, path)
+
+
+# Filesystems that do not support chmod (some network shares and FUSE mounts)
+# report one of these; the file still has the share's own permissions.
+_CHMOD_UNSUPPORTED = {errno.EPERM, errno.ENOTSUP, errno.EOPNOTSUPP}
+
+
+def _apply_permissions(fd: int, permissions: int, tmp_path: Path) -> None:
+    """Restore the replaced file's mode, unless the filesystem refuses chmod."""
+    try:
+        os.fchmod(fd, permissions)
+    except OSError as exc:
+        if exc.errno not in _CHMOD_UNSUPPORTED:
+            raise
+        _logger.warning("Could not keep the previous permissions on %s: %s", tmp_path, exc)
 
 
 def _private_opener(path: str, flags: int) -> int:
@@ -170,6 +189,7 @@ def atomic_write_text(
         OSError: On any I/O failure (the temp file is cleaned up first).
     """
     path = Path(path)
+    codecs.lookup(encoding)  # an unknown encoding fails before any file exists
     tmp_path = _temp_path_for(path)
     permissions = _existing_permissions(path)
     opener = _umask_opener if permissions is None else _private_opener
@@ -180,7 +200,7 @@ def atomic_write_text(
             fh.write(content)
             fh.flush()
             if permissions is not None:
-                os.fchmod(fh.fileno(), permissions)
+                _apply_permissions(fh.fileno(), permissions, tmp_path)
             if fsync:
                 os.fsync(fh.fileno())
         _replace_with_retry(tmp_path, path)
@@ -219,7 +239,7 @@ def atomic_output_path(path: Path) -> Iterator[Path]:
         yield tmp_path
         with open(tmp_path, "r+b") as fh:
             if permissions is not None:
-                os.fchmod(fh.fileno(), permissions)
+                _apply_permissions(fh.fileno(), permissions, tmp_path)
             os.fsync(fh.fileno())
         _replace_with_retry(tmp_path, path)
         fsync_directory(path.parent)

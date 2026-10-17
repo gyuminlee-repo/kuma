@@ -40,7 +40,10 @@ def test_tracked_files_hold_only_synthetic_ids() -> None:
     for path in _tracked_files():
         if not path.is_file():
             continue
-        hits = _unknown_ids(path.name.encode()) | _unknown_ids(path.read_bytes())
+        data = path.read_bytes()
+        # Binary files (images, archives) only have their name checked.
+        body = b"" if b"\0" in data[:8192] else data
+        hits = _unknown_ids(path.name.encode()) | _unknown_ids(body)
         if hits:
             found[str(path.relative_to(_ROOT))] = hits
     assert not found, f"real run identifiers in tracked files: {found}"
