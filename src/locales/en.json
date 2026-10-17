@@ -2590,6 +2590,8 @@
   },
   "toast": {
     "designCancelledByReset": "The running design was cancelled because the workspace was cleared. Run design again to get results.",
+    "analysisCancelledByReset": "The running analysis was cancelled because the workspace was cleared or another project was opened. Run the analysis again to get results.",
+    "analysisCancelFailed": "The running analysis could not be stopped after the workspace was cleared: {{message}}",
     "completedWithDuration": "Completed ({{duration}})"
   },
   "exportSlice": {

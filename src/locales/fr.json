@@ -2548,6 +2548,8 @@
   },
   "toast": {
     "designCancelledByReset": "La conception en cours a été annulée car l’espace de travail a été vidé. Relancez la conception pour obtenir des résultats.",
+    "analysisCancelledByReset": "L’analyse en cours a été annulée car l’espace de travail a été vidé ou un autre projet a été ouvert. Relancez l’analyse pour obtenir des résultats.",
+    "analysisCancelFailed": "Impossible d’arrêter l’analyse en cours après le vidage de l’espace de travail : {{message}}",
     "completedWithDuration": "Terminé ({{duration}})"
   },
   "exportSlice": {

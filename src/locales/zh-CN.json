@@ -2548,6 +2548,8 @@
   },
   "toast": {
     "designCancelledByReset": "工作区已清空，正在运行的设计已取消。如需结果，请重新运行设计。",
+    "analysisCancelledByReset": "工作区已清空或已打开其他项目，正在运行的分析已取消。如需结果，请重新运行分析。",
+    "analysisCancelFailed": "清空工作区后未能停止正在运行的分析：{{message}}",
     "completedWithDuration": "已完成 ({{duration}})"
   },
   "exportSlice": {

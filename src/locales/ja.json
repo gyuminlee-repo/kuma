@@ -2548,6 +2548,8 @@
   },
   "toast": {
     "designCancelledByReset": "ワークスペースをクリアしたため、実行中の設計をキャンセルしました。結果が必要な場合は設計を再実行してください。",
+    "analysisCancelledByReset": "ワークスペースをクリアしたか別のプロジェクトを開いたため、実行中の解析をキャンセルしました。結果が必要な場合は解析を再実行してください。",
+    "analysisCancelFailed": "ワークスペースをクリアした後、実行中の解析を停止できませんでした: {{message}}",
     "completedWithDuration": "完了 ({{duration}})"
   },
   "exportSlice": {

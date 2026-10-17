@@ -288,7 +288,13 @@ function analyzeInputParams(state: AppState) {
   };
 }
 
-export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set, get) => ({
+export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set, get) => {
+  // Ownership of analyze replies. A run may write the store only while no
+  // cancel, reset and no newer run has happened since it began. A reset ends
+  // the run explicitly (resetAll.ts cancels the backend and tells the user), so
+  // a reply that arrives afterwards belongs to inputs that no longer exist.
+  let analysisRun = 0;
+  return ({
   ...mameInputInitialState,
   setCdsCandidates: (cdsCandidates) => set({ cdsCandidates, selectedCdsIndex: 0 }),
   setSelectedCdsIndex: (selectedCdsIndex) => set({ selectedCdsIndex }),
@@ -666,6 +672,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   // confirmNativeBarcodeSelection) own the try/catch that resets isAnalyzing
   // and surfaces validationErrors.
   _demuxAndAnalyze: async (nativeBarcodes: string[] | null) => {
+    const run = analysisRun;
     const state = get();
     const { rawRunParams } = state;
 
@@ -698,6 +705,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       },
       MAME_RAWRUN_RPC_TIMEOUT_MS,
     );
+    if (run !== analysisRun) return;
     persistRoundAnalyzeEvidence(targetRoundId, runId, result);
 
     get().setVerdicts(result.verdicts);
@@ -744,7 +752,9 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     } catch (err) {
       console.warn("[inputSlice] persist analyze result failed:", err);
     }
+    if (run !== analysisRun) return;
     await get().loadPlateData();
+    if (run !== analysisRun) return;
     // A8: auto-load run health after analysis completes (non-blocking on failure)
     void get().loadRunHealth();
     set({
@@ -764,6 +774,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     // column the variant list is read from (v0.15.6), so a disagreement between
     // two sheets of one workbook is reported by PlateOrderNotice and left to
     // them: refusing would be the program overruling a statement it asked for.
+    const run = ++analysisRun;
     set({
       isAnalyzing: true,
       analyzeProgress: 0,
@@ -794,6 +805,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           "mame.detect_native_barcodes",
           { minknow_run_dir: state.inputDir },
         );
+        if (run !== analysisRun) return;
 
         if (detect.total_count > 1) {
           // Pause and surface the confirm dialog. Leave isAnalyzing true so the
@@ -839,6 +851,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         },
         MAME_ANALYZE_RPC_TIMEOUT_MS,
       );
+      if (run !== analysisRun) return;
       persistRoundAnalyzeEvidence(targetRoundId, runId, result);
 
       get().setVerdicts(result.verdicts);
@@ -874,7 +887,9 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       } catch (err) {
         console.warn("[inputSlice] persist analyze result failed:", err);
       }
+      if (run !== analysisRun) return;
       await get().loadPlateData();
+      if (run !== analysisRun) return;
       void get().loadRunHealth();
       set({
         isAnalyzing: false,
@@ -888,6 +903,9 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         analyzePhase: null,
       });
     } catch (error) {
+      // A cancelled or reset run fails when its sidecar is killed. That is the
+      // cancel the user asked for, not a failure to report over it.
+      if (run !== analysisRun) return;
       set({
         isAnalyzing: false,
         isDetectingBarcodes: false,
@@ -920,6 +938,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     // `native_barcodes`), while the store keeps `[]` to distinguish "pooled"
     // from "no raw-run selection applies".
     const requested = selected.length > 0 ? selected : null;
+    const run = analysisRun;
     // Close the dialog and resume per-NB demux+analyze with the selection.
     set({
       detectedNativeBarcodes: null,
@@ -929,6 +948,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     try {
       await get()._demuxAndAnalyze(requested);
     } catch (error) {
+      if (run !== analysisRun) return;
       set({
         isAnalyzing: false,
         analyzeMessage: "Analysis failed",
@@ -940,6 +960,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     }
   },
   cancelNativeBarcodeSelection: () => {
+    analysisRun += 1;
     set({
       detectedNativeBarcodes: null,
       // Cancel aborts the analysis, so no run is going to be scored on the axis
@@ -956,14 +977,20 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   },
   cancelAnalysis: async () => {
     if (!get().isAnalyzing) return;
+    const run = ++analysisRun;
     set({ analyzeMessage: "Cancelling…" });
     try {
       await cancelAndRespawn();
     } catch (error) {
       console.warn("[inputSlice] cancel failed:", error);
     }
+    if (run !== analysisRun) return;
     set({
       isAnalyzing: false,
+      // A cancel during native-barcode detection ends the detection too. The
+      // update guard reads this flag, so leaving it set refused updates.
+      isDetectingBarcodes: false,
+      detectedNativeBarcodes: null,
       analyzeProgress: 0,
       analyzeMessage: "Analysis cancelled",
       analyzeStage: null,
@@ -979,10 +1006,16 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   // hydration calls this reset right after that copy, so wiping them left the
   // store without a project until the next switch (no result file written,
   // Clear All unable to name the project form it should forget).
-  resetInput: () =>
+  // resetEpoch is kept too: it counts resets, and setting it back to its
+  // initial value made consecutive resets indistinguishable to its readers.
+  resetInput: () => {
+    analysisRun += 1;
     set((s) => ({
       ...mameInputInitialState,
       projectPath: s.projectPath,
       formStoragePath: s.formStoragePath,
-    })),
-});
+      resetEpoch: s.resetEpoch,
+    }));
+  },
+  });
+};
