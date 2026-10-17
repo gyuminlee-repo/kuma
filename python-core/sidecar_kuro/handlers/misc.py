@@ -17,6 +17,7 @@ from sidecar_kuro.core import (
     _CUSTOM_POLYMERASE_PATH,
     _get_cached_ca_coords,
     _get_cached_ca_seq,
+    _esmfold_pdb_text,
 )
 from sidecar_kuro.models import (
     LoadEvolveproParams,
@@ -308,20 +309,30 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
     strict_context = None
     if p.strict_spatial:
         if not p.structural_diversity or not p.structure_accession or p.structure_accession.startswith("file:"):
-            raise ValueError("Strict spatial selection requires an AlphaFold accession and structural mode")
+            raise ValueError("Strict spatial selection requires an AlphaFold accession or an ESMFold prediction, and structural mode")
         from kuma_core.kuro.alphafold import fetch_pdb_text
-        from kuma_core.kuro.esmfold import STRUCTURE_KEY_PREFIX, load_cached_prediction
-        from kuma_core.kuro.strict_spatial import SOURCE_ALPHAFOLD_DB, SOURCE_ESMFOLD, exact_pdb_context
+        from kuma_core.kuro.esmfold import STRUCTURE_KEY_PREFIX
+        from kuma_core.kuro.strict_spatial import (
+            SOURCE_ALPHAFOLD_DB,
+            SOURCE_ESMFOLD,
+            StrictFrameMismatchError,
+            exact_pdb_context,
+        )
 
         strict_accession = p.structure_accession.strip().upper()
         # An ESMFold key names a prediction of the reference made in this app;
         # anything else is an AlphaFold DB accession. Neither is guessed from TITLE.
         if strict_accession.startswith(STRUCTURE_KEY_PREFIX):
-            pdb_text = load_cached_prediction(strict_accession)
+            pdb_text = _esmfold_pdb_text(strict_accession)
             strict_source = SOURCE_ESMFOLD
         else:
             pdb_text = fetch_pdb_text(strict_accession)
             strict_source = SOURCE_ALPHAFOLD_DB
+        if not pdb_text and strict_source == SOURCE_ESMFOLD:
+            # The prediction is gone (cache cleared, project opened elsewhere).
+            # Same expected refusal as a structure that does not hold the
+            # reference, so the UI answers it instead of logging a crash.
+            raise StrictFrameMismatchError("Strict spatial source structure is unavailable")
         if not pdb_text:
             raise ValueError("Strict spatial source PDB is unavailable")
         strict_context = exact_pdb_context(pdb_text, p.ref_seq, strict_accession, source=strict_source)

@@ -851,6 +851,7 @@ def handle_predict_structure_esmfold(params: dict) -> dict:
     from kuma_core.kuro.esmfold import structure_key
 
     key = structure_key(seq_hash)
+    _core._remember_esmfold_prediction(key, pdb_text)
 
     return {
         "success": True,

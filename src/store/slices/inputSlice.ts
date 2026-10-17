@@ -281,7 +281,12 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       if (gen === csvLoadGeneration) {
         set({
           strictSpatialSelection: null,
-          strictSpatialError: isStrictSpatialMode({ ...get(), mutationInputMode: "evolvepro" }) ? formatError(err) : null,
+          strictSpatialError: isStrictSpatialMode({ ...get(), mutationInputMode: "evolvepro" })
+            // The sidecar's English text is for the log; the user gets the localized one.
+            ? isStrictFrameMismatchError(formatError(err))
+              ? i18next.t("strictSpatial.structureNotUsable")
+              : formatError(err)
+            : null,
           ...(isStrictSpatialMode({ ...get(), mutationInputMode: "evolvepro" })
             // The sidecar's refusal when the structure does not hold the reference
             // (strict_spatial.StrictFrameMismatchError); the panel recovers from it.

@@ -84,7 +84,7 @@ function StrictSpatialExclusions({ result }: { result: StrictSpatialResult }) {
   })).join(t("strictSpatial.exclusionSeparator"));
   return <>
     {confidence && <p>{confidence.source !== "unavailable"
-      ? t("strictSpatial.confidenceAlphaFold", { threshold: confidence.threshold,
+      ? t(confidence.source === "esmfold_plddt" ? "strictSpatial.confidenceEsmfold" : "strictSpatial.confidenceAlphaFold", { threshold: confidence.threshold,
         residues: confidence.low_confidence_residue_count, variants: confidence.excluded_variant_count })
       : t("strictSpatial.confidenceUnavailable")}</p>}
     {summary && <p>{t("strictSpatial.exclusionSummary", { summary })}</p>}

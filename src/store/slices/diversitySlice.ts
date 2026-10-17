@@ -456,8 +456,14 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       }, 120_000);
       // Surface the same 3D-to-1D fallback notice load_evolvepro shows, so a
       // frame mismatch is not silent in the benchmark path either.
+      const structureKey = state.structureAccession || state.uniprotAccession;
       const benchMismatch = result.structure_frame_mismatch
         ? ` | ${i18next.t("inputSlice.structureFrameMismatch")}`
+        // A structure is set but the sidecar did not use its coordinates (for
+        // example an ESMFold prediction no longer in the cache): the run is on
+        // 1-D distance. Forcing 1-D is the user's choice and needs no notice.
+        : result.structure_coordinates_used === false && structureKey && state.distanceMode !== "1d"
+          ? ` | ${i18next.t("diversity.benchmarkOneDimensional")}`
         : result.structure_coverage
           ? ` | ${i18next.t("inputSlice.structureCoverage", {
               covered: result.structure_coverage.covered,
@@ -757,11 +763,14 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     return promise;
   },
 
-  adoptReferenceEsmfold: async (sequence: string): Promise<"used" | "refused" | "failed"> => {
+  adoptReferenceEsmfold: async (sequence: string): Promise<"used" | "refused" | "failed" | "stale"> => {
     // The prediction can take 180 s. A newer structure request or a change of
     // reference or accession in that time owns the structure, so this result is dropped.
-    // Consent is asked once, inside predictStructureEsmfold.
-    const generation = ++structureFetchGeneration;
+    // The generation is only read here: bumping it now would make an in-flight
+    // fetch drop its result, and if the prediction then failed nothing would
+    // clear structureLoading or restore the fetched structure. Ownership is
+    // taken on success. Consent is asked once, inside predictStructureEsmfold.
+    const generation = structureFetchGeneration;
     const startRefSeq = currentReferenceSequence(get());
     const startAccession = get().uniprotAccession;
     const result = await get().predictStructureEsmfold(sequence);
@@ -771,7 +780,9 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       generation !== structureFetchGeneration
       || currentReferenceSequence(get()) !== startRefSeq
       || get().uniprotAccession !== startAccession
-    ) return "failed";
+    ) return "stale";
+    // Taking ownership discards any fetch still in flight.
+    structureFetchGeneration++;
     set({
       structureLoaded: true,
       structureLoading: false,

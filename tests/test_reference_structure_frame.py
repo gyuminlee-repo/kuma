@@ -168,6 +168,8 @@ def empty_slot(monkeypatch):
     """The sidecar's single coordinate slot, empty and restored after the test."""
     for name in ("ca_coords", "ca_coords_accession", "ca_coords_seq"):
         monkeypatch.setattr(sidecar_core._state, name, None)
+    # Predictions held in memory for the session, empty and restored too.
+    monkeypatch.setattr(sidecar_core, "_esmfold_predictions", {}, raising=False)
 
 
 def _predict(pdb: str) -> dict:
@@ -182,6 +184,16 @@ def test_prediction_registers_coordinates_under_a_structure_key(empty_slot):
     result = _predict(pdb)
     assert result["structure_key"] == KEY
     with patch(_LOAD_CACHED, return_value=pdb):
+        coords = sidecar_core._get_cached_ca_coords(KEY)
+        assert coords is not None and len(coords) == len(REF) + 1
+        assert sidecar_core._get_cached_ca_seq(KEY) == REF
+
+
+def test_prediction_survives_a_failed_cache_write_within_the_session(empty_slot):
+    pdb = _pdb(REF, [90.0] * len(REF))
+    _predict(pdb)
+    # The disk cache could not be written, so it answers nothing for the key.
+    with patch(_LOAD_CACHED, return_value=None):
         coords = sidecar_core._get_cached_ca_coords(KEY)
         assert coords is not None and len(coords) == len(REF) + 1
         assert sidecar_core._get_cached_ca_seq(KEY) == REF
@@ -219,6 +231,13 @@ def test_esmfold_key_missing_from_the_cache_is_reported_as_one_dimensional(empty
     with patch(_LOAD_CACHED, return_value=None):
         result = misc.handle_load_evolvepro_csv(_load_params(tmp_path))
     assert result["structure_coordinates_used"] is False
+
+
+def test_strict_mode_with_an_esmfold_key_missing_from_the_cache_sends_the_structured_refusal(empty_slot, tmp_path):
+    params = {**_load_params(tmp_path), "strict_spatial": True}
+    with patch(_LOAD_CACHED, return_value=None), pytest.raises(StrictFrameMismatchError) as caught:
+        misc.handle_load_evolvepro_csv(params)
+    assert "AlphaFold accession" not in str(caught.value)
 
 
 def test_benchmark_resolves_an_esmfold_key_from_the_cache(empty_slot):
@@ -276,3 +295,4 @@ def test_dispatcher_sends_the_frame_refusal_under_its_own_code():
     with patch.object(dispatcher, "_error", lambda rid, code, msg: sent.append((rid, code, msg))):
         dispatcher._dispatch_handler(7, "load_evolvepro_csv", handler, {})
     assert sent == [(7, -32010, "no placement")]
+

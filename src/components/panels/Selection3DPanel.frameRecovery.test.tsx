@@ -193,6 +193,19 @@ describe("Selection3DPanel: accession structure does not cover the reference", (
     expect(screen.queryByTestId("frame-alphafold-server")).toBeNull();
   });
 
+  it("does not claim an ESMFold prediction is in use when its coordinates are gone, and predicts again", async () => {
+    setStore({ structureAccession: "ESMFOLD:ABC123", structure3dState: "no_structure" });
+    render(<Selection3DPanel defaultOpen />);
+    expect(screen.queryByTestId("esmfold-reference-note")).toBeNull();
+    await waitFor(() => expect(storeRef.current.adoptReferenceEsmfold).toHaveBeenCalledTimes(1));
+  });
+
+  it("predicts again when strict mode lost the ESMFold prediction", async () => {
+    setStore({ structureAccession: "ESMFOLD:ABC123", structure3dState: "frame_mismatch" });
+    render(<Selection3DPanel defaultOpen />);
+    await waitFor(() => expect(storeRef.current.adoptReferenceEsmfold).toHaveBeenCalledTimes(1));
+  });
+
   it("names the ESMFold prediction of the reference once it replaces the database model", () => {
     setStore({ structureAccession: "ESMFOLD:ABC123", structure3dState: "active" });
     render(<Selection3DPanel defaultOpen />);

@@ -168,7 +168,7 @@ describe("adoptReferenceEsmfold", () => {
     state.uniprotAccession = "Q99999";
     finish({ ...OK_RESULT, structure_key: "ESMFOLD:ABC" });
 
-    expect(await pending).toBe("failed");
+    expect(await pending).toBe("stale");
     expect(state.structureAccession).toBe("");
     expect(state.structureLoaded).toBe(false);
   });
@@ -184,8 +184,44 @@ describe("adoptReferenceEsmfold", () => {
     state.seqInfo = { genes: [{ cds_start: 1, translation: "MKTAYIAKQRLL" }] };
     finish({ ...OK_RESULT, structure_key: "ESMFOLD:ABC" });
 
-    expect(await pending).toBe("failed");
+    expect(await pending).toBe("stale");
     expect(state.structureAccession).toBe("");
+  });
+
+  it("drops a prediction that finishes after a newer structure request took over", async () => {
+    let finishPredict!: (value: unknown) => void;
+    mockedSendRequest.mockImplementation(((method: string) => method === "predict_structure_esmfold"
+      ? new Promise((resolve) => { finishPredict = resolve; })
+      : Promise.resolve({ success: true, residues: 120 })) as never);
+    const { state, slice } = makeStore();
+    state.uniprotAccession = "P12345";
+
+    const pending = slice.adoptReferenceEsmfold("MKTAYIAKQR");
+    await vi.waitFor(() => expect(mockedSendRequest).toHaveBeenCalledTimes(1));
+    await slice.fetchStructure("P12345");
+    finishPredict({ ...OK_RESULT, structure_key: "ESMFOLD:ABC" });
+
+    expect(await pending).toBe("stale");
+    expect(state.structureAccession).toBe("P12345");
+  });
+
+  it("leaves an in-flight structure fetch alone when the prediction fails", async () => {
+    let finishFetch!: (value: unknown) => void;
+    mockedSendRequest.mockImplementation(((method: string) => method === "fetch_structure"
+      ? new Promise((resolve) => { finishFetch = resolve; })
+      : Promise.resolve({ ...OK_RESULT, success: false, source: "error", pdb_text: null })) as never);
+    const { state, slice } = makeStore();
+    state.uniprotAccession = "P12345";
+
+    const fetching = slice.fetchStructure("P12345");
+    await vi.waitFor(() => expect(mockedSendRequest).toHaveBeenCalledTimes(1));
+    expect(await slice.adoptReferenceEsmfold("MKTAYIAKQR")).toBe("failed");
+    finishFetch({ success: true, residues: 120 });
+    await fetching;
+
+    expect(state.structureLoading).toBe(false);
+    expect(state.structureLoaded).toBe(true);
+    expect(state.structureAccession).toBe("P12345");
   });
 
   it("reports a prediction without a structure key as failed", async () => {

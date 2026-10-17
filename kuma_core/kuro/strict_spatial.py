@@ -175,7 +175,7 @@ def select_single_sites(rows: list[tuple[str, float]], reference: str, context: 
         if confidence_source in _PLDDT_CONFIDENCE_SOURCES:
             plddt = m.get("confidence")
             if isinstance(plddt, bool) or not isinstance(plddt, (int, float)) or not math.isfinite(plddt):
-                raise ValueError("AlphaFold mapping requires a numeric pLDDT per residue")
+                raise ValueError("Structure mapping requires a numeric pLDDT per residue")
             if plddt < PLDDT_VERY_LOW:
                 low_confidence.add(position)
     eligible: dict[int, list[tuple[str, float]]] = {}

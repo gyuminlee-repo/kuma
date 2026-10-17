@@ -255,7 +255,7 @@ export interface DiversitySlice {
   /** Predict a reference-frame structure from sequence alone via ESMFold (<=400 aa). */
   predictStructureEsmfold: (sequence: string) => Promise<PredictStructureEsmfoldResult | null>;
   /** Predict the reference with ESMFold and make it the structure selection and benchmark use. */
-  adoptReferenceEsmfold: (sequence: string) => Promise<"used" | "refused" | "failed">;
+  adoptReferenceEsmfold: (sequence: string) => Promise<"used" | "refused" | "failed" | "stale">;
   /** Annotate reference-frame domains by submitting the selected gene translation to InterProScan. */
   annotateReferenceDomains: () => Promise<void>;
 }

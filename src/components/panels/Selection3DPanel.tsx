@@ -834,7 +834,12 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
   const [recoveryBusy, setRecoveryBusy] = useState(false);
   const recoveryAttemptRef = useRef("");
   const recovery = decideFrameRecovery({
-    frameMismatch: structure3dState === "frame_mismatch" && accession !== "" && !esmfoldReferenceInUse,
+    // An ESMFold key whose coordinates the sidecar can no longer find (cache
+    // cleared, project opened elsewhere) ends in no_structure, or in the strict
+    // refusal, and is predicted again; an accession structure that does not
+    // hold the reference is replaced the same way.
+    frameMismatch: accession !== ""
+      && (structure3dState === "frame_mismatch" || (esmfoldReferenceInUse && structure3dState === "no_structure")),
     refLength: esmfoldLen,
     esmfoldRefused,
   });
@@ -1338,7 +1343,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
           {t("selection3d.framePredicting")}
         </p>
       )}
-      {esmfoldReferenceInUse && (
+      {esmfoldReferenceInUse && structure3dState !== "no_structure" && (
         <p className="px-4 pb-2 text-xs text-info" data-testid="esmfold-reference-note">
           {t("selection3d.esmfoldReferenceNote")}
         </p>
