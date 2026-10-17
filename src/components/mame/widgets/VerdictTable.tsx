@@ -228,6 +228,23 @@ function ReplicateFlagCell({ well }: { well: WellConcordance | undefined }) {
   );
 }
 
+/**
+ * A well as `A1`, from either spelling the two sides use: the producer's
+ * `{R}_{F}` token, read under MAME's only addressing (kuma_core/mame/
+ * plate_geometry.py DEFAULT_ADDRESSING: reverse index is the row, forward
+ * index the column), or a letter-number well with or without zero padding.
+ * Anything else is returned unchanged and so matches only itself.
+ */
+function canonicalWell(value: string): string {
+  const token = /^(\d+)_(\d+)$/.exec(value.trim());
+  if (token) {
+    const row = Number(token[1]);
+    if (row >= 1 && row <= 26) return `${String.fromCharCode(64 + row)}${Number(token[2])}`;
+  }
+  const well = /^([A-Za-z])0*(\d+)$/.exec(value.trim());
+  return well ? `${well[1].toUpperCase()}${Number(well[2])}` : value;
+}
+
 export function VerdictTable() {
   const { t } = useTranslation();
   const verdicts = useMameAppStore((state) => state.verdicts);
@@ -275,17 +292,24 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
   );
   const [flaggedOnly, setFlaggedOnly] = useState(false);
 
-  // Activity data from the active round merged_table
-  // Join key: well_id == custom_barcode (MAME barcode label = well position)
+  // Activity data from the active round merged_table, joined on the well.
+  // The two sides spell a well differently (custom_barcode "1_1" against
+  // well_id "A01"), so both are read as one coordinate first; comparing the raw
+  // strings matched nothing. A well number alone names one well per plate, so
+  // a row is matched on its plate when the activity file names the verdict's
+  // plate, and on the well alone only when that cannot pick another plate's
+  // value: one verdict plate and one activity row for the well.
   const mergedTable = useRoundStore(selectActiveMergedTable);
 
-  // Build a lookup map for O(1) activity join
-  const mergedByWell = useMemo<Map<string, MergedRow>>(() => {
-    const map = new Map<string, MergedRow>();
+  const mergedByWell = useMemo(() => {
+    const byPlateWell = new Map<string, MergedRow>();
+    const byWell = new Map<string, MergedRow | null>();
     for (const row of mergedTable) {
-      map.set(row.well_id, row);
+      const well = canonicalWell(row.well_id);
+      byPlateWell.set(`${row.plate_id}\u0000${well}`, row);
+      byWell.set(well, byWell.has(well) ? null : row);
     }
-    return map;
+    return { byPlateWell, byWell };
   }, [mergedTable]);
 
   // Plate (native_barcode) tabs are derived from the verdicts actually present
@@ -386,8 +410,9 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
         const mid =
           record.mutant_id || legacyMutantByPlate.get(record.native_barcode) || "—";
         const fb = fallbackMap.get(mid);
-        // Join activity data by well_id == custom_barcode
-        const merged = mergedByWell.get(record.custom_barcode);
+        const well = canonicalWell(record.custom_barcode);
+        const merged = mergedByWell.byPlateWell.get(`${record.native_barcode}\u0000${well}`)
+          ?? (nbGroups.length === 1 ? mergedByWell.byWell.get(well) ?? undefined : undefined);
         return {
           ...record,
           mutant_id: mid,
@@ -410,7 +435,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
           wellSortKey(a.custom_barcode)[1] -
             wellSortKey(b.custom_barcode)[1],
       );
-  }, [activeFilter, replicates, verdicts, mergedByWell, finalSet]);
+  }, [activeFilter, replicates, verdicts, mergedByWell, finalSet, nbGroups]);
 
   const filteredRows = useMemo(() => {
     const flagFiltered = flaggedOnly
