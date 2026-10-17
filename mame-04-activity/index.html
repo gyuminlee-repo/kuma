@@ -1084,11 +1084,13 @@
 <li>With relative to WT selected, nothing is normalized again.</li>
 </ul>
 <h3 id="confirmation-measurement">Confirmation measurement<a class="headerlink" href="#confirmation-measurement" title="Permanent link">&para;</a></h3>
-<p>Give at most one of the two. A confirmation mean replaces the primary value of the same variant.</p>
+<p>Give at most one of the three. A confirmation mean replaces the primary value of the same variant.</p>
 <ul>
 <li><strong>Variant-labeled Agilent report</strong>: accepted only when the sample names are variant labels.</li>
 <li><strong>Numeric-ID replicate report</strong>: the numbers count the subset that exceeded WT in the primary screen, not the whole plate. The order source must be exactly one of the designed variant list or the plate layout. Giving both is refused.</li>
+<li><strong>Well-labeled replicate report</strong>: the sample names are wells with a replicate number, such as A1-1, A1-2, A1-3. Wells are mapped to variants the same way as in the primary measurement, and each area is divided by the mean of the WT well plus any WT rows, so the report needs no WT block. Sample names that are not well labels, such as other samples that shared the GC run, are skipped and reported as a warning.</li>
 </ul>
+<p>The format is read from the file, per field: the same well-labeled report is the experiment data in the first field and a well-labeled confirmation in the additional field. If the format cannot be read, the screen says why and asks for it.</p>
 <p>Inferring variant names from activity rank or from a previous EVOLVEpro file is no longer supported. A saved state pointing at that approach does not run and shows conversion guidance instead.</p>
 <h3 id="what-the-ngs-verdict-filters-out">What the NGS verdict filters out<a class="headerlink" href="#what-the-ngs-verdict-filters-out" title="Permanent link">&para;</a></h3>
 <p>A variant is exported only when its verdict is an explicit Pass, carries no failure or fallback replicate mark, and has no verdict or variant identity conflict between duplicate rows. Rows with a missing verdict, a conflict, or anything other than Pass are excluded rather than presumed to pass. If no variant passes, the build fails rather than publishing an empty file as a success.</p>
