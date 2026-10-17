@@ -841,22 +841,24 @@ def _write_janus_kuma_meta_sheet(
     """
     from openpyxl.styles import Font as _Font  # local import keeps cold-start fast
 
+    from kuma_core.shared.xlsx_text import append_literal_row
+
     ws = wb.create_sheet("__kuma_meta__")  # type: ignore[union-attr]
     ws.column_dimensions["A"].width = 24
     ws.column_dimensions["B"].width = 40
 
-    ws.append(["key", "value"])
+    append_literal_row(ws, ["key", "value"])
     for cell in ws[1]:
         cell.font = _Font(bold=True)
 
-    ws.append(["kuma_version", kuma_version])
-    ws.append([
+    append_literal_row(ws, ["kuma_version", kuma_version])
+    append_literal_row(ws, [
         "generated_at",
         datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     ])
 
     if meta is None:
-        ws.append(["ngs_run_meta", "(not found — no MinKNOW run folder detected)"])
+        append_literal_row(ws, ["ngs_run_meta", "(not found — no MinKNOW run folder detected)"])
         return
 
     fields: list[tuple[str, object]] = [
@@ -873,7 +875,7 @@ def _write_janus_kuma_meta_sheet(
         ("raw_run_dir", meta.raw_run_dir),
     ]
     for key, value in fields:
-        ws.append([key, "" if value is None else value])
+        append_literal_row(ws, [key, "" if value is None else value])
 
 
 def export_mame_janus_csv(

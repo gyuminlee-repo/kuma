@@ -24,8 +24,13 @@ Usage::
 
 from __future__ import annotations
 
+from contextlib import contextmanager
+from collections.abc import Iterator
+import codecs
+import errno
 import logging
 import os
+import stat
 import time
 from pathlib import Path
 from uuid import uuid4
@@ -54,7 +59,9 @@ def _temp_path_for(path: Path) -> Path:
     and the suffix kept last so the shape matches the per-call staging name
     ``_publish_artifact_bundle`` already uses.
     """
-    return path.with_name(f".{path.stem}.{uuid4().hex}{_TMP_SUFFIX}{path.suffix}")
+    # 12 hex digits keep the staging name short enough for paths near the
+    # Windows MAX_PATH limit while staying unique per call.
+    return path.with_name(f".{path.stem}.{uuid4().hex[:12]}{_TMP_SUFFIX}{path.suffix}")
 
 
 def _replace_with_retry(tmp_path: Path, path: Path) -> None:
@@ -85,6 +92,53 @@ def _replace_with_retry(tmp_path: Path, path: Path) -> None:
     os.replace(tmp_path, path)
 
 
+# Filesystems that do not support chmod (some network shares and FUSE mounts)
+# report one of these; the file still has the share's own permissions.
+_CHMOD_UNSUPPORTED = {errno.EPERM, errno.ENOTSUP, errno.EOPNOTSUPP}
+
+
+def _apply_permissions(fd: int, permissions: int, tmp_path: Path) -> None:
+    """Restore the replaced file's mode, unless the filesystem refuses chmod."""
+    try:
+        os.fchmod(fd, permissions)
+    except OSError as exc:
+        if exc.errno not in _CHMOD_UNSUPPORTED:
+            raise
+        _logger.warning("Could not keep the previous permissions on %s: %s", tmp_path, exc)
+
+
+def _private_opener(path: str, flags: int) -> int:
+    """Stage for an existing target: owner-only until its own mode is applied.
+
+    The file being replaced may be private, so its replacement must not be
+    readable by others for the moment before ``fchmod`` gives it that mode.
+    """
+    return os.open(path, flags, 0o600)
+
+
+def _umask_opener(path: str, flags: int) -> int:
+    """Stage for a new target: the mode any file the user creates would get.
+
+    The kernel applies the process umask at creation, so the published file is
+    ``0o666 & ~umask`` without this module ever reading the umask. Reading it
+    means ``os.umask`` setting and restoring it, and for that instant every
+    other thread creates files under the wrong mask. Nothing is given up by not
+    staging privately: the file is about to exist under that mode anyway.
+    """
+    return os.open(path, flags, 0o666)
+
+
+def _existing_permissions(path: Path) -> int | None:
+    """Preserve POSIX rwx bits of an existing regular target, not link modes."""
+    if os.name != "posix":
+        return None
+    try:
+        info = path.lstat()
+    except FileNotFoundError:
+        return None
+    return stat.S_IMODE(info.st_mode) & 0o777 if stat.S_ISREG(info.st_mode) else None
+
+
 def atomic_write_text(
     path: Path,
     content: str,
@@ -98,7 +152,9 @@ def atomic_write_text(
     The data is written to a staging file unique to this call, in the same
     directory as *path*, flushed and (by default) fsync'd, then renamed over
     *path*. If the write fails, the staging file is removed and the original
-    *path* (if any) is left untouched.
+    *path* (if any) is left untouched. A new file gets the mode the process
+    umask gives any new file; an existing regular file keeps its POSIX rwx
+    permissions. An existing *path* is always replaced.
 
     Two concurrent calls on one target both publish; which of the two wins is
     whichever renames last. What no longer happens is one of them failing with
@@ -133,27 +189,66 @@ def atomic_write_text(
         OSError: On any I/O failure (the temp file is cleaned up first).
     """
     path = Path(path)
+    codecs.lookup(encoding)  # an unknown encoding fails before any file exists
     tmp_path = _temp_path_for(path)
+    permissions = _existing_permissions(path)
+    opener = _umask_opener if permissions is None else _private_opener
+    reserved = False
     try:
-        with open(tmp_path, "w", encoding=encoding, newline=newline) as fh:
+        with open(tmp_path, "x", encoding=encoding, newline=newline, opener=opener) as fh:
+            reserved = True
             fh.write(content)
             fh.flush()
+            if permissions is not None:
+                _apply_permissions(fh.fileno(), permissions, tmp_path)
             if fsync:
                 os.fsync(fh.fileno())
         _replace_with_retry(tmp_path, path)
-    except OSError:
+    except (OSError, UnicodeError):
         # Leave the original file intact; best-effort remove the partial temp
         # file before re-raising the original failure to the caller.
-        try:
-            tmp_path.unlink()
-        except OSError as cleanup_exc:
-            _logger.warning(
-                "Could not remove temp file %s after failed atomic write: %s",
-                tmp_path,
-                cleanup_exc,
-            )
+        if reserved:
+            try:
+                tmp_path.unlink()
+            except OSError as cleanup_exc:
+                _logger.warning(
+                    "Could not remove temp file %s after failed atomic write: %s",
+                    tmp_path,
+                    cleanup_exc,
+                )
         raise
     return path.resolve()
+
+
+@contextmanager
+def atomic_output_path(path: Path) -> Iterator[Path]:
+    """Stage an external writer's output beside its target and publish on success.
+
+    The caller must validate the staged artifact before leaving the context.
+    A conversion, validation, flush, or rename failure leaves the target intact.
+    """
+    path = Path(path)
+    tmp_path = _temp_path_for(path)
+    permissions = _existing_permissions(path)
+    opener = _umask_opener if permissions is None else _private_opener
+    reserved = False
+    try:
+        # Reserve the stage under a per-call name, never a predictable shared one.
+        with open(tmp_path, "xb", opener=opener):
+            reserved = True
+        yield tmp_path
+        with open(tmp_path, "r+b") as fh:
+            if permissions is not None:
+                _apply_permissions(fh.fileno(), permissions, tmp_path)
+            os.fsync(fh.fileno())
+        _replace_with_retry(tmp_path, path)
+        fsync_directory(path.parent)
+    finally:
+        if reserved:
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except OSError as exc:
+                _logger.warning("Could not remove staged output %s: %s", tmp_path, exc)
 
 
 def fsync_directory(path: Path) -> bool:
@@ -197,4 +292,4 @@ def fsync_directory(path: Path) -> bool:
     return True
 
 
-__all__ = ["atomic_write_text", "fsync_directory"]
+__all__ = ["atomic_write_text", "atomic_output_path", "fsync_directory"]

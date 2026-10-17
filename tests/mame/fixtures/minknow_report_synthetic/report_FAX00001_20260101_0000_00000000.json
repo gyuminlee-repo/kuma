@@ -1,0 +1,70 @@
+{
+  "protocol_run_info": {
+    "flow_cell": {
+      "channel_count": 512,
+      "flow_cell_id": "FAX00001",
+      "product_code": "FLO-MIN114"
+    }
+  },
+  "acquisitions": [
+    {
+      "acquisition_run_info": {}
+    },
+    {
+      "acquisition_run_info": {
+        "bream_info": {
+          "mux_scan_results": [
+            {
+              "counts": {
+                "single_pore": 400
+              },
+              "mux_scan_timestamp": "120"
+            },
+            {
+              "counts": {
+                "single_pore": 371
+              },
+              "mux_scan_timestamp": "5720"
+            },
+            {
+              "counts": {
+                "single_pore": 338
+              },
+              "mux_scan_timestamp": "11320"
+            },
+            {
+              "counts": {
+                "single_pore": 297
+              },
+              "mux_scan_timestamp": "16920"
+            },
+            {
+              "counts": {
+                "single_pore": 312
+              },
+              "mux_scan_timestamp": "22520"
+            },
+            {
+              "counts": {
+                "single_pore": 254
+              },
+              "mux_scan_timestamp": "28120"
+            },
+            {
+              "counts": {
+                "single_pore": 268
+              },
+              "mux_scan_timestamp": "33720"
+            },
+            {
+              "counts": {
+                "single_pore": 200
+              },
+              "mux_scan_timestamp": "39320"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

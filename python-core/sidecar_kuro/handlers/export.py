@@ -10,6 +10,8 @@ from typing import Callable, NamedTuple
 
 import openpyxl
 
+from kuma_core.shared.atomic_write import atomic_write_text
+
 from kuma_core.kuro.plate_mapper import (
     PlateMapping,
     _capacity_for_range,
@@ -590,8 +592,8 @@ def handle_save_workspace(params: dict) -> dict:
     if not p.filepath or p.data is None:
         raise ValueError("filepath and data are required")
     resolved = _validate_output_path(p.filepath, allowed_extensions={".json"})
-    with open(resolved, "w", encoding="utf-8") as f:
-        json.dump(p.data, f, ensure_ascii=False, indent=2)
+    content = json.dumps(p.data, ensure_ascii=False, indent=2, allow_nan=False)
+    atomic_write_text(resolved, content, encoding="utf-8")
     return FileExportResultModel(filepath=str(resolved)).to_rpc_dict()
 
 
@@ -601,8 +603,8 @@ def handle_save_json(params: dict) -> dict:
     if not p.filepath or p.data is None:
         raise ValueError("filepath and data are required")
     resolved = _validate_output_path(p.filepath, allowed_extensions={".json"})
-    with open(resolved, "w", encoding="utf-8") as f:
-        json.dump(p.data, f, ensure_ascii=False, indent=2)
+    content = json.dumps(p.data, ensure_ascii=False, indent=2, allow_nan=False)
+    atomic_write_text(resolved, content, encoding="utf-8")
     return FileExportResultModel(filepath=str(resolved)).to_rpc_dict()
 
 

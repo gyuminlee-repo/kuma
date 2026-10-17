@@ -39,7 +39,8 @@ build = [
 # fallback), so it is not a hard package dep; the test extra pins it so CI
 # and other machines can reproduce the native-barcode identity gate.
 test = [
-    "cutadapt>=5.0",
+    # 5.0 can emit FASTQ despite --fasta with -j 0; 5.2 passes the byte-parity gate.
+    "cutadapt>=5.2",
     "pytest",
 ]
 
