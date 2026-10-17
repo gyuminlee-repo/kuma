@@ -62,11 +62,14 @@ def test_explicit_canonical_replicate_suffix(label: str, expected: str):
     assert _strip_confirmation_rep_suffix(label) == expected
 
 
-def test_well_confirmation_is_ambiguous_role_but_unambiguous_mapping(tmp_path: Path):
+def test_well_confirmation_role_is_the_slot_and_mapping_is_unambiguous(tmp_path: Path):
     path = report(tmp_path / "wells.xlsx", ["WT", "a1", "A01-2", "H12-1"])
-    detected = detect_measurement_source(path)
-    assert detected.candidates == ["rawReport", "confirmationWellLabels"]
-    assert detected.ambiguous
+    primary = detect_measurement_source(path)
+    assert primary.candidates == ["rawReport"]
+    assert not primary.ambiguous
+    confirmation = detect_measurement_source(path, slot="confirmation")
+    assert confirmation.candidates == ["confirmationWellLabels"]
+    assert not confirmation.ambiguous
     assert _confirmation(path, {"A01": "11I", "H12": "12V"}) == {"11I": [1.0, 1.0], "12V": [1.0]}
     with pytest.raises(ValueError, match="no unambiguous variant mapping"):
         _confirmation(path, {"A01": "11I"})
@@ -109,7 +112,8 @@ def test_template_bundle_and_preview_use_exact_synthetic_workbook():
     assert template.read_bytes() == bundled.read_bytes()
     resources = json.loads((root / "src-tauri" / "tauri.conf.json").read_text())["bundle"]["resources"]
     assert resources[f"samples/mame/{name}"] == f"samples/mame/{name}"
-    assert detect_measurement_source(template).candidates == ["rawReport", "confirmationWellLabels"]
+    assert detect_measurement_source(template).candidates == ["rawReport"]
+    assert detect_measurement_source(template, slot="confirmation").candidates == ["confirmationWellLabels"]
     assert _confirmation(template, {"A01": "11I", "B01": "12V"}) == {"11I": [1.0, 1.0], "12V": [1.0]}
 
 

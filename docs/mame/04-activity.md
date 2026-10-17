@@ -43,11 +43,13 @@ CSV 또는 XLSX에서 다음을 요구한다.
 
 ## 4.3 선택적 확인 측정
 
-확인 측정은 선택 사항이며 둘 중 최대 하나만 준다.
+확인 측정은 선택 사항이며 셋 중 최대 하나만 준다. 화면에서는 파일 하나를 고르면 sample name 모양으로 유형을 판별한다(`detect_measurement_source` 의 `slot="confirmation"`).
 
 `remeasure_report_xlsx`는 sample name이 `V5F` 또는 `5F`처럼 **variant로 명시된** raw Agilent report만 받는다. report 안의 WT 행으로 독립 정규화한 replicate 평균이 같은 variant의 1차 측정값을 대체한다.
 
 `remeasure_numeric_xlsx`는 같은 report를 순번으로 받는다. 순번이 세는 대상은 플레이트 전체가 아니라 **1차 스크리닝에서 WT를 넘은 부분집합**이다. 장비가 hit만 다시 돌린 뒤 받은 순서대로 번호를 매기기 때문이다. order source는 `expected_xlsx` 또는 `layout_xlsx` 중 **정확히 하나**여야 한다. 둘 다 주면 거절한다. primary 쪽 `numeric_report_xlsx`는 둘을 함께 받아도 `expected_xlsx`를 우선하므로 두 경로의 계약이 이 점에서 다르다.
+
+`remeasure_well_xlsx`는 sample name이 `A1-1`, `A1-2`, `A1-3`처럼 `<well>-<반복번호>`인 report를 받는다. bare `A1`은 반복 1이다. well→variant 매핑은 well 라벨 primary와 같은 것(`layout_xlsx`, 없으면 verdict의 `mutant_id`)을 쓴다. 분모는 WT로 선언된 well의 area와 report에 있는 WT 행 area의 평균이며 둘 다 없으면 거절한다. well 라벨이 아닌 sample name은 같은 GC run을 쓴 다른 실험의 시료이므로 건너뛰고 개수와 이름을 warning으로 남긴다. 매핑에 없는 well도 warning으로 남긴다.
 
 activity rank나 이전 EVOLVEpro 파일로 variant 이름을 추론하는 방식은 지원하지 않는다. 이전 저장 상태가 그 방식을 가리키면 KUMA는 실행하지 않고 변환 안내를 표시한다. 판정 대상은 legacy `sourceMode: "rank"`와 legacy `round1Source`의 `prev`·`numeric`이다. 현재의 numeric-ID decode는 그 대상이 아니다.
 

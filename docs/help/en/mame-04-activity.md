@@ -35,10 +35,13 @@ For numeric IDs, position i is the i-th variant in plate order. The order source
 
 ### Confirmation measurement
 
-Give at most one of the two. A confirmation mean replaces the primary value of the same variant.
+Give at most one of the three. A confirmation mean replaces the primary value of the same variant.
 
 - **Variant-labeled Agilent report**: accepted only when the sample names are variant labels.
 - **Numeric-ID replicate report**: the numbers count the subset that exceeded WT in the primary screen, not the whole plate. The order source must be exactly one of the designed variant list or the plate layout. Giving both is refused.
+- **Well-labeled replicate report**: the sample names are wells with a replicate number, such as A1-1, A1-2, A1-3. Wells are mapped to variants the same way as in the primary measurement, and each area is divided by the mean of the WT well plus any WT rows, so the report needs no WT block. Sample names that are not well labels, such as other samples that shared the GC run, are skipped and reported as a warning.
+
+The format is read from the file, per field: the same well-labeled report is the experiment data in the first field and a well-labeled confirmation in the additional field. If the format cannot be read, the screen says why and asks for it.
 
 Inferring variant names from activity rank or from a previous EVOLVEpro file is no longer supported. A saved state pointing at that approach does not run and shows conversion guidance instead.
 

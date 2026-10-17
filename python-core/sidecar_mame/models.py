@@ -16,7 +16,7 @@ internally when existence checks are needed, but the model stores ``str``.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -431,6 +431,7 @@ class BuildEvolveproInputParams(BaseModel):
     numeric_report_xlsx: str | None = None
     remeasure_report_xlsx: str | None = None
     remeasure_numeric_xlsx: str | None = None
+    remeasure_well_xlsx: str | None = None
     verdict_xlsx: str
     layout_xlsx: str | None = None
     expected_xlsx: str | None = None
@@ -464,7 +465,7 @@ class BuildEvolveproInputParams(BaseModel):
 
     @field_validator(
         "gc_data_xlsx", "round1_report_xlsx", "numeric_report_xlsx",
-        "remeasure_report_xlsx", "remeasure_numeric_xlsx",
+        "remeasure_report_xlsx", "remeasure_numeric_xlsx", "remeasure_well_xlsx",
         "verdict_xlsx", "layout_xlsx", mode="after",
     )
     @classmethod
@@ -525,10 +526,11 @@ class BuildEvolveproInputParams(BaseModel):
                 "provide exactly one primary source: activity_path, gc_data_xlsx, "
                 "round1_report_xlsx, or numeric_report_xlsx"
             )
-        if self.remeasure_report_xlsx and self.remeasure_numeric_xlsx:
+        if sum(map(bool, (self.remeasure_report_xlsx, self.remeasure_numeric_xlsx, self.remeasure_well_xlsx))) > 1:
             raise ValueError(
                 "provide at most one confirmation source: remeasure_report_xlsx "
-                "(well/variant-labeled) or remeasure_numeric_xlsx (numeric IDs)"
+                "(well/variant-labeled), remeasure_numeric_xlsx (numeric IDs), or "
+                "remeasure_well_xlsx (well-labeled, WT from the plate)"
             )
         # A numeric sample name states a position, so decoding one needs the
         # order the plate was filled in. Either source answers it and supplying
@@ -608,12 +610,17 @@ class DetectMeasurementSourceParams(BaseModel):
     sheet_index
         Zero-based sheet index for a workbook, matching the other xlsx readers.
         Ignored for a csv.
+    slot
+        The field the file was chosen for.  ``"confirmation"`` reports one of
+        the three confirmation sources or nothing; the default reads the file
+        as the primary measurement field.
     """
 
     model_config = ConfigDict(extra="forbid")
 
     measurement_path: str
     sheet_index: int = Field(default=0, ge=0)
+    slot: Literal["primary", "confirmation"] = "primary"
 
     @field_validator("measurement_path", mode="after")
     @classmethod
