@@ -11,6 +11,7 @@ export interface EvolveproSelectRow {
 
 interface EvolveproSelectTableProps {
   rows: EvolveproSelectRow[];
+  disabled?: boolean;
   onToggle: (variant: string, checked: boolean) => void;
 }
 
@@ -19,7 +20,7 @@ interface EvolveproSelectTableProps {
  * Rows are sorted by y_pred descending (stable on ties).
  * Duplicate aa-position variants receive a coloured Pos{n} badge.
  */
-export function EvolveproSelectTable({ rows, onToggle }: EvolveproSelectTableProps) {
+export function EvolveproSelectTable({ rows, onToggle, disabled = false }: EvolveproSelectTableProps) {
   const { t } = useTranslation();
 
   const sorted = useMemo(
@@ -108,6 +109,7 @@ export function EvolveproSelectTable({ rows, onToggle }: EvolveproSelectTablePro
                 </td>
                 <td className="px-2 py-1.5 text-center">
                   <input
+                    disabled={disabled}
                     type="checkbox"
                     className="h-4 w-4 rounded-control accent-primary"
                     checked={row.selected}

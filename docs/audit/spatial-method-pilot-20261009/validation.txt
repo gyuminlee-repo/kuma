@@ -1,0 +1,13 @@
+2026-10-09 fresh execution
+python -m pytest tests/test_spatial_method_benchmark.py -q
+12 passed in 0.07s
+exit_code=0
+python scripts/benchmark_spatial_methods.py --pdb-dir /tmp/kuma-public-pdb
+42 attempted cases; 41 evaluated, 1 infeasible
+exit_code=0
+No full-suite claim.
+Independent reviewer: complete rerun matched all non-timing outputs; 12 benchmark tests passed.
+Final comment-only correction rerun exit_code=0; all non-timing outputs unchanged (excluding updated script hash).
+Final type-fix rerun: 13 tests passed in 0.07s, exit_code=0.
+Focused basedpyright: 0 errors/warnings, exit_code=0.
+Pilot rerun exit_code=0; all non-timing outputs unchanged except updated script hash.
