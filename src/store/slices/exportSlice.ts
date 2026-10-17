@@ -11,6 +11,7 @@ import { DEFAULT_EXPORT_ARTEFACT_KINDS, LEGACY_EXPORT_ARTEFACT_KINDS } from "../
 import { readKuroDesignOutcome } from "../../lib/kuroSnapshot";
 import { notifyJobDone, notifyJobError } from "../../lib/toast";
 import { toast } from "sonner";
+import { beginKuroExport } from "../../lib/exportActivity";
 import { registerArtifacts, ensureWorkspaceFromExportPath, getActiveWorkspace } from "../../lib/workspace";
 import type { AppState } from "../types";
 import type { ExpectedCodonTable } from "../../lib/codonTableRestore";
@@ -310,7 +311,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
 
   exportExcel: async (filepath: string, projectId?: string) => {
     const _exportStartedAt = Date.now();
-    set({ isExporting: true });
+    const finishExport = beginKuroExport((isExporting) => set({ isExporting }));
     try {
       const state = get();
       const { designResults, plateMappings, dedupInfo, tableSorting } = state;
@@ -368,7 +369,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       notifyJobError("Excel export failed", err);
       throw err;
     } finally {
-      set({ isExporting: false });
+      finishExport();
     }
   },
 
@@ -952,7 +953,8 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       progress: 0,
       statusMessage: "Ready",
       tableSorting: [],
-      isExporting: false,
+      // isExporting is not reset: it belongs to the export still running, which
+      // releases it in its own finally (lib/exportActivity.ts).
       echoTransferVol: 100,
       echoQuadrant: null,
       echoUsedQuadrants: [],
