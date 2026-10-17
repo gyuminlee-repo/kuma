@@ -1969,6 +1969,7 @@
     "warningHashMismatch": "雜湊不匹配: {{paths}}",
     "warningHashUnverifiable": "記錄時未產生雜湊，無法與執行時的檔案核對：{{paths}}",
     "exportOnlyNotice": "此 manifest 為僅匯出操作,無法直接重新執行。請從原始資料重新匯出。",
+    "unappliedConditions": "此次重新執行只套用記錄執行的一部分。以下記錄條件不會套用，而是使用目前工作階段的值：{{keys}}。結果可能與記錄的執行不同。",
     "btnCancel": "取消",
     "btnRerun": "重新執行",
     "btnRunning": "執行中...",

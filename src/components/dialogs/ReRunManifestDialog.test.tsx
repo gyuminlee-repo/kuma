@@ -4,7 +4,8 @@ import { describe, expect, it, vi } from "vitest";
 import { ReRunManifestDialog } from "./ReRunManifestDialog";
 import type { RunManifest } from "@/lib/runManifest";
 
-vi.mock("@/lib/reRun", () => ({
+vi.mock("@/lib/reRun", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/reRun")>()),
   reRunFromManifest: vi.fn(),
 }));
 
@@ -78,5 +79,36 @@ describe("ReRunManifestDialog input verification warning", () => {
     );
     // The two states are separate claims: the file is not being called changed.
     expect(alert).not.toHaveTextContent("Hash mismatch");
+  });
+});
+
+// A replay applies only some of what a manifest records and runs the rest with
+// the open session's values. It used to do that silently, so a partial replay
+// passed for the recorded run. The dialog now names what it will not apply and
+// still lets the operator run it.
+describe("ReRunManifestDialog recorded conditions the replay does not apply", () => {
+  function show(params: Record<string, unknown>, seed: number | null) {
+    return render(
+      <ReRunManifestDialog
+        open
+        manifest={{ ...manifest, params, seed }}
+        verifyResult={null}
+        onClose={vi.fn()}
+        onStatusMessage={vi.fn()}
+      />,
+    );
+  }
+
+  it("names the recorded params and seed it leaves to the session", () => {
+    show({ mutation_text: "A1V", tm_fwd_target: 68 }, 7);
+    const notice = screen.getByRole("status");
+    expect(notice).toHaveTextContent("tm_fwd_target, seed");
+    expect(notice).not.toHaveTextContent("mutation_text");
+    expect(screen.getByRole("button", { name: "Re-run" })).toBeEnabled();
+  });
+
+  it("says nothing when everything recorded is applied", () => {
+    show({ mutation_text: "A1V" }, null);
+    expect(screen.queryByRole("status")).toBeNull();
   });
 });

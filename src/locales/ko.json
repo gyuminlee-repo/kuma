@@ -2011,6 +2011,7 @@
     "warningHashMismatch": "해시 불일치: {{paths}}",
     "warningHashUnverifiable": "기록 당시 해시를 못 떠서 대조할 수 없음: {{paths}}",
     "exportOnlyNotice": "이 manifest는 export 전용 작업으로 직접 재실행할 수 없습니다. 원본 데이터에서 다시 export 하세요.",
+    "unappliedConditions": "이 재실행은 기록된 실행의 일부만 적용합니다. 다음 기록 조건은 적용하지 않고 현재 세션의 값을 씁니다: {{keys}}. 결과가 기록된 실행과 다를 수 있습니다.",
     "btnCancel": "취소",
     "btnRerun": "재실행",
     "btnRunning": "실행 중...",

@@ -2011,6 +2011,7 @@
     "warningHashMismatch": "Hash mismatch: {{paths}}",
     "warningHashUnverifiable": "Recorded without a digest, so the file cannot be checked against the run: {{paths}}",
     "exportOnlyNotice": "This manifest is an export-only operation and cannot be re-run directly. Re-export from the original data.",
+    "unappliedConditions": "This re-run applies only part of the recorded run. These recorded conditions are not applied, and the current session's values are used instead: {{keys}}. The result may differ from the recorded run.",
     "btnCancel": "Cancel",
     "btnRerun": "Re-run",
     "btnRunning": "Running...",

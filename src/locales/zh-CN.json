@@ -1969,6 +1969,7 @@
     "warningHashMismatch": "哈希不匹配: {{paths}}",
     "warningHashUnverifiable": "记录时未生成哈希，无法与运行时的文件核对：{{paths}}",
     "exportOnlyNotice": "此 manifest 为仅导出操作,无法直接重新运行。请从原始数据重新导出。",
+    "unappliedConditions": "此次重新运行只应用记录运行的一部分。以下记录条件不会应用，而是使用当前会话的值：{{keys}}。结果可能与记录的运行不同。",
     "btnCancel": "取消",
     "btnRerun": "重新运行",
     "btnRunning": "运行中...",

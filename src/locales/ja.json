@@ -1969,6 +1969,7 @@
     "warningHashMismatch": "ハッシュ不一致: {{paths}}",
     "warningHashUnverifiable": "ハッシュが記録されていないため、実行時のファイルと照合できません：{{paths}}",
     "exportOnlyNotice": "この manifest はエクスポート専用の操作で、直接再実行できません。元のデータから再エクスポートしてください。",
+    "unappliedConditions": "この再実行は記録された実行の一部だけを適用します。次の記録条件は適用せず、現在のセッションの値を使います: {{keys}}。結果が記録された実行と異なる場合があります。",
     "btnCancel": "キャンセル",
     "btnRerun": "再実行",
     "btnRunning": "実行中...",

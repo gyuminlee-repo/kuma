@@ -1969,6 +1969,7 @@
     "warningHashMismatch": "Hash mismatch: {{paths}}",
     "warningHashUnverifiable": "Registrado sin resumen criptográfico, por lo que no se puede cotejar con la ejecución: {{paths}}",
     "exportOnlyNotice": "Este manifiesto es una operación sólo de exportación y no se puede re-ejecutar directamente. Volver a exportar desde los datos originales.",
+    "unappliedConditions": "Esta repetición aplica solo una parte de la ejecución registrada. Estas condiciones registradas no se aplican y se usan los valores de la sesión actual: {{keys}}. El resultado puede diferir de la ejecución registrada.",
     "btnCancel": "Cancelar",
     "btnRerun": "Re-ejecutar",
     "btnRunning": "Ejecutando...",

@@ -1969,6 +1969,7 @@
     "warningHashMismatch": "Hash mismatch: {{paths}}",
     "warningHashUnverifiable": "Ohne Prüfsumme aufgezeichnet, daher nicht gegen den Lauf prüfbar: {{paths}}",
     "exportOnlyNotice": "This manifest ist ein export-only operation und cannot be re-ausführen directly. Re-export von die original data.",
+    "unappliedConditions": "Diese Wiederholung übernimmt nur einen Teil des aufgezeichneten Laufs. Diese aufgezeichneten Bedingungen werden nicht übernommen, stattdessen gelten die Werte der aktuellen Sitzung: {{keys}}. Das Ergebnis kann vom aufgezeichneten Lauf abweichen.",
     "btnCancel": "Abbrechen",
     "btnRerun": "Re-ausführen",
     "btnRunning": "Läuft...",
