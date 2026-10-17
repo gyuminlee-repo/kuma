@@ -22,8 +22,8 @@ Preplaced platform slots are reported without executing unverified binaries.
 from __future__ import annotations
 
 import argparse
-import os
 import hashlib
+import os
 import platform
 import shutil
 import stat

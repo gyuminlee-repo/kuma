@@ -29,8 +29,8 @@ def locate(pattern):
 
 def table(path: str) -> tuple[dict[str, int], str | None]:
     with TTFont(path, fontNumber=0) as font:
-        upem = getattr(font["head"], "unitsPerEm", None)
-        if not isinstance(upem, int) or isinstance(upem, bool) or upem <= 0:
+        upem: int = getattr(font["head"], "unitsPerEm", 0)
+        if upem <= 0:
             raise ValueError("Font has invalid units per em")
         cmap = font.getBestCmap()
         if cmap is None:
