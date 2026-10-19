@@ -153,13 +153,13 @@ def predict_structure(
     *,
     progress: Optional[ProgressCallback] = None,
     timeout: float = _PREDICT_TIMEOUT,
-) -> tuple[Optional[str], float, int, bool, str]:
+) -> tuple[str, float, int, bool, str]:
     """Predict a structure for *sequence* via ESMFold.
 
     Returns
     -------
     (pdb_text, plddt_mean, residue_count, cache_hit, seq_hash)
-        pdb_text is None on failure (caller maps to an error result).
+        pdb_text contains the predicted structure; failures raise ValueError.
 
     Raises
     ------

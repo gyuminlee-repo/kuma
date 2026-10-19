@@ -52,6 +52,7 @@ def test_overlap_function_places_a_shorter_structure_with_a_negative_offset():
 def test_n_terminally_truncated_structure_is_used_with_none_for_missing_positions():
     coords, (projected, mismatch, coverage) = _project(REF[3:])
     assert not mismatch
+    assert projected is not None
     assert projected[:4] == [None, None, None, None]
     assert projected[4:] == coords[1:]
     assert len(projected) == len(REF) + 1
@@ -61,6 +62,7 @@ def test_n_terminally_truncated_structure_is_used_with_none_for_missing_position
 def test_c_terminally_truncated_structure_is_used_with_none_for_missing_positions():
     coords, (projected, mismatch, coverage) = _project(REF[:15])
     assert not mismatch
+    assert projected is not None
     assert projected[:16] == coords
     assert projected[16:] == [None] * (len(REF) - 15)
     assert coverage == {"covered": 15, "reference_length": len(REF)}
@@ -93,7 +95,9 @@ def test_repeated_placement_of_a_fragment_stays_refused():
 def test_two_value_wrapper_is_unchanged():
     with patch.object(misc, "_get_cached_ca_seq", return_value=REF[3:]):
         projected, mismatch = misc._frame_checked_ca_coords(_coords(REF[3:]), "file:model", REF)
-    assert not mismatch and projected[1:4] == [None, None, None]
+    assert not mismatch
+    assert projected is not None
+    assert projected[1:4] == [None, None, None]
 
 
 # ── ESMFold pLDDT scale ───────────────────────────────────────────────────
