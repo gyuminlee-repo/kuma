@@ -64,9 +64,20 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     const gen = ++csvLoadGeneration;
     const structureGeneration = get().structureRequestGeneration;
     const structureAtStart = get().structureAccession || get().uniprotAccession;
-    const structureWasLoading = get().structureLoading;
-    let usesStructure = false;
-    const ownsStructure = () => !structureWasLoading && !get().structureLoading
+    // sentStructure: the request carried an accession key at all. usesStructure
+    // used to fold in the diversity flags, but a Pareto 1d or strict+1d request
+    // still sends structure_accession, so a stale response gated on
+    // usesStructure could republish the OLD structure's fields over a newly
+    // loaded one. The gate is ownership of the accession, not whether the
+    // request consumed 3-D coordinates.
+    let sentStructure = false;
+    // The response's structure fields may be published only while the
+    // structure situation the request saw still holds: no load in flight,
+    // same request generation, same accession key. A request sent with no
+    // accession keeps writing only while still no structure is loaded, so a
+    // structure the user loaded mid-flight is not marked off by a response
+    // that computed nothing.
+    const ownsStructure = () => !get().structureLoading
       && structureGeneration === get().structureRequestGeneration
       && structureAtStart === (get().structureAccession || get().uniprotAccession);
     try {
@@ -177,8 +188,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       // strict mode is judged against that mode. A CSV dropped while the text
       // tab is open would otherwise send a strict request and then discard the
       // strict response as stale.
-      usesStructure = Boolean(params.structure_accession)
-        && (structuralDiversityEnabled || (paretoDiversityEnabled && distanceMode !== "1d"));
+      sentStructure = Boolean(params.structure_accession);
       const strictAfterLoad = () => isStrictSpatialMode({ ...get(), mutationInputMode: "evolvepro" });
       const strictMode = strictAfterLoad();
       const contextKey = strictSpatialContextKey(get());
@@ -205,7 +215,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       // clear theirs. A moved context with strict still on says what happened
       // in the words designSlice uses for the same change.
       if (gen !== csvLoadGeneration) return;
-      if (strictMode && usesStructure && !ownsStructure()) {
+      if (strictMode && sentStructure && !ownsStructure()) {
         if (get().statusMessage === loadingMessage) {
           set({ statusMessage: strictMode && strictAfterLoad()
             ? i18next.t("strictSpatial.changedSelection") : "" });
@@ -262,7 +272,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         evolveproFilteredCount: update.evolveproFilteredCount,
         evolveproParetoExchanges: update.evolveproParetoExchanges,
         evolveproStepStats: update.evolveproStepStats,
-        ...(!usesStructure || ownsStructure() ? {
+        ...(ownsStructure() ? {
           structure3dState: strictMode ? "active" as const : update.structure3dState,
           structureCoverage: update.structureCoverage,
         } : {}),
@@ -294,7 +304,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       } else {
         set(buildKuroDesignInputPatch(get(), inputPatch));
       }
-      set({ statusMessage: usesStructure && !ownsStructure()
+      set({ statusMessage: sentStructure && !ownsStructure()
         ? `${update.statusMessage} | ${i18next.t("strictSpatial.changedSelection")}`
         : update.statusMessage });
     } catch (err) {
@@ -310,7 +320,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           ...(isStrictSpatialMode({ ...get(), mutationInputMode: "evolvepro" })
             // The sidecar's refusal when the structure does not hold the reference
             // (strict_spatial.StrictFrameMismatchError); the panel recovers from it.
-            && (!usesStructure || ownsStructure())
+            && ownsStructure()
             && isStrictFrameMismatchError(formatError(err)) && { structure3dState: "frame_mismatch" as const }),
           mutationText: "",
           evolveproTotalCount: 0,

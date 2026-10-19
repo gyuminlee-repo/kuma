@@ -150,4 +150,76 @@ describe("strict spatial load when the structure is unavailable", () => {
       expect(state.structureAccession).toBe("")
     },
   )
+
+  it("does not let a stale accession-carrying CSV overwrite a newer structure in 1d mode", async () => {
+    // Regression: the write gate used to key on usesStructure, which is false
+    // for Pareto 1d even though the request still sends structure_accession.
+    // A stale response could then republish the OLD structure's fields over
+    // the file the user loaded mid-flight. The stale response lands AFTER the
+    // file load and its reload settled, so an ungated write would leave the
+    // mismatch state on top of the new structure.
+    const csv: { resolve?: (value: unknown) => void } = {}
+    const file: { resolve?: (value: unknown) => void } = {}
+    const oldResponse = new Promise((resolve) => { csv.resolve = resolve })
+    const fileResponse = new Promise((resolve) => { file.resolve = resolve })
+    const stale = { variants: ["A2V"], y_preds: [1], total_count: 3, selected_count: 1,
+      structure_coordinates_used: true, structure_frame_mismatch: true }
+    const fresh = { variants: ["A2V"], y_preds: [1], total_count: 3, selected_count: 1,
+      structure_coordinates_used: true, structure_frame_mismatch: false }
+    mockSend.mockImplementation(((method: string) =>
+      method === "load_structure_file" ? fileResponse : Promise.resolve(fresh)) as never)
+    mockSend.mockReturnValueOnce(oldResponse as never)
+    const { state, slice, diversity } = makeStore()
+    Object.assign(state, { strictSpatialEnabled: false, structuralDiversityEnabled: false,
+      paretoDiversityEnabled: true, distanceMode: "1d",
+      structureAccession: "ESMFOLD:OLD", structure3dState: "active",
+      structureCoverage: { covered: 5, reference_length: 10 } })
+
+    const oldLoad = slice.loadEvolveproCsv("/fake/file.csv")
+    const fileLoad = diversity.loadStructureFile("/fake/new.pdb")
+    file.resolve?.({ success: true, accession: "file:new", residues: 10 })
+    await fileLoad
+    csv.resolve?.(stale)
+    await oldLoad
+
+    // CSV data applies; the stale structure fields it carried do not. The
+    // file load left "off" (1d mode reloads nothing); the old gate wrote the
+    // response's frame_mismatch on top of the new structure.
+    expect(state.mutationText).toBe("A2V")
+    expect(state.structureAccession).toBe("file:new")
+    expect(state.structure3dState).toBe("off")
+  }) 
+
+  it("does not let a stale no-accession CSV overwrite a structure loaded mid-flight", async () => {
+    const csv: { resolve?: (value: unknown) => void } = {}
+    const file: { resolve?: (value: unknown) => void } = {}
+    const oldResponse = new Promise((resolve) => { csv.resolve = resolve })
+    const fileResponse = new Promise((resolve) => { file.resolve = resolve })
+    // A response sent with no accession still computes a structure state for
+    // the panel (threeDConsumerOn is true under Pareto): "no_structure" here.
+    const stale = { variants: ["A2V"], y_preds: [1], total_count: 3, selected_count: 1,
+      structure_coordinates_used: false, structure_frame_mismatch: false }
+    const fresh = { variants: ["A2V"], y_preds: [1], total_count: 3, selected_count: 1,
+      structure_coordinates_used: true, structure_frame_mismatch: false }
+    mockSend.mockImplementation(((method: string) =>
+      method === "load_structure_file" ? fileResponse : Promise.resolve(fresh)) as never)
+    mockSend.mockReturnValueOnce(oldResponse as never)
+    const { state, slice, diversity } = makeStore()
+    Object.assign(state, { strictSpatialEnabled: false, structuralDiversityEnabled: false,
+      paretoDiversityEnabled: true, distanceMode: "1d",
+      structureAccession: "", uniprotAccession: "", structure3dState: "off" })
+
+    const oldLoad = slice.loadEvolveproCsv("/fake/file.csv")
+    const fileLoad = diversity.loadStructureFile("/fake/new.pdb")
+    file.resolve?.({ success: true, accession: "file:new", residues: 10 })
+    await fileLoad
+    csv.resolve?.(stale)
+    await oldLoad
+
+    // The response computed nothing about the new structure, so it must not
+    // mark it "no_structure"; the file load's "off" stands.
+    expect(state.mutationText).toBe("A2V")
+    expect(state.structureAccession).toBe("file:new")
+    expect(state.structure3dState).toBe("off")
+  })
 })
