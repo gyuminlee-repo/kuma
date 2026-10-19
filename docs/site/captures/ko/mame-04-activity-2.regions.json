@@ -23,7 +23,7 @@
   },
   {
     "label": "6",
-    "ref": "**EVOLVEpro 입력 만들기**",
+    "ref": "**EVOLVEpro 입력 형식으로 변환**",
     "role_or_testid": "role=button[build]",
     "bbox": [
       0.14166666666666666,

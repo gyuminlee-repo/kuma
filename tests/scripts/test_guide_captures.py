@@ -163,3 +163,49 @@ def test_publication_leaves_uncaptured_pages_alone(publisher, guide) -> None:
 
     # Then: there are no injected figure URLs.
     assert re.findall(r"\]\((figures/[^)]+)\)", rendered) == []
+
+
+_MARKED_NAME = re.compile(r"`([^`]+)`|\*\*([^*]+)\*\*")
+
+
+def _locale_strings(lang: str) -> set[str]:
+    out: set[str] = set()
+
+    def walk(node) -> None:
+        if isinstance(node, dict):
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                walk(value)
+        elif isinstance(node, str):
+            text = node.strip()
+            out.add(text)
+            out.add(text.rstrip(":").strip())
+            # "Excluded: {{count}}" renders as "Excluded: 3"; a caption names
+            # the fixed part.
+            if "{{" in text:
+                out.add(text.split("{{", 1)[0].strip().rstrip(":").strip())
+
+    walk(json.loads((ROOT / "src/locales" / f"{lang}.json").read_text(encoding="utf-8")))
+    return out
+
+
+@pytest.mark.parametrize("lang", ["en", "ko"])
+def test_caption_names_match_the_screen(lang: str) -> None:
+    """A caption that names a control in backticks or bold names it as the screen does.
+
+    The guide captions a mark with the control's label, and a reader looks for
+    that word on the screen. Hand-typed labels drifted from the locale files
+    ("사용한 well" for the panel titled "사용할 웰"), so every marked name has to
+    be a string the app actually renders in that language.
+    """
+    strings = _locale_strings(lang)
+    wrong = []
+    for path in sorted((ROOT / "docs/site/captures" / lang).glob("*.regions.json")):
+        for region in json.loads(path.read_text(encoding="utf-8")):
+            for match in _MARKED_NAME.finditer(region.get("ref", "")):
+                name = (match.group(1) or match.group(2)).strip().rstrip(":").strip()
+                if name not in strings:
+                    wrong.append(f"{path.name} #{region['label']}: {name}")
+    assert wrong == []

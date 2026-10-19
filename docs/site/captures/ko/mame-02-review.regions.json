@@ -1,7 +1,7 @@
 [
   {
     "label": "1",
-    "ref": "MinKNOW 런 폴더",
+    "ref": "**MinKNOW 실행 폴더**",
     "role_or_testid": "textbox[raw_run]",
     "bbox": [
       0.15347222222222223,
@@ -12,7 +12,7 @@
   },
   {
     "label": "2",
-    "ref": "기대 변이체 (xlsx)",
+    "ref": "**기대 변이 목록 (xlsx)**",
     "role_or_testid": "textbox[kuroXlsx]",
     "bbox": [
       0.15347222222222223,

@@ -1,7 +1,7 @@
 [
   {
     "label": "3",
-    "ref": "참조 컨스트럭트",
+    "ref": "**참조 construct 서열**",
     "role_or_testid": "textbox[referenceFasta]",
     "bbox": [
       0.15347222222222223,

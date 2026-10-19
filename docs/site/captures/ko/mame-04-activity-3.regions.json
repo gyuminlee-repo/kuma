@@ -1,7 +1,7 @@
 [
   {
     "label": "7",
-    "ref": "라운드별 EVOLVEpro 결과 xlsx (4.2)",
+    "ref": "`xlsx 파일 추가` (4.2 라운드별 EVOLVEpro 결과)",
     "role_or_testid": "role=button hasText[addFiles]",
     "bbox": [
       0.29815538194444446,

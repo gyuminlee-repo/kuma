@@ -1,7 +1,7 @@
 [
   {
     "label": "1",
-    "ref": "**측정 파일**",
+    "ref": "**실험 데이터 파일**",
     "role_or_testid": "row containing #bep-measurement",
     "bbox": [
       0.14166666666666666,
@@ -23,7 +23,7 @@
   },
   {
     "label": "3",
-    "ref": "**선택적 확인 측정**",
+    "ref": "**추가 측정 형식**",
     "role_or_testid": "role=radiogroup[confirmationSourceLabel]",
     "bbox": [
       0.14166666666666666,

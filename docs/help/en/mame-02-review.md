@@ -31,7 +31,7 @@ The verdict table sits on the left. The 96-well plate map and the per-plate verd
 
 ### Notices above the verdict table
 
-Nothing appears when there is nothing to report.
+The notices judge the run that just finished, and only the ones whose condition holds appear. The list below collects every notice that can appear, so they never show all at once, and nothing appears when there is nothing to report. Notices from an earlier run do not pile up: changing an input clears them with the previous result, and running again decides them afresh from the new result.
 
 - **This run cannot be scored** The median reads per well is under the floor. The verdicts below come from a plate that never had the depth to be read, so sequence the plate again rather than using them.
 - **This run is scorable but under-powered** Depth clears the floor and falls short of the recommendation. Use the verdicts and check borderline wells separately. Depth is measured only over the wells this run actually scored.

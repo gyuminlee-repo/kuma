@@ -1,7 +1,7 @@
 [
   {
     "label": "8",
-    "ref": "`Export all`",
+    "ref": "`Export All`",
     "role_or_testid": "role=button[name=\"Export all\"]",
     "bbox": [
       0.15833333333333333,

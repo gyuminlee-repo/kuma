@@ -1,7 +1,7 @@
 [
   {
     "label": "3",
-    "ref": "`후보 3D 구조 분석`",
+    "ref": "`Candidate 3D structure analysis` 패널",
     "role_or_testid": "testid=selection3d-panel",
     "bbox": [
       0.14166666666666666,
