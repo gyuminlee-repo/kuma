@@ -278,6 +278,8 @@ def _parse_throughput(run_dir: Path) -> list[dict[str, float]] | None:
                 t_min = float(row.get(time_col, "").strip())
             except (ValueError, AttributeError):
                 continue
+            if not math.isfinite(t_min):
+                continue
             if reads_col is not None:
                 try:
                     rps = float(row.get(reads_col, "").strip())
@@ -290,11 +292,15 @@ def _parse_throughput(run_dir: Path) -> list[dict[str, float]] | None:
                     cum = float(row.get(cum_col, "").strip())
                 except (ValueError, AttributeError):
                     continue
+                if not math.isfinite(cum):
+                    continue
                 if prev_t is None or prev_cum is None or t_min <= prev_t:
                     prev_t, prev_cum = t_min, cum
                     continue
                 rps = (cum - prev_cum) / ((t_min - prev_t) * 60.0)
                 prev_t, prev_cum = t_min, cum
+            if not math.isfinite(rps):
+                continue
             timeline.append(
                 {"time_h": round(t_min / 60.0, 4), "reads_per_sec": round(rps, 4)}
             )

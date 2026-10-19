@@ -173,30 +173,29 @@ def _preview_xlsx(filepath: str, sheet_name: str | None, max_rows: int) -> dict:
     """Read sheet names, headers, and first max_rows rows from an XLSX file."""
     import openpyxl
 
+    from itertools import islice
+
     wb = openpyxl.load_workbook(filepath, read_only=True, data_only=True)
-    sheet_names = wb.sheetnames
-
-    target = sheet_name if sheet_name is not None else sheet_names[0]
-    if target not in sheet_names:
+    try:
+        sheet_names = wb.sheetnames
+        if not sheet_names:
+            return {"sheets": [], "headers": [], "rows": []}
+        target = sheet_name if sheet_name is not None else sheet_names[0]
+        if target not in sheet_names:
+            raise ValueError(
+                f"sheet '{target}' not found in {filepath}. "
+                f"Available sheets: {sheet_names}"
+            )
+        rows = iter(wb[target].iter_rows(values_only=True))
+        first = next(rows, ())
+        headers = [str(c) if c is not None else "" for c in first]
+        data_rows = [
+            [str(c) if c is not None else "" for c in row]
+            for row in islice(rows, max_rows)
+        ]
+        return {"sheets": sheet_names, "headers": headers, "rows": data_rows}
+    finally:
         wb.close()
-        raise ValueError(
-            f"sheet '{target}' not found in {filepath}. "
-            f"Available sheets: {sheet_names}"
-        )
-
-    ws = wb[target]
-    all_rows = list(ws.iter_rows(values_only=True))
-    wb.close()
-
-    if not all_rows:
-        return {"sheets": sheet_names, "headers": [], "rows": []}
-
-    headers = [str(c) if c is not None else "" for c in all_rows[0]]
-    data_rows = [
-        [str(c) if c is not None else "" for c in row]
-        for row in all_rows[1 : max_rows + 1]
-    ]
-    return {"sheets": sheet_names, "headers": headers, "rows": data_rows}
 
 
 def _preview_xls(filepath: str, sheet_name: str | None, max_rows: int) -> dict:

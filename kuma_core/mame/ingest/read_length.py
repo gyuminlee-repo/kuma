@@ -160,6 +160,18 @@ def _as_float(value: object) -> float | None:
     return None
 
 
+def _as_nonnegative_count(value: object) -> int | None:
+    """Keep the existing integer coercion, but never hide a negative as zero."""
+    parsed = _as_int(value)
+    if parsed is None or parsed < 0:
+        return None
+    if not isinstance(value, int):
+        numeric = _as_float(value)
+        if numeric is None or numeric < 0:
+            return None
+    return parsed
+
+
 def _read_buckets(section: object) -> Buckets | None:
     """A ``plot``/``outliers`` block as bins, or None when it carries none.
 
@@ -189,8 +201,8 @@ def _read_buckets(section: object) -> Buckets | None:
         raw_start = rng.get("start")
         start = 0 if raw_start is None else _as_int(raw_start)
         end = _as_int(rng.get("end"))
-        value = _as_int(raw)
-        if start is None or end is None or value is None:
+        value = _as_nonnegative_count(raw)
+        if start is None or end is None or value is None or value < 0:
             continue
         buckets.starts.append(start)
         buckets.ends.append(end)
@@ -207,7 +219,8 @@ def _read_qscore(entry: object) -> QScoreHistogram | None:
         return None
     starts: list[float] = []
     ends: list[float] = []
-    for rng in ranges:
+    indices: list[int] = []
+    for index, rng in enumerate(ranges):
         if not isinstance(rng, dict):
             continue
         end = _as_float(rng.get("end"))
@@ -217,8 +230,11 @@ def _read_qscore(entry: object) -> QScoreHistogram | None:
         start = 0.0 if raw_start is None else _as_float(raw_start)
         if end is None or start is None:
             continue
+        indices.append(index)
         starts.append(start)
         ends.append(end)
+    if not indices:
+        return None
     series: list[QScoreSeries] = []
     for raw in series_in:
         if not isinstance(raw, dict):
@@ -226,16 +242,28 @@ def _read_qscore(entry: object) -> QScoreHistogram | None:
         values = raw.get("bucket_values")
         if not isinstance(values, list):
             continue
+        # Edges and counts are parallel arrays. Filtering them independently
+        # re-labels a later count with an earlier bin. Select by original index,
+        # and omit an unreadable series instead of inventing zero measurements.
+        selected: list[int] = []
+        for index in indices:
+            value = _as_nonnegative_count(values[index]) if index < len(values) else None
+            if value is None or value < 0:
+                break
+            selected.append(value)
+        if len(selected) != len(indices):
+            continue
+        raw_filtering = raw.get("filtering")
         filtering = [
             {str(k): str(v) for k, v in f.items()}
-            for f in (raw.get("filtering") or [])
+            for f in (raw_filtering if isinstance(raw_filtering, list) else [])
             if isinstance(f, dict)
         ]
         series.append(
             QScoreSeries(
                 filtering=filtering,
                 modal_q_score=_as_float(raw.get("modal_q_score")),
-                values=[v for v in (_as_int(x) for x in values) if v is not None],
+                values=selected,
             )
         )
     if not series:
@@ -276,10 +304,12 @@ def read_read_length_qc(run_dir: Path) -> ReadLengthQC:
     # Every acquisition, concatenated in order, the way flow_cell.py reads mux
     # scans: the earlier acquisitions of a run folder are calibration and carry
     # none of this, and picking one by index would tie the parse to a run shape.
-    for acquisition in data.get("acquisitions") or []:
+    acquisitions = data.get("acquisitions")
+    for acquisition in acquisitions if isinstance(acquisitions, list) else []:
         if not isinstance(acquisition, dict):
             continue
-        for entry in acquisition.get("read_length_histogram") or []:
+        length_entries = acquisition.get("read_length_histogram")
+        for entry in length_entries if isinstance(length_entries, list) else []:
             if not isinstance(entry, dict):
                 continue
             plot = _read_buckets(entry.get("plot"))
@@ -300,7 +330,8 @@ def read_read_length_qc(run_dir: Path) -> ReadLengthQC:
                     outliers=_read_buckets(entry.get("outliers")),
                 )
             )
-        for raw in acquisition.get("qscore_histograms") or []:
+        qscore_entries = acquisition.get("qscore_histograms")
+        for raw in qscore_entries if isinstance(qscore_entries, list) else []:
             parsed = _read_qscore(raw)
             if parsed is not None:
                 qscores.append(parsed)

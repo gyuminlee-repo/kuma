@@ -4,6 +4,7 @@ Spec: notes/specs/2026-05-04-mame-activity-integration.md §3.3
 """
 
 import math
+from decimal import Decimal, InvalidOperation
 import re
 from pathlib import Path
 from typing import cast
@@ -160,8 +161,13 @@ def ingest_long_csv(
     # row_index is the 0-based data row (header excluded); nothing filters the
     # frame before this loop, so it also matches the source file line order.
     for row_index, (_, row) in enumerate(df.iterrows()):
-        plate_id = str(row["plate_id"]).strip()
+        plate_cell = cast(str | float | int | None, row["plate_id"])
+        # A cell from this flat input is scalar, so isna returns one bool.
+        plate_id = "" if cast(bool, pd.isna(plate_cell)) else str(plate_cell).strip()
         well_raw = str(row["well_id"]).strip().upper()
+        if not plate_id:
+            _drop(row_index, "plate_id_missing", "", well_raw, "plate_id is blank")
+            continue
 
         # The frame comes from a flat CSV/Excel read above, so every column holds
         # scalars and a single-label lookup cannot return a Series. Newer pandas
@@ -223,8 +229,14 @@ def ingest_long_csv(
         # raise out of the whole ingest while a malformed value merely skipped
         # its row; now both skip and both are recorded.
         try:
-            replicate_idx = int(cast(int | str, row["replicate_idx"]))
-        except (ValueError, TypeError, OverflowError):
+            raw_replicate = row["replicate_idx"]
+            replicate_idx = int(cast(int | str, raw_replicate))
+            # pandas uses floats for numeric columns with missing cells. An
+            # integral 2.0 is still identifier 2; 1.2 must never become 1 and
+            # merge two distinct malformed labels into the same replicate.
+            if Decimal(str(raw_replicate)) != replicate_idx:
+                raise ValueError("replicate_idx must be an integer")
+        except (ValueError, TypeError, OverflowError, InvalidOperation):
             _drop(
                 row_index,
                 "replicate_idx_unparseable",

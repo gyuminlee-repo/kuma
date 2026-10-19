@@ -963,16 +963,32 @@ def _prefetch(it: Iterator[T], depth: int) -> Iterator[T]:
     stop = threading.Event()
     _DONE = object()
 
+    def _put(value: tuple[bool, object]) -> bool:
+        # Every put, including errors and the completion marker, must observe
+        # cancellation. Draining once can race with a producer's pending put.
+        while not stop.is_set():
+            try:
+                q.put(value, timeout=0.05)
+                return not stop.is_set()
+            except queue.Full:
+                continue
+        return False
+
     def _produce() -> None:
         try:
             for item in it:
-                if stop.is_set():
+                if not _put((True, item)):
                     return
-                q.put((True, item))
         except BaseException as exc:  # noqa: BLE001 - re-raised in the consumer
-            q.put((False, exc))
-            return
-        q.put((True, _DONE))
+            _put((False, exc))
+        else:
+            _put((True, _DONE))
+        finally:
+            # Only the producer can safely close a generator it is advancing.
+            close = getattr(it, "close", None)
+            if close is not None:
+                with contextlib.suppress(Exception):
+                    close()
 
     thread = threading.Thread(target=_produce, name="fastq-prefetch", daemon=True)
     thread.start()
@@ -991,6 +1007,9 @@ def _prefetch(it: Iterator[T], depth: int) -> Iterator[T]:
         with contextlib.suppress(queue.Empty):
             while True:
                 q.get_nowait()
+        # Queue waits are bounded above. A source iterator blocked in external
+        # I/O cannot be forcibly interrupted by Python; never hang the caller.
+        thread.join(timeout=1.0)
 
 
 # ---------------------------------------------------------------------------
