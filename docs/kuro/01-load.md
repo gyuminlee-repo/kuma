@@ -8,7 +8,7 @@
 |---|---|---|
 | 서열 파일 | GenBank `.gb/.gbk/.gbff`, SnapGene `.dna`, FASTA `.fa/.fasta/.fna` | 필수 |
 | Target gene | 파일에서 자동 추출 후 dropdown 선택 | 필수 (multi-CDS 일 때) |
-| Organism | 내장 codon table 5종(`kuma_core/kuro/resources/codon_tables/`)과 `~/.kuma/kuro/codon_tables` 의 사용자 표. 목록은 `list_organisms` RPC 가 두 출처를 합쳐 반환한다 | 필수 (codon table 결정) |
+| Organism | 내장 codon table 9종(`kuma_core/kuro/resources/codon_tables/`)과 `~/.kuma/kuro/codon_tables` 의 사용자 표. 목록은 `list_organisms` RPC 가 두 출처를 합쳐 반환한다 | 필수 (codon table 결정) |
 
 ## 동작
 
@@ -22,7 +22,7 @@ GenBank는 첫 레코드의 서열과 CDS만 불러온다. 뒤쪽 레코드의 �
 
 ## Organism 과 코돈 표
 
-설계에 쓰는 코돈 표를 고르는 자리다. 내장 9종(ecoli, bsubtilis, hsapiens, scerevisiae, kphaffii, cgriseus, cglutamicum, aniger, pputida) 외의 균주는 사용자가 직접 넣는다. mextorquens 는 내장에서 빠졌고 코돈 테이블 폴더의 `mextorquens_am1.json.txt` 를 `.json` 으로 바꾸면 그대로 설치된다. 세 경로가 있다.
+설계에 쓰는 코돈 표를 고르는 자리다. 내장 9종(ecoli, bsubtilis, hsapiens, scerevisiae, kphaffii, cgriseus, cglutamicum, aniger, pputida) 외의 균주는 사용자가 직접 넣는다. 세 경로가 있다.
 
 1. `~/.kuma/kuro/codon_tables` 에 `<key>.json` 을 놓고 Settings → Codon tables 의 `Refresh` 를 누른다. `.json` 을 뗀 파일 이름이 key 가 된다. 같은 폴더의 `TEMPLATE.json.txt` 와 `README.txt` 가 포맷 정본이다.
 2. `Add organism...` → `Import a table file` 탭에서 kuma 표(JSON), 3열 CSV, EMBOSS `cusp` 출력, Kazusa 페이지 붙여넣기 중 하나를 읽는다. 검사 결과와 digest 를 먼저 보여 주고 설치 여부를 묻는다.

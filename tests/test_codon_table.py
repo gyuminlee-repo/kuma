@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from kuma_core.kuro.codon_table import (
@@ -21,9 +23,9 @@ from kuma_core.kuro.codon_table import (
 STANDARD_20_AA = "ACDEFGHIKLMNPQRSTVWY"
 
 # Canonical keys of the tables shipped in resources/codon_tables/.
-# M. extorquens AM1 left this set: it is shipped as a ready-to-install seed
-# under resources/codon_table_seeds/ instead, so a lab that uses it installs it
-# as a user table. Nothing else about the set is historical.
+# M. extorquens AM1 left this set and the app no longer ships it at all; a lab
+# that uses it computes it from the genome as a user table. Nothing else about
+# the set is historical.
 SHIPPED_ORGANISMS = {
     "ecoli",
     "bsubtilis",
@@ -545,13 +547,12 @@ class TestNewExpressionHostTables:
         assert raw["transl_table"] == transl_table
 
 
-class TestMextorquensSeed:
-    """M. extorquens AM1 moved from the bundled set to an installable seed.
+class TestMextorquensUserTable:
+    """M. extorquens AM1 left the app: neither built in nor shipped as a seed.
 
-    Removing it must not lose the table: this lab uses the organism, so the
-    numbers stay in the repository as a seed the user renames and installs. The
-    checks below pin both halves - gone from the built-in set, and still a valid
-    user table under its own key.
+    The numbers stay in the repository as a test fixture, so the checks below
+    pin both halves - gone from everything the app ships, and still a valid
+    user table under its own key once a lab installs one.
     """
 
     SEED_NAME = "mextorquens_am1.json.txt"
@@ -582,6 +583,9 @@ class TestMextorquensSeed:
         assert not (codon_table_mod._RESOURCES_DIR / "mextorquens.json").exists()
 
     def _seed_path(self):
+        return Path(__file__).parent / "fixtures" / "codon_tables" / f"{self.USER_KEY}.json"
+
+    def test_seed_file_no_longer_ships(self):
         from kuma_core.shared.resource_path import resource_path
 
         import kuma_core.kuro.codon_table as codon_table_mod
@@ -591,19 +595,16 @@ class TestMextorquensSeed:
             "resources/codon_table_seeds",
             module_file=codon_table_mod.__file__,
         )
-        return seeds / self.SEED_NAME
+        assert not (seeds / self.SEED_NAME).exists()
 
-    def test_seed_file_ships(self):
-        assert self._seed_path().exists()
-
-    def test_seed_is_offered_by_the_user_folder_seeding(self, tmp_path, monkeypatch):
-        """The seed has to reach the user folder, not merely sit in resources."""
+    def test_user_folder_seeding_writes_no_organism_table(self, tmp_path, monkeypatch):
+        """A new user folder holds the template and README only."""
         from sidecar_kuro.handlers import misc as misc_handlers
 
         monkeypatch.setenv("HOME", str(tmp_path))
         monkeypatch.setenv("USERPROFILE", str(tmp_path))
         directory = misc_handlers.ensure_user_codon_dir()
-        assert (directory / self.SEED_NAME).exists()
+        assert sorted(p.name for p in directory.iterdir()) == ["README.txt", "TEMPLATE.json.txt"]
 
     def test_seed_installs_as_a_user_table(self, tmp_path, monkeypatch):
         """Rename to <key>.json, refresh, and KURO offers the organism."""

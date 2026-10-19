@@ -43,11 +43,9 @@ K-12* because W3110 is a K-12 derivative, and the fractions stay exactly as
 shipped, so ``canonical_digest`` is unchanged and a project designed before this
 correction still reconciles.
 
-M. extorquens AM1 is no longer one of them. It ships as a ready-to-install seed
-under ``resources/codon_table_seeds/mextorquens_am1.json.txt`` instead, so a lab
-that works on the organism renames it to ``mextorquens_am1.json`` in the user
-folder and presses Refresh. ``mextorquens`` is therefore an ordinary user key
-now rather than a reserved built-in one.
+M. extorquens AM1 is no longer one of them. A lab that works on the organism
+computes its table from the genome (Add organism) like any other user table, so
+``mextorquens`` is an ordinary user key rather than a reserved built-in one.
 
 Frequencies are fraction of synonymous codons for each amino acid.
 """
@@ -625,8 +623,8 @@ for _stop in _STANDARD_CODE.stop_codons:
 # structural: no amino acid in any shipped table collapses to a single usable
 # codon, and none is emptied.
 #
-# The retired M. extorquens AM1 table, now a seed under
-# resources/codon_table_seeds/, is the case that shows what a genuinely skewed
+# The retired M. extorquens AM1 table, kept as a test fixture under
+# tests/fixtures/codon_tables/, is the case that shows what a genuinely skewed
 # genome does here. It lands at 1.80 and the floor collapses 3 of the 20 amino
 # acids to one usable codon (Cys->TGC, Phe->TTC, Ile->ATC). A user who installs
 # it gets that narrowing, which is the organism's codon bias showing through

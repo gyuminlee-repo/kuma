@@ -1532,7 +1532,6 @@
       "files": [
         "kuma_core/kuro/resources/codon_table_seeds/README.txt",
         "kuma_core/kuro/resources/codon_table_seeds/TEMPLATE.json.txt",
-        "kuma_core/kuro/resources/codon_table_seeds/mextorquens_am1.json.txt",
         "python-core/sidecar_kuro/handlers/misc.py",
         "kuma_core/kuro/codon_table.py"
       ],
@@ -1541,7 +1540,7 @@
         "ensure_user_codon_dir",
         "_ORGANISM_ALIASES"
       ],
-      "note": "What the codon-table seed folder ships and what copies it into the user folder. ensure_user_codon_dir writes exactly the names in _CODON_SEED_FILES, so a seed added, renamed or removed without touching that tuple never reaches a user and nothing fails. The README states the built-in key set that cannot be replaced, which is _ORGANISM_ALIASES plus the bundled stems, so the README goes stale the moment the bundled set changes: that is how it kept listing mextorquens after the table became an installable seed. mextorquens_am1.json.txt is a finished table rather than a placeholder and keeps the .json.txt suffix so seeding it is not installing it.",
+      "note": "What the codon-table seed folder ships and what copies it into the user folder. ensure_user_codon_dir writes exactly the names in _CODON_SEED_FILES, so a seed added, renamed or removed without touching that tuple never reaches a user and nothing fails. The README states the built-in key set that cannot be replaced, which is _ORGANISM_ALIASES plus the bundled stems, so the README goes stale the moment the bundled set changes: that is how it kept listing mextorquens after the table became an installable seed.",
       "severity": "warning"
     },
     {
