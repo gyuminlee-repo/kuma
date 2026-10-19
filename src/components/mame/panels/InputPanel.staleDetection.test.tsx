@@ -7,7 +7,7 @@
  * a scan of a folder the user had since replaced filled the new folder's
  * inputs with the old folder's files.
  */
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectProvider } from "@/state/projectContext";
 
@@ -76,21 +76,27 @@ function panel(path: string) {
   return <ProjectProvider value={{ path, name: "P", scratch: false }}><InputPanel /></ProjectProvider>;
 }
 
-async function browseRunFolder(): Promise<(value: unknown) => void> {
+async function browseRunFolder(): Promise<(value: unknown) => Promise<void>> {
   let release!: (value: unknown) => void;
-  mocks.detect.mockReturnValue(new Promise((resolve) => { release = resolve; }));
+  const detection = new Promise((resolve) => { release = resolve; });
+  mocks.detect.mockReturnValue(detection);
   const button = screen.getAllByRole("button").find((b) => /MinKNOW|run folder/i.test(b.getAttribute("aria-label") ?? ""));
   expect(button).toBeDefined();
   if (button) fireEvent.click(button);
   await waitFor(() => expect(mocks.detect).toHaveBeenCalledWith("/projectA/run"));
-  return release;
+  return async (value) => {
+    await act(async () => {
+      release(value);
+      await detection;
+    });
+  };
 }
 
 describe("run-folder scan", () => {
   it("fills the folder's files when nothing changed meanwhile", async () => {
     render(panel("/projectA"));
     const release = await browseRunFolder();
-    release(DETECTED);
+    await release(DETECTED);
     await waitFor(() => expect(state.setReferencePath).toHaveBeenCalledWith(DETECTED.referencePath));
   });
 
@@ -98,8 +104,7 @@ describe("run-folder scan", () => {
     const view = render(panel("/projectA"));
     const release = await browseRunFolder();
     view.rerender(panel("/projectB"));
-    release(DETECTED);
-    await waitFor(() => expect(screen.queryByText(/scanning|detecting/i)).toBeNull());
+    await release(DETECTED);
     expect(state.setReferencePath).not.toHaveBeenCalled();
   });
 
@@ -108,8 +113,7 @@ describe("run-folder scan", () => {
     const release = await browseRunFolder();
     state.resetEpoch = 1;
     view.rerender(panel("/projectA"));
-    release(DETECTED);
-    await waitFor(() => expect(mocks.detect).toHaveBeenCalledTimes(1));
+    await release(DETECTED);
     expect(state.setReferencePath).not.toHaveBeenCalled();
   });
 
@@ -117,8 +121,7 @@ describe("run-folder scan", () => {
     render(panel("/projectA"));
     const release = await browseRunFolder();
     state.inputDir = "/projectA/other-run";
-    release(DETECTED);
-    await waitFor(() => expect(mocks.detect).toHaveBeenCalledTimes(1));
+    await release(DETECTED);
     expect(state.setReferencePath).not.toHaveBeenCalled();
   });
 });

@@ -304,6 +304,7 @@ export function MainShell() {
     const target: AutosaveTarget = {
       projectPath: project?.path ?? null,
       scratch: project?.scratch ?? true,
+      workspaceFile: project?.workspaceFile,
       scratchFallback: true,
     };
     return registerUpdateInstallGuard({
@@ -311,13 +312,13 @@ export function MainShell() {
         const { isDesigning, isExporting: kuroExporting } = useAppStore.getState();
         const { isAnalyzing, isExporting: mameExporting } = useMameAppStore.getState();
         const activityExporting = getActivityStore()?.getState().isExporting ?? false;
-        return isDesigning || isAnalyzing || kuroExporting || mameExporting || activityExporting;
+        return hydrating || isDesigning || isAnalyzing || kuroExporting || mameExporting || activityExporting;
       },
       save: async () => {
         await Promise.all([flushAutosave(target, "kuro"), flushAutosave(target, "mame")]);
       },
     });
-  }, [project?.path, project?.scratch]);
+  }, [project?.path, project?.scratch, project?.workspaceFile, hydrating]);
 
   // ── isBusy 실시간 추적 (다이얼로그 Wait → 자동 close 용)
   useEffect(() => {
@@ -336,6 +337,7 @@ export function MainShell() {
     const target: AutosaveTarget = {
       projectPath: project?.path ?? null,
       scratch: project?.scratch ?? true,
+      workspaceFile: project?.workspaceFile,
       // 프로젝트가 없어도 KURO 상태는 앱 데이터 디렉토리에 남긴다.
       scratchFallback: true,
     };
@@ -390,7 +392,7 @@ export function MainShell() {
       disposed = true;
       unlisten?.();
     };
-  }, [performWindowClose, project?.path, project?.scratch]);
+  }, [performWindowClose, project?.path, project?.scratch, project?.workspaceFile]);
 
   // ── 탭 전환 직전 flush
   // prevTab is read from the controlled state; flush whichever kuro/mame tab is
@@ -400,6 +402,7 @@ export function MainShell() {
     const target: AutosaveTarget = {
       projectPath: project?.path ?? null,
       scratch: project?.scratch ?? true,
+      workspaceFile: project?.workspaceFile,
       // 프로젝트가 없어도 KURO 상태는 앱 데이터 디렉토리에 남긴다.
       scratchFallback: true,
     };
