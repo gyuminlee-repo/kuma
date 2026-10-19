@@ -264,25 +264,55 @@ def map_ref_to_accession(
     dropped: list[int] = sorted({p for p in positions if p not in m})
     return {"mapped": mapped, "dropped": dropped}
 
-def structure_matches_reference(accession_seq: str, ref_seq: str) -> bool:
-    """True only when the structure sequence exactly covers the reference frame.
+def exact_reference_offset(accession_seq: str, ref_seq: str) -> int | None:
+    """Unique zero-based exact placement; this does not validate geometry.
 
-    KURO uses 3D Cα coordinates (dispersion, structural diversity) by indexing
-    the accession structure at reference-sequence positions. That is only valid
-    when every reference residue maps to an identical residue in the structure —
-    i.e. the reference is identical to, or a contiguous exact substring of, the
-    accession sequence (tag/truncation offsets are fine; interior substitutions
-    are not). A near-but-not-exact structure (e.g. 95% identity) would place
-    coordinates on the wrong residues, so callers must fall back to 1-D distance.
-
-    Returns False on empty input (cannot establish the frame).
+    A substitution can preserve numbering but is outside this conservative exact
+    contract. Repeated placements and absent sequences cannot establish a frame.
+    Coordinate consumers must apply the returned offset, not just test membership.
     """
-    a = accession_seq.rstrip("*").strip()
-    r = ref_seq.rstrip("*").strip()
+    a = accession_seq.strip().rstrip("*")
+    r = ref_seq.strip().rstrip("*")
     if not a or not r:
-        return False
-    if a == r:
-        return True
-    # Contiguous exact substring: reference is the accession minus terminal
-    # extensions (signal peptide, tag). Every ref residue is identical.
-    return r in a
+        return None
+    offset = a.find(r)
+    if offset < 0 or a.find(r, offset + 1) >= 0:
+        return None
+    return offset
+
+
+MIN_REFERENCE_COVERAGE = 0.5
+
+
+def reference_structure_overlap(structure_seq: str, ref_seq: str) -> dict | None:
+    """Unique exact overlap of a structure sequence with the reference.
+
+    ``offset`` is zero-based: structure index = reference index + offset, so a
+    structure missing N-terminal residues has a negative offset. Only a
+    structure that contains the reference, or a contiguous piece of it (terminal
+    residues missing, nothing else), qualifies. Substitutions, internal gaps and
+    repeated placements return None, and so does a piece covering less than
+    ``MIN_REFERENCE_COVERAGE`` of the reference: a one-residue substring would
+    otherwise pass as a frame and give almost every position no coordinate.
+    """
+    # Case is not part of the identity of a residue; compare upper-cased on both sides.
+    s = structure_seq.strip().rstrip("*").upper()
+    r = ref_seq.strip().rstrip("*").upper()
+    if not s or not r:
+        return None
+    offset = exact_reference_offset(s, r)
+    if offset is not None:
+        return {"offset": offset, "covered": len(r), "reference_length": len(r)}
+    if len(s) >= len(r):
+        return None
+    start = r.find(s)
+    if start < 0 or r.find(s, start + 1) >= 0:
+        return None
+    if len(s) < MIN_REFERENCE_COVERAGE * len(r):
+        return None
+    return {"offset": -start, "covered": len(s), "reference_length": len(r)}
+
+
+def structure_matches_reference(accession_seq: str, ref_seq: str) -> bool:
+    """Whether a unique exact placement exists (not a geometry confidence test)."""
+    return exact_reference_offset(accession_seq, ref_seq) is not None

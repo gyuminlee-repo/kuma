@@ -21,6 +21,7 @@ import { CONTACT_EMAIL_REQUIRED } from "../../types/models";
 export type { DiversitySlice };
 
 import { resolveSelectionDomains } from "./inputSlice.helpers";
+import { isEsmfoldKey } from "../../lib/structureFrameRecovery";
 export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice> = (set, get) => {
   let reloadTimer: ReturnType<typeof setTimeout> | null = null;
   let domainFetchGeneration = 0;
@@ -32,10 +33,29 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   const pdbTextCache = new Map<string, Promise<FetchPdbTextResult | null>>();
   /** Per-sequence ESMFold prediction cache — avoids redundant folds within a session. */
   const esmfoldCache = new Map<string, Promise<PredictStructureEsmfoldResult | null>>();
+  /** Sequences whose last prediction request ended at the consent prompt, so a null result can be told from a failure. */
+  const esmfoldRefused = new Set<string>();
+
+  /** The selected gene's translation: the reference an ESMFold prediction is made for. */
+  function currentReferenceSequence(state: AppState): string {
+    const gene = state.seqInfo?.genes.find((g) => String(g.cds_start) === state.selectedGene)
+      ?? state.seqInfo?.genes[0];
+    return gene?.translation ?? "";
+  }
 
 
   function getActiveEvolveproPath(state: AppState): string {
     return state.evolveproCsvPath;
+  }
+
+  /**
+   * A call that drops its answer because the context it started from moved
+   * on would leave its progress line up for good. Empty is the slice's own
+   * "nothing to say" (sequenceSlice clears the same way); a line another
+   * action wrote since is not ours to remove.
+   */
+  function clearOwnStatus(own: string) {
+    if (get().statusMessage === own) set({ statusMessage: "" });
   }
 
   async function reloadEvolveproCsv(reason: string) {
@@ -161,12 +181,19 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   poolVariants: [],
   structureLoaded: false,
   structureLoading: false,
+  structureRequestGeneration: 0,
   structureAccession: "",
   structure3dState: "off",
+  structureCoverage: null,
   uniprotCandidates: [],
   uniprotSearching: false,
   structuralDiversityEnabled: false,
   structuralKappa: 0.3,
+  strictSpatialEnabled: false,
+  strictSpatialBudgetMode: "unique_sites",
+  strictSpatialSiteCap: null,
+  strictSpatialSelection: null,
+  strictSpatialError: null,
   refDomains: [],
   refDomainsLoading: false,
   refDomainHash: "",
@@ -219,13 +246,17 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     const requestedAccession = accession.trim();
     const fetchGeneration = ++domainFetchGeneration;
     uniprotSearchGeneration += 1;
+    // An ESMFold key names a prediction of the reference itself; replacing it with
+    // the AlphaFold accession would bring back the structure it was adopted to replace.
+    const keepsStructure = (s: AppState) =>
+      s.structureAccession === requestedAccession || isEsmfoldKey(s.structureAccession);
     set({
       domainLoading: true,
       uniprotSearching: false,
       ...(clearCandidates && { uniprotCandidates: [] }),
       uniprotAccession: requestedAccession,
-      structureLoaded: get().structureAccession === requestedAccession,
-      ...(get().structureAccession !== requestedAccession && {
+      structureLoaded: keepsStructure(get()),
+      ...(!keepsStructure(get()) && {
         structureLoading: false,
       }),
       statusMessage: "Fetching domain info...",
@@ -238,7 +269,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       );
       if (fetchGeneration !== domainFetchGeneration) return;
       const state = get();
-      const structureMatches = state.structureAccession === requestedAccession;
+      const structureMatches = keepsStructure(state);
       const deferReloadToStructureFetch = (
         requestedAccession !== ""
         && !structureMatches
@@ -299,9 +330,39 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     if (enabled) maybeBackfillUniprotSearch();
   },
 
+  setStrictSpatialEnabled: (enabled: boolean) => {
+    set(buildKuroDesignInputPatch(get(), {
+      strictSpatialEnabled: enabled,
+      strictSpatialSelection: null,
+      strictSpatialError: null,
+    }));
+    debouncedReload();
+  },
+
   setStructuralKappa: (v: number) => {
     const clamped = Math.max(0, Math.min(1, v));
     set(buildKuroDesignInputPatch(get(), { structuralKappa: clamped }));
+    debouncedReload();
+  },
+
+  setStrictSpatialBudgetMode: (mode) => {
+    if (get().strictSpatialBudgetMode === mode) return;
+    set(buildKuroDesignInputPatch(get(), {
+      strictSpatialBudgetMode: mode,
+      strictSpatialSelection: null,
+      strictSpatialError: null,
+    }));
+    debouncedReload();
+  },
+
+  setStrictSpatialSiteCap: (cap) => {
+    if (cap !== null && (!Number.isSafeInteger(cap) || cap < 1)) return;
+    if (get().strictSpatialSiteCap === cap) return;
+    set(buildKuroDesignInputPatch(get(), {
+      strictSpatialSiteCap: cap,
+      strictSpatialSelection: null,
+      strictSpatialError: null,
+    }));
     debouncedReload();
   },
 
@@ -397,9 +458,20 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       }, 120_000);
       // Surface the same 3D-to-1D fallback notice load_evolvepro shows, so a
       // frame mismatch is not silent in the benchmark path either.
+      const structureKey = state.structureAccession || state.uniprotAccession;
       const benchMismatch = result.structure_frame_mismatch
         ? ` | ${i18next.t("inputSlice.structureFrameMismatch")}`
-        : "";
+        // A structure is set but the sidecar did not use its coordinates (for
+        // example an ESMFold prediction no longer in the cache): the run is on
+        // 1-D distance. Forcing 1-D is the user's choice and needs no notice.
+        : result.structure_coordinates_used === false && structureKey && state.distanceMode !== "1d"
+          ? ` | ${i18next.t("diversity.benchmarkOneDimensional")}`
+        : result.structure_coverage
+          ? ` | ${i18next.t("inputSlice.structureCoverage", {
+              covered: result.structure_coverage.covered,
+              length: result.structure_coverage.reference_length,
+            })}`
+          : "";
       set({
         benchmarkRunning: false,
         benchmarkResults: result.results,
@@ -505,10 +577,14 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     const requestedAccession = accession.trim();
     if (!requestedAccession) return;
     const fetchGeneration = ++structureFetchGeneration;
+    const loadingMessage = "AlphaFold structure loading...";
     set({
+      structureRequestGeneration: fetchGeneration,
       structureLoading: true,
       structureLoaded: get().structureAccession === requestedAccession,
-      statusMessage: "AlphaFold structure loading...",
+      structure3dState: "off",
+      structureCoverage: null,
+      statusMessage: loadingMessage,
     });
     try {
       const result = await sendRequest(
@@ -516,10 +592,10 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
         { accession: requestedAccession },
         30_000,
       );
-      if (
-        fetchGeneration !== structureFetchGeneration
-        || get().uniprotAccession !== requestedAccession
-      ) {
+      if (fetchGeneration !== structureFetchGeneration) return;
+      if (get().uniprotAccession !== requestedAccession) {
+        set({ structureLoading: false });
+        clearOwnStatus(loadingMessage);
         return;
       }
       if (result.success) {
@@ -546,10 +622,10 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
         }
       }
     } catch (err) {
-      if (
-        fetchGeneration !== structureFetchGeneration
-        || get().uniprotAccession !== requestedAccession
-      ) {
+      if (fetchGeneration !== structureFetchGeneration) return;
+      if (get().uniprotAccession !== requestedAccession) {
+        set({ structureLoading: false });
+        clearOwnStatus(loadingMessage);
         return;
       }
       set({
@@ -569,8 +645,11 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     // discards a stale load if another begins first.
     const fetchGeneration = ++structureFetchGeneration;
     set({
+      structureRequestGeneration: fetchGeneration,
       structureLoading: true,
       structureLoaded: false,
+      structure3dState: "off",
+      structureCoverage: null,
       statusMessage: i18next.t("diversity.structureFileLoading"),
     });
     try {
@@ -661,8 +740,10 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
         const reason = refusalReason("esmfold");
         set({ statusMessage: i18next.t("diversity.esmfoldCancelled", { reason }) });
         esmfoldCache.delete(clean);
+        esmfoldRefused.add(clean);
         return null;
       }
+      esmfoldRefused.delete(clean);
       set({ statusMessage: i18next.t("diversity.esmfoldPredicting") });
       try {
         const result = await sendRequest("predict_structure_esmfold", { sequence: clean }, 180_000);
@@ -690,6 +771,40 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     })();
     esmfoldCache.set(clean, promise);
     return promise;
+  },
+
+  adoptReferenceEsmfold: async (sequence: string): Promise<"used" | "refused" | "failed" | "stale"> => {
+    // The prediction can take 180 s. A newer structure request or a change of
+    // reference or accession in that time owns the structure, so this result is dropped.
+    // The generation is only read here: bumping it now would make an in-flight
+    // fetch drop its result, and if the prediction then failed nothing would
+    // clear structureLoading or restore the fetched structure. Ownership is
+    // taken on success. Consent is asked once, inside predictStructureEsmfold.
+    const generation = structureFetchGeneration;
+    const startRefSeq = currentReferenceSequence(get());
+    const startAccession = get().uniprotAccession;
+    const result = await get().predictStructureEsmfold(sequence);
+    if (!result && esmfoldRefused.has(sequence.trim())) return "refused";
+    if (!result || !result.success || !result.structure_key) return "failed";
+    if (
+      get().structureLoading
+      || generation !== structureFetchGeneration
+      || currentReferenceSequence(get()) !== startRefSeq
+      || get().uniprotAccession !== startAccession
+    ) return "stale";
+    // Take ownership only after competing structure loads have settled.
+    structureFetchGeneration++;
+    set({
+      structureRequestGeneration: structureFetchGeneration,
+      structureLoaded: true,
+      structureLoading: false,
+      structureAccession: result.structure_key,
+    });
+    const state = get();
+    if (shouldReloadAfterStructureFetch(state)) {
+      await state.loadEvolveproCsv(getActiveEvolveproPath(state));
+    }
+    return "used";
   },
 
   fetchActiveSite: async (accession: string): Promise<FetchActiveSiteResult | null> => {
@@ -777,9 +892,10 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     const translation = gene?.translation;
     if (!translation) return;
     const generation = ++refDomainGeneration;
+    const scanningMessage = i18next.t("diversity.sequenceDomainScanning");
     set({
       refDomainsLoading: true,
-      statusMessage: i18next.t("diversity.sequenceDomainScanning"),
+      statusMessage: scanningMessage,
     });
     try {
       const scan = () => sendRequest(
@@ -810,6 +926,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       const nowSeqInfo = nowState.seqInfo;
       if (!nowSeqInfo) {
         set({ refDomainsLoading: false });
+        clearOwnStatus(scanningMessage);
         return;
       }
       const nowGene =
@@ -817,6 +934,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
         ?? nowSeqInfo.genes[0];
       if (nowGene?.translation !== translation) {
         set({ refDomainsLoading: false });
+        clearOwnStatus(scanningMessage);
         return;
       }
       if (result.source === "error") {

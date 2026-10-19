@@ -490,7 +490,116 @@ export interface EvolveproStepStats {
   start_codon_removed_variants?: string[] | null;
 }
 
+export type StrictSpatialBudgetMode = "unique_sites" | "distinct_variants";
+
+/**
+ * Descriptive metrics of one variant set. Site and distance metrics use only
+ * the `spatial_variant_count` members that have a trusted coordinate (the
+ * eligible ones); with none of them both counts are 0 and every distance is
+ * null, which is "not computable" and not a zero distance.
+ */
+export interface StrictSpatialProfile {
+  variant_count: number;
+  spatial_variant_count: number;
+  site_count: number;
+  max_variants_per_site: number;
+  minimum_site_distance: number | null;
+  coverage_mean_distance: number | null;
+  coverage_max_distance: number | null;
+  score_mean: number | null;
+  mean_score_rank: number | null;
+}
+
+/** Score Top-N of one candidate universe, compared with the spatial selection. */
+export interface StrictSpatialBaseline {
+  top_n: StrictSpatialProfile | null;
+  top_n_variants: string[] | null;
+  top_n_overlap_count: number | null;
+  /** Direction-aware difference in raw score means; not measured fitness loss. */
+  score_gap_to_top_n: number | null;
+}
+
+/**
+ * The primary baseline is the score Top-N of every scored substitution in the
+ * input, before the coordinate, confidence and exclusion filters and before
+ * the per-site budget. Ranks in every profile use that same input ranking.
+ */
+export interface StrictSpatialComparison extends StrictSpatialBaseline {
+  baseline: "configured-score-top-n";
+  universe: "input-variants-before-spatial-eligibility";
+  candidate_site_count: number;
+  score_available: boolean;
+  selected: StrictSpatialProfile;
+  /** Top-N members that spatial selection could not use, in Top-N order; null without scores. */
+  top_n_excluded: Array<{ variant: string; reason: string }> | null;
+  /** Secondary: Top-N of the eligible variants only, the primary baseline before 2026-10-13. */
+  eligible_top_n: StrictSpatialBaseline & { universe: "eligible-variants-before-budget-and-cap-policy" };
+  /** Secondary: Top-N of the per-site representatives left by the budget and cap. */
+  representative_top_n: StrictSpatialBaseline & { universe: "eligible-variants-after-budget-and-cap-policy" };
+}
+
+/**
+ * Coordinate confidence applied before distance selection. Only an AlphaFold
+ * model carries pLDDT in its B-factor column; other sources report
+ * "unavailable" and no threshold.
+ */
+export interface StrictSpatialCoordinateConfidence {
+  source: "alphafold_plddt" | "esmfold_plddt" | "unavailable";
+  threshold: number | null;
+  low_confidence_residue_count: number;
+  excluded_variant_count: number;
+}
+
+/** Verified single-site substitutions and the exact structure used to select them. */
+export interface StrictSpatialResult {
+  schema_version: 1;
+  source_accession: string;
+  source_sha256: string;
+  reference_sha256: string;
+  candidate_sha256: string;
+  score_order: "asc" | "desc";
+  score_available: boolean;
+  pdb_text: string;
+  coordinate_frame: "reference";
+  selection_policy: "single-site-full-pool-fps-v1" | "distinct-variant-full-pool-fps-v1";
+  budget_mode: StrictSpatialBudgetMode;
+  site_cap: number | null;
+  selected_variants: string[];
+  /** Variant-aligned positions; distinct substitutions may share a site. */
+  selected_positions: number[];
+  selected_variant_count: number;
+  selected_site_count: number;
+  mapping: Array<{
+    reference_position: number;
+    structure_position: number;
+    chain_id: string;
+    insertion_code: string;
+    coordinate: [number, number, number];
+    /** pLDDT of an AlphaFold model; null or absent when the source has none. */
+    confidence?: number | null;
+  }>;
+  eligible_positions: number[];
+  excluded: Array<{ variant: string; reason: string }>;
+  requested_count: number;
+  eligible_site_count: number;
+  eligible_variant_count: number;
+  site_multiplicities: Array<{ reference_position: number; variant_count: number }>;
+  geometry_variant_min_pair_distance: number | null;
+  geometry_site_min_pair_distance: number | null;
+  source_row_count: number;
+  parsed_variant_count: number;
+  parsing_omitted_count: number;
+  start_position_omitted_count: number;
+  duplicate_variant_omitted_count: number;
+  /** Source of per-residue confidence; equals coordinate_confidence.source when both are present. */
+  confidence_source?: StrictSpatialCoordinateConfidence["source"];
+  /** Older certificates may omit diagnostics without losing selection identity. */
+  comparison?: StrictSpatialComparison;
+  coordinate_confidence?: StrictSpatialCoordinateConfidence;
+}
+
 export interface EvolveproLoadResult {
+  strict_spatial?: StrictSpatialResult;
   variants: string[];
   y_preds: number[];
   total_count: number;
@@ -506,6 +615,12 @@ export interface EvolveproLoadResult {
    *  so 3D Cα coordinates were dropped and structural/pareto selection fell back
    *  to 1-D sequence distance. */
   structure_frame_mismatch?: boolean;
+  /** True when the sidecar selected on 3D coordinates, false when it fell back to
+   *  1-D distance (no coordinates for the structure key). Absent from an older sidecar. */
+  structure_coordinates_used?: boolean;
+  /** Set when the structure lacks terminal reference residues (an exact overlap):
+   *  3D selection uses it and those positions have no coordinate. */
+  structure_coverage?: StructureCoverage | null;
   /** Ranked candidates beyond the selected set: selected + up to BUFFER_CAP extras, y_pred desc. */
   ranked_candidates?: import("./models.generated").RankedCandidateItem[];
   /**
@@ -958,11 +1073,23 @@ export interface PredictStructureEsmfoldResult {
   residue_count: number;
   coordinate_frame: "reference";
   seq_hash: string;
+  /** Key the sidecar caches this prediction's coordinates under; pass it as structure_accession. */
+  structure_key?: string;
   cache_hit: boolean;
   error_msg?: string;
 }
 
+export interface StructureCoverage {
+  covered: number;
+  reference_length: number;
+}
+
 export interface FetchActiveSiteResult {
+  /** Raw source records retain uncertain locations, ligand details and evidence. */
+  features?: Record<string, unknown>[];
+  annotation_status?: "present" | "no_matching_features" | "error";
+  sequence_version?: number | null;
+  projection_status?: "unverified";
   accession: string;
   active_site_positions: number[];
   binding_positions: number[];
@@ -1005,6 +1132,8 @@ export interface RunBenchmarkResult {
   // True when a loaded structure did not cover the reference frame, so the
   // benchmark ran on 1D distance instead of 3D. Same guard as load_evolvepro.
   structure_frame_mismatch?: boolean;
+  structure_coordinates_used?: boolean;
+  structure_coverage?: StructureCoverage | null;
 }
 
 export interface JsonRpcError {

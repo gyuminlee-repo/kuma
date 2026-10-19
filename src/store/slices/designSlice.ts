@@ -1,5 +1,5 @@
-import type { StateCreator } from "zustand";
 import i18next from "i18next";
+import type { StateCreator } from "zustand";
 import { toast } from "sonner";
 import { notifyJobComplete } from "../../lib/notify";
 import { notifyJobDone, notifyJobError } from "../../lib/toast";
@@ -7,6 +7,7 @@ import { startKeepAwake, stopKeepAwake } from "../../lib/keepAwake";
 import { cancelAndRespawn, sendRequest } from "../../lib/ipc-kuro";
 import { wellName } from "../../lib/plate-utils";
 import { clampMaxPrimers } from "../../lib/inputThresholds";
+import { currentStrictSpatialResult, isStrictSpatialMode, sameVariantIds, strictSpatialContextKey } from "../../lib/strictSpatial";
 import { resizeEvolveproSelection } from "../../lib/evolveproSelection";
 import { formatError } from "../../lib/utils";
 import { buildKuroDesignInputPatch, buildKuroResultResetPatch } from "../../lib/kuroResultReset";
@@ -193,12 +194,21 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       fwdLenMax,
       revLenMin,
       revLenMax,
-      fillOnFailure,
+      fillOnFailure: requestedFillOnFailure,
       overlapMode,
       mutationInputMode,
       selectedPolymerase,
       randomSeed,
     } = state;
+
+    const strictDesign = isStrictSpatialMode(state);
+    const priorSpatial = currentStrictSpatialResult(state);
+    const initialSpatialContext = strictSpatialContextKey(state);
+    const fillOnFailure = requestedFillOnFailure && !strictDesign;
+    if (strictDesign && !priorSpatial) {
+      set({ statusMessage: i18next.t("strictSpatial.reviewRequired") });
+      return;
+    }
 
     if (!fastaPath) {
       set({ statusMessage: "Sequence file not loaded" });
@@ -217,7 +227,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       selectedGene: selectedGene ?? "",
       poolVariants: state.poolVariants,
       evolveproSelectedVariants: state.evolveproSelectedVariants,
-      evolveproRankedCandidates: state.evolveproRankedCandidates,
+      evolveproRankedCandidates: strictDesign ? [] : state.evolveproRankedCandidates,
     });
     const { sendCount, isEvolveMode } = initialPrep;
 
@@ -237,6 +247,31 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       if (!ownsRun()) return;
     }
 
+    if (strictDesign !== isStrictSpatialMode(get())
+      || (strictDesign && (initialSpatialContext !== strictSpatialContextKey(get())
+        || fastaPath !== get().fastaPath || selectedGene !== get().selectedGene))) {
+      set({ statusMessage: i18next.t("strictSpatial.changedSelection") });
+      return;
+    }
+
+    if (strictDesign) {
+      const verified = currentStrictSpatialResult(get());
+      if (!verified || !priorSpatial
+        || !sameVariantIds(verified.selected_variants, priorSpatial.selected_variants)
+        || verified.source_sha256 !== priorSpatial.source_sha256
+        || verified.reference_sha256 !== priorSpatial.reference_sha256
+        || verified.candidate_sha256 !== priorSpatial.candidate_sha256
+        || verified.selection_policy !== priorSpatial.selection_policy
+        || verified.budget_mode !== priorSpatial.budget_mode
+        || verified.site_cap !== priorSpatial.site_cap
+        || verified.requested_count !== priorSpatial.requested_count
+        || verified.score_order !== priorSpatial.score_order
+        || verified.score_available !== priorSpatial.score_available) {
+        set({ statusMessage: i18next.t("strictSpatial.changedSelection") });
+        return;
+      }
+    }
+
     const prepared = prepareDesignInput({
       mutationText: get().mutationText,
       maxPrimers,
@@ -245,7 +280,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       selectedGene: selectedGene ?? "",
       poolVariants: get().poolVariants,
       evolveproSelectedVariants: get().evolveproSelectedVariants,
-      evolveproRankedCandidates: get().evolveproRankedCandidates,
+      evolveproRankedCandidates: strictDesign ? [] : get().evolveproRankedCandidates,
     });
     if (!prepared.limitedText.trim()) {
       set({ statusMessage: "No valid EVOLVEpro variants loaded" });
@@ -581,7 +616,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       state.mutationInputMode === "evolvepro" &&
       !state.evolveproSelectionManual &&
       state.evolveproRankedCandidates.length > 0 &&
-      clamped !== prev;
+      !isStrictSpatialMode(state) && clamped !== prev;
     set(
       buildKuroDesignInputPatch(state, {
         maxPrimers: clamped,
@@ -603,8 +638,10 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
     const loadFailed =
       isEvolvepro && !!activeEvolveproPath && state.evolveproTotalCount === 0 &&
       !state.mutationText.trim();
-    if (loadFailed && clamped !== prev) {
-      void state.loadEvolveproCsv(activeEvolveproPath);
+    if ((loadFailed || (isStrictSpatialMode(state) && !!activeEvolveproPath)) && clamped !== prev) {
+      void state.loadEvolveproCsv(activeEvolveproPath).catch(() => {
+        // Capacity/source failures are reported by the input slice.
+      });
     }
   },
 

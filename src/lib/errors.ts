@@ -18,6 +18,15 @@ export function isExportBlockedError(message: string): boolean {
 }
 
 /**
+ * Strict spatial selection refused because the structure does not hold the
+ * reference exactly. The sidecar sends JSON-RPC code -32010
+ * (dispatcher.STRICT_FRAME_MISMATCH_CODE); the host formats it as "[-32010] ...".
+ */
+export function isStrictFrameMismatchError(message: string): boolean {
+  return message.includes("[-32010]")
+}
+
+/**
  * JSON-RPC 에러를 사용자 친화적 i18n 키 또는 메시지로 변환.
  *
  * 반환값: i18n 키 문자열 (caller가 t()로 번역) 또는 원본 메시지.

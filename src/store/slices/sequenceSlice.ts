@@ -132,6 +132,8 @@ export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> 
         uniprotCandidates: [],
         uniprotSearching: false,
         uniprotAccession: "",
+        strictSpatialSelection: null,
+        strictSpatialError: null,
         structureAccession: "",
         structureLoaded: false,
         structureLoading: false,

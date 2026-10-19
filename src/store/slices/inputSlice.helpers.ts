@@ -4,6 +4,7 @@ import type {
   DomainStat,
   EvolveproLoadResult,
   EvolveproStepStats,
+  StrictSpatialBudgetMode,
 } from "../../types/models";
 import type { Round } from "../../types/round";
 
@@ -45,6 +46,9 @@ export interface EvolveproLoadConfig {
   refSeq: string;
   structuralDiversityEnabled: boolean;
   structuralKappa: number;
+  strictSpatialEnabled?: boolean;
+  strictSpatialBudgetMode?: StrictSpatialBudgetMode;
+  strictSpatialSiteCap?: number | null;
   /**
    * Cumulative already-explored variant IDs (internal notation, e.g. `F89W`)
    * for structural-diversity revealed-anchor maximin. Empty = no anchor
@@ -63,6 +67,7 @@ export interface EvolveproLoadStateUpdate {
   evolveproParetoExchanges: number | null;
   evolveproStepStats: EvolveproStepStats | null;
   structure3dState: "off" | "active" | "no_structure" | "frame_mismatch";
+  structureCoverage: { covered: number; reference_length: number } | null;
   statusMessage: string;
 }
 
@@ -103,6 +108,21 @@ export function buildEvolveproLoadParams(config: EvolveproLoadConfig): Record<st
     structuralKappa,
     anchorVariants,
   } = config;
+
+  if (usePipeline && structuralDiversityEnabled && config.strictSpatialEnabled) {
+    // The opt-in method owns its full-pool eligibility and selection. Legacy
+    // quotas, Pareto shortlists, anchors and kappa must not narrow its pool.
+    return {
+      filepath, top_n: topN, ref_seq: refSeq, structure_accession: structureAccession,
+      score_order: evolveproScoreOrder, strict_spatial: true, structural_diversity: true,
+      strict_spatial_budget: config.strictSpatialBudgetMode ?? "unique_sites",
+      strict_spatial_site_cap: config.strictSpatialBudgetMode === "distinct_variants"
+        ? config.strictSpatialSiteCap ?? null : null,
+      ...(evolveproVariantColumn && { variant_column: evolveproVariantColumn }),
+      ...(evolveproScoreColumn && { score_column: evolveproScoreColumn }),
+      ...(evolveproSheetName && { sheet_name: evolveproSheetName }),
+    };
+  }
 
   const params: Record<string, unknown> = {
     filepath,
@@ -203,9 +223,15 @@ export function buildEvolveproLoadStateUpdate(params: {
   const paretoMsg = result.pareto_replaced != null && result.pareto_replaced > 0
     ? ` | Pareto: ${result.pareto_replaced} diversified`
     : "";
+  const structureCoverage = result.structure_frame_mismatch ? null : result.structure_coverage ?? null;
   const structureMsg = result.structure_frame_mismatch
     ? ` | ${i18next.t("inputSlice.structureFrameMismatch")}`
-    : "";
+    : structureCoverage
+      ? ` | ${i18next.t("inputSlice.structureCoverage", {
+          covered: structureCoverage.covered,
+          length: structureCoverage.reference_length,
+        })}`
+      : "";
 
   // Persist why 3D distance was or was not used, so the fallback is visible in
   // the panel rather than only in this transient status line.
@@ -214,7 +240,9 @@ export function buildEvolveproLoadStateUpdate(params: {
       ? "off"
       : result.structure_frame_mismatch
         ? "frame_mismatch"
-        : structureLoaded
+        // "active" only when the sidecar says it used coordinates. A sidecar that
+        // does not report it (older build) is read as before, from structureLoaded.
+        : (result.structure_coordinates_used ?? structureLoaded)
           ? "active"
           : "no_structure";
   const modeLabel = "EVOLVEpro";
@@ -229,6 +257,7 @@ export function buildEvolveproLoadStateUpdate(params: {
     evolveproParetoExchanges: result.pareto_replaced ?? null,
     evolveproStepStats: result.step_stats ?? null,
     structure3dState,
+    structureCoverage,
     statusMessage: `${modeLabel}: ${result.selected_count}/${result.total_count} variants${filteredMsg}${domainMsg}${paretoMsg}${structureMsg}`,
   };
 }

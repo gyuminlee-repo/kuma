@@ -26,6 +26,8 @@ import type {
   DomainStrategy,
   EvolveproPreview,
   EvolveproStepStats,
+  StrictSpatialResult,
+  StrictSpatialBudgetMode,
   FailedMutation,
   FetchActiveSiteResult,
   FetchPdbTextResult,
@@ -173,6 +175,7 @@ export interface DiversitySlice {
   saveCache: boolean;
   structureLoaded: boolean;
   structureLoading: boolean;
+  structureRequestGeneration: number;
   structureAccession: string;
   // Whether the last EVOLVEpro load actually used 3D distance, and if not, why.
   // "off": no 3D consumer enabled, so the distinction does not apply.
@@ -182,11 +185,20 @@ export interface DiversitySlice {
   // Persisted from the load result so the fallback is visible, not just a
   // transient status line.
   structure3dState: "off" | "active" | "no_structure" | "frame_mismatch";
+  // Set when the structure in use lacks terminal reference residues (an exact
+  // overlap); those positions have no coordinate. Null when it covers all of them.
+  structureCoverage: { covered: number; reference_length: number } | null;
   poolVariants: string[];
   uniprotCandidates: UniprotCandidate[];
   uniprotSearching: boolean;
   structuralDiversityEnabled: boolean;
   structuralKappa: number;
+  /** Session-only opt-in; restored workspaces require an explicit new selection. */
+  strictSpatialEnabled: boolean;
+  strictSpatialBudgetMode: StrictSpatialBudgetMode;
+  strictSpatialSiteCap: number | null;
+  strictSpatialSelection: { result: StrictSpatialResult; contextKey: string } | null;
+  strictSpatialError: string | null;
   refDomains: DomainInfo[];
   refDomainsLoading: boolean;
   refDomainHash: string;
@@ -224,6 +236,9 @@ export interface DiversitySlice {
   cancelDiversityReload: () => void;
   setStructuralDiversityEnabled: (enabled: boolean) => void;
   setStructuralKappa: (v: number) => void;
+  setStrictSpatialEnabled: (enabled: boolean) => void;
+  setStrictSpatialBudgetMode: (mode: StrictSpatialBudgetMode) => void;
+  setStrictSpatialSiteCap: (cap: number | null) => void;
   /** Fetch PDB text for a given UniProt accession. Results are cached per accession. */
   fetchPdbText: (accession: string) => Promise<FetchPdbTextResult | null>;
   /** Fetch active-site and binding-site residues for a given UniProt accession. */
@@ -240,6 +255,8 @@ export interface DiversitySlice {
   }) => Promise<ComputeDispersionResult | null>;
   /** Predict a reference-frame structure from sequence alone via ESMFold (<=400 aa). */
   predictStructureEsmfold: (sequence: string) => Promise<PredictStructureEsmfoldResult | null>;
+  /** Predict the reference with ESMFold and make it the structure selection and benchmark use. */
+  adoptReferenceEsmfold: (sequence: string) => Promise<"used" | "refused" | "failed" | "stale">;
   /** Annotate reference-frame domains by submitting the selected gene translation to InterProScan. */
   annotateReferenceDomains: () => Promise<void>;
 }

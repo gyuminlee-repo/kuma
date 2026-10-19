@@ -865,12 +865,22 @@ def handle_predict_structure_esmfold(params: dict) -> dict:
             "residue_count": 0,
             "coordinate_frame": "reference",
             "seq_hash": "",
+            "structure_key": "",
             "cache_hit": False,
             "error_msg": str(exc),
         }
 
+    # Selection and benchmark resolve this key from the on-disk prediction cache
+    # (core._esmfold_cached_structure). Writing the single shared coordinate slot
+    # here would evict a structure loaded meanwhile, since this runs threaded.
+    from kuma_core.kuro.esmfold import structure_key
+
+    key = structure_key(seq_hash)
+    _core._remember_esmfold_prediction(key, pdb_text)
+
     return {
         "success": True,
+        "structure_key": key,
         "source": "esmfold_cache" if cache_hit else "esmfold",
         "pdb_text": pdb_text,
         "plddt_mean": plddt_mean,

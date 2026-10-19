@@ -1545,6 +1545,38 @@
       "severity": "warning"
     },
     {
+      "id": "strict-spatial-context",
+      "files": [
+        "kuma_core/kuro/strict_spatial.py",
+        "kuma_core/kuro/evolvepro.py",
+        "python-core/sidecar_kuro/handlers/misc.py",
+        "python-core/sidecar_kuro/models.py",
+        "src/types/models.ts",
+        "src/types/validators.ts",
+        "src/lib/strictSpatial.ts",
+        "src/store/slice-interfaces.ts",
+        "src/store/slices/diversitySlice.ts",
+        "src/store/slices/inputSlice.helpers.ts",
+        "src/store/slices/inputSlice.ts",
+        "src/store/slices/designSlice.ts",
+        "src/components/panels/Selection3DPanel.tsx",
+        "src/components/panels/InputPanel/StrictSpatialSection.tsx",
+        "tests/test_strict_variant_budget.py"
+      ],
+      "note": "Strict opt-in source/reference/candidate certificate and exact selection-to-design identity contract. Functional annotation is explanation only.",
+      "severity": "blocking"
+    },
+    {
+      "id": "experimental-residue-correspondence",
+      "files": [
+        "kuma_core/kuro/residue_mapping.py",
+        "tests/test_residue_mapping.py",
+        "docs/audit/residue-mapping-contract.md"
+      ],
+      "note": "Offline polymer-to-observed residue identity, optional homolog/SIFTS evidence and confidence provenance. Not an application mapping certificate.",
+      "severity": "warning"
+    },
+    {
       "id": "generic-export-atomic-publication",
       "files": [
         "kuma_core/shared/atomic_write.py",
