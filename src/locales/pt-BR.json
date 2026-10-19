@@ -2681,13 +2681,13 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Cinco hospedeiros de expressão entram nas tabelas de códons internas: P. pastoris, CHO, C. glutamicum, A. niger e P. putida, contados do NCBI RefSeq.",
-      "Nomes comuns também funcionam. CHO, CHO-K1 e Chinese hamster levam à mesma tabela, e Pichia pastoris ao K. phaffii.",
-      "M. extorquens AM1 não vem mais embutido. Ele é fornecido como seed pronto para instalar na pasta de tabelas de códons do usuário.",
-      "A tabela de E. coli agora indica a entrada do Kazusa de onde vêm seus valores, W3110 taxid 316407. Os valores não mudaram.",
-      "A tabela de A. niger não declara cepa, pois o registro atual do RefSeq para esse assembly não indica nenhuma."
+      "O KURO seleciona variantes por proximidade 3D e, se a estrutura do banco não cobre a referência, prediz uma com ESMFold.",
+      "Um design, exportação ou análise em execução detém sua requisição; uma resposta tardia nunca sobrescreve um resultado mais recente.",
+      "O MAME etapa 4.1 lê o tipo de rótulo do relatório de confirmação e mapeia automaticamente poços para variantes.",
+      "A etapa 6 permite escolher quais arquivos exportar, e toda exportação é publicada por uma renomeação atômica.",
+      "A ajuda integrada é publicada como guia ilustrado com capturas de tela anotadas em cada etapa."
     ],
-    "highlightsStamp": "0.16.73+4da5762b",
+    "highlightsStamp": "0.16.74+5562e779",
     "releases": {
       "0.16.69": [
         "As sequências consensus escrevem um traço onde falta uma base, de modo que uma deleção não parece mais uma posição que não pôde ser interpretada.",
@@ -3196,6 +3196,13 @@
         "M. extorquens AM1 não vem mais embutido. Ele é fornecido como seed pronto para instalar na pasta de tabelas de códons do usuário.",
         "A tabela de E. coli agora indica a entrada do Kazusa de onde vêm seus valores, W3110 taxid 316407. Os valores não mudaram.",
         "A tabela de A. niger não declara cepa, pois o registro atual do RefSeq para esse assembly não indica nenhuma."
+      ],
+      "0.16.74": [
+        "O KURO seleciona variantes por proximidade 3D e, se a estrutura do banco não cobre a referência, prediz uma com ESMFold.",
+        "Um design, exportação ou análise em execução detém sua requisição; uma resposta tardia nunca sobrescreve um resultado mais recente.",
+        "O MAME etapa 4.1 lê o tipo de rótulo do relatório de confirmação e mapeia automaticamente poços para variantes.",
+        "A etapa 6 permite escolher quais arquivos exportar, e toda exportação é publicada por uma renomeação atômica.",
+        "A ajuda integrada é publicada como guia ilustrado com capturas de tela anotadas em cada etapa."
       ]
     },
     "releaseStamps": {
@@ -3281,7 +3288,8 @@
       "0.16.70": "291b4798",
       "0.16.71": "14948bca",
       "0.16.72": "cb204794",
-      "0.16.73": "4da5762b"
+      "0.16.73": "4da5762b",
+      "0.16.74": "5562e779"
     }
   },
   "primerDisplay": {

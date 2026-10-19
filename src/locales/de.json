@@ -2681,13 +2681,13 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Fünf Expressionswirte kommen zu den eingebauten Codon-Tabellen: P. pastoris, CHO, C. glutamicum, A. niger und P. putida, alle aus NCBI RefSeq gezählt.",
-      "Auch gebräuchliche Namen greifen. CHO, CHO-K1 und Chinese hamster führen zur selben Tabelle, Pichia pastoris zu K. phaffii.",
-      "M. extorquens AM1 ist nicht mehr eingebaut. Es liegt als installationsfertiges Seed im Ordner für eigene Codon-Tabellen.",
-      "Die E.-coli-Tabelle nennt nun den Kazusa-Eintrag ihrer Zahlen, W3110 taxid 316407. Die Zahlen bleiben unverändert.",
-      "Die A.-niger-Tabelle nennt keinen Stamm, da der aktuelle RefSeq-Eintrag zu diesem Assembly keinen angibt."
+      "KURO wählt Varianten nach 3D-Nähe aus; deckt die Datenbankstruktur die Referenz nicht ab, wird eine mit ESMFold vorhergesagt.",
+      "Ein laufendes Design, Export oder Analyse besitzt seine Anfrage, sodass eine späte Antwort kein neueres Ergebnis überschreibt.",
+      "MAME Schritt 4.1 liest den Labeltyp des Bestätigungsberichts und ordnet einen Well-beschrifteten Bericht automatisch Varianten zu.",
+      "In Schritt 6 wählen Sie, welche Exportdateien geschrieben werden; jeder Export wird atomar per Umbenennung veröffentlicht.",
+      "Die In-App-Hilfe wird als illustrierte Anleitung mit annotierten Screenshots bei jedem Schritt veröffentlicht."
     ],
-    "highlightsStamp": "0.16.73+4da5762b",
+    "highlightsStamp": "0.16.74+5562e779",
     "releases": {
       "0.16.69": [
         "Consensus-Sequenzen schreiben einen Bindestrich, wo eine Base fehlt, sodass eine Deletion nicht mehr wie eine nicht auswertbare Position aussieht.",
@@ -3196,6 +3196,13 @@
         "M. extorquens AM1 ist nicht mehr eingebaut. Es liegt als installationsfertiges Seed im Ordner für eigene Codon-Tabellen.",
         "Die E.-coli-Tabelle nennt nun den Kazusa-Eintrag ihrer Zahlen, W3110 taxid 316407. Die Zahlen bleiben unverändert.",
         "Die A.-niger-Tabelle nennt keinen Stamm, da der aktuelle RefSeq-Eintrag zu diesem Assembly keinen angibt."
+      ],
+      "0.16.74": [
+        "KURO wählt Varianten nach 3D-Nähe aus; deckt die Datenbankstruktur die Referenz nicht ab, wird eine mit ESMFold vorhergesagt.",
+        "Ein laufendes Design, Export oder Analyse besitzt seine Anfrage, sodass eine späte Antwort kein neueres Ergebnis überschreibt.",
+        "MAME Schritt 4.1 liest den Labeltyp des Bestätigungsberichts und ordnet einen Well-beschrifteten Bericht automatisch Varianten zu.",
+        "In Schritt 6 wählen Sie, welche Exportdateien geschrieben werden; jeder Export wird atomar per Umbenennung veröffentlicht.",
+        "Die In-App-Hilfe wird als illustrierte Anleitung mit annotierten Screenshots bei jedem Schritt veröffentlicht."
       ]
     },
     "releaseStamps": {
@@ -3281,7 +3288,8 @@
       "0.16.70": "291b4798",
       "0.16.71": "14948bca",
       "0.16.72": "cb204794",
-      "0.16.73": "4da5762b"
+      "0.16.73": "4da5762b",
+      "0.16.74": "5562e779"
     }
   },
   "primerDisplay": {

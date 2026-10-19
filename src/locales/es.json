@@ -2681,13 +2681,13 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Cinco hospedadores de expresión se suman a las tablas de codones integradas: P. pastoris, CHO, C. glutamicum, A. niger y P. putida, contados desde NCBI RefSeq.",
-      "Los nombres comunes también sirven. CHO, CHO-K1 y Chinese hamster llevan a la misma tabla, y Pichia pastoris a K. phaffii.",
-      "M. extorquens AM1 ya no viene integrado. Se incluye como seed listo para instalar en la carpeta de tablas de codones propias.",
-      "La tabla de E. coli ya indica la entrada de Kazusa de la que vienen sus valores, W3110 taxid 316407. Los valores no cambian.",
-      "La tabla de A. niger no declara cepa, porque el registro actual de RefSeq para ese assembly no indica ninguna."
+      "KURO selecciona variantes por proximidad 3D y, si la estructura de la base de datos no cubre la referencia, predice una con ESMFold.",
+      "Un diseño, exportación o análisis en curso posee su solicitud, y una respuesta tardía nunca sobrescribe un resultado más reciente.",
+      "MAME paso 4.1 lee el tipo de etiqueta del informe de confirmación y asigna automáticamente pozos a variantes.",
+      "El paso 6 permite elegir qué archivos exportar, y cada exportación se publica mediante un renombrado atómico.",
+      "La ayuda integrada se publica como una guía ilustrada con capturas de pantalla anotadas en cada paso."
     ],
-    "highlightsStamp": "0.16.73+4da5762b",
+    "highlightsStamp": "0.16.74+5562e779",
     "releases": {
       "0.16.69": [
         "Las secuencias consensus escriben un guion donde falta una base, de modo que una deleción ya no parece una posición que no se pudo interpretar.",
@@ -3196,6 +3196,13 @@
         "M. extorquens AM1 ya no viene integrado. Se incluye como seed listo para instalar en la carpeta de tablas de codones propias.",
         "La tabla de E. coli ya indica la entrada de Kazusa de la que vienen sus valores, W3110 taxid 316407. Los valores no cambian.",
         "La tabla de A. niger no declara cepa, porque el registro actual de RefSeq para ese assembly no indica ninguna."
+      ],
+      "0.16.74": [
+        "KURO selecciona variantes por proximidad 3D y, si la estructura de la base de datos no cubre la referencia, predice una con ESMFold.",
+        "Un diseño, exportación o análisis en curso posee su solicitud, y una respuesta tardía nunca sobrescribe un resultado más reciente.",
+        "MAME paso 4.1 lee el tipo de etiqueta del informe de confirmación y asigna automáticamente pozos a variantes.",
+        "El paso 6 permite elegir qué archivos exportar, y cada exportación se publica mediante un renombrado atómico.",
+        "La ayuda integrada se publica como una guía ilustrada con capturas de pantalla anotadas en cada paso."
       ]
     },
     "releaseStamps": {
@@ -3281,7 +3288,8 @@
       "0.16.70": "291b4798",
       "0.16.71": "14948bca",
       "0.16.72": "cb204794",
-      "0.16.73": "4da5762b"
+      "0.16.73": "4da5762b",
+      "0.16.74": "5562e779"
     }
   },
   "primerDisplay": {
