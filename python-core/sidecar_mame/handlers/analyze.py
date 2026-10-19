@@ -2557,10 +2557,16 @@ def handle_analyze(params: dict) -> dict:
             # An advisory sentence is never worth failing a finished run for.
             _edge_variants = []
 
-    _flow_cell = read_flow_cell_history(input_dir)
+    # Raw-run processing rebinds input_dir to intermediate output. Optional
+    # source metadata and ledger identity must continue to refer to the run.
+    _flow_cell = read_flow_cell_history(original_run_dir if is_raw else input_dir)
     _ledger_root = output.parent
     _previous_use = find_previous_use(
-        read_ledger(_ledger_root), _flow_cell.flow_cell_id, str(input_dir)
+        read_ledger(_ledger_root), _flow_cell.flow_cell_id,
+        str(original_run_dir if is_raw else input_dir),
+        # Ledgers written before the identity moved to the run folder hold a
+        # raw run under its demux output directory, which ``input_dir`` is here.
+        former_run_dir=str(input_dir),
     )
     # One entry per scored record, so a run with replicate plates contributes
     # each plate's reading of a well. A ``None`` depth is a well whose consensus
@@ -2657,8 +2663,9 @@ def handle_analyze(params: dict) -> dict:
     record_use(
         _ledger_root,
         _flow_cell,
-        str(input_dir),
+        str(original_run_dir if is_raw else input_dir),
         getattr(run_meta, "started", None) if run_meta is not None else None,
+        former_run_dir=str(input_dir),
     )
 
     janus_params = params.get("janus_settings") or {}

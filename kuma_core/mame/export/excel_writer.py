@@ -764,17 +764,19 @@ def _write_kuma_meta_sheet(
     about a finished plate that no other cell in the sheet records.
     Omitted when there was no barcode file to read (consensus-dir mode).
     """
+    from kuma_core.shared.xlsx_text import append_literal_row
+
     ws = wb.create_sheet("__kuma_meta__")
     ws.column_dimensions["A"].width = 24
     ws.column_dimensions["B"].width = 40
 
     # Header row.
-    ws.append(["key", "value"])
+    append_literal_row(ws, ["key", "value"])
     _style_header(ws)
 
     # Always include software version and generation timestamp.
-    ws.append(["kuma_version", kuma_version])
-    ws.append([
+    append_literal_row(ws, ["kuma_version", kuma_version])
+    append_literal_row(ws, [
         "generated_at",
         datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     ])
@@ -785,9 +787,9 @@ def _write_kuma_meta_sheet(
     # two runs of the same plate.
     if analysis is not None:
         for key, value in analysis.rows():
-            ws.append([key, value])
+            append_literal_row(ws, [key, value])
     else:
-        ws.append([
+        append_literal_row(ws, [
             "analysis_conditions",
             "(not recorded: this workbook was written by a caller that did not "
             "run the analysis)",
@@ -802,15 +804,15 @@ def _write_kuma_meta_sheet(
     # did not know appeared in no figure at all. Written here rather than in
     # ``AnalysisConditions.rows()`` so there is one producer of the row and the
     # ``analysis is not None`` path cannot emit it twice.
-    ws.append(["verdict_classes", ", ".join(v.value for v in VerdictClass)])
+    append_literal_row(ws, ["verdict_classes", ", ".join(v.value for v in VerdictClass)])
 
     # Written before the run-meta branch so it survives a run with no MinKNOW
     # folder: the two answers are independent.
     if barcode_prefix_note is not None:
-        ws.append(["barcode_prefix_rule", barcode_prefix_note])
+        append_literal_row(ws, ["barcode_prefix_rule", barcode_prefix_note])
 
     if meta is None:
-        ws.append(["ngs_run_meta", "(not found, no MinKNOW run folder detected)"])
+        append_literal_row(ws, ["ngs_run_meta", "(not found, no MinKNOW run folder detected)"])
         _finalize(ws, freeze=None, autofit=False)
         return
 
@@ -829,7 +831,7 @@ def _write_kuma_meta_sheet(
         ("raw_run_dir", meta.raw_run_dir),
     ]
     for key, value in fields:
-        ws.append([key, "" if value is None else value])
+        append_literal_row(ws, [key, "" if value is None else value])
     _finalize(ws, freeze=None, autofit=False)
 
 

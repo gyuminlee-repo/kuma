@@ -133,33 +133,47 @@ def _parse_sample_sheet_kit(path: Path) -> str | None:
 _MAX_LEVELS_UP = 2  # search input_dir, parent, grandparent only
 
 
-def _is_run_dir(candidate: Path) -> bool:
-    """Return True if *candidate* looks like a MinKNOW run directory."""
+def _metadata_files(directory: Path, pattern: str) -> list[Path]:
+    """Only ordinary metadata files physically inside the candidate folder."""
     try:
-        if not candidate.is_dir():
-            return False
-        summaries = list(candidate.glob("final_summary_*.txt"))
-        return len(summaries) > 0
-    except OSError:
+        root = directory.resolve()
+        return sorted(
+            path for path in directory.glob(pattern)
+            if not path.is_symlink() and path.is_file()
+            and path.resolve().parent == root
+        )
+    except (OSError, RuntimeError):
+        return []
+
+
+def _is_run_dir(candidate: Path) -> bool:
+    """Return True if *candidate* has an ordinary, local summary file."""
+    try:
+        return (not candidate.is_symlink() and candidate.is_dir()
+                and bool(_metadata_files(candidate, "final_summary_*.txt")))
+    except (OSError, RuntimeError):
         return False
 
 
 def _collect_siblings(directory: Path) -> list[Path]:
-    """Return immediate subdirectory siblings of *directory*."""
+    """Return immediate ordinary subdirectory siblings of *directory*."""
     parent = directory.parent
     try:
-        return [p for p in parent.iterdir() if p.is_dir() and p != directory]
+        return [p for p in parent.iterdir()
+                if not p.is_symlink() and p.is_dir() and p != directory]
     except OSError:
         return []
 
 
-def _match(candidate: Path) -> Path | None:
-    """Resolve *candidate* and return it when it is a run directory."""
+def _match(candidate: Path, search_root: Path) -> Path | None:
+    """Check links before resolution, then enforce the search boundary."""
     try:
-        resolved = candidate.resolve()
-        if resolved.is_symlink():
+        if candidate.is_symlink():
             return None
-    except OSError:
+        resolved = candidate.resolve()
+        if not resolved.is_relative_to(search_root):
+            return None
+    except (OSError, RuntimeError):
         return None
     return resolved if _is_run_dir(resolved) else None
 
@@ -184,7 +198,10 @@ def _search_run_dir(start: Path) -> Path | None:
     instead leaves the fields empty, which the callers already render as
     "unknown" rather than as a wrong flow cell.
     """
-    hit = _match(start)
+    search_root = start
+    for _ in range(_MAX_LEVELS_UP):
+        search_root = search_root.parent
+    hit = _match(start, search_root)
     if hit is not None:
         return hit
 
@@ -195,13 +212,13 @@ def _search_run_dir(start: Path) -> Path | None:
             # Reached filesystem root, stop.
             break
 
-        hit = _match(parent)
+        hit = _match(parent, search_root)
         if hit is not None:
             return hit
 
         sibling_hits: list[Path] = []
         for sibling in _collect_siblings(current):
-            hit = _match(sibling)
+            hit = _match(sibling, search_root)
             if hit is not None:
                 sibling_hits.append(hit)
         if len(sibling_hits) == 1:
@@ -226,8 +243,15 @@ def discover_run_meta(input_dir: Path) -> Optional[NgsRunMeta]:
     - ``sample_sheet_*.csv``: kit (fallback when absent from final_summary)
     """
     try:
+        # Keep the lexical paths until every searchable component was checked;
+        # checking is_symlink() after resolve() always loses that information.
+        current = input_dir
+        for _ in range(_MAX_LEVELS_UP + 1):
+            if current.is_symlink():
+                return None
+            current = current.parent
         resolved_input = input_dir.resolve()
-    except OSError:
+    except (OSError, RuntimeError):
         return None
 
     run_dir = _search_run_dir(resolved_input)
@@ -237,7 +261,7 @@ def discover_run_meta(input_dir: Path) -> Optional[NgsRunMeta]:
     # Parse first found final_summary.
     kv: dict[str, str] = {}
     try:
-        summaries = sorted(run_dir.glob("final_summary_*.txt"))
+        summaries = _metadata_files(run_dir, "final_summary_*.txt")
         if summaries:
             kv = _parse_final_summary(summaries[0])
     except OSError:
@@ -247,7 +271,7 @@ def discover_run_meta(input_dir: Path) -> Optional[NgsRunMeta]:
     kit_val: str | None = kv.get("kit") or None
     if kit_val is None:
         try:
-            sample_sheets = sorted(run_dir.glob("sample_sheet_*.csv"))
+            sample_sheets = _metadata_files(run_dir, "sample_sheet_*.csv")
             if sample_sheets:
                 kit_val = _parse_sample_sheet_kit(sample_sheets[0])
         except OSError:

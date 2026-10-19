@@ -623,6 +623,24 @@ def _read_text_if_present(path: Path) -> str | None:
         return None
 
 
+def _count_cutadapt_fasta(text: str | None, path: Path) -> int:
+    """Refuse a broken CLI format contract instead of reporting zero reads.
+
+    cutadapt 5.0 can write FASTQ with ``--fasta -j 0``. The supported test
+    dependency starts at 5.2, but an older executable can still be on PATH.
+    """
+    if text is None or not text.strip():
+        return 0
+    lines = text.splitlines()
+    first = next(line for line in lines if line.strip())
+    if not first.startswith(">"):
+        raise RuntimeError(
+            f"Expected FASTA output from cutadapt at {path}; check the output "
+            "format and use cutadapt 5.2 or later."
+        )
+    return sum(1 for line in lines if line.startswith(">"))
+
+
 def _collect_cutadapt_outputs(
     output_dir: Path,
     custom_barcodes: dict[str, str],
@@ -648,15 +666,13 @@ def _collect_cutadapt_outputs(
         text = _read_text_if_present(output_dir / f"{name}.fasta")
         if text is None:
             continue
-        count = sum(1 for ln in text.splitlines() if ln.startswith(">"))
+        count = _count_cutadapt_fasta(text, output_dir / f"{name}.fasta")
         if count:
             per_well_counts[name] = count
             n_assigned += count
 
     unassigned_text = _read_text_if_present(output_dir / "_unassigned.fasta")
-    n_unassigned = sum(
-        1 for ln in (unassigned_text or "").splitlines() if ln.startswith(">")
-    )
+    n_unassigned = _count_cutadapt_fasta(unassigned_text, output_dir / "_unassigned.fasta")
     return per_well_counts, n_assigned, n_unassigned
 
 

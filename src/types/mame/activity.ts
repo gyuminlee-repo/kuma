@@ -40,6 +40,7 @@ export interface WtReplicateRecord {
 }
 
 export type DropReason =
+  | "plate_id_missing"
   | "value_unparseable"
   | "value_nan_or_negative"
   | "well_unparseable"

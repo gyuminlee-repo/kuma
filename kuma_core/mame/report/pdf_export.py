@@ -13,6 +13,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from kuma_core.shared.atomic_write import atomic_output_path, atomic_write_text
+
 from kuma_core.mame.report.builder import RunReportData
 from kuma_core.mame.report.html_renderer import render_html
 
@@ -20,6 +22,20 @@ from kuma_core.mame.report.html_renderer import render_html
 def _html_fallback_path(output: Path) -> Path:
     """Return the HTML fallback path for a .pdf output path."""
     return output.with_suffix(".html")
+
+
+def _validate_pdf(path: Path) -> None:
+    """Reject missing/truncated converter output before replacing a report.
+
+    This is a signature/trailer sanity check, not a full PDF conformance check.
+    """
+    with path.open("rb") as fh:
+        header = fh.read(5)
+        size = fh.seek(0, 2)
+        fh.seek(max(0, size - 1024))
+        trailer = fh.read()
+    if header != b"%PDF-" or b"%%EOF" not in trailer:
+        raise ValueError("weasyprint produced an incomplete or invalid PDF")
 
 
 def export_pdf(data: RunReportData, output: Path) -> dict:
@@ -59,7 +75,10 @@ def export_pdf(data: RunReportData, output: Path) -> dict:
         # Write HTML fallback
         fallback = _html_fallback_path(output) if output.suffix.lower() == ".pdf" else output.with_suffix(".html")
         try:
-            fallback.write_text(html_content, encoding="utf-8")
+            # Replaces a report already at this name, as any export does. The
+            # shipped app carries no weasyprint, so this is where every PDF
+            # export lands and exporting twice is the ordinary case.
+            atomic_write_text(fallback, html_content, encoding="utf-8")
         except OSError as exc:
             return {
                 "output_path": str(fallback),
@@ -82,32 +101,31 @@ def export_pdf(data: RunReportData, output: Path) -> dict:
         with tempfile.NamedTemporaryFile(
             suffix=".html", delete=False, mode="w", encoding="utf-8"
         ) as fh:
-            fh.write(html_content)
             tmp_html = Path(fh.name)
+            fh.write(html_content)
 
         output.parent.mkdir(parents=True, exist_ok=True)
 
-        if weasyprint_bin:
-            # Use CLI (avoids import overhead inside the sidecar process)
-            result = subprocess.run(
-                [weasyprint_bin, str(tmp_html), str(output)],
-                shell=False,
-                capture_output=True,
-                timeout=60,
-            )
-            if result.returncode != 0:
-                stderr = result.stderr.decode("utf-8", errors="replace")[:500]
-                return {
-                    "output_path": str(output),
-                    "format": "pdf",
-                    "weasyprint_available": True,
-                    "error": f"weasyprint exited {result.returncode}: {stderr}",
-                }
-        else:
-            # Module import path
-            import weasyprint  # type: ignore[import-untyped]
+        with atomic_output_path(output) as staged_pdf:
+            if weasyprint_bin:
+                # Use CLI (avoids import overhead inside the sidecar process)
+                result = subprocess.run(
+                    [weasyprint_bin, str(tmp_html), str(staged_pdf)],
+                    shell=False,
+                    capture_output=True,
+                    timeout=60,
+                )
+                if result.returncode != 0:
+                    stderr = result.stderr.decode("utf-8", errors="replace")[:500]
+                    raise RuntimeError(
+                        f"weasyprint exited {result.returncode}: {stderr}"
+                    )
+            else:
+                # Module import path
+                import weasyprint  # type: ignore[import-untyped]
 
-            weasyprint.HTML(filename=str(tmp_html)).write_pdf(str(output))
+                weasyprint.HTML(filename=str(tmp_html)).write_pdf(str(staged_pdf))
+            _validate_pdf(staged_pdf)
 
     except subprocess.TimeoutExpired:
         return {
