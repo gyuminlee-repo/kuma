@@ -1,23 +1,12 @@
 """Availability probes use only inert identifiers and mocked network boundaries."""
 import json
+from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
 
 from kuma_core.kuro import alphafold
-# Extract only the adapter under test so importing scientific dependencies is unnecessary.
-import ast
-import re
-from pathlib import Path
-from types import SimpleNamespace
-from sidecar_kuro.models import CheckStructuresParams
-
-_tree = ast.parse((Path(__file__).resolve().parents[2] / "python-core/sidecar_kuro/handlers/external.py").read_text(encoding="utf-8"))
-_handler = next(node for node in _tree.body if isinstance(node, ast.FunctionDef)
-                and node.name == "handle_check_structures_available")
-_namespace = {"CheckStructuresParams": CheckStructuresParams, "re": re}
-exec(compile(ast.Module(body=[_handler], type_ignores=[]), "external.py", "exec"), _namespace)
-external = SimpleNamespace(handle_check_structures_available=_namespace["handle_check_structures_available"])
+from sidecar_kuro.handlers import external
 
 
 @pytest.mark.parametrize("network", [{"consent_alphafold": False}, {"offline_mode": True}])
@@ -53,6 +42,22 @@ def test_core_rechecks_permission_at_network_boundary(tmp_path, monkeypatch):
     request = Mock(side_effect=AssertionError("network must be blocked"))
     monkeypatch.setattr(alphafold._urllib_req, "urlopen", request)
     assert alphafold.check_structure_available("ENTRY1", network_allowed=lambda: False) is False
+    request.assert_not_called()
+
+
+def test_request_can_refuse_network_without_hiding_cached_structures(tmp_path, monkeypatch):
+    preferences = tmp_path / "preferences.json"
+    preferences.write_text(json.dumps({"network": {"consent_alphafold": True, "offline_mode": False}}))
+    monkeypatch.setenv("KUMA_PREFERENCES_PATH", str(preferences))
+    monkeypatch.setattr(alphafold, "_CACHE_DIR", tmp_path)
+    (tmp_path / "ENTRY1_ca.json").write_text("[]")
+    request = Mock(side_effect=AssertionError("network must be blocked"))
+    monkeypatch.setattr(alphafold._urllib_req, "urlopen", request)
+
+    answer = external.handle_check_structures_available(
+        {"accessions": ["ENTRY1", "ENTRY2"], "allow_network": False})
+
+    assert answer == {"availability": {"ENTRY1": True}}
     request.assert_not_called()
 
 

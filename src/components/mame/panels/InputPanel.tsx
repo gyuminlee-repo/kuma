@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { Download, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
@@ -69,8 +69,28 @@ export function InputPanel() {
   const [isAutoFilling, setIsAutoFilling] = useState(false);
   const [isWritingTemplate, setIsWritingTemplate] = useState(false);
 
+  // A folder scan answers for the project and inputs it started under. Opening
+  // another project, a reset, a newer scan or leaving the screen retires it,
+  // so its paths never fill the inputs on screen now.
+  const detectionRef = useRef(0);
+  const projectPathRef = useRef(project?.path);
+  projectPathRef.current = project?.path;
+  useEffect(() => () => { detectionRef.current += 1; }, []);
+  function startDetection() {
+    const generation = ++detectionRef.current;
+    const path = project?.path;
+    const epoch = useMameAppStore.getState().resetEpoch;
+    return {
+      isLatest: () => generation === detectionRef.current,
+      isCurrent: () => generation === detectionRef.current
+        && projectPathRef.current === path
+        && useMameAppStore.getState().resetEpoch === epoch,
+    };
+  }
+
   async function handleRedetect() {
     if (!project?.path) return;
+    const scan = startDetection();
     setIsDetecting(true);
     try {
       await applyMameAutoDetect(project.path, (filled) => {
@@ -79,9 +99,9 @@ export function InputPanel() {
         } else {
           toast.success(t("mame.inputPanel.toastAutoDetected", { items: filled.join(", ") }));
         }
-      });
+      }, scan.isCurrent);
     } finally {
-      setIsDetecting(false);
+      if (scan.isLatest()) setIsDetecting(false);
     }
   }
 
@@ -94,9 +114,11 @@ export function InputPanel() {
     const selected = toSinglePath(await open({ directory: true }));
     if (!selected) return;
     setInputDir(selected);
+    const scan = startDetection();
     setIsAutoFilling(true);
     try {
       const detectedPaths = await detectFromInputDir(selected);
+      if (!scan.isCurrent() || useMameAppStore.getState().inputDir !== selected) return;
       const store = useMameAppStore.getState();
       const filled: string[] = [];
 
@@ -129,7 +151,7 @@ export function InputPanel() {
         toast.success(t("mame.inputPanel.toastAutoDetected", { items: filled.join(", ") }));
       }
     } finally {
-      setIsAutoFilling(false);
+      if (scan.isLatest()) setIsAutoFilling(false);
     }
   }
 

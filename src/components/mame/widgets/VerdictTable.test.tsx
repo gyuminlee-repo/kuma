@@ -617,3 +617,57 @@ describe("VerdictTable column resizing", () => {
     ).toEqual({});
   });
 });
+
+// The run names its wells with the producer's {R}_{F} token and its plates with
+// the demux directory, while the activity file names them A01 and plate01.
+// Comparing the raw strings matched nothing, so log2FC stayed empty for every
+// real run. A well alone names one well per plate, so it is used only when it
+// cannot pick another plate's value.
+describe("VerdictTable activity join on real spellings", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const verdict = (native_barcode: string, custom_barcode: string): VerdictRecord =>
+    ({ ...mockVerdict, native_barcode, custom_barcode });
+  const row = (plate_id: string, well_id: string, log2_fc: number): MergedRow =>
+    ({ ...mockMergedRow, plate_id, well_id, log2_fc, fold_change: null });
+
+  function show(verdicts: VerdictRecord[], merged: MergedRow[]) {
+    vi.mocked(useMameAppStore).mockImplementation(
+      (sel: (s: MameAppStore) => unknown) => sel(makeMameStore({ verdicts }).getState()),
+    );
+    vi.mocked(useRoundStore).mockImplementation(
+      (sel: (s: RoundSlice) => unknown) =>
+        sel(makeRoundStore([{ ...baseRound, merged_table: merged }], "round_1").getState()),
+    );
+    render(<VerdictTable />);
+  }
+  afterEach(cleanup);
+
+  it("joins the producer token 1_1 to activity well A01 of a one-plate run", () => {
+    show([verdict("sort_barcode01", "1_1")], [row("plate01", "A01", 0.71)]);
+    expect(screen.getAllByText("0.71").length).toBeGreaterThan(0);
+  });
+
+  it("reads the reverse index as the row: 2_1 is B1, not A2", () => {
+    show([verdict("sort_barcode01", "2_1")], [row("plate01", "A02", 0.33), row("plate01", "B01", 0.66)]);
+    expect(screen.getAllByText("0.66").length).toBeGreaterThan(0);
+    expect(screen.queryByText("0.33")).toBeNull();
+  });
+
+  it("keeps two plates' values apart when the activity file names the run's plates", () => {
+    show(
+      [verdict("sort_barcode01", "1_1"), verdict("sort_barcode02", "1_1")],
+      [row("sort_barcode01", "A01", 0.11), row("sort_barcode02", "A1", 0.22)],
+    );
+    expect(screen.getAllByText("0.11").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("0.22").length).toBeGreaterThan(0);
+  });
+
+  it("does not hand one plate's value to every plate of a multi-plate run", () => {
+    show(
+      [verdict("sort_barcode01", "1_1"), verdict("sort_barcode02", "1_1")],
+      [row("plate01", "A01", 0.44)],
+    );
+    expect(screen.queryByText("0.44")).toBeNull();
+  });
+});

@@ -10,6 +10,9 @@ import { formatError } from "../../lib/utils";
 import { DEFAULT_EXPORT_ARTEFACT_KINDS, LEGACY_EXPORT_ARTEFACT_KINDS } from "../../lib/exportArtefactKinds";
 import { readKuroDesignOutcome } from "../../lib/kuroSnapshot";
 import { notifyJobDone, notifyJobError } from "../../lib/toast";
+import { toast } from "sonner";
+import { beginKuroExport } from "../../lib/exportActivity";
+import { assertRestorableWorkspace } from "../../lib/workspaceFile";
 import { registerArtifacts, ensureWorkspaceFromExportPath, getActiveWorkspace } from "../../lib/workspace";
 import type { AppState } from "../types";
 import type { ExpectedCodonTable } from "../../lib/codonTableRestore";
@@ -309,7 +312,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
 
   exportExcel: async (filepath: string, projectId?: string) => {
     const _exportStartedAt = Date.now();
-    set({ isExporting: true });
+    const finishExport = beginKuroExport((isExporting) => set({ isExporting }));
     try {
       const state = get();
       const { designResults, plateMappings, dedupInfo, tableSorting } = state;
@@ -367,7 +370,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       notifyJobError("Excel export failed", err);
       throw err;
     } finally {
-      set({ isExporting: false });
+      finishExport();
     }
   },
 
@@ -520,14 +523,9 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
     return snapshot;
   },
 
-  restoreWorkspace: async (ws: WorkspaceData) => {
+  restoreWorkspace: async (ws: WorkspaceData, options) => {
     // schema_version "0.3" 이전 워크스페이스는 지원하지 않음
-    const wsWithSchema = ws as WorkspaceData & { schema_version?: string };
-    if (!wsWithSchema.schema_version || wsWithSchema.schema_version < "0.3") {
-      throw new Error(
-        i18next.t("exportSlice.legacyWorkspaceUnsupported")
-      );
-    }
+    assertRestorableWorkspace(ws);
     // The guard rejects V1/V2 before this point, so migrating them here was
     // unreachable and could silently discard V3 fields such as overlapMode.
     const { inputs, settings, results, ui, cache } = ws as WorkspaceV3;
@@ -608,6 +606,9 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       }
     }
 
+    // Every await is above this line and every store write below it, so one
+    // check keeps a restore that was cancelled meanwhile off the next project.
+    if (options?.isCurrent && !options.isCurrent()) return null;
     const store = get();
     store.resetAll();
     // designResults 와 두 카운트는 저장 측이 조건 없이 한 객체 리터럴로 함께 쓴다
@@ -823,6 +824,15 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
     });
     // 템플릿 로딩이 실패했으면 seqInfo가 없으므로 자동 재설계를 시도하지 않는다.
     if ((settings.autoRedesignOnLoad ?? true) && restoredDesignResults.length === 0 && inputs.mutationText && inputs.fastaPath && !evolveproReloadError && !templateLoadError) {
+      // A caller restoring behind a blocking overlay (project hydration) runs
+      // the redesign itself once the overlay is down, rather than holding it up
+      // for the length of a design.
+      if (options?.deferRedesign) return redesign;
+      await redesign();
+    }
+    return null;
+
+    async function redesign(): Promise<void> {
       await get().designPrimers();
       const redesignedResults = get().designResults;
       const redesignedPlateState = buildIncludedPlateState({
@@ -845,6 +855,11 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
   },
 
   resetAll: (options) => {
+    // A reset ends the running design rather than letting its reply land in the
+    // cleared workspace. Its results belong to inputs that no longer exist, so
+    // the backend run is cancelled and the user is told why the run stopped.
+    const designWasRunning = get().isDesigning;
+    get().invalidateDesignRuns();
     set({
       fastaPath: "",
       seqInfo: null,
@@ -956,7 +971,8 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       progress: 0,
       statusMessage: "Ready",
       tableSorting: [],
-      isExporting: false,
+      // isExporting is not reset: it belongs to the export still running, which
+      // releases it in its own finally (lib/exportActivity.ts).
       echoTransferVol: 100,
       echoQuadrant: null,
       echoUsedQuadrants: [],
@@ -969,6 +985,14 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       exportVectormaps: false,
       exportArtefactKinds: [...DEFAULT_EXPORT_ARTEFACT_KINDS],
     });
+    if (designWasRunning) {
+      void sendRequest("cancel_design", {}).catch((err: unknown) => {
+        console.warn("[resetAll] cancel_design failed:", err);
+      });
+      const notice = i18next.t("toast.designCancelledByReset");
+      set({ statusMessage: notice });
+      toast.info(notice);
+    }
     if (!options?.preserveWorkspaceArtifacts && getActiveWorkspace()) {
       void import("../../lib/workspace").then(({ clearWorkspace }) =>
         clearWorkspace("kuro").catch(() => {

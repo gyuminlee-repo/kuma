@@ -26,6 +26,7 @@
  */
 
 import { isRecord } from "../validators";
+import { BUILD_EVOLVEPRO_PRIMARY_FORMATS } from "./build_evolvepro_input";
 import { MEASUREMENT_SOURCES } from "./detect_measurement_source";
 import { hasValidRunQuality } from "./runQualityValidator";
 
@@ -96,14 +97,11 @@ const NOT_ASSESSABLE_REASONS = new Set([
 ]);
 
 /**
- * `kuma_core/mame/activity/build_evolvepro_input.py:364`, where exactly one of
- * the three primary sources must be supplied and its name becomes this field.
+ * `kuma_core/mame/activity/build_evolvepro_input.py` `build_evolvepro_input`,
+ * where exactly one primary source must be supplied and its name becomes this
+ * field. Shared with the result type so the two lists cannot drift again.
  */
-const PRIMARY_FORMATS = new Set([
-  "activity_path",
-  "gc_data_xlsx",
-  "round1_report_xlsx",
-]);
+const PRIMARY_FORMATS = new Set<string>(BUILD_EVOLVEPRO_PRIMARY_FORMATS);
 
 /**
  * `kuma_core/mame/activity/label_audit.py:173,190-196,232`, every `category=`

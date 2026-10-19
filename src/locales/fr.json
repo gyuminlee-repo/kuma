@@ -89,6 +89,7 @@
     "updateInstalling": "Installation…",
     "updateRelaunching": "Redémarrage…",
     "updateInstallFailed": "Échec de la mise à jour : {{message}}",
+    "updateBusy": "Attendez la fin de la conception, de l’analyse ou de l’export en cours, ou annulez-le, avant d’installer la mise à jour.",
     "downloadAndInstall": "Télécharger et installer",
     "installing": "Installation...",
     "later": "Plus tard",
@@ -1968,6 +1969,7 @@
     "warningHashMismatch": "Hash mismatch : {{paths}}",
     "warningHashUnverifiable": "Enregistré sans empreinte, donc non vérifiable par rapport à l'exécution : {{paths}}",
     "exportOnlyNotice": "Ce manifest correspond à une opération d'export uniquement et ne peut pas être ré-exécuté directement. Ré-exporter depuis les données d'origine.",
+    "unappliedConditions": "Cette réexécution n’applique qu’une partie de l’exécution enregistrée. Ces conditions enregistrées ne sont pas appliquées et les valeurs de la session actuelle sont utilisées à la place : {{keys}}. Le résultat peut différer de l’exécution enregistrée.",
     "btnCancel": "Annuler",
     "btnRerun": "Ré-exécuter",
     "btnRunning": "Exécution...",
@@ -2057,6 +2059,7 @@
     "workspace": "Espace de travail",
     "scratch": "Scratch",
     "autosaveOn": "Autosave activé",
+    "exporting": "Export en cours…",
     "autosaveSaving": "Enregistrement…",
     "autosaveSavedJustNow": "Enregistré à l'instant",
     "autosaveSavedAgo": "Enregistré {{time}}",
@@ -2547,6 +2550,11 @@
     "missingColumn": "Colonne requise manquante : « {{column}} »{{aliasNote}}"
   },
   "toast": {
+    "designCancelledByReset": "La conception en cours a été annulée car l’espace de travail a été vidé. Relancez la conception pour obtenir des résultats.",
+    "analysisCancelledByReset": "L’analyse en cours a été annulée car l’espace de travail a été vidé ou un autre projet a été ouvert. Relancez l’analyse pour obtenir des résultats.",
+    "analysisCancelFailed": "Impossible d’arrêter l’analyse en cours après le vidage de l’espace de travail : {{message}}",
+    "designInputsChangedDuringRun": "La conception est terminée, mais ses entrées ont changé pendant l’exécution. Ces résultats correspondent aux entrées de départ ; relancez la conception pour les entrées actuelles.",
+    "analysisInputsChangedDuringRun": "L’analyse est terminée, mais ses entrées ont changé pendant l’exécution. Ces résultats correspondent aux entrées de départ ; relancez l’analyse pour les entrées actuelles.",
     "completedWithDuration": "Terminé ({{duration}})"
   },
   "exportSlice": {

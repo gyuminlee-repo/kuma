@@ -1,9 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BuildEvolveproInputPanel } from "@/components/mame/panels/BuildEvolveproInputPanel";
 import { ProjectProvider } from "@/state/projectContext";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { useRoundStore } from "@/store/round/roundSlice";
+import { resetMameAll } from "@/store/mame/resetAll";
 import {
   BUILD_EVOLVEPRO_DEFAULT_STATE,
   loadBuildEvolveproFromStorage,
@@ -11,10 +12,20 @@ import {
 } from "@/lib/mame/buildEvolveproFormStorage";
 
 const mocks = vi.hoisted(() => ({ build: vi.fn(), detect: vi.fn(), open: vi.fn() }));
-vi.mock("@/lib/ipc-mame", () => ({ buildEvolveproInput: mocks.build, detectMeasurementSource: mocks.detect }));
+vi.mock("@/lib/ipc-mame", () => ({
+  buildEvolveproInput: mocks.build,
+  detectMeasurementSource: mocks.detect,
+  sendRequest: vi.fn(),
+  cancelAndRespawn: vi.fn(),
+  isSidecarRunning: () => false,
+}));
 vi.mock("@tauri-apps/plugin-dialog", () => ({ open: mocks.open, save: vi.fn() }));
 vi.mock("@tauri-apps/plugin-fs", () => ({ mkdir: vi.fn().mockResolvedValue(undefined) }));
-vi.mock("@/lib/workspace", () => ({ registerArtifacts: vi.fn().mockResolvedValue(undefined) }));
+vi.mock("@/lib/workspace", () => ({
+  registerArtifacts: vi.fn().mockResolvedValue(undefined),
+  clearWorkspace: vi.fn(),
+  getActiveWorkspace: () => null,
+}));
 vi.mock("@/lib/openFolder", () => ({ revealInOSFolder: vi.fn() }));
 
 function panel(path: string) {
@@ -86,5 +97,35 @@ describe("builder state audit", () => {
       previous: "/project-a/verdict.xlsx",
       current: "/project-b/new-verdict.xlsx",
     });
+  });
+});
+
+// Every reset used to erase the saved form, and the erasing ran again on each
+// mount once any reset had happened, so reopening step 4 emptied it. Only Clear
+// All erases it now; opening a project and mounting the panel reload it.
+describe("saved Activity form across resets", () => {
+  const shownSource = () => screen.queryByTitle("/project/old.csv");
+
+  it("survives the panel mounting after an earlier reset", () => {
+    seed("/project");
+    useMameAppStore.setState({ resetEpoch: 3 });
+    render(panel("/project"));
+    expect(shownSource()).not.toBeNull();
+    expect(loadBuildEvolveproFromStorage("/project").activityPath).toBe("/project/old.csv");
+  });
+
+  it("comes back after a project-opening reset and is emptied by Clear All", async () => {
+    seed("/project");
+    useMameAppStore.setState({ formStoragePath: "/project" });
+    render(panel("/project"));
+
+    await act(async () => { await resetMameAll({ preserveWorkspaceArtifacts: true }); });
+    expect(shownSource()).not.toBeNull();
+    expect(loadBuildEvolveproFromStorage("/project").activityPath).toBe("/project/old.csv");
+
+    useMameAppStore.setState({ formStoragePath: "/project" });
+    await act(async () => { await resetMameAll(); });
+    expect(shownSource()).toBeNull();
+    expect(loadBuildEvolveproFromStorage("/project").activityPath).toBe("");
   });
 });

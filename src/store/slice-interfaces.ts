@@ -383,6 +383,8 @@ export interface DesignSlice {
   showReport: boolean;
 
   // Actions
+  /** Retire every in-flight design, retry and commit reply (reset boundary). */
+  invalidateDesignRuns: () => void;
   designPrimers: () => Promise<void>;
   /** @deprecated See showReport — legacy Dialog wrapper only. */
   setShowReport: (show: boolean) => void;
@@ -565,7 +567,15 @@ export interface ExportSlice {
   setTableSorting: (updater: Updater<SortingState>) => void;
   setStatus: (msg: string) => void;
   getWorkspaceSnapshot: () => WorkspaceV3;
-  restoreWorkspace: (ws: WorkspaceData) => Promise<void>;
+  /**
+   * With `deferRedesign`, an automatic redesign the workspace asks for is not
+   * run but returned, for the caller to start once it is ready; null when
+   * there is none.
+   */
+  restoreWorkspace: (
+    ws: WorkspaceData,
+    options?: { deferRedesign?: boolean; isCurrent?: () => boolean },
+  ) => Promise<(() => Promise<void>) | null>;
   resetAll: (options?: { preserveWorkspaceArtifacts?: boolean }) => void;
 }
 

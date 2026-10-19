@@ -22,7 +22,9 @@ import {
   autosavePath,
   atomicWriteJson,
 } from "@/lib/autosave";
-import { readMameResultSnapshot } from "@/lib/mame/resultSnapshot";
+import { readMameResultSnapshot, type MameResultSnapshot } from "@/lib/mame/resultSnapshot";
+import { loadWorkspaceFile } from "@/lib/workspaceFile";
+import { formatError } from "@/lib/utils";
 import { provenanceFor } from "@/lib/mame/resultProvenance";
 import { pickAnalyzeYield } from "@/lib/mame/analyzeYield";
 import { sendRequest as sendMameRequest } from "@/lib/ipc-mame";
@@ -1219,22 +1221,24 @@ async function promoteScratchToProject(
  * @returns 비운 필드의 사용자 표기 라벨. 자동 감지가 다시 채우지 못한 항목을
  *          호출부가 가려내 사용자에게 재지정을 요청하는 데 쓴다.
  */
-async function clearStaleMamePaths(): Promise<MamePathField[]> {
-  const store = useMameAppStore.getState();
-  const stale = await findStaleMamePaths(
-    {
-      inputDir: store.inputDir,
-      expectedPath: store.expectedPath,
-      referencePath: store.referencePath,
-      customBarcodesPath: store.rawRunParams.customBarcodesPath ?? "",
-      sequencingSummaryPath: store.rawRunParams.sequencingSummaryPath ?? "",
-    },
-    exists,
-  );
-  if (stale.length === 0) return [];
-
+export async function clearStaleMamePaths(isCurrent: () => boolean = () => true): Promise<MamePathField[]> {
+  const pathsOf = (s: MameAppState): Record<MamePathField, string> => ({
+    inputDir: s.inputDir,
+    expectedPath: s.expectedPath,
+    referencePath: s.referencePath,
+    customBarcodesPath: s.rawRunParams.customBarcodesPath ?? "",
+    sequencingSummaryPath: s.rawRunParams.sequencingSummaryPath ?? "",
+  });
+  const checked = pathsOf(useMameAppStore.getState());
+  const stale = await findStaleMamePaths(checked, exists);
+  // The existence checks take a round trip each. A cancelled restore (another
+  // project opened meanwhile) clears nothing, and a field the user or the next
+  // restore has set since it was checked is not the dead path that was found.
+  if (!isCurrent()) return [];
   const fresh = useMameAppStore.getState();
-  for (const field of stale) {
+  const current = pathsOf(fresh);
+  const cleared = stale.filter((field) => current[field] === checked[field]);
+  for (const field of cleared) {
     switch (field) {
       case "inputDir":
         fresh.setInputDir("");
@@ -1253,7 +1257,7 @@ async function clearStaleMamePaths(): Promise<MamePathField[]> {
         break;
     }
   }
-  return stale;
+  return cleared;
 }
 
 /** 스냅샷 input 블록에서 필드에 대응하는 저장값을 꺼낸다. */
@@ -1731,13 +1735,31 @@ async function injectSnapshotResultsIntoSidecar(
   return alive();
 }
 
+/**
+ * True when the input snapshot proves the operator changed the analyze inputs
+ * after this result was written. Changing an input clears the results, so the
+ * file on disk no longer describes what was on screen. Every case that cannot
+ * prove it restores as before: no readable input snapshot (the app can die
+ * between the result file and the next autosave), a snapshot older than the
+ * result, or either side written before the identity existed.
+ */
+function inputsChangedSinceResult(inputRead: ReadAutosaveResult, result: MameResultSnapshot): boolean {
+  if (inputRead.status !== "ok") return false;
+  const inputs = inputRead.snapshot as MameAutosaveSnapshot;
+  if (typeof inputs.input_identity !== "string" || typeof result.input_identity !== "string") return false;
+  if (inputs.saved_at < result.saved_at) return false;
+  return inputs.input_identity !== result.input_identity;
+}
+
 async function restoreMameResult(
   projectPath: string,
+  inputRead: ReadAutosaveResult,
   isCurrent?: () => boolean,
 ): Promise<boolean> {
   const alive = () => isCurrent?.() ?? true;
   const read = await readMameResultSnapshot(projectPath);
   if (read.status !== "ok") return false;
+  if (inputsChangedSinceResult(inputRead, read.snapshot)) return false;
   // RPC 자체가 사이드카 쓰기다. 호출 전에 막아야 한다.
   if (!alive()) return false;
 
@@ -2001,6 +2023,10 @@ export function useAutosaveHydration(
     // 동기 호출이어야 한다. 아래 IIFE의 첫 await 전에 resetAll이 실행된다.
     beginHydration();
 
+    // Work the restore asks for that must not hold the overlay up: a workspace
+    // file's automatic redesign. Started once this run has finished.
+    const deferred: { redesign: (() => Promise<void>) | null } = { redesign: null };
+
     void (async () => {
       setRunPhase("reset");
       // scratch 진입이나 이후 조기 return 경로에서도 이전 프로젝트의 배너
@@ -2021,6 +2047,25 @@ export function useAutosaveHydration(
         closeWorkspace();
         // scratch 스냅샷도 KURO 복원이라 같은 단계로 묶는다.
         setRunPhase("kuro");
+        // A workspace file opened from Home is restored from that file, and its
+        // saves go back into it (useKuroAutosave). Home has already read it; if
+        // it cannot be read now (moved or edited since), the session closes
+        // with the reason on Home instead of staying open on an empty
+        // workspace whose next save would overwrite the file.
+        const workspaceFile = project.workspaceFile;
+        if (workspaceFile) {
+          try {
+            const ws = await loadWorkspaceFile(workspaceFile);
+            if (!isCurrent()) return;
+            deferred.redesign = await useAppStore.getState().restoreWorkspace(ws, { deferRedesign: true, isCurrent });
+            if (!isCurrent()) return;
+            clearAutosaveBlock("kuro");
+          } catch (err) {
+            if (!isCurrent()) return;
+            window.dispatchEvent(new CustomEvent("kuma:return-to-home", { detail: { error: formatError(err) } }));
+          }
+          return;
+        }
         const scratchResult = await readScratchAutosave(KURO_SCHEMA);
         if (!isCurrent()) return;
         // 읽기에 성공한 경우에만 봉인을 해제한다. read_failed/schema_too_new는
@@ -2225,7 +2270,7 @@ export function useAutosaveHydration(
       //    스냅샷 "apply snapshot failed" 메시지를 오염시키지 않도록 별도 try/catch.
       setRunPhase("mame");
       try {
-        const restored = await restoreMameResult(path, isCurrent);
+        const restored = await restoreMameResult(path, mameResult, isCurrent);
         if (!isCurrent()) return;
         if (restored) {
           onMessage({
@@ -2268,7 +2313,7 @@ export function useAutosaveHydration(
       // ── 죽은 경로 정리: 복원된 절대 경로 중 더 이상 존재하지 않는 것을 비운다.
       //    비우지 않으면 바로 아래 자동 감지가 "이미 채워짐"으로 보고 건너뛰어,
       //    같은 파일이 프로젝트 폴더 안에 있어도 영영 못 찾는다.
-      const droppedFields = await clearStaleMamePaths();
+      const droppedFields = await clearStaleMamePaths(isCurrent);
       if (!isCurrent()) return;
 
       // ── auto-detect: autosave 복원 후 여전히 비어있는 필드를 프로젝트 디렉토리에서 채운다
@@ -2341,6 +2386,7 @@ export function useAutosaveHydration(
       if (activeRunRef.current === run) {
         setHydrating(false);
         setPhase(null);
+        if (deferred.redesign) void deferred.redesign();
       }
     });
   }, [project?.path, project?.scratch, onMessage]);

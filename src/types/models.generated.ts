@@ -355,6 +355,7 @@ export interface CheckStructuresParams {
         string,
         string
       ];
+  allow_network?: boolean;
   [k: string]: unknown;
 }
 export interface CommitDesignResultParams {

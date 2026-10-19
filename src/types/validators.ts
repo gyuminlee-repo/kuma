@@ -155,11 +155,15 @@ export function isJsonRpcError(value: unknown): value is JsonRpcError {
 }
 
 export function isProgressNotificationParams(value: unknown): value is ProgressNotification {
-  return (
-    isRecord(value) &&
+  if (!isRecord(value)) return false;
+  if (value.type === "memory_warning") {
+    return isNumber(value.ratio) && value.ratio >= 0 &&
+      isNumber(value.rss_mb) && value.rss_mb >= 0 &&
+      (value.level === "warn" || value.level === "block");
+  }
+  return value.type === undefined &&
     typeof value.value === "number" &&
-    typeof value.message === "string"
-  );
+    typeof value.message === "string";
 }
 
 function isPolymeraseInfo(value: unknown): value is PolymeraseInfo {

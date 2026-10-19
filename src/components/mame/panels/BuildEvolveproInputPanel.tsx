@@ -332,12 +332,19 @@ export function BuildEvolveproInputPanel() {
     setAllowLabelMismatch(false);
   }, [form]);
 
+  // A reset reloads this project's saved form; it does not erase it. Clear All
+  // has already emptied that storage (store/mame/resetAll.ts), opening a
+  // project has not, so its form comes back. Mounting is not a reset: the
+  // project effect above loaded the form, and erasing here on every mount
+  // after any earlier reset lost the saved inputs.
+  const seenResetEpochRef = useRef(resetEpoch);
   useEffect(() => {
-    if (resetEpoch === 0) return;
-    setFormRaw(BUILD_EVOLVEPRO_DEFAULT_STATE);
-    saveToStorage(BUILD_EVOLVEPRO_DEFAULT_STATE, project?.path);
+    if (resetEpoch === seenResetEpochRef.current) return;
+    seenResetEpochRef.current = resetEpoch;
+    const loaded = loadFromStorage(project?.path);
+    setFormRaw(loaded);
     formGenerationRef.current += 1;
-    setShowRestoredNotice(false);
+    setShowRestoredNotice(hasBuildEvolveproFormValues(loaded));
     setBuildEvolveproCompletion(null);
     setResult(null);
     resetDetection();

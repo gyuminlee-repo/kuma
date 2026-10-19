@@ -1,5 +1,6 @@
 import i18next from "i18next";
 import type { StateCreator } from "zustand";
+import { toast } from "sonner";
 import { notifyJobComplete } from "../../lib/notify";
 import { notifyJobDone, notifyJobError } from "../../lib/toast";
 import { startKeepAwake, stopKeepAwake } from "../../lib/keepAwake";
@@ -48,7 +49,13 @@ function requireNumericRetryBound(value: number | string, field: string): number
   return value;
 }
 
-export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (set, get) => ({
+export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (set, get) => {
+  // Ownership of design replies. A run, and every retry/commit reply, may write
+  // the store only while no reset and no newer run has happened since it began.
+  // Results being emptied is not that signal: a background lookup that changes
+  // a design input empties them too, and that run's results must still land.
+  let designGeneration = 0;
+  return ({
   isDesigning: false,
   backendDesignStateSynced: false,
   designResults: [],
@@ -163,7 +170,13 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
     }
   },
 
+  invalidateDesignRuns: () => {
+    designGeneration += 1;
+  },
+
   designPrimers: async () => {
+    const generation = ++designGeneration;
+    const ownsRun = () => generation === designGeneration;
     const state = get();
     const {
       fastaPath,
@@ -231,6 +244,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       } catch {
         return;
       }
+      if (!ownsRun()) return;
     }
 
     if (strictDesign !== isStrictSpatialMode(get())
@@ -283,6 +297,10 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       statusMessage: "Designing primers...",
       alternativesCache: {},
     });
+    // A design input changed during the run (a domain or BLAST lookup landing,
+    // an edit) replaces this array through buildKuroDesignInputPatch. The
+    // results still land, marked as belonging to the inputs the run began with.
+    const resultsAtStart = get().designResults;
 
     // Every exit from this run writes one of these, so an empty result table
     // can always tell "never ran" from "ran and the results are gone".
@@ -326,6 +344,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         fillOnFailure,
       });
       const result = await sendRequest("design_sdm_primers", payload, 300_000);
+      if (!ownsRun()) return;
       if (result.cancelled) {
         set({
           backendDesignStateSynced: false,
@@ -334,6 +353,9 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         });
         return;
       }
+      const staleNotice = get().designResults !== resultsAtStart
+        ? i18next.t("toast.designInputsChangedDuringRun")
+        : null;
       const processed = processDesignResult({
         result,
         maxPrimers,
@@ -355,13 +377,14 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         rescuedMutations: processed.rescuedMutations,
         plateMappings: plateState.plateMappings,
         dedupInfo: plateState.dedupInfo,
-        statusMessage: processed.statusMessage,
+        statusMessage: staleNotice ? `${processed.statusMessage} ${staleNotice}` : processed.statusMessage,
         lastDesignRun: runRecord("success", null, {
           successCount: processed.capped.length,
           totalCount: prepared.intendedMuts.size,
           failedCount: processed.intendedFailed.length,
         }),
       });
+      if (staleNotice) toast.warning(staleNotice);
 
       const fillSourcePath = get().evolveproCsvPath;
       if (fillOnFailure && isEvolveMode && fillSourcePath) {
@@ -372,6 +395,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         // discarded on every successful run. Same argument as the
         // autosave restore call in useAutosaveHydration.ts.
         await get().loadEvolveproCsv(fillSourcePath, undefined, true, true);
+        if (!ownsRun()) return;
       }
 
       const postFailed = get().failedMutations;
@@ -383,6 +407,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         await get().cascadeFailedRetry("topn-fill");
       }
       // fillOnFailure=false: no auto-retry; mutations remain as failed
+      if (!ownsRun()) return;
 
       // Re-stamp with the post-cascade counts so the record matches the table.
       set({
@@ -405,6 +430,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         durationMs: Date.now() - _designStartedAt,
       });
     } catch (err) {
+      if (!ownsRun()) return;
       const message = formatError(err);
       if (message.includes("Sidecar killed")) {
         // The sidecar was killed under the request (menu restart or an update
@@ -424,10 +450,11 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       });
       notifyJobError("Design failed", err);
     } finally {
-      void stopKeepAwake();
-      // Guard kept: resetAll() sets isDesigning false, so a run whose project
-      // was reset mid-flight must not land its state or navigate the new one.
-      if (get().isDesigning) {
+      // A run superseded by a newer one leaves that run's keep-awake alone.
+      if (ownsRun() || !get().isDesigning) void stopKeepAwake();
+      // A run whose workspace was reset mid-flight, or that a newer run
+      // replaced, must not land its state, end the newer run, or navigate.
+      if (ownsRun() && get().isDesigning) {
         const hasResults = get().designResults.length > 0;
         set({
           isDesigning: false,
@@ -925,6 +952,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   },
 
   retryFailedMutation: async (mutation: string, params: Record<string, number | string>) => {
+    const generation = designGeneration;
     try {
       const {
         fastaPath,
@@ -966,6 +994,9 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
           }),
         },
       );
+      // Returning nothing also stops the cascade and auto-retry loops from
+      // adding a candidate to the workspace that replaced this one.
+      if (generation !== designGeneration) return [];
       set({
         alternativesCache: {
           ...get().alternativesCache,
@@ -974,6 +1005,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       });
       return result.candidates;
     } catch (err) {
+      if (generation !== designGeneration) return [];
       set({ statusMessage: `Retry failed: ${formatError(err)}` });
       throw err;
     }
@@ -1011,13 +1043,16 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   commitDesignResult: async (mutation: string, candidateIdx = 0) => {
     // Sync the cascade-rescue candidate into backend _state.results so that
     // Excel export (expected_mutations sheet) includes it.
+    const generation = designGeneration;
     try {
       await sendRequest("commit_design_result", {
         mutation,
         candidate_idx: candidateIdx,
       });
+      if (generation !== designGeneration) return;
       set({ backendDesignStateSynced: true });
     } catch (err) {
+      if (generation !== designGeneration) return;
       // Commit failure must not roll back frontend state — user already sees
       // the result. Keep backendDesignStateSynced: false so subsequent
       // swap/alternatives calls warn the user to re-design.
@@ -1040,4 +1075,5 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
     if (!nextState) return;
     set(nextState);
   },
-});
+  });
+};

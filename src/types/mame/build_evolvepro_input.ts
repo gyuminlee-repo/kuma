@@ -73,6 +73,15 @@ export interface LabelAudit {
   geometry: "two_swap" | "contiguous_shift" | "scattered" | "global_offset" | null
 }
 
+/** Every primary source `build_evolvepro_input` accepts; its name becomes `primary_format`. */
+export const BUILD_EVOLVEPRO_PRIMARY_FORMATS = [
+  "activity_path",
+  "gc_data_xlsx",
+  "round1_report_xlsx",
+  "numeric_report_xlsx",
+] as const;
+export type BuildEvolveproPrimaryFormat = typeof BUILD_EVOLVEPRO_PRIMARY_FORMATS[number];
+
 export interface BuildEvolveproInputResult {
   output_path: string
   n_variants: number
@@ -85,7 +94,7 @@ export interface BuildEvolveproInputResult {
   gc_export_path: string
   label_audit: LabelAudit | null
   manifest_path: string
-  primary_format: "activity_path" | "gc_data_xlsx" | "round1_report_xlsx" | "numeric_report_xlsx"
+  primary_format: BuildEvolveproPrimaryFormat
   input_count: number
   evaluable_count: number
   exclusion_reason_counts: Record<string, number>

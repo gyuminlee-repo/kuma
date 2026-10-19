@@ -19,14 +19,9 @@ export const useAppStore = create<AppState>()((...a) => {
   const [set, get] = a;
 
   setProgressHandler((p) => {
-    // §19 memory_warning notifications arrive as type="memory_warning" in params.
-    // Cast to check for the discriminating field without broadening the handler type.
-    const raw = p as unknown as Record<string, unknown>;
-    if (raw["type"] === "memory_warning") {
-      const ratio = typeof raw["ratio"] === "number" ? raw["ratio"] : 0;
-      const rss_mb = typeof raw["rss_mb"] === "number" ? raw["rss_mb"] : 0;
-      const level = raw["level"] === "block" ? "block" : "warn";
-      set({ memoryWarning: { ratio, rss_mb, level } });
+    // §19 memory_warning notifications share the progress channel.
+    if (p.type === "memory_warning") {
+      set({ memoryWarning: { ratio: p.ratio, rss_mb: p.rss_mb, level: p.level } });
       return;
     }
     set({ progress: p.value, statusMessage: p.message });

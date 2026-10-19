@@ -132,7 +132,7 @@ describe("handleExportAll project routing", () => {
         type: "kuro_run_json",
         absolutePath: "/proj/design/proj_20260731/proj_20260731_run.json",
       },
-    ]);
+    ], "/proj/design/proj_20260731");
   });
 
   it("leaves the picker undefaulted without a project but still records the files", async () => {

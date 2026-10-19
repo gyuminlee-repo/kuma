@@ -89,6 +89,7 @@
     "updateInstalling": "Instalando…",
     "updateRelaunching": "Reiniciando…",
     "updateInstallFailed": "Error de actualización: {{message}}",
+    "updateBusy": "Espere a que termine el diseño, el análisis o la exportación en curso, o cancélelo, antes de instalar la actualización.",
     "downloadAndInstall": "Descargar e instalar",
     "installing": "Instalando...",
     "later": "Más tarde",
@@ -1968,6 +1969,7 @@
     "warningHashMismatch": "Hash mismatch: {{paths}}",
     "warningHashUnverifiable": "Registrado sin resumen criptográfico, por lo que no se puede cotejar con la ejecución: {{paths}}",
     "exportOnlyNotice": "Este manifiesto es una operación sólo de exportación y no se puede re-ejecutar directamente. Volver a exportar desde los datos originales.",
+    "unappliedConditions": "Esta repetición aplica solo una parte de la ejecución registrada. Estas condiciones registradas no se aplican y se usan los valores de la sesión actual: {{keys}}. El resultado puede diferir de la ejecución registrada.",
     "btnCancel": "Cancelar",
     "btnRerun": "Re-ejecutar",
     "btnRunning": "Ejecutando...",
@@ -2057,6 +2059,7 @@
     "workspace": "Workspace",
     "scratch": "Scratch",
     "autosaveOn": "Autoguardado activo",
+    "exporting": "Exportando…",
     "autosaveSaving": "Guardando…",
     "autosaveSavedJustNow": "Guardado ahora mismo",
     "autosaveSavedAgo": "Guardado {{time}}",
@@ -2547,6 +2550,11 @@
     "missingColumn": "Columna requerida faltante: \"{{column}}\"{{aliasNote}}"
   },
   "toast": {
+    "designCancelledByReset": "El diseño en curso se canceló porque se vació el espacio de trabajo. Vuelva a ejecutar el diseño para obtener resultados.",
+    "analysisCancelledByReset": "El análisis en curso se canceló porque se vació el espacio de trabajo o se abrió otro proyecto. Vuelva a ejecutar el análisis para obtener resultados.",
+    "analysisCancelFailed": "No se pudo detener el análisis en curso después de vaciar el espacio de trabajo: {{message}}",
+    "designInputsChangedDuringRun": "El diseño terminó, pero sus entradas cambiaron mientras se ejecutaba. Estos resultados corresponden a las entradas iniciales; vuelva a ejecutar el diseño para las entradas actuales.",
+    "analysisInputsChangedDuringRun": "El análisis terminó, pero sus entradas cambiaron mientras se ejecutaba. Estos resultados corresponden a las entradas iniciales; vuelva a ejecutar el análisis para las entradas actuales.",
     "completedWithDuration": "Completado ({{duration}})"
   },
   "exportSlice": {

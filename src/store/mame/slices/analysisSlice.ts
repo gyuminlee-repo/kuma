@@ -174,23 +174,32 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       showExport: false,
     });
   },
+  // Both loads describe the verdicts on screen when they were asked for. A
+  // reset or a new run replaces that array, and a reply for the old one must
+  // not land on the next.
   loadPlateData: async () => {
+    const verdicts = get().verdicts;
     try {
       const result = await sendRequest<PlateDataResult>("get_plate_data", {});
+      if (get().verdicts !== verdicts) return;
       const firstWell = result.wells.find((well) => well.selected) ?? result.wells[0] ?? null;
       set({ wells: result.wells, selectedWell: firstWell });
     } catch (error) {
       // -32002: analyze not yet run, or other sidecar errors. Clear stale data.
       console.warn("[analysisSlice] loadPlateData failed:", error);
+      if (get().verdicts !== verdicts) return;
       set({ wells: [], selectedWell: null });
     }
   },
   loadRunHealth: async () => {
+    const verdicts = get().verdicts;
     try {
       const result = await sendRequest<RunHealthData>("get_run_health", {});
+      if (get().verdicts !== verdicts) return;
       set({ runHealth: result });
     } catch (error) {
       console.warn("[analysisSlice] loadRunHealth failed:", error);
+      if (get().verdicts !== verdicts) return;
       set({ runHealth: null });
     }
   },
