@@ -25,7 +25,7 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key.split(".").pop() ?? key }),
 }));
 
-type Outcome = "used" | "refused" | "failed";
+type Outcome = "used" | "refused" | "failed" | "stale";
 interface StoreShape {
   structureAccession: string;
   uniprotAccession: string;
@@ -151,6 +151,18 @@ describe("Selection3DPanel: strict mode active-site lookup", () => {
 });
 
 describe("Selection3DPanel: accession structure does not cover the reference", () => {
+  it("retries a stale adoption for the same frame and shows the resulting refusal", async () => {
+    const adopt = vi.fn<(sequence: string) => Promise<Outcome>>()
+      .mockResolvedValueOnce("stale")
+      .mockResolvedValueOnce("refused");
+    setStore({ structure3dState: "frame_mismatch", adoptReferenceEsmfold: adopt });
+    render(<Selection3DPanel />);
+
+    await waitFor(() => expect(screen.getByTestId("frame-needs-file")).toBeInTheDocument());
+    expect(adopt).toHaveBeenCalledTimes(2);
+    expect(adopt).toHaveBeenNthCalledWith(2, "M" + "A".repeat(99));
+  });
+
   it("predicts the reference with ESMFold when the frame mismatches and consent is given", async () => {
     setStore({ structure3dState: "frame_mismatch" });
     render(<Selection3DPanel />);

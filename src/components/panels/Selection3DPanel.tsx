@@ -832,6 +832,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
   const [esmfoldRefused, setEsmfoldRefused] = useState(false);
   const [esmfoldFailed, setEsmfoldFailed] = useState(false);
   const [recoveryBusy, setRecoveryBusy] = useState(false);
+  const [recoveryRetry, setRecoveryRetry] = useState(0);
   const recoveryAttemptRef = useRef("");
   const recovery = decideFrameRecovery({
     // An ESMFold key whose coordinates the sidecar can no longer find (cache
@@ -857,11 +858,19 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
     setRecoveryBusy(true);
     void adoptReferenceEsmfold(refSeq)
       .then((outcome) => {
+        if (recoveryAttemptRef.current !== attemptKey) return;
+        if (outcome === "stale") {
+          setRecoveryBusy(false);
+          recoveryAttemptRef.current = "";
+          setRecoveryRetry((retry) => retry + 1);
+        }
         if (outcome === "refused") setEsmfoldRefused(true);
         if (outcome === "failed") setEsmfoldFailed(true);
       })
-      .finally(() => setRecoveryBusy(false));
-  }, [recovery, accession, refSeq, adoptReferenceEsmfold]);
+      .finally(() => {
+        if (recoveryAttemptRef.current === attemptKey) setRecoveryBusy(false);
+      });
+  }, [recovery, accession, refSeq, adoptReferenceEsmfold, recoveryRetry]);
 
   const pickStructureFile = () =>
     void browseFile(
