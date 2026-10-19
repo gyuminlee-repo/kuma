@@ -177,7 +177,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       // strict mode is judged against that mode. A CSV dropped while the text
       // tab is open would otherwise send a strict request and then discard the
       // strict response as stale.
-      usesStructure = Boolean(params.structure_accession);
+      usesStructure = Boolean(params.structure_accession)
+        && (structuralDiversityEnabled || (paretoDiversityEnabled && distanceMode !== "1d"));
       const strictAfterLoad = () => isStrictSpatialMode({ ...get(), mutationInputMode: "evolvepro" });
       const strictMode = strictAfterLoad();
       const contextKey = strictSpatialContextKey(get());
@@ -204,7 +205,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       // clear theirs. A moved context with strict still on says what happened
       // in the words designSlice uses for the same change.
       if (gen !== csvLoadGeneration) return;
-      if (usesStructure && !ownsStructure()) {
+      if (strictMode && usesStructure && !ownsStructure()) {
         if (get().statusMessage === loadingMessage) {
           set({ statusMessage: strictMode && strictAfterLoad()
             ? i18next.t("strictSpatial.changedSelection") : "" });
@@ -261,8 +262,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         evolveproFilteredCount: update.evolveproFilteredCount,
         evolveproParetoExchanges: update.evolveproParetoExchanges,
         evolveproStepStats: update.evolveproStepStats,
-        structure3dState: strictMode ? "active" : update.structure3dState,
-        structureCoverage: update.structureCoverage,
+        ...(!usesStructure || ownsStructure() ? {
+          structure3dState: strictMode ? "active" as const : update.structure3dState,
+          structureCoverage: update.structureCoverage,
+        } : {}),
         evolveproRankedCandidates: result.ranked_candidates ?? [],
         // Initialize selection directly from result.variants (pipeline source-of-truth).
         // ranked_candidates is guaranteed to contain all selected variants (backend invariant:
@@ -291,9 +294,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       } else {
         set(buildKuroDesignInputPatch(get(), inputPatch));
       }
-      set({ statusMessage: update.statusMessage });
+      set({ statusMessage: usesStructure && !ownsStructure()
+        ? `${update.statusMessage} | ${i18next.t("strictSpatial.changedSelection")}`
+        : update.statusMessage });
     } catch (err) {
-      if (usesStructure && !ownsStructure()) return;
       if (gen === csvLoadGeneration) {
         set({
           strictSpatialSelection: null,
@@ -306,6 +310,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           ...(isStrictSpatialMode({ ...get(), mutationInputMode: "evolvepro" })
             // The sidecar's refusal when the structure does not hold the reference
             // (strict_spatial.StrictFrameMismatchError); the panel recovers from it.
+            && (!usesStructure || ownsStructure())
             && isStrictFrameMismatchError(formatError(err)) && { structure3dState: "frame_mismatch" as const }),
           mutationText: "",
           evolveproTotalCount: 0,

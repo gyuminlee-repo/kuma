@@ -114,7 +114,8 @@ describe("strict spatial load when the structure is unavailable", () => {
       expect(state.structureLoading).toBe(true)
       if (outcome === "success") csv.resolve?.({ ...result, structure_frame_mismatch: true })
       else csv.reject?.(new Error("[-32010] Strict spatial source structure is unavailable"))
-      await oldLoad
+      if (outcome === "failure") await expect(oldLoad).rejects.toThrow()
+      else await oldLoad
       expect(state.structure3dState).toBe("off")
       file.resolve?.({ success: true, accession: "file:new", residues: 10 })
       await fileLoad
@@ -122,6 +123,31 @@ describe("strict spatial load when the structure is unavailable", () => {
       expect(state.structureAccession).toBe("file:new")
       expect(state.structure3dState).toBe("active")
       expect(state.strictSpatialError).toBeNull()
+    },
+  )
+
+  it.each(["1d", "auto"] as const)(
+    "keeps a CSV loaded during a failed structure request in %s mode",
+    async (distanceMode) => {
+      const file: { resolve?: (value: unknown) => void } = {}
+      const fileResponse = new Promise((resolve) => { file.resolve = resolve })
+      const result = { variants: ["A2V"], y_preds: [1], total_count: 3, selected_count: 1,
+        structure_coordinates_used: false, structure_frame_mismatch: false }
+      mockSend.mockImplementation(((method: string) =>
+        method === "load_structure_file" ? fileResponse : Promise.resolve(result)) as never)
+      const { state, slice, diversity } = makeStore()
+      Object.assign(state, { strictSpatialEnabled: false, structuralDiversityEnabled: false,
+        paretoDiversityEnabled: true, distanceMode })
+
+      const fileLoad = diversity.loadStructureFile("/fake/broken.pdb")
+      await slice.loadEvolveproCsv("/fake/file.csv")
+      file.resolve?.({ success: false, error: "synthetic unreadable structure" })
+      await fileLoad
+
+      expect(state.mutationText).toBe("A2V")
+      expect(state.evolveproSelectedVariants).toEqual(["A2V"])
+      expect(state.structureLoading).toBe(false)
+      expect(state.structureAccession).toBe("")
     },
   )
 })
