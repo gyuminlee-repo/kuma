@@ -579,6 +579,8 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     set({
       structureLoading: true,
       structureLoaded: get().structureAccession === requestedAccession,
+      structure3dState: "off",
+      structureCoverage: null,
       statusMessage: loadingMessage,
     });
     try {
@@ -640,6 +642,8 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     set({
       structureLoading: true,
       structureLoaded: false,
+      structure3dState: "off",
+      structureCoverage: null,
       statusMessage: i18next.t("diversity.structureFileLoading"),
     });
     try {
@@ -777,11 +781,12 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     if (!result && esmfoldRefused.has(sequence.trim())) return "refused";
     if (!result || !result.success || !result.structure_key) return "failed";
     if (
-      generation !== structureFetchGeneration
+      get().structureLoading
+      || generation !== structureFetchGeneration
       || currentReferenceSequence(get()) !== startRefSeq
       || get().uniprotAccession !== startAccession
     ) return "stale";
-    // Taking ownership discards any fetch still in flight.
+    // Take ownership only after competing structure loads have settled.
     structureFetchGeneration++;
     set({
       structureLoaded: true,

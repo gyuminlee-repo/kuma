@@ -224,6 +224,40 @@ describe("adoptReferenceEsmfold", () => {
     expect(state.structureAccession).toBe("P12345");
   });
 
+  it.each(["fetch_structure", "load_structure_file"] as const)(
+    "does not let a cached prediction replace an in-flight %s request",
+    async (request) => {
+    const completion: { resolve?: (value: { success: boolean; residues: number; accession: string }) => void } = {};
+    const started = new Promise<void>((resolveStarted) => {
+      mockedSendRequest.mockImplementation(((method: string) => method === request
+        ? new Promise((resolve) => {
+            completion.resolve = resolve;
+            resolveStarted();
+          })
+        : Promise.resolve({ ...OK_RESULT, structure_key: "ESMFOLD:ABC" })) as never);
+    });
+    const { state, slice } = makeStore();
+    state.uniprotAccession = "P12345";
+    await slice.predictStructureEsmfold("MKTAYIAKQR");
+    state.structure3dState = "frame_mismatch";
+    state.structureCoverage = { covered: 8, reference_length: 10 };
+
+    const fetching = request === "fetch_structure"
+      ? slice.fetchStructure("P12345")
+      : slice.loadStructureFile("/tmp/synthetic.pdb");
+    await started;
+    expect(state.structure3dState).toBe("off");
+    expect(state.structureCoverage).toBeNull();
+    expect(await slice.adoptReferenceEsmfold("MKTAYIAKQR")).toBe("stale");
+    expect(state.structureLoading).toBe(true);
+    const accession = request === "fetch_structure" ? "P12345" : "file:synthetic";
+    completion.resolve?.({ success: true, residues: 120, accession });
+    await fetching;
+
+    expect(state.structureLoading).toBe(false);
+    expect(state.structureAccession).toBe(accession);
+  });
+
   it("reports a prediction without a structure key as failed", async () => {
     mockedSendRequest.mockResolvedValueOnce({ ...OK_RESULT, success: false, source: "error", pdb_text: null });
     const { state, slice } = makeStore();

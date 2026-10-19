@@ -704,6 +704,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
     predictStructureEsmfold,
     adoptReferenceEsmfold,
     loadStructureFile,
+    structureLoading,
     structure3dState,
     structureCoverage,
   } = useAppStore(
@@ -722,6 +723,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
       predictStructureEsmfold: s.predictStructureEsmfold,
       adoptReferenceEsmfold: s.adoptReferenceEsmfold,
       loadStructureFile: s.loadStructureFile,
+      structureLoading: s.structureLoading,
       structure3dState: s.structure3dState,
       structureCoverage: s.structureCoverage,
     })),
@@ -851,7 +853,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
   }, [accession, refSeq]);
 
   useEffect(() => {
-    if (recovery !== "esmfold") return;
+    if (recovery !== "esmfold" || structureLoading) return;
     const attemptKey = `${accession}|${refSeq}`;
     if (recoveryAttemptRef.current === attemptKey) return;
     recoveryAttemptRef.current = attemptKey;
@@ -870,7 +872,7 @@ export function Selection3DPanel({ defaultOpen = false, embedded = false }: Sele
       .finally(() => {
         if (recoveryAttemptRef.current === attemptKey) setRecoveryBusy(false);
       });
-  }, [recovery, accession, refSeq, adoptReferenceEsmfold, recoveryRetry]);
+  }, [recovery, accession, refSeq, adoptReferenceEsmfold, recoveryRetry, structureLoading]);
 
   const pickStructureFile = () =>
     void browseFile(

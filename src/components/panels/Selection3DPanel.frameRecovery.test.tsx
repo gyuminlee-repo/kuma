@@ -2,7 +2,7 @@
  * Selection3DPanel: what happens when the structure found for the accession does
  * not exactly cover the reference sequence. Network and the viewer are mocked.
  */
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockBrowseFile = vi.hoisted(() =>
@@ -36,6 +36,7 @@ interface StoreShape {
   yPredMap: Record<string, number>;
   domains: unknown[];
   structure3dState: string;
+  structureLoading: boolean;
   structureCoverage: { covered: number; reference_length: number } | null;
   fetchPdbText: ReturnType<typeof vi.fn>;
   fetchActiveSite: ReturnType<typeof vi.fn>;
@@ -76,6 +77,7 @@ function setStore(patch: Partial<StoreShape> & Record<string, unknown> = {}) {
     yPredMap: {},
     domains: [],
     structure3dState: "off",
+    structureLoading: false,
     structureCoverage: null,
     fetchPdbText: vi.fn().mockResolvedValue(null),
     fetchActiveSite: vi.fn().mockResolvedValue(null),
@@ -151,6 +153,33 @@ describe("Selection3DPanel: strict mode active-site lookup", () => {
 });
 
 describe("Selection3DPanel: accession structure does not cover the reference", () => {
+  it.each(["active", "frame_mismatch"])(
+    "waits for the newer structure request before recovering its %s frame",
+    async (finalFrame) => {
+      const completion: { resolve?: (value: Outcome) => void } = {};
+      const pending = new Promise<Outcome>((resolve) => { completion.resolve = resolve; });
+      const adopt = vi.fn<(sequence: string) => Promise<Outcome>>()
+        .mockReturnValueOnce(pending)
+        .mockResolvedValue("refused");
+      setStore({ structure3dState: "frame_mismatch", adoptReferenceEsmfold: adopt });
+      const { rerender } = render(<Selection3DPanel />);
+      expect(adopt).toHaveBeenCalledTimes(1);
+
+      storeRef.current.structureLoading = true;
+      rerender(<Selection3DPanel />);
+      await act(async () => { completion.resolve?.("stale"); await pending; });
+      expect(adopt).toHaveBeenCalledTimes(1);
+
+      storeRef.current.structureLoading = false;
+      storeRef.current.structure3dState = finalFrame;
+      await act(async () => { rerender(<Selection3DPanel />); });
+      expect(adopt).toHaveBeenCalledTimes(finalFrame === "active" ? 1 : 2);
+      if (finalFrame === "frame_mismatch") {
+        expect(screen.getByTestId("frame-needs-file")).toBeInTheDocument();
+      }
+    },
+  );
+
   it("retries a stale adoption for the same frame and shows the resulting refusal", async () => {
     const adopt = vi.fn<(sequence: string) => Promise<Outcome>>()
       .mockResolvedValueOnce("stale")
