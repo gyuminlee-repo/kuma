@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.16.74 (Spatial selection and the reference structure that fits)
+
+KURO now selects variants by their 3D proximity to functional sites in the protein structure. Spatial selection uses CA atom coordinates and a distance cutoff, and when the AlphaFold DB structure does not exactly cover the reference sequence, KURO predicts the reference with ESMFold (with network consent) and uses that structure instead. References over 400 residues are pointed at AlphaFold Server with a structure file picker. A structure whose coverage only misses terminal residues is used as an exact overlap with coverage reported. A benchmark compares the spatial and score-only top-N selections and reports residue evidence, so the operator can see what spatial proximity adds.
+
+Every long-running operation now owns its request. A design, export or analysis numbers its run, and a reply may write the store only while its number is current. A reset cancels the running design and retires its number, so a late reply never fills a cleared workspace. Export All takes a lease from a shared export guard, so closing the window or restarting the sidecar waits for it. An export that finished while another project was open no longer registers its files in that project. Drag-and-drop and file-preview listeners are unsubscribed on unmount, and a preview request that returns for a cleared source is discarded.
+
+Mame step 4.1 reads the label type from the confirmation report and accepts well-labeled reports. A well column, a Sample column and a Peak area value column are detected and read; wells map to variants through the layout the build already holds, and conflicting rows are refused. The activity join now matches on well coordinate instead of raw strings, so log2FC and the other activity columns appear for real runs where the verdict file names a token and the activity file names a well.
+
+Step 6 lets the operator choose which export files to write: the Macrogen order sheet, primer FASTA, Echo and JANUS files are optional, while the plate map and run manifest are always written. Every export is staged and published by an atomic rename, so a failed write leaves the previous file intact. An EVOLVEpro file whose explicit variant or score column does not match any header is refused with the headers listed, and a load that sent the previous file's column overrides to a new file now clears them first.
+
+The in-app help is published as the English and Korean user guide at the MkDocs site, with annotated screenshots at every step. A capture spec walks KURO steps 1-6 and MAME steps 1-4 in the MOCK_MODE build and writes a PNG and control boxes for every help page. The site hook places the annotated SVG under each page title. Pages that need more than one screen get continuation shots, numbered across the page.
+
+### Highlights
+
+- KURO selects variants by 3D proximity, and when the database structure does not cover the reference, predicts one with ESMFold.
+- A running design, export or analysis owns its request, so a late reply never overwrites a newer result or another project.
+- MAME step 4.1 reads the label type from the confirmation report and maps a well-labeled report to variants automatically.
+- Step 6 lets you choose which export files to write, and every export is staged and published by an atomic rename.
+- The in-app help is published as an illustrated user guide with annotated screenshots at every step.
+
 ## v0.16.73 (Codon tables for the hosts people actually express in)
 
 KURO shipped five codon usage tables and one of them was *Methylorubrum extorquens* AM1, an organism no codon optimization tool offers by default. A survey of the tools whose organism lists can be read end to end, python_codon_tables, DNA Chisel, GenScript GenRCA, GenScript GenSmart and JCat, found AM1 in none of them, while the four tables every one of those tools carries are exactly *E. coli*, *B. subtilis*, *S. cerevisiae* and *H. sapiens*. The built-in set now holds those four plus the hosts the commercial synthesis tools treat as standard and KURO was missing: *Komagataella phaffii* GS115, better known as *Pichia pastoris*, CHO through *Cricetulus griseus*, *Corynebacterium glutamicum* ATCC 13032, *Aspergillus niger*, and *Pseudomonas putida* KT2440. Nine tables in all. Each of the five is counted from the NCBI RefSeq CDS set of a named assembly rather than taken from Kazusa, whose data has not moved since GenBank release 160.0 of June 2007, and each records the assembly, the strain where the record names one, the CDS count and the annotation release it was counted from. Common names resolve, so CHO, CHO-K1 and Chinese hamster all reach the *C. griseus* table and Pichia pastoris reaches *K. phaffii*.

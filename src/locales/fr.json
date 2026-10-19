@@ -2681,13 +2681,13 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Cinq hôtes d'expression rejoignent les tables de codons intégrées : P. pastoris, CHO, C. glutamicum, A. niger et P. putida, comptés depuis NCBI RefSeq.",
-      "Les noms usuels fonctionnent aussi. CHO, CHO-K1 et Chinese hamster mènent à la même table, Pichia pastoris à K. phaffii.",
-      "M. extorquens AM1 n'est plus intégré. Il est fourni comme seed prêt à installer dans le dossier des tables de codons personnelles.",
-      "La table E. coli nomme désormais l'entrée Kazusa d'où viennent ses valeurs, W3110 taxid 316407. Les valeurs sont inchangées.",
-      "La table A. niger ne déclare aucune souche, car l'enregistrement RefSeq actuel de cet assembly n'en nomme pas."
+      "KURO sélectionne les variants par proximité 3D et, si la structure en base ne couvre pas la référence, en prédit une avec ESMFold.",
+      "Un design, export ou analyse en cours détient sa requête : une réponse tardive n'écrase jamais un résultat plus récent.",
+      "MAME étape 4.1 lit le type d'étiquette du rapport de confirmation et associe automatiquement les puits aux variants.",
+      "L'étape 6 permet de choisir les fichiers à exporter, et chaque export est publié par un renommage atomique.",
+      "L'aide intégrée est publiée comme guide illustré avec des captures d'écran annotées à chaque étape."
     ],
-    "highlightsStamp": "0.16.73+4da5762b",
+    "highlightsStamp": "0.16.74+5562e779",
     "releases": {
       "0.16.69": [
         "Les séquences consensus écrivent un tiret là où une base manque, si bien qu'une délétion ne ressemble plus à une position non interprétable.",
@@ -3196,6 +3196,13 @@
         "M. extorquens AM1 n'est plus intégré. Il est fourni comme seed prêt à installer dans le dossier des tables de codons personnelles.",
         "La table E. coli nomme désormais l'entrée Kazusa d'où viennent ses valeurs, W3110 taxid 316407. Les valeurs sont inchangées.",
         "La table A. niger ne déclare aucune souche, car l'enregistrement RefSeq actuel de cet assembly n'en nomme pas."
+      ],
+      "0.16.74": [
+        "KURO sélectionne les variants par proximité 3D et, si la structure en base ne couvre pas la référence, en prédit une avec ESMFold.",
+        "Un design, export ou analyse en cours détient sa requête : une réponse tardive n'écrase jamais un résultat plus récent.",
+        "MAME étape 4.1 lit le type d'étiquette du rapport de confirmation et associe automatiquement les puits aux variants.",
+        "L'étape 6 permet de choisir les fichiers à exporter, et chaque export est publié par un renommage atomique.",
+        "L'aide intégrée est publiée comme guide illustré avec des captures d'écran annotées à chaque étape."
       ]
     },
     "releaseStamps": {
@@ -3281,7 +3288,8 @@
       "0.16.70": "291b4798",
       "0.16.71": "14948bca",
       "0.16.72": "cb204794",
-      "0.16.73": "4da5762b"
+      "0.16.73": "4da5762b",
+      "0.16.74": "5562e779"
     }
   },
   "primerDisplay": {

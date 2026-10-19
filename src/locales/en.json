@@ -2735,14 +2735,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Five expression hosts join the built-in codon tables: P. pastoris, CHO, C. glutamicum, A. niger and P. putida, counted from NCBI RefSeq.",
-      "Common names resolve, so CHO, CHO-K1 and Chinese hamster all reach the same table, and Pichia pastoris reaches K. phaffii.",
-      "M. extorquens AM1 is no longer built in. It ships as a ready-to-install seed in the user codon table folder instead.",
-      "The E. coli table now names the Kazusa entry its numbers come from, W3110 taxid 316407, with the numbers unchanged.",
-      "The A. niger table declares no strain, since the current RefSeq record for its assembly does not name one."
+      "KURO selects variants by 3D proximity, and when the database structure does not cover the reference, predicts one with ESMFold.",
+      "A running design, export or analysis owns its request, so a late reply never overwrites a newer result or another project.",
+      "MAME step 4.1 reads the label type from the confirmation report and maps a well-labeled report to variants automatically.",
+      "Step 6 lets you choose which export files to write, and every export is staged and published by an atomic rename.",
+      "The in-app help is published as an illustrated user guide with annotated screenshots at every step."
     ],
-    "highlightsStamp": "0.16.73+4da5762b",
+    "highlightsStamp": "0.16.74+5562e779",
     "releases": {
+      "0.16.74": [
+        "KURO selects variants by 3D proximity, and when the database structure does not cover the reference, predicts one with ESMFold.",
+        "A running design, export or analysis owns its request, so a late reply never overwrites a newer result or another project.",
+        "MAME step 4.1 reads the label type from the confirmation report and maps a well-labeled report to variants automatically.",
+        "Step 6 lets you choose which export files to write, and every export is staged and published by an atomic rename.",
+        "The in-app help is published as an illustrated user guide with annotated screenshots at every step."
+      ],
       "0.16.73": [
         "Five expression hosts join the built-in codon tables: P. pastoris, CHO, C. glutamicum, A. niger and P. putida, counted from NCBI RefSeq.",
         "Common names resolve, so CHO, CHO-K1 and Chinese hamster all reach the same table, and Pichia pastoris reaches K. phaffii.",
@@ -3253,6 +3260,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.74": "5562e779",
       "0.16.73": "4da5762b",
       "0.16.72": "cb204794",
       "0.16.71": "14948bca",

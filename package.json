@@ -2,7 +2,7 @@
   "name": "kuma",
   "private": true,
   "license": "GPL-2.0-or-later",
-  "version": "0.16.73",
+  "version": "0.16.74",
   "packageManager": "pnpm@10.33.0",
   "type": "module",
   "scripts": {
