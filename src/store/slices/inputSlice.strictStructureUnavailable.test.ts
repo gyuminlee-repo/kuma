@@ -12,6 +12,7 @@ vi.mock("i18next", () => ({
 }))
 
 import { createInputSlice } from "./inputSlice"
+import { createDiversitySlice } from "./diversitySlice"
 import { sendRequest } from "@/lib/ipc-kuro"
 
 const mockSend = vi.mocked(sendRequest)
@@ -59,6 +60,7 @@ function makeStore() {
     },
     selectedGene: "",
     statusMessage: "",
+    requireNetworkConsent: vi.fn().mockResolvedValue(true),
   }
   const set = (u: Record<string, unknown> | ((s: typeof state) => Record<string, unknown>)) => {
     Object.assign(state, typeof u === "function" ? u(state) : u)
@@ -69,7 +71,13 @@ function makeStore() {
     get as Parameters<typeof createInputSlice>[1],
     {} as Parameters<typeof createInputSlice>[2],
   )
-  return { state, slice }
+  const diversity = createDiversitySlice(
+    set as Parameters<typeof createDiversitySlice>[0],
+    get as Parameters<typeof createDiversitySlice>[1],
+    {} as Parameters<typeof createDiversitySlice>[2],
+  )
+  Object.assign(state, diversity, slice, { ...state })
+  return { state, slice, diversity }
 }
 
 describe("strict spatial load when the structure is unavailable", () => {
@@ -84,4 +92,36 @@ describe("strict spatial load when the structure is unavailable", () => {
     expect(state.structure3dState).toBe("frame_mismatch")
     expect(state.strictSpatialError).toBe("strictSpatial.structureNotUsable")
   })
+
+  it.each(["success", "failure"] as const)(
+    "ignores an old CSV %s while a new user structure loads",
+    async (outcome) => {
+      const csv: { resolve?: (value: unknown) => void; reject?: (error: Error) => void } = {}
+      const file: { resolve?: (value: unknown) => void } = {}
+      const oldResponse = new Promise((resolve, reject) => { csv.resolve = resolve; csv.reject = reject })
+      const fileResponse = new Promise((resolve) => { file.resolve = resolve })
+      const result = { variants: ["A2V"], y_preds: [1], total_count: 3, selected_count: 1,
+        structure_coordinates_used: true, structure_frame_mismatch: false }
+      mockSend.mockImplementation(((method: string) =>
+        method === "load_structure_file" ? fileResponse : Promise.resolve(result)) as never)
+      mockSend.mockReturnValueOnce(oldResponse as never)
+      const { state, slice, diversity } = makeStore()
+      state.strictSpatialEnabled = false
+      state.structure3dState = "active"
+
+      const oldLoad = slice.loadEvolveproCsv("/fake/file.csv")
+      const fileLoad = diversity.loadStructureFile("/fake/new.pdb")
+      expect(state.structureLoading).toBe(true)
+      if (outcome === "success") csv.resolve?.({ ...result, structure_frame_mismatch: true })
+      else csv.reject?.(new Error("[-32010] Strict spatial source structure is unavailable"))
+      await oldLoad
+      expect(state.structure3dState).toBe("off")
+      file.resolve?.({ success: true, accession: "file:new", residues: 10 })
+      await fileLoad
+
+      expect(state.structureAccession).toBe("file:new")
+      expect(state.structure3dState).toBe("active")
+      expect(state.strictSpatialError).toBeNull()
+    },
+  )
 })

@@ -175,6 +175,7 @@ export interface DiversitySlice {
   saveCache: boolean;
   structureLoaded: boolean;
   structureLoading: boolean;
+  structureRequestGeneration: number;
   structureAccession: string;
   // Whether the last EVOLVEpro load actually used 3D distance, and if not, why.
   // "off": no 3D consumer enabled, so the distinction does not apply.

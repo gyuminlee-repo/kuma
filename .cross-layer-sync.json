@@ -1554,6 +1554,8 @@
         "src/types/models.ts",
         "src/types/validators.ts",
         "src/lib/strictSpatial.ts",
+        "src/store/slice-interfaces.ts",
+        "src/store/slices/diversitySlice.ts",
         "src/store/slices/inputSlice.helpers.ts",
         "src/store/slices/inputSlice.ts",
         "src/store/slices/designSlice.ts",

@@ -62,6 +62,13 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     preserveSelection = false,
   ) => {
     const gen = ++csvLoadGeneration;
+    const structureGeneration = get().structureRequestGeneration;
+    const structureAtStart = get().structureAccession || get().uniprotAccession;
+    const structureWasLoading = get().structureLoading;
+    let usesStructure = false;
+    const ownsStructure = () => !structureWasLoading && !get().structureLoading
+      && structureGeneration === get().structureRequestGeneration
+      && structureAtStart === (get().structureAccession || get().uniprotAccession);
     try {
       const {
         evolveproMode,
@@ -170,6 +177,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       // strict mode is judged against that mode. A CSV dropped while the text
       // tab is open would otherwise send a strict request and then discard the
       // strict response as stale.
+      usesStructure = Boolean(params.structure_accession);
       const strictAfterLoad = () => isStrictSpatialMode({ ...get(), mutationInputMode: "evolvepro" });
       const strictMode = strictAfterLoad();
       const contextKey = strictSpatialContextKey(get());
@@ -196,6 +204,13 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       // clear theirs. A moved context with strict still on says what happened
       // in the words designSlice uses for the same change.
       if (gen !== csvLoadGeneration) return;
+      if (usesStructure && !ownsStructure()) {
+        if (get().statusMessage === loadingMessage) {
+          set({ statusMessage: strictMode && strictAfterLoad()
+            ? i18next.t("strictSpatial.changedSelection") : "" });
+        }
+        return;
+      }
       const modeChanged = strictMode !== strictAfterLoad();
       if (modeChanged || (strictMode && contextKey !== strictSpatialContextKey(get()))) {
         if (get().statusMessage === loadingMessage) {
@@ -278,6 +293,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       }
       set({ statusMessage: update.statusMessage });
     } catch (err) {
+      if (usesStructure && !ownsStructure()) return;
       if (gen === csvLoadGeneration) {
         set({
           strictSpatialSelection: null,

@@ -265,4 +265,20 @@ describe("adoptReferenceEsmfold", () => {
     expect(await slice.adoptReferenceEsmfold("MKTAYIAKQR")).toBe("failed");
     expect(state.structureAccession).toBe("");
   });
+
+  it.each([false, true])("settles an obsolete accession fetch when failure is %s", async (fails) => {
+    const { state, slice } = makeStore();
+    state.uniprotAccession = "P12345";
+    state.structureAccession = "ESMFOLD:ABC";
+    mockedSendRequest.mockImplementationOnce((async () => {
+      state.uniprotAccession = "Q99999";
+      if (fails) throw new Error("synthetic fetch failure");
+      return { success: true, residues: 120 };
+    }) as never);
+
+    await slice.fetchStructure("P12345");
+
+    expect(state.structureLoading).toBe(false);
+    expect(state.structureAccession).toBe("ESMFOLD:ABC");
+  });
 });

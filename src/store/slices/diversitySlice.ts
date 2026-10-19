@@ -180,6 +180,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   poolVariants: [],
   structureLoaded: false,
   structureLoading: false,
+  structureRequestGeneration: 0,
   structureAccession: "",
   structure3dState: "off",
   structureCoverage: null,
@@ -577,6 +578,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     const fetchGeneration = ++structureFetchGeneration;
     const loadingMessage = "AlphaFold structure loading...";
     set({
+      structureRequestGeneration: fetchGeneration,
       structureLoading: true,
       structureLoaded: get().structureAccession === requestedAccession,
       structure3dState: "off",
@@ -591,6 +593,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       );
       if (fetchGeneration !== structureFetchGeneration) return;
       if (get().uniprotAccession !== requestedAccession) {
+        set({ structureLoading: false });
         clearOwnStatus(loadingMessage);
         return;
       }
@@ -620,6 +623,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     } catch (err) {
       if (fetchGeneration !== structureFetchGeneration) return;
       if (get().uniprotAccession !== requestedAccession) {
+        set({ structureLoading: false });
         clearOwnStatus(loadingMessage);
         return;
       }
@@ -640,6 +644,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     // discards a stale load if another begins first.
     const fetchGeneration = ++structureFetchGeneration;
     set({
+      structureRequestGeneration: fetchGeneration,
       structureLoading: true,
       structureLoaded: false,
       structure3dState: "off",
@@ -789,6 +794,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     // Take ownership only after competing structure loads have settled.
     structureFetchGeneration++;
     set({
+      structureRequestGeneration: structureFetchGeneration,
       structureLoaded: true,
       structureLoading: false,
       structureAccession: result.structure_key,
