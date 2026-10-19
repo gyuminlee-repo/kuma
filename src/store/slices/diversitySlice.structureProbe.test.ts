@@ -2,8 +2,8 @@
  * After a UniProt search the slice asks the AlphaFold server which candidates
  * have a structure, to badge them. That is a request to a second service, so
  * UniProt consent does not cover it: it goes out only when AlphaFold is already
- * permitted (online, switched on, listed in the grant). It is a background
- * extra, so it never opens the consent dialog either.
+ * permitted (online, switched on, listed in the grant). Local cache lookup
+ * remains available without permission and never opens the consent dialog.
  */
 import { describe, expect, it, vi } from "vitest";
 import type { AppState } from "../types";
@@ -55,6 +55,9 @@ describe("AlphaFold structure badge probe", () => {
   it("asks AlphaFold and badges the candidates when AlphaFold is permitted", async () => {
     const store = makeStore({});
     expect(await searchAndSettle(store)).toBe(true);
+    expect(mocked).toHaveBeenCalledWith(
+      "check_structures_available", { accessions: ["P00001"], allow_network: true }, 20_000,
+    );
     await vi.waitFor(() =>
       expect(store.uniprotCandidates[0]).toMatchObject({ accession: "P00001", has_structure: true }));
   });
@@ -63,9 +66,13 @@ describe("AlphaFold structure badge probe", () => {
     ["AlphaFold is switched off", { isNetworkServiceEnabled: (s: string) => s !== "alphafold" }],
     ["the grant did not list AlphaFold", { networkConsentServices: ["uniprot", "blast"] }],
     ["nothing was granted", { networkConsentGranted: false }],
-  ])("does not ask AlphaFold when %s", async (_why, overrides) => {
+  ])("uses only the local cache when %s", async (_why, overrides) => {
     const store = makeStore(overrides);
-    expect(await searchAndSettle(store)).toBe(false);
+    expect(await searchAndSettle(store)).toBe(true);
+    expect(mocked).toHaveBeenCalledWith(
+      "check_structures_available", { accessions: ["P00001"], allow_network: false }, 20_000,
+    );
+    expect(store.uniprotCandidates[0]).toMatchObject({ accession: "P00001", has_structure: true });
     expect(store.requireNetworkConsent).not.toHaveBeenCalledWith("alphafold");
   });
 });

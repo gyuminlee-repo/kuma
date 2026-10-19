@@ -729,6 +729,7 @@ class SearchUniprotParams(BaseModel):
 
 class CheckStructuresParams(BaseModel):
     accessions: list[str] = Field(default_factory=list, max_length=20)
+    allow_network: bool = True
 
 
 class FetchStructureParams(BaseModel):

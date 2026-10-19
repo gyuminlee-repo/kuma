@@ -1313,7 +1313,7 @@ export interface RpcMethodMap {
     result: SearchUniprotResult;
   };
   check_structures_available: {
-    params: { accessions: string[] };
+    params: { accessions: string[]; allow_network?: boolean };
     result: StructureAvailabilityResult;
   };
   fetch_structure: {

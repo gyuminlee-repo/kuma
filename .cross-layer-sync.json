@@ -1568,6 +1568,21 @@
       "severity": "blocking"
     },
     {
+      "id": "alphafold-availability-consent",
+      "files": [
+        "kuma_core/kuro/alphafold.py",
+        "python-core/sidecar_kuro/handlers/external.py",
+        "python-core/sidecar_kuro/models.py",
+        "src/types/models.ts",
+        "src/types/models.generated.ts",
+        "src/store/slices/diversitySlice.ts",
+        "src/store/slices/diversitySlice.structureProbe.test.ts",
+        "tests/sidecar_kuro/test_alphafold_consent_audit.py"
+      ],
+      "note": "Availability reads local cache without consent. The request allow_network flag and persisted sidecar permissions must both permit an external probe; refused uncached entries remain unknown.",
+      "severity": "blocking"
+    },
+    {
       "id": "vendor-minimap2-archive-integrity",
       "files": [
         "python-core/scripts/vendor-minimap2.py",

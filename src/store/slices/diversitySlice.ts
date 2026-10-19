@@ -103,16 +103,14 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     return i18next.t("diversity.consentReason");
   }
 
-  // 배지 조회는 AlphaFold 서버로 가는 요청이다. UniProt 동의는 그 서비스를 허락하지
-  // 않으므로 AlphaFold 가 이미 허락돼 있을 때만 보낸다. 사용자가 요청하지 않은
-  // 부가 조회라 동의 창을 띄우지 않는다.
+  // Cache hits remain available without network consent. The sidecar checks
+  // persisted settings too; the request can restrict, never grant, network use.
   async function enrichUniprotStructureFlags(searchGeneration: number, accessions: string[]) {
     if (accessions.length === 0) return;
-    if (!isNetworkServicePermitted(get(), "alphafold")) return;
     try {
       const result = await sendRequest(
         "check_structures_available",
-        { accessions },
+        { accessions, allow_network: isNetworkServicePermitted(get(), "alphafold") },
         20_000,
       );
       if (searchGeneration !== uniprotSearchGeneration) return;
