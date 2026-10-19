@@ -44,7 +44,9 @@ async function ensureProgressListener() {
           event.payload.kind === "kuro" &&
           isProgressNotificationParams(event.payload.params)
         ) {
-          _lastProgressAt = Date.now();
+          // Only stage progress proves the design is moving. A memory warning
+          // arrives on its own timer, so counting it would hide a stalled run.
+          if (event.payload.params.type !== "memory_warning") _lastProgressAt = Date.now();
           if (onProgress) onProgress(event.payload.params);
         }
       },

@@ -22,7 +22,10 @@ const mocks = vi.hoisted(() => ({
   sendRequest: vi.fn(),
   notifyJobError: vi.fn(),
   notifyJobDone: vi.fn(),
+  toast: { info: vi.fn(), warning: vi.fn(), success: vi.fn(), error: vi.fn() },
 }));
+
+vi.mock("sonner", () => ({ toast: mocks.toast }));
 
 vi.mock("../../lib/ipc-kuro", () => ({
   sendRequest: mocks.sendRequest,
@@ -253,5 +256,112 @@ describe("every way a design run can end leaves a trace", () => {
       expect.stringContaining("sidecar"),
     );
     expect(state.isDesigning).toBe(false);
+  });
+});
+
+describe("a design run belongs to the workspace that started it", () => {
+  function textModeWorkspace() {
+    useAppStore.setState({
+      mutationInputMode: "text",
+      mutationText: "V1A\nV2A",
+      evolveproCsvPath: "",
+      evolveproSelectedVariants: [],
+      evolveproRankedCandidates: [],
+      fillOnFailure: false,
+      lastDesignRun: null,
+    } as never);
+  }
+  beforeEach(textModeWorkspace);
+
+  function pendingDesigns() {
+    const releases: Array<(value: unknown) => void> = [];
+    mocks.sendRequest.mockImplementation((method: string) =>
+      method === "design_sdm_primers"
+        ? new Promise((resolve) => { releases.push(resolve); })
+        : Promise.resolve({}));
+    return releases;
+  }
+
+  it("Clear All cancels the running design and its late reply does not refill the table", async () => {
+    const releases = pendingDesigns();
+    const run = useAppStore.getState().designPrimers();
+    await vi.waitFor(() => expect(releases).toHaveLength(1));
+
+    useAppStore.getState().resetAll();
+    expect(mocks.sendRequest).toHaveBeenCalledWith("cancel_design", {});
+    expect(useAppStore.getState().statusMessage).toMatch(/cancel/i);
+
+    releases[0](designResponse(["V1A", "V2A"]));
+    await run;
+
+    const state = useAppStore.getState();
+    expect(state.designResults).toEqual([]);
+    expect(state.successCount).toBe(0);
+    expect(state.lastDesignRun).toBeNull();
+    expect(state.backendDesignStateSynced).toBe(false);
+    expect(state.isDesigning).toBe(false);
+  });
+
+  it("an older run neither overwrites nor ends the run started after a reset", async () => {
+    const releases = pendingDesigns();
+    const old = useAppStore.getState().designPrimers();
+    await vi.waitFor(() => expect(releases).toHaveLength(1));
+    useAppStore.getState().resetAll();
+    seedWorkspace();
+    textModeWorkspace();
+    useAppStore.setState({ mutationText: "V3A" } as never);
+    const current = useAppStore.getState().designPrimers();
+    await vi.waitFor(() => expect(releases).toHaveLength(2));
+
+    releases[0](designResponse(["V1A", "V2A"]));
+    await old;
+    expect(useAppStore.getState().isDesigning).toBe(true);
+    expect(useAppStore.getState().designResults).toEqual([]);
+
+    releases[1](designResponse(["V3A"]));
+    await current;
+    expect(useAppStore.getState().designResults.map((r) => r.mutation)).toEqual(["V3A"]);
+    expect(useAppStore.getState().isDesigning).toBe(false);
+  });
+
+  it("keeps the results when a background lookup resets design inputs mid-run", async () => {
+    const releases = pendingDesigns();
+    const run = useAppStore.getState().designPrimers();
+    await vi.waitFor(() => expect(releases).toHaveLength(1));
+
+    // What a domain or BLAST lookup finishing during the run does: it rewrites a
+    // design input through buildKuroDesignInputPatch, which empties the table.
+    useAppStore.getState().setDomainStrategy("equal");
+
+    releases[0](designResponse(["V1A", "V2A"]));
+    await run;
+    const state = useAppStore.getState();
+    expect(state.designResults.map((r) => r.mutation)).toEqual(["V1A", "V2A"]);
+    expect(state.lastDesignRun?.outcome).toBe("success");
+    expect(state.isDesigning).toBe(false);
+    // Kept, and marked: the user is told these are for the inputs it began with.
+    expect(mocks.toast.warning).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not mark a run whose inputs stayed put", async () => {
+    const releases = pendingDesigns();
+    mocks.toast.warning.mockClear();
+    const run = useAppStore.getState().designPrimers();
+    await vi.waitFor(() => expect(releases).toHaveLength(1));
+    releases[0](designResponse(["V1A", "V2A"]));
+    await run;
+    expect(mocks.toast.warning).not.toHaveBeenCalled();
+  });
+
+  it("drops a retry reply that lands after a reset", async () => {
+    let release!: (value: unknown) => void;
+    mocks.sendRequest.mockImplementation(() => new Promise((resolve) => { release = resolve; }));
+    const retry = useAppStore.getState().retryFailedMutation("V1A", {});
+    await vi.waitFor(() => expect(mocks.sendRequest).toHaveBeenCalled());
+    useAppStore.getState().resetAll();
+    release({ candidates: [primer("V1A")] });
+
+    await expect(retry).resolves.toEqual([]);
+    expect(useAppStore.getState().alternativesCache).toEqual({});
   });
 });

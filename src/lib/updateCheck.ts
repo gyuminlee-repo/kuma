@@ -1,3 +1,5 @@
+import i18next from "i18next";
+
 export const UPDATE_CHECK_EVENT = "kuma:check-for-updates";
 export const RELEASES_URL = "https://github.com/gyuminlee-repo/kuma/releases";
 
@@ -150,10 +152,39 @@ export function isTauriRuntime(): boolean {
  * @throws  when a genuine error occurs (network, signature, disk). Callers
  *          surface the message and offer the manual download path.
  */
+/**
+ * What the open workspace tells the installer. Installing kills both sidecars
+ * and relaunches, so a running design, analysis or export would be lost and
+ * unsaved edits with it. Home registers nothing: no job runs there and there is
+ * nothing to save, so an update installs from Home as it always did.
+ */
+export interface UpdateInstallGuard {
+  /** True while a design, analysis or export is running. */
+  busy: () => boolean;
+  /** Writes pending edits; a rejection stops the install. */
+  save: () => Promise<void>;
+}
+
+const installGuard: { current: UpdateInstallGuard | null } = { current: null };
+
+export function registerUpdateInstallGuard(guard: UpdateInstallGuard): () => void {
+  installGuard.current = guard;
+  return () => {
+    if (installGuard.current === guard) installGuard.current = null;
+  };
+}
+
+function refuseWhileBusy(): void {
+  if (installGuard.current?.busy()) throw new Error(i18next.t("about.updateBusy"));
+}
+
 export async function downloadAndInstallUpdate(
   onProgress?: (progress: UpdateInstallProgress) => void,
 ): Promise<boolean> {
   if (!isTauriRuntime()) return false;
+  // Asked before the download as well as before the kill below: refusing only
+  // after a multi-minute download wastes it.
+  refuseWhileBusy();
 
   const { check } = await import("@tauri-apps/plugin-updater");
   const update = await check();
@@ -187,6 +218,11 @@ export async function downloadAndInstallUpdate(
         break;
     }
   });
+
+  // A job may have started during the download, and the edits since the last
+  // autosave are written before anything is killed.
+  refuseWhileBusy();
+  await installGuard.current?.save();
 
   const { killSidecar } = await import("./ipc");
   // Both kills in one Promise.all: a sequential await between them is another

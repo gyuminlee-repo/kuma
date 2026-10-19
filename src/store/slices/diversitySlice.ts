@@ -3,6 +3,7 @@ import type { StateCreator } from "zustand";
 import { sendRequest } from "../../lib/ipc-kuro";
 import { formatError } from "../../lib/utils";
 import { buildKuroDesignInputPatch } from "../../lib/kuroResultReset";
+import { isNetworkServicePermitted } from "./networkConsentSlice";
 import type { AppState } from "../types";
 import type {
   ComputeDispersionResult,
@@ -102,14 +103,14 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     return i18next.t("diversity.consentReason");
   }
 
-  // NOTE: 호출자(searchUniprot)가 requireNetworkConsent 통과를 보장함.
-  // 이 함수를 다른 곳에서 직접 호출할 경우 consent 가드를 별도로 추가할 것.
+  // Cache hits remain available without network consent. The sidecar checks
+  // persisted settings too; the request can restrict, never grant, network use.
   async function enrichUniprotStructureFlags(searchGeneration: number, accessions: string[]) {
     if (accessions.length === 0) return;
     try {
       const result = await sendRequest(
         "check_structures_available",
-        { accessions },
+        { accessions, allow_network: isNetworkServicePermitted(get(), "alphafold") },
         20_000,
       );
       if (searchGeneration !== uniprotSearchGeneration) return;

@@ -437,7 +437,7 @@ def handle_check_structures_available(params: dict) -> dict:
         # No early return on a refusal here: the core answers from its local
         # cache first, and a cached structure is still available offline.
         network = load_bundle().network
-        return not network.offline_mode and network.consent_alphafold
+        return p.allow_network and not network.offline_mode and network.consent_alphafold
 
     # An accession whose lookup was refused at the network boundary is unknown,
     # not absent: it is left out so the caller keeps whatever it showed before.

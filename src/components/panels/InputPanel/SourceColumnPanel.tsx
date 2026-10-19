@@ -115,15 +115,15 @@ function SourceColumnPanelInner() {
   const canApply = Boolean(evolveproCsvPath);
   const noFileLoaded = !evolveproCsvPath;
 
-  // Guards against out-of-order preview responses when the user switches files
-  // quickly: only the response matching the latest requested key is applied.
-  const previewKeyRef = useRef<string | null>(null);
+  // Guards against out-of-order preview responses: only the latest request may
+  // land. Clearing the source and unmounting also retire the pending request,
+  // otherwise its reply repopulates a table the user just emptied.
+  const previewGenerationRef = useRef(0);
 
   const fetchPreview = useCallback(
     async (filepath: string, sheetName: string | null) => {
       if (!filepath) return;
-      const key = `${filepath}::${sheetName ?? ""}`;
-      previewKeyRef.current = key;
+      const generation = ++previewGenerationRef.current;
       setPreviewLoading(true);
       setPreviewError(null);
       try {
@@ -133,14 +133,14 @@ function SourceColumnPanelInner() {
           sheet_name: sheetName,
         };
         const preview = await sendRequest("preview_evolvepro_source", params);
-        if (previewKeyRef.current !== key) return;
+        if (previewGenerationRef.current !== generation) return;
         setEvolveproPreview(preview);
       } catch (err) {
-        if (previewKeyRef.current !== key) return;
+        if (previewGenerationRef.current !== generation) return;
         setPreviewError(err instanceof Error ? err.message : String(err));
         setEvolveproPreview(null);
       } finally {
-        if (previewKeyRef.current === key) setPreviewLoading(false);
+        if (previewGenerationRef.current === generation) setPreviewLoading(false);
       }
     },
     [setEvolveproPreview],
@@ -165,11 +165,17 @@ function SourceColumnPanelInner() {
   // here: hydrated projects restore them (useAutosaveHydration), and the
   // Browse callback already resets them for a genuinely new file.
   useEffect(() => {
-    if (!evolveproCsvPath) return;
+    if (!evolveproCsvPath) {
+      previewGenerationRef.current += 1;
+      setPreviewLoading(false);
+      return;
+    }
     setEvolveproPreview(null);
     void fetchPreview(evolveproCsvPath, evolveproSheetName ?? null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [evolveproCsvPath, evolveproSheetName]);
+
+  useEffect(() => () => { previewGenerationRef.current += 1; }, []);
 
   const handleSheetChange = useCallback(
     (value: string) => {

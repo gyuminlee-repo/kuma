@@ -603,3 +603,28 @@ describe("rotateGenerations", () => {
     ).resolves.toBe(false);
   });
 });
+
+// A workspace opened from Home is the user's own file. Its KURO saves go into
+// that file, in the workspace format Home reads, and nowhere else: not the
+// scratch file, and no generation copies beside the user's file.
+describe("a workspace file session", () => {
+  const FILE = `${PROJECT_PATH}/shared/plan.kuro.json`;
+  beforeEach(() => {
+    vi.clearAllMocks();
+    _resetStateForTest();
+    mockWriteTextFile.mockResolvedValue(undefined);
+    mockRename.mockResolvedValue(undefined);
+    mockExists.mockResolvedValue(true);
+  });
+
+  it("saves KURO into the opened file", async () => {
+    const target = makeTarget({ projectPath: FILE, scratch: true, scratchFallback: true, workspaceFile: FILE });
+    const workspace = { schema_version: "0.3" as const, label: "edited" };
+    scheduleAutosave(target, "kuro", () => workspace as never);
+    await flushAutosave(target, "kuro");
+
+    expect(mockWriteTextFile).toHaveBeenCalledTimes(1);
+    expect(mockWriteTextFile).toHaveBeenCalledWith(`${FILE}.tmp`, JSON.stringify(workspace, null, 2));
+    expect(mockRename).toHaveBeenCalledWith(`${FILE}.tmp`, FILE);
+  });
+});

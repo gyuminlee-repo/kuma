@@ -128,9 +128,14 @@ async function loadOrCreate(dir: string): Promise<WorkspaceManifest> {
   return (await readManifest(dir)) ?? createEmptyManifest();
 }
 
-export async function registerArtifacts(items: NewArtifact[]): Promise<void> {
+/**
+ * `workspaceDir` names the registry explicitly. A caller that awaited between
+ * choosing its workspace and recording into it passes the workspace it started
+ * in, because the active one may belong to another project by then.
+ */
+export async function registerArtifacts(items: NewArtifact[], workspaceDir?: string): Promise<void> {
   if (items.length === 0) return;
-  const dir = requireDir();
+  const dir = workspaceDir ?? requireDir();
   const m = await loadOrCreate(dir);
   const now = new Date().toISOString();
   for (const it of items) {

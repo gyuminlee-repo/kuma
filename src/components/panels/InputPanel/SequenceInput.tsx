@@ -52,8 +52,12 @@ export function SequenceInput() {
   // Item 3: Drag-and-drop visual feedback via Tauri webview event
   useEffect(() => {
     let unlisten: (() => void) | undefined;
+    // The registration resolves after a round trip. If the panel is gone by
+    // then, release it at once and ignore whatever it delivers meanwhile.
+    let disposed = false;
     getCurrentWebview()
       .onDragDropEvent((event) => {
+        if (disposed) return;
         const paths = "paths" in event.payload ? event.payload.paths : [];
         const firstSeqPath = paths.find((p) => {
           const ext = p.slice(p.lastIndexOf(".")).toLowerCase();
@@ -71,9 +75,9 @@ export function SequenceInput() {
           setIsDragOver(false);
         }
       })
-      .then((fn) => { unlisten = fn; })
+      .then((fn) => { if (disposed) fn(); else unlisten = fn; })
       .catch(() => { /* webview API not available in test env */ });
-    return () => { unlisten?.(); };
+    return () => { disposed = true; unlisten?.(); };
   }, [handleBrowseSelect]);
 
   return (

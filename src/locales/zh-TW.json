@@ -89,6 +89,7 @@
     "updateInstalling": "安裝中…",
     "updateRelaunching": "正在重新啟動…",
     "updateInstallFailed": "更新失敗：{{message}}",
+    "updateBusy": "安裝更新前，請等待執行中的設計、分析或匯出完成，或將其取消。",
     "downloadAndInstall": "下載並安裝",
     "installing": "安裝中...",
     "later": "稍後",
@@ -1968,6 +1969,7 @@
     "warningHashMismatch": "雜湊不匹配: {{paths}}",
     "warningHashUnverifiable": "記錄時未產生雜湊，無法與執行時的檔案核對：{{paths}}",
     "exportOnlyNotice": "此 manifest 為僅匯出操作,無法直接重新執行。請從原始資料重新匯出。",
+    "unappliedConditions": "此次重新執行只套用記錄執行的一部分。以下記錄條件不會套用，而是使用目前工作階段的值：{{keys}}。結果可能與記錄的執行不同。",
     "btnCancel": "取消",
     "btnRerun": "重新執行",
     "btnRunning": "執行中...",
@@ -2057,6 +2059,7 @@
     "workspace": "工作區",
     "scratch": "Scratch",
     "autosaveOn": "自動儲存已啟用",
+    "exporting": "正在匯出…",
     "autosaveSaving": "儲存中…",
     "autosaveSavedJustNow": "剛剛已儲存",
     "autosaveSavedAgo": "已儲存 {{time}}",
@@ -2546,6 +2549,11 @@
     "missingColumn": "缺少必需列: \"{{column}}\"{{aliasNote}}"
   },
   "toast": {
+    "designCancelledByReset": "工作區已清空，執行中的設計已取消。如需結果，請重新執行設計。",
+    "analysisCancelledByReset": "工作區已清空或已開啟其他專案，執行中的分析已取消。如需結果，請重新執行分析。",
+    "analysisCancelFailed": "清空工作區後未能停止執行中的分析：{{message}}",
+    "designInputsChangedDuringRun": "設計已完成，但執行期間輸入有所變更。這些結果對應開始時的輸入；如需目前輸入的結果，請重新執行設計。",
+    "analysisInputsChangedDuringRun": "分析已完成，但執行期間輸入有所變更。這些結果對應開始時的輸入；如需目前輸入的結果，請重新執行分析。",
     "completedWithDuration": "已完成 ({{duration}})"
   },
   "exportSlice": {

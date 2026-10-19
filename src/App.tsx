@@ -26,6 +26,8 @@ export function App() {
   const [prevScreen, setPrevScreen] = useState<AppScreen>("home");
   const [config, setConfig] = useState<Config | null>(null);
   const [project, setProject] = useState<KumaProject>(null);
+  // Why the last workspace closed on its own, shown on Home until dismissed.
+  const [homeError, setHomeError] = useState("");
   const resolvedTheme = useResolvedTheme();
   const toaster = <Toaster position="top-right" richColors theme={resolvedTheme} />;
 
@@ -93,7 +95,8 @@ export function App() {
 
   // File menu: Return to project picker (Home screen)
   useEffect(() => {
-    function handleReturnHome() {
+    function handleReturnHome(event: Event) {
+      setHomeError((event as CustomEvent<{ error?: string }>).detail?.error ?? "");
       setProject(null);
       setScreen("home");
     }
@@ -115,6 +118,7 @@ export function App() {
         path,
         name: stem(path),
         scratch: true,
+        workspaceFile: path,
       });
       setScreen("workspace");
       return;
@@ -167,6 +171,7 @@ export function App() {
           onOpenProject={(path, options) => void handleOpenWorkspace(path, false, options?.newlyCreated)}
           onOpenScratch={(path) => void handleOpenWorkspace(path, true)}
           onOpenSettings={() => setScreen("onboarding")}
+          initialError={homeError}
         />
         {toaster}
       </>

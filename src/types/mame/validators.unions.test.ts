@@ -132,7 +132,7 @@ describe("strategy.classify_round enforces its declared unions", () => {
 
 describe("build_evolvepro_input enforces its declared unions", () => {
   it("accepts every primary_format build_evolvepro_input.py:364 can pick", () => {
-    for (const primary_format of ["activity_path", "gc_data_xlsx", "round1_report_xlsx"]) {
+    for (const primary_format of ["activity_path", "gc_data_xlsx", "round1_report_xlsx", "numeric_report_xlsx"]) {
       expect(validate(BUILD_EVOLVEPRO, buildEvolveproResult({ primary_format }))).toBe(true);
     }
   });

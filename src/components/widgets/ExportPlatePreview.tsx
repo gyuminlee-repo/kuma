@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -197,7 +197,11 @@ export function ExportPlatePreview() {
     shownRound !== undefined && (previewQuadrant === null || previewPlate === null);
   const echoBlocked = placementIssue !== null || roundUnpicked;
 
+  // Settings change faster than two dry-runs return. Only the latest request
+  // may write the preview, its error or its loading state.
+  const loadGenerationRef = useRef(0);
   const load = useCallback(async (): Promise<void> => {
+    const generation = ++loadGenerationRef.current;
     setLoading(true);
     setError(null);
     try {
@@ -222,6 +226,7 @@ export function ExportPlatePreview() {
           : undefined,
         sendRequest("export_janus_mapping_dry_run", janusParams),
       ]);
+      if (generation !== loadGenerationRef.current) return;
       const echoRows = e?.rows ?? [];
       const janusRows = j?.rows ?? [];
       // Direction is 384 row parity in either round, so the adapters do not
@@ -231,15 +236,18 @@ export function ExportPlatePreview() {
       setJanus(adaptJanusRows(janusRows));
       setJanusDest(adaptDestCellsJanus(janusRows));
     } catch (err) {
+      if (generation !== loadGenerationRef.current) return;
       setError(err instanceof Error ? err.message : String(err));
     } finally {
-      setLoading(false);
+      if (generation === loadGenerationRef.current) setLoading(false);
     }
   }, [sortedMappings, previewDedup, echoTransferVol, janusTransferVol, previewQuadrant, previewPlate, previewUsed, echoBlocked]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => () => { loadGenerationRef.current += 1; }, []);
 
   // Loading/empty/error go through StateView like the app's other data
   // surfaces (PlateMap, ResultTable, VerdictTable, SequenceViewer), which is

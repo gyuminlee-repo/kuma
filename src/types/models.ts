@@ -1313,7 +1313,7 @@ export interface RpcMethodMap {
     result: SearchUniprotResult;
   };
   check_structures_available: {
-    params: { accessions: string[] };
+    params: { accessions: string[]; allow_network?: boolean };
     result: StructureAvailabilityResult;
   };
   fetch_structure: {
@@ -1410,10 +1410,25 @@ export interface ReadyNotification {
   params: Record<string, never>;
 }
 
-export interface ProgressNotification {
+/** Stage progress. Producers send it without a discriminator. */
+export interface StageProgressNotification {
+  type?: undefined;
   value: number;
   message: string;
 }
+
+/**
+ * `kuma_core/shared/dispatcher_runtime.py` `build_memory_warning`, sent on the
+ * same progress channel as stage progress.
+ */
+export interface MemoryWarningNotification {
+  type: "memory_warning";
+  ratio: number;
+  rss_mb: number;
+  level: "warn" | "block";
+}
+
+export type ProgressNotification = StageProgressNotification | MemoryWarningNotification;
 
 export interface ProgressNotificationMessage {
   jsonrpc: "2.0";

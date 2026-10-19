@@ -89,6 +89,7 @@
     "updateInstalling": "安装中…",
     "updateRelaunching": "正在重启…",
     "updateInstallFailed": "更新失败：{{message}}",
+    "updateBusy": "安装更新前，请等待正在运行的设计、分析或导出完成，或将其取消。",
     "downloadAndInstall": "下载并安装",
     "installing": "安装中...",
     "later": "稍后",
@@ -1968,6 +1969,7 @@
     "warningHashMismatch": "哈希不匹配: {{paths}}",
     "warningHashUnverifiable": "记录时未生成哈希，无法与运行时的文件核对：{{paths}}",
     "exportOnlyNotice": "此 manifest 为仅导出操作,无法直接重新运行。请从原始数据重新导出。",
+    "unappliedConditions": "此次重新运行只应用记录运行的一部分。以下记录条件不会应用，而是使用当前会话的值：{{keys}}。结果可能与记录的运行不同。",
     "btnCancel": "取消",
     "btnRerun": "重新运行",
     "btnRunning": "运行中...",
@@ -2057,6 +2059,7 @@
     "workspace": "工作区",
     "scratch": "Scratch",
     "autosaveOn": "自动保存已启用",
+    "exporting": "正在导出…",
     "autosaveSaving": "保存中…",
     "autosaveSavedJustNow": "刚刚已保存",
     "autosaveSavedAgo": "已保存 {{time}}",
@@ -2546,6 +2549,11 @@
     "missingColumn": "缺少必需列: \"{{column}}\"{{aliasNote}}"
   },
   "toast": {
+    "designCancelledByReset": "工作区已清空，正在运行的设计已取消。如需结果，请重新运行设计。",
+    "analysisCancelledByReset": "工作区已清空或已打开其他项目，正在运行的分析已取消。如需结果，请重新运行分析。",
+    "analysisCancelFailed": "清空工作区后未能停止正在运行的分析：{{message}}",
+    "designInputsChangedDuringRun": "设计已完成，但运行期间输入发生了变化。这些结果对应开始时的输入；如需当前输入的结果，请重新运行设计。",
+    "analysisInputsChangedDuringRun": "分析已完成，但运行期间输入发生了变化。这些结果对应开始时的输入；如需当前输入的结果，请重新运行分析。",
     "completedWithDuration": "已完成 ({{duration}})"
   },
   "exportSlice": {

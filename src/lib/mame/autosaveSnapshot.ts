@@ -70,6 +70,13 @@ export interface MameAutosaveSnapshot extends AutosaveSnapshot {
    * v0.15.21.
    */
   result_contract?: number;
+  /**
+   * `mameInputIdentity` of the inputs on screen when this was saved. Compared
+   * with the result file's own identity on restore: a newer snapshot whose
+   * inputs differ means the operator changed them after that run, which
+   * cleared its results. Absent before this field existed.
+   */
+  input_identity?: string;
   rounds?: Round[];
   active_round_id?: string | null;
   input: {
@@ -171,6 +178,30 @@ function portableRawRunParams(
   };
 }
 
+/**
+ * The analyze inputs as one comparable string: every value whose change clears
+ * the results (AGENTS.md "Changing an analyze input ..."). Paths are made
+ * portable so a project moved between two saves keeps the same identity.
+ */
+export function mameInputIdentity(
+  state: Pick<
+    MameSnapshotState,
+    | "inputDir" | "expectedPath" | "referencePath" | "selectedWells" | "wtPlacement"
+    | "variantSheet" | "variantColumn" | "mode" | "ingestMode" | "inputMode" | "rawRunParams"
+    | "cdsStart" | "cdsEnd" | "minFileSizeKb" | "minFilteredDepth" | "manyCutoff" | "maxConsensusNFraction"
+  >,
+  projectPath: string | null,
+): string {
+  const portable = (value: string): string => toPortablePath(projectPath, value);
+  return JSON.stringify([
+    portable(state.inputDir), portable(state.expectedPath), portable(state.referencePath),
+    state.selectedWells, state.wtPlacement, state.variantSheet, state.variantColumn,
+    state.mode, state.ingestMode, state.inputMode, portableRawRunParams(state.rawRunParams, portable),
+    state.cdsStart, state.cdsEnd, state.minFileSizeKb, state.minFilteredDepth,
+    state.manyCutoff, state.maxConsensusNFraction,
+  ]);
+}
+
 export function buildMameSnapshot(
   state: MameSnapshotState,
   roundState?: MameRoundSnapshotState,
@@ -182,6 +213,7 @@ export function buildMameSnapshot(
     saved_at: new Date().toISOString(),
     kuma_version: __APP_VERSION__,
     result_contract: RESULT_CONTRACT,
+    input_identity: mameInputIdentity(state, projectPath),
     rounds: roundState?.rounds ?? [],
     active_round_id: roundState?.activeRoundId ?? null,
     input: {

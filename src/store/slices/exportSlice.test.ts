@@ -124,6 +124,8 @@ function makeStore() {
     evolveproRankedCandidates: [],
     evolveproSelectedVariants: [],
     evolveproExtraExposed: 10,
+    isDesigning: false,
+    invalidateDesignRuns: () => {},
     resetAll: () => {
       Object.assign(state, {
         designResults: [],

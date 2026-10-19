@@ -4,6 +4,11 @@ export type KumaProject = {
   path: string;
   name: string;
   scratch: boolean;
+  /**
+   * The `.kuro.json` file a scratch session was opened from on Home. KURO
+   * restores from it and saves into it instead of the app-data scratch file.
+   */
+  workspaceFile?: string;
   stage?: string;
   project_id?: string;
   newlyCreated?: boolean;
