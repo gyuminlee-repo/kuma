@@ -110,7 +110,8 @@ def _sequence_identity(seq_a: str, seq_b: str) -> float:
     """Calculate percent identity between two protein sequences.
 
     Strips trailing stop codons (*), then checks for exact or substring
-    match before falling back to positional comparison.
+    match before falling back to identical residues in a global alignment,
+    over the longer length.
     """
     seq_a = seq_a.rstrip("*").strip()
     seq_b = seq_b.rstrip("*").strip()
@@ -121,7 +122,9 @@ def _sequence_identity(seq_a: str, seq_b: str) -> float:
     # One sequence is a contiguous substring of the other (e.g. signal peptide trimming)
     if seq_a in seq_b or seq_b in seq_a:
         return 100.0
-    matches = sum(1 for a, b in zip(seq_a, seq_b) if a == b)
+    from kuma_core.kuro.interface import aligned_identical_residues
+
+    matches = aligned_identical_residues(seq_a, seq_b)
     return round(matches / max(len(seq_a), len(seq_b)) * 100, 1)
 
 

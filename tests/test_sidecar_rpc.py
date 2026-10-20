@@ -614,6 +614,16 @@ class TestSequenceIdentity:
         identity = _sequence_identity("MX", "MVKLT")
         assert identity == 20.0
 
+    def test_one_inserted_residue_keeps_the_rest_in_register(self):
+        # EGFP carries one more residue than GFP near the N terminus. Counted
+        # position by position every later residue was out of register.
+        gfp = "MSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTF"
+        egfp = gfp[0] + "V" + gfp[1:]
+        identity = _sequence_identity(egfp, gfp)
+        # 95 % is the auto-match gate in handle_search_uniprot. Position by
+        # position this pair scored 7.7 %.
+        assert identity >= 95.0
+
 
 class TestOrganismAwareUniprotRanking:
     def test_organism_match_score_prefers_exact_then_species_then_genus(self):
