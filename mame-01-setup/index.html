@@ -306,6 +306,25 @@
   
 
       
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../faq/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  FAQ
+
+      </a>
+    </li>
+  
+
+      
     </ul>
   </div>
 </nav>
@@ -936,21 +955,28 @@
 
               
             
-              
-                
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
   
   
   
   
     <li class="md-nav__item">
-      <a href="../mame-pipeline/" class="md-nav__link">
+      <a href="../faq/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    MAME pipeline
+    FAQ
   
 
     
@@ -959,14 +985,6 @@
   
 
       </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
     </li>
   
 
@@ -1058,7 +1076,7 @@
 <p>A barcode primer binding site has to clear the same five criteria a KURO SDM primer does before it is selected: the Tm window (55-68 C by default), the 3' terminal GC clamp, hairpin, homodimer and off-target binding. Hairpin and homodimer are rejected when the primer3 structure Tm exceeds 40.0 C. Off-target scans the whole template that was loaded and rejects a candidate when any site outside the intended binding position binds at 45.0 C or above. The thresholds match the KURO defaults and are not exposed on screen. Hairpin and homodimer use fixed design-scale concentrations rather than the polymerase profile, so changing the enzyme cannot change which molecule gets ordered. The Tm window keeps following the polymerase profile as before.</p>
 <p>The off-target search space is whatever file was loaded. A plasmid or construct map that carries the flanking sequence is searched the way KURO searches a template; a FASTA holding the CDS alone offers that much less sequence to search.</p>
 <p>When no candidate clears all five, the design is not refused. The candidate whose Tm is closest to the target is selected instead and a warning states which check it failed and at what temperature. Read that warning before ordering the primers.</p>
-<p>The molecules that are actually synthesised are the 20 oligos formed by a seed joined to a binding site. Hairpin and homodimer are run over those full oligos too, and everything above 40.0 C is collected into a single warning. That pass is advisory and never changes a selection, because a seed is a fixed input that was already ordered and there is nothing to choose in its place. An oligo longer than 60 nt is reported as unchecked, since primer3 refuses the calculation at that length.</p>
+<p>The molecules that are actually synthesised are the 20 oligos formed by a seed joined to a binding site. Hairpin and homodimer are run over those full oligos too, and everything above 40.0 C is collected into a single warning. That pass is advisory and never changes the binding site it chose: kuma only chooses binding sites, and each barcode seed is a fixed input sequence from the seeds file, so the program has no other seed to swap in. Check the full sequence of every oligo the warning names before ordering. To move a binding site elsewhere, change the search range or the binding length under <strong>Advanced options</strong> and generate again. An oligo longer than 60 nt is reported as unchecked, since primer3 refuses the calculation at that length.</p>
 <h2 id="warnings-and-errors">Warnings and errors<a class="headerlink" href="#warnings-and-errors" title="Permanent link">&para;</a></h2>
 <table>
 <thead>

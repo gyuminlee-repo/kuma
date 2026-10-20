@@ -306,6 +306,25 @@
   
 
       
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../faq/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  FAQ
+
+      </a>
+    </li>
+  
+
+      
     </ul>
   </div>
 </nav>
@@ -627,6 +646,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#what-pipeline-mode-adds" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Pipeline mode adds
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#running-the-design" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -925,21 +955,28 @@
 
               
             
-              
-                
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
   
   
   
   
     <li class="md-nav__item">
-      <a href="../mame-pipeline/" class="md-nav__link">
+      <a href="../faq/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    MAME pipeline
+    FAQ
   
 
     
@@ -948,14 +985,6 @@
   
 
       </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
     </li>
   
 
@@ -982,7 +1011,15 @@
 
 <h1 id="step-4-pool-filters-run">Step 4. Pool Filters &amp; Run<a class="headerlink" href="#step-4-pool-filters-run" title="Permanent link">&para;</a></h1>
 <p><img alt="Step 4. Pool Filters &amp; Run" src="../figures/kuro-04-submit.svg" /></p>
-<p><small>Numbered marks: <strong>1</strong> <code>Run Design</code></small></p>
+<p><small>Numbered marks: <strong>1</strong> <code>Design summary</code> (Top-N)</small></p>
+<p><img alt="Step 4. Pool Filters &amp; Run" src="../figures/kuro-04-submit-2.svg" /></p>
+<p><small>Numbered marks: <strong>2</strong> <code>Run Design</code></small></p>
+<p><img alt="Step 4. Pool Filters &amp; Run" src="../figures/kuro-04-submit-3.svg" /></p>
+<p><small>Numbered marks: <strong>3</strong> <code>Design summary</code> (Pipeline (failover))</small></p>
+<p><img alt="Step 4. Pool Filters &amp; Run" src="../figures/kuro-04-submit-4.svg" /></p>
+<p><small>Numbered marks: <strong>4</strong> Pool filters, the Pipeline steps</small></p>
+<p><img alt="Step 4. Pool Filters &amp; Run" src="../figures/kuro-04-submit-5.svg" /></p>
+<p><small>Numbered marks: <strong>5</strong> <code>Pre-flight check (warnings)</code></small></p>
 <p>The screen right before the design job starts. Check the inputs collected so far, then run primer design.</p>
 <h2 id="design-summary">Design summary<a class="headerlink" href="#design-summary" title="Permanent link">&para;</a></h2>
 <p>The card at the top shows the values this run will use. If something is not what you expect, go back to the earlier step and fix it there.</p>
@@ -1016,7 +1053,36 @@
 </tr>
 </tbody>
 </table>
-<p>In <code>Pipeline (failover)</code> mode the pool filter controls appear below the card. In <code>Top-N only</code> mode they do not.</p>
+<h2 id="what-pipeline-mode-adds">What Pipeline mode adds<a class="headerlink" href="#what-pipeline-mode-adds" title="Permanent link">&para;</a></h2>
+<p>When step 2 is set to <code>Pipeline</code>, a <code>PIPELINE</code> box sits below the summary card. With <code>Top-N only</code> the box is absent and the screen shows only the summary card and <code>Run Design</code>.</p>
+<p>The steps in the box apply from top to bottom. The checkbox in front of each step name turns it on or off.</p>
+<table>
+<thead>
+<tr>
+<th>On screen</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Step 1: Pre-filter</code></td>
+<td>Caps how many variants one residue position can contribute. When two scores are within 2 %, it keeps the gentler amino-acid change (smaller Grantham distance)</td>
+</tr>
+<tr>
+<td><code>Step 2: Domain allocation</code></td>
+<td>Splits the picks among domains. Linker handling and the domain list are set here</td>
+</tr>
+<tr>
+<td><code>Step 3: Optimization</code></td>
+<td>Puts variants far from those already picked first, using 3D distance when a structure is loaded and sequence distance otherwise</td>
+</tr>
+<tr>
+<td><code>Step 4: Structural diversity</code></td>
+<td>Spreads the picks evenly through the 3D structure across the whole pool, anchored on variants measured in earlier rounds</td>
+</tr>
+</tbody>
+</table>
+<p>Whatever is set here is listed under <code>Pipeline</code> in the design report on the next step.</p>
 <h2 id="running-the-design">Running the design<a class="headerlink" href="#running-the-design" title="Permanent link">&para;</a></h2>
 <ol>
 <li>Click <code>Run Design</code>. The button in the middle of the page and the one in the footer do the same thing.</li>

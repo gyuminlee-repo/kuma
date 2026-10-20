@@ -306,6 +306,25 @@
   
 
       
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../faq/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  자주 묻는 질문
+
+      </a>
+    </li>
+  
+
+      
     </ul>
   </div>
 </nav>
@@ -829,6 +848,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run 폴더에서 읽는 파일
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -843,7 +873,40 @@
   <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
+        고급 옵션
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
         입력을 바꾸면 이전 결과가 지워진다
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        실행이 거치는 단계
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        실행이 남기는 파일
       
     </span>
   </a>
@@ -868,7 +931,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#_3" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
         판정표 위에 뜨는 안내
@@ -879,7 +942,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#_4" class="md-nav__link">
+  <a href="#_7" class="md-nav__link">
     <span class="md-ellipsis">
       
         판정 근거 열기
@@ -895,7 +958,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_5" class="md-nav__link">
+  <a href="#_8" class="md-nav__link">
     <span class="md-ellipsis">
       
         판정 클래스
@@ -970,21 +1033,28 @@
 
               
             
-              
-                
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
   
   
   
   
     <li class="md-nav__item">
-      <a href="../mame-pipeline/" class="md-nav__link">
+      <a href="../faq/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    MAME 파이프라인
+    자주 묻는 질문
   
 
     
@@ -993,14 +1063,6 @@
   
 
       </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
     </li>
   
 
@@ -1027,11 +1089,11 @@
 
 <h1 id="2">단계 2. 분석 및 검토<a class="headerlink" href="#2" title="Permanent link">&para;</a></h1>
 <p><img alt="단계 2. 분석 및 검토" src="../figures/mame-02-review.svg" /></p>
-<p><small>번호 표시: <strong>1</strong> MinKNOW 런 폴더; <strong>2</strong> 기대 변이체 (xlsx)</small></p>
+<p><small>번호 표시: <strong>1</strong> <strong>MinKNOW 실행 폴더</strong>; <strong>2</strong> <strong>기대 변이 목록 (xlsx)</strong></small></p>
 <p><img alt="단계 2. 분석 및 검토" src="../figures/mame-02-review-2.svg" /></p>
-<p><small>번호 표시: <strong>3</strong> 참조 컨스트럭트</small></p>
+<p><small>번호 표시: <strong>3</strong> <strong>참조 construct 서열</strong></small></p>
 <p><img alt="단계 2. 분석 및 검토" src="../figures/mame-02-review-3.svg" /></p>
-<p><small>번호 표시: <strong>4</strong> 사용한 well; <strong>5</strong> 실행</small></p>
+<p><small>번호 표시: <strong>4</strong> <strong>사용할 웰</strong>; <strong>5</strong> 실행</small></p>
 <p><img alt="단계 2. 분석 및 검토" src="../figures/mame-02-review-4.svg" /></p>
 <p><small>번호 표시: <strong>6</strong> 판정표; <strong>7</strong> 96-well 플레이트 맵</small></p>
 <p>시퀀싱 결과를 웰마다 판정하고 96-well 플레이트 위에서 확인한다. 2.1 에서 입력을 고르고 2.2 에서 판정을 읽는다.</p>
@@ -1063,16 +1125,110 @@
 </tbody>
 </table>
 <p>입력을 고른 뒤 <strong>실행</strong> 또는 <strong>유효성 검사</strong> 를 누른다. Cell stock 제작은 이 화면에 없고 step 3 에서 다룬다.</p>
+<h3 id="run">run 폴더에서 읽는 파일<a class="headerlink" href="#run" title="Permanent link">&para;</a></h3>
+<p>MinKNOW 가 만든 폴더를 그대로 넣는다. read 를 barcode 폴더별로 미리 나눠 둘 필요가 없다.</p>
+<table>
+<thead>
+<tr>
+<th>파일</th>
+<th>쓰임</th>
+<th>필수</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fastq_pass/</code> 아래 barcode 폴더의 <code>*.fastq</code> 또는 <code>*.fastq.gz</code></td>
+<td>분석에 쓰는 read</td>
+<td>필수</td>
+</tr>
+<tr>
+<td><code>final_summary_*.txt</code>, <code>sample_sheet_*.csv</code></td>
+<td>run 이름과 시료 정보</td>
+<td>있으면 읽음</td>
+</tr>
+<tr>
+<td><code>sequencing_summary*.txt</code> 또는 <code>*.tsv</code></td>
+<td>read 품질과 barcode 교차오염 점검</td>
+<td>있으면 읽음</td>
+</tr>
+<tr>
+<td><code>pore_activity_*.csv</code>, <code>throughput_*.csv</code>, <code>barcode_alignment*.tsv</code></td>
+<td>run 건강 지표</td>
+<td>있으면 읽음</td>
+</tr>
+<tr>
+<td><code>report_*.json</code></td>
+<td>flow cell 종류와 공극 수</td>
+<td>있으면 읽음</td>
+</tr>
+</tbody>
+</table>
+<p>압축 여부는 상관없다. <code>*.fastq</code> 와 <code>*.fastq.gz</code> 를 모두 읽는다.</p>
+<p><code>report_*.json</code> 은 run 폴더에 없으면 한 단계 위 폴더에서 찾는다. 끝내 없으면 공극 값이 빈칸으로 남는다. 빈칸은 0 이 아니다.</p>
+<p><code>pod5/</code>, <code>fast5/</code>, <code>bam_pass/</code>, <code>other_reports/</code>, <code>report_*.html</code> 은 읽지 않는다. 지우지 않아도 되고 넣어도 달라지지 않는다.</p>
 <h3 id="_1">사용할 웰<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h3>
 <p>"사용할 웰" 패널은 계산된 배치를 플레이트 위에 그린다. 각 변이는 플레이트 순서(A1, B1, ... H1, A2)가 정해준 웰에 고정되며 웰을 눌러도 자리가 움직이지 않는다. 선택은 이 캠페인이 실제로 채운 웰이 어디인지만 말한다.</p>
-<p>선택하지 않은 웰은 캠페인이 채우지 않은 웰이므로 판정하지 않는다. 그 웰에 배치돼 있던 샘플은 2.2 에서 이름으로 표시된다. 샘플 수보다 적게 고르는 것은 부분 충전 플레이트일 뿐 거부 사유가 아니다. 거부되는 유일한 선택은 아무 웰도 고르지 않은 빈 선택이다.</p>
+<p>선택하지 않은 웰은 캠페인이 채우지 않은 웰이므로 판정하지 않는다. 그 웰에 배치돼 있던 샘플은 2.2 에서 이름으로 표시된다. 샘플 수보다 적게 고르는 것은 일부 웰만 채운 플레이트라는 뜻일 뿐 거부 사유가 아니다. 거부되는 유일한 선택은 아무 웰도 고르지 않은 빈 선택이다.</p>
 <p>같은 패널의 <strong>바코드 작업목록 (csv)</strong> 버튼은 채운 웰마다 웰, 샘플, 바코드 토큰, 시드 프라이머 이름을 한 행씩 적은 파일을 저장한다. 벤치에서 분주할 때 쓴다.</p>
-<h3 id="_2">입력을 바꾸면 이전 결과가 지워진다<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h3>
+<h3 id="_2">고급 옵션<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h3>
+<p>파라미터 패널의 <strong>고급 옵션</strong> 에 네 가지가 있다.</p>
+<table>
+<thead>
+<tr>
+<th>화면 표기</th>
+<th>기본값</th>
+<th>무엇이 달라지는가</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Coverage Fraction</td>
+<td>0.98</td>
+<td>read 하나가 reference 를 얼마나 덮어야 통과하는지 정한다. 올리면 온전한 정렬만 남고 내리면 부분 정렬도 들어온다</td>
+</tr>
+<tr>
+<td>최소 매핑 품질(0–60)</td>
+<td>25</td>
+<td>이 값보다 매핑 품질이 낮은 read 를 버린다</td>
+</tr>
+<tr>
+<td>Edit Distance Ratio</td>
+<td>0.25</td>
+<td>barcode 를 얼마나 느슨하게 맞출지 정한다. 작을수록 엄격해져 배정되는 read 가 줄어든다</td>
+</tr>
+<tr>
+<td>Chimera Split</td>
+<td>켬</td>
+<td>한 read 가 여러 well 에 걸친 경우를 나눠서 센다. 켜 둔다</td>
+</tr>
+</tbody>
+</table>
+<p>나머지 판정 기준값은 화면에서 바꿀 수 없다.</p>
+<h3 id="_3">입력을 바꾸면 이전 결과가 지워진다<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
 <p>실행 폴더, 기대 변이 목록, 참조 construct, 선택한 웰, 분석 파라미터 중 하나라도 바꾸면 이전 실행이 만든 판정과 플레이트 맵이 사라지고 2.2 는 실행 전 상태로 돌아간다. 끝난 실행의 화면이 새 입력의 결과처럼 보이는 것을 막는 동작이다. 같은 값을 다시 고르면 아무 일도 일어나지 않는다. 출력 경로는 입력이 아니므로 결과를 지우지 않는다.</p>
+<h3 id="_4">실행이 거치는 단계<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h3>
+<p>아래는 MinKNOW 실행 폴더를 넣었을 때의 경로다. 이미 만들어 둔 FASTA 폴더를 넣는 나머지 두 모드는 앞쪽 단계를 건너뛴다. 2 번부터는 진행 막대에 아래 이름 그대로 뜬다.</p>
+<ol>
+<li><strong>Amplicon 잘라내기.</strong> barcode 워크북의 프라이머가 reference 어디에 붙는지 찾아 그 사이 구간만 잘라 정렬용 reference 로 쓴다. 찾지 못하면 준 reference 를 그대로 쓴다.</li>
+<li><strong>정렬 중.</strong> 앱에 포함된 minimap2 가 <code>fastq_pass</code> 의 read 를 reference 에 붙인다.</li>
+<li><strong>커버리지 필터.</strong> 매핑 품질이 낮은 read 와 reference 를 충분히 덮지 못한 read 를 버린다.</li>
+<li><strong>역다중화 중.</strong> 남은 read 의 양끝 barcode 를 읽어 96 well 중 하나에 배정한다. 어느 한쪽 barcode 를 정하지 못하거나 동점이면 그 read 를 버린다.</li>
+<li><strong>컨센서스 생성 중.</strong> well 마다 같은 자리의 염기를 모아 다수결로 서열 하나를 만든다. 품질이 낮은 염기는 투표에서 빼고 read 가 너무 얕은 자리는 <code>N</code> 으로 둔다.</li>
+<li><strong>분석 중.</strong> well 별 서열을 기대 변이와 대조해 판정을 매긴다.</li>
+</ol>
+<h3 id="_5">실행이 남기는 파일<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h3>
+<ul>
+<li>웰별 consensus 서열. 출력 폴더의 barcode 폴더(<code>sort_barcodeNN/</code>) 아래에 <code>{R}_{F}.fasta</code> 로 쌓인다.</li>
+<li>전체 웰을 합친 <code>final/consensus_all_dna.fasta</code>.</li>
+<li>화면의 판정표와 plate 그림.</li>
+<li>선정 클론 목록 <code>..._picks.csv</code>.</li>
+<li>Excel 워크북. 실행에 지정한 출력 경로에 쓴다.</li>
+</ul>
+<p>run 마다 출력 폴더를 따로 쓴다. 이전 run 이 남긴 plate 폴더는 판정에서 빼고 화면에 이름을 알려 준다.</p>
 <h2 id="22">2.2 판정 검토<a class="headerlink" href="#22" title="Permanent link">&para;</a></h2>
 <p>왼쪽에 판정표, 오른쪽에 96-well 플레이트 맵과 플레이트별 판정 막대 그래프가 있다. 판정표 위의 탭은 Final, ALL, 그리고 이번 실행에 실제로 있는 native barcode 다. Final 은 변이마다 선정된 replicate 의 웰만 남긴다.</p>
-<h3 id="_3">판정표 위에 뜨는 안내<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
-<p>문제가 없으면 아무것도 뜨지 않는다.</p>
+<h3 id="_6">판정표 위에 뜨는 안내<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h3>
+<p>안내는 방금 끝난 실행을 두고 조건에 해당할 때만 뜬다. 여러 개가 함께 뜰 수 있고 알릴 것이 없으면 아무것도 뜨지 않는다. 이전 실행의 안내는 쌓이지 않는다. 입력을 바꾸면 이전 결과와 함께 사라지고 다시 실행하면 새 결과로 다시 정해진다.</p>
 <ul>
 <li><strong>이 런은 판정할 수 없다</strong> 웰당 read 중앙값이 하한에 못 미친다. 아래 판정은 읽을 깊이가 없던 플레이트의 산물이므로 그대로 쓰지 말고 시퀀싱을 다시 한다.</li>
 <li><strong>판정은 가능하지만 깊이가 부족한 런이다</strong> 하한은 넘고 권장치에 못 미친다. 판정을 쓰되 경계에 있는 웰은 따로 확인한다. 깊이는 이번 런이 실제로 판정한 웰에서만 잰다.</li>
@@ -1081,13 +1237,29 @@
 <li><strong>well-변이 대응 오류 의심</strong> 웰마다 관측 변이가 자기 기대 변이보다 다른 웰의 기대 변이와 더 잘 맞는 상태다. 실행을 막지는 않으니 결과를 쓰기 전에 플레이트 분주와 샘플 이름의 대응을 확인한다. 관측 변이가 있는 웰이 24개 미만이면 표본이 작아 판정하지 않는다.</li>
 </ul>
 <p>같은 자리에 플로우셀 id 와 공극 수도 나온다. 참고용이며 합격선으로 쓰지 않는다.</p>
-<h3 id="_4">판정 근거 열기<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h3>
+<h3 id="_7">판정 근거 열기<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>복제본 행</strong>: 판정 상세의 replicate 목록은 버튼이다. 행을 누르면 그 플레이트 복제본이 선택되고 상세, 플레이트 강조, 판정표가 함께 따라 움직인다.</li>
 <li><strong>confidence 지표</strong>: 지표 이름을 누르면 무엇을 센 값인지, 파이프라인 어느 단계에서 센 값인지, 판정을 움직이는 값인지가 나온다. 이번 실행이 대조한 임계값도 함께 적는다. 열 개 지표 중 일곱 개는 진단용이라 판정을 바꾸지 않는다.</li>
-<li><strong>판정 범례</strong>: 플레이트 맵 범례와 판정 막대 그래프에서 클래스에 hover 하면 그 클래스의 뜻이 나온다. 웰이 하나도 없는 클래스도 마찬가지다.</li>
+<li><strong>판정 범례</strong>: 플레이트 맵 범례와 판정 막대 그래프에서 클래스 위에 마우스 커서를 올리면 그 클래스의 뜻이 나온다. 웰이 하나도 없는 클래스도 마찬가지다.</li>
 </ul>
-<h2 id="_5">판정 클래스<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
+<h2 id="_8">판정 클래스<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h2>
+<p><img alt="웰별 판정 순서" src="../figures/mame-verdict-order.svg" /></p>
+<p>웰 하나의 판정은 아래 순서로 조건을 확인해 처음 맞는 조건에서 정해진다. 다음 조건으로 내려간다는 것은 통과했다는 뜻이 아니라 아직 판정이 없다는 뜻이다.</p>
+<ol>
+<li>read 수가 설정한 최소값보다 적으면 Low depth.</li>
+<li>consensus 의 순 indel 길이가 3 의 배수가 아니면 Frameshift.</li>
+<li>indel 신호가 임계값 이상인데 기대 치환이 모두 맞으면 Ambiguous.</li>
+<li>판정할 수 있는 자리 중 N 비율이 너무 높으면 No call.</li>
+<li>read 수 정보가 없고 consensus 파일이 너무 작으면 Low depth.</li>
+<li>염기 indel 표지 두 개가 frameshift window 안에 가까이 있으면 Frameshift.</li>
+<li>관측된 아미노산 변화가 설계 수와 설정 상한을 모두 넘으면 Many.</li>
+<li>혼합 신호가 남아 있으면 Mixed. 웰의 read 수가 신뢰 깊이에 못 미치면 Low depth.</li>
+<li>기대 치환이 빠졌거나 다른 아미노산이면 Wrong AA.</li>
+<li>기대 위치 근처 window 안에 추가 아미노산 변화가 있으면 Ambiguous.</li>
+<li>그 밖의 추가 아미노산 변화가 있으면 Wrong AA.</li>
+</ol>
+<p>어디에도 걸리지 않으면 Pass 다. 설정되지 않았거나 쓸 수 없는 검사는 건너뛰므로 판정이 예상과 다르면 그 웰의 상세 내용을 함께 본다.</p>
 <table>
 <thead>
 <tr>
@@ -1110,7 +1282,7 @@
 </tr>
 <tr>
 <td>Wrong AA</td>
-<td>기대 위치의 아미노산이 다르거나, 기대한 변이가 없거나, window 밖에 예상치 못한 변화가 있다</td>
+<td>기대 위치의 아미노산이 다르거나 기대한 변이가 없다. 또는 window 안에는 추가 변화가 없고 window 밖에만 예상치 못한 변화가 있다</td>
 </tr>
 <tr>
 <td>Frameshift</td>
@@ -1130,6 +1302,7 @@
 </tr>
 </tbody>
 </table>
+<p>판정이 하나도 안 나오거나 커버리지 필터에서 read 가 많이 버려지는 등 자주 겪는 문제는 <a href="../faq/">자주 묻는 질문</a> 에 정리돼 있다.</p>
 <p>→ <a href="../mame-03-janus/">단계 3. Cell stock 제작</a> 은 선택 단계다. 시퀀싱 판정만 필요하면 여기서 멈춰도 된다.</p>
 <p>→ <a href="../mame-04-activity/">단계 4. 활성 데이터</a> 에서 활성 측정값을 이 판정으로 걸러 EVOLVEpro 입력을 만든다.</p>
 

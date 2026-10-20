@@ -306,6 +306,25 @@
   
 
       
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../faq/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  FAQ
+
+      </a>
+    </li>
+  
+
+      
     </ul>
   </div>
 </nav>
@@ -829,6 +848,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#what-mame-reads-in-the-run-folder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What MAME reads in the run folder
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#wells-used" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -840,10 +870,43 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#advanced-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Advanced options
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#changing-an-input-clears-the-previous-output" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changing an input clears the previous output
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-a-run-does" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What a run does
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-a-run-writes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What a run writes
       
     </span>
   </a>
@@ -970,21 +1033,28 @@
 
               
             
-              
-                
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
   
   
   
   
     <li class="md-nav__item">
-      <a href="../mame-pipeline/" class="md-nav__link">
+      <a href="../faq/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    MAME pipeline
+    FAQ
   
 
     
@@ -993,14 +1063,6 @@
   
 
       </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
     </li>
   
 
@@ -1027,11 +1089,11 @@
 
 <h1 id="step-2-sequencing-review">Step 2. Sequencing Review<a class="headerlink" href="#step-2-sequencing-review" title="Permanent link">&para;</a></h1>
 <p><img alt="Step 2. Sequencing Review" src="../figures/mame-02-review.svg" /></p>
-<p><small>Numbered marks: <strong>1</strong> MinKNOW run folder; <strong>2</strong> Expected variants (xlsx)</small></p>
+<p><small>Numbered marks: <strong>1</strong> <strong>MinKNOW run folder</strong>; <strong>2</strong> <strong>Expected variants (xlsx)</strong></small></p>
 <p><img alt="Step 2. Sequencing Review" src="../figures/mame-02-review-2.svg" /></p>
-<p><small>Numbered marks: <strong>3</strong> Reference construct</small></p>
+<p><small>Numbered marks: <strong>3</strong> <strong>Reference construct</strong></small></p>
 <p><img alt="Step 2. Sequencing Review" src="../figures/mame-02-review-3.svg" /></p>
-<p><small>Numbered marks: <strong>4</strong> Wells used; <strong>5</strong> Run</small></p>
+<p><small>Numbered marks: <strong>4</strong> <strong>Wells used</strong>; <strong>5</strong> Run</small></p>
 <p><img alt="Step 2. Sequencing Review" src="../figures/mame-02-review-4.svg" /></p>
 <p><small>Numbered marks: <strong>6</strong> Verdict table; <strong>7</strong> 96-well plate map</small></p>
 <p>Score the sequencing run well by well and read the outcome on a 96-well plate. Pick the inputs in 2.1 and read the verdicts in 2.2.</p>
@@ -1062,17 +1124,111 @@
 </tr>
 </tbody>
 </table>
-<p>Choose the inputs, then press Run or Validate. Cell stock preparation are not on this screen. They belong to step 3.</p>
+<p>Choose the inputs, then press Run or Validate. Cell stock preparation is not on this screen. It is step 3.</p>
+<h3 id="what-mame-reads-in-the-run-folder">What MAME reads in the run folder<a class="headerlink" href="#what-mame-reads-in-the-run-folder" title="Permanent link">&para;</a></h3>
+<p>Give the folder MinKNOW wrote, as it is. Sorting reads into barcode folders beforehand isn't needed.</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Used for</th>
+<th>Required</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>*.fastq</code> or <code>*.fastq.gz</code> in the barcode folders under <code>fastq_pass/</code></td>
+<td>The reads analyzed</td>
+<td>Required</td>
+</tr>
+<tr>
+<td><code>final_summary_*.txt</code>, <code>sample_sheet_*.csv</code></td>
+<td>Run name and sample information</td>
+<td>Read if present</td>
+</tr>
+<tr>
+<td><code>sequencing_summary*.txt</code> or <code>*.tsv</code></td>
+<td>Read quality and barcode cross-talk check</td>
+<td>Read if present</td>
+</tr>
+<tr>
+<td><code>pore_activity_*.csv</code>, <code>throughput_*.csv</code>, <code>barcode_alignment*.tsv</code></td>
+<td>Run health indicators</td>
+<td>Read if present</td>
+</tr>
+<tr>
+<td><code>report_*.json</code></td>
+<td>Flow cell type and pore counts</td>
+<td>Read if present</td>
+</tr>
+</tbody>
+</table>
+<p>Compression doesn't matter. Both <code>*.fastq</code> and <code>*.fastq.gz</code> are read.</p>
+<p>If <code>report_*.json</code> isn't in the run folder, MAME looks one level up. When it's absent altogether the pore fields stay blank. Blank is not zero.</p>
+<p><code>pod5/</code>, <code>fast5/</code>, <code>bam_pass/</code>, <code>other_reports/</code> and <code>report_*.html</code> are never read. Leaving them in place changes nothing.</p>
 <h3 id="wells-used">Wells used<a class="headerlink" href="#wells-used" title="Permanent link">&para;</a></h3>
 <p>The "Wells used" panel draws the computed placement on a plate. Each mutation is fixed to the well that plate order (A1, B1, ... H1, A2) gave it, and clicking a well never moves anything. The selection only states which wells this campaign actually filled.</p>
 <p>A well that is not selected is a well the campaign did not fill, so it is not scored. The sample that had been placed there is named in 2.2. Selecting fewer wells than samples is simply a partly filled plate and not a reason for refusal. The only selection refused is an empty one.</p>
 <p>The <strong>Barcode worklist (csv)</strong> button in the same panel saves a file with one row per filled well carrying the well, the sample, the barcode token and the seed primer names. Use it at the bench when pipetting.</p>
+<h3 id="advanced-options">Advanced options<a class="headerlink" href="#advanced-options" title="Permanent link">&para;</a></h3>
+<p>Four settings sit under <strong>Advanced options</strong> in the parameter panel.</p>
+<table>
+<thead>
+<tr>
+<th>On screen</th>
+<th>Default</th>
+<th>What it changes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Coverage Fraction</td>
+<td>0.98</td>
+<td>How much of the reference one read must cover to pass. Raise it to keep only complete alignments, lower it to admit partial ones</td>
+</tr>
+<tr>
+<td>Minimum mapping quality (0–60)</td>
+<td>25</td>
+<td>Reads mapped below this quality are discarded</td>
+</tr>
+<tr>
+<td>Edit Distance Ratio</td>
+<td>0.25</td>
+<td>How loosely a barcode may match. Smaller is stricter and assigns fewer reads</td>
+</tr>
+<tr>
+<td>Chimera Split</td>
+<td>on</td>
+<td>Counts a read spanning several wells as separate hits. Leave it on</td>
+</tr>
+</tbody>
+</table>
+<p>The remaining verdict thresholds can't be changed from the screen.</p>
 <h3 id="changing-an-input-clears-the-previous-output">Changing an input clears the previous output<a class="headerlink" href="#changing-an-input-clears-the-previous-output" title="Permanent link">&para;</a></h3>
 <p>Changing the run folder, the expected variants workbook, the reference construct, the selected wells or an analysis parameter clears the verdicts and plate map the previous run produced, and 2.2 returns to its pre-run state. This keeps the screen of a finished run from looking like the outcome of the new inputs. Picking the same value again does nothing. The output path is not an input, so it clears nothing.</p>
+<h3 id="what-a-run-does">What a run does<a class="headerlink" href="#what-a-run-does" title="Permanent link">&para;</a></h3>
+<p>The stages below are the path for a MinKNOW run folder. The other two modes take a folder of FASTA files that already exist and skip the earlier stages. From stage 2 on, the progress bar shows these names.</p>
+<ol>
+<li><strong>Amplicon extraction.</strong> MAME locates where the barcode workbook primers sit in the reference and cuts out the region between them to align against. If it can't locate them, it uses the reference as supplied.</li>
+<li><strong>Aligning.</strong> The bundled minimap2 maps the reads in <code>fastq_pass</code> onto the reference.</li>
+<li><strong>Coverage filter.</strong> Reads with low mapping quality, and reads that don't cover enough of the reference, are dropped.</li>
+<li><strong>Demultiplexing.</strong> The barcodes at both ends of each surviving read assign it to one of 96 wells. A read whose barcode on either side can't be resolved, or ties, is dropped.</li>
+<li><strong>Building consensus.</strong> For each well the bases at each position are pooled into one sequence by majority vote. Low-quality bases are left out of the vote and positions with too few reads are left as <code>N</code>.</li>
+<li><strong>Analyzing.</strong> Each well sequence is compared against the expected mutation and given a verdict.</li>
+</ol>
+<h3 id="what-a-run-writes">What a run writes<a class="headerlink" href="#what-a-run-writes" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Per-well consensus sequences, written as <code>{R}_{F}.fasta</code> under the barcode folder (<code>sort_barcodeNN/</code>) of the output folder.</li>
+<li><code>final/consensus_all_dna.fasta</code>, all wells merged.</li>
+<li>The verdict table and plate view on screen.</li>
+<li>The picked clone list <code>..._picks.csv</code>.</li>
+<li>The Excel workbook, written to the output path chosen for the run.</li>
+</ul>
+<p>Use a separate output folder for each run. Plate folders an earlier run left behind are excluded from the verdicts and named on screen.</p>
 <h2 id="22-review">2.2 Review<a class="headerlink" href="#22-review" title="Permanent link">&para;</a></h2>
 <p>The verdict table sits on the left. The 96-well plate map and the per-plate verdict bar sit on the right. The tabs above the verdict table are Final, ALL, and the native barcodes actually present in this run. Final keeps only the well of the selected replicate for each mutation.</p>
 <h3 id="notices-above-the-verdict-table">Notices above the verdict table<a class="headerlink" href="#notices-above-the-verdict-table" title="Permanent link">&para;</a></h3>
-<p>Nothing appears when there is nothing to report.</p>
+<p>Each notice checks the run that just finished and appears only when its condition holds. Several can appear together, and none appears when there's nothing to report. Notices from an earlier run don't pile up: changing an input clears them with the previous result, and running again decides them afresh from the new result.</p>
 <ul>
 <li><strong>This run cannot be scored</strong> The median reads per well is under the floor. The verdicts below come from a plate that never had the depth to be read, so sequence the plate again rather than using them.</li>
 <li><strong>This run is scorable but under-powered</strong> Depth clears the floor and falls short of the recommendation. Use the verdicts and check borderline wells separately. Depth is measured only over the wells this run actually scored.</li>
@@ -1088,6 +1244,22 @@
 <li><strong>Verdict legend</strong>: hovering a class in the plate map legend or in the per-plate verdict bar shows what that class means, including classes with no wells.</li>
 </ul>
 <h2 id="verdict-classes">Verdict classes<a class="headerlink" href="#verdict-classes" title="Permanent link">&para;</a></h2>
+<p><img alt="Per-well verdict decision order" src="../figures/mame-verdict-order.svg" /></p>
+<p>A well gets its verdict from the checks below, in order, and the first one that holds decides. Moving on to the next check means no verdict yet, not a pass.</p>
+<ol>
+<li>Read count below the configured minimum: Low depth.</li>
+<li>Net consensus indel length not a multiple of 3: Frameshift.</li>
+<li>Indel signal at or above the threshold while every expected substitution matches: Ambiguous.</li>
+<li>Too high a fraction of N among the positions that can be judged: No call.</li>
+<li>No read count reported and the consensus file too small: Low depth.</li>
+<li>Two nucleotide indel markers close together within the frameshift window: Frameshift.</li>
+<li>More amino-acid changes than both the design count and the configured limit: Many.</li>
+<li>A mixed-allele signal remains: Mixed, or Low depth when the well's read count is below the confidence depth.</li>
+<li>An expected substitution missing or carrying the wrong amino acid: Wrong AA.</li>
+<li>An extra amino-acid change within the window around an expected site: Ambiguous.</li>
+<li>Any other extra amino-acid change: Wrong AA.</li>
+</ol>
+<p>A well that meets none of these is Pass. Checks that are not configured or cannot run are skipped, so when a verdict looks wrong, open that well's details as well.</p>
 <table>
 <thead>
 <tr>
@@ -1110,7 +1282,7 @@
 </tr>
 <tr>
 <td>Wrong AA</td>
-<td>An expected site shows a different amino acid, an expected mutation is missing, or an unexpected extra change sits outside the window</td>
+<td>An expected site shows a different amino acid, an expected mutation is missing, or an unexpected extra change sits outside the window while none sits inside it</td>
 </tr>
 <tr>
 <td>Frameshift</td>
@@ -1130,6 +1302,7 @@
 </tr>
 </tbody>
 </table>
+<p>Runs with no verdicts, heavy loss at the coverage filter and other common problems are answered in the <a href="../faq/">FAQ</a>.</p>
 <p>→ <a href="../mame-03-janus/">Step 3. Cell stock preparation</a> is optional. Stop here if only a sequencing verdict is needed.</p>
 <p>→ <a href="../mame-04-activity/">Step 4. Activity Data</a> filters activity measurements by these verdicts to build the EVOLVEpro input.</p>
 

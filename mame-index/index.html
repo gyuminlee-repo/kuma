@@ -306,6 +306,25 @@
   
 
       
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../faq/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  FAQ
+
+      </a>
+    </li>
+  
+
+      
     </ul>
   </div>
 </nav>
@@ -925,21 +944,28 @@
 
               
             
-              
-                
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
   
   
   
   
     <li class="md-nav__item">
-      <a href="../mame-pipeline/" class="md-nav__link">
+      <a href="../faq/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    MAME pipeline
+    FAQ
   
 
     
@@ -948,14 +974,6 @@
   
 
       </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
     </li>
   
 
@@ -1013,14 +1031,14 @@
 <h2 id="step-3-is-optional">Step 3 is optional<a class="headerlink" href="#step-3-is-optional" title="Permanent link">&para;</a></h2>
 <p>A run that only needs sequencing verdicts goes from step 2 straight to step 4. No Janus value gates a run, step 2 or step 4. An analyze run writes the selection list (<code>..._picks.csv</code>) on its own, while the sheet the robot reads (<code>..._janus.csv</code>) is written only when export is pressed in step 3.</p>
 <h2 id="the-input-is-a-minknow-run-folder">The input is a MinKNOW run folder<a class="headerlink" href="#the-input-is-a-minknow-run-folder" title="Permanent link">&para;</a></h2>
-<p>Step 2 takes the run folder MinKNOW wrote, as it is. Sorting it into barcode directories beforehand is not needed. MAME reads the <code>.fastq</code> and <code>.fastq.gz</code> files under <code>fastq_pass/</code>, splits the barcodes and builds the consensus itself.</p>
+<p>Step 2 takes the run folder MinKNOW wrote, as it is. Sorting it into barcode directories beforehand is not needed. MAME reads the <code>.fastq</code> and <code>.fastq.gz</code> files under <code>fastq_pass/</code>, aligns the reads to the reference, splits the barcodes, builds a consensus per well and scores it against the expected mutation. The files it reads, the adjustable values and each stage are in <a href="../mame-02-review/">Analyze and review</a>.</p>
 <h2 id="step-guides">Step guides<a class="headerlink" href="#step-guides" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../mame-01-setup/">Barcode setup</a></li>
 <li><a href="../mame-02-review/">Analyze and review</a></li>
 <li><a href="../mame-03-janus/">Cell stock preparation</a></li>
 <li><a href="../mame-04-activity/">Activity</a></li>
-<li><a href="../mame-pipeline/">MAME pipeline</a></li>
+<li><a href="../faq/">FAQ</a></li>
 </ul>
 
 

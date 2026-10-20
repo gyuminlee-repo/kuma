@@ -306,6 +306,25 @@
   
 
       
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../faq/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  FAQ
+
+      </a>
+    </li>
+  
+
+      
     </ul>
   </div>
 </nav>
@@ -936,21 +955,28 @@
 
               
             
-              
-                
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
   
   
   
   
     <li class="md-nav__item">
-      <a href="../mame-pipeline/" class="md-nav__link">
+      <a href="../faq/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    MAME pipeline
+    FAQ
   
 
     
@@ -959,14 +985,6 @@
   
 
       </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
     </li>
   
 
@@ -993,13 +1011,19 @@
 
 <h1 id="step-1-load-variants">Step 1. Load Variants<a class="headerlink" href="#step-1-load-variants" title="Permanent link">&para;</a></h1>
 <p><img alt="Step 1. Load Variants" src="../figures/kuro-01-load.svg" /></p>
-<p><small>Numbered marks: <strong>1</strong> <code>Browse</code>; <strong>2</strong> <code>Target Gene</code>; <strong>3</strong> <code>Organism</code></small></p>
+<p><small>Numbered marks: <strong>1</strong> <code>Missing information</code></small></p>
+<p><img alt="Step 1. Load Variants" src="../figures/kuro-01-load-2.svg" /></p>
+<p><small>Numbered marks: <strong>2</strong> <code>Browse</code>; <strong>3</strong> <code>Target Gene</code>; <strong>4</strong> <code>Organism</code></small></p>
+<p><img alt="Step 1. Load Variants" src="../figures/kuro-01-load-3.svg" /></p>
+<p><small>Numbered marks: <strong>5</strong> <code>Compute from a genome</code></small></p>
+<p><img alt="Step 1. Load Variants" src="../figures/kuro-01-load-4.svg" /></p>
+<p><small>Numbered marks: <strong>6</strong> <code>Import a table file</code></small></p>
 <p>Load the sequence file the design is built on, then set the gene to design primers for and the codon usage table to use.</p>
 <h2 id="what-you-do-here">What you do here<a class="headerlink" href="#what-you-do-here" title="Permanent link">&para;</a></h2>
 <ol>
 <li>Press <code>Browse</code>, or drag a file into the window, to load the sequence.</li>
 <li>Pick the target CDS under <code>Target Gene</code>. The longest coding sequence is selected first, so a single-gene file needs no change.</li>
-<li>Check <code>Organism</code>, which selects the codon usage table. It is set automatically when the sequence annotation names an organism. <code>Add organism...</code>, the last entry of that list, installs a table for an organism kuma does not ship.</li>
+<li>Pick <code>Organism</code>, which selects the codon usage table. The table decides which codon is written at each mutation site: of the codons for the new amino acid, those the organism hardly uses are left out and the frequently used ones are preferred, so even the mutated codon is optimised for the expression host. It is set automatically when the sequence annotation names an organism. <code>Add organism...</code>, the last entry of that list, installs a table for an organism kuma does not ship.</li>
 </ol>
 <h2 id="input">Input<a class="headerlink" href="#input" title="Permanent link">&para;</a></h2>
 <table>
@@ -1020,16 +1044,16 @@
 </tr>
 <tr>
 <td>Organism</td>
-<td>One of the five built-in codon usage tables, or one you installed yourself</td>
+<td>One of the nine built-in codon usage tables, or one you installed yourself</td>
 </tr>
 </tbody>
 </table>
 <p>Once a file is loaded, the sequence header, the length in bp, and the number of genes found appear under the file name.</p>
 <p>Only the first GenBank record and its CDS features are loaded. To use a gene from another record, export that record with its flanking template as a separate GenBank file. A later record's annotations cannot substitute for missing CDS annotations in the first record.</p>
 <h2 id="using-your-own-strain">Using your own strain<a class="headerlink" href="#using-your-own-strain" title="Permanent link">&para;</a></h2>
-<p>The nine bundled tables are <em>E. coli</em>, <em>B. subtilis</em>, <em>H. sapiens</em>, <em>S. cerevisiae</em>, <em>K. phaffii</em> (GS115, the organism most protocols still call <em>P. pastoris</em>), <em>C. griseus</em> (the CHO line), <em>C. glutamicum</em>, <em>A. niger</em>, <em>P. putida</em>. <em>M. extorquens</em> AM1 is not one of them any more: it waits in the codon table folder as <code>mextorquens_am1.json.txt</code>, and renaming it to <code>mextorquens_am1.json</code> installs it. A table for any other organism is installed once and stays available. There are three ways in, and all three end with the organism appearing in this list.</p>
+<p>The nine bundled tables are <em>E. coli</em>, <em>B. subtilis</em>, <em>H. sapiens</em>, <em>S. cerevisiae</em>, <em>K. phaffii</em> (GS115, the organism most protocols still call <em>P. pastoris</em>), <em>C. griseus</em> (the CHO line), <em>C. glutamicum</em>, <em>A. niger</em>, <em>P. putida</em>. A table for any other organism is installed once and stays available. There are three ways to install one, and each of them puts the organism in this list.</p>
 <p><code>Add organism...</code> opens a dialog with two ways to build the table. <code>Compute from a genome</code> takes a GenBank file (<code>.gb</code>, <code>.gbk</code>, <code>.gbff</code>) or a CDS FASTA and counts the codons itself, then reports how many coding sequences it counted and which it left out before anything is installed. <code>Import a table file</code> takes a table you already have, as a kuma table (JSON), a three-column CSV, EMBOSS <code>cusp</code> output, or a Kazusa codon usage page pasted as text.</p>
-<p>The third way needs no dialog: put the <code>.json</code> file in the codon table folder and press <code>Refresh</code> under Settings, <code>Codon tables</code>. That panel shows the folder path, and the folder holds a <code>TEMPLATE.json.txt</code> to copy and a <code>README.txt</code> describing the format. The file name without <code>.json</code> becomes the organism name kuma records, so <code>mextorquens_am1.json</code> becomes <code>mextorquens_am1</code>.</p>
+<p>The third way needs no dialog: put the <code>.json</code> file in the codon table folder and press <code>Refresh</code> under Settings, <code>Codon tables</code>. That panel shows the folder path, and the folder holds a <code>TEMPLATE.json.txt</code> to copy and a <code>README.txt</code> describing the format. The file name without <code>.json</code> becomes the organism name kuma records, so <code>ecoli_lab.json</code> becomes <code>ecoli_lab</code>.</p>
 <p>Whichever way is used, the table is checked before it is installed, and a file that fails a check is listed with the reason rather than half-loaded. A table cannot take the name of a built-in one, so a modified copy goes in under a name such as <code>ecoli_lab</code>.</p>
 <h2 id="messages-you-may-see">Messages you may see<a class="headerlink" href="#messages-you-may-see" title="Permanent link">&para;</a></h2>
 <table>

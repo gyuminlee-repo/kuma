@@ -306,6 +306,25 @@
   
 
       
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../faq/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  자주 묻는 질문
+
+      </a>
+    </li>
+  
+
+      
     </ul>
   </div>
 </nav>
@@ -925,21 +944,28 @@
 
               
             
-              
-                
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
   
   
   
   
     <li class="md-nav__item">
-      <a href="../mame-pipeline/" class="md-nav__link">
+      <a href="../faq/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    MAME 파이프라인
+    자주 묻는 질문
   
 
     
@@ -948,14 +974,6 @@
   
 
       </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
     </li>
   
 
@@ -1013,14 +1031,14 @@
 <h2 id="3">3단계는 선택이다<a class="headerlink" href="#3" title="Permanent link">&para;</a></h2>
 <p>시퀀싱 판정만 필요하면 2단계에서 4단계로 바로 넘어가면 된다. Janus 값은 실행도, 2단계도, 4단계도 막지 않는다. 분석 실행은 선정 결과 파일(<code>..._picks.csv</code>)을 스스로 기록한다. 로봇이 읽는 시트(<code>..._janus.csv</code>)는 3단계에서 내보내기를 누를 때만 기록된다.</p>
 <h2 id="minknow-run">입력은 MinKNOW run 폴더다<a class="headerlink" href="#minknow-run" title="Permanent link">&para;</a></h2>
-<p>2단계에 넣는 것은 MinKNOW 가 만든 run 폴더 그대로다. 바코드별로 미리 정렬해 둘 필요가 없다. MAME 가 <code>fastq_pass/</code> 아래의 <code>.fastq</code> 와 <code>.fastq.gz</code> 를 읽어 바코드를 나누고 consensus 를 만든다.</p>
+<p>2단계에 넣는 것은 MinKNOW 가 만든 run 폴더 그대로다. 바코드별로 미리 정렬해 둘 필요가 없다. MAME 가 <code>fastq_pass/</code> 아래의 <code>.fastq</code> 와 <code>.fastq.gz</code> 를 읽어 reference 에 정렬하고 바코드를 나눈 뒤 well 마다 consensus 를 만들어 기대 변이와 대조한다. 읽는 파일, 조절할 수 있는 값, 단계별 동작은 <a href="../mame-02-review/">분석 및 검토</a> 에 있다.</p>
 <h2 id="_2">단계별 문서<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../mame-01-setup/">바코드 설정</a></li>
 <li><a href="../mame-02-review/">분석 및 검토</a></li>
 <li><a href="../mame-03-janus/">Cell stock 제작</a></li>
 <li><a href="../mame-04-activity/">활성</a></li>
-<li><a href="../mame-pipeline/">MAME 파이프라인</a></li>
+<li><a href="../faq/">자주 묻는 질문</a></li>
 </ul>
 
 

@@ -306,6 +306,25 @@
   
 
       
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../faq/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  자주 묻는 질문
+
+      </a>
+    </li>
+  
+
+      
     </ul>
   </div>
 </nav>
@@ -627,6 +646,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pipeline 모드에서 보이는 것
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -925,21 +955,28 @@
 
               
             
-              
-                
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
   
   
   
   
     <li class="md-nav__item">
-      <a href="../mame-pipeline/" class="md-nav__link">
+      <a href="../faq/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    MAME 파이프라인
+    자주 묻는 질문
   
 
     
@@ -948,14 +985,6 @@
   
 
       </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
     </li>
   
 
@@ -982,7 +1011,15 @@
 
 <h1 id="4">단계 4. 풀 필터 및 실행<a class="headerlink" href="#4" title="Permanent link">&para;</a></h1>
 <p><img alt="단계 4. 풀 필터 및 실행" src="../figures/kuro-04-submit.svg" /></p>
-<p><small>번호 표시: <strong>1</strong> <code>설계 실행</code></small></p>
+<p><small>번호 표시: <strong>1</strong> <code>현재 입력 요약</code> (Top-N)</small></p>
+<p><img alt="단계 4. 풀 필터 및 실행" src="../figures/kuro-04-submit-2.svg" /></p>
+<p><small>번호 표시: <strong>2</strong> <code>설계 실행</code></small></p>
+<p><img alt="단계 4. 풀 필터 및 실행" src="../figures/kuro-04-submit-3.svg" /></p>
+<p><small>번호 표시: <strong>3</strong> <code>현재 입력 요약</code> (Pipeline (failover))</small></p>
+<p><img alt="단계 4. 풀 필터 및 실행" src="../figures/kuro-04-submit-4.svg" /></p>
+<p><small>번호 표시: <strong>4</strong> 풀 필터 (Pipeline 단계)</small></p>
+<p><img alt="단계 4. 풀 필터 및 실행" src="../figures/kuro-04-submit-5.svg" /></p>
+<p><small>번호 표시: <strong>5</strong> <code>사전 점검 (경고)</code></small></p>
 <p>설계를 돌리기 직전 화면이다. 지금까지 넣은 입력을 확인하고 프라이머 설계를 실행한다.</p>
 <h2 id="_1">현재 입력 요약<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
 <p>화면 맨 위 카드에 이번 실행에 쓰일 값이 그대로 나온다. 값이 예상과 다르면 이전 단계로 돌아가 고친다.</p>
@@ -1016,7 +1053,36 @@
 </tr>
 </tbody>
 </table>
-<p>선택 모드가 <code>Pipeline (failover)</code> 이면 카드 아래에 풀 필터 항목이 함께 나온다. <code>Top-N</code> 이면 나오지 않는다.</p>
+<h2 id="pipeline">Pipeline 모드에서 보이는 것<a class="headerlink" href="#pipeline" title="Permanent link">&para;</a></h2>
+<p>단계 2 에서 선택 모드를 <code>파이프라인</code> 으로 골랐으면 요약 카드 아래에 <code>PIPELINE</code> 상자가 붙는다. <code>Top-N</code> 으로 골랐으면 이 상자 없이 요약 카드와 <code>설계 실행</code> 버튼만 보인다.</p>
+<p>상자 안의 단계는 위에서 아래 순서로 적용된다. 단계 이름 앞 체크박스로 하나씩 끄고 켠다.</p>
+<table>
+<thead>
+<tr>
+<th>화면 표기</th>
+<th>하는 일</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Step 1: Pre-filter</code></td>
+<td>한 잔기 위치에 들어갈 변이 수를 제한한다. 점수 차이가 2% 안이면 아미노산 성질이 덜 바뀌는 쪽(Grantham 거리가 작은 쪽)을 남긴다</td>
+</tr>
+<tr>
+<td><code>Step 2: Domain allocation</code></td>
+<td>도메인마다 몫을 나눠 고른다. 링커를 어떻게 다룰지와 도메인 목록을 여기서 정한다</td>
+</tr>
+<tr>
+<td><code>Step 3: Optimization</code></td>
+<td>이미 고른 변이와 위치가 먼 변이를 앞에 둔다. 구조가 있으면 3D 거리를 쓰고 없으면 서열 위치 차이를 쓴다</td>
+</tr>
+<tr>
+<td><code>Step 4: Structural diversity</code></td>
+<td>후보 전체가 3D 구조 안에 고르게 퍼지도록 고른다. 앞선 라운드에서 측정한 변이를 기준점으로 삼는다</td>
+</tr>
+</tbody>
+</table>
+<p>여기서 정한 값은 다음 단계 설계 보고서의 <code>파이프라인</code> 항목에 그대로 적힌다.</p>
 <h2 id="_2">설계 실행<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <ol>
 <li><code>설계 실행</code> 을 누른다. 화면 가운데 버튼과 아래쪽 버튼은 같은 동작이다.</li>
