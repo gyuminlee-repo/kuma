@@ -1541,6 +1541,35 @@
     "replicateModeNotice": {
       "pooled": "この実行は native barcode {{detected}} 件を 1 枚の plate にまとめたため、比較できる replicate がない。",
       "subset": "この run フォルダには native barcode が {{detected}} 件あり、そのうち {{replicates}} 件を replicate として判定した。残りはこの結果に含まれない。"
+    },
+    "manualConfirm": {
+      "title": "2.3 追加シーケンス：プレートコピーの確認",
+      "description": "ウェルを再シーケンスしたり別の方法で確認したりした後に使用します。使用する既存のプレートコピーを選び、確認方法を記録してください。この選択はプレートマップ、結果ブック、ピックリスト、ステップ3のエクスポートで自動選択に置き換わり、元の判定は保持されます。",
+      "needsTitle": "使用可能な選択コピーがないウェル：{{count}}件",
+      "needsEmpty": "すべてのウェルに使用可能な選択コピーがあります。",
+      "noCopy": "選択されたコピーなし",
+      "choose": "コピーを選択",
+      "openAny": "任意のウェルを開く",
+      "openAnyPlaceholder": "ウェルを選択...",
+      "copiesLegend": "{{mutant}} のプレートコピー",
+      "noteLabel": "確認メモ",
+      "notePlaceholder": "例：Sanger 2026-10-20 OK",
+      "confirm": "コピーを確定",
+      "cancel": "キャンセル",
+      "confirmedTitle": "手動で確認したウェル：{{count}}件",
+      "badge": "手動確認済み",
+      "original": "元の判定：{{verdict}}（{{copy}}）",
+      "originalNone": "元の選択：なし",
+      "undo": "元に戻す",
+      "droppedTitle": "一部の確認はこの実行に合わなくなったため削除されました：",
+      "droppedItem": "{{mutant}}、コピー {{copy}}：{{reason}}",
+      "dropReason": {
+        "unknown_mutant": "このウェルはこの実行にありません",
+        "unknown_copy": "そのプレートコピーは存在しません",
+        "duplicate_mutant": "同じウェルへの2件目の項目です"
+      },
+      "dismiss": "閉じる",
+      "error": "確認を適用できませんでした：{{message}}"
     }
   },
   "home": {

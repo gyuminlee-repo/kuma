@@ -37,6 +37,7 @@ import { VerdictTable } from "@/components/mame/widgets/VerdictTable";
 import { PlateView } from "@/components/mame/widgets/PlateView";
 import { RunHealthPanel } from "@/components/mame/widgets/RunHealthPanel";
 import { RunQcSection } from "@/components/mame/widgets/RunQcSection";
+import { AdditionalSequencingPanel } from "@/components/mame/widgets/AdditionalSequencingPanel";
 import { PlateClusterAlert } from "@/components/mame/widgets/PlateClusterAlert";
 import { MappingIntegrityAlert } from "@/components/mame/widgets/MappingIntegrityAlert";
 import { RunQualityNotice } from "@/components/mame/widgets/RunQualityNotice";
@@ -480,6 +481,9 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
               </DataPanel>
             </div>
           </div>
+          {/* 2.3: the operator's own confirmation of a plate copy, after the review
+              it follows from. Renders nothing before a run has replicates. */}
+          <AdditionalSequencingPanel />
           {/* Last on the screen and closed by default. Everything in it is
               measurement the run already made and nothing was reading; none of
               it outranks the table and the plate above, so it waits to be

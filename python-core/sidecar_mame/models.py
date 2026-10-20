@@ -666,3 +666,22 @@ __all__ = [
     "DetectMeasurementSourceResult",
     "DetectNativeBarcodesParams",
 ]
+
+
+class SelectionOverride(BaseModel):
+    """One manual plate-copy confirmation: use copy `plate` for `mutant_id`."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    mutant_id: str
+    plate: str
+    note: str = ""
+
+
+class ApplySelectionOverridesParams(BaseModel):
+    """Parameters for `apply_selection_overrides`: the full current override list."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    overrides: list[SelectionOverride] = Field(default_factory=list)
+    janus_settings: dict[str, Any] = Field(default_factory=dict)

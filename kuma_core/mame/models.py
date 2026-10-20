@@ -382,6 +382,24 @@ class VerdictRecord:
     mutant_id: str = ""
 
 
+@dataclass(frozen=True)
+class ManualConfirmation:
+    """An operator's choice of plate copy for one mutant, with the verdict it replaced.
+
+    Recorded on the ``ReplicateResult`` it changed so the algorithm's own pick
+    survives next to the manual one: ``auto_*`` hold exactly what
+    ``pick_best_replicate`` returned, and reverting restores them.
+    """
+
+    note: str
+    auto_selected_plate: str | None
+    auto_verdict: str
+    auto_failed: bool
+    auto_is_fallback: bool
+    auto_selection_reason: str
+    auto_fallback_reason: str | None
+
+
 @dataclass
 class ReplicateResult:
     """Select -> Export transfer object."""
@@ -393,3 +411,6 @@ class ReplicateResult:
     failed: bool = False
     is_fallback: bool = False
     fallback_reason: str | None = None
+    # Set only while a manual plate-copy confirmation overrides the algorithm's
+    # pick (``select/manual_override.py``). None for every automatic result.
+    manual: ManualConfirmation | None = None

@@ -1732,6 +1732,8 @@ async function injectSnapshotResultsIntoSidecar(
     summary: review.value.summary,
     distribution_stats: review.value.distributionStats,
   });
+  if (!alive()) return false;
+  await useMameAppStore.getState().reapplySelectionOverrides();
   return alive();
 }
 
@@ -1889,6 +1891,7 @@ async function restoreMameResult(
   useMameAppStore.setState({ janusAutosave: result.janus_autosave ?? null });
   if (!alive()) return false;
   await store.loadPlateData();
+  await store.reapplySelectionOverrides();
   if (!alive()) return false;
   // A8: the run-health panel ("Plate별 verdict 분포") reads get_run_health from the
   // restored sidecar state; without this it stays null and shows "설정 미완료".

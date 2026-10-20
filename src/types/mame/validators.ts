@@ -421,6 +421,7 @@ export const MAME_UNVALIDATED_METHODS: readonly string[] = [
   "validate_inputs",
   "export_excel",
   "get_plate_data",
+  "apply_selection_overrides",
   "export_janus_mapping",
   "export_janus_mapping_dry_run",
   "export_run_report",

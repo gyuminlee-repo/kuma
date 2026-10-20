@@ -1541,6 +1541,35 @@
     "replicateModeNotice": {
       "pooled": "本次執行將 {{detected}} 個 native barcode 併為一塊 plate，因此沒有可比較的 replicate。",
       "subset": "此 run 資料夾有 {{detected}} 個 native barcode，其中 {{replicates}} 個被判定為 replicate。其餘不在本結果中。"
+    },
+    "manualConfirm": {
+      "title": "2.3 追加定序：確認盤拷貝",
+      "description": "在重新定序或以其他方式檢查某個孔位後使用。選擇要使用的現有盤拷貝，並記錄確認方式。此選擇會取代盤圖、結果活頁簿、挑選清單與第 3 步匯出中的自動選擇；原始判定會保留。",
+      "needsTitle": "沒有可用選定拷貝的孔位：{{count}} 個",
+      "needsEmpty": "每個孔位都有可用的選定拷貝。",
+      "noCopy": "未選擇拷貝",
+      "choose": "選擇拷貝",
+      "openAny": "開啟任一孔位",
+      "openAnyPlaceholder": "選擇孔位...",
+      "copiesLegend": "{{mutant}} 的盤拷貝",
+      "noteLabel": "確認備註",
+      "notePlaceholder": "例如 Sanger 2026-10-20 OK",
+      "confirm": "確認拷貝",
+      "cancel": "取消",
+      "confirmedTitle": "手動確認的孔位：{{count}} 個",
+      "badge": "已手動確認",
+      "original": "原始判定：{{verdict}}（{{copy}}）",
+      "originalNone": "原始選擇：無",
+      "undo": "復原",
+      "droppedTitle": "部分確認已不適用於本次執行，已被移除：",
+      "droppedItem": "{{mutant}}，拷貝 {{copy}}：{{reason}}",
+      "dropReason": {
+        "unknown_mutant": "該孔位不在本次執行中",
+        "unknown_copy": "該盤拷貝不存在",
+        "duplicate_mutant": "同一孔位的第二筆紀錄"
+      },
+      "dismiss": "關閉",
+      "error": "無法套用確認：{{message}}"
     }
   },
   "home": {

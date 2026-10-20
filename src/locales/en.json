@@ -1541,6 +1541,35 @@
     "replicateModeNotice": {
       "pooled": "This run pooled {{detected}} native barcodes into one plate, so it has no replicates to compare.",
       "subset": "This run folder holds {{detected}} native barcodes and {{replicates}} of them were scored as replicates. The rest are not in these results."
+    },
+    "manualConfirm": {
+      "title": "2.3 Additional sequencing: confirm a plate copy",
+      "description": "Use this after you resequenced or checked a well another way. Pick which existing plate copy to use and record how you confirmed it. The choice replaces the automatic pick in the plate map, the result workbook, the pick list and the step 3 export; the original verdict is kept.",
+      "needsTitle": "Wells with no usable selected copy: {{count}}",
+      "needsEmpty": "Every well has a usable selected copy.",
+      "noCopy": "No copy selected",
+      "choose": "Choose copy",
+      "openAny": "Open any well",
+      "openAnyPlaceholder": "Select a well...",
+      "copiesLegend": "Plate copy for {{mutant}}",
+      "noteLabel": "Confirmation note",
+      "notePlaceholder": "e.g. Sanger 2026-10-20 OK",
+      "confirm": "Confirm copy",
+      "cancel": "Cancel",
+      "confirmedTitle": "Manually confirmed wells: {{count}}",
+      "badge": "Manually confirmed",
+      "original": "Original verdict: {{verdict}} ({{copy}})",
+      "originalNone": "Original pick: none",
+      "undo": "Undo",
+      "droppedTitle": "Some confirmations no longer fit this run and were removed:",
+      "droppedItem": "{{mutant}}, copy {{copy}}: {{reason}}",
+      "dropReason": {
+        "unknown_mutant": "the well is not in this run",
+        "unknown_copy": "the plate copy does not exist",
+        "duplicate_mutant": "a second entry for the same well"
+      },
+      "dismiss": "Dismiss",
+      "error": "Could not apply the confirmation: {{message}}"
     }
   },
   "home": {

@@ -246,6 +246,23 @@ def _round_or_blank(value: float | None, digits: int) -> float | str:
     return "" if value is None else round(value, digits)
 
 
+_MANUAL_HEADER = "manual_confirmation"
+
+
+def _manual_text(rr: ReplicateResult | None) -> str:
+    """Blank for an automatic pick; the operator's note (or a default) otherwise."""
+    if rr is None or rr.manual is None:
+        return ""
+    return rr.manual.note or "manually confirmed"
+
+
+def _literal_last_cell(ws) -> None:
+    """Keep the operator's free-text note a string cell, never a formula."""
+    cell = ws.cell(row=ws.max_row, column=ws.max_column)
+    if isinstance(cell.value, str):
+        cell.data_type = "s"
+
+
 def _write_sheet1(
     wb: Workbook,
     native_barcode: str,
@@ -257,7 +274,9 @@ def _write_sheet1(
     # fixed gate was not used.
     baseline = plate_baseline(vr.translated.barcode for vr in records)
     ws = wb.create_sheet(nb_label(native_barcode))
-    ws.append(_SHEET1_HEADER)
+    replicate_results = list(replicate_results)
+    with_manual = any(rr.manual is not None for rr in replicate_results)
+    ws.append(_SHEET1_HEADER + ([_MANUAL_HEADER] if with_manual else []))
     _style_header(ws)
 
     # Map each final selection (selected plate + chosen well) to its replicate so
@@ -346,7 +365,11 @@ def _write_sheet1(
             is_fallback,
             fallback_reason,
         ]
+        if with_manual:
+            row.append(_manual_text(sel_rr))
         ws.append(row)
+        if with_manual:
+            _literal_last_cell(ws)
         fill = _fill(VERDICT_FILL[vr.verdict])
         for cell in ws[ws.max_row]:
             cell.fill = fill
@@ -368,7 +391,8 @@ def _write_final(
     baselines = {plate: plate_baseline(recs) for plate, recs in by_plate.items()}
 
     ws = wb.create_sheet("Final")
-    ws.append(_FINAL_HEADER)
+    with_manual = any(rr.manual is not None for rr in replicate_results)
+    ws.append(_FINAL_HEADER + ([_MANUAL_HEADER] if with_manual else []))
     _style_header(ws)
 
     # Index replicate results by the chosen custom_barcode's well when selectable.
@@ -438,8 +462,11 @@ def _write_final(
                         vr.translated.barcode,
                         baselines.get(rr.selected_plate, _EMPTY_BASELINE),
                     ),
+                    *([_manual_text(rr)] if with_manual else []),
                 ]
             )
+            if with_manual:
+                _literal_last_cell(ws)
             row_idx = ws.max_row
             # Selected-plate yellow highlight per 050 spec.
             ws.cell(row=row_idx, column=2).fill = _fill(SELECTED_PLATE_YELLOW)

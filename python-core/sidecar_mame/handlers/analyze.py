@@ -419,7 +419,7 @@ def _serialize_verdict(vr: Any) -> dict:
 
 
 def _serialize_replicate(rr: Any) -> dict:
-    return {
+    out = {
         "mutant_id": rr.mutant_id,
         "selected_plate": rr.selected_plate,
         "selection_reason": rr.selection_reason,
@@ -435,6 +435,11 @@ def _serialize_replicate(rr: Any) -> dict:
         "is_fallback": bool(getattr(rr, "is_fallback", False)),
         "fallback_reason": getattr(rr, "fallback_reason", None),
     }
+    # Present only for a manually confirmed result, so an automatic one
+    # serializes exactly as it did before the field existed.
+    if getattr(rr, "manual", None) is not None:
+        out["manual"] = asdict(rr.manual)
+    return out
 
 
 #: How a serialized boolean can be spelled. JSON writes ``true``/``false``, but a
@@ -644,6 +649,23 @@ def _deserialize_replicate(d: dict) -> Any:
         failed=_as_bool(d.get("failed"), False),
         is_fallback=_as_bool(d.get("is_fallback"), False),
         fallback_reason=d.get("fallback_reason"),
+        manual=_deserialize_manual(d.get("manual")),
+    )
+
+
+def _deserialize_manual(d: Any) -> Any:
+    from kuma_core.mame.models import ManualConfirmation
+
+    if not isinstance(d, dict):
+        return None
+    return ManualConfirmation(
+        note=str(d.get("note") or ""),
+        auto_selected_plate=d.get("auto_selected_plate"),
+        auto_verdict=str(d.get("auto_verdict") or ""),
+        auto_failed=_as_bool(d.get("auto_failed"), False),
+        auto_is_fallback=_as_bool(d.get("auto_is_fallback"), False),
+        auto_selection_reason=str(d.get("auto_selection_reason") or ""),
+        auto_fallback_reason=d.get("auto_fallback_reason"),
     )
 
 

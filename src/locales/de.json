@@ -1541,6 +1541,35 @@
     "replicateModeNotice": {
       "pooled": "Dieser Lauf hat {{detected}} native barcodes zu einer Plate zusammengefasst und hat daher keine Replicates zum Vergleichen.",
       "subset": "Dieser Run-Ordner enthält {{detected}} native barcodes, davon wurden {{replicates}} als Replicates bewertet. Der Rest steckt nicht in diesen Ergebnissen."
+    },
+    "manualConfirm": {
+      "title": "2.3 Zusätzliche Sequenzierung: Plattenkopie bestätigen",
+      "description": "Verwenden Sie dies, nachdem Sie eine Position erneut sequenziert oder anders überprüft haben. Wählen Sie die vorhandene Plattenkopie und notieren Sie, wie Sie sie bestätigt haben. Die Wahl ersetzt die automatische Auswahl in Plattenkarte, Ergebnis-Arbeitsmappe, Pick-Liste und Export in Schritt 3; das ursprüngliche Urteil bleibt erhalten.",
+      "needsTitle": "Positionen ohne nutzbare ausgewählte Kopie: {{count}}",
+      "needsEmpty": "Jede Position hat eine nutzbare ausgewählte Kopie.",
+      "noCopy": "Keine Kopie ausgewählt",
+      "choose": "Kopie wählen",
+      "openAny": "Beliebige Position öffnen",
+      "openAnyPlaceholder": "Position auswählen...",
+      "copiesLegend": "Plattenkopie für {{mutant}}",
+      "noteLabel": "Bestätigungsnotiz",
+      "notePlaceholder": "z. B. Sanger 2026-10-20 OK",
+      "confirm": "Kopie bestätigen",
+      "cancel": "Abbrechen",
+      "confirmedTitle": "Manuell bestätigte Positionen: {{count}}",
+      "badge": "Manuell bestätigt",
+      "original": "Ursprüngliches Urteil: {{verdict}} ({{copy}})",
+      "originalNone": "Ursprüngliche Auswahl: keine",
+      "undo": "Rückgängig",
+      "droppedTitle": "Einige Bestätigungen passen nicht mehr zu diesem Lauf und wurden entfernt:",
+      "droppedItem": "{{mutant}}, Kopie {{copy}}: {{reason}}",
+      "dropReason": {
+        "unknown_mutant": "die Position ist nicht in diesem Lauf",
+        "unknown_copy": "die Plattenkopie existiert nicht",
+        "duplicate_mutant": "ein zweiter Eintrag für dieselbe Position"
+      },
+      "dismiss": "Schließen",
+      "error": "Die Bestätigung konnte nicht angewendet werden: {{message}}"
     }
   },
   "home": {

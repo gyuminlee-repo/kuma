@@ -1541,6 +1541,35 @@
     "replicateModeNotice": {
       "pooled": "Esta ejecución agrupó {{detected}} native barcodes en una sola plate, así que no hay replicates que comparar.",
       "subset": "Esta carpeta de run tiene {{detected}} native barcodes y {{replicates}} de ellos se evaluaron como replicates. El resto no está en estos resultados."
+    },
+    "manualConfirm": {
+      "title": "2.3 Secuenciación adicional: confirmar una copia de placa",
+      "description": "Úselo después de volver a secuenciar un pocillo o comprobarlo de otra forma. Elija qué copia de placa existente usar y registre cómo la confirmó. La elección sustituye la selección automática en el mapa de placa, el libro de resultados, la lista de picks y la exportación del paso 3; se conserva el veredicto original.",
+      "needsTitle": "Pocillos sin copia seleccionada utilizable: {{count}}",
+      "needsEmpty": "Todos los pocillos tienen una copia seleccionada utilizable.",
+      "noCopy": "Ninguna copia seleccionada",
+      "choose": "Elegir copia",
+      "openAny": "Abrir cualquier pocillo",
+      "openAnyPlaceholder": "Seleccione un pocillo...",
+      "copiesLegend": "Copia de placa de {{mutant}}",
+      "noteLabel": "Nota de confirmación",
+      "notePlaceholder": "p. ej. Sanger 2026-10-20 OK",
+      "confirm": "Confirmar copia",
+      "cancel": "Cancelar",
+      "confirmedTitle": "Pocillos confirmados manualmente: {{count}}",
+      "badge": "Confirmado manualmente",
+      "original": "Veredicto original: {{verdict}} ({{copy}})",
+      "originalNone": "Selección original: ninguna",
+      "undo": "Deshacer",
+      "droppedTitle": "Algunas confirmaciones ya no corresponden a esta ejecución y se eliminaron:",
+      "droppedItem": "{{mutant}}, copia {{copy}}: {{reason}}",
+      "dropReason": {
+        "unknown_mutant": "el pocillo no está en esta ejecución",
+        "unknown_copy": "la copia de placa no existe",
+        "duplicate_mutant": "una segunda entrada para el mismo pocillo"
+      },
+      "dismiss": "Descartar",
+      "error": "No se pudo aplicar la confirmación: {{message}}"
     }
   },
   "home": {

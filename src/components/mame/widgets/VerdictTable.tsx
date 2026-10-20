@@ -344,6 +344,11 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
     return s;
   }, [replicates]);
 
+  const manualMutants = useMemo<Set<string>>(
+    () => new Set(replicates.filter((r) => r.manual).map((r) => r.mutant_id)),
+    [replicates],
+  );
+
   // FINAL tab: the per-mutant selected-replicate wells exactly as the plate map
   // marks them — keyed by (native_barcode, custom_barcode), mirroring the backend
   // get_plate_data `selected` rule (sidecar handlers/export.py).
@@ -572,6 +577,15 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
                 {t("mame.verdictTable.selectedReplicateBadge")}
               </Badge>
             )}
+            {manualMutants.has(row.original.mutant_id) &&
+              selectedSet.has(`${row.original.mutant_id}|${row.original.native_barcode}`) && (
+                <Badge
+                  variant="outline"
+                  className="border-primary/40 text-primary text-plate px-1 py-0"
+                >
+                  {t("mame.manualConfirm.badge")}
+                </Badge>
+              )}
           </span>
         ),
       },
@@ -826,7 +840,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
         },
       },
     ],
-    [t, recoveredByMutant, selectedSet, openWellDetail, selectedWell, concordance],
+    [t, recoveredByMutant, selectedSet, manualMutants, openWellDetail, selectedWell, concordance],
   );
 
   // Each column carries its default width as react-table `size`, so a resized
