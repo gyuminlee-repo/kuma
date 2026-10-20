@@ -122,4 +122,22 @@ describe("WellPlate copy strip", () => {
     // The count lives inside the badge row (a child of a wrapper), not directly on the cell.
     expect(count?.closest("button")).not.toBe(count?.parentElement);
   });
+
+  it("marks the viewed copy separately from the winner, only in the focused well", () => {
+    const wells = [
+      { ...rec("A1", "sort_barcode07", "WRONG_AA", false), barcode: "b07" },
+      { ...rec("A1", "sort_barcode08", "PASS", true), barcode: "b08" },
+      { ...rec("A2", "sort_barcode07", "PASS", true), barcode: "b07" },
+      { ...rec("A2", "sort_barcode08", "PASS", false), barcode: "b08" },
+    ];
+    render(
+      <WellPlate wells={wells} copies={copiesByWell(wells)} selectedWellId="A1" viewedKey="sort_barcode07|b07" />,
+    );
+    const a1 = [...cell("A1").querySelectorAll<HTMLElement>('[data-testid="copy-segment"]')];
+    expect(a1.map((s) => s.dataset.viewed)).toEqual(["true", "false"]);
+    expect(a1.map((s) => s.dataset.selected)).toEqual(["false", "true"]);
+    // The same copy key in another well is not marked.
+    const a2 = [...cell("A2").querySelectorAll<HTMLElement>('[data-testid="copy-segment"]')];
+    expect(a2.map((s) => s.dataset.viewed)).toEqual(["false", "false"]);
+  });
 });

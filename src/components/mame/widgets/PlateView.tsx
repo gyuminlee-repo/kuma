@@ -83,6 +83,11 @@ export function PlateView({ wellColorOf, wells: externalWells, expanded, onToggl
   const [view, setView] = useState<string>("final");
   const activeView = view !== "final" && plates.includes(view) ? view : "final";
   const isFinal = activeView === "final";
+  // A plate that left the data must not come back selected if it reappears.
+  const platesKey = plates.join("|");
+  useEffect(() => {
+    setView((v) => (v === "final" || platesKey.split("|").includes(v) ? v : "final"));
+  }, [platesKey]);
   const copies = copiesByWell(wells);
   const displayWells = collapseWells(
     isFinal ? wells : wells.filter((w) => w.native_barcode === activeView),
@@ -237,6 +242,9 @@ export function PlateView({ wellColorOf, wells: externalWells, expanded, onToggl
                 : undefined
             }
             copies={isFinal ? copies : undefined}
+            viewedKey={
+              selectedWell ? `${selectedWell.native_barcode}|${selectedWell.barcode}` : undefined
+            }
             onWellClick={(well) => setSelectedWell(well)}
             colorblindMode={colorblindMode}
             wellColorOf={wellColorOf}

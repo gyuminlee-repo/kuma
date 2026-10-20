@@ -59,6 +59,10 @@ interface WellPlateProps {
   /** Every plate copy per well position (see copiesByWell). When a well has
    *  more than one copy, a verdict strip is drawn at the bottom of its cell. */
   copies?: ReadonlyMap<string, readonly WellEntry[]>;
+  /** Key (`native_barcode|barcode`) of the copy the inspector is showing. Its
+   *  segment gets a "viewing" marker, separate from the winner marker, so a
+   *  hand-picked losing copy is still visible on the Final tab. */
+  viewedKey?: string;
 }
 
 export function WellPlate({
@@ -69,6 +73,7 @@ export function WellPlate({
   wellColorOf,
   dimmedOf,
   copies,
+  viewedKey,
 }: WellPlateProps) {
   const { t } = useTranslation();
   // Collapse to one record per well position (shared helper): prefer the
@@ -253,9 +258,11 @@ export function WellPlate({
                             data-plate={c.native_barcode}
                             data-verdict={c.verdict}
                             data-selected={c.selected ? "true" : "false"}
+                            data-viewed={isFocused && viewedKey === `${c.native_barcode}|${c.barcode}` ? "true" : "false"}
                             className={cn(
                               "min-w-0 flex-1 rounded-[1px]",
                               c.selected ? "h-full ring-1 ring-inset ring-foreground" : "h-2/3",
+                              isFocused && viewedKey === `${c.native_barcode}|${c.barcode}` && "outline outline-1 outline-ring",
                             )}
                             style={{ backgroundColor: verdictFill[c.verdict].bg }}
                           />

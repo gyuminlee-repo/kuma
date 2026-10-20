@@ -393,4 +393,26 @@ describe("PlateView plate copy tabs", () => {
     setup([well("A1", "PASS")]);
     expect(screen.queryByRole("tablist")).toBeNull();
   });
+
+  it("marks the copy the inspector is showing, apart from the winner, on the Final tab", () => {
+    mockStore(COPIES, { selectedWell: COPIES[0] });
+    render(<PlateView />);
+    const segs = [...wellButton("A1").querySelectorAll<HTMLElement>('[data-testid="copy-segment"]')];
+    expect(segs.map((s) => s.dataset.viewed)).toEqual(["true", "false"]);
+    expect(segs.map((s) => s.dataset.selected)).toEqual(["false", "true"]);
+  });
+
+  it("does not reopen a plate tab that vanished and later reappears", () => {
+    mockStore(COPIES);
+    const { rerender } = render(<PlateView />);
+    fireEvent.click(screen.getByRole("tab", { name: "NB07" }));
+    expect(screen.getByRole("tab", { name: "NB07" })).toHaveAttribute("aria-selected", "true");
+    mockStore(COPIES.filter((c) => c.native_barcode === "sort_barcode08"));
+    rerender(<PlateView />);
+    expect(screen.queryByRole("tablist")).toBeNull();
+    mockStore(COPIES);
+    rerender(<PlateView />);
+    expect(screen.getByRole("tab", { name: "Final" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "NB07" })).toHaveAttribute("aria-selected", "false");
+  });
 });
