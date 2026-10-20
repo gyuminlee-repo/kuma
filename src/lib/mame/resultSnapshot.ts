@@ -16,7 +16,12 @@
 
 import { exists, readTextFile, rename } from "@tauri-apps/plugin-fs";
 import { ensureAutosaveDir, atomicWriteJson } from "@/lib/autosave";
-import type { AnalysisConditions, AnalyzeResult } from "@/types/mame/models";
+import type {
+  AnalysisConditions,
+  AnalyzeResult,
+  JanusAutosaveResult,
+  ReplicateResult,
+} from "@/types/mame/models";
 import { RESULT_CONTRACT } from "@/lib/mame/resultContract";
 import { hasValidRunQuality } from "@/types/mame/runQualityValidator";
 
@@ -88,6 +93,33 @@ export async function writeMameResultSnapshot(
     result,
   };
   await atomicWriteJson(mameResultPath(projectPath), snapshot);
+}
+
+/**
+ * Replace the selection stored in the result file after a manual plate-copy
+ * confirmation (or its undo). The file is otherwise written once, at analyze
+ * time, and a restore replays it into the sidecar: without this the restore
+ * would bring back the automatic pick and silently drop the confirmation.
+ * Everything else in the file, including its identity and save time, is kept.
+ * No-op for a scratch project or when there is no readable result file yet.
+ */
+export async function updateMameResultSelection(
+  projectPath: string | null,
+  replicates: ReplicateResult[],
+  picks: JanusAutosaveResult | null,
+): Promise<void> {
+  if (!projectPath) return;
+  const read = await readMameResultSnapshot(projectPath);
+  if (read.status !== "ok") return;
+  const { snapshot } = read;
+  await atomicWriteJson(mameResultPath(projectPath), {
+    ...snapshot,
+    result: {
+      ...snapshot.result,
+      replicates,
+      ...(picks ? { janus_autosave: picks } : {}),
+    },
+  });
 }
 
 export type ReadMameResultResult =

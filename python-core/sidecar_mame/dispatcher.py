@@ -25,6 +25,7 @@ from sidecar_mame.handlers.analyze import (
 )
 from sidecar_mame.handlers.load import handle_load_analyze_result
 from sidecar_mame.handlers.export import (
+    handle_apply_selection_overrides,
     handle_export_excel,
     handle_export_janus_mapping,
     handle_export_janus_mapping_dry_run,
@@ -98,6 +99,9 @@ _METHODS = {
     "load_analyze_result": handle_load_analyze_result,
     "export_excel": handle_export_excel,
     "get_plate_data": handle_get_plate_data,
+    # Manual plate-copy confirmation (Step 2.3): replaces the cached selection
+    # so the plate map, workbook, pick list and Janus export agree.
+    "apply_selection_overrides": handle_apply_selection_overrides,
     "export_janus_mapping": handle_export_janus_mapping,
     # Preview the Janus rows before committing to a file. Same analyze
     # prerequisite, no output path, validation returned instead of raised.

@@ -7,6 +7,8 @@ dispatcher maps to JSON-RPC error code ``-32002``.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from kuma_core.shared.version import KUMA_VERSION
 from sidecar_mame.core import (
     _ALLOWED_EXCEL_EXTENSIONS,
@@ -213,6 +215,8 @@ def handle_get_plate_data(_params: dict) -> dict:
     # (native_barcode, custom_barcode) -> (is_fallback, fallback_reason) for the
     # selected replicate of each mutant.
     fallback_by_pair: dict[tuple[str, str], tuple[bool, str | None]] = {}
+    # Same pairs, for the copies an operator chose by hand: pair -> note.
+    manual_by_pair: dict[tuple[str, str], str] = {}
     for rr in state.last_replicates or []:
         if rr.selected_plate and not rr.failed:
             vr = rr.plate_verdicts.get(rr.selected_plate)
@@ -223,6 +227,8 @@ def handle_get_plate_data(_params: dict) -> dict:
                     bool(getattr(rr, "is_fallback", False)),
                     getattr(rr, "fallback_reason", None),
                 )
+                if getattr(rr, "manual", None) is not None:
+                    manual_by_pair[key] = rr.manual.note
 
     wells: list[dict] = []
     for vr in state.last_verdicts:
@@ -254,10 +260,110 @@ def handle_get_plate_data(_params: dict) -> dict:
                 "notes": vr.verdict_notes,
                 "is_fallback": is_fallback,
                 "fallback_reason": fallback_reason,
+                "manually_confirmed": key in manual_by_pair,
+                "manual_note": manual_by_pair.get(key),
             }
         )
 
     return {"wells": wells}
+
+
+def _rewrite_result_workbook(state) -> dict:
+    """Rewrite the result workbook from the cached run, staged and renamed atomically.
+
+    Analyze wrote this file once with the automatic pick; after a manual
+    confirmation (or its undo) the cached replicates differ, so the file is
+    rebuilt from them. Never raises: the in-memory change has already happened
+    and a workbook that cannot be written (open in Excel, read-only folder) is a
+    fact to report, not a reason to lose it.
+    """
+    from kuma_core.mame.export import WellMapper, write_excel
+    from kuma_core.shared.atomic_write import atomic_output_path
+
+    result: dict = {"status": "skipped", "output_path": None, "error": None}
+    if not state.last_output_path:
+        return result
+    target = Path(state.last_output_path)
+    result["output_path"] = str(target)
+    try:
+        with atomic_output_path(target) as staged:
+            write_excel(
+                verdict_records=state.last_verdicts,
+                replicate_results=state.last_replicates,
+                output_path=staged,
+                mapper=WellMapper(),
+                ngs_run_meta=state.last_run_meta,
+                kuma_version=KUMA_VERSION,
+                designed_mutant_ids=state.last_designed_mutant_ids,
+                barcode_prefix_note=state.last_barcode_prefix_note,
+                analysis=state.last_analysis_conditions,
+            )
+        result["status"] = "saved"
+    except Exception as exc:  # noqa: BLE001 - the confirmation itself must survive
+        result["status"] = "failed"
+        result["error"] = str(exc)
+    return result
+
+
+def handle_apply_selection_overrides(params: dict) -> dict:
+    """Apply the operator's manual plate-copy confirmations to the cached run.
+
+    Params: ``overrides`` (list of ``{mutant_id, plate, note}``, the FULL
+    current list; an empty list undoes every confirmation) and optional
+    ``janus_settings`` (the same object ``analyze`` takes, used only to
+    rewrite the pick list the way the run wrote it).
+
+    The cached replicates are replaced, so ``get_plate_data``, ``export_excel``
+    and both Janus handlers answer from the confirmed copies. The pick list next
+    to the result workbook is rewritten so the file cannot disagree with the
+    screen. Returns ``applied``, ``dropped`` (with a reason each), the
+    serialized ``replicates``, the pick list outcome as ``picks_autosave`` and the
+    result workbook outcome as ``workbook_autosave`` (both are rebuilt from the
+    cached run, so an undo returns them to the automatic content).
+
+    Raises ``RuntimeError`` if no analyze has been run in this session.
+    """
+    from kuma_core.mame.select.manual_override import apply_manual_overrides
+    from sidecar_mame.models import ApplySelectionOverridesParams
+
+    from .analyze import _autosave_picks, _serialize_replicate, picks_autosave_path
+
+    state = get_state()
+    if state.last_verdicts is None or state.last_replicates is None:
+        raise RuntimeError(
+            "No prior analyze result. Run 'analyze' before 'apply_selection_overrides'."
+        )
+    p = ApplySelectionOverridesParams.model_validate(params)
+
+    replicates, applied, dropped = apply_manual_overrides(
+        state.last_replicates, [o.model_dump() for o in p.overrides]
+    )
+    set_last_analyze(
+        state.last_verdicts,
+        replicates,
+        state.last_output_path or "",
+        run_meta=state.last_run_meta,
+        designed_mutant_ids=state.last_designed_mutant_ids,
+        barcode_prefix_note=state.last_barcode_prefix_note,
+        analysis_conditions=state.last_analysis_conditions,
+    )
+
+    workbook = _rewrite_result_workbook(state)
+
+    picks = None
+    if state.last_output_path:
+        output = Path(state.last_output_path)
+        picks = _autosave_picks(replicates, output, state.last_run_meta, p.janus_settings)
+        if picks["status"] == "skipped":
+            picks_autosave_path(output).unlink(missing_ok=True)
+
+    return {
+        "applied": applied,
+        "dropped": dropped,
+        "replicates": [_serialize_replicate(r) for r in replicates],
+        "picks_autosave": picks,
+        "workbook_autosave": workbook,
+    }
 
 
 def handle_export_janus_mapping(params: dict) -> dict:
@@ -373,6 +479,7 @@ def handle_export_janus_mapping_dry_run(params: dict) -> dict:
 
 
 __all__ = [
+    "handle_apply_selection_overrides",
     "handle_export_excel",
     "handle_get_plate_data",
     "handle_export_janus_mapping",

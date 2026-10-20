@@ -20,6 +20,7 @@ import type {
   ContaminationReport,
   OffLayoutRecords,
   DemuxResume,
+  DroppedSelectionOverride,
   PlateOrderFinding,
   ReplicateResult,
   RunHealthData,
@@ -473,6 +474,23 @@ export interface AnalysisSlice {
   setBuildEvolveproCompletion: (
     completion: BuildEvolveproCompletionRecord | null,
   ) => void;
+  /**
+   * Manual plate-copy confirmations (step 2.3) are NOT stored here: they are the
+   * `manual` field of `replicates`, which is what the autosave and the result
+   * file already persist. These hold only what a call reported back.
+   */
+  selectionOverrideNotice: DroppedSelectionOverride[] | null;
+  selectionOverrideError: string | null;
+  /** Set when the confirmation was applied but the result workbook could not be rewritten. */
+  selectionOverrideWorkbookError: string | null;
+  /** Set when the confirmation was applied but the project's result file could not be updated. */
+  selectionOverrideResultFileError: string | null;
+  isApplyingSelectionOverride: boolean;
+  applySelectionOverride: (mutantId: string, plate: string, note: string) => Promise<void>;
+  undoSelectionOverride: (mutantId: string) => Promise<void>;
+  /** Re-send the overrides the replicates carry; drops (and reports) the ones that no longer fit. */
+  reapplySelectionOverrides: () => Promise<void>;
+  dismissSelectionOverrideNotice: () => void;
   loadPlateData: () => Promise<void>;
   loadRunHealth: () => Promise<void>;
   clearResults: () => void;

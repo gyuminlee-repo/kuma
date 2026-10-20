@@ -1544,6 +1544,37 @@
     "replicateModeNotice": {
       "pooled": "Cette analyse a regroupé {{detected}} native barcodes en une seule plate : aucun replicate à comparer.",
       "subset": "Ce dossier de run contient {{detected}} native barcodes, dont {{replicates}} ont été évalués comme replicates. Les autres ne figurent pas dans ces résultats."
+    },
+    "manualConfirm": {
+      "title": "2.3 Séquençage supplémentaire : confirmer une copie de plaque",
+      "description": "À utiliser après avoir re-séquencé un puits ou l'avoir vérifié autrement. Choisissez la copie de plaque existante à utiliser et notez comment vous l'avez confirmée. Ce choix remplace la sélection automatique dans la carte de plaque, le classeur de résultats et la liste de prélèvement ; le verdict d'origine est conservé.",
+      "needsTitle": "Puits sans copie sélectionnée utilisable : {{count}}",
+      "needsEmpty": "Chaque puits a une copie sélectionnée utilisable.",
+      "noCopy": "Aucune copie sélectionnée",
+      "choose": "Choisir la copie",
+      "openAny": "Ouvrir n'importe quel puits",
+      "openAnyPlaceholder": "Sélectionner un puits...",
+      "copiesLegend": "Copie de plaque pour {{mutant}}",
+      "noteLabel": "Note de confirmation",
+      "notePlaceholder": "p. ex. Sanger 2026-10-20 OK",
+      "confirm": "Confirmer la copie",
+      "cancel": "Annuler",
+      "confirmedTitle": "Puits confirmés manuellement : {{count}}",
+      "badge": "Confirmé manuellement",
+      "original": "Verdict d'origine : {{verdict}} ({{copy}})",
+      "originalNone": "Sélection d'origine : aucune",
+      "undo": "Annuler la confirmation",
+      "droppedTitle": "Certaines confirmations ne correspondent plus à cette exécution et ont été retirées :",
+      "droppedItem": "{{mutant}}, copie {{copy}} : {{reason}}",
+      "dropReason": {
+        "unknown_mutant": "le puits n'est pas dans cette exécution",
+        "unknown_copy": "la copie de plaque n'existe pas",
+        "duplicate_mutant": "une deuxième entrée pour le même puits"
+      },
+      "dismiss": "Fermer",
+      "error": "Impossible d'appliquer la confirmation : {{message}}",
+      "workbookFailed": "La confirmation a été appliquée, mais le classeur de résultats n'a pas pu être réécrit : {{message}}",
+      "resultFileFailed": "La confirmation a été appliquée, mais le fichier de résultats du projet n'a pas été mis à jour ; elle peut manquer à la réouverture du projet : {{message}}"
     }
   },
   "home": {

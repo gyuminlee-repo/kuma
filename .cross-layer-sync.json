@@ -1624,6 +1624,20 @@
       ],
       "note": "The Linux release archive full SHA256 is pinned and checked before extraction or execution. BINARY_SHA256 pins the executable inside that archive: a vendored binary whose bytes and executable bit match it is reused without any download, and every fresh install refuses an extracted executable that differs from it, so the two digests cannot drift apart and a version change must replace both. Other platform slots are inspected but remain unverified and unexecuted by this script.",
       "severity": "blocking"
+    },
+    {
+      "id": "mame-override-note-length",
+      "files": [
+        "kuma_core/mame/select/manual_override.py",
+        "src/lib/mame/selectionOverrides.ts",
+        "python-core/sidecar_mame/models.py"
+      ],
+      "symbols": [
+        "MAX_NOTE_LENGTH",
+        "MAX_OVERRIDE_NOTE_LENGTH"
+      ],
+      "note": "Longest manual-confirmation note: Python keeps the first MAX_NOTE_LENGTH characters (manual_override.py) and the step 2.3 note input caps itself at MAX_OVERRIDE_NOTE_LENGTH (selectionOverrides.ts). The two must stay equal, or the field accepts text the sidecar then cuts without telling the operator.",
+      "severity": "warning"
     }
   ]
 }

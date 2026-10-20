@@ -1544,6 +1544,37 @@
     "replicateModeNotice": {
       "pooled": "Esta execução juntou {{detected}} native barcodes em uma única plate, portanto não há replicates para comparar.",
       "subset": "Esta pasta de run tem {{detected}} native barcodes e {{replicates}} deles foram avaliados como replicates. Os demais não estão nestes resultados."
+    },
+    "manualConfirm": {
+      "title": "2.3 Sequenciamento adicional: confirmar uma cópia da placa",
+      "description": "Use depois de ressequenciar um poço ou verificá-lo de outra forma. Escolha qual cópia de placa existente usar e registre como a confirmou. A escolha substitui a seleção automática no mapa da placa, na planilha de resultados e na lista de seleção; o veredicto original é mantido.",
+      "needsTitle": "Poços sem cópia selecionada utilizável: {{count}}",
+      "needsEmpty": "Todos os poços têm uma cópia selecionada utilizável.",
+      "noCopy": "Nenhuma cópia selecionada",
+      "choose": "Escolher cópia",
+      "openAny": "Abrir qualquer poço",
+      "openAnyPlaceholder": "Selecione um poço...",
+      "copiesLegend": "Cópia da placa de {{mutant}}",
+      "noteLabel": "Nota de confirmação",
+      "notePlaceholder": "ex.: Sanger 2026-10-20 OK",
+      "confirm": "Confirmar cópia",
+      "cancel": "Cancelar",
+      "confirmedTitle": "Poços confirmados manualmente: {{count}}",
+      "badge": "Confirmado manualmente",
+      "original": "Veredicto original: {{verdict}} ({{copy}})",
+      "originalNone": "Seleção original: nenhuma",
+      "undo": "Desfazer",
+      "droppedTitle": "Algumas confirmações não correspondem mais a esta execução e foram removidas:",
+      "droppedItem": "{{mutant}}, cópia {{copy}}: {{reason}}",
+      "dropReason": {
+        "unknown_mutant": "o poço não está nesta execução",
+        "unknown_copy": "a cópia da placa não existe",
+        "duplicate_mutant": "uma segunda entrada para o mesmo poço"
+      },
+      "dismiss": "Dispensar",
+      "error": "Não foi possível aplicar a confirmação: {{message}}",
+      "workbookFailed": "A confirmação foi aplicada, mas não foi possível reescrever a planilha de resultados: {{message}}",
+      "resultFileFailed": "A confirmação foi aplicada, mas o arquivo de resultados do projeto não foi atualizado, então ela pode faltar ao reabrir o projeto: {{message}}"
     }
   },
   "home": {

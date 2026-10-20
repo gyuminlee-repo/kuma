@@ -226,6 +226,56 @@ export interface ReplicateResult {
   plate_verdicts: Record<string, VerdictRecord>;
   is_fallback: boolean;
   fallback_reason: string | null;
+  /**
+   * Present only while the operator's manual plate-copy confirmation overrides
+   * the automatic pick (`kuma_core/mame/models.py` ManualConfirmation). The
+   * `auto_*` fields hold what the algorithm chose, so the original verdict stays
+   * readable next to the confirmation. Absent on every automatic result and on
+   * payloads saved before this field existed.
+   */
+  manual?: ManualConfirmation | null;
+}
+
+export interface ManualConfirmation {
+  note: string;
+  auto_selected_plate: string | null;
+  auto_verdict: string;
+  auto_failed: boolean;
+  auto_is_fallback: boolean;
+  auto_selection_reason: string;
+  auto_fallback_reason: string | null;
+}
+
+/** One entry of the `apply_selection_overrides` request: use copy `plate` for `mutant_id`. */
+export interface SelectionOverride {
+  mutant_id: string;
+  plate: string;
+  note: string;
+}
+
+export type SelectionOverrideDropReason =
+  | "unknown_mutant"
+  | "unknown_copy"
+  | "duplicate_mutant";
+
+export interface DroppedSelectionOverride extends SelectionOverride {
+  reason: SelectionOverrideDropReason;
+}
+
+export interface ApplySelectionOverridesResult {
+  applied: (SelectionOverride & {
+    auto_selected_plate: string | null;
+    auto_verdict: string;
+  })[];
+  dropped: DroppedSelectionOverride[];
+  replicates: ReplicateResult[];
+  picks_autosave: JanusAutosaveResult | null;
+  /** The result workbook rewritten from the confirmed selection (or the automatic one after an undo). */
+  workbook_autosave: {
+    status: "saved" | "skipped" | "failed";
+    output_path: string | null;
+    error: string | null;
+  };
 }
 
 /**
@@ -783,6 +833,9 @@ export interface WellEntry {
   notes: string;
   is_fallback: boolean;
   fallback_reason: string | null;
+  /** True when this copy was chosen by hand in step 2.3. Absent on older payloads. */
+  manually_confirmed?: boolean;
+  manual_note?: string | null;
 }
 
 export interface AnalysisParams {
@@ -1086,6 +1139,7 @@ export type JanusPreviewErrorCode =
   | "duplicate_dest_well"
   | "missing_liquid_class"
   | "derived_source_rack"
+  | "manual_confirmation"
   | "autosave_failed";
 
 /**

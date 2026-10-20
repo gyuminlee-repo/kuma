@@ -1732,6 +1732,9 @@ async function injectSnapshotResultsIntoSidecar(
     summary: review.value.summary,
     distribution_stats: review.value.distributionStats,
   });
+  // 확정 복사본(`manual`)은 load_analyze_result 가 replicates 에서 직접 복원한다.
+  // 여기서 apply_selection_overrides 를 다시 부르면 run_meta 등이 빠진 채로
+  // 결과 워크북과 picks.csv 를 덮어쓰므로 복원은 파일을 쓰지 않는다.
   return alive();
 }
 

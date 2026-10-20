@@ -4,6 +4,9 @@ import { exists, readTextFile } from "@tauri-apps/plugin-fs";
 import i18next from "i18next";
 import type { StateCreator } from "zustand";
 import { sendRequest } from "@/lib/ipc-mame";
+import { toRpcParams } from "@/lib/mame/janusSettings";
+import { updateMameResultSelection } from "@/lib/mame/resultSnapshot";
+import { overridesFromReplicates } from "@/lib/mame/selectionOverrides";
 import {
   sampleReplicates,
   sampleSummary,
@@ -15,7 +18,9 @@ import { useRoundStore } from "@/store/round/roundSlice";
 import type { ActivityRecord, PlateMeta } from "@/types/mame/activity";
 import type {
   AnalyzeSummary,
+  ApplySelectionOverridesResult,
   PlateDataResult,
+  SelectionOverride,
   ReplicateResult,
   RunHealthData,
   VerdictRecord,
@@ -39,6 +44,62 @@ type SampleAnalysisFixture = {
   wells?: WellEntry[];
   runHealth?: RunHealthData;
 };
+
+async function sendOverrides(
+  get: () => AppState,
+  set: (partial: Partial<AppState>) => void,
+  overrides: SelectionOverride[],
+): Promise<void> {
+  const verdicts = get().verdicts;
+  set({
+    isApplyingSelectionOverride: true,
+    selectionOverrideError: null,
+    selectionOverrideWorkbookError: null,
+    selectionOverrideResultFileError: null,
+  });
+  try {
+    const result = await sendRequest<ApplySelectionOverridesResult>(
+      "apply_selection_overrides",
+      { overrides, janus_settings: toRpcParams(get().janusSettings) },
+    );
+    if (get().verdicts !== verdicts) return;
+    set({
+      replicates: result.replicates,
+      selectionOverrideNotice: result.dropped.length > 0 ? result.dropped : null,
+      selectionOverrideWorkbookError:
+        result.workbook_autosave?.status === "failed"
+          ? (result.workbook_autosave.error ?? "")
+          : null,
+      ...(result.picks_autosave ? { janusAutosave: result.picks_autosave } : {}),
+    });
+    // The confirmation is already live here, so a failed result-file write is
+    // its own state: the shared catch below would call the apply itself failed.
+    try {
+      await updateMameResultSelection(
+        get().projectPath,
+        result.replicates,
+        result.picks_autosave,
+      );
+    } catch (error) {
+      if (get().verdicts === verdicts) {
+        set({
+          selectionOverrideResultFileError:
+            error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+    await get().loadPlateData();
+    // Run health reads the replicates the sidecar just changed.
+    await get().loadRunHealth();
+  } catch (error) {
+    if (get().verdicts !== verdicts) return;
+    set({
+      selectionOverrideError: error instanceof Error ? error.message : String(error),
+    });
+  } finally {
+    set({ isApplyingSelectionOverride: false });
+  }
+}
 
 export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> = (
   set,
@@ -69,6 +130,11 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   selectedWell: null,
   runHealth: null,
   buildEvolveproCompletion: null,
+  selectionOverrideNotice: null,
+  selectionOverrideError: null,
+  selectionOverrideWorkbookError: null,
+  selectionOverrideResultFileError: null,
+  isApplyingSelectionOverride: false,
   mameSamplePrefill: null,
   consumeMameSamplePrefill: () => set({ mameSamplePrefill: null }),
   sampleDataLoaded: false,
@@ -144,6 +210,12 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       searchQuery: "",
       runHealth: null,
       buildEvolveproCompletion: null,
+      // The confirmations live on the replicates cleared above, so they go with
+      // them; what a call reported about them describes nothing afterwards.
+      selectionOverrideNotice: null,
+      selectionOverrideError: null,
+      selectionOverrideWorkbookError: null,
+      selectionOverrideResultFileError: null,
       // Nothing here touches what step 4.2 answered. That answer is computed
       // from per-round xlsx files the operator picks, not from the analyze
       // inputs being invalidated here, and it lives on the round rather than in
@@ -191,6 +263,27 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       set({ wells: [], selectedWell: null });
     }
   },
+  // Selection overrides are not analyze inputs, so none of this clears results.
+  // Each call sends the FULL list and the sidecar recomputes from the automatic
+  // pick, which is what makes undo and a stale entry well defined.
+  applySelectionOverride: async (mutantId, plate, note) => {
+    const rest = overridesFromReplicates(get().replicates).filter(
+      (o) => o.mutant_id !== mutantId,
+    );
+    await sendOverrides(get, set, [...rest, { mutant_id: mutantId, plate, note }]);
+  },
+  undoSelectionOverride: async (mutantId) => {
+    const rest = overridesFromReplicates(get().replicates).filter(
+      (o) => o.mutant_id !== mutantId,
+    );
+    await sendOverrides(get, set, rest);
+  },
+  reapplySelectionOverrides: async () => {
+    const current = overridesFromReplicates(get().replicates);
+    if (current.length === 0) return;
+    await sendOverrides(get, set, current);
+  },
+  dismissSelectionOverrideNotice: () => set({ selectionOverrideNotice: null }),
   loadRunHealth: async () => {
     const verdicts = get().verdicts;
     try {

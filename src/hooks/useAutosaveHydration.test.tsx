@@ -436,6 +436,48 @@ describe("useAutosaveHydration: analyze-result restore", () => {
     expect(st.distributionStats).toEqual(ANALYZE_RESULT.distribution_stats);
   });
 
+  it("restores a manually confirmed copy without asking the sidecar to rewrite any file", async () => {
+    // apply_selection_overrides is the only RPC that rewrites the result
+    // workbook and the pick list. Restore reaches the sidecar with less
+    // metadata than analyze had, so calling it here would degrade both files
+    // on every project open. load_analyze_result already carries `manual`.
+    const confirmed: ReplicateResult = {
+      ...REPLICATE,
+      manual: {
+        note: "Sanger OK",
+        auto_selected_plate: "barcode0",
+        auto_verdict: "LOWDEPTH",
+        auto_failed: false,
+        auto_is_fallback: false,
+        auto_selection_reason: "auto",
+        auto_fallback_reason: null,
+      },
+    };
+    hooks.readMameResultSnapshot.mockResolvedValue({
+      status: "ok",
+      snapshot: {
+        schema: 1,
+        saved_at: new Date().toISOString(),
+        kuma_version: "0.0.0-test",
+        result: { ...ANALYZE_RESULT, replicates: [confirmed] },
+      },
+    });
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(useMameAppStore.getState().currentMameSubStep).toBe("analyze.review");
+    });
+    const [, params] = hooks.sendMameRequest.mock.calls.find(
+      (c) => c[0] === "load_analyze_result",
+    ) as [string, { replicates: ReplicateResult[] }];
+    expect(params.replicates[0].manual?.note).toBe("Sanger OK");
+    expect(useMameAppStore.getState().replicates[0].manual?.note).toBe("Sanger OK");
+    expect(
+      hooks.sendMameRequest.mock.calls.some((c) => c[0] === "apply_selection_overrides"),
+    ).toBe(false);
+  });
+
   it("sends designed_mutant_ids so a restored run can still report recovery", async () => {
     // The sidecar stores this one (unlike summary / distribution_stats), and
     // without it build_run_health reports recovery_rate, total_mutants and

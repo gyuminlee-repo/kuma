@@ -107,6 +107,16 @@ _JANUS_DEVICE_HEADER = JANUS_DEVICE_HEADER
 SEVERITY_ERROR = "error"
 SEVERITY_WARNING = "warning"
 
+# Column the legacy5 pick list gains, only when a row was manually confirmed.
+# The instrument (device) sheet is pinned to the vendor's eight columns, so it
+# cannot carry it; the run's xlsx meta sheet and a preview warning do instead.
+MANUAL_COLUMN = "manual_confirmation"
+MANUAL_DEFAULT_TEXT = "manually confirmed"
+
+
+def _has_manual(rows: list[dict[str, object]]) -> bool:
+    return any(MANUAL_COLUMN in row for row in rows)
+
 SCHEMA_DEVICE = "device"
 SCHEMA_LEGACY5 = "legacy5"
 _SCHEMAS = (SCHEMA_DEVICE, SCHEMA_LEGACY5)
@@ -234,6 +244,8 @@ def _exclusion_reason(
     if vr is None:
         return "missing_verdict", ""
     verdict_value = vr.verdict.value
+    if rr.manual is not None:
+        return None
     if verdict_value not in include_verdicts:
         return "verdict_class", verdict_value
     if rr.is_fallback and not include_fallback:
@@ -423,18 +435,16 @@ def _assemble_janus_rows(
         # entirely and lists the clone in the preview.
         order_seq = seq if seq is not None else 0
 
-        keyed.append(
-            (
-                (order_seq, nb_order_key(source_plate), source_plate),
-                {
-                    "name": rr.mutant_id,
-                    "source_plate": source_plate,
-                    "source_well": well_label,
-                    "dest_well": well_label,  # default = same position; user may override
-                    "priority_score": priority_score,
-                },
-            )
-        )
+        row: dict[str, object] = {
+            "name": rr.mutant_id,
+            "source_plate": source_plate,
+            "source_well": well_label,
+            "dest_well": well_label,  # default = same position; user may override
+            "priority_score": priority_score,
+        }
+        if rr.manual is not None:
+            row[MANUAL_COLUMN] = rr.manual.note or MANUAL_DEFAULT_TEXT
+        keyed.append(((order_seq, nb_order_key(source_plate), source_plate), row))
 
     # Plate-map order, column-major (A1, B1 ... H1, A2), not sequencing depth:
     # the operator fills the final plate by hand while reading the step 2.2
@@ -730,6 +740,20 @@ def _collect_janus_rows(
         if finding is not None:
             findings.append(finding)
 
+    manual_ids = [str(r["name"]) for r in rows if MANUAL_COLUMN in r]
+    if manual_ids:
+        findings.append(
+            {
+                "code": "manual_confirmation",
+                "severity": SEVERITY_WARNING,
+                "message": (
+                    f"{len(manual_ids)} row(s) use a manually confirmed plate copy: "
+                    + ", ".join(manual_ids)
+                ),
+                "mutant_ids": manual_ids,
+            }
+        )
+
     if settings.dest_layout == DEST_LAYOUT_COMPACT:
         _apply_compact_layout(rows)
 
@@ -940,11 +964,34 @@ def export_mame_janus_csv(
             writer.writerow(_JANUS_DEVICE_HEADER)
             writer.writerows(project_device_rows(rows, resolved))
         else:
-            dict_writer = csv.DictWriter(fh, fieldnames=_JANUS_HEADER)
+            dict_writer = csv.DictWriter(
+                fh,
+                fieldnames=_JANUS_HEADER + ([MANUAL_COLUMN] if _has_manual(rows) else []),
+            )
             dict_writer.writeheader()
-            dict_writer.writerows(rows)
+            dict_writer.writerows(_csv_safe_rows(rows))
 
     return output_path
+
+
+_CSV_FORMULA_LEADERS = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _csv_safe_rows(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    """Neutralise spreadsheet formulas in the operator's free-text note.
+
+    Excel evaluates a CSV cell that opens with ``= + - @`` (or a tab/CR), so the
+    note is prefixed with an apostrophe, which the spreadsheet shows as plain
+    text. Only the note column carries operator text; every other column is
+    generated.
+    """
+    safe: list[dict[str, object]] = []
+    for row in rows:
+        note = row.get(MANUAL_COLUMN)
+        if isinstance(note, str) and note.startswith(_CSV_FORMULA_LEADERS):
+            row = {**row, MANUAL_COLUMN: "'" + note}
+        safe.append(row)
+    return safe
 
 
 def export_mame_janus_xlsx(
@@ -983,7 +1030,8 @@ def export_mame_janus_xlsx(
     else:
         ws.title = "Janus Mapping"
 
-    ws.append(resolved.header)
+    with_manual = resolved.output_schema != SCHEMA_DEVICE and _has_manual(rows)
+    ws.append(list(resolved.header) + ([MANUAL_COLUMN] if with_manual else []))
     for cell in ws[1]:
         cell.font = Font(bold=True)
     ws.freeze_panes = "A2"
@@ -1000,11 +1048,23 @@ def export_mame_janus_xlsx(
                     row["source_well"],
                     row["dest_well"],
                     row["priority_score"],
+                    *([row.get(MANUAL_COLUMN, "")] if with_manual else []),
                 ]
             )
+            if with_manual and isinstance(row.get(MANUAL_COLUMN), str):
+                ws.cell(row=ws.max_row, column=6).data_type = "s"
 
     # G3: always append __kuma_meta__ sheet.
     _write_janus_kuma_meta_sheet(wb, ngs_run_meta, kuma_version)
+    if _has_manual(rows):
+        from kuma_core.shared.xlsx_text import append_literal_row
+
+        meta_ws = wb["__kuma_meta__"]
+        for row in rows:
+            if MANUAL_COLUMN in row:
+                append_literal_row(
+                    meta_ws, ["manual_confirmation", f"{row['name']}: {row[MANUAL_COLUMN]}"]
+                )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     wb.save(output_path)

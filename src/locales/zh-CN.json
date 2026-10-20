@@ -1544,6 +1544,37 @@
     "replicateModeNotice": {
       "pooled": "本次运行把 {{detected}} 个 native barcode 合并为一块 plate，因此没有可比较的 replicate。",
       "subset": "该 run 文件夹有 {{detected}} 个 native barcode，其中 {{replicates}} 个被判定为 replicate。其余不在本结果中。"
+    },
+    "manualConfirm": {
+      "title": "2.3 追加测序：确认板拷贝",
+      "description": "在重新测序或用其他方法检查某个孔位后使用。选择要使用的现有板拷贝，并记录确认方式。该选择会替换板图、结果工作簿和挑选清单中的自动选择；原始判定会保留。",
+      "needsTitle": "没有可用选定拷贝的孔位：{{count}} 个",
+      "needsEmpty": "每个孔位都有可用的选定拷贝。",
+      "noCopy": "未选择拷贝",
+      "choose": "选择拷贝",
+      "openAny": "打开任意孔位",
+      "openAnyPlaceholder": "选择孔位...",
+      "copiesLegend": "{{mutant}} 的板拷贝",
+      "noteLabel": "确认备注",
+      "notePlaceholder": "例如 Sanger 2026-10-20 OK",
+      "confirm": "确认拷贝",
+      "cancel": "取消",
+      "confirmedTitle": "手动确认的孔位：{{count}} 个",
+      "badge": "已手动确认",
+      "original": "原始判定：{{verdict}}（{{copy}}）",
+      "originalNone": "原始选择：无",
+      "undo": "撤销",
+      "droppedTitle": "部分确认已不适用于本次运行，已被移除：",
+      "droppedItem": "{{mutant}}，拷贝 {{copy}}：{{reason}}",
+      "dropReason": {
+        "unknown_mutant": "该孔位不在本次运行中",
+        "unknown_copy": "该板拷贝不存在",
+        "duplicate_mutant": "同一孔位的第二条记录"
+      },
+      "dismiss": "关闭",
+      "error": "无法应用确认：{{message}}",
+      "workbookFailed": "确认已应用，但无法重写结果工作簿：{{message}}",
+      "resultFileFailed": "确认已应用，但项目的结果文件未更新，重新打开项目时可能丢失：{{message}}"
     }
   },
   "home": {
