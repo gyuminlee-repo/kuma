@@ -23,6 +23,7 @@
 
 import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -48,10 +49,22 @@ const SCHEMA_SCRIPT = path.join(HERE, "gen_models_schema.py");
 const JSON2TS = locateJson2ts();
 
 function locateJson2ts() {
-  const local = path.join(ROOT, "node_modules/.bin/json2ts");
-  if (fs.existsSync(local)) return local;
-  // fallback: rely on PATH
-  return "json2ts";
+  // Resolve the CLI the way Node resolves a dependency, walking up from ROOT,
+  // and run it with this node. The node_modules/.bin shim this used to look
+  // for exists only where the install ran, so a worktree nested inside the
+  // checkout (or a checkout whose install wrote no .bin) failed the check
+  // with "json2ts exited with status null" while the models were current.
+  try {
+    const pkgFile = createRequire(path.join(ROOT, "package.json")).resolve("json-schema-to-typescript/package.json");
+    const bin = JSON.parse(fs.readFileSync(pkgFile, "utf-8")).bin;
+    const rel = typeof bin === "string" ? bin : bin?.json2ts;
+    if (rel) return { cmd: process.execPath, args: [path.join(path.dirname(pkgFile), rel)], shell: false };
+  } catch {
+    // not installed where Node can find it: fall back to PATH below
+  }
+  // The PATH shim has no extension, so on Windows it must run through the
+  // shell to resolve json2ts.CMD. Without this spawnSync returns status null.
+  return { cmd: "json2ts", args: [], shell: process.platform === "win32" };
 }
 
 function bannerFor(entry) {
@@ -77,13 +90,11 @@ function dumpSchema(entry) {
 }
 
 function schemaToTs(schemaJson) {
-  const res = spawnSync(JSON2TS, [], {
+  const res = spawnSync(JSON2TS.cmd, JSON2TS.args, {
     input: schemaJson,
     encoding: "utf-8",
     maxBuffer: 64 * 1024 * 1024,
-    // The .bin shim has no extension, so on Windows it must run through the
-    // shell to resolve json2ts.CMD. Without this spawnSync returns status null.
-    shell: process.platform === "win32",
+    shell: JSON2TS.shell,
   });
   if (res.status !== 0) {
     process.stderr.write(res.stderr || "");

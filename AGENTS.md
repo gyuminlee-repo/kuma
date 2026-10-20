@@ -118,7 +118,7 @@ worktree 의 `node_modules` 는 main checkout 과 경로가 달라 Windows 설�
 
 로컬에서 `sync-check.mjs` 의 `tauri-resources` 가 `resources/NOTICE.md` 부재로 실패하는 것은 환경 문제가 아니라 구조다. 그 파일은 `scripts/build-notice.mjs` 가 릴리스 빌드 때 만들고 `.gitignore` 에 있으므로 새 체크아웃에는 절대 없다. pre-push 는 `scripts/pre-push-sync.mjs` 를 거쳐 이 한 건만 경고로 낮추고 나머지는 그대로 막는다. CI 는 빌드 후 검사하므로 `pnpm sync:check` 를 엄격하게 그대로 쓴다.
 
-`generated-models` 실패는 false-positive 가 아니다. `json2ts` 를 실행하지 못한다는 뜻이며, 보통 원인은 node_modules 가 없는 worktree 에서 돌린 것이다. 정상 체크아웃에서 실패하면 진짜 drift 이므로 `pnpm gen:models` 로 재생성해 함께 커밋한다. (2026-08-05 정정: 이전 판은 두 건 모두 "dev false-positive" 로 적어 두어, pre-push 를 `--no-verify` 로 넘기는 것이 관행이 돼 있었다.)
+`generated-models` 실패는 false-positive 가 아니다. `json2ts` 를 실행하지 못했거나 진짜 drift 다. `scripts/gen-models.mjs` 는 `json-schema-to-typescript` 를 Node 의 의존성 해석(상위 디렉터리 탐색)으로 찾아 지금 도는 `node` 로 실행하므로, 아래 체크아웃 안에 중첩된 worktree 나 `node_modules/.bin` 이 없는 설치본에서도 돌아간다(2026-10-20 수정 전에는 `.bin/json2ts` 만 찾아 이 경우 `json2ts exited with status null` 로 떨어졌다). 실행 실패가 남아 있다면 어느 상위에도 설치본이 없는 체크아웃이다. 정상 체크아웃에서 실패하면 진짜 drift 이므로 `pnpm gen:models` 로 재생성해 함께 커밋한다. (2026-08-05 정정: 이전 판은 두 건 모두 "dev false-positive" 로 적어 두어, pre-push 를 `--no-verify` 로 넘기는 것이 관행이 돼 있었다.)
 
 태그를 찍기 직전 두 가지를 더 확인한다.
 
