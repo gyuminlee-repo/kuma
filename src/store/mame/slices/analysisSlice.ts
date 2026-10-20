@@ -5,6 +5,7 @@ import i18next from "i18next";
 import type { StateCreator } from "zustand";
 import { sendRequest } from "@/lib/ipc-mame";
 import { toRpcParams } from "@/lib/mame/janusSettings";
+import { updateMameResultSelection } from "@/lib/mame/resultSnapshot";
 import { overridesFromReplicates } from "@/lib/mame/selectionOverrides";
 import {
   sampleReplicates,
@@ -50,7 +51,11 @@ async function sendOverrides(
   overrides: SelectionOverride[],
 ): Promise<void> {
   const verdicts = get().verdicts;
-  set({ isApplyingSelectionOverride: true, selectionOverrideError: null });
+  set({
+    isApplyingSelectionOverride: true,
+    selectionOverrideError: null,
+    selectionOverrideWorkbookError: null,
+  });
   try {
     const result = await sendRequest<ApplySelectionOverridesResult>(
       "apply_selection_overrides",
@@ -60,8 +65,17 @@ async function sendOverrides(
     set({
       replicates: result.replicates,
       selectionOverrideNotice: result.dropped.length > 0 ? result.dropped : null,
+      selectionOverrideWorkbookError:
+        result.workbook_autosave?.status === "failed"
+          ? (result.workbook_autosave.error ?? "")
+          : null,
       ...(result.picks_autosave ? { janusAutosave: result.picks_autosave } : {}),
     });
+    await updateMameResultSelection(
+      get().projectPath,
+      result.replicates,
+      result.picks_autosave,
+    );
     await get().loadPlateData();
   } catch (error) {
     if (get().verdicts !== verdicts) return;
@@ -104,6 +118,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   buildEvolveproCompletion: null,
   selectionOverrideNotice: null,
   selectionOverrideError: null,
+  selectionOverrideWorkbookError: null,
   isApplyingSelectionOverride: false,
   mameSamplePrefill: null,
   consumeMameSamplePrefill: () => set({ mameSamplePrefill: null }),
@@ -184,6 +199,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       // them; what a call reported about them describes nothing afterwards.
       selectionOverrideNotice: null,
       selectionOverrideError: null,
+      selectionOverrideWorkbookError: null,
       // Nothing here touches what step 4.2 answered. That answer is computed
       // from per-round xlsx files the operator picks, not from the analyze
       // inputs being invalidated here, and it lives on the round rather than in

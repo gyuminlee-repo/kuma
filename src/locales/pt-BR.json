@@ -1569,7 +1569,8 @@
         "duplicate_mutant": "uma segunda entrada para o mesmo poço"
       },
       "dismiss": "Dispensar",
-      "error": "Não foi possível aplicar a confirmação: {{message}}"
+      "error": "Não foi possível aplicar a confirmação: {{message}}",
+      "workbookFailed": "A confirmação foi aplicada, mas não foi possível reescrever a planilha de resultados: {{message}}"
     }
   },
   "home": {

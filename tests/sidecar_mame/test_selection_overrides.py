@@ -20,8 +20,10 @@ from sidecar_mame.core import get_state, reset_state, set_last_analyze
 from sidecar_mame.handlers.analyze import (
     _deserialize_replicate,
     _serialize_replicate,
+    _serialize_verdict,
     picks_autosave_path,
 )
+from sidecar_mame.handlers.load import handle_load_analyze_result
 from sidecar_mame.handlers.export import (
     handle_apply_selection_overrides,
     handle_export_janus_mapping,
@@ -214,3 +216,60 @@ def test_serialized_replicate_round_trips_and_omits_the_key_when_automatic(run) 
     rebuilt = _deserialize_replicate(_serialize_replicate(confirmed))
     assert rebuilt.manual == confirmed.manual
     assert rebuilt.selected_plate == "NB08"
+
+
+def _final_rows(workbook: Path) -> tuple[list[str], dict[str, list[object]]]:
+    sheet = openpyxl.load_workbook(workbook)["Final"]
+    rows = [[c.value for c in row] for row in sheet.iter_rows()]
+    return [str(v) for v in rows[0]], {str(r[0]): r for r in rows[1:] if r[0]}
+
+
+def test_result_workbook_on_disk_follows_the_override_and_the_undo(run) -> None:
+    result = handle_apply_selection_overrides(_override(note="Sanger OK"))
+    assert result["workbook_autosave"]["status"] == "saved"
+    header, rows = _final_rows(run)
+    assert header[-1] == "manual_confirmation"
+    assert rows["B1"][1] == "NB08"
+    assert rows["B1"][-1] == "Sanger OK"
+
+    handle_apply_selection_overrides({"overrides": []})
+    header, rows = _final_rows(run)
+    assert "manual_confirmation" not in header
+    assert rows["B1"][1] == "NB07"
+
+
+def test_unwritable_workbook_is_reported_and_keeps_the_confirmation(
+    run, tmp_path: Path
+) -> None:
+    state = get_state()
+    set_last_analyze(
+        state.last_verdicts or [],
+        state.last_replicates or [],
+        str(tmp_path / "missing_dir" / "run.xlsx"),
+        run_meta=None,
+    )
+    result = handle_apply_selection_overrides(_override())
+    assert result["workbook_autosave"]["status"] == "failed"
+    assert _cached()[1].selected_plate == "NB08"
+
+
+def test_confirmation_survives_the_result_file_round_trip(run) -> None:
+    handle_apply_selection_overrides(_override(note="Sanger OK"))
+    state = get_state()
+    payload = {
+        "verdicts": [_serialize_verdict(v) for v in state.last_verdicts or []],
+        "replicates": [_serialize_replicate(r) for r in _cached()],
+        "output_path": str(run),
+    }
+
+    reset_state()
+    handle_load_analyze_result(payload)
+    confirmed = _cached()[1]
+    assert (confirmed.selected_plate, confirmed.manual.note if confirmed.manual else None) == (
+        "NB08",
+        "Sanger OK",
+    )
+
+    handle_apply_selection_overrides({"overrides": []})
+    restored = _cached()[1]
+    assert (restored.selected_plate, restored.manual) == ("NB07", None)

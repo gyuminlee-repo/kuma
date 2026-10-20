@@ -1569,7 +1569,8 @@
         "duplicate_mutant": "une deuxième entrée pour le même puits"
       },
       "dismiss": "Fermer",
-      "error": "Impossible d'appliquer la confirmation : {{message}}"
+      "error": "Impossible d'appliquer la confirmation : {{message}}",
+      "workbookFailed": "La confirmation a été appliquée, mais le classeur de résultats n'a pas pu être réécrit : {{message}}"
     }
   },
   "home": {

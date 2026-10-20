@@ -481,6 +481,8 @@ export interface AnalysisSlice {
    */
   selectionOverrideNotice: DroppedSelectionOverride[] | null;
   selectionOverrideError: string | null;
+  /** Set when the confirmation was applied but the result workbook could not be rewritten. */
+  selectionOverrideWorkbookError: string | null;
   isApplyingSelectionOverride: boolean;
   applySelectionOverride: (mutantId: string, plate: string, note: string) => Promise<void>;
   undoSelectionOverride: (mutantId: string) => Promise<void>;

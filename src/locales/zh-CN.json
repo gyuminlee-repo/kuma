@@ -1569,7 +1569,8 @@
         "duplicate_mutant": "同一孔位的第二条记录"
       },
       "dismiss": "关闭",
-      "error": "无法应用确认：{{message}}"
+      "error": "无法应用确认：{{message}}",
+      "workbookFailed": "确认已应用，但无法重写结果工作簿：{{message}}"
     }
   },
   "home": {

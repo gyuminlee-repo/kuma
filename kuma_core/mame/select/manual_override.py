@@ -105,15 +105,15 @@ def apply_manual_overrides(
             dropped.append({**entry, "reason": REASON_UNKNOWN_COPY})
             continue
         seen.add(mutant_id)
+        first = by_mutant[mutant_id][0]
         for i in by_mutant[mutant_id]:
             out[i] = _confirm(base[i], plate, note)
+        confirmation = out[first].manual
         applied.append(
             {
                 **entry,
-                "auto_selected_plate": base[by_mutant[mutant_id][0]].selected_plate,
-                "auto_verdict": out[by_mutant[mutant_id][0]].manual.auto_verdict  # type: ignore[union-attr]
-                if out[by_mutant[mutant_id][0]].manual is not None
-                else "",
+                "auto_selected_plate": base[first].selected_plate,
+                "auto_verdict": confirmation.auto_verdict if confirmation else "",
             }
         )
     return out, applied, dropped

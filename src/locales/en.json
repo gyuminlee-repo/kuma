@@ -1569,7 +1569,8 @@
         "duplicate_mutant": "a second entry for the same well"
       },
       "dismiss": "Dismiss",
-      "error": "Could not apply the confirmation: {{message}}"
+      "error": "Could not apply the confirmation: {{message}}",
+      "workbookFailed": "The confirmation was applied, but the result workbook could not be rewritten: {{message}}"
     }
   },
   "home": {

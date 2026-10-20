@@ -17,6 +17,11 @@ vi.mock("@/lib/ipc-mame", () => ({
   cancelAndRespawn: vi.fn(),
 }));
 
+const updateResultFile = vi.fn();
+vi.mock("@/lib/mame/resultSnapshot", () => ({
+  updateMameResultSelection: (...args: unknown[]) => updateResultFile(...args),
+}));
+
 import {
   needsConfirmation,
   overridesFromReplicates,
@@ -75,7 +80,14 @@ const CONFIRMED = replicate("B1MUT", { NB07: "LOWDEPTH", NB08: "PASS" }, "NB08",
 function reply(
   patch: Partial<ApplySelectionOverridesResult>,
 ): ApplySelectionOverridesResult {
-  return { applied: [], dropped: [], replicates: [], picks_autosave: null, ...patch };
+  return {
+    applied: [],
+    dropped: [],
+    replicates: [],
+    picks_autosave: null,
+    workbook_autosave: { status: "saved", output_path: null, error: null },
+    ...patch,
+  };
 }
 
 function mockRpc(result: ApplySelectionOverridesResult) {
@@ -108,7 +120,10 @@ describe("overridesFromReplicates / needsConfirmation", () => {
 describe("AdditionalSequencingPanel", () => {
   beforeEach(() => {
     sendRequest.mockReset();
+    updateResultFile.mockReset();
     useMameAppStore.setState({
+      projectPath: "/proj",
+      selectionOverrideWorkbookError: null,
       verdicts: [verdictRecord("NB07", "PASS")],
       replicates: [OK, SHALLOW],
       summary: { total: 1 } as unknown as AnalyzeSummary,
@@ -147,6 +162,29 @@ describe("AdditionalSequencingPanel", () => {
     expect(screen.getByText(/LOWDEPTH/)).toBeInTheDocument();
     expect(useMameAppStore.getState().summary).not.toBeNull();
     expect(useMameAppStore.getState().verdicts).toHaveLength(1);
+  });
+
+  it("writes the confirmed selection back to the result file so a restore keeps it", async () => {
+    mockRpc(reply({ replicates: [OK, CONFIRMED] }));
+
+    await useMameAppStore.getState().applySelectionOverride("B1MUT", "NB08", "Sanger OK");
+
+    expect(updateResultFile).toHaveBeenCalledWith("/proj", [OK, CONFIRMED], null);
+  });
+
+  it("says so when the result workbook could not be rewritten, and keeps the confirmation", async () => {
+    mockRpc(
+      reply({
+        replicates: [OK, CONFIRMED],
+        workbook_autosave: { status: "failed", output_path: "/x.xlsx", error: "file is open" },
+      }),
+    );
+
+    await useMameAppStore.getState().applySelectionOverride("B1MUT", "NB08", "Sanger OK");
+    render(<AdditionalSequencingPanel />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("file is open");
+    expect(overridesFromReplicates(useMameAppStore.getState().replicates)).toHaveLength(1);
   });
 
   it("undo sends an empty list and restores the automatic pick", async () => {

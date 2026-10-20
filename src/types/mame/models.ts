@@ -270,6 +270,12 @@ export interface ApplySelectionOverridesResult {
   dropped: DroppedSelectionOverride[];
   replicates: ReplicateResult[];
   picks_autosave: JanusAutosaveResult | null;
+  /** The result workbook rewritten from the confirmed selection (or the automatic one after an undo). */
+  workbook_autosave: {
+    status: "saved" | "skipped" | "failed";
+    output_path: string | null;
+    error: string | null;
+  };
 }
 
 /**

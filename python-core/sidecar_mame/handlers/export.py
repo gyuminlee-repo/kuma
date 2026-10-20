@@ -268,6 +268,43 @@ def handle_get_plate_data(_params: dict) -> dict:
     return {"wells": wells}
 
 
+def _rewrite_result_workbook(state) -> dict:
+    """Rewrite the result workbook from the cached run, staged and renamed atomically.
+
+    Analyze wrote this file once with the automatic pick; after a manual
+    confirmation (or its undo) the cached replicates differ, so the file is
+    rebuilt from them. Never raises: the in-memory change has already happened
+    and a workbook that cannot be written (open in Excel, read-only folder) is a
+    fact to report, not a reason to lose it.
+    """
+    from kuma_core.mame.export import WellMapper, write_excel
+    from kuma_core.shared.atomic_write import atomic_output_path
+
+    result: dict = {"status": "skipped", "output_path": None, "error": None}
+    if not state.last_output_path:
+        return result
+    target = Path(state.last_output_path)
+    result["output_path"] = str(target)
+    try:
+        with atomic_output_path(target) as staged:
+            write_excel(
+                verdict_records=state.last_verdicts,
+                replicate_results=state.last_replicates,
+                output_path=staged,
+                mapper=WellMapper(),
+                ngs_run_meta=state.last_run_meta,
+                kuma_version=KUMA_VERSION,
+                designed_mutant_ids=state.last_designed_mutant_ids,
+                barcode_prefix_note=state.last_barcode_prefix_note,
+                analysis=state.last_analysis_conditions,
+            )
+        result["status"] = "saved"
+    except Exception as exc:  # noqa: BLE001 - the confirmation itself must survive
+        result["status"] = "failed"
+        result["error"] = str(exc)
+    return result
+
+
 def handle_apply_selection_overrides(params: dict) -> dict:
     """Apply the operator's manual plate-copy confirmations to the cached run.
 
@@ -280,7 +317,9 @@ def handle_apply_selection_overrides(params: dict) -> dict:
     and both Janus handlers answer from the confirmed copies. The pick list next
     to the result workbook is rewritten so the file cannot disagree with the
     screen. Returns ``applied``, ``dropped`` (with a reason each), the
-    serialized ``replicates`` and the pick list outcome as ``picks_autosave``.
+    serialized ``replicates``, the pick list outcome as ``picks_autosave`` and the
+    result workbook outcome as ``workbook_autosave`` (both are rebuilt from the
+    cached run, so an undo returns them to the automatic content).
 
     Raises ``RuntimeError`` if no analyze has been run in this session.
     """
@@ -309,6 +348,8 @@ def handle_apply_selection_overrides(params: dict) -> dict:
         analysis_conditions=state.last_analysis_conditions,
     )
 
+    workbook = _rewrite_result_workbook(state)
+
     picks = None
     if state.last_output_path:
         output = Path(state.last_output_path)
@@ -321,6 +362,7 @@ def handle_apply_selection_overrides(params: dict) -> dict:
         "dropped": dropped,
         "replicates": [_serialize_replicate(r) for r in replicates],
         "picks_autosave": picks,
+        "workbook_autosave": workbook,
     }
 
 

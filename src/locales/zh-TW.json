@@ -1569,7 +1569,8 @@
         "duplicate_mutant": "同一孔位的第二筆紀錄"
       },
       "dismiss": "關閉",
-      "error": "無法套用確認：{{message}}"
+      "error": "無法套用確認：{{message}}",
+      "workbookFailed": "確認已套用，但無法重寫結果活頁簿：{{message}}"
     }
   },
   "home": {

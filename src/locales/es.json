@@ -1569,7 +1569,8 @@
         "duplicate_mutant": "una segunda entrada para el mismo pocillo"
       },
       "dismiss": "Descartar",
-      "error": "No se pudo aplicar la confirmación: {{message}}"
+      "error": "No se pudo aplicar la confirmación: {{message}}",
+      "workbookFailed": "La confirmación se aplicó, pero no se pudo reescribir el libro de resultados: {{message}}"
     }
   },
   "home": {

@@ -104,6 +104,7 @@ export function AdditionalSequencingPanel() {
   const wells = useMameAppStore((s) => s.wells);
   const notice = useMameAppStore((s) => s.selectionOverrideNotice);
   const error = useMameAppStore((s) => s.selectionOverrideError);
+  const workbookError = useMameAppStore((s) => s.selectionOverrideWorkbookError);
   const busy = useMameAppStore((s) => s.isApplyingSelectionOverride);
   const apply = useMameAppStore((s) => s.applySelectionOverride);
   const undo = useMameAppStore((s) => s.undoSelectionOverride);
@@ -170,6 +171,12 @@ export function AdditionalSequencingPanel() {
       {error && (
         <p role="alert" className="break-words text-caption text-error">
           {t("mame.manualConfirm.error", { message: error })}
+        </p>
+      )}
+
+      {workbookError !== null && (
+        <p role="alert" className="break-words text-caption text-warning">
+          {t("mame.manualConfirm.workbookFailed", { message: workbookError })}
         </p>
       )}
 

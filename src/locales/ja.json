@@ -1569,7 +1569,8 @@
         "duplicate_mutant": "同じウェルへの2件目の項目です"
       },
       "dismiss": "閉じる",
-      "error": "確認を適用できませんでした：{{message}}"
+      "error": "確認を適用できませんでした：{{message}}",
+      "workbookFailed": "確認は適用されましたが、結果ブックを書き直せませんでした：{{message}}"
     }
   },
   "home": {

@@ -1569,7 +1569,8 @@
         "duplicate_mutant": "같은 웰에 대한 두 번째 항목입니다"
       },
       "dismiss": "닫기",
-      "error": "확인을 적용하지 못했습니다: {{message}}"
+      "error": "확인을 적용하지 못했습니다: {{message}}",
+      "workbookFailed": "확인은 적용되었지만 결과 워크북을 다시 쓰지 못했습니다: {{message}}"
     }
   },
   "home": {
