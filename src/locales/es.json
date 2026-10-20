@@ -2683,14 +2683,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "KURO selecciona variantes por proximidad 3D y, si la estructura de la base de datos no cubre la referencia, predice una con ESMFold.",
-      "Un diseño, exportación o análisis en curso posee su solicitud, y una respuesta tardía nunca sobrescribe un resultado más reciente.",
-      "MAME paso 4.1 lee el tipo de etiqueta del informe de confirmación y asigna automáticamente pozos a variantes.",
-      "El paso 6 permite elegir qué archivos exportar, y cada exportación se publica mediante un renombrado atómico.",
-      "La ayuda integrada se publica como una guía ilustrada con capturas de pantalla anotadas en cada paso."
+      "KURO compara las entradas de UniProt mediante un alineamiento de secuencias, así que un constructo con un residuo de más se sigue emparejando automáticamente.",
+      "La tabla de codones de AM1 ya no se incluye como archivo semilla. Los proyectos que la usaron siguen ofreciendo instalar su copia guardada.",
+      "MAME paso 2 explica el orden de comprobaciones que decide el veredicto de cada pozo e incorpora el antiguo capítulo de la pipeline.",
+      "Una nueva página de preguntas frecuentes responde dudas comunes sobre KURO y MAME en inglés y coreano.",
+      "La guía muestra cada diálogo, los dos modos de selección de KURO y el panel 3D con su estructura, con etiquetas como en pantalla."
     ],
-    "highlightsStamp": "0.16.74+5562e779",
+    "highlightsStamp": "0.16.75+7a304882",
     "releases": {
+      "0.16.75": [
+        "KURO compara las entradas de UniProt mediante un alineamiento de secuencias, así que un constructo con un residuo de más se sigue emparejando automáticamente.",
+        "La tabla de codones de AM1 ya no se incluye como archivo semilla. Los proyectos que la usaron siguen ofreciendo instalar su copia guardada.",
+        "MAME paso 2 explica el orden de comprobaciones que decide el veredicto de cada pozo e incorpora el antiguo capítulo de la pipeline.",
+        "Una nueva página de preguntas frecuentes responde dudas comunes sobre KURO y MAME en inglés y coreano.",
+        "La guía muestra cada diálogo, los dos modos de selección de KURO y el panel 3D con su estructura, con etiquetas como en pantalla."
+      ],
       "0.16.69": [
         "Las secuencias consensus escriben un guion donde falta una base, de modo que una deleción ya no parece una posición que no se pudo interpretar.",
         "Los primers de barcode ahora pasan las mismas comprobaciones de hairpin, self-dimer y off-target que los primers de diseño.",
@@ -3208,6 +3215,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.75": "7a304882",
       "0.16.69": "60279e8e",
       "0.16.68": "33844e5d",
       "0.16.67": "6db9fd0b",
