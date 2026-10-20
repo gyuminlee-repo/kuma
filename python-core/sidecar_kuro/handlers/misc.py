@@ -80,15 +80,12 @@ _CODON_SEED_DIR = _resource_path(
     "kuma_core.kuro", "resources/codon_table_seeds", module_file=_codon_table.__file__
 )
 # Seed file names are kept verbatim. TEMPLATE keeps a .json.txt suffix so the
-# *.json glob that finds real tables never picks the template up, and the
-# M. extorquens AM1 seed keeps it for the same reason: it is a complete,
-# ready-to-use table rather than a placeholder, and it installs only when the
-# user renames it to mextorquens_am1.json. Seeding it is not installing it, so
-# the organism dropdown is unchanged until that rename happens.
+# *.json glob that finds real tables never picks the template up. The folder
+# holds only the template and its README: an organism table a lab needs is
+# computed from its genome or imported through Add organism.
 _CODON_SEED_FILES = (
     "README.txt",
     "TEMPLATE.json.txt",
-    "mextorquens_am1.json.txt",
 )
 
 

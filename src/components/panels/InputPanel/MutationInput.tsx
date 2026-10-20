@@ -207,7 +207,7 @@ export function MutationInput() {
               }
               className="flex-shrink-0"
             >
-              Browse
+              {t("common.browse")}
             </Button>
             <span className="self-center truncate text-xs text-muted-foreground">
               {activeTablePath ? basename(activeTablePath) : t("mutationInput.noFileSelected")}

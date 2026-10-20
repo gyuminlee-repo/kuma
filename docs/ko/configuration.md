@@ -20,9 +20,9 @@ BLAST 와 InterProScan 작업을 EBI Job Dispatcher 에 제출할 때 보내는 
 
 ## `~/.kuma/kuro/codon_tables`
 
-사용자 코돈 표가 놓이는 폴더다. `.json` 파일 하나가 균주 하나다. 여기서 읽은 표는 내장 5종과 함께 타겟 유전자 옆 **Organism** 드롭다운에 나타난다. Settings → Codon tables 가 폴더 경로, 출처별 개수, **Open folder**, kuma 재시작 없이 폴더를 다시 읽는 **Refresh**, 그리고 거부된 파일과 그 사유를 보여 준다.
+사용자 코돈 표가 놓이는 폴더다. `.json` 파일 하나가 균주 하나다. 여기서 읽은 표는 내장 9종과 함께 타겟 유전자 옆 **Organism** 드롭다운에 나타난다. Settings → Codon tables 가 폴더 경로, 출처별 개수, **Open folder**, kuma 재시작 없이 폴더를 다시 읽는 **Refresh**, 그리고 거부된 파일과 그 사유를 보여 준다.
 
-파일 이름이 key 를 정한다. `mextorquens_am1.json` 은 `mextorquens_am1` 균주로 설치된다. 같은 폴더의 `TEMPLATE.json.txt`, `README.txt`, `mextorquens_am1.json.txt` 는 참고용이며 표로 읽지 않는다. 마지막 파일은 빈 틀이 아니라 완성된 *M. extorquens* AM1 표이므로 `mextorquens_am1.json` 으로 이름만 바꾸면 그대로 설치된다.
+파일 이름이 key 를 정한다. `ecoli_lab.json` 은 `ecoli_lab` 균주로 설치된다. 같은 폴더의 `TEMPLATE.json.txt` 와 `README.txt` 는 참고용이며 표로 읽지 않는다.
 
 표를 넣는 세 경로:
 

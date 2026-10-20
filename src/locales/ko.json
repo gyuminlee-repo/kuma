@@ -48,8 +48,7 @@
       "group": {
         "start": "시작하기",
         "kuro": "KURO 설계",
-        "mame": "MAME 검증",
-        "deeper": "심화"
+        "mame": "MAME 검증"
       },
       "topic": {
         "kuro-index": "KURO 개요",
@@ -64,7 +63,7 @@
         "mame-02-review": "분석 및 검토",
         "mame-03-janus": "Cell stock 제작",
         "mame-04-activity": "활성",
-        "mame-pipeline": "MAME 파이프라인"
+        "faq": "자주 묻는 질문"
       }
     }
   },

@@ -33,9 +33,9 @@ The certificate store is built once per process, so restart kuma after changing 
 
 ## `~/.kuma/kuro/codon_tables`
 
-The folder holding user codon tables, one organism per `.json` file. Every table found here joins the five bundled ones in the **Organism** dropdown beside the target gene. Settings → Codon tables shows the path, how many tables came from each source, an **Open folder** button, a **Refresh** button that re-reads the folder without restarting kuma, and every file that was refused with the reason it was refused.
+The folder holding user codon tables, one organism per `.json` file. Every table found here joins the nine bundled ones in the **Organism** dropdown beside the target gene. Settings → Codon tables shows the path, how many tables came from each source, an **Open folder** button, a **Refresh** button that re-reads the folder without restarting kuma, and every file that was refused with the reason it was refused.
 
-The file name decides the key, so `mextorquens_am1.json` installs the organism `mextorquens_am1`. `TEMPLATE.json.txt`, `README.txt` and `mextorquens_am1.json.txt` are placed here for reference and are not read as tables. The last of the three is a finished *M. extorquens* AM1 table rather than a placeholder, so renaming it to `mextorquens_am1.json` installs the organism with nothing else to edit.
+The file name decides the key, so `ecoli_lab.json` installs the organism `ecoli_lab`. `TEMPLATE.json.txt` and `README.txt` are placed here for reference and are not read as tables.
 
 Three ways to put a table here:
 

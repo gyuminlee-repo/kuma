@@ -158,7 +158,7 @@ EVOLVEpro CSV 로드 시 어떤 mutation을 프라이머 설계 대상으로 선
 
 ## 사용자 코돈 표
 
-kuma 에 내장된 코돈 사용표는 9종(*E. coli*, *B. subtilis*, *H. sapiens*, *S. cerevisiae*, *K. phaffii*(GS115, 대부분의 프로토콜이 여전히 *P. pastoris* 로 적는 그 균주), *C. griseus*(CHO 계열), *C. glutamicum*, *A. niger*, *P. putida*)이다. 앞의 4종 외에는 전부 NCBI RefSeq 주석을 직접 세어 만들었다. *M. extorquens* AM1 은 내장에서 빠졌다. 코돈 테이블 폴더에 `mextorquens_am1.json.txt` 로 들어가므로 `mextorquens_am1.json` 으로 이름만 바꾸고 **Refresh** 를 누르면 그대로 설치된다. 다른 균주의 표는 사용자별로 `~/.kuma/kuro/codon_tables` 에 설치되고 타겟 유전자 옆 **Organism** 드롭다운에 나타난다. 들어가는 경로는 셋이다.
+kuma 에 내장된 코돈 사용표는 9종(*E. coli*, *B. subtilis*, *H. sapiens*, *S. cerevisiae*, *K. phaffii*(GS115, 대부분의 프로토콜이 여전히 *P. pastoris* 로 적는 그 균주), *C. griseus*(CHO 계열), *C. glutamicum*, *A. niger*, *P. putida*)이다. 앞의 4종 외에는 전부 NCBI RefSeq 주석을 직접 세어 만들었다. 다른 균주의 표는 사용자별로 `~/.kuma/kuro/codon_tables` 에 설치되고 타겟 유전자 옆 **Organism** 드롭다운에 나타난다. 들어가는 경로는 셋이다.
 
 **1. 폴더에 파일 떨어뜨리기.** `~/.kuma/kuro/codon_tables` 에 `<key>.json` 을 넣고 Settings → Codon tables 의 **Refresh** 를 누른다. `.json` 을 뗀 파일 이름이 organism key 가 된다. 그 폴더에는 참고용으로 `TEMPLATE.json.txt` 와 `README.txt` 가 함께 놓인다(원본은 `kuma_core/kuro/resources/codon_table_seeds/`). 템플릿을 `<key>.json` 으로 복사하고 숫자만 바꾸면 된다.
 

@@ -48,8 +48,7 @@
       "group": {
         "start": "Getting started",
         "kuro": "KURO design",
-        "mame": "MAME verification",
-        "deeper": "Deeper"
+        "mame": "MAME verification"
       },
       "topic": {
         "kuro-index": "KURO overview",
@@ -64,7 +63,7 @@
         "mame-02-review": "Analyze and review",
         "mame-03-janus": "Cell stock preparation",
         "mame-04-activity": "Activity",
-        "mame-pipeline": "MAME pipeline"
+        "faq": "FAQ"
       }
     }
   },

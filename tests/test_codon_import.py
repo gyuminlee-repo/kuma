@@ -45,12 +45,11 @@ SHIPPED = {
     "scerevisiae",
 }
 
-# The M. extorquens AM1 table left the bundled set and ships as an installable
-# seed. It is still the fixture source below, because its counts are the ones
-# these rules were written against, and it is the only table in the repository
-# that carries a zero-frequency codon.
-SEED_DIR = BUNDLED_DIR.parent / "codon_table_seeds"
-SEED_AM1 = SEED_DIR / "mextorquens_am1.json.txt"
+# The M. extorquens AM1 table left the app and is kept as a test fixture. It is
+# still the fixture source below, because its counts are the ones these rules
+# were written against, and it is the only table in the repository that
+# carries a zero-frequency codon.
+SEED_AM1 = Path(__file__).parent / "fixtures" / "codon_tables" / "mextorquens_am1.json"
 
 
 # ── base fixture ───────────────────────────────────────────────────────────

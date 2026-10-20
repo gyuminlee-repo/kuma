@@ -10,7 +10,7 @@ Select the files to export: the Macrogen order sheet (forward and reverse primer
 2. `Forward primer plate name` and `Reverse primer plate name` take 1-20 letters, numbers, underscores, or hyphens. Both are required when the Macrogen order sheet is selected.
 3. `Order vendor` is fixed to Macrogen Plate Oligo. Choose 0.05 or 0.2 μmole for the amount. Purification is fixed to MOPC.
 4. `Echo transfer volume` accepts 25-500 nL.
-5. `Echo source plate quadrant` is where a 96-head starts stamping the 384 plate. Forward primers start there and reverse primers go to the paired quadrant. Name the quadrants already spent on the plate and an overlapping choice is refused.
+5. `Echo source plate columns` is where a 96-head starts stamping the 384 plate. Forward primers start there and reverse primers go to the paired quadrant. Name the quadrants already spent on the plate and an overlapping choice is refused.
 6. `JANUS transfer volume` accepts 0.5-10 μL.
 7. Click `Export`, then choose the destination folder. With a project open, the picker starts in the `design` folder of that project. Designs exceeding 96 wells export one round at a time.
 

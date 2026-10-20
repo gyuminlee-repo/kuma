@@ -68,6 +68,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--genbank", type=Path, default=DEFAULT_GENBANK)
     parser.add_argument("--evolvepro", type=Path, default=DEFAULT_EVOLVEPRO)
+    parser.add_argument(
+        "--accession",
+        default="",
+        help="UniProt accession the sidecar checks directly against the sequence instead of "
+        "a BLAST search, which needs a contact email the capture run does not have",
+    )
     parser.add_argument("--out", type=Path, default=ROOT / "scripts" / "real-data.json")
     args = parser.parse_args()
 
@@ -165,14 +171,23 @@ def main() -> int:
         active_site: dict = {"accession": "", "active_site_positions": [], "binding_positions": []}
         structures: dict = {}
         pdb_text: dict = {}
+        dispersion: dict = {}
         try:
             uniprot = sidecar.call(
                 "search_uniprot",
-                {"translation": ref_seq, "gene_name": target.get("gene", ""), "organism": ""},
+                {
+                    "translation": ref_seq,
+                    "gene_name": target.get("gene", ""),
+                    "organism": "",
+                    "known_accession": args.accession,
+                },
                 timeout_s=180.0,
             )
             candidates = uniprot.get("candidates") or []
-            sys.stdout.write(f"[real-data] UniProt candidates {len(candidates)}\n")
+            sys.stdout.write(
+                f"[real-data] UniProt candidates {len(candidates)}, "
+                f"auto-selected {uniprot.get('auto_selected')}\n"
+            )
             if candidates:
                 accession = candidates[0]["accession"]
                 domains = sidecar.call("fetch_domains", {"accession": accession}, timeout_s=180.0)
@@ -197,6 +212,18 @@ def main() -> int:
                     f"[real-data] active site positions: "
                     f"{len(active_site.get('active_site_positions') or [])}, "
                     f"binding: {len(active_site.get('binding_positions') or [])}\n"
+                )
+                # The summary step maps the designed positions onto the structure.
+                positions = sorted({
+                    int(m[1:-1]) for m in mutation_text.splitlines() if m[1:-1].isdigit()
+                })
+                dispersion = sidecar.call(
+                    "compute_dispersion",
+                    {"accession": accession, "ref_seq": ref_seq, "positions": positions, "seed": 0},
+                    timeout_s=300.0,
+                )
+                sys.stdout.write(
+                    f"[real-data] dispersion mapped {len(dispersion.get('mapped') or [])}\n"
                 )
         except (RuntimeError, TimeoutError) as exc:
             sys.stdout.write(f"[real-data] network lookup skipped: {exc}\n")
@@ -237,6 +264,7 @@ def main() -> int:
             "active_site": active_site,
             "structures": structures,
             "pdb_text": pdb_text,
+            "dispersion": dispersion,
         }
     finally:
         sidecar.close()

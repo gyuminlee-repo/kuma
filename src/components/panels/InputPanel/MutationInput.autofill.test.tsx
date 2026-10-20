@@ -11,6 +11,8 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAppStore } from "@/store/appStore";
+import { initI18n } from "@/lib/i18n";
+import ko from "@/locales/ko.json";
 import type { ArtifactRef } from "@/lib/workspace";
 
 const artifactHolder = vi.hoisted(() => ({ current: null as ArtifactRef | null }));
@@ -81,7 +83,6 @@ describe("MutationInput manifest auto-fill", () => {
     if (source === "browse") {
       await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Browse" })); });
     }
-    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(useAppStore.getState().strictSpatialError).toBe(message);
     expect(useAppStore.getState().statusMessage).toBe(message);
   });
@@ -125,6 +126,24 @@ describe("MutationInput manifest auto-fill", () => {
     fireEvent.click(screen.getByRole("button", { name: "Browse" }));
     expect(loadSpy).toHaveBeenCalledWith("/elsewhere/picked.csv");
     expect(useAppStore.getState().evolveproCsvUserPicked).toBe(true);
+  });
+
+  it("uses the active locale for the working file-picker button", async () => {
+    // Given: Korean is loaded and there is no manifest-driven selection.
+    artifactHolder.current = null;
+    browseHolder.nextPath = "/elsewhere/korean.csv";
+    await initI18n("ko");
+    const view = render(<MutationInput />);
+    try {
+      // When: the operator uses the localized control.
+      fireEvent.click(screen.getByRole("button", { name: ko.common.browse }));
+      // Then: the same file-picking action runs under that locale.
+      expect(loadSpy).toHaveBeenCalledWith("/elsewhere/korean.csv");
+      expect(useAppStore.getState().evolveproCsvUserPicked).toBe(true);
+    } finally {
+      view.unmount();
+      await initI18n("en");
+    }
   });
 
   it("does not overwrite a Browse pick when the manifest updates afterwards", () => {

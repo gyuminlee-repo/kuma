@@ -33,6 +33,14 @@ def on_files(files, config):
                 config.use_directory_urls,
             )
         )
+    files.append(
+        File(
+            "figures/mame-verdict-order.svg",
+            str(root / "docs/site/shared"),
+            config.site_dir,
+            config.use_directory_urls,
+        )
+    )
     return files
 
 
@@ -40,6 +48,15 @@ def on_page_markdown(markdown, page, config, files):
     stem = Path(page.file.src_uri).stem
     lang = config.theme["language"]
     figures_dir = Path(config.docs_dir) / "figures"
+    if "<!-- guide-verdict-order -->" in markdown:
+        source = Path(config.config_file_path).parent / "docs/site/shared/figures/mame-verdict-order.svg"
+        if not source.is_file():
+            raise FileNotFoundError(source)
+        alt = "웰별 판정 순서" if lang == "ko" else "Per-well verdict decision order"
+        markdown = markdown.replace(
+            "<!-- guide-verdict-order -->",
+            f"![{alt}](figures/mame-verdict-order.svg)",
+        )
     # A page can have several shots: <page>.svg, then <page>-2.svg, <page>-3.svg
     # for controls below the fold. Numbering runs on across them, so they are
     # placed in order, each with the caption for its own marks.

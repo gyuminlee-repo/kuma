@@ -77,6 +77,31 @@ def test_generation_removes_only_stale_numbered_artifacts(tmp_path: Path, monkey
     assert [node.text for node in extra.findall("{http://www.w3.org/2000/svg}text")] == ["2"]
 
 
+def test_marks_on_adjacent_rows_do_not_overlap() -> None:
+    # Given: four 32 px parameter rows 36 px apart on a 1440 x 900 shot, as in
+    # the KURO advanced options, plus one mark alone on the page.
+    pytest.importorskip("PIL.Image", reason="annotate script needs Pillow")
+    spec = importlib.util.spec_from_file_location("annotate_guide", ROOT / "scripts/annotate-guide-captures.py")
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    w, h = 1440, 900
+    rows = [{"bbox": [230 / w, (540 + 36 * i) / h, 668 / w, 32 / h]} for i in range(4)]
+    alone = {"bbox": [1200 / w, 100 / h, 100 / w, 40 / h]}
+
+    # When: the boxes are laid out for drawing.
+    drawn = module.boxes([*rows, alone], w, h)
+
+    # Then: each row stroke ends before the next begins, and a mark with no
+    # neighbour keeps the full padding.
+    half = module.STROKE / 2
+    for (_, top, _, height), (_, next_top, _, _) in zip(drawn[:3], drawn[1:4]):
+        assert top + height + half < next_top - half
+    x, y, bw, bh = drawn[4]
+    assert (x, y) == pytest.approx((1200 - module.PAD * w, 100 - module.PAD * h))
+    assert (bw, bh) == pytest.approx((100 + 2 * module.PAD * w, 40 + 2 * module.PAD * h))
+
+
 @pytest.mark.parametrize(
     ("svg_shots", "region_shots", "error"),
     [
@@ -163,3 +188,74 @@ def test_publication_leaves_uncaptured_pages_alone(publisher, guide) -> None:
 
     # Then: there are no injected figure URLs.
     assert re.findall(r"\]\((figures/[^)]+)\)", rendered) == []
+
+
+def test_publication_replaces_verdict_marker_at_its_location(publisher, guide) -> None:
+    # Given: a diagram shared by both language sites and a marker between sections.
+    _, _, config, page = guide
+    source = Path(config.config_file_path).parent / "docs/site/shared/figures/mame-verdict-order.svg"
+    source.parent.mkdir(parents=True)
+    source.write_text("<svg/>", encoding="utf-8")
+    markdown = "# Guide\n\n<!-- guide-verdict-order -->\n\n## Classes\n"
+
+    # When: the site hook publishes a page that has no screen captures.
+    rendered = publisher.on_page_markdown(markdown, page, config, [])
+
+    # Then: the marker becomes a figure URL at the same position.
+    assert "<!-- guide-verdict-order -->" not in rendered
+    assert re.findall(r"\]\((figures/[^)]+)\)", rendered) == ["figures/mame-verdict-order.svg"]
+    assert rendered.index("figures/mame-verdict-order.svg") < rendered.index("## Classes")
+
+
+def test_publication_rejects_missing_verdict_diagram(publisher, guide) -> None:
+    # Given: a page requests a shared diagram that does not exist.
+    _, _, config, page = guide
+    # When / Then: fail the build rather than publish a broken image.
+    with pytest.raises(FileNotFoundError):
+        publisher.on_page_markdown("<!-- guide-verdict-order -->", page, config, [])
+
+
+_MARKED_NAME = re.compile(r"`([^`]+)`|\*\*([^*]+)\*\*")
+
+
+def _locale_strings(lang: str) -> set[str]:
+    out: set[str] = set()
+
+    def walk(node) -> None:
+        if isinstance(node, dict):
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                walk(value)
+        elif isinstance(node, str):
+            text = node.strip()
+            out.add(text)
+            out.add(text.rstrip(":").strip())
+            # "Excluded: {{count}}" renders as "Excluded: 3"; a caption names
+            # the fixed part.
+            if "{{" in text:
+                out.add(text.split("{{", 1)[0].strip().rstrip(":").strip())
+
+    walk(json.loads((ROOT / "src/locales" / f"{lang}.json").read_text(encoding="utf-8")))
+    return out
+
+
+@pytest.mark.parametrize("lang", ["en", "ko"])
+def test_caption_names_match_the_screen(lang: str) -> None:
+    """A caption that names a control in backticks or bold names it as the screen does.
+
+    The guide captions a mark with the control's label, and a reader looks for
+    that word on the screen. Hand-typed labels drifted from the locale files
+    ("사용한 well" for the panel titled "사용할 웰"), so every marked name has to
+    be a string the app actually renders in that language.
+    """
+    strings = _locale_strings(lang)
+    wrong = []
+    for path in sorted((ROOT / "docs/site/captures" / lang).glob("*.regions.json")):
+        for region in json.loads(path.read_text(encoding="utf-8")):
+            for match in _MARKED_NAME.finditer(region.get("ref", "")):
+                name = (match.group(1) or match.group(2)).strip().rstrip(":").strip()
+                if name not in strings:
+                    wrong.append(f"{path.name} #{region['label']}: {name}")
+    assert wrong == []

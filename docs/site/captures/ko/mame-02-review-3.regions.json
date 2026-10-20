@@ -1,7 +1,7 @@
 [
   {
     "label": "4",
-    "ref": "사용한 well",
+    "ref": "**사용할 웰**",
     "role_or_testid": "section-well-selection",
     "bbox": [
       0.14166666666666666,

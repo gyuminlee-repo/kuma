@@ -610,9 +610,31 @@ class TestSequenceIdentity:
         assert identity == 100.0
 
     def test_different_lengths_no_substring(self):
-        # "MX" is NOT a substring of "MVKLT" → positional: 1/5 = 20%
+        # "MX" is NOT a substring of "MVKLT" → aligned: 1 identical of 5 = 20%
         identity = _sequence_identity("MX", "MVKLT")
         assert identity == 20.0
+
+    def test_one_inserted_residue_keeps_the_rest_in_register(self):
+        # EGFP carries one more residue than GFP near the N terminus. Counted
+        # position by position every later residue was out of register.
+        gfp = "MSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTF"
+        egfp = gfp[0] + "V" + gfp[1:]
+        identity = _sequence_identity(egfp, gfp)
+        # 95 % is the auto-match gate in handle_search_uniprot. Position by
+        # position this pair scored 7.7 %.
+        assert identity >= 95.0
+
+    def test_alignment_does_not_lift_a_pair_over_the_gate(self):
+        # Four substitutions in 64 residues is 93.8 % and must stay below the
+        # 95 % gate: the alignment may not open gaps to manufacture matches.
+        gfp = "MSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTF"
+        variant = list(gfp)
+        for pos, aa in ((10, "A"), (25, "W"), (40, "R"), (55, "D")):
+            variant[pos] = aa
+        assert _sequence_identity("".join(variant), gfp) == 93.8
+        # An unrelated protein of the same length (hen lysozyme) stays far below.
+        lysozyme = "KVFGRCELAAAMKRHGLDNYRGYSLGNWVCAAKFESNFNTQATNRNTDGSTDYGILQINSRWW"
+        assert _sequence_identity(lysozyme, gfp) < 20.0
 
 
 class TestOrganismAwareUniprotRanking:

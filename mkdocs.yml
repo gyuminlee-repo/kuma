@@ -56,7 +56,7 @@ nav:
     - mame-02-review.md
     - mame-03-janus.md
     - mame-04-activity.md
-    - mame-pipeline.md
+  - faq.md
 
 markdown_extensions:
   - admonition

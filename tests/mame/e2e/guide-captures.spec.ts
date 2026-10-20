@@ -48,6 +48,8 @@ for (const locale of ["en", "ko"] as const) {
     const main = page.getByRole("main");
     const named = (locator: Locator, selector: string, en: string, ko: string): Target =>
       ({ locator, selector, ref: locale === "en" ? en : ko });
+    const labelled = (locator: Locator, key: string): Target =>
+      ({ locator, selector: `text=${t(key)}`, ref: `\`${t(key)}\`` });
     // A page can need more than one still: a control below the fold gets its own
     // shot, scrolled to the top of its panel, and numbering continues across the
     // shots of a page (and across later calls for the same page, e.g. a second
@@ -77,7 +79,9 @@ for (const locale of ["en", "ko"] as const) {
     const capture = async (slug: string, targets: readonly Target[]) => {
       // Transient toasts ("Design complete") would cover the header in a still.
       await page.addStyleTag({ content: "[data-sonner-toaster]{display:none !important}" });
-      await expect(main).toBeVisible();
+      // An open modal hides the page behind it from the accessibility tree, so
+      // a popup still needs either the page or the popup itself to be on screen.
+      await expect(main.or(page.locator('[role="dialog"], [role="alertdialog"]')).first()).toBeVisible();
       await expect(page.getByText("Something went wrong.", { exact: true })).toHaveCount(0);
       await expect(page.locator("body")).not.toContainText("errorBoundary.");
       // A stale capture recording shows up as a rejected reply, not a crash.
@@ -94,6 +98,11 @@ for (const locale of ["en", "ko"] as const) {
       let pending = [...targets];
       while (pending.length > 0) {
         for (const target of pending) await expect(target.locator, `${slug}: ${target.selector}`).toBeVisible();
+        // Dialogs open with a zoom-in: a box measured mid-animation lands off the
+        // settled dialog the screenshot shows. Spinners repeat forever and are skipped.
+        await page.evaluate(() => Promise.all(document.getAnimations()
+          .filter((a) => a.effect?.getTiming().iterations !== Infinity)
+          .map((a) => a.finished.catch(() => undefined))));
         // Lift the first unmarked control to the top of its panel so it, and as
         // many of the rest as fit, are in view for this shot.
         await pending[0].locator.evaluate((el) => {
@@ -136,7 +145,7 @@ for (const locale of ["en", "ko"] as const) {
         const name = state.shots === 1 ? slug : `${slug}-${state.shots}`;
         await page.screenshot({ path: resolve(out, `${name}.png`), fullPage: false, animations: "disabled" });
         writeFileSync(resolve(out, `${name}.regions.json`), JSON.stringify(regions, null, 2) + "\n");
-        await testInfo.attach(`${name}-dom`, { body: await main.innerText(), contentType: "text/plain" });
+        await testInfo.attach(`${name}-dom`, { body: await page.locator("body").innerText(), contentType: "text/plain" });
         console.log(`CAPTURE ${locale}/${name} regions=${regions.length}`);
         pending = later;
       }
@@ -163,15 +172,23 @@ for (const locale of ["en", "ko"] as const) {
       localStorage.setItem("kuma.onboarding.maximizeShown", "1");
       localStorage.setItem("kuma:autosave-intro-shown", "1");
     }, locale);
-    // Captures show the app as a user who declined external lookups sees it:
-    // no InterPro, ESMFold or UniProt call, so nothing unrecorded is attempted.
+    // Lookups are accepted so the guide shows the reference structure the 3D
+    // panel exists for. MOCK_MODE answers them from the recorded bundle, so the
+    // capture still makes no network call.
     await page.addLocatorHandler(
       page.getByRole("dialog", { name: t("networkConsent.title") }),
       async (dialog) => {
-        await dialog.getByRole("button", { name: t("networkConsent.btnCancel"), exact: true }).click();
+        await dialog.getByRole("button", { name: t("networkConsent.btnAccept"), exact: true }).click();
       },
     );
     await openWorkspace(page);
+    await next();
+    const missing = page.getByRole("dialog");
+    await expect(missing).toBeVisible();
+    await capture("kuro-01-load", [
+      labelled(missing, "wizardContainer.validationDialog.title"),
+    ]);
+    await page.keyboard.press("Escape");
     await browseKuro(`${samples}/sample_plasmid.gb`, t("sequenceInput.browse"));
     await expect(main.getByText("sample_plasmid.gb", { exact: true })).toBeVisible();
     await expect(main.getByText(/pSampleKURO_EGFP/)).toBeVisible();
@@ -181,19 +198,33 @@ for (const locale of ["en", "ko"] as const) {
       named(main.getByRole("combobox").filter({ has: page.locator('option[value="60"]') }), 'role=combobox[has option[value="60"]]', "`Target Gene`", "`타겟 유전자`"),
       named(main.getByRole("combobox").filter({ has: page.locator('option[value="ecoli"]') }), 'role=combobox[has option[value="ecoli"]]', "`Organism`", "`생물체`"),
     ]);
+    await main.getByRole("button", { name: t("sequenceInput.addOrganism"), exact: true }).click();
+    const codon = page.getByRole("dialog");
+    await expect(codon).toBeVisible();
+    await capture("kuro-01-load", [
+      labelled(codon.getByRole("tabpanel"), "codonTable.manager.computeTab"),
+    ]);
+    await codon.getByRole("tab", { name: t("codonTable.manager.importTab"), exact: true }).click();
+    await capture("kuro-01-load", [
+      labelled(codon.getByRole("tabpanel"), "codonTable.manager.importTab"),
+    ]);
+    await page.keyboard.press("Escape");
     await next();
-    await browseKuro(`${samples}/sample_evolvepro.csv`, "Browse");
+    await browseKuro(`${samples}/sample_evolvepro.csv`, t("common.browse"));
     const round = page.getByRole("dialog");
     await expect(round).toBeVisible();
+    await capture("kuro-02-mutation", [
+      labelled(round, "roundPrompt.title"),
+    ]);
     await round.getByRole("button", { name: t("roundPrompt.dismissLabel"), exact: true }).click();
     await expect(round).toHaveCount(0);
     await expect(main.getByText("sample_evolvepro.csv", { exact: true })).toBeVisible();
     await capture("kuro-02-mutation", [
-      named(main.getByRole("button", { name: "Browse", exact: true }), 'role=button[name="Browse"]', "`Browse` (prediction file)", "`Browse` (예측 파일)"),
+      labelled(main.getByRole("button", { name: t("common.browse"), exact: true }), "common.browse"),
       named(main.getByRole("spinbutton", { name: t("mutationInput.roundNumberAriaLabel") }), `role=spinbutton[name="${t("mutationInput.roundNumberAriaLabel")}"]`, "`Round` and `Size` under `Campaign round`", "`캠페인 라운드` 의 `라운드` 와 `크기`"),
       named(main.getByRole("combobox", { name: t("mutationInput.othersVariantColumn"), exact: true }), `role=combobox[name="${t("mutationInput.othersVariantColumn")}"]`, "`Mutation column`", "`Mutation column`"),
       named(main.getByRole("combobox", { name: t("mutationInput.othersScoreColumn"), exact: true }), `role=combobox[name="${t("mutationInput.othersScoreColumn")}"]`, "`Ranking column`", "`Ranking column`"),
-      named(main.getByTestId("selection-mode"), "testid=selection-mode", "`Selection mode`", "`선택 방식`"),
+      named(main.getByTestId("selection-mode"), "testid=selection-mode", `\`${t("mutationInput.selectionMode")}\``, `\`${t("mutationInput.selectionMode")}\``),
       named(main.getByRole("table").filter({ has: page.getByRole("checkbox") }).first(), "role=table has checkbox", "Candidate table", "후보 표"),
     ]);
     await next();
@@ -205,20 +236,66 @@ for (const locale of ["en", "ko"] as const) {
       named(main.getByRole("spinbutton").first(), "main role=spinbutton first", "`Design count:`", "`설계 후보 수:`"),
       named(main.getByRole("button", { name: t("parameterPanel.advancedToggleShow"), exact: true }), `role=button[name="${t("parameterPanel.advancedToggleShow")}"]`, "`Advanced options`", "`고급 옵션`"),
     ]);
+    await main.getByRole("button", { name: t("parameterPanel.advancedToggleShow"), exact: true }).click();
+    const advanced = main.locator("#kuro-params-advanced");
+    await expect(advanced).toBeVisible();
+    await capture("kuro-03-params", [
+      labelled(advanced.getByText(t("parameterPanel.tmFwdLabel"), { exact: true }).locator(".."), "parameterPanel.tmFwdLabel"),
+      labelled(advanced.getByText(t("parameterPanel.tmRevLabel"), { exact: true }).locator(".."), "parameterPanel.tmRevLabel"),
+      labelled(advanced.getByText(t("parameterPanel.tmOverlapLabel"), { exact: true }).locator(".."), "parameterPanel.tmOverlapLabel"),
+      labelled(advanced.getByText(t("parameterPanel.tmTolLabel"), { exact: true }).locator(".."), "parameterPanel.tmTolLabel"),
+      labelled(advanced.getByText(t("parameterPanel.gcRangeLabel"), { exact: true }).locator(".."), "parameterPanel.gcRangeLabel"),
+      labelled(advanced.getByText(t("parameterPanel.primerLenLimit"), { exact: true }).locator(".."), "parameterPanel.primerLenLimit"),
+      labelled(advanced.getByText(t("parameterPanel.autoRescueLabel"), { exact: true }).locator(".."), "parameterPanel.autoRescueLabel"),
+      labelled(advanced.getByText(t("parameterPanel.seedLabel"), { exact: true }).locator(".."), "parameterPanel.seedLabel"),
+    ]);
+    await main.getByRole("button", { name: t("parameterPanel.customPolymerase"), exact: true }).click();
+    const polymerase = page.getByRole("dialog", { name: t("polymeraseEditor.title"), exact: true });
+    await expect(polymerase).toBeVisible();
+    await capture("kuro-03-params", [labelled(polymerase, "polymeraseEditor.title")]);
+    await page.keyboard.press("Escape");
     await next();
     const run = main.getByRole("region", { name: t("phaseC.run.primary"), exact: true })
       .getByRole("button", { name: t("phaseC.run.primary"), exact: true });
+    const summary = main.getByTestId("design-summary-card");
     await capture("kuro-04-submit", [
-      named(run, `role=region[name="${t("phaseC.run.primary")}"] role=button`, "`Run Design`", "`설계 실행`"),
+      named(summary, "testid=design-summary-card", `\`${t("phaseE.summary.heading")}\` (Top-N)`, `\`${t("phaseE.summary.heading")}\` (Top-N)`),
+      named(run, `role=region[name="${t("phaseC.run.primary")}"] role=button`, `\`${t("phaseC.run.primary")}\``, `\`${t("phaseC.run.primary")}\``),
+    ]);
+    // The same step in Pipeline mode: the pool filters appear under the card.
+    const back = () => main.getByRole("button", { name: t("phaseE.wizard.back"), exact: true }).click();
+    await back();
+    await back();
+    await main.getByTestId("selection-mode").getByRole("radio").nth(1).check();
+    await next();
+    await next();
+    const pool = main.getByText("Pipeline", { exact: true }).locator("..");
+    await expect(pool).toBeVisible();
+    await capture("kuro-04-submit", [
+      named(summary, "testid=design-summary-card", `\`${t("phaseE.summary.heading")}\` (${t("phaseE.summary.selectionMode.pipeline")})`, `\`${t("phaseE.summary.heading")}\` (${t("phaseE.summary.selectionMode.pipeline")})`),
+      named(pool, "text=Pipeline parent", "Pool filters, the Pipeline steps", "풀 필터 (Pipeline 단계)"),
     ]);
     await run.click();
     await expect(page.getByRole("alertdialog")).toBeVisible();
+    await capture("kuro-04-submit", [
+      labelled(page.getByRole("alertdialog"), "preflight.titleWarnings"),
+    ]);
     await page.getByRole("alertdialog").getByRole("button").last().click();
     await expect(page.getByTestId("output-primer-panel")).toBeVisible();
+    // The 3D panel is captured with its structure drawn, not its empty state.
+    // Consent was accepted above, so the app runs the recorded UniProt search,
+    // auto-selects P42212 for the public EGFP construct
+    // (scripts/gen_real_capture_data.py --accession P42212) and fetches its
+    // recorded AlphaFold model. The stub answers, nothing leaves the host.
+    const structure = page.getByTestId("selection3d-panel");
+    await expect(structure.getByTestId("viewer-container").locator("canvas")).toBeVisible({ timeout: 60_000 });
+    await expect(structure.getByTestId("loading-state")).toHaveCount(0);
+    await expect(structure.getByTestId("error-state")).toHaveCount(0);
     await capture("kuro-05-output", [
       named(page.getByTestId("output-primer-panel"), 'testid=output-primer-panel', "Statistics line and result table", "통계 한 줄과 결과 표"),
       named(page.getByTestId("output-plate-panel"), 'testid=output-plate-panel', "Plate map", "플레이트 맵"),
-      named(page.getByTestId("selection3d-panel"), "testid=selection3d-panel", "`Candidate 3D structure analysis`", "`후보 3D 구조 분석`"),
+      named(page.getByTestId("selection3d-panel"), "testid=selection3d-panel", `\`${t("selection3d.title")}\``, `\`${t("selection3d.title")}\``),
+      named(structure.getByTestId("viewer-container"), "testid=viewer-container", "3D structure view", "3D 구조 보기"),
     ]);
     await next();
     await main.locator("#project-name").fill("Synthetic_EGFP");
@@ -230,9 +307,9 @@ for (const locale of ["en", "ko"] as const) {
       named(main.locator("#rvs-plate"), "#rvs-plate", "`Reverse primer plate name`", "`Reverse 프라이머 플레이트 이름`"),
       named(main.locator("#amount"), "#amount", "Amount (0.05 or 0.2 μmole)", "합성량 (0.05 또는 0.2 μmole)"),
       named(main.locator("#echo-vol"), "#echo-vol", "`Echo transfer volume`", "`Echo 이송 부피`"),
-      named(main.getByRole("radiogroup", { name: t("phaseC.export.all.quadrantLabel") }), `role=radiogroup[name="${t("phaseC.export.all.quadrantLabel")}"]`, "`Echo source plate quadrant`", "`Echo 소스 플레이트 사분면`"),
+      named(main.getByRole("radiogroup", { name: t("phaseC.export.all.quadrantLabel") }), `role=radiogroup[name="${t("phaseC.export.all.quadrantLabel")}"]`, `\`${t("phaseC.export.all.quadrantLabel")}\``, `\`${t("phaseC.export.all.quadrantLabel")}\``),
       named(main.locator("#janus-vol"), "#janus-vol", "`JANUS transfer volume`", "`JANUS 이송 부피`"),
-      named(main.getByRole("button", { name: t("phaseC.export.all.runExport"), exact: true }), `role=button[name="${t("phaseC.export.all.runExport")}"]`, "`Export all`", "`전체 내보내기`"),
+      named(main.getByRole("button", { name: t("phaseC.export.all.runExport"), exact: true }), `role=button[name="${t("phaseC.export.all.runExport")}"]`, `\`${t("export.all")}\``, `\`${t("export.all")}\``),
       named(main.getByTestId("export-plate-preview"), "testid=export-plate-preview", "Echo and JANUS mapping preview", "Echo·JANUS 매핑 미리보기"),
       named(main.getByRole("region", { name: t("phaseC.subSteps.export.summary"), exact: true }), `role=region[name="${t("phaseC.subSteps.export.summary")}"]`, "`Order summary`", "`주문 요약`"),
     ]);
@@ -261,10 +338,10 @@ for (const locale of ["en", "ko"] as const) {
       exact: true,
     }).click();
     await capture("mame-02-review", [
-      named(main.getByRole("textbox", { name: t("mame.inputPanel.raw_run.label"), exact: true }), "textbox[raw_run]", "MinKNOW run folder", "MinKNOW 런 폴더"),
-      named(main.getByRole("textbox", { name: t("mame.inputPanel.kuroXlsx.label"), exact: true }), "textbox[kuroXlsx]", "Expected variants (xlsx)", "기대 변이체 (xlsx)"),
-      named(main.getByRole("textbox", { name: t("mame.inputPanel.referenceFasta.label"), exact: true }), "textbox[referenceFasta]", "Reference construct", "참조 컨스트럭트"),
-      named(main.locator('section[aria-labelledby="mame-well-selection-heading"]'), "section-well-selection", "Wells used", "사용한 well"),
+      named(main.getByRole("textbox", { name: t("mame.inputPanel.raw_run.label"), exact: true }), "textbox[raw_run]", `**${t("mame.inputPanel.raw_run.label")}**`, `**${t("mame.inputPanel.raw_run.label")}**`),
+      named(main.getByRole("textbox", { name: t("mame.inputPanel.kuroXlsx.label"), exact: true }), "textbox[kuroXlsx]", `**${t("mame.inputPanel.kuroXlsx.label")}**`, `**${t("mame.inputPanel.kuroXlsx.label")}**`),
+      named(main.getByRole("textbox", { name: t("mame.inputPanel.referenceFasta.label"), exact: true }), "textbox[referenceFasta]", `**${t("mame.inputPanel.referenceFasta.label")}**`, `**${t("mame.inputPanel.referenceFasta.label")}**`),
+      named(main.locator('section[aria-labelledby="mame-well-selection-heading"]'), "section-well-selection", `**${t("mame.wellSelection.title")}**`, `**${t("mame.wellSelection.title")}**`),
       named(main.getByRole("button", { name: t("mameSidebar.runBtn"), exact: true }), "role=button[runBtn]", "Run", "실행"),
     ]);
     await main.getByRole("button", { name: t("mameSidebar.runBtn"), exact: true }).click();
@@ -299,17 +376,27 @@ for (const locale of ["en", "ko"] as const) {
       name: t("mame.inputPanel.browseFolderAriaLabel").replace("{{label}}", t("mame.buildEvolvepro.measurementFile")), exact: true,
     }).click();
     await expect(main.locator("#bep-measurement")).toBeVisible();
+    // The format choice for the optional confirmation file only exists once a
+    // file is chosen and the format is picked by hand.
+    await answer(page, `${samples}/mame/16_mame_agilent_numeric_confirmation.xlsx`);
+    await main.getByRole("button", {
+      name: t("mame.inputPanel.browseFolderAriaLabel").replace("{{label}}", t("mame.buildEvolvepro.additionalMeasurementFile")), exact: true,
+    }).click();
+    // Detection runs after the pick; choosing the format by hand before it ends
+    // lets the detected result replace the manual choice.
+    await expect(main.getByText(t("mame.buildEvolvepro.detectingFormat"), { exact: true })).toHaveCount(0);
+    await main.getByRole("button", { name: t("mame.buildEvolvepro.chooseFormatManually"), exact: true }).click();
     await capture("mame-04-activity", [
-      named(main.getByText(t("mame.buildEvolvepro.measurementFile")).first().locator("xpath=ancestor::div[.//*[@id='bep-measurement']][1]"), "row containing #bep-measurement", "**Measurement file**", "**측정 파일**"),
+      named(main.getByText(t("mame.buildEvolvepro.measurementFile")).first().locator("xpath=ancestor::div[.//*[@id='bep-measurement']][1]"), "row containing #bep-measurement", `**${t("mame.buildEvolvepro.measurementFile")}**`, `**${t("mame.buildEvolvepro.measurementFile")}**`),
       named(main.getByRole("radiogroup", { name: t("mame.buildEvolvepro.activityScale"), exact: true }), `role=radiogroup[name="${t("mame.buildEvolvepro.activityScale")}"]`, "Activity scale (raw or relative to WT)", "활성값 스케일 (raw 또는 WT 상대값)"),
-      named(main.getByRole("radiogroup", { name: t("mame.buildEvolvepro.confirmationSourceLabel"), exact: true }), "role=radiogroup[confirmationSourceLabel]", "**Optional confirmation**", "**선택적 확인 측정**"),
+      named(main.getByRole("radiogroup", { name: t("mame.buildEvolvepro.confirmationSourceLabel"), exact: true }), "role=radiogroup[confirmationSourceLabel]", `**${t("mame.buildEvolvepro.confirmationSourceLabel")}**`, `**${t("mame.buildEvolvepro.confirmationSourceLabel")}**`),
       named(main.getByRole("textbox", { name: t("mame.buildEvolvepro.verdictXlsx"), exact: true }), "textbox[verdictXlsx]", "**NGS verdict xlsx**", "**NGS 판정 xlsx**"),
       named(main.locator('section[aria-labelledby="bep-output"]'), "section-bep-output", "**Output EVOLVEpro xlsx**", "**출력 EVOLVEpro xlsx**"),
-      named(main.getByRole("button", { name: t("mame.buildEvolvepro.build"), exact: true }), "role=button[build]", "**Build EVOLVEpro input**", "**EVOLVEpro 입력 만들기**"),
+      named(main.getByRole("button", { name: t("mame.buildEvolvepro.build"), exact: true }), "role=button[build]", `**${t("mame.buildEvolvepro.build")}**`, `**${t("mame.buildEvolvepro.build")}**`),
     ]);
     await goMame("activity.signals");
     await capture("mame-04-activity", [
-      named(main.getByRole("button").filter({ hasText: t("advisoryDecision.addFiles") }), "role=button hasText[addFiles]", "Per-round EVOLVEpro result xlsx files (4.2)", "라운드별 EVOLVEpro 결과 xlsx (4.2)"),
+      named(main.getByRole("button").filter({ hasText: t("advisoryDecision.addFiles") }), "role=button hasText[addFiles]", `\`${t("advisoryDecision.addFiles")}\` (4.2 per-round EVOLVEpro results)`, `\`${t("advisoryDecision.addFiles")}\` (4.2 라운드별 EVOLVEpro 결과)`),
       named(main.getByRole("button").filter({ hasText: t("advisoryDecision.classify") }), "role=button hasText[classify]", "**Run classification** (4.2)", "**분류 실행** (4.2)"),
     ]);
   });

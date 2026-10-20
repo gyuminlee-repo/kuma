@@ -14,7 +14,20 @@ The card at the top shows the values this run will use. If something is not what
 | Variants | Number of variants this run will design |
 | Polymerase | Chosen polymerase, target Tm, primer cap |
 
-In `Pipeline (failover)` mode the pool filter controls appear below the card. In `Top-N only` mode they do not.
+## What Pipeline mode adds
+
+When step 2 is set to `Pipeline`, a `PIPELINE` box sits below the summary card. With `Top-N only` the box is absent and the screen shows only the summary card and `Run Design`.
+
+The steps in the box apply from top to bottom. The checkbox in front of each step name turns it on or off.
+
+| On screen | What it does |
+|---|---|
+| `Step 1: Pre-filter` | Caps how many variants one residue position can contribute. When two scores are within 2 %, it keeps the gentler amino-acid change (smaller Grantham distance) |
+| `Step 2: Domain allocation` | Splits the picks among domains. Linker handling and the domain list are set here |
+| `Step 3: Optimization` | Puts variants far from those already picked first, using 3D distance when a structure is loaded and sequence distance otherwise |
+| `Step 4: Structural diversity` | Spreads the picks evenly through the 3D structure across the whole pool, anchored on variants measured in earlier rounds |
+
+Whatever is set here is listed under `Pipeline` in the design report on the next step.
 
 ## Running the design
 

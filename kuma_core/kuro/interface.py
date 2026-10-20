@@ -191,17 +191,8 @@ def map_residues(
     return {acc_to_target[p] for p in acc_positions if p in acc_to_target}
 
 
-def _build_position_map(accession_seq: str, target_seq: str) -> dict[int, int]:
-    """1-based accession-position -> 1-based target-position via global alignment.
-
-    Uses biopython's ``PairwiseAligner`` with explicit match/mismatch scoring,
-    affine gaps, and free end gaps so an N-terminal transit-peptide extension on
-    one sequence does not force spurious internal gaps. The scoring is kept
-    self-contained: packaged sidecars must not depend on Biopython's loose
-    substitution-matrix data files (for example ``BLOSUM62`` under
-    ``Bio/Align/substitution_matrices/data``). Only aligned (non-gap on both
-    sides) columns contribute to the map.
-    """
+def _global_aligner():
+    """The protein aligner shared by the position map and the identity score."""
     from Bio.Align import PairwiseAligner
 
     aligner = PairwiseAligner()
@@ -213,8 +204,39 @@ def _build_position_map(accession_seq: str, target_seq: str) -> dict[int, int]:
     # Free end gaps: terminal extensions (e.g. transit peptide) cost nothing.
     aligner.target_end_gap_score = 0.0
     aligner.query_end_gap_score = 0.0
+    return aligner
 
-    alignment = aligner.align(accession_seq, target_seq)[0]
+
+def aligned_identical_residues(seq_a: str, seq_b: str) -> int:
+    """Identical residues in the best global alignment of two protein sequences.
+
+    Counting position by position instead lets a single inserted residue (EGFP
+    carries one more Val than GFP at position 2) shift every later residue out
+    of register: the EGFP construct scored 5 % against GFP (P42212), where this
+    alignment gives 97.9 %.
+    """
+    alignment = _global_aligner().align(seq_a, seq_b)[0]
+    a_blocks, b_blocks = alignment.aligned
+    return sum(
+        1
+        for (a_start, a_end), (b_start, _b_end) in zip(a_blocks, b_blocks)
+        for offset in range(int(a_end) - int(a_start))
+        if seq_a[int(a_start) + offset] == seq_b[int(b_start) + offset]
+    )
+
+
+def _build_position_map(accession_seq: str, target_seq: str) -> dict[int, int]:
+    """1-based accession-position -> 1-based target-position via global alignment.
+
+    Uses biopython's ``PairwiseAligner`` with explicit match/mismatch scoring,
+    affine gaps, and free end gaps so an N-terminal transit-peptide extension on
+    one sequence does not force spurious internal gaps. The scoring is kept
+    self-contained: packaged sidecars must not depend on Biopython's loose
+    substitution-matrix data files (for example ``BLOSUM62`` under
+    ``Bio/Align/substitution_matrices/data``). Only aligned (non-gap on both
+    sides) columns contribute to the map.
+    """
+    alignment = _global_aligner().align(accession_seq, target_seq)[0]
 
     pos_map: dict[int, int] = {}
     # alignment.aligned is ((acc_blocks), (target_blocks)); blocks are 0-based

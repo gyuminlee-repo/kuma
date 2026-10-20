@@ -117,6 +117,9 @@ const KURO_REPLIES: Record<string, (params?: unknown) => unknown> = {
   // false statistic on screen, so the call fails the way an unreachable sidecar
   // does and the app keeps its own fallback (diversitySlice computeDispersion).
   compute_dispersion: () => {
+    if (realBundle.dispersion && Object.keys(realBundle.dispersion as object).length > 0) {
+      return realBundle.dispersion;
+    }
     throw new Error("MOCK_MODE: compute_dispersion is not in the capture bundle");
   },
   get_polymerase_details: (params) => {

@@ -12,7 +12,7 @@
   },
   {
     "label": "6",
-    "ref": "`Echo 소스 플레이트 사분면`",
+    "ref": "`Echo 소스 플레이트 열`",
     "role_or_testid": "role=radiogroup[name=\"Echo 소스 플레이트 열\"]",
     "bbox": [
       0.15833333333333333,

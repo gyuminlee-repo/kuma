@@ -38,7 +38,7 @@ The off-target search space is whatever file was loaded. A plasmid or construct 
 
 When no candidate clears all five, the design is not refused. The candidate whose Tm is closest to the target is selected instead and a warning states which check it failed and at what temperature. Read that warning before ordering the primers.
 
-The molecules that are actually synthesised are the 20 oligos formed by a seed joined to a binding site. Hairpin and homodimer are run over those full oligos too, and everything above 40.0 C is collected into a single warning. That pass is advisory and never changes a selection, because a seed is a fixed input that was already ordered and there is nothing to choose in its place. An oligo longer than 60 nt is reported as unchecked, since primer3 refuses the calculation at that length.
+The molecules that are actually synthesised are the 20 oligos formed by a seed joined to a binding site. Hairpin and homodimer are run over those full oligos too, and everything above 40.0 C is collected into a single warning. That pass is advisory and never changes the binding site it chose: kuma only chooses binding sites, and each barcode seed is a fixed input sequence from the seeds file, so the program has no other seed to swap in. Check the full sequence of every oligo the warning names before ordering. To move a binding site elsewhere, change the search range or the binding length under **Advanced options** and generate again. An oligo longer than 60 nt is reported as unchecked, since primer3 refuses the calculation at that length.
 
 ## Warnings and errors
 

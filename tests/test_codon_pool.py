@@ -11,6 +11,8 @@ that order is what breaks an exact penalty tie.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from typing import Iterator
@@ -38,20 +40,17 @@ ORGANISMS = [
 ]
 
 #: M. extorquens AM1 is the skewed case these floor tests were written against
-#: and it is no longer bundled, so the cases that need it install the shipped
-#: seed into a temporary user folder. Dropping them instead would retire the
-#: only regression coverage the floor has for a genuinely biased genome.
+#: and it is no longer shipped with the app, so the cases that need it install
+#: the test fixture into a temporary user folder. Dropping them instead would
+#: retire the only regression coverage the floor has for a genuinely biased
+#: genome.
 AM1 = "mextorquens_am1"
-_SEED_AM1 = (
-    codon_table_mod._RESOURCES_DIR.parent
-    / "codon_table_seeds"
-    / f"{AM1}.json.txt"
-)
+_SEED_AM1 = Path(__file__).parent / "fixtures" / "codon_tables" / f"{AM1}.json"
 
 
 @pytest.fixture
 def am1_installed(tmp_path, monkeypatch) -> Iterator[str]:
-    """Install the AM1 seed as a user table and hand back its key."""
+    """Install the AM1 fixture as a user table and hand back its key."""
     monkeypatch.setenv("HOME", str(tmp_path))
     directory = tmp_path / ".kuma" / "kuro" / "codon_tables"
     directory.mkdir(parents=True)

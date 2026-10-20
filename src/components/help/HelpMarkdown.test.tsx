@@ -11,9 +11,10 @@ vi.mock("@tauri-apps/plugin-opener", () => ({
 
 const KNOWN = ["alpha-topic", "beta-topic"];
 
-// The pipeline topic carries the largest table in the help set. The pattern
-// ends in a wildcard so no literal document name appears in this file.
-const PIPELINE_EN = import.meta.glob<string>("../../../docs/help/en/mame-pipeline*", {
+// The review topic carries the run-folder, option and verdict tables of the
+// help set. The pattern ends in a wildcard so no literal document name appears
+// in this file.
+const REVIEW_EN = import.meta.glob<string>("../../../docs/help/en/mame-02-review*", {
   query: "?raw",
   import: "default",
   eager: true,
@@ -123,8 +124,8 @@ describe("HelpMarkdown", () => {
     expect(container.textContent).not.toContain("<b>");
   });
 
-  it("renders the real pipeline topic with tables and no pipe rows", () => {
-    const bodies = Object.values(PIPELINE_EN);
+  it("renders the real review topic with tables and no pipe rows", () => {
+    const bodies = Object.values(REVIEW_EN);
     expect(bodies).toHaveLength(1);
     const { container } = render(
       <HelpMarkdown body={bodies[0]} knownTopics={KNOWN} onTopicChange={vi.fn()} />,

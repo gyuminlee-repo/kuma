@@ -6,7 +6,7 @@ Load the sequence file the design is built on, then set the gene to design prime
 
 1. Press `Browse`, or drag a file into the window, to load the sequence.
 2. Pick the target CDS under `Target Gene`. The longest coding sequence is selected first, so a single-gene file needs no change.
-3. Check `Organism`, which selects the codon usage table. It is set automatically when the sequence annotation names an organism. `Add organism...`, the last entry of that list, installs a table for an organism kuma does not ship.
+3. Pick `Organism`, which selects the codon usage table. The table decides which codon is written at each mutation site: of the codons for the new amino acid, those the organism hardly uses are left out and the frequently used ones are preferred, so even the mutated codon is optimised for the expression host. It is set automatically when the sequence annotation names an organism. `Add organism...`, the last entry of that list, installs a table for an organism kuma does not ship.
 
 ## Input
 
@@ -14,7 +14,7 @@ Load the sequence file the design is built on, then set the gene to design prime
 |---|---|
 | Sequence File | GenBank `.gb`, `.gbk`, `.gbff`, or SnapGene `.dna` |
 | Target Gene | One of the CDS entries found in the loaded file |
-| Organism | One of the five built-in codon usage tables, or one you installed yourself |
+| Organism | One of the nine built-in codon usage tables, or one you installed yourself |
 
 Once a file is loaded, the sequence header, the length in bp, and the number of genes found appear under the file name.
 
@@ -22,11 +22,11 @@ Only the first GenBank record and its CDS features are loaded. To use a gene fro
 
 ## Using your own strain
 
-The nine bundled tables are *E. coli*, *B. subtilis*, *H. sapiens*, *S. cerevisiae*, *K. phaffii* (GS115, the organism most protocols still call *P. pastoris*), *C. griseus* (the CHO line), *C. glutamicum*, *A. niger*, *P. putida*. *M. extorquens* AM1 is not one of them any more: it waits in the codon table folder as `mextorquens_am1.json.txt`, and renaming it to `mextorquens_am1.json` installs it. A table for any other organism is installed once and stays available. There are three ways in, and all three end with the organism appearing in this list.
+The nine bundled tables are *E. coli*, *B. subtilis*, *H. sapiens*, *S. cerevisiae*, *K. phaffii* (GS115, the organism most protocols still call *P. pastoris*), *C. griseus* (the CHO line), *C. glutamicum*, *A. niger*, *P. putida*. A table for any other organism is installed once and stays available. There are three ways to install one, and each of them puts the organism in this list.
 
 `Add organism...` opens a dialog with two ways to build the table. `Compute from a genome` takes a GenBank file (`.gb`, `.gbk`, `.gbff`) or a CDS FASTA and counts the codons itself, then reports how many coding sequences it counted and which it left out before anything is installed. `Import a table file` takes a table you already have, as a kuma table (JSON), a three-column CSV, EMBOSS `cusp` output, or a Kazusa codon usage page pasted as text.
 
-The third way needs no dialog: put the `.json` file in the codon table folder and press `Refresh` under Settings, `Codon tables`. That panel shows the folder path, and the folder holds a `TEMPLATE.json.txt` to copy and a `README.txt` describing the format. The file name without `.json` becomes the organism name kuma records, so `mextorquens_am1.json` becomes `mextorquens_am1`.
+The third way needs no dialog: put the `.json` file in the codon table folder and press `Refresh` under Settings, `Codon tables`. That panel shows the folder path, and the folder holds a `TEMPLATE.json.txt` to copy and a `README.txt` describing the format. The file name without `.json` becomes the organism name kuma records, so `ecoli_lab.json` becomes `ecoli_lab`.
 
 Whichever way is used, the table is checked before it is installed, and a file that fails a check is listed with the reason rather than half-loaded. A table cannot take the name of a built-in one, so a modified copy goes in under a name such as `ecoli_lab`.
 

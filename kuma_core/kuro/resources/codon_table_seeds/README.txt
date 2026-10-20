@@ -3,7 +3,7 @@ kuma / KURO - user codon tables
 
 Drop a codon usage table in this folder and KURO offers it in the Organism
 dropdown. One organism per file. The file name decides the key, so
-`mextorquens_am1.json` installs the organism `mextorquens_am1`.
+`ecoli_lab.json` installs the organism `ecoli_lab`.
 
 Quick start
 -----------
@@ -14,28 +14,6 @@ Quick start
    and "source", then replace the numbers under "codons".
 3. Press Refresh in KURO, or restart the app.
 
-A table you can use straight away
----------------------------------
-mextorquens_am1.json.txt in this folder is a finished table, not a placeholder:
-Methylorubrum extorquens AM1, counted from NCBI RefSeq GCF_000022685.1
-(6,256 coding sequences, genetic code 11). KURO shipped it as a built-in
-organism until the built-in set was reworked around general expression hosts,
-and it lives here so a lab that works on the organism keeps it without
-recounting a genome.
-
-To install it, rename it to mextorquens_am1.json and press Refresh. Nothing
-else needs editing: it already declares its own key and the Methylorubrum and
-Methylobacterium spellings as aliases, so KURO auto-selects the organism when
-you load a sequence annotated with either genus name.
-
-Two things are worth knowing before you do. The table lists Leu TTA at
-frequency 0.00, so the import reports a zero-frequency warning; that is the
-genome, not a defect, and the table installs anyway. And AM1 is strongly
-GC-biased, so the codon usage floor leaves three amino acids (Cys, Phe, Ile)
-with one usable codon each. Designs against this organism therefore have a
-narrower codon pool than against E. coli, which is the organism's bias showing
-through.
-
 Rules the file has to satisfy
 -----------------------------
 - Key: lowercase letters, digits and underscore, 2 to 32 characters, starting
@@ -45,8 +23,7 @@ Rules the file has to satisfy
   protocols call Pichia pastoris), cgriseus (Cricetulus griseus, the CHO line),
   cglutamicum, aniger and pputida. Use a different key such as ecoli_lab. A run
   records only the key, so two machines must never disagree about what a key
-  means. mextorquens is not on that list any more, so it is available to you:
-  the seed above uses mextorquens_am1, and mextorquens itself is accepted too.
+  means.
 - All 20 amino acids plus the stop "*", all 64 codons exactly once.
 - Frequencies are the fraction of that amino acid's codons, so each amino acid
   adds up to about 1. Percentages have to be divided by 100.

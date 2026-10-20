@@ -1,24 +1,24 @@
 [
   {
-    "label": "3",
-    "ref": "`Mutation column`",
-    "role_or_testid": "role=combobox[name=\"Mutation column\"]",
+    "label": "2",
+    "ref": "`찾아보기`",
+    "role_or_testid": "text=찾아보기",
     "bbox": [
       0.14166666666666666,
-      0.6003645833333333,
-      0.5,
+      0.5836979166666667,
+      0.04873046875,
       0.03111111111111111
     ]
   },
   {
-    "label": "4",
-    "ref": "`Ranking column`",
-    "role_or_testid": "role=combobox[name=\"Ranking column\"]",
+    "label": "3",
+    "ref": "`캠페인 라운드` 의 `라운드` 와 `크기`",
+    "role_or_testid": "role=spinbutton[name=\"EVOLVEpro 캠페인 라운드 번호\"]",
     "bbox": [
-      0.14166666666666666,
-      0.6925868055555555,
-      0.5,
-      0.03111111111111111
+      0.1792534722222222,
+      0.7048090277777778,
+      0.044444444444444446,
+      0.024444444444444446
     ]
   }
 ]

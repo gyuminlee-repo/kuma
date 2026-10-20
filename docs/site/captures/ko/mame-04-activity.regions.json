@@ -1,7 +1,7 @@
 [
   {
     "label": "1",
-    "ref": "**측정 파일**",
+    "ref": "**실험 데이터 파일**",
     "role_or_testid": "row containing #bep-measurement",
     "bbox": [
       0.14166666666666666,
@@ -16,18 +16,7 @@
     "role_or_testid": "role=radiogroup[name=\"활성값 스케일\"]",
     "bbox": [
       0.14166666666666666,
-      0.5819444444444445,
-      0.5,
-      0.03111111111111111
-    ]
-  },
-  {
-    "label": "3",
-    "ref": "**선택적 확인 측정**",
-    "role_or_testid": "role=radiogroup[confirmationSourceLabel]",
-    "bbox": [
-      0.14166666666666666,
-      0.7408333333333333,
+      0.6241666666666666,
       0.5,
       0.03111111111111111
     ]

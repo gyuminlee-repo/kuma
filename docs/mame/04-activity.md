@@ -21,12 +21,12 @@ Plate layout은 활성값 소스가 아니라 `well → variant` 매핑 메타�
 
 | 형식 | 요청 필드 | 라벨 | 값 해석 | 추가 입력 |
 |---|---|---|---|---|
-| 범용 long-format | `activity_path` | well 또는 variant 중 하나 | `activity_scale`이 `raw`이면 WT 정규화, `relative_to_wt`이면 그대로 사용 | well 라벨일 때 매핑 하나 |
-| GC data | `gc_data_xlsx` | well | 이미 WT 상대값 | 매핑 하나 |
-| raw Agilent report | `round1_report_xlsx` | well | FID area를 report의 WT 블록 평균으로 정규화 | 매핑 하나 |
+| 범용 long-format | `activity_path` | well 또는 variant 중 하나 | `activity_scale`이 `raw`이면 WT 정규화, `relative_to_wt`이면 그대로 사용 | well 라벨일 때 웰-변이체 대응표 |
+| GC data | `gc_data_xlsx` | well | 이미 WT 상대값 | 웰-변이체 대응표 |
+| raw Agilent report | `round1_report_xlsx` | well | FID area를 report의 WT 블록 평균으로 정규화 | 웰-변이체 대응표 |
 | numeric-ID 전수 스크리닝 | `numeric_report_xlsx` | 플레이트 순번 | FID area를 report의 WT 블록 평균으로 정규화 | order source 하나 (`expected_xlsx` 우선, 없으면 `layout_xlsx`) |
 
-well 라벨 형식이 요구하는 것은 `layout_xlsx` 자체가 아니라 **well에서 variant로 가는 매핑 하나**다. `layout_xlsx`를 주면 그 시트가 매핑이 된다. 주지 않으면 이미 필수인 `verdict_xlsx`가 well마다 적어 둔 `mutant_id`에서 매핑을 유도한다. 어느 쪽이든 한 variant가 두 well에 앉으면 거절한다. NGS 근거를 붙일 well이 하나로 정해지지 않기 때문이다.
+well 라벨 형식이 요구하는 것은 `layout_xlsx` 자체가 아니라 **각 well에 어떤 variant가 있는지 알려 주는 대응표**다. `layout_xlsx`를 주면 그 시트가 매핑이 된다. 주지 않으면 이미 필수인 `verdict_xlsx`가 well마다 적어 둔 `mutant_id`에서 매핑을 유도한다. 어느 쪽이든 한 variant가 두 well에 앉으면 거절한다. NGS 근거를 붙일 well이 하나로 정해지지 않기 때문이다.
 
 `numeric_report_xlsx`는 라벨 대신 순번을 싣는다. 순번 `i`는 플레이트 순서의 `i`번째 variant다. ID 집합이 그 순서와 일대일로 맞지 않으면 이웃 variant에 값을 붙이는 대신 거절한다.
 
@@ -41,7 +41,7 @@ CSV 또는 XLSX에서 다음을 요구한다.
 - `activity_scale=raw`이면 각 `plate_id`별 `WT_1`, `WT1` 형태의 WT 행 평균을 분모로 사용한다. `plate_id`가 없으면 파일 전체가 한 cohort다.
 - `activity_scale=relative_to_wt`이면 다시 정규화하지 않는다.
 
-## 4.3 선택적 확인 측정
+## 4.3 확인 측정(반복 재측정)
 
 확인 측정은 선택 사항이며 셋 중 최대 하나만 준다. 화면에서는 파일 하나를 고르면 sample name 모양으로 유형을 판별한다(`detect_measurement_source` 의 `slot="confirmation"`).
 

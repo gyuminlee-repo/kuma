@@ -1,24 +1,24 @@
 [
   {
-    "label": "5",
-    "ref": "`Selection mode`",
-    "role_or_testid": "testid=selection-mode",
+    "label": "4",
+    "ref": "`Mutation column`",
+    "role_or_testid": "role=combobox[name=\"Mutation column\"]",
     "bbox": [
       0.14166666666666666,
       0.6003645833333333,
       0.5,
-      0.08444444444444445
+      0.03111111111111111
     ]
   },
   {
-    "label": "6",
-    "ref": "Candidate table",
-    "role_or_testid": "role=table has checkbox",
+    "label": "5",
+    "ref": "`Ranking column`",
+    "role_or_testid": "role=combobox[name=\"Ranking column\"]",
     "bbox": [
       0.14166666666666666,
-      0.7225868055555555,
+      0.6925868055555555,
       0.5,
-      0.09519097222222223
+      0.03111111111111111
     ]
   }
 ]
