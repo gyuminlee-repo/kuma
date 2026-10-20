@@ -656,18 +656,6 @@ class DetectMeasurementSourceResult(BaseModel):
     reason: str = ""
 
 
-__all__ = [
-    "AnalyzeRawRunParams",
-    "BuildEvolveproInputParams",
-    "BuildWellLayoutParams",
-    "CombinatorialDemuxParams",
-    "DemuxParamsBase",
-    "DetectMeasurementSourceParams",
-    "DetectMeasurementSourceResult",
-    "DetectNativeBarcodesParams",
-]
-
-
 class SelectionOverride(BaseModel):
     """One manual plate-copy confirmation: use copy `plate` for `mutant_id`."""
 
@@ -685,3 +673,17 @@ class ApplySelectionOverridesParams(BaseModel):
 
     overrides: list[SelectionOverride] = Field(default_factory=list)
     janus_settings: dict[str, Any] = Field(default_factory=dict)
+
+
+__all__ = [
+    "AnalyzeRawRunParams",
+    "ApplySelectionOverridesParams",
+    "BuildEvolveproInputParams",
+    "BuildWellLayoutParams",
+    "CombinatorialDemuxParams",
+    "DemuxParamsBase",
+    "DetectMeasurementSourceParams",
+    "DetectMeasurementSourceResult",
+    "DetectNativeBarcodesParams",
+    "SelectionOverride",
+]

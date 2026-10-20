@@ -1544,7 +1544,7 @@
     },
     "manualConfirm": {
       "title": "2.3 Séquençage supplémentaire : confirmer une copie de plaque",
-      "description": "À utiliser après avoir re-séquencé un puits ou l'avoir vérifié autrement. Choisissez la copie de plaque existante à utiliser et notez comment vous l'avez confirmée. Ce choix remplace la sélection automatique dans la carte de plaque, le classeur de résultats, la liste de prélèvement et l'export de l'étape 3 ; le verdict d'origine est conservé.",
+      "description": "À utiliser après avoir re-séquencé un puits ou l'avoir vérifié autrement. Choisissez la copie de plaque existante à utiliser et notez comment vous l'avez confirmée. Ce choix remplace la sélection automatique dans la carte de plaque, le classeur de résultats et la liste de prélèvement ; le verdict d'origine est conservé.",
       "needsTitle": "Puits sans copie sélectionnée utilisable : {{count}}",
       "needsEmpty": "Chaque puits a une copie sélectionnée utilisable.",
       "noCopy": "Aucune copie sélectionnée",
@@ -1570,7 +1570,8 @@
       },
       "dismiss": "Fermer",
       "error": "Impossible d'appliquer la confirmation : {{message}}",
-      "workbookFailed": "La confirmation a été appliquée, mais le classeur de résultats n'a pas pu être réécrit : {{message}}"
+      "workbookFailed": "La confirmation a été appliquée, mais le classeur de résultats n'a pas pu être réécrit : {{message}}",
+      "resultFileFailed": "La confirmation a été appliquée, mais le fichier de résultats du projet n'a pas été mis à jour ; elle peut manquer à la réouverture du projet : {{message}}"
     }
   },
   "home": {

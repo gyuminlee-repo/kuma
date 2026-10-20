@@ -536,6 +536,22 @@ def _strict_ngs_gate(merged: dict[Variant, float], variant_to_well: dict[str, st
         well = layout_well or identity_well
         row = verdicts.get(well) if well else None
         identity_matches = row is not None and _short_variant(row.mutant_id) == name
+        if (
+            row is not None
+            and row.manual_confirmation
+            and identity_matches
+            and not row.failed
+            and row.verdict != "CONFLICT"
+        ):
+            # The operator confirmed this plate copy by hand (step 2.3). It is
+            # usable here under its own reason code; the NGS verdict stays in
+            # the message so the override is never silent.
+            if row.verdict != _PASS:
+                warnings.append(
+                    f"NGS accepted {name}: manual_confirmation "
+                    f"(NGS verdict {row.verdict})"
+                )
+            continue
         if row is None or row.verdict != _PASS or row.failed or row.is_fallback or not identity_matches:
             del merged[variant]
             excluded.append(name)

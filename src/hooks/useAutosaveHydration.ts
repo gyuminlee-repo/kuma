@@ -1732,8 +1732,9 @@ async function injectSnapshotResultsIntoSidecar(
     summary: review.value.summary,
     distribution_stats: review.value.distributionStats,
   });
-  if (!alive()) return false;
-  await useMameAppStore.getState().reapplySelectionOverrides();
+  // 확정 복사본(`manual`)은 load_analyze_result 가 replicates 에서 직접 복원한다.
+  // 여기서 apply_selection_overrides 를 다시 부르면 run_meta 등이 빠진 채로
+  // 결과 워크북과 picks.csv 를 덮어쓰므로 복원은 파일을 쓰지 않는다.
   return alive();
 }
 
@@ -1891,7 +1892,6 @@ async function restoreMameResult(
   useMameAppStore.setState({ janusAutosave: result.janus_autosave ?? null });
   if (!alive()) return false;
   await store.loadPlateData();
-  await store.reapplySelectionOverrides();
   if (!alive()) return false;
   // A8: the run-health panel ("Plate별 verdict 분포") reads get_run_health from the
   // restored sidecar state; without this it stays null and shows "설정 미완료".

@@ -1544,7 +1544,7 @@
     },
     "manualConfirm": {
       "title": "2.3 Additional sequencing: confirm a plate copy",
-      "description": "Use this after you resequenced or checked a well another way. Pick which existing plate copy to use and record how you confirmed it. The choice replaces the automatic pick in the plate map, the result workbook, the pick list and the step 3 export; the original verdict is kept.",
+      "description": "Use this after you resequenced or checked a well another way. Pick which existing plate copy to use and record how you confirmed it. The choice replaces the automatic pick in the plate map, the result workbook and the pick list; the original verdict is kept.",
       "needsTitle": "Wells with no usable selected copy: {{count}}",
       "needsEmpty": "Every well has a usable selected copy.",
       "noCopy": "No copy selected",
@@ -1570,7 +1570,8 @@
       },
       "dismiss": "Dismiss",
       "error": "Could not apply the confirmation: {{message}}",
-      "workbookFailed": "The confirmation was applied, but the result workbook could not be rewritten: {{message}}"
+      "workbookFailed": "The confirmation was applied, but the result workbook could not be rewritten: {{message}}",
+      "resultFileFailed": "The confirmation was applied, but the project's result file was not updated, so it may be missing when the project is reopened: {{message}}"
     }
   },
   "home": {

@@ -55,6 +55,7 @@ async function sendOverrides(
     isApplyingSelectionOverride: true,
     selectionOverrideError: null,
     selectionOverrideWorkbookError: null,
+    selectionOverrideResultFileError: null,
   });
   try {
     const result = await sendRequest<ApplySelectionOverridesResult>(
@@ -71,12 +72,25 @@ async function sendOverrides(
           : null,
       ...(result.picks_autosave ? { janusAutosave: result.picks_autosave } : {}),
     });
-    await updateMameResultSelection(
-      get().projectPath,
-      result.replicates,
-      result.picks_autosave,
-    );
+    // The confirmation is already live here, so a failed result-file write is
+    // its own state: the shared catch below would call the apply itself failed.
+    try {
+      await updateMameResultSelection(
+        get().projectPath,
+        result.replicates,
+        result.picks_autosave,
+      );
+    } catch (error) {
+      if (get().verdicts === verdicts) {
+        set({
+          selectionOverrideResultFileError:
+            error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
     await get().loadPlateData();
+    // Run health reads the replicates the sidecar just changed.
+    await get().loadRunHealth();
   } catch (error) {
     if (get().verdicts !== verdicts) return;
     set({
@@ -119,6 +133,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   selectionOverrideNotice: null,
   selectionOverrideError: null,
   selectionOverrideWorkbookError: null,
+  selectionOverrideResultFileError: null,
   isApplyingSelectionOverride: false,
   mameSamplePrefill: null,
   consumeMameSamplePrefill: () => set({ mameSamplePrefill: null }),
@@ -200,6 +215,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       selectionOverrideNotice: null,
       selectionOverrideError: null,
       selectionOverrideWorkbookError: null,
+      selectionOverrideResultFileError: null,
       // Nothing here touches what step 4.2 answered. That answer is computed
       // from per-round xlsx files the operator picks, not from the analyze
       // inputs being invalidated here, and it lives on the round rather than in

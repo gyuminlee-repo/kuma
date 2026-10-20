@@ -1544,7 +1544,7 @@
     },
     "manualConfirm": {
       "title": "2.3 Sequenciamento adicional: confirmar uma cópia da placa",
-      "description": "Use depois de ressequenciar um poço ou verificá-lo de outra forma. Escolha qual cópia de placa existente usar e registre como a confirmou. A escolha substitui a seleção automática no mapa da placa, na planilha de resultados, na lista de seleção e na exportação da etapa 3; o veredicto original é mantido.",
+      "description": "Use depois de ressequenciar um poço ou verificá-lo de outra forma. Escolha qual cópia de placa existente usar e registre como a confirmou. A escolha substitui a seleção automática no mapa da placa, na planilha de resultados e na lista de seleção; o veredicto original é mantido.",
       "needsTitle": "Poços sem cópia selecionada utilizável: {{count}}",
       "needsEmpty": "Todos os poços têm uma cópia selecionada utilizável.",
       "noCopy": "Nenhuma cópia selecionada",
@@ -1570,7 +1570,8 @@
       },
       "dismiss": "Dispensar",
       "error": "Não foi possível aplicar a confirmação: {{message}}",
-      "workbookFailed": "A confirmação foi aplicada, mas não foi possível reescrever a planilha de resultados: {{message}}"
+      "workbookFailed": "A confirmação foi aplicada, mas não foi possível reescrever a planilha de resultados: {{message}}",
+      "resultFileFailed": "A confirmação foi aplicada, mas o arquivo de resultados do projeto não foi atualizado, então ela pode faltar ao reabrir o projeto: {{message}}"
     }
   },
   "home": {

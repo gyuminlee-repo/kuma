@@ -969,9 +969,29 @@ def export_mame_janus_csv(
                 fieldnames=_JANUS_HEADER + ([MANUAL_COLUMN] if _has_manual(rows) else []),
             )
             dict_writer.writeheader()
-            dict_writer.writerows(rows)
+            dict_writer.writerows(_csv_safe_rows(rows))
 
     return output_path
+
+
+_CSV_FORMULA_LEADERS = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _csv_safe_rows(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    """Neutralise spreadsheet formulas in the operator's free-text note.
+
+    Excel evaluates a CSV cell that opens with ``= + - @`` (or a tab/CR), so the
+    note is prefixed with an apostrophe, which the spreadsheet shows as plain
+    text. Only the note column carries operator text; every other column is
+    generated.
+    """
+    safe: list[dict[str, object]] = []
+    for row in rows:
+        note = row.get(MANUAL_COLUMN)
+        if isinstance(note, str) and note.startswith(_CSV_FORMULA_LEADERS):
+            row = {**row, MANUAL_COLUMN: "'" + note}
+        safe.append(row)
+    return safe
 
 
 def export_mame_janus_xlsx(

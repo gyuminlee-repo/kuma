@@ -1544,7 +1544,7 @@
     },
     "manualConfirm": {
       "title": "2.3 Zusätzliche Sequenzierung: Plattenkopie bestätigen",
-      "description": "Verwenden Sie dies, nachdem Sie eine Position erneut sequenziert oder anders überprüft haben. Wählen Sie die vorhandene Plattenkopie und notieren Sie, wie Sie sie bestätigt haben. Die Wahl ersetzt die automatische Auswahl in Plattenkarte, Ergebnis-Arbeitsmappe, Pick-Liste und Export in Schritt 3; das ursprüngliche Urteil bleibt erhalten.",
+      "description": "Verwenden Sie dies, nachdem Sie eine Position erneut sequenziert oder anders überprüft haben. Wählen Sie die vorhandene Plattenkopie und notieren Sie, wie Sie sie bestätigt haben. Die Wahl ersetzt die automatische Auswahl in Plattenkarte, Ergebnis-Arbeitsmappe und Pick-Liste; das ursprüngliche Urteil bleibt erhalten.",
       "needsTitle": "Positionen ohne nutzbare ausgewählte Kopie: {{count}}",
       "needsEmpty": "Jede Position hat eine nutzbare ausgewählte Kopie.",
       "noCopy": "Keine Kopie ausgewählt",
@@ -1570,7 +1570,8 @@
       },
       "dismiss": "Schließen",
       "error": "Die Bestätigung konnte nicht angewendet werden: {{message}}",
-      "workbookFailed": "Die Bestätigung wurde angewendet, aber die Ergebnis-Arbeitsmappe konnte nicht neu geschrieben werden: {{message}}"
+      "workbookFailed": "Die Bestätigung wurde angewendet, aber die Ergebnis-Arbeitsmappe konnte nicht neu geschrieben werden: {{message}}",
+      "resultFileFailed": "Die Bestätigung wurde angewendet, aber die Ergebnisdatei des Projekts wurde nicht aktualisiert; sie fehlt möglicherweise beim erneuten Öffnen des Projekts: {{message}}"
     }
   },
   "home": {

@@ -167,3 +167,41 @@ def test_multi_plate_variant_raw_normalization_is_deterministic(tmp_path: Path):
     assert first.n_variants == second.n_variants == 2
     assert read_evolvepro_rows(tmp_path / "first.xlsx") == read_evolvepro_rows(tmp_path / "second.xlsx")
     assert dict(read_evolvepro_rows(tmp_path / "first.xlsx")) == pytest.approx({"5F": 2.0, "10L": 1.0})
+
+
+def _manual_verdict(path: Path, rows: list[tuple[str, str, str, bool, str]]) -> Path:
+    workbook = openpyxl.Workbook()
+    worksheet = workbook.active
+    worksheet.append(["well_id", "mutant_id", "verdict", "failed", "manual_confirmation"])
+    for well, mutant, verdict, failed, note in rows:
+        worksheet.append([well, mutant, verdict, failed, note])
+    workbook.save(path)
+    return path
+
+
+def test_manually_confirmed_copy_is_usable_and_keeps_its_ngs_verdict(tmp_path: Path):
+    verdict = _manual_verdict(tmp_path / "verdict.xlsx", [
+        ("A01", "V5F", "LOWDEPTH", False, "Sanger OK"),
+        ("B01", "V10L", "LOWDEPTH", False, ""),
+    ])
+    parsed = parse_verdict_rows(verdict)
+    result = _build(tmp_path, verdict)
+
+    assert (parsed["A01"].verdict, parsed["A01"].manual_confirmation) == ("LOWDEPTH", "Sanger OK")
+    assert parsed["B01"].manual_confirmation == ""
+    assert result.ngs_excluded == ["10L"]
+    assert dict(read_evolvepro_rows(tmp_path / "out.xlsx")) == pytest.approx({"5F": 1.2})
+    assert any(
+        "5F" in warning and "manual_confirmation" in warning and "LOWDEPTH" in warning
+        for warning in result.warnings
+    )
+
+
+def test_manual_confirmation_does_not_rescue_a_failed_or_mismatched_row(tmp_path: Path):
+    verdict = _manual_verdict(tmp_path / "verdict.xlsx", [
+        ("A01", "V5F", "PASS", True, "Sanger OK"),
+        ("B01", "V99X", "LOWDEPTH", False, "Sanger OK"),
+    ])
+    # Neither row is rescued, so nothing is left to export.
+    with pytest.raises(ValueError, match="No variants with explicit PASS"):
+        _build(tmp_path, verdict)

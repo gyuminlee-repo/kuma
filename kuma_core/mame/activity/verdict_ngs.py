@@ -27,6 +27,10 @@ class VerdictRow:
     mutant_id: str = ""
     is_fallback: bool = False
     failed: bool = False
+    # Non-empty when the operator confirmed this well's plate copy by hand
+    # (workbook column ``manual_confirmation``). ``verdict`` keeps the NGS
+    # class of that copy, so a reader sees both facts.
+    manual_confirmation: str = ""
 
 
 def parse_verdict_rows(path: str | Path) -> dict[str, VerdictRow]:
@@ -78,6 +82,9 @@ def parse_verdict_rows(path: str | Path) -> dict[str, VerdictRow]:
     mutant_id_col = header.index("mutant_id") if "mutant_id" in header else -1
     fallback_col = header.index("is_fallback") if "is_fallback" in header else -1
     failed_col = header.index("failed") if "failed" in header else -1
+    manual_col = (
+        header.index("manual_confirmation") if "manual_confirmation" in header else -1
+    )
 
     max_col = max(
         best_well_col,
@@ -86,6 +93,7 @@ def parse_verdict_rows(path: str | Path) -> dict[str, VerdictRow]:
         mutant_id_col,
         fallback_col,
         failed_col,
+        manual_col,
     )
 
     result: dict[str, VerdictRow] = {}
@@ -131,6 +139,9 @@ def parse_verdict_rows(path: str | Path) -> dict[str, VerdictRow]:
             mutant_id=mutant_id,
             is_fallback=is_fallback,
             failed=failed,
+            manual_confirmation=(
+                str(extended[manual_col]).strip() if manual_col >= 0 else ""
+            ),
         )
         existing = result.get(well)
         if existing is None:

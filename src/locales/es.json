@@ -1544,7 +1544,7 @@
     },
     "manualConfirm": {
       "title": "2.3 Secuenciación adicional: confirmar una copia de placa",
-      "description": "Úselo después de volver a secuenciar un pocillo o comprobarlo de otra forma. Elija qué copia de placa existente usar y registre cómo la confirmó. La elección sustituye la selección automática en el mapa de placa, el libro de resultados, la lista de picks y la exportación del paso 3; se conserva el veredicto original.",
+      "description": "Úselo después de volver a secuenciar un pocillo o comprobarlo de otra forma. Elija qué copia de placa existente usar y registre cómo la confirmó. La elección sustituye la selección automática en el mapa de placa, el libro de resultados y la lista de picks; se conserva el veredicto original.",
       "needsTitle": "Pocillos sin copia seleccionada utilizable: {{count}}",
       "needsEmpty": "Todos los pocillos tienen una copia seleccionada utilizable.",
       "noCopy": "Ninguna copia seleccionada",
@@ -1570,7 +1570,8 @@
       },
       "dismiss": "Descartar",
       "error": "No se pudo aplicar la confirmación: {{message}}",
-      "workbookFailed": "La confirmación se aplicó, pero no se pudo reescribir el libro de resultados: {{message}}"
+      "workbookFailed": "La confirmación se aplicó, pero no se pudo reescribir el libro de resultados: {{message}}",
+      "resultFileFailed": "La confirmación se aplicó, pero el archivo de resultados del proyecto no se actualizó, por lo que puede faltar al reabrir el proyecto: {{message}}"
     }
   },
   "home": {

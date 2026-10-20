@@ -274,3 +274,27 @@ def test_confirmation_survives_the_result_file_round_trip(run) -> None:
     handle_apply_selection_overrides({"overrides": []})
     restored = _cached()[1]
     assert (restored.selected_plate, restored.manual) == ("NB07", None)
+
+
+@pytest.mark.parametrize("note", ["=HYPERLINK(\"http://x\")", "+1", "-1", "@SUM(A1)"])
+def test_picks_csv_neutralises_formula_notes(run, note: str) -> None:
+    handle_apply_selection_overrides(_override(note=note))
+    cell = {r["name"]: r for r in _picks(run)}["B1MUT"]["manual_confirmation"]
+    assert cell == "'" + note
+
+
+def test_picks_csv_leaves_plain_notes_untouched(run) -> None:
+    handle_apply_selection_overrides(_override(note="Sanger 2026-10-20 OK"))
+    cell = {r["name"]: r for r in _picks(run)}["B1MUT"]["manual_confirmation"]
+    assert cell == "Sanger 2026-10-20 OK"
+
+
+def test_csv_safe_rows_also_guards_tab_and_carriage_return_leaders() -> None:
+    from kuma_core.mame.export.janus_mapping import MANUAL_COLUMN, _csv_safe_rows
+
+    rows: list[dict[str, object]] = [
+        {MANUAL_COLUMN: "\tx"},
+        {MANUAL_COLUMN: "\rx"},
+        {MANUAL_COLUMN: "ok"},
+    ]
+    assert [r[MANUAL_COLUMN] for r in _csv_safe_rows(rows)] == ["'\tx", "'\rx", "ok"]

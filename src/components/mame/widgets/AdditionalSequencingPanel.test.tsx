@@ -124,6 +124,7 @@ describe("AdditionalSequencingPanel", () => {
     useMameAppStore.setState({
       projectPath: "/proj",
       selectionOverrideWorkbookError: null,
+      selectionOverrideResultFileError: null,
       verdicts: [verdictRecord("NB07", "PASS")],
       replicates: [OK, SHALLOW],
       summary: { total: 1 } as unknown as AnalyzeSummary,
@@ -222,6 +223,62 @@ describe("AdditionalSequencingPanel", () => {
     await useMameAppStore.getState().reapplySelectionOverrides();
 
     expect(overrideCalls()).toEqual([]);
+  });
+
+  it("says the result file was not updated, not that the apply failed, when only that write throws", async () => {
+    mockRpc(reply({ replicates: [OK, CONFIRMED] }));
+    updateResultFile.mockRejectedValue(new Error("disk full"));
+
+    await useMameAppStore.getState().applySelectionOverride("B1MUT", "NB08", "Sanger OK");
+    render(<AdditionalSequencingPanel />);
+
+    const state = useMameAppStore.getState();
+    expect(state.selectionOverrideError).toBeNull();
+    expect(state.selectionOverrideResultFileError).toBe("disk full");
+    expect(overridesFromReplicates(state.replicates)).toHaveLength(1);
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("disk full");
+    expect(alert).not.toHaveTextContent("Could not apply");
+  });
+
+  it("refreshes run health after an apply and after an undo", async () => {
+    const healthCalls = () =>
+      sendRequest.mock.calls.filter(([method]) => method === "get_run_health").length;
+    mockRpc(reply({ replicates: [OK, CONFIRMED] }));
+
+    await useMameAppStore.getState().applySelectionOverride("B1MUT", "NB08", "Sanger OK");
+    expect(healthCalls()).toBe(1);
+
+    mockRpc(reply({ replicates: [OK, SHALLOW] }));
+    await useMameAppStore.getState().undoSelectionOverride("B1MUT");
+    expect(healthCalls()).toBe(2);
+  });
+
+  it("discards a response that arrives after the results it was computed for were replaced", async () => {
+    let release: (value: ApplySelectionOverridesResult) => void = () => undefined;
+    const pending = new Promise<ApplySelectionOverridesResult>((resolve) => {
+      release = resolve;
+    });
+    sendRequest.mockImplementation(async (method: string) =>
+      method === "apply_selection_overrides" ? pending : { wells: [] },
+    );
+
+    const inFlight = useMameAppStore
+      .getState()
+      .applySelectionOverride("B1MUT", "NB08", "Sanger OK");
+    // A new analyze run replaces the verdicts array while the call is pending.
+    useMameAppStore.setState({
+      verdicts: [verdictRecord("NB09", "PASS")],
+      replicates: [OK],
+    });
+    release(reply({ replicates: [OK, CONFIRMED] }));
+    await inFlight;
+
+    const state = useMameAppStore.getState();
+    expect(state.replicates).toEqual([OK]);
+    expect(updateResultFile).not.toHaveBeenCalled();
+    expect(state.selectionOverrideError).toBeNull();
+    expect(state.selectionOverrideNotice).toBeNull();
   });
 
   it("drops the confirmations together with the results they describe", () => {
