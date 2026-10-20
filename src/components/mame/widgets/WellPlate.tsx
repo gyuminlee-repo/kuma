@@ -3,6 +3,9 @@ import { cn } from "@/lib/utils";
 import { VERDICT_FILL, DETECTED_VERDICTS } from "@/lib/mame/verdictColors";
 import { nbLabel } from "@/lib/mame/nbLabel";
 import { collapseWells } from "@/lib/mame/plateWells";
+
+/** More copies than this collapse into a count: segments would be unreadable in a 38px cell. */
+const MAX_STRIP_COPIES = 4;
 import type { WellEntry, VerdictClass } from "@/types/mame/models";
 
 const ROWS = ["A", "B", "C", "D", "E", "F", "G", "H"] as const;
@@ -53,6 +56,9 @@ interface WellPlateProps {
   /** When true for a well, render it dimmed (lower opacity) while keeping its
    *  verdict color — used for legend-class filtering highlight. */
   dimmedOf?: (well: WellEntry) => boolean;
+  /** Every plate copy per well position (see copiesByWell). When a well has
+   *  more than one copy, a verdict strip is drawn at the bottom of its cell. */
+  copies?: ReadonlyMap<string, readonly WellEntry[]>;
 }
 
 export function WellPlate({
@@ -62,6 +68,7 @@ export function WellPlate({
   colorblindMode = false,
   wellColorOf,
   dimmedOf,
+  copies,
 }: WellPlateProps) {
   const { t } = useTranslation();
   // Collapse to one record per well position (shared helper): prefer the
@@ -122,19 +129,29 @@ export function WellPlate({
               const pattern = colorblindMode && well ? cbPatterns[well.verdict] : undefined;
               const isFallback = well?.is_fallback ?? false;
               const isDimmed = well ? (dimmedOf?.(well) ?? false) : false;
+              const wellCopies = copies?.get(id) ?? [];
+              const hasCopies = wellCopies.length > 1;
+              const copyLabels = wellCopies.map(
+                (c) =>
+                  `${c.native_barcode ? nbLabel(c.native_barcode) : "?"} ${c.verdict}${c.selected ? ` (${t("wellPlate.copySelected")})` : ""}`,
+              );
 
               return (
                 <div
                   key={id}
                   role="gridcell"
-                  aria-label={`Well ${id}${well ? `: ${well.verdict}${isFallback ? " (fallback)" : ""}` : " empty"}`}
+                  aria-label={`Well ${id}${well ? `: ${well.verdict}${isFallback ? " (fallback)" : ""}${hasCopies ? `; ${copyLabels.join(", ")}` : ""}` : " empty"}`}
                 >
                   <button
                     type="button"
                     disabled={!well}
                     onClick={() => well && onWellClick?.(well)}
                     aria-pressed={isFocused}
-                    title={well?.mutant_id || undefined}
+                    title={
+                      hasCopies
+                        ? [well?.mutant_id, ...copyLabels].filter(Boolean).join("\n")
+                        : well?.mutant_id || undefined
+                    }
                     className={cn(
                       "well-button relative flex aspect-square w-full flex-col items-stretch justify-between overflow-hidden rounded-md border text-center shadow-sm",
                       "font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
@@ -214,6 +231,36 @@ export function WellPlate({
                         )}
                       </div>
                     )}
+                    {hasCopies &&
+                      (wellCopies.length > MAX_STRIP_COPIES ? (
+                        <span
+                          data-testid="copy-count"
+                          className="absolute bottom-0 right-0 rounded-tl bg-card/90 px-0.5 text-[0.9em] font-bold leading-none text-foreground"
+                        >
+                          {t("wellPlate.copyCount", { count: wellCopies.length })}
+                        </span>
+                      ) : (
+                        <span
+                          data-testid="copy-strip"
+                          className="absolute inset-x-0 bottom-0 flex h-[6px] items-end gap-px bg-card/90 px-px py-px"
+                          aria-hidden="true"
+                        >
+                          {wellCopies.map((c) => (
+                            <span
+                              key={`${c.native_barcode}|${c.barcode}`}
+                              data-testid="copy-segment"
+                              data-plate={c.native_barcode}
+                              data-verdict={c.verdict}
+                              data-selected={c.selected ? "true" : "false"}
+                              className={cn(
+                                "min-w-0 flex-1 rounded-[1px]",
+                                c.selected ? "h-full outline outline-1 outline-foreground" : "h-1/2",
+                              )}
+                              style={{ backgroundColor: verdictFill[c.verdict].bg }}
+                            />
+                          ))}
+                        </span>
+                      ))}
                   </button>
                 </div>
               );

@@ -533,7 +533,10 @@
       "expandedRegionAriaLabel": "拡大したプレートビュー",
       "finalCompositePlate": "最終統合プレート",
       "selectedWellSource": "選択したウェル {{well}} · 元のプレート: {{barcode}}",
-      "sourceUnknown": "不明"
+      "sourceUnknown": "不明",
+      "tabFinal": "最終",
+      "tabsAriaLabel": "プレートのコピー",
+      "plateCopyChip": "プレート {{plate}} のコピー"
     },
     "drawer": {
       "stat": {
@@ -3336,7 +3339,9 @@
     "gridAriaLabel": "96-Well Plate",
     "columnAriaLabel": "Column {{col}}",
     "rowAriaLabel": "Row {{row}}",
-    "fallbackReplicateTitle": "Fallback replicate"
+    "fallbackReplicateTitle": "Fallback replicate",
+    "copySelected": "選択済み",
+    "copyCount": "×{{count}}"
   },
   "clearConfirmDialog": {
     "title": "すべてクリア",

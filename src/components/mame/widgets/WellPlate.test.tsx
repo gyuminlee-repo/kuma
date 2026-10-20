@@ -2,6 +2,8 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { WellEntry } from "@/types/mame/models";
 import { WellPlate } from "./WellPlate";
+import { copiesByWell } from "@/lib/mame/plateWells";
+import { VERDICT_FILL } from "@/lib/mame/verdictColors";
 
 function rec(
   well: string,
@@ -66,5 +68,52 @@ describe("WellPlate NB badge gating", () => {
     // Detected wells (PASS/AMBIGUOUS): NB badge shown.
     expect(screen.getByText("NB20")).toBeTruthy();
     expect(screen.getByText("NB02")).toBeTruthy();
+  });
+});
+
+describe("WellPlate copy strip", () => {
+  const cell = (id: string) => screen.getByLabelText(new RegExp(`^Well ${id}: `));
+
+  it("draws one segment per copy in plate order, coloured by verdict, with the pick marked", () => {
+    const wells = [
+      rec("A1", "sort_barcode09", "AMBIGUOUS", false),
+      rec("A1", "sort_barcode07", "WRONG_AA", false),
+      rec("A1", "sort_barcode08", "PASS", true),
+    ];
+    render(<WellPlate wells={wells} copies={copiesByWell(wells)} />);
+    const segs = cell("A1").querySelectorAll<HTMLElement>('[data-testid="copy-segment"]');
+    expect([...segs].map((s) => s.dataset.plate)).toEqual([
+      "sort_barcode07",
+      "sort_barcode08",
+      "sort_barcode09",
+    ]);
+    expect([...segs].map((s) => s.dataset.selected)).toEqual(["false", "true", "false"]);
+    expect(segs[0]).toHaveStyle({ backgroundColor: VERDICT_FILL.WRONG_AA.bg });
+    expect(segs[1]).toHaveStyle({ backgroundColor: VERDICT_FILL.PASS.bg });
+  });
+
+  it("lists every copy in the accessible label and the tooltip", () => {
+    const wells = [rec("A1", "sort_barcode07", "WRONG_AA", false), rec("A1", "sort_barcode08", "PASS", true)];
+    render(<WellPlate wells={wells} copies={copiesByWell(wells)} />);
+    expect(cell("A1").getAttribute("aria-label")).toBe(
+      "Well A1: PASS; NB07 WRONG_AA, NB08 PASS (selected)",
+    );
+    expect(cell("A1").querySelector("button")?.title).toContain("NB07 WRONG_AA\nNB08 PASS (selected)");
+  });
+
+  it("adds nothing for a single-copy well", () => {
+    const wells = [rec("A1", "sort_barcode07", "PASS", true)];
+    render(<WellPlate wells={wells} copies={copiesByWell(wells)} />);
+    expect(cell("A1").querySelector('[data-testid="copy-strip"]')).toBeNull();
+    expect(cell("A1").querySelector('[data-testid="copy-count"]')).toBeNull();
+  });
+
+  it("falls back to a count above four copies", () => {
+    const wells = [6, 7, 8, 9, 10].map((n) =>
+      rec("A1", `sort_barcode${String(n).padStart(2, "0")}`, "PASS", n === 6),
+    );
+    render(<WellPlate wells={wells} copies={copiesByWell(wells)} />);
+    expect(cell("A1").querySelector('[data-testid="copy-segment"]')).toBeNull();
+    expect(cell("A1").querySelector('[data-testid="copy-count"]')?.textContent).toBe("×5");
   });
 });

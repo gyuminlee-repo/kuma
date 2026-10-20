@@ -533,7 +533,10 @@
       "expandedRegionAriaLabel": "已放大的孔盤檢視",
       "finalCompositePlate": "最終合成盤",
       "selectedWellSource": "所選孔 {{well}} · 來源：{{barcode}}",
-      "sourceUnknown": "未知"
+      "sourceUnknown": "未知",
+      "tabFinal": "最終",
+      "tabsAriaLabel": "盤副本",
+      "plateCopyChip": "盤 {{plate}} 的副本"
     },
     "drawer": {
       "stat": {
@@ -3336,7 +3339,9 @@
     "gridAriaLabel": "96-Well Plate",
     "columnAriaLabel": "列 {{col}}",
     "rowAriaLabel": "行 {{row}}",
-    "fallbackReplicateTitle": "Fallback replicate"
+    "fallbackReplicateTitle": "Fallback replicate",
+    "copySelected": "已選",
+    "copyCount": "×{{count}}"
   },
   "clearConfirmDialog": {
     "title": "全部清空",

@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import type { VerdictClass, WellEntry } from "@/types/mame/models";
 import { VERDICT_HELP_KEY, VERDICT_LABEL } from "@/lib/mame/verdictColors";
 import { nbLabel, nbOrderKey } from "@/lib/mame/nbLabel";
-import { collapseWells } from "@/lib/mame/plateWells";
+import { collapseWells, copiesByWell, plateBarcodes } from "@/lib/mame/plateWells";
 import { siteReadPairs } from "@/lib/mame/siteReads";
 
 function getSelectedPlateLabel(nativeBarcode: string | null): string {
@@ -77,7 +77,16 @@ export function PlateView({ wellColorOf, wells: externalWells, expanded, onToggl
   // Collapse to one record per well position (the plate renders one cell per
   // position; legend/NB counts must match what is drawn). Prefer the selected
   // winner per position.
-  const displayWells = collapseWells(wells);
+  // View: "final" is the composition; otherwise a native barcode whose copies
+  // are drawn on their own. A plate that vanished from the data falls back.
+  const plates = plateBarcodes(wells);
+  const [view, setView] = useState<string>("final");
+  const activeView = view !== "final" && plates.includes(view) ? view : "final";
+  const isFinal = activeView === "final";
+  const copies = copiesByWell(wells);
+  const displayWells = collapseWells(
+    isFinal ? wells : wells.filter((w) => w.native_barcode === activeView),
+  );
   const selectedCount = displayWells.filter((well) => well.selected).length;
   const filledCount = displayWells.length;
   // Verdict counts over the drawn cells, for the legend filter chips.
@@ -118,7 +127,9 @@ export function PlateView({ wellColorOf, wells: externalWells, expanded, onToggl
         <div className="flex min-w-0 flex-wrap items-center gap-2 text-caption text-muted-foreground">
           <div className="min-w-0">
             <span data-testid="composite-plate-label" className="inline-block rounded-full border border-border/70 bg-muted px-2 py-0.5 font-medium text-foreground">
-              {t("mame.plateView.finalCompositePlate")}
+              {isFinal
+                ? t("mame.plateView.finalCompositePlate")
+                : t("mame.plateView.plateCopyChip", { plate: nbLabel(activeView) })}
             </span>
             {selectedWell && (
               <p data-testid="selected-well-source" className="mt-0.5 break-words text-caption text-muted-foreground">
@@ -168,6 +179,48 @@ export function PlateView({ wellColorOf, wells: externalWells, expanded, onToggl
         </div>
       </div>
 
+      {plates.length > 1 && (
+        <div
+          role="tablist"
+          aria-label={t("mame.plateView.tabsAriaLabel")}
+          className="flex flex-wrap gap-1 border-b border-border px-3 py-1.5"
+          onKeyDown={(e) => {
+            const ids = ["final", ...plates];
+            const i = ids.indexOf(activeView);
+            const next =
+              e.key === "ArrowRight" ? (i + 1) % ids.length
+              : e.key === "ArrowLeft" ? (i - 1 + ids.length) % ids.length
+              : -1;
+            if (next < 0) return;
+            e.preventDefault();
+            setView(ids[next]);
+            e.currentTarget.querySelectorAll<HTMLElement>('[role="tab"]')[next]?.focus();
+          }}
+        >
+          {["final", ...plates].map((id) => {
+            const selected = id === activeView;
+            return (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                tabIndex={selected ? 0 : -1}
+                onClick={() => setView(id)}
+                className={cn(
+                  "h-6 rounded-control px-2.5 text-caption font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  selected
+                    ? "bg-accent text-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+                )}
+              >
+                {id === "final" ? t("mame.plateView.tabFinal") : nbLabel(id)}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       <div
         className={
           autoHeight
@@ -178,7 +231,12 @@ export function PlateView({ wellColorOf, wells: externalWells, expanded, onToggl
         <div className={autoHeight ? undefined : "min-h-0 overflow-auto"}>
           <WellPlate
             wells={displayWells}
-            selectedWellId={selectedWell?.well}
+            selectedWellId={
+              selectedWell && (isFinal || selectedWell.native_barcode === activeView)
+                ? selectedWell.well
+                : undefined
+            }
+            copies={isFinal ? copies : undefined}
             onWellClick={(well) => setSelectedWell(well)}
             colorblindMode={colorblindMode}
             wellColorOf={wellColorOf}

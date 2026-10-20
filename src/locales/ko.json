@@ -740,7 +740,10 @@
       "expandedRegionAriaLabel": "확대된 플레이트 보기",
       "finalCompositePlate": "최종 합성 플레이트",
       "selectedWellSource": "선택한 웰 {{well}} · 원본: {{barcode}}",
-      "sourceUnknown": "알 수 없음"
+      "sourceUnknown": "알 수 없음",
+      "tabFinal": "최종",
+      "tabsAriaLabel": "플레이트 복사본",
+      "plateCopyChip": "플레이트 {{plate}} 복사본"
     },
     "drawer": {
       "stat": {
@@ -3390,7 +3393,9 @@
     "gridAriaLabel": "96-Well 플레이트",
     "columnAriaLabel": "{{col}}열",
     "rowAriaLabel": "{{row}}행",
-    "fallbackReplicateTitle": "대체 반복 측정"
+    "fallbackReplicateTitle": "대체 반복 측정",
+    "copySelected": "선택됨",
+    "copyCount": "×{{count}}"
   },
   "clearConfirmDialog": {
     "title": "전체 초기화",
