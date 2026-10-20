@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 from pathlib import Path
+from typing import Any
 
 import openpyxl
 import pytest
@@ -218,7 +219,7 @@ def test_serialized_replicate_round_trips_and_omits_the_key_when_automatic(run) 
     assert rebuilt.selected_plate == "NB08"
 
 
-def _final_rows(workbook: Path) -> tuple[list[str], dict[str, list[object]]]:
+def _final_rows(workbook: Path) -> tuple[list[str], dict[str, list[Any]]]:
     sheet = openpyxl.load_workbook(workbook)["Final"]
     rows = [[c.value for c in row] for row in sheet.iter_rows()]
     return [str(v) for v in rows[0]], {str(r[0]): r for r in rows[1:] if r[0]}
