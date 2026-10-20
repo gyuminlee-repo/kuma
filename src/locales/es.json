@@ -533,7 +533,10 @@
       "expandedRegionAriaLabel": "Vista de placa ampliada",
       "finalCompositePlate": "Placa compuesta final",
       "selectedWellSource": "Pocillo seleccionado {{well}} · Origen: {{barcode}}",
-      "sourceUnknown": "Desconocido"
+      "sourceUnknown": "Desconocido",
+      "tabFinal": "Final",
+      "tabsAriaLabel": "Copias de placa",
+      "plateCopyChip": "Copias de la placa {{plate}}"
     },
     "drawer": {
       "stat": {
@@ -3336,7 +3339,9 @@
     "gridAriaLabel": "Placa de 96 wells",
     "columnAriaLabel": "Columna {{col}}",
     "rowAriaLabel": "Fila {{row}}",
-    "fallbackReplicateTitle": "Replicate de fallback"
+    "fallbackReplicateTitle": "Replicate de fallback",
+    "copySelected": "seleccionada",
+    "copyCount": "×{{count}}"
   },
   "clearConfirmDialog": {
     "title": "Borrar todo",

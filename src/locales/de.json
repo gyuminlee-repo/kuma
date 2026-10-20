@@ -533,7 +533,10 @@
       "expandedRegionAriaLabel": "Vergrößerte Plattenansicht",
       "finalCompositePlate": "Endgültige zusammengeführte Platte",
       "selectedWellSource": "Ausgewähltes Well {{well}} · Quelle: {{barcode}}",
-      "sourceUnknown": "Unbekannt"
+      "sourceUnknown": "Unbekannt",
+      "tabFinal": "Final",
+      "tabsAriaLabel": "Platten-Kopien",
+      "plateCopyChip": "Platte {{plate}} Kopien"
     },
     "drawer": {
       "stat": {
@@ -3336,7 +3339,9 @@
     "gridAriaLabel": "96-Well Platte",
     "columnAriaLabel": "Spalte {{col}}",
     "rowAriaLabel": "Zeile {{row}}",
-    "fallbackReplicateTitle": "Fallback-Replicate"
+    "fallbackReplicateTitle": "Fallback-Replicate",
+    "copySelected": "ausgewählt",
+    "copyCount": "×{{count}}"
   },
   "clearConfirmDialog": {
     "title": "Alle leeren",

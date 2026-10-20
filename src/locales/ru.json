@@ -533,7 +533,10 @@
       "expandedRegionAriaLabel": "Увеличенный вид планшета",
       "finalCompositePlate": "Итоговый составной планшет",
       "selectedWellSource": "Выбранная лунка {{well}} · Источник: {{barcode}}",
-      "sourceUnknown": "Неизвестен"
+      "sourceUnknown": "Неизвестен",
+      "tabFinal": "Итог",
+      "tabsAriaLabel": "Копии планшета",
+      "plateCopyChip": "Копии планшета {{plate}}"
     },
     "drawer": {
       "stat": {
@@ -3336,7 +3339,9 @@
     "gridAriaLabel": "96-well plate",
     "columnAriaLabel": "Колонка {{col}}",
     "rowAriaLabel": "Строка {{row}}",
-    "fallbackReplicateTitle": "Fallback replicate"
+    "fallbackReplicateTitle": "Fallback replicate",
+    "copySelected": "выбрана",
+    "copyCount": "×{{count}}"
   },
   "clearConfirmDialog": {
     "title": "Очистить всё",

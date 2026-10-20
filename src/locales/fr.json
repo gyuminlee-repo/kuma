@@ -533,7 +533,10 @@
       "expandedRegionAriaLabel": "Vue de plaque agrandie",
       "finalCompositePlate": "Plaque composite finale",
       "selectedWellSource": "Puits sélectionné {{well}} · Source : {{barcode}}",
-      "sourceUnknown": "Inconnue"
+      "sourceUnknown": "Inconnue",
+      "tabFinal": "Final",
+      "tabsAriaLabel": "Copies de plaque",
+      "plateCopyChip": "Copies de la plaque {{plate}}"
     },
     "drawer": {
       "stat": {
@@ -3336,7 +3339,9 @@
     "gridAriaLabel": "Plaque 96-well",
     "columnAriaLabel": "Colonne {{col}}",
     "rowAriaLabel": "Ligne {{row}}",
-    "fallbackReplicateTitle": "Replicate fallback"
+    "fallbackReplicateTitle": "Replicate fallback",
+    "copySelected": "sélectionnée",
+    "copyCount": "×{{count}}"
   },
   "clearConfirmDialog": {
     "title": "Tout effacer",
