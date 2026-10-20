@@ -112,7 +112,7 @@ run 마다 출력 폴더를 따로 쓴다. 이전 run 이 남긴 plate 폴더는
 5. read 수 정보가 없고 consensus 파일이 너무 작으면 Low depth.
 6. 염기 indel 표지 두 개가 frameshift window 안에 가까이 있으면 Frameshift.
 7. 관측된 아미노산 변화가 설계 수와 설정 상한을 모두 넘으면 Many.
-8. 혼합 신호가 남아 있으면 Mixed. 그 자리가 신뢰 깊이에 못 미치면 Low depth.
+8. 혼합 신호가 남아 있으면 Mixed. 웰의 read 수가 신뢰 깊이에 못 미치면 Low depth.
 9. 기대 치환이 빠졌거나 다른 아미노산이면 Wrong AA.
 10. 기대 위치 근처 window 안에 추가 아미노산 변화가 있으면 Ambiguous.
 11. 그 밖의 추가 아미노산 변화가 있으면 Wrong AA.

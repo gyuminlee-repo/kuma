@@ -112,7 +112,7 @@ A well gets its verdict from the checks below, in order, and the first one that 
 5. No read count reported and the consensus file too small: Low depth.
 6. Two nucleotide indel markers close together within the frameshift window: Frameshift.
 7. More amino-acid changes than both the design count and the configured limit: Many.
-8. A mixed-allele signal remains: Mixed, or Low depth when that position is below the confidence depth.
+8. A mixed-allele signal remains: Mixed, or Low depth when the well's read count is below the confidence depth.
 9. An expected substitution missing or carrying the wrong amino acid: Wrong AA.
 10. An extra amino-acid change within the window around an expected site: Ambiguous.
 11. Any other extra amino-acid change: Wrong AA.
