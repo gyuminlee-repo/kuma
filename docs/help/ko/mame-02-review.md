@@ -103,7 +103,21 @@ run 마다 출력 폴더를 따로 쓴다. 이전 run 이 남긴 plate 폴더는
 
 <!-- guide-verdict-order -->
 
-웰 하나의 판정은 정해진 순서로 조건을 확인해 처음 맞는 조건에서 정해진다. 깊이(Low depth)와 reading frame(Frameshift)을 먼저 본다. 기대 변이가 모두 맞는데 indel 신호가 임계값 이상이면 여기서 Ambiguous 가 된다. 그다음 No call, Many, Mixed, Wrong AA 를 차례로 확인한다. 기대 변이가 모두 맞은 웰만 마지막에 Ambiguous 또는 Pass 가 된다. Ambiguous 는 기대 위치 근처에 추가 변화가 있을 때다.
+웰 하나의 판정은 아래 순서로 조건을 확인해 처음 맞는 조건에서 정해진다. 다음 조건으로 내려간다는 것은 통과했다는 뜻이 아니라 아직 판정이 없다는 뜻이다.
+
+1. read 수가 설정한 최소값보다 적으면 Low depth.
+2. consensus 의 순 indel 길이가 3 의 배수가 아니면 Frameshift.
+3. indel 신호가 임계값 이상인데 기대 치환이 모두 맞으면 Ambiguous.
+4. 판정할 수 있는 자리 중 N 비율이 너무 높으면 No call.
+5. read 수 정보가 없고 consensus 파일이 너무 작으면 Low depth.
+6. 염기 indel 표지 두 개가 frameshift window 안에 가까이 있으면 Frameshift.
+7. 관측된 아미노산 변화가 설계 수와 설정 상한을 모두 넘으면 Many.
+8. 혼합 신호가 남아 있으면 Mixed. 그 자리가 신뢰 깊이에 못 미치면 Low depth.
+9. 기대 치환이 빠졌거나 다른 아미노산이면 Wrong AA.
+10. 기대 위치 근처 window 안에 추가 아미노산 변화가 있으면 Ambiguous.
+11. 그 밖의 추가 아미노산 변화가 있으면 Wrong AA.
+
+어디에도 걸리지 않으면 Pass 다. 설정되지 않았거나 쓸 수 없는 검사는 건너뛰므로 판정이 예상과 다르면 그 웰의 상세 내용을 함께 본다.
 
 | 판정 | 의미 |
 |---|---|

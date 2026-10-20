@@ -103,7 +103,21 @@ The flow cell id and pore count appear in the same place. They are reference val
 
 <!-- guide-verdict-order -->
 
-A well gets its verdict from a fixed order of checks, and the first check that holds decides. Read depth (Low depth) and the reading frame (Frameshift) come first. A well that matches every expected change but carries an indel signal at or above the threshold becomes Ambiguous at this point. No call, Many, Mixed and Wrong AA follow in that order. Only a well that matched every expected change reaches the end, where it is Ambiguous when an extra change sits near an expected site and Pass otherwise.
+A well gets its verdict from the checks below, in order, and the first one that holds decides. Moving on to the next check means no verdict yet, not a pass.
+
+1. Read count below the configured minimum: Low depth.
+2. Net consensus indel length not a multiple of 3: Frameshift.
+3. Indel signal at or above the threshold while every expected substitution matches: Ambiguous.
+4. Too high a fraction of N among the positions that can be judged: No call.
+5. No read count reported and the consensus file too small: Low depth.
+6. Two nucleotide indel markers close together within the frameshift window: Frameshift.
+7. More amino-acid changes than both the design count and the configured limit: Many.
+8. A mixed-allele signal remains: Mixed, or Low depth when that position is below the confidence depth.
+9. An expected substitution missing or carrying the wrong amino acid: Wrong AA.
+10. An extra amino-acid change within the window around an expected site: Ambiguous.
+11. Any other extra amino-acid change: Wrong AA.
+
+A well that meets none of these is Pass. Checks that are not configured or cannot run are skipped, so when a verdict looks wrong, open that well's details as well.
 
 | Verdict | Meaning |
 |---|---|

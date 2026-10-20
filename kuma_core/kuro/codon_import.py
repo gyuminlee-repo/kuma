@@ -877,8 +877,8 @@ def _check_traceability(
     # none had a zero, and then mextorquens.json arrived listing TTA at 0.0
     # (measured 2026-09-17). No table in the bundled set carries a zero today
     # (measured 2026-09-30), but the exemption stays: a bundled table may
-    # legitimately carry one, and the AM1 table that demonstrated it now ships
-    # as an installable seed, where it is a user file and does warn.
+    # legitimately carry one. The AM1 table that demonstrated it is no longer
+    # shipped; installed by a user it is a user file and does warn.
     if not ctx.is_builtin and normalised:
         report.checks_performed += 1  # V34
         zeros = sorted(
