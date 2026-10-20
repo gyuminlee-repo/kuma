@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.16.75 (UniProt matches that survive an insertion, and a guide that shows the screen)
+
+KURO scored the identity between the loaded protein and a UniProt candidate position by position, so one inserted residue pushed every later residue out of register. The public EGFP construct, which carries one more valine than GFP near the N terminus, scored 5 % against GFP (P42212) and never reached the 95 % auto-match. Identity now counts the identical residues in the same global alignment the residue position map already uses. That pair scores 97.9 % and is selected automatically, and a pair four substitutions apart still stays below the gate.
+
+The *Methylorubrum extorquens* AM1 codon table no longer ships as a seed file in the user codon table folder. A project that recorded a design against AM1 opens the way a project with any uninstalled table opens: the copy saved in the workspace is offered for installation.
+
+The user guide and the in-app help were reviewed page by page. Captions name each control the way the screen does, read from the locale files instead of typed by hand. MAME step 2 lists the eleven checks that decide a well verdict in the order they run, and takes in the run folder inventory, advanced options, run stages and output files from the former pipeline chapter. A new FAQ page answers the questions the step pages kept deferring. The guide now shows the dialogs, the expanded advanced options, KURO step 4 in both Top-N and Pipeline mode, and the 3D panel with its reference structure drawn.
+
+### Highlights
+
+- KURO matches UniProt entries on a sequence alignment, so a construct with one extra residue is still matched automatically.
+- The AM1 codon table no longer ships as a seed file. Projects that used it still offer their saved copy for installation.
+- MAME step 2 explains the order of checks that decides each well verdict and absorbs the former pipeline chapter.
+- A new FAQ page answers common KURO and MAME questions in English and Korean.
+- The guide shows every dialog, both KURO selection modes and the 3D panel with its structure, labeled as on screen.
+
 ## v0.16.74 (Spatial selection and the reference structure that fits)
 
 KURO now selects variants by their 3D proximity to functional sites in the protein structure. Spatial selection uses CA atom coordinates and a distance cutoff, and when the AlphaFold DB structure does not exactly cover the reference sequence, KURO predicts the reference with ESMFold (with network consent) and uses that structure instead. References over 400 residues are pointed at AlphaFold Server with a structure file picker. A structure whose coverage only misses terminal residues is used as an exact overlap with coverage reported. A benchmark compares the spatial and score-only top-N selections and reports residue evidence, so the operator can see what spatial proximity adds.

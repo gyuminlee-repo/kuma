@@ -2680,14 +2680,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "KURO wählt Varianten nach 3D-Nähe aus; deckt die Datenbankstruktur die Referenz nicht ab, wird eine mit ESMFold vorhergesagt.",
-      "Ein laufendes Design, Export oder Analyse besitzt seine Anfrage, sodass eine späte Antwort kein neueres Ergebnis überschreibt.",
-      "MAME Schritt 4.1 liest den Labeltyp des Bestätigungsberichts und ordnet einen Well-beschrifteten Bericht automatisch Varianten zu.",
-      "In Schritt 6 wählen Sie, welche Exportdateien geschrieben werden; jeder Export wird atomar per Umbenennung veröffentlicht.",
-      "Die In-App-Hilfe wird als illustrierte Anleitung mit annotierten Screenshots bei jedem Schritt veröffentlicht."
+      "KURO gleicht UniProt-Einträge über ein Sequenz-Alignment ab, sodass ein Konstrukt mit einem zusätzlichen Rest weiterhin automatisch zugeordnet wird.",
+      "Die AM1-Codontabelle wird nicht mehr als Seed-Datei mitgeliefert. Projekte, die sie verwendet haben, bieten ihre gespeicherte Kopie weiter zur Installation an.",
+      "MAME Schritt 2 erklärt die Reihenfolge der Prüfungen, die das Urteil jedes Wells bestimmt, und übernimmt das frühere Pipeline-Kapitel.",
+      "Eine neue FAQ-Seite beantwortet häufige Fragen zu KURO und MAME auf Englisch und Koreanisch.",
+      "Die Anleitung zeigt jeden Dialog, beide KURO-Auswahlmodi und das 3D-Panel mit seiner Struktur, beschriftet wie auf dem Bildschirm."
     ],
-    "highlightsStamp": "0.16.74+5562e779",
+    "highlightsStamp": "0.16.75+7a304882",
     "releases": {
+      "0.16.75": [
+        "KURO gleicht UniProt-Einträge über ein Sequenz-Alignment ab, sodass ein Konstrukt mit einem zusätzlichen Rest weiterhin automatisch zugeordnet wird.",
+        "Die AM1-Codontabelle wird nicht mehr als Seed-Datei mitgeliefert. Projekte, die sie verwendet haben, bieten ihre gespeicherte Kopie weiter zur Installation an.",
+        "MAME Schritt 2 erklärt die Reihenfolge der Prüfungen, die das Urteil jedes Wells bestimmt, und übernimmt das frühere Pipeline-Kapitel.",
+        "Eine neue FAQ-Seite beantwortet häufige Fragen zu KURO und MAME auf Englisch und Koreanisch.",
+        "Die Anleitung zeigt jeden Dialog, beide KURO-Auswahlmodi und das 3D-Panel mit seiner Struktur, beschriftet wie auf dem Bildschirm."
+      ],
       "0.16.69": [
         "Consensus-Sequenzen schreiben einen Bindestrich, wo eine Base fehlt, sodass eine Deletion nicht mehr wie eine nicht auswertbare Position aussieht.",
         "Barcode-Primer bestehen jetzt dieselben Hairpin-, Self-Dimer- und Off-Target-Prüfungen wie Design-Primer.",
@@ -3205,6 +3212,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.75": "7a304882",
       "0.16.69": "60279e8e",
       "0.16.68": "33844e5d",
       "0.16.67": "6db9fd0b",

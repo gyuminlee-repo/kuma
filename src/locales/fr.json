@@ -2680,14 +2680,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "KURO sélectionne les variants par proximité 3D et, si la structure en base ne couvre pas la référence, en prédit une avec ESMFold.",
-      "Un design, export ou analyse en cours détient sa requête : une réponse tardive n'écrase jamais un résultat plus récent.",
-      "MAME étape 4.1 lit le type d'étiquette du rapport de confirmation et associe automatiquement les puits aux variants.",
-      "L'étape 6 permet de choisir les fichiers à exporter, et chaque export est publié par un renommage atomique.",
-      "L'aide intégrée est publiée comme guide illustré avec des captures d'écran annotées à chaque étape."
+      "KURO rapproche les entrées UniProt par un alignement de séquences, si bien qu'un construit avec un résidu de plus est toujours associé automatiquement.",
+      "La table de codons AM1 n'est plus fournie comme fichier d'amorçage. Les projets qui l'utilisaient proposent toujours d'installer leur copie enregistrée.",
+      "MAME étape 2 explique l'ordre des contrôles qui décide du verdict de chaque puits et intègre l'ancien chapitre sur le pipeline.",
+      "Une nouvelle page FAQ répond aux questions courantes sur KURO et MAME en anglais et en coréen.",
+      "Le guide montre chaque dialogue, les deux modes de sélection de KURO et le panneau 3D avec sa structure, libellés comme à l'écran."
     ],
-    "highlightsStamp": "0.16.74+5562e779",
+    "highlightsStamp": "0.16.75+7a304882",
     "releases": {
+      "0.16.75": [
+        "KURO rapproche les entrées UniProt par un alignement de séquences, si bien qu'un construit avec un résidu de plus est toujours associé automatiquement.",
+        "La table de codons AM1 n'est plus fournie comme fichier d'amorçage. Les projets qui l'utilisaient proposent toujours d'installer leur copie enregistrée.",
+        "MAME étape 2 explique l'ordre des contrôles qui décide du verdict de chaque puits et intègre l'ancien chapitre sur le pipeline.",
+        "Une nouvelle page FAQ répond aux questions courantes sur KURO et MAME en anglais et en coréen.",
+        "Le guide montre chaque dialogue, les deux modes de sélection de KURO et le panneau 3D avec sa structure, libellés comme à l'écran."
+      ],
       "0.16.69": [
         "Les séquences consensus écrivent un tiret là où une base manque, si bien qu'une délétion ne ressemble plus à une position non interprétable.",
         "Les amorces barcode passent désormais les mêmes contrôles hairpin, self-dimer et off-target que les amorces de conception.",
@@ -3205,6 +3212,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.75": "7a304882",
       "0.16.69": "60279e8e",
       "0.16.68": "33844e5d",
       "0.16.67": "6db9fd0b",

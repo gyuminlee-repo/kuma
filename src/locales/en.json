@@ -2734,14 +2734,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "KURO selects variants by 3D proximity, and when the database structure does not cover the reference, predicts one with ESMFold.",
-      "A running design, export or analysis owns its request, so a late reply never overwrites a newer result or another project.",
-      "MAME step 4.1 reads the label type from the confirmation report and maps a well-labeled report to variants automatically.",
-      "Step 6 lets you choose which export files to write, and every export is staged and published by an atomic rename.",
-      "The in-app help is published as an illustrated user guide with annotated screenshots at every step."
+      "KURO matches UniProt entries on a sequence alignment, so a construct with one extra residue is still matched automatically.",
+      "The AM1 codon table no longer ships as a seed file. Projects that used it still offer their saved copy for installation.",
+      "MAME step 2 explains the order of checks that decides each well verdict and absorbs the former pipeline chapter.",
+      "A new FAQ page answers common KURO and MAME questions in English and Korean.",
+      "The guide shows every dialog, both KURO selection modes and the 3D panel with its structure, labeled as on screen."
     ],
-    "highlightsStamp": "0.16.74+5562e779",
+    "highlightsStamp": "0.16.75+7a304882",
     "releases": {
+      "0.16.75": [
+        "KURO matches UniProt entries on a sequence alignment, so a construct with one extra residue is still matched automatically.",
+        "The AM1 codon table no longer ships as a seed file. Projects that used it still offer their saved copy for installation.",
+        "MAME step 2 explains the order of checks that decides each well verdict and absorbs the former pipeline chapter.",
+        "A new FAQ page answers common KURO and MAME questions in English and Korean.",
+        "The guide shows every dialog, both KURO selection modes and the 3D panel with its structure, labeled as on screen."
+      ],
       "0.16.74": [
         "KURO selects variants by 3D proximity, and when the database structure does not cover the reference, predicts one with ESMFold.",
         "A running design, export or analysis owns its request, so a late reply never overwrites a newer result or another project.",
@@ -3259,6 +3266,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.75": "7a304882",
       "0.16.74": "5562e779",
       "0.16.73": "4da5762b",
       "0.16.72": "cb204794",
