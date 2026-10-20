@@ -1465,8 +1465,7 @@
         "docs/mame/03-janus.md",
         "docs/help/ko/mame-04-activity.md",
         "docs/mame/04-activity.md",
-        "docs/help/ko/mame-pipeline.md",
-        "docs/mame/mame-pipeline.md"
+        "docs/help/ko/faq.md"
       ],
       "note": "In-app help is the user-facing digest of the published step guide next to it: same screen, same steps, same warnings, with the version history, module paths and design rationale left out. The two are not identical by design, so this group is a warning rather than a gate. When a step changes behaviour, both sides have to say the new behaviour or the app and the site disagree about what the app does.",
       "severity": "warning"

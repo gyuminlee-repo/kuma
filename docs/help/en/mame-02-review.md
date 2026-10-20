@@ -11,7 +11,25 @@ Score the sequencing run well by well and read the outcome on a 96-well plate. P
 | Reference construct | Required |
 | Wells used | Optional. Left untouched, the leading wells are used |
 
-Choose the inputs, then press Run or Validate. Cell stock preparation are not on this screen. They belong to step 3.
+Choose the inputs, then press Run or Validate. Cell stock preparation is not on this screen. It is step 3.
+
+### What MAME reads in the run folder
+
+Give the folder MinKNOW wrote, as it is. Sorting reads into barcode folders beforehand isn't needed.
+
+| File | Used for | Required |
+|---|---|---|
+| `*.fastq` or `*.fastq.gz` in the barcode folders under `fastq_pass/` | The reads analyzed | Required |
+| `final_summary_*.txt`, `sample_sheet_*.csv` | Run name and sample information | Read if present |
+| `sequencing_summary*.txt` or `*.tsv` | Read quality and barcode cross-talk check | Read if present |
+| `pore_activity_*.csv`, `throughput_*.csv`, `barcode_alignment*.tsv` | Run health indicators | Read if present |
+| `report_*.json` | Flow cell type and pore counts | Read if present |
+
+Compression doesn't matter. Both `*.fastq` and `*.fastq.gz` are read.
+
+If `report_*.json` isn't in the run folder, MAME looks one level up. When it's absent altogether the pore fields stay blank. Blank is not zero.
+
+`pod5/`, `fast5/`, `bam_pass/`, `other_reports/` and `report_*.html` are never read. Leaving them in place changes nothing.
 
 ### Wells used
 
@@ -21,9 +39,43 @@ A well that is not selected is a well the campaign did not fill, so it is not sc
 
 The **Barcode worklist (csv)** button in the same panel saves a file with one row per filled well carrying the well, the sample, the barcode token and the seed primer names. Use it at the bench when pipetting.
 
+### Advanced options
+
+Four settings sit under **Advanced options** in the parameter panel.
+
+| On screen | Default | What it changes |
+|---|---|---|
+| Coverage Fraction | 0.98 | How much of the reference one read must cover to pass. Raise it to keep only complete alignments, lower it to admit partial ones |
+| Minimum mapping quality (0–60) | 25 | Reads mapped below this quality are discarded |
+| Edit Distance Ratio | 0.25 | How loosely a barcode may match. Smaller is stricter and assigns fewer reads |
+| Chimera Split | on | Counts a read spanning several wells as separate hits. Leave it on |
+
+The remaining verdict thresholds can't be changed from the screen.
+
 ### Changing an input clears the previous output
 
 Changing the run folder, the expected variants workbook, the reference construct, the selected wells or an analysis parameter clears the verdicts and plate map the previous run produced, and 2.2 returns to its pre-run state. This keeps the screen of a finished run from looking like the outcome of the new inputs. Picking the same value again does nothing. The output path is not an input, so it clears nothing.
+
+### What a run does
+
+The stages below are the path for a MinKNOW run folder. The other two modes take a folder of FASTA files that already exist and skip the earlier stages. From stage 2 on, the progress bar shows these names.
+
+1. **Amplicon extraction.** MAME locates where the barcode workbook primers sit in the reference and cuts out the region between them to align against. If it can't locate them, it uses the reference as supplied.
+2. **Aligning.** The bundled minimap2 maps the reads in `fastq_pass` onto the reference.
+3. **Coverage filter.** Reads with low mapping quality, and reads that don't cover enough of the reference, are dropped.
+4. **Demultiplexing.** The barcodes at both ends of each surviving read assign it to one of 96 wells. A read whose barcode on either side can't be resolved, or ties, is dropped.
+5. **Building consensus.** For each well the bases at each position are pooled into one sequence by majority vote. Low-quality bases are left out of the vote and positions with too few reads are left as `N`.
+6. **Analyzing.** Each well sequence is compared against the expected mutation and given a verdict.
+
+### What a run writes
+
+- Per-well consensus sequences, written as `{R}_{F}.fasta` under the barcode folder (`sort_barcodeNN/`) of the output folder.
+- `final/consensus_all_dna.fasta`, all wells merged.
+- The verdict table and plate view on screen.
+- The picked clone list `..._picks.csv`.
+- The Excel workbook, written to the output path chosen for the run.
+
+Use a separate output folder for each run. Plate folders an earlier run left behind are excluded from the verdicts and named on screen.
 
 ## 2.2 Review
 
@@ -31,7 +83,7 @@ The verdict table sits on the left. The 96-well plate map and the per-plate verd
 
 ### Notices above the verdict table
 
-The notices judge the run that just finished, and only the ones whose condition holds appear. The list below collects every notice that can appear, so they never show all at once, and nothing appears when there is nothing to report. Notices from an earlier run do not pile up: changing an input clears them with the previous result, and running again decides them afresh from the new result.
+Each notice checks the run that just finished and appears only when its condition holds. Several can appear together, and none appears when there's nothing to report. Notices from an earlier run don't pile up: changing an input clears them with the previous result, and running again decides them afresh from the new result.
 
 - **This run cannot be scored** The median reads per well is under the floor. The verdicts below come from a plate that never had the depth to be read, so sequence the plate again rather than using them.
 - **This run is scorable but under-powered** Depth clears the floor and falls short of the recommendation. Use the verdicts and check borderline wells separately. Depth is measured only over the wells this run actually scored.
@@ -49,16 +101,22 @@ The flow cell id and pore count appear in the same place. They are reference val
 
 ## Verdict classes
 
+<!-- guide-verdict-order -->
+
+A well gets its verdict from a fixed order of checks, and the first check that holds decides. Read depth (Low depth) and the reading frame (Frameshift) come first. A well that matches every expected change but carries an indel signal at or above the threshold becomes Ambiguous at this point. No call, Many, Mixed and Wrong AA follow in that order. Only a well that matched every expected change reaches the end, where it is Ambiguous when an extra change sits near an expected site and Pass otherwise.
+
 | Verdict | Meaning |
 |---|---|
 | Pass | Observed amino-acid changes exactly match the expected design |
 | Ambiguous | All expected mutations matched, and either an extra AA change sits within the indel window of an expected site or the reads carry an indel-event signal at or above the threshold (this can mark a WT control too). Still counts as detected |
 | Mixed | Within-well contamination: a substantial second allele in the consensus signal |
-| Wrong AA | An expected site shows a different amino acid, an expected mutation is missing, or an unexpected extra change sits outside the window |
+| Wrong AA | An expected site shows a different amino acid, an expected mutation is missing, or an unexpected extra change sits outside the window while none sits inside it |
 | Frameshift | The consensus carries a net insertion or deletion whose length is not a multiple of 3, so the reading frame is shifted |
 | Many | More observed AA changes than both the design and the many-mutation cutoff |
 | Low depth | Too few reads to call this well reliably |
 | No call | Consensus has too many ambiguous (N) positions to trust the amino-acid calls |
+
+Runs with no verdicts, heavy loss at the coverage filter and other common problems are answered in the [FAQ](faq.md).
 
 → [Step 3. Cell stock preparation](mame-03-janus.md) is optional. Stop here if only a sequencing verdict is needed.
 

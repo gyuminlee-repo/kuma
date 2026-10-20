@@ -19,7 +19,7 @@ A run that only needs sequencing verdicts goes from step 2 straight to step 4. N
 
 ## The input is a MinKNOW run folder
 
-Step 2 takes the run folder MinKNOW wrote, as it is. Sorting it into barcode directories beforehand is not needed. MAME reads the `.fastq` and `.fastq.gz` files under `fastq_pass/`, splits the barcodes and builds the consensus itself.
+Step 2 takes the run folder MinKNOW wrote, as it is. Sorting it into barcode directories beforehand is not needed. MAME reads the `.fastq` and `.fastq.gz` files under `fastq_pass/`, aligns the reads to the reference, splits the barcodes, builds a consensus per well and scores it against the expected mutation. The files it reads, the adjustable values and each stage are in [Analyze and review](mame-02-review.md).
 
 ## Step guides
 
@@ -27,4 +27,4 @@ Step 2 takes the run folder MinKNOW wrote, as it is. Sorting it into barcode dir
 - [Analyze and review](mame-02-review.md)
 - [Cell stock preparation](mame-03-janus.md)
 - [Activity](mame-04-activity.md)
-- [MAME pipeline](mame-pipeline.md)
+- [FAQ](faq.md)

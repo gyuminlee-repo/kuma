@@ -33,8 +33,8 @@ describe("useHelpPanel", () => {
   it("closes, and lets the panel change topic itself", () => {
     const { result } = renderHook(() => useHelpPanel());
     emit({ topic: "mame-02-review" });
-    act(() => result.current.setTopic("mame-pipeline"));
-    expect(result.current.topic).toBe("mame-pipeline");
+    act(() => result.current.setTopic("faq"));
+    expect(result.current.topic).toBe("faq");
     act(() => result.current.close());
     expect(result.current.open).toBe(false);
   });

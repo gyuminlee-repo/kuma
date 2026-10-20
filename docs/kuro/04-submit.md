@@ -16,6 +16,8 @@ Submit step 상단에 표시되는 read-only 요약 카드. zustand store 를 me
 
 이 카드의 Selection mode 텍스트는 Step 2 의 라디오 선택과 항상 일치한다 (회귀 방지 E2E test 대상).
 
+Pipeline 모드일 때만 카드 아래에 `DiversityOptions` 의 `PIPELINE` 상자(`Step 1: Pre-filter`, `Step 2: Domain allocation`, `Step 3: Optimization`, `Step 4: Structural diversity`)가 렌더된다 (`DesignStepView.tsx`, `evolveproMode !== "topN"`). 각 단계가 하는 일은 인앱 도움말 `kuro-04-submit` 의 표와 같다.
+
 <!-- TODO: insert screenshot of DesignSummaryCard -->
 
 ## Run Design

@@ -48,8 +48,7 @@
       "group": {
         "start": "入门",
         "kuro": "KURO 设计",
-        "mame": "MAME 验证",
-        "deeper": "深入"
+        "mame": "MAME 验证"
       },
       "topic": {
         "kuro-index": "KURO 概览",
@@ -64,7 +63,7 @@
         "mame-02-review": "分析与审阅",
         "mame-03-janus": "细胞储备液制备",
         "mame-04-activity": "活性",
-        "mame-pipeline": "MAME 流程"
+        "faq": "常见问题"
       }
     }
   },

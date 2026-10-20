@@ -19,7 +19,7 @@ MAME 는 바코드 프라이머 설계에서 시작해 시퀀싱 판정, 로봇 
 
 ## 입력은 MinKNOW run 폴더다
 
-2단계에 넣는 것은 MinKNOW 가 만든 run 폴더 그대로다. 바코드별로 미리 정렬해 둘 필요가 없다. MAME 가 `fastq_pass/` 아래의 `.fastq` 와 `.fastq.gz` 를 읽어 바코드를 나누고 consensus 를 만든다.
+2단계에 넣는 것은 MinKNOW 가 만든 run 폴더 그대로다. 바코드별로 미리 정렬해 둘 필요가 없다. MAME 가 `fastq_pass/` 아래의 `.fastq` 와 `.fastq.gz` 를 읽어 reference 에 정렬하고 바코드를 나눈 뒤 well 마다 consensus 를 만들어 기대 변이와 대조한다. 읽는 파일, 조절할 수 있는 값, 단계별 동작은 [분석 및 검토](mame-02-review.md) 에 있다.
 
 ## 단계별 문서
 
@@ -27,4 +27,4 @@ MAME 는 바코드 프라이머 설계에서 시작해 시퀀싱 판정, 로봇 
 - [분석 및 검토](mame-02-review.md)
 - [Cell stock 제작](mame-03-janus.md)
 - [활성](mame-04-activity.md)
-- [MAME 파이프라인](mame-pipeline.md)
+- [자주 묻는 질문](faq.md)

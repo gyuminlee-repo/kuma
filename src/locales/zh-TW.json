@@ -48,8 +48,7 @@
       "group": {
         "start": "入門",
         "kuro": "KURO 設計",
-        "mame": "MAME 驗證",
-        "deeper": "深入"
+        "mame": "MAME 驗證"
       },
       "topic": {
         "kuro-index": "KURO 概覽",
@@ -64,7 +63,7 @@
         "mame-02-review": "分析與審閱",
         "mame-03-janus": "細胞儲備液製備",
         "mame-04-activity": "活性",
-        "mame-pipeline": "MAME 流程"
+        "faq": "常見問題"
       }
     }
   },

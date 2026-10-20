@@ -48,8 +48,7 @@
       "group": {
         "start": "Primeros pasos",
         "kuro": "Diseño KURO",
-        "mame": "Verificación MAME",
-        "deeper": "Más a fondo"
+        "mame": "Verificación MAME"
       },
       "topic": {
         "kuro-index": "Descripción general de KURO",
@@ -64,7 +63,7 @@
         "mame-02-review": "Análisis y revisión",
         "mame-03-janus": "Preparación de stocks celulares",
         "mame-04-activity": "Actividad",
-        "mame-pipeline": "Pipeline de MAME"
+        "faq": "Preguntas frecuentes"
       }
     }
   },

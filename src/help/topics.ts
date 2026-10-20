@@ -8,7 +8,7 @@ export interface HelpGroup {
 }
 
 export const HELP_GROUPS: HelpGroup[] = [
-  { labelKey: "help.panel.group.start", topics: ["kuro-index", "mame-index"] },
+  { labelKey: "help.panel.group.start", topics: ["kuro-index", "mame-index", "faq"] },
   {
     labelKey: "help.panel.group.kuro",
     topics: [
@@ -24,7 +24,6 @@ export const HELP_GROUPS: HelpGroup[] = [
     labelKey: "help.panel.group.mame",
     topics: ["mame-01-setup", "mame-02-review", "mame-03-janus", "mame-04-activity"],
   },
-  { labelKey: "help.panel.group.deeper", topics: ["mame-pipeline"] },
 ];
 
 export const ALL_TOPIC_IDS: string[] = HELP_GROUPS.flatMap((g) => g.topics);

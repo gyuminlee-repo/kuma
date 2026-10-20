@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1640" role="img" aria-labelledby="title desc">
+  <title id="title">MAME per-well verdict decision order</title>
+  <desc id="desc">Read from top to bottom. The first matching rule returns a verdict. A coordinate-origin mismatch stops the run before scoring. Mixed signals at insufficient depth return LOWDEPTH rather than MIXED. Early indel evidence can return AMBIGUOUS before later checks.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#475569"/></marker>
+    <style>
+      text{font-family:Arial,Helvetica,sans-serif;fill:#172337;font-size:19px}
+      .title{font-size:28px;font-weight:700}.small{font-size:17px;fill:#475569}
+      .label{font-size:21px;font-weight:700}.num{font-weight:700;fill:#1e40af}
+      .rule{fill:#f8fafc;stroke:#94a3b8;stroke-width:1.5}
+      .outcome{fill:#fff;stroke:#334155;stroke-width:1.5}
+      .flow{fill:none;stroke:#475569;stroke-width:2;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="900" height="1640" fill="#fff"/>
+  <text x="32" y="43" class="title">MAME: how a well receives its verdict</text>
+  <text x="32" y="75" class="small">Follow the rules downward. The first match ends the decision.</text>
+  <rect x="32" y="98" width="836" height="72" rx="8" fill="#fff7ed" stroke="#c2410c"/>
+  <text x="50" y="128" class="label">Before scoring: check residue-number correspondence</text>
+  <text x="50" y="154" class="small">An origin mismatch stops the run; it is not a verdict class.</text>
+  <text x="54" y="204" class="small">Rule</text>
+  <text x="630" y="204" class="small">If the condition holds</text>
+  <g>
+    <rect class="rule" x="32" y="220" width="520" height="72" rx="6"/>
+    <text x="49" y="247" class="num">1</text><text x="81" y="247">Read count below the configured minimum?</text>
+    <text x="81" y="274" class="small">Requires a reported read count and a threshold.</text>
+    <path class="flow" d="M552 256H622"/><rect class="outcome" x="630" y="230" width="238" height="52" rx="6"/>
+    <text class="label" x="649" y="263">LOWDEPTH</text><path class="flow" d="M290 292V321"/>
+  </g>
+  <g>
+    <rect class="rule" x="32" y="330" width="520" height="72" rx="6"/>
+    <text x="49" y="357" class="num">2</text><text x="81" y="357">Consensus net indel not divisible by 3?</text>
+    <text x="81" y="384" class="small">Uses the consensus, not median raw-read indels.</text>
+    <path class="flow" d="M552 366H622"/><rect class="outcome" x="630" y="340" width="238" height="52" rx="6"/>
+    <text class="label" x="649" y="373">FRAMESHIFT</text><path class="flow" d="M290 402V431"/>
+  </g>
+  <g>
+    <rect class="rule" x="32" y="440" width="520" height="72" rx="6"/>
+    <text x="49" y="467" class="num">3</text><text x="81" y="467">Indel-event fraction reaches the threshold</text>
+    <text x="81" y="494">AND every expected substitution matches?</text>
+    <path class="flow" d="M552 476H622"/><rect class="outcome" x="630" y="450" width="238" height="52" rx="6"/>
+    <text class="label" x="649" y="483">AMBIGUOUS</text><path class="flow" d="M290 512V541"/>
+  </g>
+  <g>
+    <rect class="rule" x="32" y="550" width="520" height="72" rx="6"/>
+    <text x="49" y="577" class="num">4</text><text x="81" y="577">Evaluable consensus N fraction too high?</text>
+    <text x="81" y="604" class="small">Deletion-majority positions are excluded.</text>
+    <path class="flow" d="M552 586H622"/><rect class="outcome" x="630" y="560" width="238" height="52" rx="6"/>
+    <text class="label" x="649" y="593">NO_CALL</text><path class="flow" d="M290 622V651"/>
+  </g>
+  <g>
+    <rect class="rule" x="32" y="660" width="520" height="72" rx="6"/>
+    <text x="49" y="687" class="num">5</text><text x="81" y="687">Read count absent AND file too small?</text>
+    <text x="81" y="714" class="small">Legacy consensus-file fallback only.</text>
+    <path class="flow" d="M552 696H622"/><rect class="outcome" x="630" y="670" width="238" height="52" rx="6"/>
+    <text class="label" x="649" y="703">LOWDEPTH</text><path class="flow" d="M290 732V761"/>
+  </g>
+  <g>
+    <rect class="rule" x="32" y="770" width="520" height="72" rx="6"/>
+    <text x="49" y="797" class="num">6</text><text x="81" y="797">Two NT-indel markers close together?</text>
+    <text x="81" y="824" class="small">Uses the configured frameshift window.</text>
+    <path class="flow" d="M552 806H622"/><rect class="outcome" x="630" y="780" width="238" height="52" rx="6"/>
+    <text class="label" x="649" y="813">FRAMESHIFT</text><path class="flow" d="M290 842V871"/>
+  </g>
+  <g>
+    <rect class="rule" x="32" y="880" width="520" height="72" rx="6"/>
+    <text x="49" y="907" class="num">7</text><text x="81" y="907">Observed AA changes exceed both</text>
+    <text x="81" y="934">the design count AND the configured limit?</text>
+    <path class="flow" d="M552 916H622"/><rect class="outcome" x="630" y="890" width="238" height="52" rx="6"/>
+    <text class="label" x="649" y="923">MANY</text><path class="flow" d="M290 952V981"/>
+  </g>
+  <g>
+    <rect class="rule" x="32" y="990" width="520" height="90" rx="6"/>
+    <text x="49" y="1017" class="num">8</text><text x="81" y="1017">Mixed-allele signal remains after filtering?</text>
+    <text x="81" y="1044" class="small">Deletion-majority positions are excluded.</text>
+    <text x="81" y="1068" class="small">The confidence-depth check decides the branch.</text>
+    <path class="flow" d="M552 1035H622"/><rect class="outcome" x="630" y="990" width="238" height="90" rx="6"/>
+    <text class="small" x="644" y="1014">Below confidence depth:</text>
+    <text class="label" x="644" y="1040">LOWDEPTH</text>
+    <text x="644" y="1067">Otherwise: MIXED</text><path class="flow" d="M290 1080V1109"/>
+  </g>
+  <g>
+    <rect class="rule" x="32" y="1118" width="520" height="72" rx="6"/>
+    <text x="49" y="1145" class="num">9</text><text x="81" y="1145">Any expected substitution missing</text>
+    <text x="81" y="1172">or carrying the wrong amino acid?</text>
+    <path class="flow" d="M552 1154H622"/><rect class="outcome" x="630" y="1128" width="238" height="52" rx="6"/>
+    <text class="label" x="649" y="1161">WRONG_AA</text><path class="flow" d="M290 1190V1219"/>
+  </g>
+  <g>
+    <rect class="rule" x="32" y="1228" width="520" height="72" rx="6"/>
+    <text x="49" y="1255" class="num">10</text><text x="81" y="1255">Any extra AA change within the window</text>
+    <text x="81" y="1282">around an expected mutation?</text>
+    <path class="flow" d="M552 1264H622"/><rect class="outcome" x="630" y="1238" width="238" height="52" rx="6"/>
+    <text class="label" x="649" y="1271">AMBIGUOUS</text><path class="flow" d="M290 1300V1329"/>
+  </g>
+  <g>
+    <rect class="rule" x="32" y="1338" width="520" height="72" rx="6"/>
+    <text x="49" y="1365" class="num">11</text><text x="81" y="1365">Any other extra AA change?</text>
+    <text x="81" y="1392" class="small">Reached only if no near-window extra matched.</text>
+    <path class="flow" d="M552 1374H622"/><rect class="outcome" x="630" y="1348" width="238" height="52" rx="6"/>
+    <text class="label" x="649" y="1381">WRONG_AA</text><path class="flow" d="M290 1410V1441"/>
+  </g>
+  <rect x="32" y="1450" width="520" height="60" rx="6" fill="#ecfdf5" stroke="#047857" stroke-width="1.5"/>
+  <text class="label" x="54" y="1488">PASS: observed substitutions match the design</text>
+  <text x="32" y="1549" class="small">Downward arrows mean no verdict yet, not a passed well.</text>
+  <text x="32" y="1577" class="small">Unconfigured or unavailable checks can be skipped; inspect the well notes.</text>
+  <text x="32" y="1605" class="small">Threshold values come from the run. AMBIGUOUS is not an unconditional PASS.</text>
+</svg>
