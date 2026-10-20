@@ -49,7 +49,7 @@ status: approved
 ### 문서
 - CHANGELOG.md (v0.10.3.0 + v0.11.0.0)
 - docs/inputs/barcodes.md (xlsx 스키마)
-- docs/mame/mame-pipeline.md (Aporva 흐름 다이어그램)
+- docs/mame 의 파이프라인 장 (Aporva 흐름 다이어그램. 이 장은 2026-10 설명서 정리에서 없어졌고 남은 내용은 docs/mame/02-review.md 로 옮겨졌다)
 - $OBSIDIAN_VAULT 분석 노트 끝에 통합 완료 섹션
 
 ## 출력 구조

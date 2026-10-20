@@ -312,11 +312,6 @@
       "reason": "One of the docs page names listed in a changelog sentence that states the docs/en/ and docs/ko/ prefix separately."
     },
     {
-      "path": "faq.md",
-      "category": "prose",
-      "reason": "One of the docs page names listed in a changelog sentence; the tracked pages are docs/en/faq.md and docs/ko/faq.md, and no docs/faq.md exists for the bare form to resolve against."
-    },
-    {
       "path": "troubleshooting.md",
       "category": "prose",
       "reason": "One of the docs page names listed in a changelog sentence that states the docs/en/ and docs/ko/ prefix separately."
