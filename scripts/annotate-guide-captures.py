@@ -40,19 +40,51 @@ def encode(png: Path, max_w: int, quality: int) -> tuple[str, int, int]:
     return base64.b64encode(buf.getvalue()).decode(), im.width, im.height
 
 
+STROKE = 4
+
+
+def boxes(regions: list[dict], w: int, h: int) -> list[tuple[float, float, float, float]]:
+    """Pixel rectangles to draw, as (x, y, width, height).
+
+    Each mark gets PAD of room around its element, except toward a neighbouring
+    mark: there it takes at most half the gap, so the strokes of controls on
+    adjacent rows (36 px apart in the parameter panel) do not run into one box.
+    """
+    tight = [(x * w, y * h, (x + rw) * w, (y + rh) * h) for x, y, rw, rh in (r["bbox"] for r in regions)]
+
+    def half_gap_room(gap: float) -> float:
+        return gap / 2 - STROKE / 2 - 1
+
+    out = []
+    for i, (l, t, r, b) in enumerate(tight):
+        pads = [PAD * w, PAD * h, PAD * w, PAD * h]  # left, top, right, bottom
+        for j, (ol, ot, or_, ob) in enumerate(tight):
+            if i == j:
+                continue
+            if ol < r and l < or_:  # same column
+                if ot >= b:
+                    pads[3] = min(pads[3], half_gap_room(ot - b))
+                elif ob <= t:
+                    pads[1] = min(pads[1], half_gap_room(t - ob))
+            if ot < b and t < ob:  # same row
+                if ol >= r:
+                    pads[2] = min(pads[2], half_gap_room(ol - r))
+                elif or_ <= l:
+                    pads[0] = min(pads[0], half_gap_room(l - or_))
+        out.append((l - pads[0], t - pads[1], r - l + pads[0] + pads[2], b - t + pads[1] + pads[3]))
+    return out
+
+
 def figure(png: Path, regions: list[dict], alt: str, max_w: int, quality: int) -> str:
     b64, w, h = encode(png, max_w, quality)
     out = [
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" role="img" aria-label="{html.escape(alt)}">',
         f'<image href="data:image/jpeg;base64,{b64}" x="0" y="0" width="{w}" height="{h}"/>',
     ]
-    for region in regions:
-        x, y, rw, rh = region["bbox"]
-        px, py = (x - PAD) * w, (y - PAD) * h
-        pw, ph = (rw + 2 * PAD) * w, (rh + 2 * PAD) * h
+    for region, (px, py, pw, ph) in zip(regions, boxes(regions, w, h)):
         out.append(
             f'<rect x="{px:.0f}" y="{py:.0f}" width="{pw:.0f}" height="{ph:.0f}" rx="8" '
-            f'fill="none" stroke="{RED}" stroke-width="4"/>'
+            f'fill="none" stroke="{RED}" stroke-width="{STROKE}"/>'
         )
         label = html.escape(str(region.get("label", "")))
         if label:

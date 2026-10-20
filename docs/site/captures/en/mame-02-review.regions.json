@@ -1,7 +1,7 @@
 [
   {
     "label": "1",
-    "ref": "MinKNOW run folder",
+    "ref": "**MinKNOW run folder**",
     "role_or_testid": "textbox[raw_run]",
     "bbox": [
       0.15347222222222223,
@@ -12,7 +12,7 @@
   },
   {
     "label": "2",
-    "ref": "Expected variants (xlsx)",
+    "ref": "**Expected variants (xlsx)**",
     "role_or_testid": "textbox[kuroXlsx]",
     "bbox": [
       0.15347222222222223,

@@ -1,0 +1,13 @@
+[
+  {
+    "label": "5",
+    "ref": "`Pre-flight check (warnings)`",
+    "role_or_testid": "text=Pre-flight check (warnings)",
+    "bbox": [
+      0.34444444444444444,
+      0.38222222222222224,
+      0.3111111111111111,
+      0.23555555555555555
+    ]
+  }
+]

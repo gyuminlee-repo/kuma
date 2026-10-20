@@ -1,7 +1,7 @@
 [
   {
     "label": "3",
-    "ref": "Reference construct",
+    "ref": "**Reference construct**",
     "role_or_testid": "textbox[referenceFasta]",
     "bbox": [
       0.15347222222222223,

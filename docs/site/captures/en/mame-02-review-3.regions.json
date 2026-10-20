@@ -1,7 +1,7 @@
 [
   {
     "label": "4",
-    "ref": "Wells used",
+    "ref": "**Wells used**",
     "role_or_testid": "section-well-selection",
     "bbox": [
       0.14166666666666666,
@@ -15,9 +15,9 @@
     "ref": "Run",
     "role_or_testid": "role=button[runBtn]",
     "bbox": [
-      0.7295247395833333,
+      0.7286024305555555,
       0.8294444444444444,
-      0.031586371527777775,
+      0.03250868055555556,
       0.03111111111111111
     ]
   }

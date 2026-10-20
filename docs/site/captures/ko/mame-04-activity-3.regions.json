@@ -1,24 +1,24 @@
 [
   {
-    "label": "7",
-    "ref": "`xlsx 파일 추가` (4.2 라운드별 EVOLVEpro 결과)",
-    "role_or_testid": "role=button hasText[addFiles]",
+    "label": "5",
+    "ref": "**출력 EVOLVEpro xlsx**",
+    "role_or_testid": "section-bep-output",
     "bbox": [
-      0.29815538194444446,
-      0.45555555555555555,
-      0.07992621527777778,
-      0.03111111111111111
+      0.14166666666666666,
+      0.4675,
+      0.5,
+      0.06666666666666667
     ]
   },
   {
-    "label": "8",
-    "ref": "**분류 실행** (4.2)",
-    "role_or_testid": "role=button hasText[classify]",
+    "label": "6",
+    "ref": "**EVOLVEpro 입력 형식으로 변환**",
+    "role_or_testid": "role=button[build]",
     "bbox": [
-      0.40030381944444443,
-      0.45555555555555555,
-      0.06213107638888889,
-      0.03111111111111111
+      0.14166666666666666,
+      0.6608333333333334,
+      0.5,
+      0.04
     ]
   }
 ]

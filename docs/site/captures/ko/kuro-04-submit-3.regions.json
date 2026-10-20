@@ -1,0 +1,13 @@
+[
+  {
+    "label": "3",
+    "ref": "`현재 입력 요약` (Pipeline (failover))",
+    "role_or_testid": "testid=design-summary-card",
+    "bbox": [
+      0.14166666666666666,
+      0.5559201388888889,
+      0.5,
+      0.18444444444444444
+    ]
+  }
+]

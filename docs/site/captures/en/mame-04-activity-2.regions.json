@@ -1,35 +1,24 @@
 [
   {
+    "label": "3",
+    "ref": "**Additional measurement format**",
+    "role_or_testid": "role=radiogroup[confirmationSourceLabel]",
+    "bbox": [
+      0.14166666666666666,
+      0.4675,
+      0.5,
+      0.03111111111111111
+    ]
+  },
+  {
     "label": "4",
     "ref": "**NGS verdict xlsx**",
     "role_or_testid": "textbox[verdictXlsx]",
     "bbox": [
       0.14166666666666666,
-      0.4675,
+      0.6852777777777778,
       0.475,
       0.035555555555555556
-    ]
-  },
-  {
-    "label": "5",
-    "ref": "**Output EVOLVEpro xlsx**",
-    "role_or_testid": "section-bep-output",
-    "bbox": [
-      0.14166666666666666,
-      0.5786111111111111,
-      0.5,
-      0.06666666666666667
-    ]
-  },
-  {
-    "label": "6",
-    "ref": "**Convert to EVOLVEpro input format**",
-    "role_or_testid": "role=button[build]",
-    "bbox": [
-      0.14166666666666666,
-      0.7719444444444444,
-      0.5,
-      0.04
     ]
   }
 ]
