@@ -53,6 +53,8 @@ def boxes(regions: list[dict], w: int, h: int) -> list[tuple[float, float, float
     tight = [(x * w, y * h, (x + rw) * w, (y + rh) * h) for x, y, rw, rh in (r["bbox"] for r in regions)]
 
     def half_gap_room(gap: float) -> float:
+        # Negative when two marks sit closer than a stroke apart: the box then
+        # moves inside its element, which keeps the two strokes from touching.
         return gap / 2 - STROKE / 2 - 1
 
     out = []
