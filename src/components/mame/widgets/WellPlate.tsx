@@ -3,10 +3,10 @@ import { cn } from "@/lib/utils";
 import { VERDICT_FILL, DETECTED_VERDICTS } from "@/lib/mame/verdictColors";
 import { nbLabel } from "@/lib/mame/nbLabel";
 import { collapseWells } from "@/lib/mame/plateWells";
+import type { WellEntry, VerdictClass } from "@/types/mame/models";
 
 /** More copies than this collapse into a count: segments would be unreadable in a 38px cell. */
 const MAX_STRIP_COPIES = 4;
-import type { WellEntry, VerdictClass } from "@/types/mame/models";
 
 const ROWS = ["A", "B", "C", "D", "E", "F", "G", "H"] as const;
 const COLS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
@@ -131,6 +131,7 @@ export function WellPlate({
               const isDimmed = well ? (dimmedOf?.(well) ?? false) : false;
               const wellCopies = copies?.get(id) ?? [];
               const hasCopies = wellCopies.length > 1;
+              const overStrip = wellCopies.length > MAX_STRIP_COPIES;
               const copyLabels = wellCopies.map(
                 (c) =>
                   `${c.native_barcode ? nbLabel(c.native_barcode) : "?"} ${c.verdict}${c.selected ? ` (${t("wellPlate.copySelected")})` : ""}`,
@@ -178,7 +179,7 @@ export function WellPlate({
                       </span>
                     )}
                     {/* Badge row at bottom (flex, no absolute positioning) */}
-                    {(well?.selected || isFallback || plate) && (
+                    {(well?.selected || isFallback || plate || (hasCopies && overStrip)) && (
                       <div className="flex h-[1.4em] w-full items-center justify-between gap-0.5 px-0.5">
                         <div className="flex items-center gap-0.5">
                           {well?.selected && (
@@ -211,6 +212,14 @@ export function WellPlate({
                               </svg>
                             </span>
                           )}
+                          {hasCopies && overStrip && (
+                            <span
+                              data-testid="copy-count"
+                              className="shrink-0 rounded-full bg-card/90 px-0.5 text-[0.9em] font-bold leading-none text-foreground"
+                            >
+                              {t("wellPlate.copyCount", { count: wellCopies.length })}
+                            </span>
+                          )}
                         </div>
                         {plate && (
                           <span
@@ -231,36 +240,28 @@ export function WellPlate({
                         )}
                       </div>
                     )}
-                    {hasCopies &&
-                      (wellCopies.length > MAX_STRIP_COPIES ? (
-                        <span
-                          data-testid="copy-count"
-                          className="absolute bottom-0 right-0 rounded-tl bg-card/90 px-0.5 text-[0.9em] font-bold leading-none text-foreground"
-                        >
-                          {t("wellPlate.copyCount", { count: wellCopies.length })}
-                        </span>
-                      ) : (
-                        <span
-                          data-testid="copy-strip"
-                          className="absolute inset-x-0 bottom-0 flex h-[6px] items-end gap-px bg-card/90 px-px py-px"
-                          aria-hidden="true"
-                        >
-                          {wellCopies.map((c) => (
-                            <span
-                              key={`${c.native_barcode}|${c.barcode}`}
-                              data-testid="copy-segment"
-                              data-plate={c.native_barcode}
-                              data-verdict={c.verdict}
-                              data-selected={c.selected ? "true" : "false"}
-                              className={cn(
-                                "min-w-0 flex-1 rounded-[1px]",
-                                c.selected ? "h-full outline outline-1 outline-foreground" : "h-1/2",
-                              )}
-                              style={{ backgroundColor: verdictFill[c.verdict].bg }}
-                            />
-                          ))}
-                        </span>
-                      ))}
+                    {hasCopies && !overStrip && (
+                      <span
+                        data-testid="copy-strip"
+                        className="flex h-[5px] w-full shrink-0 items-end gap-px bg-card/90 px-px"
+                        aria-hidden="true"
+                      >
+                        {wellCopies.map((c) => (
+                          <span
+                            key={`${c.native_barcode}|${c.barcode}`}
+                            data-testid="copy-segment"
+                            data-plate={c.native_barcode}
+                            data-verdict={c.verdict}
+                            data-selected={c.selected ? "true" : "false"}
+                            className={cn(
+                              "min-w-0 flex-1 rounded-[1px]",
+                              c.selected ? "h-full ring-1 ring-inset ring-foreground" : "h-2/3",
+                            )}
+                            style={{ backgroundColor: verdictFill[c.verdict].bg }}
+                          />
+                        ))}
+                      </span>
+                    )}
                   </button>
                 </div>
               );

@@ -90,6 +90,9 @@ describe("WellPlate copy strip", () => {
     expect([...segs].map((s) => s.dataset.selected)).toEqual(["false", "true", "false"]);
     expect(segs[0]).toHaveStyle({ backgroundColor: VERDICT_FILL.WRONG_AA.bg });
     expect(segs[1]).toHaveStyle({ backgroundColor: VERDICT_FILL.PASS.bg });
+    // The strip sits in normal flow as the last child, so it cannot cover the badge row.
+    const strip = cell("A1").querySelector('[data-testid="copy-strip"]');
+    expect(strip?.parentElement?.lastElementChild).toBe(strip);
   });
 
   it("lists every copy in the accessible label and the tooltip", () => {
@@ -114,6 +117,9 @@ describe("WellPlate copy strip", () => {
     );
     render(<WellPlate wells={wells} copies={copiesByWell(wells)} />);
     expect(cell("A1").querySelector('[data-testid="copy-segment"]')).toBeNull();
-    expect(cell("A1").querySelector('[data-testid="copy-count"]')?.textContent).toBe("×5");
+    const count = cell("A1").querySelector('[data-testid="copy-count"]');
+    expect(count?.textContent).toBe("×5");
+    // The count lives inside the badge row (a child of a wrapper), not directly on the cell.
+    expect(count?.closest("button")).not.toBe(count?.parentElement);
   });
 });
