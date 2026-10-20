@@ -8,6 +8,8 @@ The *Methylorubrum extorquens* AM1 codon table no longer ships as a seed file in
 
 The user guide and the in-app help were reviewed page by page. Captions name each control the way the screen does, read from the locale files instead of typed by hand. MAME step 2 lists the eleven checks that decide a well verdict in the order they run, and takes in the run folder inventory, advanced options, run stages and output files from the former pipeline chapter. A new FAQ page answers the questions the step pages kept deferring. The guide now shows the dialogs, the expanded advanced options, KURO step 4 in both Top-N and Pipeline mode, and the 3D panel with its reference structure drawn.
 
+The MAME step 2.2 plate map shows every plate copy of a well. The final composition stays at full size, and each well cell carries a thin strip with one segment per plate copy in verdict colours, the picked copy raised and outlined. More than four copies collapse into a count badge. Tabs above the map switch between the final composition and each plate when a run has more than one, and clicking a well on a plate tab opens that copy in the well inspector.
+
 ### Highlights
 
 - KURO matches UniProt entries on a sequence alignment, so a construct with one extra residue is still matched automatically.
