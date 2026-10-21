@@ -1,4 +1,5 @@
 /** Project-scoped persisted state for the Step 3 EVOLVEpro input builder. */
+import { isResequenceEvidence, type ResequenceEvidence } from "@/types/mame/resequence";
 
 export const BUILD_EVOLVEPRO_STORAGE_KEY = "kuma:mame:buildEvolvepro";
 const STORAGE_VERSION = 2;
@@ -28,6 +29,7 @@ export interface BuildEvolveproFormState {
    */
   expectedXlsx: string;
   verdictXlsx: string;
+  resequenceEvidence?: ResequenceEvidence | null;
   verdictEvidenceSignature: string;
   outputXlsx: string;
   /**
@@ -54,6 +56,7 @@ export const BUILD_EVOLVEPRO_DEFAULT_STATE: BuildEvolveproFormState = {
   remeasureWellXlsx: "",
   expectedXlsx: "",
   verdictXlsx: "",
+  resequenceEvidence: null,
   verdictEvidenceSignature: "",
   outputXlsx: "",
   outputXlsxRoundId: "",
@@ -192,6 +195,11 @@ function readState(
     remeasureWellXlsx: fromPortablePath(stringValue(payload, "remeasureWellXlsx"), projectPath),
     expectedXlsx: fromPortablePath(stringValue(payload, "expectedXlsx"), projectPath),
     verdictXlsx: fromPortablePath(stringValue(payload, "verdictXlsx"), projectPath),
+    resequenceEvidence: isResequenceEvidence(payload.resequenceEvidence) ? {
+      ...payload.resequenceEvidence,
+      original_verdict_xlsx: fromPortablePath(payload.resequenceEvidence.original_verdict_xlsx, projectPath),
+      verdict_xlsx: fromPortablePath(payload.resequenceEvidence.verdict_xlsx, projectPath),
+    } : null,
     verdictEvidenceSignature: stringValue(payload, "verdictEvidenceSignature"),
     outputXlsx: fromPortablePath(stringValue(payload, "outputXlsx"), projectPath),
     // Absent on records saved before per-round output paths existed, and empty
@@ -235,6 +243,13 @@ export function saveBuildEvolveproToStorage(state: BuildEvolveproFormState, proj
   if (!projectPath) return;
   try {
     const portable = { ...state } as Record<string, unknown>;
+    if (state.resequenceEvidence) {
+      portable.resequenceEvidence = {
+        ...state.resequenceEvidence,
+        original_verdict_xlsx: toPortablePath(state.resequenceEvidence.original_verdict_xlsx, projectPath),
+        verdict_xlsx: toPortablePath(state.resequenceEvidence.verdict_xlsx, projectPath),
+      };
+    }
     for (const key of CURRENT_PATH_KEYS) {
       portable[key] = toPortablePath(state[key], projectPath);
     }

@@ -37,7 +37,7 @@ import { VerdictTable } from "@/components/mame/widgets/VerdictTable";
 import { PlateView } from "@/components/mame/widgets/PlateView";
 import { RunHealthPanel } from "@/components/mame/widgets/RunHealthPanel";
 import { RunQcSection } from "@/components/mame/widgets/RunQcSection";
-import { AdditionalSequencingPanel } from "@/components/mame/widgets/AdditionalSequencingPanel";
+import { ManualConfirmationStepView, ResequenceStepView } from "./ResequenceStepView";
 import { PlateClusterAlert } from "@/components/mame/widgets/PlateClusterAlert";
 import { MappingIntegrityAlert } from "@/components/mame/widgets/MappingIntegrityAlert";
 import { RunQualityNotice } from "@/components/mame/widgets/RunQualityNotice";
@@ -63,6 +63,9 @@ import { StepRedirectFallback } from "./StepRedirectFallback";
 import type { RunHealthData } from "@/types/mame/models";
 
 interface AnalyzeStepViewProps {
+  independent?: boolean;
+  onNextRequest?: () => void;
+  onPrevRequest?: () => void;
   /** RunHealthPanel에 전달할 health 데이터. null이면 health sub-step에서 패널 숨김. */
   runHealth?: RunHealthData | null;
   /** Pre-flight-wrapped Run trigger from MameAppLayout. */
@@ -71,7 +74,7 @@ interface AnalyzeStepViewProps {
   onClearRequest?: () => void;
 }
 
-const ANALYZE_TOTAL = 2;
+const ANALYZE_TOTAL = 4;
 const STEP_CONFIG = {
   "analyze.inputs": {
     index: 1,
@@ -89,7 +92,7 @@ const STEP_CONFIG = {
   },
 } as const;
 
-export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest }: AnalyzeStepViewProps = {}) {
+export function AnalyzeStepView({ independent = false, runHealth = null, onRunRequest, onClearRequest, onNextRequest, onPrevRequest }: AnalyzeStepViewProps = {}) {
   const { t } = useTranslation();
   const subStep = useMameAppStore((s) => s.currentMameSubStep);
   const isAnalyzing = useMameAppStore((s) => s.isAnalyzing);
@@ -169,6 +172,8 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
   }, [analyzeDurationMs, hasResults]);
 
   // Legacy ids fall through StepRedirectFallback → analyze.inputs.
+  if (subStep === "analyze.resequence") return <ResequenceStepView onRunRequest={onRunRequest} />;
+  if (subStep === "analyze.confirm") return <ManualConfirmationStepView />;
   if (
     subStep !== "analyze.inputs" &&
     subStep !== "analyze.review"
@@ -204,7 +209,7 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
     }
   } else {
     // 마지막 sub-step에서도 Next를 허용 (다음 phase로 이동)
-    wizardOnNext = goToNextStep;
+    wizardOnNext = independent ? onNextRequest : goToNextStep;
   }
 
   // 메인 콘텐츠 영역
@@ -214,7 +219,7 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
       mainContent = (
         <div className="flex flex-col gap-3">
           {/* 복원 후 되찾지 못한 외부 입력. 해소될 때까지 남는다. */}
-          <MissingInputsBanner />
+          {!independent && <MissingInputsBanner />}
           {/* Progress 및 상태 */}
           <div className="space-y-1 px-1">
             {(() => {
@@ -481,9 +486,6 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
               </DataPanel>
             </div>
           </div>
-          {/* 2.3: the operator's own confirmation of a plate copy, after the review
-              it follows from. Renders nothing before a run has replicates. */}
-          <AdditionalSequencingPanel />
           {/* Last on the screen and closed by default. Everything in it is
               measurement the run already made and nothing was reading; none of
               it outranks the table and the plate above, so it waits to be
@@ -505,14 +507,14 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
       onClose={() => setDurationPopupMs(null)}
     />
     <WizardContainer
-      stepIndex={config.index}
+      stepIndex={independent ? 3 : config.index}
       stepTotal={ANALYZE_TOTAL}
-      stepLabel={config.label}
-      progressLabel={config.progressLabel}
-      titleKey={config.titleKey}
-      descriptionKey={config.descriptionKey}
+      stepLabel={independent ? "2.3" : config.label}
+      progressLabel={independent ? `2.3 / ${ANALYZE_TOTAL}` : config.progressLabel}
+      titleKey={independent ? "mame.resequence.title" : config.titleKey}
+      descriptionKey={independent ? undefined : config.descriptionKey}
       maxWidth={subStep === "analyze.review" ? "full" : "3xl"}
-      onPrev={goToPrevStep}
+      onPrev={independent ? onPrevRequest : goToPrevStep}
       onNext={wizardOnNext}
       isValid={wizardIsValid}
       nextLabelKey={

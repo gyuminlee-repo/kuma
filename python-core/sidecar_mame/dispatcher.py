@@ -19,6 +19,7 @@ from sidecar_mame.core import (
 )
 
 from sidecar_mame.core import reset_state as reset_core_state
+from sidecar_mame.run_scope import call_in_run_scope
 from sidecar_mame.handlers.analyze import (
     handle_analyze,
     handle_validate_inputs,
@@ -164,7 +165,7 @@ def _dispatch_handler(
 ) -> None:
     """Run a handler and emit its JSON-RPC response (sync or threaded)."""
     try:
-        result = handler(params)
+        result = call_in_run_scope(method, handler, params)
         _ok(req_id, result)
     except ExportBlockedError as exc:
         # ExportBlockedError is a RuntimeError subclass — must be caught before

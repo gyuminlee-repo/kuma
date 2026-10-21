@@ -4,6 +4,7 @@ import { exists, readTextFile } from "@tauri-apps/plugin-fs";
 import i18next from "i18next";
 import type { StateCreator } from "zustand";
 import { sendRequest } from "@/lib/ipc-mame";
+import { sendRunRequest } from "@/lib/mame/runRequests";
 import { toRpcParams } from "@/lib/mame/janusSettings";
 import { updateMameResultSelection } from "@/lib/mame/resultSnapshot";
 import { overridesFromReplicates } from "@/lib/mame/selectionOverrides";
@@ -58,13 +59,18 @@ async function sendOverrides(
     selectionOverrideResultFileError: null,
   });
   try {
-    const result = await sendRequest<ApplySelectionOverridesResult>(
+    const result = await sendRunRequest<ApplySelectionOverridesResult>(
+      get(),
       "apply_selection_overrides",
       { overrides, janus_settings: toRpcParams(get().janusSettings) },
     );
     if (get().verdicts !== verdicts) return;
+    const analyzeResult = get().analyzeResult;
     set({
       replicates: result.replicates,
+      ...(analyzeResult ? {
+        analyzeResult: { ...analyzeResult, replicates: result.replicates, janus_autosave: result.picks_autosave ?? undefined },
+      } : {}),
       selectionOverrideNotice: result.dropped.length > 0 ? result.dropped : null,
       selectionOverrideWorkbookError:
         result.workbook_autosave?.status === "failed"
@@ -79,6 +85,7 @@ async function sendOverrides(
         get().projectPath,
         result.replicates,
         result.picks_autosave,
+        get().runScope,
       );
     } catch (error) {
       if (get().verdicts === verdicts) {
@@ -180,6 +187,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   // inputs was the 2026-08-06 incident this consolidation closes.
   clearResults: () =>
     set({
+      analyzeResult: null,
       verdicts: [],
       replicates: [],
       summary: null,
@@ -252,7 +260,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   loadPlateData: async () => {
     const verdicts = get().verdicts;
     try {
-      const result = await sendRequest<PlateDataResult>("get_plate_data", {});
+      const result = await sendRunRequest<PlateDataResult>(get(), "get_plate_data", {});
       if (get().verdicts !== verdicts) return;
       const firstWell = result.wells.find((well) => well.selected) ?? result.wells[0] ?? null;
       set({ wells: result.wells, selectedWell: firstWell });
@@ -287,7 +295,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   loadRunHealth: async () => {
     const verdicts = get().verdicts;
     try {
-      const result = await sendRequest<RunHealthData>("get_run_health", {});
+      const result = await sendRunRequest<RunHealthData>(get(), "get_run_health", {});
       if (get().verdicts !== verdicts) return;
       set({ runHealth: result });
     } catch (error) {

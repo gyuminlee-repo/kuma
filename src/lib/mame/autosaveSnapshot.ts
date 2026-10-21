@@ -55,6 +55,9 @@ export type MameSnapshotState = Pick<
   | "layoutProvenance"
   | "selectedNativeBarcodes"
   | "detectedBarcodeCount"
+  | "analyzeResult"
+  | "resequenceSnapshot"
+  | "runScope"
 >;
 
 export interface MameRoundSnapshotState {
@@ -64,6 +67,9 @@ export interface MameRoundSnapshotState {
 
 export interface MameAutosaveSnapshot extends AutosaveSnapshot {
   schema: typeof MAME_SCHEMA;
+  run_result?: AppState["analyzeResult"];
+  run_scope?: AppState["runScope"];
+  resequence?: MameAutosaveSnapshot | null;
   /**
    * Revision of what an analyze run produces, carried because this snapshot also
    * restores results when the sibling result file is missing. Absent before
@@ -213,6 +219,9 @@ export function buildMameSnapshot(
     saved_at: new Date().toISOString(),
     kuma_version: __APP_VERSION__,
     result_contract: RESULT_CONTRACT,
+    run_result: state.analyzeResult,
+    run_scope: state.runScope,
+    resequence: state.resequenceSnapshot,
     input_identity: mameInputIdentity(state, projectPath),
     rounds: roundState?.rounds ?? [],
     active_round_id: roundState?.activeRoundId ?? null,

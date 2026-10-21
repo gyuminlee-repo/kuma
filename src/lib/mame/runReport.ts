@@ -5,7 +5,7 @@
  * path based on the active project folder.
  */
 
-import { sendRequest } from "@/lib/ipc-mame";
+import { sendRunRequest } from "@/lib/mame/runRequests";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type { RunReportFormat, RunReportResult } from "@/types/mame/models";
 
@@ -42,15 +42,16 @@ export async function handleExportRunReport(
   outputPath: string,
   format: RunReportFormat = "html",
   projectName?: string,
+  store = useMameAppStore,
 ): Promise<RunReportResult> {
-  useMameAppStore.setState({ isExporting: true });
+  store.setState({ isExporting: true });
   try {
-    return await sendRequest<RunReportResult>("export_run_report", {
+    return await sendRunRequest<RunReportResult>(store.getState(), "export_run_report", {
       output: outputPath,
       format,
       project_name: projectName ?? null,
     });
   } finally {
-    useMameAppStore.setState({ isExporting: false });
+    store.setState({ isExporting: false });
   }
 }

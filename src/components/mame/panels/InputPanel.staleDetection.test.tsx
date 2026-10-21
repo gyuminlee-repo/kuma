@@ -25,6 +25,7 @@ vi.mock("sonner", () => ({ toast: { info: vi.fn(), success: vi.fn(), error: vi.f
 
 const state: Record<string, unknown> = {};
 vi.mock("@/store/mame/mameAppStore", () => ({
+  useMameStoreApi: () => ({ getState: () => state }),
   useMameAppStore: Object.assign(
     (selector: (s: Record<string, unknown>) => unknown) => selector(state),
     { getState: () => state },

@@ -184,6 +184,27 @@
     }
   },
   "mame": {
+    "resequence": {
+      "relationship": "Origem da medição de atividade",
+      "measuredClone": "Atividade medida do clone ressequenciado",
+      "measuredConfirm": "Confirmo que este poço mede o clone ressequenciado selecionado, não o clone original.",
+      "activityWell": "Poço final de atividade",
+      "title": "Ressequenciamento Nanopore",
+      "description": "Entradas independentes, análise de n réplicas e seleção automática. Os resultados originais são preservados; a transferência é separada.",
+      "manualTitle": "Confirmação manual",
+      "manualDescription": "Revisão manual opcional de uma cópia da placa. Não executa análise de sequenciamento.",
+      "primary": "Análise original",
+      "busy": "Outra análise está em andamento. Conclua ou cancele primeiro.",
+      "evidenceTitle": "Evidência de ressequenciamento",
+      "evidenceDescription": "Selecione a origem física de cada poço vinculado. Para o mesmo clone, a atividade original é mantida. Um clone ressequenciado medido usa o poço explicitamente atribuído. Atividades de clones diferentes não são agrupadas.",
+      "originalClone": "Clone da atividade original",
+      "repeatedClone": "Clone ressequenciado (PASS automático)",
+      "sameClone": "Confirmo que é o mesmo clone físico e que a atividade pertence à origem original indicada.",
+      "linkEvidence": "Vincular evidência",
+      "removeLink": "Remover vínculo",
+      "incompatible": "As identidades dos mutantes diferem. O vínculo não pode ser usado.",
+      "staleMapping": "Os arquivos não correspondem às análises selecionadas. Remova e recrie o vínculo."
+    },
     "plateOrder": {
       "title": "Plate order disagreement in {{filename}}",
       "bodyBlocked": "The primer plate on sheet {{sheet}} and the order of expected_mutations do not match, so the same workbook describes two different plates and nothing in it records which one was pipetted. The run is blocked until that is settled.",
@@ -1546,7 +1567,7 @@
       "subset": "Esta pasta de run tem {{detected}} native barcodes e {{replicates}} deles foram avaliados como replicates. Os demais não estão nestes resultados."
     },
     "manualConfirm": {
-      "title": "2.3 Sequenciamento adicional: confirmar uma cópia da placa",
+      "title": "2.4 Confirmação manual",
       "description": "Use depois de ressequenciar um poço ou verificá-lo de outra forma. Escolha qual cópia de placa existente usar e registre como a confirmou. A escolha substitui a seleção automática no mapa da placa, na planilha de resultados e na lista de seleção; o veredicto original é mantido.",
       "needsTitle": "Poços sem cópia selecionada utilizável: {{count}}",
       "needsEmpty": "Todos os poços têm uma cópia selecionada utilizável.",

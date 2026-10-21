@@ -1,4 +1,5 @@
 /** TypeScript mirror of the unified MAME Step 3 RPC contract. */
+import type { ResequenceEvidence } from "./resequence";
 
 /** Exactly one primary source is required; verdict_xlsx and output_xlsx are required. */
 export interface BuildEvolveproInputParams {
@@ -35,6 +36,7 @@ export interface BuildEvolveproInputParams {
   remeasure_well_xlsx?: string | null
   /** Mandatory strict NGS evidence workbook. */
   verdict_xlsx: string
+  resequence_evidence?: ResequenceEvidence | null
   /** Mapping metadata required by well-labeled inputs. */
   layout_xlsx?: string | null
   /**

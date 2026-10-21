@@ -9,7 +9,7 @@
  */
 
 import { useTranslation } from "react-i18next";
-import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { MameRunStoreContext, resequenceStore, useMameAppStore } from "@/store/mame/mameAppStore";
 import type { MameSubStepId } from "@/store/mame/slices/mameSubSteps";
 import { VerdictDetailInspector } from "@/components/mame/inspectors/VerdictDetailInspector";
 
@@ -233,6 +233,8 @@ function QcReviewInspector() {
 
 /** 화면별 Inspector 디스패처 */
 const INSPECTOR_MAP: Record<MameSubStepId, React.ComponentType> = {
+  "analyze.resequence": () => <MameRunStoreContext.Provider value={resequenceStore}><QcReviewInspector /></MameRunStoreContext.Provider>,
+  "analyze.confirm": QcReviewInspector,
   "setup.files": SetupFilesInspector,
   "setup.design": SetupDesignInspector,
   "analyze.inputs": QcInputsInspector,
@@ -248,9 +250,13 @@ const INSPECTOR_MAP: Record<MameSubStepId, React.ComponentType> = {
 
 export function MameInspectorContent() {
   const currentSubStep = useMameAppStore((s) => s.currentMameSubStep);
+  const janusRunScope = useMameAppStore((s) => s.janusRunScope);
   const InspectorComponent = INSPECTOR_MAP[currentSubStep];
 
   if (!InspectorComponent) return null;
+  if (currentSubStep === "janus.settings" && janusRunScope === "resequence") {
+    return <MameRunStoreContext.Provider value={resequenceStore}><InspectorComponent /></MameRunStoreContext.Provider>;
+  }
   return <InspectorComponent />;
 }
 
@@ -260,6 +266,8 @@ export function useMameInspectorMeta(): { title: string; subtitle: string } {
   const currentSubStep = useMameAppStore((s) => s.currentMameSubStep);
 
   const META: Record<MameSubStepId, { titleKey: string; subtitleKey: string }> = {
+    "analyze.resequence": { titleKey: "mame.resequence.title", subtitleKey: "mame.resequence.description" },
+    "analyze.confirm": { titleKey: "mame.resequence.manualTitle", subtitleKey: "mame.resequence.manualDescription" },
     "setup.files": {
       titleKey: "mame.setup.files.inspectorTitle",
       subtitleKey: "mame.setup.files.inspectorSubtitle",

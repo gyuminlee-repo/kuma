@@ -19,7 +19,7 @@ vi.mock("@/lib/ipc-kuro", () => ({
 }));
 
 import { useMameSidecar } from "./useMameSidecar";
-import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { resequenceStore, useMameAppStore } from "@/store/mame/mameAppStore";
 
 function emit(p: ProgressNotification) {
   if (!captured) throw new Error("progress handler not registered");
@@ -29,6 +29,7 @@ function emit(p: ProgressNotification) {
 describe("useMameSidecar progress subscription", () => {
   beforeEach(() => {
     captured = null;
+    resequenceStore.setState({ isAnalyzing: false, analyzeProgress: 0 });
     useMameAppStore.setState({
       analyzePhase: null,
       analyzeStage: null,
@@ -81,5 +82,23 @@ describe("useMameSidecar progress subscription", () => {
 
     emit({ value: Number.POSITIVE_INFINITY, message: "Analyzing", stage: "analyze" });
     expect(useMameAppStore.getState().analyzeProgress).toBe(40);
+  });
+
+  it("routes independent progress only to the resequencing store", () => {
+    useMameAppStore.setState({ isAnalyzing: false, analyzeProgress: 100 });
+    resequenceStore.setState({ isAnalyzing: true });
+    renderHook(() => useMameSidecar());
+    emit({ value: 37, message: "repeat", stage: "demux" });
+    expect(resequenceStore.getState().analyzeProgress).toBe(37);
+    expect(useMameAppStore.getState().analyzeProgress).toBe(100);
+    expect(useMameAppStore.getState().isAnalyzing).toBe(false);
+  });
+
+  it("does not restart a cancelled run from a late progress event", () => {
+    useMameAppStore.setState({ isAnalyzing: false });
+    renderHook(() => useMameSidecar());
+    emit({ value: 25, message: "late" });
+    expect(useMameAppStore.getState().isAnalyzing).toBe(false);
+    expect(resequenceStore.getState().isAnalyzing).toBe(false);
   });
 });

@@ -70,7 +70,7 @@ import { save } from "@tauri-apps/plugin-dialog";
 import { AlertCircle, CheckCircle2, Download, FolderOpen, Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useKumaProject } from "@/state/projectContext";
-import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { useMameAppStore, useMameStoreApi } from "@/store/mame/mameAppStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -180,6 +180,9 @@ function previewCellValue(
 export function JanusMappingPanel() {
   const { t } = useTranslation();
   const project = useKumaProject();
+  const runStore = useMameStoreApi();
+  const runScope = useMameAppStore((s) => s.runScope);
+  const runOutputPath = useMameAppStore((s) => s.analyzeResult?.output_path);
 
   const storeIsExporting = useMameAppStore((s) => s.isExporting);
   const settings = useMameAppStore((s) => s.janusSettings);
@@ -202,7 +205,7 @@ export function JanusMappingPanel() {
     setPreviewLoading(true);
     setPreviewFailure(null);
     try {
-      const result = await fetchMameJanusPreview(next);
+      const result = await fetchMameJanusPreview(next, runStore);
       if (previewSeq.current !== seq) return;
       setPreview(result);
     } catch (err) {
@@ -212,7 +215,7 @@ export function JanusMappingPanel() {
     } finally {
       if (previewSeq.current === seq) setPreviewLoading(false);
     }
-  }, []);
+  }, [runStore]);
 
   // Debounced and run once on mount, then again on every settings change: a
   // text field would otherwise fire one request per keystroke. The panel has
@@ -258,6 +261,10 @@ export function JanusMappingPanel() {
 
   /** Always `.csv`: the instrument reads nothing else, so there is no extension to vary. */
   function deriveDefaultPath(): string {
+    if (runScope === "resequence") {
+      if (!runOutputPath) return "";
+      return runOutputPath.replace(/\.[^./\\]+$/, "") + "_janus.csv";
+    }
     if (!project) return "";
     return buildJanusDefaultPath(project.path, project.name, "csv");
   }
@@ -286,7 +293,7 @@ export function JanusMappingPanel() {
     try {
       // Format stated rather than defaulted: the sidecar still knows how to
       // write xlsx, and this call site is the reason it never will from here.
-      const result = await handleExportMameJanusMapping(target, "csv", settings);
+      const result = await handleExportMameJanusMapping(target, "csv", settings, runStore);
       setLastExportPath(result.output_path);
       setOutputPath(result.output_path);
       // Only writer of the instrument mapping now that analyze does not write

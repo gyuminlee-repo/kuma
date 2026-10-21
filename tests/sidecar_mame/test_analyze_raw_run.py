@@ -128,6 +128,37 @@ def _make_binary_snapgene_placeholder(tmp_path: Path) -> Path:
     return ref
 
 
+def test_existing_full_pipeline_selects_independent_replicates(tmp_path: Path) -> None:
+    from sidecar_mame.core import get_state, reset_state
+    from sidecar_mame.handlers.analyze import handle_analyze
+    from sidecar_mame.run_scope import call_in_run_scope
+
+    reset_state()
+    reference = _make_reference_fasta(tmp_path)
+    expected = tmp_path / "expected.xlsx"
+    _make_kuro_xlsx(expected)
+    original_input, repeat_input = tmp_path / "original_input", tmp_path / "repeat_input"
+    for folder, winner in ((original_input, "NB01"), (repeat_input, "NB02")):
+        for plate in ("NB01", "NB02"):
+            _write_fasta(folder / plate / "1_1.fasta", "1_1 depth=100", "ATGGCGTTT" if plate == winner else "ATGGGGTTT")
+    params = {
+        "input_dir": str(original_input), "reference": str(reference), "expected": str(expected),
+        "output": str(tmp_path / "primary.xlsx"), "cds_start": 0, "cds_end": 9,
+        "min_file_size_kb": 0, "ingest_mode": "barcode",
+    }
+    try:
+        first = call_in_run_scope("analyze", handle_analyze, params)
+        original_bytes = Path(first["output_path"]).read_bytes()
+        second = call_in_run_scope("analyze", handle_analyze, {**params, "input_dir": str(repeat_input), "run_scope": "resequence"})
+        assert first["replicates"][0]["selected_plate"] == "NB01"
+        assert second["replicates"][0]["selected_plate"] == "NB02"
+        assert Path(first["output_path"]).read_bytes() == original_bytes
+        assert Path(second["output_path"]).parent != Path(first["output_path"]).parent
+        assert get_state().last_output_path == first["output_path"]
+    finally:
+        reset_state()
+
+
 # ---------------------------------------------------------------------------
 # Raw-run fixtures — mirror test_combinatorial_demux.py
 # ---------------------------------------------------------------------------

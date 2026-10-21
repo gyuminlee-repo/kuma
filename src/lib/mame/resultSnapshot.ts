@@ -24,6 +24,7 @@ import type {
 } from "@/types/mame/models";
 import { RESULT_CONTRACT } from "@/lib/mame/resultContract";
 import { hasValidRunQuality } from "@/types/mame/runQualityValidator";
+import type { MameRunScope } from "@/lib/mame/runRequests";
 
 /** Result snapshot schema. Bumped independently of the input snapshot schema. */
 export const MAME_RESULT_SCHEMA = 1;
@@ -45,8 +46,8 @@ function joinPath(...segments: string[]): string {
 }
 
 /** `.autosave/mame-result.json` sibling of the input autosave snapshot. */
-export function mameResultPath(projectPath: string): string {
-  return joinPath(projectPath, ".autosave", RESULT_FILE_NAME);
+export function mameResultPath(projectPath: string, scope: MameRunScope = "primary"): string {
+  return joinPath(projectPath, ".autosave", scope === "resequence" ? "mame-resequence-result.json" : RESULT_FILE_NAME);
 }
 
 /**
@@ -55,6 +56,7 @@ export function mameResultPath(projectPath: string): string {
  */
 export interface MameResultSnapshot {
   schema: typeof MAME_RESULT_SCHEMA;
+  run_scope?: MameRunScope;
   saved_at: string; // ISO8601
   kuma_version: string;
   /**
@@ -81,18 +83,20 @@ export async function writeMameResultSnapshot(
   projectPath: string | null,
   result: AnalyzeResult & AnalyzeExportProvenance,
   inputIdentity: string,
+  scope: MameRunScope = "primary",
 ): Promise<void> {
   if (!projectPath) return;
   await ensureAutosaveDir(projectPath);
   const snapshot: MameResultSnapshot = {
     schema: MAME_RESULT_SCHEMA,
+    run_scope: scope,
     saved_at: new Date().toISOString(),
     kuma_version: __APP_VERSION__,
     result_contract: RESULT_CONTRACT,
     input_identity: inputIdentity,
     result,
   };
-  await atomicWriteJson(mameResultPath(projectPath), snapshot);
+  await atomicWriteJson(mameResultPath(projectPath, scope), snapshot);
 }
 
 /**
@@ -107,12 +111,13 @@ export async function updateMameResultSelection(
   projectPath: string | null,
   replicates: ReplicateResult[],
   picks: JanusAutosaveResult | null,
+  scope: MameRunScope = "primary",
 ): Promise<void> {
   if (!projectPath) return;
-  const read = await readMameResultSnapshot(projectPath);
+  const read = await readMameResultSnapshot(projectPath, scope);
   if (read.status !== "ok") return;
   const { snapshot } = read;
-  await atomicWriteJson(mameResultPath(projectPath), {
+  await atomicWriteJson(mameResultPath(projectPath, scope), {
     ...snapshot,
     result: {
       ...snapshot.result,
@@ -133,8 +138,9 @@ export type ReadMameResultResult =
  */
 export async function readMameResultSnapshot(
   projectPath: string,
+  scope: MameRunScope = "primary",
 ): Promise<ReadMameResultResult> {
-  const filePath = mameResultPath(projectPath);
+  const filePath = mameResultPath(projectPath, scope);
   if (!(await exists(filePath))) return { status: "missing" };
 
   let text: string;
@@ -158,7 +164,8 @@ export async function readMameResultSnapshot(
   }
 
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed) ||
-      parsed.schema > MAME_RESULT_SCHEMA || !hasValidRunQuality(parsed.result)) {
+      parsed.schema > MAME_RESULT_SCHEMA || (parsed.run_scope ?? "primary") !== scope ||
+      !hasValidRunQuality(parsed.result)) {
     return { status: "missing" };
   }
   return { status: "ok", snapshot: parsed };

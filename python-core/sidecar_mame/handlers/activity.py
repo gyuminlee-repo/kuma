@@ -583,6 +583,7 @@ def handle_build_evolvepro_input(params: dict) -> dict:
             remeasure_numeric_xlsx=p.remeasure_numeric_xlsx,
             remeasure_well_xlsx=p.remeasure_well_xlsx,
             verdict_xlsx=p.verdict_xlsx,
+            resequence_evidence=p.resequence_evidence,
             layout_xlsx=p.layout_xlsx,
             expected_xlsx=p.expected_xlsx,
             mismatch_threshold=p.mismatch_threshold,

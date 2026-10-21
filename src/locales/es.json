@@ -184,6 +184,27 @@
     }
   },
   "mame": {
+    "resequence": {
+      "relationship": "Origen de la medición de actividad",
+      "measuredClone": "Actividad medida del clon resecuenciado",
+      "measuredConfirm": "Confirmo que este pocillo mide el clon resecuenciado seleccionado, no el clon original.",
+      "activityWell": "Pocillo de actividad final",
+      "title": "Resecuenciación Nanopore",
+      "description": "Entradas independientes, análisis de n réplicas y selección automática. Se conservan los resultados originales; la transferencia es independiente.",
+      "manualTitle": "Confirmación manual",
+      "manualDescription": "Revisión manual opcional de una copia de placa. No ejecuta análisis de secuenciación.",
+      "primary": "Análisis original",
+      "busy": "Hay otro análisis en curso. Finalícelo o cancélelo primero.",
+      "evidenceTitle": "Evidencia de resecuenciación",
+      "evidenceDescription": "Seleccione el origen físico de cada pocillo vinculado. Para el mismo clon se conserva la actividad original. Un clon resecuenciado medido usa su pocillo asignado explícitamente. No se agrupan actividades de distintos clones.",
+      "originalClone": "Clon de actividad original",
+      "repeatedClone": "Clon resecuenciado (PASS automático)",
+      "sameClone": "Confirmo que es el mismo clon físico y que la actividad procede del origen original indicado.",
+      "linkEvidence": "Vincular evidencia",
+      "removeLink": "Eliminar vínculo",
+      "incompatible": "Las identidades de los mutantes difieren. No se puede vincular.",
+      "staleMapping": "Los archivos ya no coinciden con los análisis seleccionados. Elimine y vuelva a crear el vínculo."
+    },
     "plateOrder": {
       "title": "Plate order disagreement in {{filename}}",
       "bodyBlocked": "The primer plate on sheet {{sheet}} and the order of expected_mutations do not match, so the same workbook describes two different plates and nothing in it records which one was pipetted. The run is blocked until that is settled.",
@@ -1546,7 +1567,7 @@
       "subset": "Esta carpeta de run tiene {{detected}} native barcodes y {{replicates}} de ellos se evaluaron como replicates. El resto no está en estos resultados."
     },
     "manualConfirm": {
-      "title": "2.3 Secuenciación adicional: confirmar una copia de placa",
+      "title": "2.4 Confirmación manual",
       "description": "Úselo después de volver a secuenciar un pocillo o comprobarlo de otra forma. Elija qué copia de placa existente usar y registre cómo la confirmó. La elección sustituye la selección automática en el mapa de placa, el libro de resultados y la lista de picks; se conserva el veredicto original.",
       "needsTitle": "Pocillos sin copia seleccionada utilizable: {{count}}",
       "needsEmpty": "Todos los pocillos tienen una copia seleccionada utilizable.",

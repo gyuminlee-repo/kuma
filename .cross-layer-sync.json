@@ -108,6 +108,42 @@
   ],
   "groups": [
     {
+      "id": "mame-independent-resequencing",
+      "files": [
+        "python-core/sidecar_mame/run_scope.py",
+        "python-core/sidecar_mame/core.py",
+        "python-core/sidecar_mame/dispatcher.py",
+        "src/lib/mame/runRequests.ts",
+        "src/lib/mame/janus.ts",
+        "src/screens/MainShell.tsx",
+        "src/store/mame/mameAppStore.ts",
+        "src/store/mame/slices/inputSlice.ts",
+        "src/lib/mame/autosaveSnapshot.ts",
+        "src/lib/mame/resultSnapshot.ts",
+        "src/hooks/useAutosaveHydration.ts",
+        "src/hooks/useMameAutosave.ts"
+      ],
+      "note": "Independent primary/resequence caches, scoped requests and persistence. No round genotype overwrite from resequencing; cached exports and manual overrides share the same scope. Shutdown and update guards include both run stores.",
+      "severity": "warning"
+    },
+    {
+      "id": "mame-resequence-evidence",
+      "files": [
+        "kuma_core/mame/activity/resequence_evidence.py",
+        "kuma_core/mame/activity/verdict_ngs.py",
+        "kuma_core/mame/activity/build_evolvepro_input.py",
+        "python-core/sidecar_mame/models.py",
+        "python-core/sidecar_mame/handlers/activity.py",
+        "src/types/mame/resequence.ts",
+        "src/types/mame/build_evolvepro_input.ts",
+        "src/lib/mame/buildEvolveproFormStorage.ts",
+        "src/components/mame/panels/ResequenceEvidencePanel.tsx",
+        "src/components/mame/panels/BuildEvolveproInputPanel.tsx"
+      ],
+      "note": "Explicit same_clone or measured_resequence_clone links carry both run workbooks, mutant identity and physical well/plate provenance. Preserve strict gating for original measurements; replacement clone measurements require an explicit activity well and automatic PASS evidence.",
+      "severity": "warning"
+    },
+    {
       "id": "kuro-autosave-results-restore",
       "files": [
         "src/lib/kuroSnapshot.ts",

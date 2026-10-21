@@ -14,7 +14,7 @@ import { useKuroAutosave } from "@/hooks/useKuroAutosave";
 import { useAutosaveHydration, type HydrationStatusMessage } from "@/hooks/useAutosaveHydration";
 import { Spinner } from "@/components/ui/Spinner";
 import { useAppStore } from "@/store/appStore";
-import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { resequenceStore, useMameAppStore } from "@/store/mame/mameAppStore";
 import { getActivityStore } from "@/store/mame/activitySlice";
 import type { BusyReason } from "@/components/dialogs/CloseConfirmDialog";
 import { registerShutdownHook, runShutdownHooks } from "@/lib/shutdownHook";
@@ -90,6 +90,18 @@ const AUTOSAVE_DOT: Record<AutosaveIndicatorState, string> = {
 
 function hasTauriBridge(): boolean {
   return typeof (globalThis as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ !== "undefined";
+}
+
+function readBusyState() {
+  const kuro = useAppStore.getState();
+  const primary = useMameAppStore.getState();
+  const resequence = resequenceStore.getState();
+  const activityExporting = getActivityStore()?.getState().isExporting ?? false;
+  return {
+    isDesigning: kuro.isDesigning,
+    isAnalyzing: primary.isAnalyzing || resequence.isAnalyzing,
+    isExporting: kuro.isExporting || primary.isExporting || resequence.isExporting || activityExporting,
+  };
 }
 
 async function runWithTimeout(
@@ -309,10 +321,8 @@ export function MainShell() {
     };
     return registerUpdateInstallGuard({
       busy: () => {
-        const { isDesigning, isExporting: kuroExporting } = useAppStore.getState();
-        const { isAnalyzing, isExporting: mameExporting } = useMameAppStore.getState();
-        const activityExporting = getActivityStore()?.getState().isExporting ?? false;
-        return hydrating || isDesigning || isAnalyzing || kuroExporting || mameExporting || activityExporting;
+        const { isDesigning, isAnalyzing, isExporting } = readBusyState();
+        return hydrating || isDesigning || isAnalyzing || isExporting;
       },
       save: async () => {
         await Promise.all([flushAutosave(target, "kuro"), flushAutosave(target, "mame")]);
@@ -324,10 +334,8 @@ export function MainShell() {
   useEffect(() => {
     if (!closeDialogOpen) return;
     const id = setInterval(() => {
-      const { isDesigning, isExporting: kuroExporting } = useAppStore.getState();
-      const { isAnalyzing, isExporting: mameExporting } = useMameAppStore.getState();
-      const activityExporting = getActivityStore()?.getState().isExporting ?? false;
-      setCloseDialogIsBusy(isDesigning || isAnalyzing || kuroExporting || mameExporting || activityExporting);
+      const { isDesigning, isAnalyzing, isExporting } = readBusyState();
+      setCloseDialogIsBusy(isDesigning || isAnalyzing || isExporting);
     }, 200);
     return () => clearInterval(id);
   }, [closeDialogOpen]);
@@ -360,11 +368,7 @@ export function MainShell() {
         }
 
         // 진행 중 작업 여부를 store에서 직접 읽음 (deps 재등록 방지)
-        const { isDesigning, isExporting: kuroExporting } = useAppStore.getState();
-        const { isAnalyzing, isExporting: mameExporting } = useMameAppStore.getState();
-        const activityExporting = getActivityStore()?.getState().isExporting ?? false;
-
-        const isExportingAny = kuroExporting || mameExporting || activityExporting;
+        const { isDesigning, isAnalyzing, isExporting: isExportingAny } = readBusyState();
         const isBusy = isDesigning || isAnalyzing || isExportingAny;
 
         if (isBusy) {

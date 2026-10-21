@@ -13,10 +13,10 @@
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectProvider } from "@/state/projectContext";
-import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { resequenceStore, useMameAppStore } from "@/store/mame/mameAppStore";
 import { buildMameSnapshot } from "@/lib/mame/autosaveSnapshot";
 import { useRoundStore } from "@/store/round/roundSlice";
-import { clearStaleMamePaths, useAutosaveHydration } from "./useAutosaveHydration";
+import { applyMameAutoDetect, applyMameSnapshot, clearStaleMamePaths, useAutosaveHydration } from "./useAutosaveHydration";
 
 const hooks = vi.hoisted(() => ({
   readAutosave: vi.fn(),
@@ -132,6 +132,29 @@ describe("useAutosaveHydration: MAME inputs chosen on another screen", () => {
 
   afterEach(() => {
     cleanup();
+    resequenceStore.getState().resetInput();
+    resequenceStore.getState().resetAnalysis();
+  });
+
+  it("restores independent inputs without replacing original rounds or inputs", () => {
+    useMameAppStore.setState({ inputDir: "/proj/original", selectedWells: ["A1"] });
+    resequenceStore.setState({ inputDir: "/proj/repeated", selectedWells: ["D1"] });
+    const independent = buildMameSnapshot(resequenceStore.getState(), undefined, "/proj");
+    useMameAppStore.setState({ resequenceSnapshot: independent });
+    const roundId = useRoundStore.getState().addRound({ plate_meta: { plates: [] } });
+    useRoundStore.getState().updateRoundField(roundId, "genotype", { run_id: "original-only" });
+    const rounds = useRoundStore.getState().rounds;
+    const saved = buildMameSnapshot(useMameAppStore.getState(), { rounds, activeRoundId: roundId }, "/proj");
+    useMameAppStore.getState().resetInput();
+    resequenceStore.getState().resetInput();
+
+    applyMameSnapshot(saved, "/proj");
+
+    expect(useMameAppStore.getState().inputDir).toBe("/proj/original");
+    expect(resequenceStore.getState().inputDir).toBe("/proj/repeated");
+    expect(resequenceStore.getState().selectedWells).toEqual(["D1"]);
+    expect(useRoundStore.getState().rounds).toEqual(rounds);
+    expect(buildMameSnapshot(useMameAppStore.getState()).resequence?.input.input_dir).toBe(independent.input.input_dir);
   });
 
   it("restores a hand-picked sheet and column and shows the mapping panel again", async () => {
@@ -223,6 +246,25 @@ describe("useAutosaveHydration: MAME inputs chosen on another screen", () => {
       expect(useMameAppStore.getState().expectedPath).toBe("/proj/design/run_platemap.xlsx");
     });
   });
+
+  it.each(["", "/proj/original.xlsx"])(
+    "fills the resequencing artifact fallback without touching primary expected path %s",
+    async (expectedPath) => {
+      useMameAppStore.setState({ expectedPath, selectedWells: ["D1"] });
+      resequenceStore.getState().resetInput();
+      const original = useMameAppStore.getState();
+      hooks.getLatestArtifact.mockImplementation((type: string) =>
+        Promise.resolve(type === "kuro_platemap_xlsx"
+          ? { path: "/proj/design/repeated_platemap.xlsx", producedAt: "2026-10-21T01:00:00.000Z" }
+          : null),
+      );
+
+      await applyMameAutoDetect("/proj", () => {}, undefined, resequenceStore);
+
+      expect(resequenceStore.getState().expectedPath).toBe("/proj/design/repeated_platemap.xlsx");
+      expect(useMameAppStore.getState()).toBe(original);
+    },
+  );
 
   it("prefers whichever KURO workbook was written last", async () => {
     hooks.getLatestArtifact.mockImplementation((type: string) =>

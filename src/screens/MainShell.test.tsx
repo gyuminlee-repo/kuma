@@ -3,6 +3,8 @@ import { OPEN_HELP_EVENT, type OpenHelpDetail } from "@/help/events";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MainShell } from "./MainShell";
+import { resequenceStore, useMameAppStore } from "@/store/mame/mameAppStore";
+import { useAppStore } from "@/store/appStore";
 import { ProjectProvider } from "@/state/projectContext";
 import type { HydrationPhase } from "@/hooks/useAutosaveHydration";
 import {
@@ -99,6 +101,9 @@ describe("MainShell", () => {
     // 아래 hydrating=true 케이스가 나머지 테스트를 순서 의존으로 만든다.
     hydrationState.hydrating = false;
     hydrationState.phase = null;
+    useAppStore.setState({ isDesigning: false, isExporting: false });
+    useMameAppStore.setState({ isAnalyzing: false, isExporting: false });
+    resequenceStore.setState({ isAnalyzing: false, isExporting: false });
   });
 
   it("renders the shell header", () => {
@@ -131,6 +136,28 @@ describe("MainShell", () => {
     expect(killSidecarMock).toHaveBeenCalledWith("mame");
     expect(__getWindowMockState().preventDefaultCount).toBe(1);
   });
+
+  it.each(["isAnalyzing", "isExporting"] as const)(
+    "asks before native close while only the resequencing run is %s",
+    async (busyField) => {
+      resequenceStore.setState({ [busyField]: true });
+      render(
+        <ProjectProvider value={{ path: "/tmp/x", name: "Demo", scratch: false }}>
+          <MainShell />
+        </ProjectProvider>,
+      );
+      await waitFor(() => {
+        expect(__getWindowMockState().hasCloseRequestedHandler).toBe(true);
+      });
+
+      await act(async () => { await __emitCloseRequestedForTest(); });
+
+      expect(await screen.findByRole("dialog")).toBeInTheDocument();
+      expect(__getWindowMockState().destroyCount).toBe(0);
+      expect(killSidecarMock).not.toHaveBeenCalled();
+      expect(__getWindowMockState().preventDefaultCount).toBe(1);
+    },
+  );
 
   it("pings sidecars when tabs change", async () => {
     const user = userEvent.setup();

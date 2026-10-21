@@ -170,7 +170,7 @@ describe("AdditionalSequencingPanel", () => {
 
     await useMameAppStore.getState().applySelectionOverride("B1MUT", "NB08", "Sanger OK");
 
-    expect(updateResultFile).toHaveBeenCalledWith("/proj", [OK, CONFIRMED], null);
+    expect(updateResultFile).toHaveBeenCalledWith("/proj", [OK, CONFIRMED], null, "primary");
   });
 
   it("says so when the result workbook could not be rewritten, and keeps the confirmation", async () => {

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { spawnSidecar, setProgressHandler } from "@/lib/ipc-mame";
 import { composeAnalysisProgress } from "@/lib/mame/composeAnalysisProgress";
-import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { resequenceStore, useMameAppStore } from "@/store/mame/mameAppStore";
 import { useAppStore } from "@/store/appStore";
 import type { SidecarStatus } from "@/types/mame/models";
 
@@ -14,7 +14,9 @@ export function useMameSidecar() {
 
   useEffect(() => {
     setProgressHandler((progress) => {
-      useMameAppStore.setState((state) => {
+      const target = resequenceStore.getState().isAnalyzing ? resequenceStore : useMameAppStore;
+      if (!target.getState().isAnalyzing) return;
+      target.setState((state) => {
         const hasStage = progress.stage !== undefined;
         // Folded raw-run analyze (single `analyze` call over a MinKNOW run
         // folder): the backend already emits a unified 0..100 value (demux

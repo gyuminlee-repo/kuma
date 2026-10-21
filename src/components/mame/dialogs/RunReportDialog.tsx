@@ -16,7 +16,7 @@ import { save } from "@tauri-apps/plugin-dialog";
 import { AlertCircle, CheckCircle2, Download, FolderOpen, Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useKumaProject } from "@/state/projectContext";
-import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { useMameAppStore, useMameStoreApi } from "@/store/mame/mameAppStore";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -38,6 +38,7 @@ interface RunReportDialogProps {
 }
 
 export function RunReportDialog({ open, onOpenChange }: RunReportDialogProps) {
+  const store = useMameStoreApi();
   const { t } = useTranslation();
   const project = useKumaProject();
 
@@ -50,7 +51,8 @@ export function RunReportDialog({ open, onOpenChange }: RunReportDialogProps) {
 
   function deriveDefaultPath(fmt: RunReportFormat): string {
     if (!project) return "";
-    return buildRunReportDefaultPath(project.path, project.name, fmt);
+    const state = store.getState();
+    return buildRunReportDefaultPath(state.runScope === "resequence" ? state.outputPath : project.path, project.name, fmt);
   }
 
   function handleFormatChange(next: RunReportFormat) {
@@ -85,7 +87,7 @@ export function RunReportDialog({ open, onOpenChange }: RunReportDialogProps) {
     setExportError(null);
     setLastResult(null);
     try {
-      const result = await handleExportRunReport(target, format, project?.name);
+      const result = await handleExportRunReport(target, format, project?.name, store);
       setLastResult(result);
       setOutputPath(result.output_path);
     } catch (err) {

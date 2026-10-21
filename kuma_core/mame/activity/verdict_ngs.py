@@ -31,6 +31,7 @@ class VerdictRow:
     # (workbook column ``manual_confirmation``). ``verdict`` keeps the NGS
     # class of that copy, so a reader sees both facts.
     manual_confirmation: str = ""
+    selected_plate: str = ""
 
 
 def parse_verdict_rows(path: str | Path) -> dict[str, VerdictRow]:
@@ -85,6 +86,7 @@ def parse_verdict_rows(path: str | Path) -> dict[str, VerdictRow]:
     manual_col = (
         header.index("manual_confirmation") if "manual_confirmation" in header else -1
     )
+    selected_col = header.index("selected_plate") if "selected_plate" in header else -1
 
     max_col = max(
         best_well_col,
@@ -94,6 +96,7 @@ def parse_verdict_rows(path: str | Path) -> dict[str, VerdictRow]:
         fallback_col,
         failed_col,
         manual_col,
+        selected_col,
     )
 
     result: dict[str, VerdictRow] = {}
@@ -142,6 +145,7 @@ def parse_verdict_rows(path: str | Path) -> dict[str, VerdictRow]:
             manual_confirmation=(
                 str(extended[manual_col]).strip() if manual_col >= 0 else ""
             ),
+            selected_plate=str(extended[selected_col]).strip() if selected_col >= 0 else "",
         )
         existing = result.get(well)
         if existing is None:

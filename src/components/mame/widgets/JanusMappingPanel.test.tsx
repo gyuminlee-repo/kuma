@@ -41,7 +41,7 @@ vi.mock("@/store/mame/mameAppStore", async () => {
     setJanusSettings: (janusSettings: JanusExportSettings) => set({ janusSettings }),
     setJanusMappingAutosave: (janusMappingAutosave) => set({ janusMappingAutosave }),
   }));
-  return { useMameAppStore };
+  return { useMameAppStore, useMameStoreApi: () => useMameAppStore };
 });
 
 import { save } from "@tauri-apps/plugin-dialog";
@@ -248,6 +248,7 @@ describe("JanusMappingPanel preview", () => {
     await waitFor(() =>
       expect(mockPreview).toHaveBeenCalledWith(
         expect.objectContaining({ destLayout: "source", outputSchema: "device" }),
+        useMameAppStore,
       ),
     );
     expect(await screen.findByText("HIGH")).toBeInTheDocument();
@@ -262,6 +263,7 @@ describe("JanusMappingPanel preview", () => {
     await waitFor(() =>
       expect(mockPreview).toHaveBeenCalledWith(
         expect.objectContaining({ destLayout: "compact" }),
+        useMameAppStore,
       ),
     );
   });
@@ -276,6 +278,7 @@ describe("JanusMappingPanel preview", () => {
     await waitFor(() =>
       expect(mockPreview).toHaveBeenCalledWith(
         expect.objectContaining({ liquidClass: "Cell 100ul" }),
+        useMameAppStore,
       ),
     );
   });
@@ -296,6 +299,7 @@ describe("JanusMappingPanel preview", () => {
     await waitFor(() => expect(mockExport).toHaveBeenCalled());
     const previewArg = mockPreview.mock.calls.at(-1)?.[0];
     expect(mockExport.mock.calls[0][2]).toEqual(previewArg);
+    expect(mockExport.mock.calls[0][3]).toBe(useMameAppStore);
   });
 
   it("lists the excluded clones with the reason for each", async () => {
@@ -398,6 +402,7 @@ describe("JanusMappingPanel preview", () => {
     await waitFor(() =>
       expect(mockPreview).toHaveBeenCalledWith(
         expect.objectContaining({ liquidClass: "Different class" }),
+        useMameAppStore,
       ),
     );
   });
@@ -627,6 +632,7 @@ describe("JanusMappingPanel volume", () => {
     await waitFor(() =>
       expect(mockPreview).toHaveBeenCalledWith(
         expect.objectContaining({ volume: 70 }),
+        useMameAppStore,
       ),
     );
     expect((screen.getByLabelText(/^Volume/) as HTMLInputElement).value).toBe("70");
@@ -644,6 +650,7 @@ describe("JanusMappingPanel volume", () => {
     await waitFor(() =>
       expect(mockPreview).toHaveBeenCalledWith(
         expect.objectContaining({ volume: 45 }),
+        useMameAppStore,
       ),
     );
   });

@@ -1,5 +1,5 @@
 import type { StateCreator } from "zustand";
-import { sendRequest } from "@/lib/ipc-mame";
+import { sendRunRequest } from "@/lib/mame/runRequests";
 import { formatError } from "@/lib/utils";
 import { registerArtifacts, ensureWorkspaceFromExportPath } from "@/lib/workspace";
 import type { ExportResult } from "@/types/mame/models";
@@ -19,13 +19,16 @@ const mameInitialExportState: Pick<
 export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (set, get) => ({
   ...mameInitialExportState,
   exportExcel: async (path) => {
+    const analyzeResult = get().analyzeResult;
     set({ isExporting: true, exportError: null });
     try {
-      const result = await sendRequest<ExportResult>("export_excel", {
+      const result = await sendRunRequest<ExportResult>(get(), "export_excel", {
         output: path,
         mode: get().mode,
       });
       set({
+        ...(analyzeResult && get().analyzeResult === analyzeResult
+          ? { analyzeResult: { ...analyzeResult, output_path: result.output_path } } : {}),
         lastExportPath: result.output_path,
         lastExportAt: new Date().toISOString(),
         isExporting: false,

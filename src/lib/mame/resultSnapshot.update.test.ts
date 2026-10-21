@@ -15,7 +15,7 @@ vi.mock("@/lib/autosave", () => ({
 vi.mock("@/lib/mame/resultContract", () => ({ RESULT_CONTRACT: 1 }));
 vi.mock("@/types/mame/runQualityValidator", () => ({ hasValidRunQuality: () => true }));
 
-import { mameResultPath, updateMameResultSelection } from "./resultSnapshot";
+import { mameResultPath, readMameResultSnapshot, updateMameResultSelection } from "./resultSnapshot";
 import type { JanusAutosaveResult, ReplicateResult } from "@/types/mame/models";
 
 function replicate(plate: string): ReplicateResult {
@@ -68,5 +68,25 @@ describe("updateMameResultSelection", () => {
     await updateMameResultSelection("/proj", [replicate("NB08")], null);
 
     expect(files.size).toBe(0);
+  });
+
+  it("updates independent selection without changing the primary snapshot", async () => {
+    const primary = files.get(mameResultPath("/proj"));
+    files.set(mameResultPath("/proj", "resequence"), JSON.stringify({
+      schema: 1, run_scope: "resequence", result: { replicates: [replicate("NB07")] },
+    }));
+    await updateMameResultSelection("/proj", [replicate("NB08")], null, "resequence");
+    expect(files.get(mameResultPath("/proj"))).toBe(primary);
+    const repeated = await readMameResultSnapshot("/proj", "resequence");
+    expect(repeated.status).toBe("ok");
+    if (repeated.status !== "ok") throw new Error("Missing independent snapshot");
+    expect(repeated.snapshot.result.replicates[0].selected_plate).toBe("NB08");
+  });
+
+  it("rejects an independent snapshot copied into the primary result filename", async () => {
+    files.set(mameResultPath("/proj"), JSON.stringify({
+      schema: 1, run_scope: "resequence", result: { replicates: [replicate("NB07")] },
+    }));
+    expect(await readMameResultSnapshot("/proj")).toEqual({ status: "missing" });
   });
 });

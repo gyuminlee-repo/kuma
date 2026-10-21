@@ -184,6 +184,27 @@
     }
   },
   "mame": {
+    "resequence": {
+      "relationship": "活性測定の由来",
+      "measuredClone": "再シーケンス clone の活性を測定",
+      "measuredConfirm": "この活性 well は元の clone ではなく、選択した再シーケンス clone を測定したことを確認します。",
+      "activityWell": "最終活性 well",
+      "title": "Nanopore 再シーケンス",
+      "description": "独立した入力で n-replicate 解析と自動選択を実行します。元の結果は保持され、移送は別のステップです。",
+      "manualTitle": "手動確認",
+      "manualDescription": "プレートコピーの補助手動レビューです。シーケンス解析は実行しません。",
+      "primary": "元の解析",
+      "busy": "別の解析が実行中です。完了またはキャンセル後に実行してください。",
+      "evidenceTitle": "再シーケンスの証拠",
+      "evidenceDescription": "各活性 well の物理的な由来を選択してください。同一 clone の証拠では元の活性を保持します。再シーケンス clone の測定には明示した活性 well を使い、異なる clone の活性を統合しません。",
+      "originalClone": "元の活性測定 clone",
+      "repeatedClone": "再シーケンス clone（自動 PASS）",
+      "sameClone": "両方が同じ物理的 clone であり、活性データが表示された元のソースに由来することを確認します。",
+      "linkEvidence": "証拠の関連付けを追加",
+      "removeLink": "関連付けを削除",
+      "incompatible": "Mutant identity が異なるため関連付けできません。",
+      "staleMapping": "証拠ファイルが選択した解析と一致しません。関連付けを削除して再設定してください。"
+    },
     "plateOrder": {
       "title": "Plate order disagreement in {{filename}}",
       "bodyBlocked": "The primer plate on sheet {{sheet}} and the order of expected_mutations do not match, so the same workbook describes two different plates and nothing in it records which one was pipetted. The run is blocked until that is settled.",
@@ -1546,7 +1567,7 @@
       "subset": "この run フォルダには native barcode が {{detected}} 件あり、そのうち {{replicates}} 件を replicate として判定した。残りはこの結果に含まれない。"
     },
     "manualConfirm": {
-      "title": "2.3 追加シーケンス：プレートコピーの確認",
+      "title": "2.4 手動確認",
       "description": "ウェルを再シーケンスしたり別の方法で確認したりした後に使用します。使用する既存のプレートコピーを選び、確認方法を記録してください。この選択はプレートマップ、結果ブック、ピックリストで自動選択に置き換わり、元の判定は保持されます。",
       "needsTitle": "使用可能な選択コピーがないウェル：{{count}}件",
       "needsEmpty": "すべてのウェルに使用可能な選択コピーがあります。",

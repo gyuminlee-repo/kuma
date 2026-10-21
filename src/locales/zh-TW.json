@@ -184,6 +184,27 @@
     }
   },
   "mame": {
+    "resequence": {
+      "relationship": "活性測量來源",
+      "measuredClone": "已測量重新定序 clone 的活性",
+      "measuredConfirm": "我確認該活性 well 測量的是所選重新定序 clone，而非原始 clone。",
+      "activityWell": "最終活性 well",
+      "title": "Nanopore 重新定序",
+      "description": "使用獨立輸入執行 n-replicate 分析與自動選擇。保留原始結果；實體轉移是獨立步驟。",
+      "manualTitle": "手動確認",
+      "manualDescription": "選用的盤拷貝手動複核，不執行定序分析。",
+      "primary": "原始分析",
+      "busy": "另一個分析正在執行。請先完成或取消。",
+      "evidenceTitle": "重新定序證據",
+      "evidenceDescription": "選擇每個關聯活性 well 的實體來源。同一 clone 的證據保留原始活性；測量重新定序 clone 時使用明確指定的活性 well。不合併不同 clone 的活性。",
+      "originalClone": "原始活性測定 clone",
+      "repeatedClone": "重新定序 clone（自動 PASS）",
+      "sameClone": "我確認兩者是同一實體 clone，且活性資料來自所顯示的原始來源。",
+      "linkEvidence": "新增證據關聯",
+      "removeLink": "移除關聯",
+      "incompatible": "Mutant identity 不同，無法關聯。",
+      "staleMapping": "證據檔案與所選分析不再相符。請移除並重新建立關聯。"
+    },
     "plateOrder": {
       "title": "Plate order disagreement in {{filename}}",
       "bodyBlocked": "The primer plate on sheet {{sheet}} and the order of expected_mutations do not match, so the same workbook describes two different plates and nothing in it records which one was pipetted. The run is blocked until that is settled.",
@@ -1546,7 +1567,7 @@
       "subset": "此 run 資料夾有 {{detected}} 個 native barcode，其中 {{replicates}} 個被判定為 replicate。其餘不在本結果中。"
     },
     "manualConfirm": {
-      "title": "2.3 追加定序：確認盤拷貝",
+      "title": "2.4 手動確認",
       "description": "在重新定序或以其他方式檢查某個孔位後使用。選擇要使用的現有盤拷貝，並記錄確認方式。此選擇會取代盤圖、結果活頁簿與挑選清單中的自動選擇；原始判定會保留。",
       "needsTitle": "沒有可用選定拷貝的孔位：{{count}} 個",
       "needsEmpty": "每個孔位都有可用的選定拷貝。",
