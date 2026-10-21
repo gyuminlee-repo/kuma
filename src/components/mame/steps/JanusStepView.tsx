@@ -29,7 +29,8 @@
  */
 
 import { useTranslation } from "react-i18next";
-import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { MameRunStoreContext, resequenceStore, useMameAppStore, useMameStoreApi } from "@/store/mame/mameAppStore";
+import { Button } from "@/components/ui/button";
 import { WizardContainer } from "@/components/steps/WizardContainer";
 import { JanusMappingPanel } from "@/components/mame/widgets/JanusMappingPanel";
 import { JanusAutosaveNotice } from "@/components/mame/widgets/JanusAutosaveNotice";
@@ -43,6 +44,8 @@ export function JanusStepView() {
   const setMameSubStep = useMameAppStore((s) => s.setMameSubStep);
   const goToPrevStep = useMameAppStore((s) => s.goToPrevStep);
   const goToNextStep = useMameAppStore((s) => s.goToNextStep);
+  const store = useMameStoreApi();
+  const useResequence = useMameAppStore((s) => s.janusRunScope === "resequence");
 
   if (subStep !== "janus.settings") {
     return (
@@ -65,7 +68,17 @@ export function JanusStepView() {
       onPrev={goToPrevStep}
       onNext={goToNextStep}
     >
-      <div className="space-y-4">
+      <div className="space-y-4 text-foreground">
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant={useResequence ? "ghost" : "secondary"}
+            aria-pressed={!useResequence} onClick={() => store.setState({ janusRunScope: "primary" })}>
+            {t("mame.resequence.primary")}
+          </Button>
+          <Button type="button" variant={useResequence ? "secondary" : "ghost"}
+            aria-pressed={useResequence} onClick={() => store.setState({ janusRunScope: "resequence" })}>
+            {t("mame.resequence.title")}
+          </Button>
+        </div>
         {/* Said before anything is asked for: the step can be left alone. */}
         <p
           className="rounded-control border border-border bg-muted/30 px-3 py-2 text-caption text-muted-foreground"
@@ -78,13 +91,15 @@ export function JanusStepView() {
             instrument mapping has no autosave notice: it is only ever
             written by the export button below, so there is nothing
             automatic to report on. */}
+        <MameRunStoreContext.Provider value={useResequence ? resequenceStore : null}>
         <JanusAutosaveNotice />
 
         {/* Was a button that opened a modal carrying this same content. Step
             3 is already its own screen, so the panel (transfer volume, liquid
             class, rack numbers, row preview, excluded clones and the export
             itself) renders directly here now. */}
-        <JanusMappingPanel />
+        <JanusMappingPanel key={useResequence ? "resequence" : "primary"} />
+        </MameRunStoreContext.Provider>
       </div>
     </WizardContainer>
   );

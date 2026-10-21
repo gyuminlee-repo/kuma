@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import sys
 import threading
+from contextvars import ContextVar
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -85,12 +86,14 @@ class SidecarState:
 
 
 _state = SidecarState()
+_resequence_state = SidecarState()
+run_scope: ContextVar[str] = ContextVar("mame_run_scope", default="primary")
 _state_lock = threading.Lock()
 
 
 def get_state() -> SidecarState:
     """Return the module-level state (callers must use ``_state_lock`` for writes)."""
-    return _state
+    return _resequence_state if run_scope.get() == "resequence" else _state
 
 
 def set_last_analyze(
@@ -103,25 +106,27 @@ def set_last_analyze(
     analysis_conditions: AnalysisConditions | None = None,
 ) -> None:
     with _state_lock:
-        _state.last_verdicts = verdicts
-        _state.last_replicates = replicates
-        _state.last_output_path = output_path
-        _state.last_run_meta = run_meta
-        _state.last_designed_mutant_ids = designed_mutant_ids
-        _state.last_barcode_prefix_note = barcode_prefix_note
-        _state.last_analysis_conditions = analysis_conditions
+        state = get_state()
+        state.last_verdicts = verdicts
+        state.last_replicates = replicates
+        state.last_output_path = output_path
+        state.last_run_meta = run_meta
+        state.last_designed_mutant_ids = designed_mutant_ids
+        state.last_barcode_prefix_note = barcode_prefix_note
+        state.last_analysis_conditions = analysis_conditions
 
 
 def reset_state() -> None:
     """Clear cached analyze/export state for a new project or explicit reset."""
     with _state_lock:
-        _state.last_verdicts = None
-        _state.last_replicates = None
-        _state.last_output_path = None
-        _state.last_run_meta = None
-        _state.last_designed_mutant_ids = None
-        _state.last_barcode_prefix_note = None
-        _state.last_analysis_conditions = None
+        for state in (_state, _resequence_state):
+            state.last_verdicts = None
+            state.last_replicates = None
+            state.last_output_path = None
+            state.last_run_meta = None
+            state.last_designed_mutant_ids = None
+            state.last_barcode_prefix_note = None
+            state.last_analysis_conditions = None
 
 # ---------------------------------------------------------------------------
 # stdout JSON-RPC framing. Thread-safe writer.

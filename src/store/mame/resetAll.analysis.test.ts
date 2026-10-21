@@ -101,7 +101,7 @@ describe("a reset ends the running analysis", () => {
     // way, or a restore would read every saved run as superseded.
     const identity = buildMameSnapshot(state, undefined, state.projectPath).input_identity;
     expect(identity).toEqual(expect.any(String));
-    expect(writeResult).toHaveBeenCalledWith(state.projectPath, expect.anything(), identity);
+    expect(writeResult).toHaveBeenCalledWith(state.projectPath, expect.anything(), identity, "primary");
   });
 
   it("counts every reset, so consecutive resets stay distinguishable", async () => {
@@ -136,7 +136,7 @@ describe("an input changed while the analysis ran", () => {
 
     expect(useMameAppStore.getState().verdicts).toEqual([VERDICT]);
     expect(toasts.warning).toHaveBeenCalledTimes(1);
-    expect(writeResult).toHaveBeenCalledWith(useMameAppStore.getState().projectPath, expect.anything(), startIdentity);
+    expect(writeResult).toHaveBeenCalledWith(useMameAppStore.getState().projectPath, expect.anything(), startIdentity, "primary");
   });
 });
 

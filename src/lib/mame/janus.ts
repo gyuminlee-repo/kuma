@@ -9,8 +9,10 @@
  * downstream Janus consumers regardless of the underlying metric.
  */
 
-import { sendRequest } from "@/lib/ipc-mame";
+import type { StoreApi } from "zustand";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
+import type { AppState } from "@/store/mame/types";
+import { sendRunRequest } from "./runRequests";
 import { DEFAULT_JANUS_SETTINGS, toRpcParams } from "./janusSettings";
 
 // Re-exported so callers keep one import site for the Janus policy, while the
@@ -66,16 +68,17 @@ export async function handleExportMameJanusMapping(
   outputPath: string,
   format: JanusExportFormat = "csv",
   settings: JanusExportSettings = DEFAULT_JANUS_SETTINGS,
+  store: StoreApi<AppState> = useMameAppStore,
 ): Promise<JanusExportResult> {
-  useMameAppStore.setState({ isExporting: true });
+  store.setState({ isExporting: true });
   try {
-    return await sendRequest<JanusExportResult>("export_janus_mapping", {
+    return await sendRunRequest<JanusExportResult>(store.getState(), "export_janus_mapping", {
       output: outputPath,
       format,
       ...toRpcParams(settings),
     });
   } finally {
-    useMameAppStore.setState({ isExporting: false });
+    store.setState({ isExporting: false });
   }
 }
 
@@ -98,8 +101,10 @@ export async function handleExportMameJanusMapping(
  */
 export async function fetchMameJanusPreview(
   settings: JanusExportSettings = DEFAULT_JANUS_SETTINGS,
+  store: StoreApi<AppState> = useMameAppStore,
 ): Promise<JanusPreviewResult> {
-  return await sendRequest<JanusPreviewResult>(
+  return await sendRunRequest<JanusPreviewResult>(
+    store.getState(),
     "export_janus_mapping_dry_run",
     toRpcParams(settings),
   );

@@ -49,6 +49,8 @@ export const STEP_TO_TOPIC: Record<KuroSubStepId | MameSubStepId, string> = {
   // screen, which is a different step.
   "analyze.inputs": "mame-02-review",
   "analyze.review": "mame-02-review",
+  "analyze.resequence": "mame-02-review",
+  "analyze.confirm": "mame-02-review",
   "analyze.verdict": "mame-02-review",
   "analyze.plate": "mame-02-review",
   "janus.settings": "mame-03-janus",

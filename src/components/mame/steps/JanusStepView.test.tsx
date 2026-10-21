@@ -13,7 +13,7 @@
  * writes on its own, and the mapping panel.
  */
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/ipc-mame", () => ({
@@ -24,7 +24,10 @@ vi.mock("@/lib/ipc-mame", () => ({
 // Stubbed: what matters here is that the step renders the panel, not what the
 // panel draws (that is its own test file, JanusMappingPanel.test.tsx).
 vi.mock("@/components/mame/widgets/JanusMappingPanel", () => ({
-  JanusMappingPanel: () => <div data-testid="janus-mapping-panel" />,
+  JanusMappingPanel: () => {
+    const runScope = useMameAppStore((state) => state.runScope);
+    return <div data-testid="janus-mapping-panel" data-run-scope={runScope} />;
+  },
 }));
 
 import { JanusStepView } from "./JanusStepView";
@@ -36,6 +39,7 @@ describe("JanusStepView", () => {
       mamePhase: "janus",
       currentMameSubStep: "janus.settings",
       janusAutosave: null,
+      janusRunScope: "primary",
       janusMappingAutosave: null,
       verdicts: [],
       summary: null,
@@ -55,6 +59,18 @@ describe("JanusStepView", () => {
     render(<JanusStepView />);
 
     expect(screen.getByTestId("janus-mapping-panel")).toBeTruthy();
+  });
+
+  it("selects an independent mapping source without changing the workflow route", () => {
+    render(<JanusStepView />);
+    expect(screen.getByTestId("janus-mapping-panel")).toHaveAttribute("data-run-scope", "primary");
+
+    fireEvent.click(screen.getByRole("button", { name: /resequencing/i }));
+
+    expect(screen.getByTestId("janus-mapping-panel")).toHaveAttribute("data-run-scope", "resequence");
+    expect(useMameAppStore.getState().currentMameSubStep).toBe("janus.settings");
+    fireEvent.click(screen.getByRole("button", { name: /original/i }));
+    expect(screen.getByTestId("janus-mapping-panel")).toHaveAttribute("data-run-scope", "primary");
   });
 
   it("says the step can be skipped", () => {

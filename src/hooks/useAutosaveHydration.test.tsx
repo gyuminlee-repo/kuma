@@ -79,7 +79,8 @@ vi.mock("@/lib/autosave", () => ({
 }));
 
 vi.mock("@/lib/mame/resultSnapshot", () => ({
-  readMameResultSnapshot: hooks.readMameResultSnapshot,
+  readMameResultSnapshot: (path: string, scope?: string) =>
+    scope === "resequence" ? Promise.resolve({ status: "missing" }) : hooks.readMameResultSnapshot(path),
 }));
 
 vi.mock("@/lib/ipc-mame", () => ({
@@ -422,7 +423,7 @@ describe("useAutosaveHydration: analyze-result restore", () => {
 
     // get_plate_data called AFTER load_analyze_result (sidecar repopulated first).
     await waitFor(() => {
-      expect(hooks.sendMameRequest).toHaveBeenCalledWith("get_plate_data", {});
+      expect(hooks.sendMameRequest).toHaveBeenCalledWith("get_plate_data", { result_snapshot: ANALYZE_RESULT });
     });
 
     // store repopulated + landed on the 2.2 review view.

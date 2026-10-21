@@ -184,6 +184,27 @@
     }
   },
   "mame": {
+    "resequence": {
+      "relationship": "Quelle der Aktivitätsmessung",
+      "measuredClone": "Aktivität des nachsequenzierten Klons",
+      "measuredConfirm": "Ich bestätige, dass dieses Aktivitätswell den gewählten nachsequenzierten Klon und nicht den ursprünglichen Klon misst.",
+      "activityWell": "Endgültiges Aktivitätswell",
+      "title": "Nanopore-Nachsequenzierung",
+      "description": "Unabhängige Eingaben, n-Replikat-Analyse und automatische Auswahl. Originaldaten bleiben erhalten; der Transfer erfolgt separat.",
+      "manualTitle": "Manuelle Bestätigung",
+      "manualDescription": "Optionale manuelle Prüfung einer Plattenkopie. Führt keine Sequenzanalyse aus.",
+      "primary": "Ursprüngliche Analyse",
+      "busy": "Eine andere Analyse läuft. Zuerst abschließen oder abbrechen.",
+      "evidenceTitle": "Nachsequenzierungsnachweis",
+      "evidenceDescription": "Wählen Sie die physische Quelle jedes verknüpften Aktivitätswells. Beim selben Klon bleibt die ursprüngliche Aktivität erhalten. Ein gemessener nachsequenzierter Klon verwendet sein zugewiesenes Well. Klonaktivitäten werden nicht gepoolt.",
+      "originalClone": "Ursprünglicher Aktivitätsklon",
+      "repeatedClone": "Nachsequenzierter Klon (automatisch PASS)",
+      "sameClone": "Ich bestätige denselben physischen Klon und die Herkunft der Aktivitätsdaten aus der angezeigten Originalquelle.",
+      "linkEvidence": "Nachweis verknüpfen",
+      "removeLink": "Verknüpfung entfernen",
+      "incompatible": "Die Mutantenidentitäten unterscheiden sich. Verknüpfung nicht möglich.",
+      "staleMapping": "Nachweisdateien stimmen nicht mehr mit den gewählten Läufen überein. Verknüpfung entfernen und neu erstellen."
+    },
     "plateOrder": {
       "title": "Plate order disagreement in {{filename}}",
       "bodyBlocked": "The primer plate on sheet {{sheet}} and the order of expected_mutations do not match, so the same workbook describes two different plates and nothing in it records which one was pipetted. The run is blocked until that is settled.",
@@ -1546,7 +1567,7 @@
       "subset": "Dieser Run-Ordner enthält {{detected}} native barcodes, davon wurden {{replicates}} als Replicates bewertet. Der Rest steckt nicht in diesen Ergebnissen."
     },
     "manualConfirm": {
-      "title": "2.3 Zusätzliche Sequenzierung: Plattenkopie bestätigen",
+      "title": "2.4 Manuelle Bestätigung",
       "description": "Verwenden Sie dies, nachdem Sie eine Position erneut sequenziert oder anders überprüft haben. Wählen Sie die vorhandene Plattenkopie und notieren Sie, wie Sie sie bestätigt haben. Die Wahl ersetzt die automatische Auswahl in Plattenkarte, Ergebnis-Arbeitsmappe und Pick-Liste; das ursprüngliche Urteil bleibt erhalten.",
       "needsTitle": "Positionen ohne nutzbare ausgewählte Kopie: {{count}}",
       "needsEmpty": "Jede Position hat eine nutzbare ausgewählte Kopie.",

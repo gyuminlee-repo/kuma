@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from kuma_core.mame.activity.resequence_evidence import ResequenceEvidence
 
 
 class DemuxParamsBase(BaseModel):
@@ -433,6 +434,7 @@ class BuildEvolveproInputParams(BaseModel):
     remeasure_numeric_xlsx: str | None = None
     remeasure_well_xlsx: str | None = None
     verdict_xlsx: str
+    resequence_evidence: ResequenceEvidence | None = None
     layout_xlsx: str | None = None
     expected_xlsx: str | None = None
     output_xlsx: str

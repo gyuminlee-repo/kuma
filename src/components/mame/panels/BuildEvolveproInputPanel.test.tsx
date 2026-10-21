@@ -11,6 +11,8 @@ const mockMkdir = vi.hoisted(() => vi.fn());
 const mockMameState = vi.hoisted(() => ({
   resetEpoch: 0,
   buildEvolveproSeedEpoch: 0,
+  analyzeResult: null,
+  wells: [],
 }));
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({ open: vi.fn(), save: vi.fn() }));
@@ -23,6 +25,8 @@ vi.mock("@/lib/openFolder", () => ({ revealInOSFolder: vi.fn() }));
 vi.mock("@/lib/workspace", () => ({ registerArtifacts: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/store/mame/mameAppStore", () => ({
+  resequenceStore: (selector: (state: { analyzeResult: null; wells: never[] }) => unknown) =>
+    selector({ analyzeResult: null, wells: [] }),
   useMameAppStore: (selector: (state: {
     resetEpoch: number;
     buildEvolveproSeedEpoch: number;

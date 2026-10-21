@@ -10,7 +10,7 @@ import { useKumaProject } from "@/state/projectContext";
 import { scheduleAutosave, flushAutosave, type AutosaveTarget } from "@/lib/autosave";
 import { registerShutdownHook } from "@/lib/shutdownHook";
 import { buildMameSnapshot } from "@/lib/mame/autosaveSnapshot";
-import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { resequenceStore, useMameAppStore } from "@/store/mame/mameAppStore";
 import { useRoundStore } from "@/store/round/roundSlice";
 
 function selectMameInputs(s: ReturnType<typeof useMameAppStore.getState>) {
@@ -57,6 +57,8 @@ function selectMameInputs(s: ReturnType<typeof useMameAppStore.getState>) {
     // result that has to survive a restart, and clearing it is a change too.
     s.selectedNativeBarcodes,
     s.detectedBarcodeCount,
+    s.analyzeResult,
+    s.resequenceSnapshot,
   ] as const;
 }
 
@@ -90,6 +92,9 @@ export function useMameAutosave(): { flushMameAutosave: () => Promise<void> } {
   // access. Scratch projects stash null -> no result file written.
   useEffect(() => {
     useMameAppStore.getState().setProjectPath(
+      project && !project.scratch ? (project.path ?? null) : null,
+    );
+    resequenceStore.getState().setProjectPath(
       project && !project.scratch ? (project.path ?? null) : null,
     );
   }, [project?.path, project?.scratch]);
@@ -129,10 +134,22 @@ export function useMameAutosave(): { flushMameAutosave: () => Promise<void> } {
     const unsubscribeRounds = useRoundStore.subscribe(() => {
       scheduleAutosave(targetRef.current, "mame", buildSnapshot);
     });
+    const unsubscribeResequence = resequenceStore.subscribe(
+      selectMameInputs,
+      () => {
+        useMameAppStore.setState({
+          resequenceSnapshot: buildMameSnapshot(
+            resequenceStore.getState(), undefined, targetRef.current.projectPath,
+          ),
+        });
+      },
+      { equalityFn: shallowEqualTuple },
+    );
 
     return () => {
       unsubscribe();
       unsubscribeRounds();
+      unsubscribeResequence();
     };
   }, [project?.path, project?.scratch]);
 

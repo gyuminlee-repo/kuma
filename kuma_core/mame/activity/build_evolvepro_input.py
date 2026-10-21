@@ -30,6 +30,7 @@ from .models import MergeReplicatesStats, Variant
 from .plate_layout_xlsx import _WELL_RE, _normalise_well, parse_plate_layout_xlsx
 from .variant_notation import _SHORT_RE, is_canonical_internal, to_evolvepro
 from .verdict_ngs import _PASS, parse_verdict_rows
+from .resequence_evidence import ResequenceEvidence, validate_resequence_links
 
 _WT_RE = WT_PATTERN
 _CONFIRMATION_REP_SUFFIX = re.compile(r"^(?P<label>.+)-[1-9]\d*$")
@@ -200,7 +201,7 @@ def _wt_wells(layout_xlsx: str | Path | None, verdict_xlsx: str | Path) -> set[s
     return wells
 
 
-def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str, str], variant_to_well: dict[str, str], unmapped: list[str], wt_wells: set[str] | None = None) -> tuple[dict[str, list[float]], dict[str, str], list[str], list[float]]:
+def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str, str], variant_to_well: dict[str, str], unmapped: list[str], wt_wells: set[str] | None = None, measured_variants: frozenset[str] = frozenset()) -> tuple[dict[str, list[float]], dict[str, str], list[str], list[float]]:
     source = Path(path)
     frame = pd.read_excel(source) if source.suffix.lower() in {".xlsx", ".xls"} else pd.read_csv(source, sep=None, engine="python")
     frame.columns = [_normalise_activity_header(column) for column in frame.columns]
@@ -260,6 +261,11 @@ def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str,
                 continue
             rows.append((variant, value, cohort))
         elif short is not None:
+            if short in measured_variants and (
+                paired_well_column is None
+                or _normalise_well(str(row[paired_well_column])) != variant_to_well.get(short)
+            ):
+                raise ValueError(f"Measured resequencing activity requires its explicit well: {short}")
             namespaces.add("variant")
             rows.append((short, value, cohort))
         else:
@@ -651,7 +657,7 @@ def _publish_artifact_bundle(
     return artifact_hashes
 
 
-def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path | None = None, activity_scale: str = "raw", gc_data_xlsx: str | Path | None = None, round1_report_xlsx: str | Path | None = None, numeric_report_xlsx: str | Path | None = None, remeasure_report_xlsx: str | Path | None = None, remeasure_numeric_xlsx: str | Path | None = None, remeasure_well_xlsx: str | Path | None = None, verdict_xlsx: str | Path, layout_xlsx: str | Path | None = None, expected_xlsx: str | Path | None = None, mismatch_threshold: float = 0.1, gc_export_xlsx: str | Path | None = None, allow_label_mismatch: bool = False) -> BuildEvolveproResult:
+def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path | None = None, activity_scale: str = "raw", gc_data_xlsx: str | Path | None = None, round1_report_xlsx: str | Path | None = None, numeric_report_xlsx: str | Path | None = None, remeasure_report_xlsx: str | Path | None = None, remeasure_numeric_xlsx: str | Path | None = None, remeasure_well_xlsx: str | Path | None = None, verdict_xlsx: str | Path, layout_xlsx: str | Path | None = None, expected_xlsx: str | Path | None = None, mismatch_threshold: float = 0.1, gc_export_xlsx: str | Path | None = None, allow_label_mismatch: bool = False, resequence_evidence: ResequenceEvidence | None = None) -> BuildEvolveproResult:
     """Build Step 3 output from exactly one supported primary source.
 
     Raw generic activity uses WT rows per file/plate cohort; relative generic
@@ -685,6 +691,18 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
         )
     if verdict_xlsx is None:
         raise ValueError("verdict_xlsx is required")
+    linked = validate_resequence_links(resequence_evidence, verdict_xlsx) if resequence_evidence else {}
+    if resequence_evidence and Path(output_xlsx).resolve() in {
+        Path(verdict_xlsx).resolve(), Path(resequence_evidence.verdict_xlsx).resolve(),
+    }:
+        raise ValueError("Activity output must not overwrite either NGS evidence workbook")
+    measured = {
+        to_evolvepro(link.mutant_id): _normalise_well(link.activity_well)
+        for link in (resequence_evidence.links if resequence_evidence else [])
+        if link.relationship == "measured_resequence_clone"
+    }
+    if measured and any((remeasure_report_xlsx, remeasure_numeric_xlsx, remeasure_well_xlsx)):
+        raise ValueError("Measured resequencing clones require one final activity source, not unscoped confirmation measurements")
     name, source = selected[0]
     warnings: list[str] = []
     gc_export_rows: list[tuple[str, float]] = []
@@ -703,13 +721,24 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
     else:
         well_to_variant, variant_to_well = _layout_maps(layout_xlsx)
         mapping_source = "layout_xlsx"
+    retired_wells: set[str] = set()
+    for variant, well in measured.items():
+        occupant = well_to_variant.get(well)
+        if well in wt_wells or (occupant is not None and occupant != variant):
+            raise ValueError("Activity well belongs to another variant or WT; supply the final activity layout")
+        for old_well, old_variant in list(well_to_variant.items()):
+            if old_variant == variant and old_well != well:
+                retired_wells.add(old_well)
+                del well_to_variant[old_well]
+        well_to_variant[well] = variant
+        variant_to_well[variant] = well
     if name not in {"activity_path", "numeric_report_xlsx"} and not well_to_variant:
         raise ValueError(
             f"{name} is well-labeled and needs a well->variant mapping: supply "
             "layout_xlsx, or a verdict_xlsx that names mutant_id per well"
         )
     if name == "activity_path":
-        fallback, well_by_variant, source_warnings, wt_values = _read_long(source, activity_scale, well_to_variant, variant_to_well, unmapped, wt_wells)
+        fallback, well_by_variant, source_warnings, wt_values = _read_long(source, activity_scale, well_to_variant, variant_to_well, unmapped, wt_wells, frozenset(measured))
         warnings.extend(source_warnings)
     elif name == "gc_data_xlsx":
         fallback, well_by_variant = _gc_primary(source, well_to_variant, variant_to_well, unmapped, well_values, wt_wells)
@@ -764,6 +793,13 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
     merged, stats = merge_replicates_priority({Variant(key): value for key, value in authoritative.items()}, {Variant(key): value for key, value in fallback.items()}, mismatch_threshold=mismatch_threshold)
     mismatched = [{"variant": str(variant), "authoritative": merged[variant], "fallback": sum(fallback[str(variant)]) / len(fallback[str(variant)])} for variant in stats.mismatched]
     input_count = len(merged)
+    ungated = dict(merged)
+    if retired_wells.intersection(unmapped):
+        raise ValueError("Activity contains both original and replacement clone wells; select one physical source per variant")
+    # Explicitly measured replacement clones have their OWN PASS evidence.
+    # The unchanged original gate only judges the original-source subset.
+    for variant in measured:
+        merged.pop(Variant(variant), None)
     excluded, ngs_warnings, audit, reason_counts = _strict_ngs_gate(
         merged,
         well_by_variant,
@@ -771,6 +807,41 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
         layout_xlsx,
     )
     warnings.extend(ngs_warnings)
+    rescued: list[str] = []
+    original_rows = parse_verdict_rows(verdict_xlsx) if linked else {}
+    for variant, original_well in linked.items():
+        if well_by_variant.get(variant) != original_well:
+            raise ValueError(f"Activity source well conflicts with resequencing mapping: {variant}")
+        key = Variant(variant)
+        if variant in measured:
+            if key not in ungated:
+                raise ValueError(f"No activity was measured for the selected resequencing clone: {variant}")
+            merged[key] = ungated[key]
+            warnings.append(f"NGS accepted {variant}: activity well {original_well} explicitly measures the resequencing clone")
+            continue
+        if variant not in excluded or key not in ungated:
+            continue
+        merged[key] = ungated[key]
+        excluded.remove(variant)
+        row = original_rows[original_well]
+        reason = "failed" if row.failed else "fallback" if row.is_fallback else row.verdict
+        reason_counts[reason] -= 1
+        if reason_counts[reason] == 0:
+            del reason_counts[reason]
+        rescued.append(variant)
+        warnings.append(f"NGS rescued {variant}: explicitly linked same-clone resequencing PASS; original activity retained")
+    if measured and layout_xlsx is not None and resequence_evidence is not None:
+        # Audit the declared final activity plate against the explicitly
+        # selected sources, never against a different physical plate.
+        combined = dict(original_rows)
+        repeated_rows = parse_verdict_rows(resequence_evidence.verdict_xlsx)
+        for link in resequence_evidence.links:
+            if link.relationship == "measured_resequence_clone":
+                combined[_normalise_well(link.activity_well)] = repeated_rows[_normalise_well(link.resequence_well)]
+        audit = audit_labels(
+            {entry.well_id: entry.mutant for entry in parse_plate_layout_xlsx(layout_xlsx)},
+            combined,
+        )
     # A measured well the mapping does not name held nothing this run scored:
     # under a layout sheet that is a well the sheet omits, and under the derived
     # mapping it is a well whose NGS produced no replicate result at all. Either
@@ -830,6 +901,17 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
     if remeasure_well_xlsx is not None:
         normalization_sources.append("remeasure_well_xlsx:report_wt")
     evidence_hash = _sha256(Path(verdict_xlsx))
+    evidence_provenance = None
+    if resequence_evidence:
+        evidence_provenance = {
+            **resequence_evidence.model_dump(),
+            "original_sha256": evidence_hash,
+            "resequence_sha256": _sha256(Path(resequence_evidence.verdict_xlsx)),
+            "rescued_variants": rescued,
+        }
+        evidence_hash = "sha256:" + hashlib.sha256(
+            json.dumps(evidence_provenance, sort_keys=True).encode("utf-8")
+        ).hexdigest()
     evaluable_count = input_count - reason_counts.get("missing", 0) - reason_counts.get("CONFLICT", 0)
     manifest = {
         "schema_version": 1,
@@ -841,6 +923,7 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
         "exclusion_reason_counts": reason_counts,
         "normalization_sources": normalization_sources,
         "evidence_hash": evidence_hash,
+        **({"resequence_evidence": evidence_provenance} if evidence_provenance else {}),
     }
     artifact_hashes = _publish_artifact_bundle(writers, manifest_path, manifest)
     return BuildEvolveproResult(

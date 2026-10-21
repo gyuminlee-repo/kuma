@@ -184,6 +184,27 @@
     }
   },
   "mame": {
+    "resequence": {
+      "relationship": "Origine de la mesure d’activité",
+      "measuredClone": "Activité mesurée sur le clone reséquencé",
+      "measuredConfirm": "Je confirme que ce puits mesure le clone reséquencé sélectionné, et non le clone initial.",
+      "activityWell": "Puits d’activité final",
+      "title": "Reséquençage Nanopore",
+      "description": "Entrées indépendantes, analyse de n réplicats et sélection automatique. Les résultats initiaux sont conservés ; le transfert est séparé.",
+      "manualTitle": "Confirmation manuelle",
+      "manualDescription": "Vérification manuelle facultative d’une copie de plaque, sans lancer d’analyse de séquençage.",
+      "primary": "Analyse initiale",
+      "busy": "Une autre analyse est en cours. Terminez-la ou annulez-la d’abord.",
+      "evidenceTitle": "Preuves de reséquençage",
+      "evidenceDescription": "Sélectionnez l’origine physique de chaque puits lié. Le même clone conserve l’activité initiale. Un clone reséquencé mesuré utilise le puits explicitement affecté. Les activités de clones distincts ne sont pas regroupées.",
+      "originalClone": "Clone de l’activité initiale",
+      "repeatedClone": "Clone reséquencé (PASS automatique)",
+      "sameClone": "Je confirme le même clone physique et l’origine des données d’activité dans la source initiale affichée.",
+      "linkEvidence": "Relier les preuves",
+      "removeLink": "Supprimer le lien",
+      "incompatible": "Les identités des mutants diffèrent. Ce lien est interdit.",
+      "staleMapping": "Les fichiers ne correspondent plus aux analyses sélectionnées. Supprimez et recréez le lien."
+    },
     "plateOrder": {
       "title": "Plate order disagreement in {{filename}}",
       "bodyBlocked": "The primer plate on sheet {{sheet}} and the order of expected_mutations do not match, so the same workbook describes two different plates and nothing in it records which one was pipetted. The run is blocked until that is settled.",
@@ -1546,7 +1567,7 @@
       "subset": "Ce dossier de run contient {{detected}} native barcodes, dont {{replicates}} ont été évalués comme replicates. Les autres ne figurent pas dans ces résultats."
     },
     "manualConfirm": {
-      "title": "2.3 Séquençage supplémentaire : confirmer une copie de plaque",
+      "title": "2.4 Confirmation manuelle",
       "description": "À utiliser après avoir re-séquencé un puits ou l'avoir vérifié autrement. Choisissez la copie de plaque existante à utiliser et notez comment vous l'avez confirmée. Ce choix remplace la sélection automatique dans la carte de plaque, le classeur de résultats et la liste de prélèvement ; le verdict d'origine est conservé.",
       "needsTitle": "Puits sans copie sélectionnée utilisable : {{count}}",
       "needsEmpty": "Chaque puits a une copie sélectionnée utilisable.",

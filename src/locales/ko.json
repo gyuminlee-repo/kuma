@@ -184,6 +184,27 @@
     }
   },
   "mame": {
+    "resequence": {
+      "relationship": "활성 측정의 출처",
+      "measuredClone": "재시퀀싱 clone의 활성을 측정함",
+      "measuredConfirm": "이 활동 well은 원본 clone이 아니라 선택한 재시퀀싱 clone의 활성을 측정했음을 확인합니다.",
+      "activityWell": "최종 활동 well",
+      "title": "Nanopore 재시퀀싱",
+      "description": "독립 입력으로 n-replicate 분석과 자동 선택을 실행합니다. 원본 결과는 유지되며 물리적 이송은 별도 단계입니다.",
+      "manualTitle": "수동 확인",
+      "manualDescription": "플레이트 사본의 보조 수동 검토입니다. 시퀀싱 분석을 실행하지 않습니다.",
+      "primary": "원본 분석",
+      "busy": "다른 분석이 진행 중입니다. 완료하거나 취소한 뒤 실행하세요.",
+      "evidenceTitle": "재시퀀싱 증거",
+      "evidenceDescription": "연결할 활동 well의 물리적 출처를 선택하세요. 동일 clone 증거는 원본 활성을 유지합니다. 재시퀀싱 clone을 측정한 경우 지정한 활동 well만 사용하며 서로 다른 clone의 활성값은 합치지 않습니다.",
+      "originalClone": "원본 활성 측정 clone",
+      "repeatedClone": "재시퀀싱 clone (자동 PASS)",
+      "sameClone": "두 항목은 동일한 물리적 clone이며 활성 데이터의 출처가 표시된 원본임을 확인합니다.",
+      "linkEvidence": "증거 연결 추가",
+      "removeLink": "연결 제거",
+      "incompatible": "Mutant identity가 다르므로 연결할 수 없습니다.",
+      "staleMapping": "증거 파일이 선택된 실행과 일치하지 않습니다. 연결을 제거한 뒤 다시 지정하세요."
+    },
     "plateOrder": {
       "title": "{{filename}} 의 플레이트 순서가 어긋납니다",
       "bodyBlocked": "{{sheet}} 시트의 프라이머 플레이트와 expected_mutations 의 순서가 다릅니다. 한 워크북이 서로 다른 두 플레이트를 적고 있고, 실제로 분주한 쪽이 어느 것인지는 파일 어디에도 없습니다. 정리될 때까지 실행을 막습니다.",
@@ -1546,7 +1567,7 @@
       "subset": "이 run 폴더에는 native barcode 가 {{detected}}개 있고 그중 {{replicates}}개만 replicate 로 판정했다. 나머지는 이 결과에 없다."
     },
     "manualConfirm": {
-      "title": "2.3 추가 시퀀싱: 플레이트 사본 확인",
+      "title": "2.4 수동 확인",
       "description": "웰을 다시 시퀀싱했거나 다른 방법으로 확인한 뒤 사용합니다. 쓸 기존 플레이트 사본을 고르고 확인 방법을 기록하세요. 선택은 플레이트 맵, 결과 워크북, 선별 목록의 자동 선택을 대체하며 원래 판정은 보존됩니다.",
       "needsTitle": "사용 가능한 선택 사본이 없는 웰: {{count}}개",
       "needsEmpty": "모든 웰에 사용 가능한 선택 사본이 있습니다.",

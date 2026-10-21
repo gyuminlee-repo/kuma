@@ -8,7 +8,7 @@ import {
   hasExtension,
 } from "@/lib/mame/fileExtensions";
 import { AppShell } from "@/components/shell/AppShell";
-import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { MameRunStoreContext, resequenceStore, useMameAppStore } from "@/store/mame/mameAppStore";
 import { resetMameAll } from "@/store/mame/resetAll";
 import { useKumaProject } from "@/state/projectContext";
 import { selectCanRun } from "@/store/mame/selectors";
@@ -67,6 +67,8 @@ const DROPPABLE_EXTENSIONS = [...MAME_SEQUENCE_EXTENSIONS, ...MAME_EXCEL_EXTENSI
 
 // ContextHeader 제목/부제 — sub-step별 i18n 키 매핑
 const CONTEXT_TITLE_KEYS: Record<MameSubStepId, { title: string; subtitle: string }> = {
+  "analyze.resequence": { title: "mame.resequence.title", subtitle: "mame.resequence.description" },
+  "analyze.confirm": { title: "mame.resequence.manualTitle", subtitle: "mame.resequence.manualDescription" },
   "setup.files":        { title: "mame.setup.files.contextTitle",         subtitle: "mame.setup.files.contextSubtitle" },
   "setup.design":       { title: "mame.setup.design.contextTitle",        subtitle: "mame.setup.design.contextSubtitle" },
   "analyze.inputs":     { title: "mame.qc.inputs.contextTitle",           subtitle: "mame.qc.inputs.contextSubtitle" },
@@ -79,6 +81,13 @@ const CONTEXT_TITLE_KEYS: Record<MameSubStepId, { title: string; subtitle: strin
   "activity.signals":   { title: "mame.activity.mergeExport.contextTitle", subtitle: "mame.activity.mergeExport.contextSubtitle" },
   "activity.mergeExport": { title: "mame.activity.mergeExport.contextTitle", subtitle: "mame.activity.mergeExport.contextSubtitle" },
 };
+
+function activeAnalysisStore() {
+  const state = useMameAppStore.getState();
+  return (state.currentMameSubStep === "analyze.resequence"
+    || (state.currentMameSubStep === "janus.settings" && state.janusRunScope === "resequence"))
+    ? resequenceStore : useMameAppStore;
+}
 
 export function MameAppLayout() {
   const { t } = useTranslation();
@@ -93,6 +102,8 @@ export function MameAppLayout() {
   }, []);
   const runHealth = useMameAppStore((s) => s.runHealth);
   const isAnalyzing = useMameAppStore((s) => s.isAnalyzing);
+  const isResequencing = resequenceStore((s) => s.isAnalyzing);
+  const janusRunScope = useMameAppStore((s) => s.janusRunScope);
   const mamePhase = useMameAppStore((s) => s.mamePhase);
   const setMamePhase = useMameAppStore((s) => s.setMamePhase);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -122,12 +133,13 @@ export function MameAppLayout() {
    * AnalyzeStepView와 키보드 단축키 모두 이 콜백을 사용.
    */
   const tryRunAnalysis = useCallback(() => {
-    const s = useMameAppStore.getState();
+    const target = activeAnalysisStore();
+    const s = target.getState();
     if (!selectCanRun(s)) return;
     void runPreflightCheck({ sidecarStatus: status, requiresNetwork: false }).then(
       (pfResult) => {
         const actualRun = () => {
-          void flushMameAutosave().then(() => useMameAppStore.getState().runAnalysis());
+          void flushMameAutosave().then(() => target.getState().runAnalysis());
         };
         if (!pfResult.ok || pfResult.warnings.length > 0) {
           setPreflightResult({ result: pfResult, pendingAction: actualRun });
@@ -140,12 +152,12 @@ export function MameAppLayout() {
 
   // §1 Dead-lock 감지: analysis 진행 중 DEADLOCK_THRESHOLD_MS 초과 시 모달 표시
   useEffect(() => {
-    if (!isAnalyzing) return;
+    if (!isAnalyzing && !isResequencing) return;
     return startDeadlockWatch({
       getLastProgressAt,
       onDeadlock: () => setDeadlockOpen(true),
     });
-  }, [isAnalyzing]);
+  }, [isAnalyzing, isResequencing]);
 
   useEffect(() => {
     let cancelled = false;
@@ -182,7 +194,7 @@ export function MameAppLayout() {
                 let routed = false;
                 for (const filePath of paths) {
                   if (hasExtension(filePath, MAME_SEQUENCE_EXTENSIONS)) {
-                    useMameAppStore.getState().setReferencePath(filePath);
+                    activeAnalysisStore().getState().setReferencePath(filePath);
                     routed = true;
                     break;
                   }
@@ -192,7 +204,7 @@ export function MameAppLayout() {
                     );
                     // Same entry as Browse: plate order and variant source are
                     // asked about the dropped workbook too.
-                    useMameAppStore.getState().chooseExpectedPath(filePath);
+                    activeAnalysisStore().getState().chooseExpectedPath(filePath);
                     routed = true;
                     break;
                   }
@@ -247,7 +259,7 @@ export function MameAppLayout() {
       if (!(e.target instanceof Element)) return;
       const tag = e.target.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-      const s = useMameAppStore.getState();
+      const s = activeAnalysisStore().getState();
       switch (e.key.toLowerCase()) {
         case "e":
           e.preventDefault();
@@ -293,9 +305,9 @@ export function MameAppLayout() {
       <AppShell
         tool="mame"
         titlebar={
-          <MenuBar
-            onClearRequest={() => setClearConfirmOpen(true)}
-          />
+          <MameRunStoreContext.Provider value={currentSubStep === "analyze.resequence" || (currentSubStep === "janus.settings" && janusRunScope === "resequence") ? resequenceStore : null}>
+            <MenuBar onClearRequest={() => setClearConfirmOpen(true)} />
+          </MameRunStoreContext.Provider>
         }
         subnav={
           <div className="flex items-center w-full mx-3 mt-2">
@@ -318,7 +330,7 @@ export function MameAppLayout() {
               size="sm"
               className="ml-auto mr-3 h-7 rounded-control text-caption"
               onClick={() => setClearConfirmOpen(true)}
-              disabled={isAnalyzing}
+              disabled={isAnalyzing || isResequencing}
             >
               {t("appLayout.clearAll")}
             </Button>
@@ -368,14 +380,18 @@ export function MameAppLayout() {
             </TabsContent>
 
             {/* DrawerStrip — 하단 3-슬롯 */}
-            <DrawerStrip
+            {(drawerProps.left || drawerProps.center || drawerProps.right) && <DrawerStrip
               left={drawerProps.left}
               center={drawerProps.center}
               right={drawerProps.right}
-            />
+            />}
           </div>
         }
-        statusbar={<StatusBar sidecarStatus={status} onRetry={retry} />}
+        statusbar={
+          <MameRunStoreContext.Provider value={currentSubStep === "analyze.resequence" || (currentSubStep === "janus.settings" && janusRunScope === "resequence") ? resequenceStore : null}>
+            <StatusBar sidecarStatus={status} onRetry={retry} />
+          </MameRunStoreContext.Provider>
+        }
         isDragOver={isDragOver}
         className="h-full"
       >
@@ -413,7 +429,7 @@ export function MameAppLayout() {
                 variant="outline"
                 className="text-error border-error/40 hover:bg-error/8"
                 onClick={() => {
-                  void useMameAppStore.getState().cancelAnalysis();
+                  void (resequenceStore.getState().isAnalyzing ? resequenceStore : useMameAppStore).getState().cancelAnalysis();
                   setDeadlockOpen(false);
                 }}
               >
@@ -425,6 +441,10 @@ export function MameAppLayout() {
 
         <ExportDialog />
         <NativeBarcodeConfirmDialog />
+        <MameRunStoreContext.Provider value={resequenceStore}>
+          <ExportDialog />
+          <NativeBarcodeConfirmDialog />
+        </MameRunStoreContext.Provider>
         <ClearConfirmDialog
           open={clearConfirmOpen}
           onOpenChange={setClearConfirmOpen}

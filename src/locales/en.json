@@ -184,6 +184,27 @@
     }
   },
   "mame": {
+    "resequence": {
+      "relationship": "Activity measurement source",
+      "measuredClone": "Activity measured from the resequencing clone",
+      "measuredConfirm": "I confirm this activity well measures the selected resequencing clone, not the original clone.",
+      "activityWell": "Final activity well",
+      "title": "Nanopore resequencing",
+      "description": "Independent inputs, n-replicate analysis and automatic selection. Original results are preserved; transfer is a separate step.",
+      "manualTitle": "Manual confirmation",
+      "manualDescription": "Optional manual review of a plate copy. This does not run sequencing analysis.",
+      "primary": "Original analysis",
+      "busy": "Another analysis is running. Finish or cancel it first.",
+      "evidenceTitle": "Resequencing evidence",
+      "evidenceDescription": "Select the physical source of each linked activity well. Same-clone evidence retains original activity; a measured resequencing clone uses its explicitly assigned activity well. No activity is pooled across clones.",
+      "originalClone": "Original activity clone",
+      "repeatedClone": "Resequenced clone (automatic PASS)",
+      "sameClone": "I confirm these are the same physical clone and the activity belongs to the original source shown.",
+      "linkEvidence": "Add evidence link",
+      "removeLink": "Remove link",
+      "incompatible": "Mutant identities differ. This link cannot be used.",
+      "staleMapping": "The evidence files no longer match the selected runs. Remove and recreate the mapping."
+    },
     "plateOrder": {
       "title": "Plate order disagreement in {{filename}}",
       "bodyBlocked": "The primer plate on sheet {{sheet}} and the order of expected_mutations do not match, so the same workbook describes two different plates and nothing in it records which one was pipetted. The run is blocked until that is settled.",
@@ -1546,7 +1567,7 @@
       "subset": "This run folder holds {{detected}} native barcodes and {{replicates}} of them were scored as replicates. The rest are not in these results."
     },
     "manualConfirm": {
-      "title": "2.3 Additional sequencing: confirm a plate copy",
+      "title": "2.4 Manual confirmation",
       "description": "Use this after you resequenced or checked a well another way. Pick which existing plate copy to use and record how you confirmed it. The choice replaces the automatic pick in the plate map, the result workbook and the pick list; the original verdict is kept.",
       "needsTitle": "Wells with no usable selected copy: {{count}}",
       "needsEmpty": "Every well has a usable selected copy.",

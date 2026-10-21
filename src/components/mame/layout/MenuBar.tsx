@@ -87,6 +87,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
   const projectArchive = useProjectArchiveActions(project?.path, project?.name);
   const hasResults = useMameAppStore((s) => s.verdicts.length > 0);
   const isAnalyzing = useMameAppStore((s) => s.isAnalyzing);
+  const isResequence = useMameAppStore((s) => s.runScope === "resequence");
   const loadSampleData = useMameAppStore((s) => s.loadSampleData);
   const currentMameSubStep = useMameAppStore((s) => s.currentMameSubStep);
   const logPanelVisible = useAppStore((s) => s.logPanelVisible);
@@ -383,7 +384,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
             {t("help.userGuide")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={loadSampleData} disabled={isAnalyzing}>
+          <DropdownMenuItem onClick={loadSampleData} disabled={isAnalyzing || isResequence}>
             {t("help.loadSampleData")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />

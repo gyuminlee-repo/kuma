@@ -1,7 +1,8 @@
 import type { StateCreator } from "zustand";
 import i18next from "i18next";
 import { toast } from "sonner";
-import { cancelAndRespawn, sendRequest } from "@/lib/ipc-mame";
+import { cancelAndRespawn } from "@/lib/ipc-mame";
+import { otherRunBusy, restoreRunCaches, sendRunRequest } from "@/lib/mame/runRequests";
 import { formatError } from "@/lib/utils";
 import { defaultMameExportFilename } from "@/lib/mameFilename";
 import { writeMameResultSnapshot } from "@/lib/mame/resultSnapshot";
@@ -292,6 +293,8 @@ function analyzeInputParams(state: AppState) {
 }
 
 export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set, get) => {
+  const sendRequest = <T>(method: string, params: Record<string, unknown> = {}, timeoutMs?: number) =>
+    sendRunRequest<T>(get(), method, params, timeoutMs);
   // Ownership of analyze replies. A run may write the store only while no
   // cancel, reset and no newer run has happened since it began. A reset ends
   // the run explicitly (resetAll.ts cancels the backend and tells the user), so
@@ -720,7 +723,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     );
     if (run !== analysisRun) return;
     warnIfInputsChanged(startIdentity);
-    persistRoundAnalyzeEvidence(targetRoundId, runId, result);
+    if (state.runScope !== "resequence") persistRoundAnalyzeEvidence(targetRoundId, runId, result);
+    set({ analyzeResult: result });
 
     get().setVerdicts(result.verdicts);
     get().setReplicates(result.replicates);
@@ -762,7 +766,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     // review view. Awaited so an immediate app-close does not lose it. Failure
     // must not break the in-memory flow (best-effort).
     try {
-      await writeMameResultSnapshot(get().projectPath, result, startIdentity);
+      await writeMameResultSnapshot(get().projectPath, result, startIdentity, state.runScope);
     } catch (err) {
       console.warn("[inputSlice] persist analyze result failed:", err);
     }
@@ -784,6 +788,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     });
   },
   runAnalysis: async () => {
+    if (get().isAnalyzing || otherRunBusy(get().runScope)) {
+      set({ validationErrors: [i18next.t("mame.resequence.busy")] });
+      return;
+    }
     // No plate-order gate here any more. The operator names the sheet and the
     // column the variant list is read from (v0.15.6), so a disagreement between
     // two sheets of one workbook is reported by PlateOrderNotice and left to
@@ -868,7 +876,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       );
       if (run !== analysisRun) return;
       warnIfInputsChanged(startIdentity);
-      persistRoundAnalyzeEvidence(targetRoundId, runId, result);
+      if (state.runScope !== "resequence") persistRoundAnalyzeEvidence(targetRoundId, runId, result);
+      set({ analyzeResult: result });
 
       get().setVerdicts(result.verdicts);
       get().setReplicates(result.replicates);
@@ -899,7 +908,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       // this run's `clearResults()` already left it (null).
       set({ janusAutosave: result.janus_autosave ?? null });
       try {
-        await writeMameResultSnapshot(get().projectPath, result, startIdentity);
+        await writeMameResultSnapshot(get().projectPath, result, startIdentity, state.runScope);
       } catch (err) {
         console.warn("[inputSlice] persist analyze result failed:", err);
       }
@@ -997,6 +1006,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     set({ analyzeMessage: "Cancelling…" });
     try {
       await cancelAndRespawn();
+      await restoreRunCaches();
     } catch (error) {
       console.warn("[inputSlice] cancel failed:", error);
     }

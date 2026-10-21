@@ -29,6 +29,7 @@ import {
   roundOwningOutput,
 } from "@/lib/round/roundArtifacts";
 import { Button } from "@/components/ui/button";
+import { ResequenceEvidencePanel } from "./ResequenceEvidencePanel";
 import { Input } from "@/components/ui/input";
 import { InlineHelp } from "@/components/ui/InlineHelp";
 import {
@@ -676,6 +677,7 @@ export function BuildEvolveproInputPanel() {
       remeasure_well_xlsx:
         form.confirmationSource === "wellLabels" ? form.remeasureWellXlsx : undefined,
       verdict_xlsx: form.verdictXlsx,
+      resequence_evidence: form.resequenceEvidence ?? undefined,
       output_xlsx: form.outputXlsx,
       allow_label_mismatch: allowLabelMismatch,
       mismatch_threshold: form.mismatchThreshold,
@@ -1114,6 +1116,11 @@ export function BuildEvolveproInputPanel() {
             )}
           </section>
 
+          <ResequenceEvidencePanel
+            value={form.resequenceEvidence ?? null}
+            verdictPath={form.verdictXlsx}
+            onChange={(resequenceEvidence) => setForm({ resequenceEvidence })}
+          />
           <LayoutDisclosure open={layoutOpen} onOpenChange={setLayoutOpen}>
             <FilePickerField
               id="bep-layout"

@@ -81,6 +81,7 @@ function baseState(overrides: Partial<MockMameState> = {}): MockMameState {
 let mockState: MockMameState = baseState();
 
 vi.mock("@/store/mame/mameAppStore", () => ({
+  useMameStoreApi: () => ({ getState: () => mockState }),
   useMameAppStore: Object.assign(
     (selector: (s: MockMameState) => unknown) => selector(mockState),
     { getState: () => mockState },

@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { cancelAndRespawn, sendRequest, isSidecarRunning } from "@/lib/ipc-mame";
 import { formatError } from "@/lib/utils";
 import { useRoundStore } from "@/store/round/roundSlice";
-import { useMameAppStore } from "./mameAppStore";
+import { resequenceStore, useMameAppStore } from "./mameAppStore";
 import { clearWorkspace, getActiveWorkspace } from "@/lib/workspace";
 
 /**
@@ -25,7 +25,12 @@ export async function resetMameAll(options?: { preserveWorkspaceArtifacts?: bool
   // A reset ends the running analysis instead of letting its reply land in the
   // cleared (or next project's) workspace. resetInput retires the run on the
   // frontend; the backend run is killed below and the user is told why.
-  const analysisWasRunning = state.isAnalyzing;
+  const analysisWasRunning = state.isAnalyzing || resequenceStore.getState().isAnalyzing;
+  resequenceStore.getState().resetInput();
+  resequenceStore.getState().resetAnalysis();
+  resequenceStore.getState().resetExport();
+  resequenceStore.setState({ resequenceSnapshot: null, currentMameSubStep: "analyze.inputs" });
+  useMameAppStore.setState({ resequenceSnapshot: null });
   state.resetInput();
   state.resetAnalysis();
   state.resetExport();

@@ -46,7 +46,7 @@ import { normalizeRoundPicks } from "@/lib/plateRounds";
 import { buildKuroResultResetPatch } from "@/lib/kuroResultReset";
 import { fingerprintSource, fingerprintsEqual, type SourceFingerprint } from "@/lib/sourceFingerprint";
 import { MAJOR_ORDER, SUBSTEP_ORDER, type MajorStepId, type StepStatus, type SubStepId } from "@/store/slices/navigationSlice";
-import { MAME_SCHEMA, readMameReviewResults } from "@/lib/mame/autosaveSnapshot";
+import { MAME_SCHEMA, buildMameSnapshot, readMameReviewResults } from "@/lib/mame/autosaveSnapshot";
 import { detectProjectFiles, detectFromInputDir } from "@/lib/mame/detectProjectFiles";
 import {
   basename as inputBasename,
@@ -63,7 +63,7 @@ import { exists } from "@tauri-apps/plugin-fs";
 import { closeWorkspace, getLatestArtifact, openWorkspace } from "@/lib/workspace";
 import { resolvePolymeraseName, retiredPolymeraseNotice } from "@/lib/polymeraseAliases";
 import { useAppStore } from "@/store/appStore";
-import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { resequenceStore, useMameAppStore } from "@/store/mame/mameAppStore";
 import { resetMameAll } from "@/store/mame/resetAll";
 import { useRoundStore } from "@/store/round/roundSlice";
 import type { AppState } from "@/store/appStore";
@@ -1350,13 +1350,14 @@ export async function applyMameAutoDetect(
   projectPath: string,
   onMessage: (filled: string[]) => void,
   isCurrent?: () => boolean,
+  target = useMameAppStore,
 ): Promise<void> {
   const alive = () => isCurrent?.() ?? true;
   const detected = await detectProjectFiles(projectPath);
   // await 동안 취소됐으면 store 캡처 자체를 하지 않는다. 여기서 끊지 않으면
   // 아래 빈 필드 판정이 다음 프로젝트의 store를 읽고 쓰게 된다.
   if (!alive()) return;
-  const store = useMameAppStore.getState();
+  const store = target.getState();
   const filled: string[] = [];
 
   // store.inputDir가 비어있었는지 기록 (setInputDir 이전 캡처)
@@ -1404,7 +1405,7 @@ export async function applyMameAutoDetect(
     const fromInputDir = await detectFromInputDir(detected.inputDir);
     // 두 번째 await 뒤 재확인. storeAfter 캡처가 다음 프로젝트 상태를 잡는 것을 막는다.
     if (!alive()) return;
-    const storeAfter = useMameAppStore.getState();
+    const storeAfter = target.getState();
 
     if (!storeAfter.referencePath && fromInputDir.referencePath) {
       if (!alive()) return;
@@ -1428,7 +1429,7 @@ export async function applyMameAutoDetect(
     }
   }
 
-  const storeAfterDetection = useMameAppStore.getState();
+  const storeAfterDetection = target.getState();
   if (!storeAfterDetection.expectedPath) {
     try {
       // One lookup at a time with a cancellation check after each, like every
@@ -1438,8 +1439,8 @@ export async function applyMameAutoDetect(
       const legacyWorkbook = await getLatestArtifact("sdm_primer_xlsx");
       if (!alive()) return;
       const kuroWorkbook = newestArtifactPath(platemap, legacyWorkbook);
-      if (kuroWorkbook && !useMameAppStore.getState().expectedPath) {
-        useMameAppStore.getState().chooseExpectedPath(kuroWorkbook);
+      if (kuroWorkbook && !target.getState().expectedPath) {
+        target.getState().chooseExpectedPath(kuroWorkbook);
         filled.push(i18next.t("autosaveHydration.fieldExpected"));
       }
     } catch (err) {
@@ -1500,11 +1501,19 @@ interface MameSnapshotApplyOutcome {
   incompleteResults: string[];
 }
 
-function applyMameSnapshot(
+export function applyMameSnapshot(
   snapshot: MameAutosaveSnapshot,
   projectPath: string | null = null,
+  target = useMameAppStore,
 ): MameSnapshotApplyOutcome {
-  const store = useMameAppStore.getState();
+  const store = target.getState();
+  if ((snapshot.run_scope ?? "primary") !== (store.runScope ?? "primary")) {
+    return { incompleteResults: ["run_scope"] };
+  }
+  if (target === useMameAppStore && snapshot.resequence) {
+    applyMameSnapshot(snapshot.resequence, projectPath, resequenceStore);
+    target.setState({ resequenceSnapshot: snapshot.resequence.run_scope === "resequence" ? snapshot.resequence : null });
+  }
   const { input, parameters } = snapshot;
 
   store.setParams({
@@ -1527,7 +1536,7 @@ function applyMameSnapshot(
   // file), so the saved mapping goes back on after it. The sidecar is asked
   // about the workbook again at the end of hydration, once the path is final;
   // an explicit choice survives that, a suggestion is re-derived.
-  useMameAppStore.setState({
+  target.setState({
     variantSheet: typeof input.variant_sheet === "string" ? input.variant_sheet : null,
     variantColumn: typeof input.variant_column === "string" ? input.variant_column : null,
     variantSelectionExplicit: input.variant_selection_explicit === true,
@@ -1542,7 +1551,7 @@ function applyMameSnapshot(
       ? parameters.cds_selection_explicit
       : parameters.cds_end > parameters.cds_start;
   store.setParams({ cdsStart: parameters.cds_start, cdsEnd: parameters.cds_end });
-  useMameAppStore.setState({
+  target.setState({
     cdsSelectionExplicit: cdsExplicit,
     selectedAnalyzeCdsIndex:
       typeof parameters.selected_analyze_cds_index === "number"
@@ -1565,22 +1574,30 @@ function applyMameSnapshot(
       : "last_well",
   );
 
-  if (Array.isArray(snapshot.rounds)) {
+  if (target === useMameAppStore && Array.isArray(snapshot.rounds)) {
     useRoundStore.setState({
       rounds: snapshot.rounds,
       active_round_id: snapshot.active_round_id ?? null,
     });
   }
 
-  useMameAppStore.setState({
+  target.setState({
     validationErrors: [],
     analyzeMessage: i18next.t("autosaveHydration.workspaceRestored"),
   });
 
   const results = snapshot.results as Record<string, unknown> | undefined;
   if (results === undefined) return { incompleteResults: [] };
+  if (target === resequenceStore) {
+    const provenance = provenanceFor(snapshot.kuma_version, __APP_VERSION__, snapshot.result_contract);
+    if (provenance) {
+      store.clearResults();
+      store.setRestoredResultProvenance(provenance);
+      return { incompleteResults: [] };
+    }
+  }
 
-  const patch: Partial<MameAppState> = {};
+  const patch: Partial<MameAppState> = { analyzeResult: snapshot.run_result ?? null };
   // 리뷰 화면이 한 답으로 읽는 여섯 필드는 한 번에 결정한다. 판정은 쓰는 쪽
   // 옆(autosaveSnapshot.readMameReviewResults)에 있고 여기서는 결과만 받는다.
   // 예전에는 여섯이 각자 if 였고, 게다가 배열 쪽은 Array.isArray 로 null 을
@@ -1667,7 +1684,7 @@ function applyMameSnapshot(
     patch.mamePhase = "analyze";
     patch.currentMameSubStep = "analyze.review";
   }
-  useMameAppStore.setState(patch);
+  target.setState(patch);
   return { incompleteResults };
 }
 
@@ -1758,16 +1775,22 @@ async function restoreMameResult(
   projectPath: string,
   inputRead: ReadAutosaveResult,
   isCurrent?: () => boolean,
+  target = useMameAppStore,
 ): Promise<boolean> {
   const alive = () => isCurrent?.() ?? true;
-  const read = await readMameResultSnapshot(projectPath);
+  if (target === useMameAppStore && alive()) {
+    const nested = inputRead.status === "ok"
+      ? (inputRead.snapshot as MameAutosaveSnapshot).resequence : null;
+    await restoreMameResult(projectPath, nested ? { status: "ok", snapshot: nested } : { status: "missing" }, alive, resequenceStore);
+  }
+  const read = await readMameResultSnapshot(projectPath, target.getState().runScope);
   if (read.status !== "ok") return false;
   if (inputsChangedSinceResult(inputRead, read.snapshot)) return false;
   // RPC 자체가 사이드카 쓰기다. 호출 전에 막아야 한다.
   if (!alive()) return false;
 
   const { result } = read.snapshot;
-  const store = useMameAppStore.getState();
+  const store = target.getState();
 
   // Whose engine produced this. A result another build scored is not this
   // build's answer, so it is not replayed at all: not into the sidecar, not
@@ -1793,6 +1816,7 @@ async function restoreMameResult(
   }
 
   await sendMameRequest<LoadAnalyzeResultResponse>("load_analyze_result", {
+    ...(store.runScope === "resequence" ? { run_scope: "resequence" } : {}),
     verdicts: result.verdicts,
     replicates: result.replicates,
     output_path: result.output_path,
@@ -1889,7 +1913,7 @@ async function restoreMameResult(
   // `export_janus_mapping` call and it states a deck describing the room at
   // the moment it was written; reasserting that on reopen would claim a
   // mapping this session never exported.
-  useMameAppStore.setState({ janusAutosave: result.janus_autosave ?? null });
+  target.setState({ analyzeResult: result, janusAutosave: result.janus_autosave ?? null });
   if (!alive()) return false;
   await store.loadPlateData();
   if (!alive()) return false;
@@ -1898,6 +1922,9 @@ async function restoreMameResult(
   await store.loadRunHealth();
   if (!alive()) return false;
   store.setMameSubStep("analyze.review");
+  if (target === resequenceStore) {
+    useMameAppStore.setState({ resequenceSnapshot: buildMameSnapshot(target.getState(), undefined, projectPath) });
+  }
   return true;
 }
 

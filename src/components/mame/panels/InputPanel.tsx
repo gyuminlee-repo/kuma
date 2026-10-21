@@ -3,7 +3,7 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import { Download, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
-import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { useMameAppStore, useMameStoreApi } from "@/store/mame/mameAppStore";
 import { useKumaProject } from "@/state/projectContext";
 import { applyMameAutoDetect } from "@/hooks/useAutosaveHydration";
 import { detectFromInputDir } from "@/lib/mame/detectProjectFiles";
@@ -48,7 +48,9 @@ function toSinglePath(result: string | string[] | null): string | null {
 }
 
 export function InputPanel() {
+  const storeApi = useMameStoreApi();
   const { t } = useTranslation();
+  const runScope = useMameAppStore((s) => s.runScope);
   const inputDir = useMameAppStore((s) => s.inputDir);
   const inputMode = useMameAppStore((s) => s.inputMode);
   const expectedPath = useMameAppStore((s) => s.expectedPath);
@@ -79,12 +81,12 @@ export function InputPanel() {
   function startDetection() {
     const generation = ++detectionRef.current;
     const path = project?.path;
-    const epoch = useMameAppStore.getState().resetEpoch;
+    const epoch = storeApi.getState().resetEpoch;
     return {
       isLatest: () => generation === detectionRef.current,
       isCurrent: () => generation === detectionRef.current
         && projectPathRef.current === path
-        && useMameAppStore.getState().resetEpoch === epoch,
+        && storeApi.getState().resetEpoch === epoch,
     };
   }
 
@@ -99,7 +101,7 @@ export function InputPanel() {
         } else {
           toast.success(t("mame.inputPanel.toastAutoDetected", { items: filled.join(", ") }));
         }
-      }, scan.isCurrent);
+      }, scan.isCurrent, storeApi);
     } finally {
       if (scan.isLatest()) setIsDetecting(false);
     }
@@ -118,8 +120,8 @@ export function InputPanel() {
     setIsAutoFilling(true);
     try {
       const detectedPaths = await detectFromInputDir(selected);
-      if (!scan.isCurrent() || useMameAppStore.getState().inputDir !== selected) return;
-      const store = useMameAppStore.getState();
+      if (!scan.isCurrent() || storeApi.getState().inputDir !== selected) return;
+      const store = storeApi.getState();
       const filled: string[] = [];
 
       if (!store.referencePath && detectedPaths.referencePath) {
@@ -304,7 +306,7 @@ export function InputPanel() {
         <div>
           <h3 className="text-sm font-semibold text-foreground">{t("mame.inputPanel.title")}</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            {t("mame.inputPanel.subtitle")}
+            {t(runScope === "resequence" ? "mame.resequence.title" : "mame.inputPanel.subtitle")}
           </p>
         </div>
         <Button

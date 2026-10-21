@@ -63,6 +63,8 @@ describe("MAME_SUBSTEP_ORDER", () => {
     expect(MAME_SUBSTEP_ORDER.analyze).toEqual([
       "analyze.inputs",
       "analyze.review",
+      "analyze.resequence",
+      "analyze.confirm",
     ]);
     expect(MAME_SUBSTEP_ORDER.janus).toEqual(["janus.settings"]);
     expect(MAME_SUBSTEP_ORDER.activity).toEqual([
@@ -151,9 +153,9 @@ describe("NavigationSlice — janus phase 경계", () => {
     store = makeStore();
   });
 
-  it("analyze.review 다음은 janus.settings 이다", () => {
+  it("analyze.confirm 다음은 janus.settings 이다", () => {
     store.setMamePhase("analyze");
-    store.setMameSubStep("analyze.review");
+    store.setMameSubStep("analyze.confirm");
 
     store.goToNextStep();
 
@@ -179,13 +181,13 @@ describe("NavigationSlice — janus phase 경계", () => {
     expect(store.currentMameSubStep).toBe("janus.settings");
   });
 
-  it("janus.settings 이전은 analyze.review 이다", () => {
+  it("janus.settings 이전은 analyze.confirm 이다", () => {
     store.setMamePhase("janus");
 
     store.goToPrevStep();
 
     expect(store.mamePhase).toBe("analyze");
-    expect(store.currentMameSubStep).toBe("analyze.review");
+    expect(store.currentMameSubStep).toBe("analyze.confirm");
   });
 
   it("저장된 janus phase 를 그대로 복원한다", () => {

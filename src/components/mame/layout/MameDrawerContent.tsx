@@ -11,7 +11,7 @@
  */
 
 import { useTranslation } from "react-i18next";
-import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { resequenceStore, useMameAppStore } from "@/store/mame/mameAppStore";
 import type { MameSubStepId } from "@/store/mame/slices/mameSubSteps";
 import type { DrawerStripProps } from "@/components/widgets/DrawerStrip";
 
@@ -48,8 +48,13 @@ export function useMameDrawerProps(): SlotProps {
   const summary = useMameAppStore((s) => s.summary);
   const wells = useMameAppStore((s) => s.wells);
   const selectedWell = useMameAppStore((s) => s.selectedWell);
-  const janusSettings = useMameAppStore((s) => s.janusSettings);
-  const janusMappingAutosave = useMameAppStore((s) => s.janusMappingAutosave);
+  const janusRunScope = useMameAppStore((s) => s.janusRunScope);
+  const primaryJanusSettings = useMameAppStore((s) => s.janusSettings);
+  const primaryJanusAutosave = useMameAppStore((s) => s.janusMappingAutosave);
+  const repeatedJanusSettings = resequenceStore((s) => s.janusSettings);
+  const repeatedJanusAutosave = resequenceStore((s) => s.janusMappingAutosave);
+  const janusSettings = janusRunScope === "resequence" ? repeatedJanusSettings : primaryJanusSettings;
+  const janusMappingAutosave = janusRunScope === "resequence" ? repeatedJanusAutosave : primaryJanusAutosave;
   const buildEvolveproCompletion = useMameAppStore((s) => s.buildEvolveproCompletion);
 
   // 파생 값
@@ -81,6 +86,8 @@ export function useMameDrawerProps(): SlotProps {
     : null;
 
   const MAP: Record<MameSubStepId, SlotProps> = {
+    "analyze.resequence": {},
+    "analyze.confirm": {},
     "setup.files": {
       left: {
         title: t("mame.setup.files.drawerLeft"),
