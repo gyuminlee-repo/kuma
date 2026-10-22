@@ -125,6 +125,8 @@ worktree 의 `node_modules` 는 main checkout 과 경로가 달라 Windows 설�
 - 매니페스트 3종(`package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`)의 버전이 새 태그와 일치하는가. `pnpm sync:check` 의 `version-sync` 가 정본이다. 실제 검사 대상은 6곳이며(위 3종 + `pyproject.toml` + `src-tauri/Cargo.lock` + `kuma_core/shared/version.py`) 손으로 맞추지 말고 제목이 `vX.Y.Z:` 인 커밋을 만들어 `scripts/sync-version.sh` post-commit 훅이 전부 쓰게 한다. 그 훅은 `gen-whatsnew.mjs` 까지 이어 돌려 `en.json` 하이라이트와 스탬프를 갱신하므로, 매니페스트를 먼저 손으로 올리면 `gen-whatsnew` 가 "CHANGELOG 최신 섹션이 현재 버전을 언급하지 않는다" 며 거부한다.
 - `git tag --sort=-creatordate | head -1` 이 직전 릴리스인가. 뒤처져 있으면 그 사이 버전들이 한 태그에 묶여 나가므로 태그 메시지에 그 구간을 적는다.
 
+**태그 빌드는 사전 릴리스로 게시된다** (`build.yml` 의 `prerelease: true`). GitHub 의 `releases/latest` 는 사전 릴리스를 건너뛰므로, 앱의 updater(`tauri.conf.json` 의 `releases/latest/download/latest.json`)와 업데이트 확인(`src/lib/updateCheck.ts`)은 승격 전까지 직전 정식 릴리스를 계속 가리킨다. 설치 파일과 자산을 확인한 뒤 정식 전환은 사용자가 결정하고, 승인을 받으면 `gh release edit vX.Y.Z --repo gyuminlee-repo/kuma --prerelease=false --latest` 로 승격한다. 세션이 스스로 승격하지 않는다.
+
 **버전 라벨 경합은 `git fetch --all` 로 판정하지 않는다. 원격 main 의 SHA 를 API 로 직접 읽어 대조한다.**
 
 ```

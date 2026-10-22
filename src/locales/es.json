@@ -2737,7 +2737,7 @@
     "highlights": [
       "MAME 2.3 analiza por separado una resecuenciación nanopore con las mismas reglas de selección de réplicas y conserva la corrida original.",
       "Ambas corridas mantienen libros y listas de picking separados, y el autoguardado restaura sus entradas y veredictos.",
-      "La confirmación manual opcional de la copia de placa pasa al paso 2.4 y registra la copia elegida y la nota.",
+      "La confirmación manual opcional de la copia de placa está en el paso 2.4 y registra la copia elegida y la nota.",
       "La preparación de Cell stock permite elegir la corrida original o la de resecuenciación para vista previa y exportación.",
       "El paso 4 vincula la actividad a evidencia explícita del clon sin preferir la corrida más reciente ni agrupar clones distintos."
     ],
@@ -2746,7 +2746,7 @@
       "0.16.76": [
         "MAME 2.3 analiza por separado una resecuenciación nanopore con las mismas reglas de selección de réplicas y conserva la corrida original.",
         "Ambas corridas mantienen libros y listas de picking separados, y el autoguardado restaura sus entradas y veredictos.",
-        "La confirmación manual opcional de la copia de placa pasa al paso 2.4 y registra la copia elegida y la nota.",
+        "La confirmación manual opcional de la copia de placa está en el paso 2.4 y registra la copia elegida y la nota.",
         "La preparación de Cell stock permite elegir la corrida original o la de resecuenciación para vista previa y exportación.",
         "El paso 4 vincula la actividad a evidencia explícita del clon sin preferir la corrida más reciente ni agrupar clones distintos."
       ],
