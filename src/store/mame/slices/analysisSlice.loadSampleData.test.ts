@@ -2,7 +2,7 @@
  * analysisSlice.loadSampleData.test.ts
  *
  * MAME loadSampleData() 동작 검증:
- * - resolveResource 15개 경로 호출 (Phase 1 setup prefill seeds + EVOLVEpro form + fixture 포함)
+ * - 기존 15개 경로 순서를 유지하며 재시퀀싱 리소스 경로 추가
  * - activity.set_plate_meta + activity.upload RPC 호출 파라미터
  * - 입력 경로 setter + hardcoded sample 결과 populate
  * - activity RPC 실패 시 fallback (결과는 populate, 메시지 변경)
@@ -28,16 +28,24 @@ vi.mock("@tauri-apps/api/path", () => ({
 vi.mock("@tauri-apps/plugin-fs", () => ({
   readTextFile: vi.fn(() => Promise.resolve("{}")),
   exists: vi.fn(() => Promise.resolve(true)),
+  copyFile: vi.fn(() => Promise.resolve()),
+  mkdir: vi.fn(() => Promise.resolve()),
 }));
 
 // seedBuildEvolveproForm touches localStorage; mock to avoid jsdom side-effects in unit tests
 vi.mock("@/lib/mame/buildEvolveproFormStorage", () => ({
   seedBuildEvolveproForm: vi.fn(),
+  loadBuildEvolveproFromStorage: vi.fn(() => ({ verdictXlsx: "" })),
+  saveBuildEvolveproToStorage: vi.fn(),
 }));
 
 import { resolveResource } from "@tauri-apps/api/path";
-import { exists, readTextFile } from "@tauri-apps/plugin-fs";
-import { seedBuildEvolveproForm } from "@/lib/mame/buildEvolveproFormStorage";
+import { copyFile, exists, readTextFile } from "@tauri-apps/plugin-fs";
+import {
+  loadBuildEvolveproFromStorage,
+  saveBuildEvolveproToStorage,
+  seedBuildEvolveproForm,
+} from "@/lib/mame/buildEvolveproFormStorage";
 import {
   sampleReplicates,
   sampleSummary,
@@ -47,6 +55,11 @@ import {
 import { useRoundStore } from "@/store/round/roundSlice";
 import type { AppState } from "../types";
 import { createAnalysisSlice } from "./analysisSlice";
+import { resequenceStore } from "../mameAppStore";
+import { sendRunRequest } from "@/lib/mame/runRequests";
+import fixture from "../../../../src-tauri/samples/mame/sample_analysis_result.json";
+import originalResponse from "../../../../src-tauri/samples/mame/sample_analyze_response.json";
+import repeatedResponse from "../../../../src-tauri/samples/mame/sample_resequence_response.json";
 
 function makeStore(initial: Partial<AppState> = {}) {
   const state: Partial<AppState> = {
@@ -102,9 +115,12 @@ describe("mame analysisSlice.loadSampleData", () => {
     );
     // Reset singleton roundStore between tests so addRound id assertions are stable.
     useRoundStore.setState({ rounds: [], active_round_id: null });
+    resequenceStore.getState().clearResults();
+    vi.mocked(readTextFile).mockResolvedValue("{}");
+    vi.mocked(exists).mockResolvedValue(true);
   });
 
-  it("resolves 13 bundled resources, creates round + WT-well plate meta, calls activity RPCs, populates input + results", async () => {
+  it("resolves bundled resources, creates one round with WT metadata, and populates inputs and results", async () => {
     // activity.upload returns records + plate_meta; hydrated into round.activity
     mockSendRequest.mockImplementation((method: string) => {
       if (method === "activity.upload") {
@@ -146,6 +162,12 @@ describe("mame analysisSlice.loadSampleData", () => {
       "samples/mame/14_mame_activity_long_raw.csv",
       "samples/mame/12_mame_agilent_numeric_index.xlsx",
       "samples/mame/16_mame_agilent_numeric_confirmation.xlsx",
+      "samples/mame/sample_analyze_response.json",
+      "samples/mame/sample_resequence_response.json",
+      "samples/mame/18_mame_resequence_verdict.xlsx",
+      "samples/mame/sample_original_picks.csv",
+      "samples/mame/18_mame_resequence_verdict_picks.csv",
+      "samples/mame/19_mame_activity_resequence_clone.csv",
     ];
     // One per entry of `expectedPaths` and nothing else. The sample map
     // (`05_mame_sample_map.xlsx`) was dropped along with the field it filled;
@@ -233,7 +255,7 @@ describe("mame analysisSlice.loadSampleData", () => {
           "/resolved/samples/mame/12_mame_agilent_numeric_index.xlsx",
         remeasureNumericXlsx:
           "/resolved/samples/mame/16_mame_agilent_numeric_confirmation.xlsx",
-        verdictXlsx: "/resolved/samples/mame/13_mame_verdict.xlsx",
+        verdictXlsx: "/project/sample_data/mame/original/13_mame_verdict.xlsx",
         expectedXlsx: "/resolved/samples/mame/03_mame_expected_mutations.xlsx",
       },
       "/project",
@@ -407,5 +429,188 @@ describe("mame analysisSlice.loadSampleData", () => {
     expect(seededPaths.remeasureNumericXlsx).toBe(
       "/resolved/samples/mame/16_mame_agilent_numeric_confirmation.xlsx",
     );
+  });
+
+  function useBundledResponses() {
+    vi.mocked(readTextFile).mockImplementation(async (path) => {
+      if (String(path).endsWith("sample_analyze_response.json")) return JSON.stringify(originalResponse);
+      if (String(path).endsWith("sample_resequence_response.json")) return JSON.stringify(repeatedResponse);
+      return JSON.stringify(fixture);
+    });
+  }
+
+  it("preserves the original screen while populating two independent replayable run snapshots", async () => {
+    // Given the bundled campaign and its full RPC responses.
+    useBundledResponses();
+    const store = makeStore({ runScope: "primary", formStoragePath: "/sample" });
+    const phase = resequenceStore.getState().mamePhase;
+
+    // When the single primary command loads the campaign.
+    await store.loadSampleData();
+
+    // Then the original projection stays unchanged and both cache snapshots exist.
+    const repeated = resequenceStore.getState();
+    expect(store.verdicts).toEqual(fixture.verdicts);
+    expect(store.replicates).toEqual(fixture.replicates);
+    expect(store.summary).toEqual(fixture.summary);
+    expect(store.wells).toEqual(fixture.wells);
+    expect(store.runHealth).toEqual(fixture.runHealth);
+    expect(store.analyzeResult?.verdicts).toEqual(originalResponse.verdicts);
+    const original = "/sample/sample_data/mame/original";
+    const copies = "/sample/sample_data/mame/resequence";
+    expect(store.analyzeResult?.output_path).toBe(`${original}/13_mame_verdict.xlsx`);
+    expect(repeated.analyzeResult?.output_path).toBe(`${copies}/18_mame_resequence_verdict.xlsx`);
+    expect(store.analyzeResult?.janus_autosave?.output_path).toBe(`${original}/sample_original_picks.csv`);
+    expect(repeated.analyzeResult?.janus_autosave?.output_path).toBe(`${copies}/18_mame_resequence_verdict_picks.csv`);
+    expect(store.janusAutosave?.output_path).toBe(`${original}/sample_original_picks.csv`);
+    // The sidecar refuses two independent runs whose outputs share a parent
+    // directory, so the two copies must sit in different folders.
+    const parent = (path: string | undefined) => path?.replace(/[/\\][^/\\]*$/, "");
+    expect(parent(store.analyzeResult?.output_path)).not.toBe(parent(repeated.analyzeResult?.output_path));
+    // Writable outputs are copies inside the project, never the resource dir.
+    for (const run of [store.analyzeResult, repeated.analyzeResult]) {
+      expect(run?.output_path.startsWith("/sample/")).toBe(true);
+      expect(run?.output_path).not.toContain("/resolved/");
+    }
+    expect(copyFile).toHaveBeenCalledWith("/resolved/samples/mame/18_mame_resequence_verdict.xlsx", `${copies}/18_mame_resequence_verdict.xlsx`);
+    // 2.3 inputs are seeded like the primary sample, outputs go to the copy folder.
+    expect(repeated.referencePath).toBe("/resolved/samples/mame/egfp_with_flanks.fa");
+    expect(repeated.expectedPath).toBe("/resolved/samples/mame/03_mame_expected_mutations.xlsx");
+    expect(repeated.rawRunParams.customBarcodesPath).toBe("/resolved/samples/mame/04_mame_custom_barcodes.xlsx");
+    expect(repeated.outputPath).toBe(copies);
+    expect(repeated.analyzeMessage).toMatch(/Sample data loaded \(51 wells/);
+    expect(repeated.verdicts).toEqual(repeatedResponse.verdicts);
+    expect(repeated.replicates).toEqual(repeatedResponse.replicates);
+    expect(repeated.summary).toEqual(repeatedResponse.summary);
+    expect(repeated.wells).toEqual(repeatedResponse.wells);
+    expect(repeated.runHealth).toEqual(repeatedResponse.runHealth);
+    expect(repeated.compareParams).toEqual(repeatedResponse.compare_params);
+    expect(repeated.sampleDataLoaded).toBe(true);
+    expect(repeated.mamePhase).toBe(phase);
+    expect(useRoundStore.getState().rounds).toHaveLength(1);
+    expect(seedBuildEvolveproForm).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(seedBuildEvolveproForm).mock.calls[0]?.[0]).not.toHaveProperty("resequenceEvidence");
+    expect(mockSendRequest.mock.calls.map(([method]) => method)).not.toContain("analyze");
+  });
+
+  it("attaches the rebound response to resequencing cache consumers after loading samples", async () => {
+    // Given a loaded independent run.
+    useBundledResponses();
+    await makeStore({ formStoragePath: "/sample" }).loadSampleData();
+    mockSendRequest.mockClear();
+
+    // When a cache consumer asks for that run's current selection.
+    await sendRunRequest(resequenceStore.getState(), "get_plate_data", {});
+
+    // Then a restarted sidecar receives the complete independent snapshot.
+    expect(mockSendRequest).toHaveBeenCalledWith("get_plate_data", {
+      run_scope: "resequence",
+      result_snapshot: resequenceStore.getState().analyzeResult,
+    });
+  });
+
+  it.each([
+    "sample_resequence_response.json",
+    "18_mame_resequence_verdict.xlsx",
+  ])("clears stale repeat evidence while retaining the original when %s is absent", async (missing) => {
+    // Given an old repeat and an optional resource missing on reload.
+    useBundledResponses();
+    const store = makeStore({ formStoragePath: "/sample" });
+    await store.loadSampleData();
+    vi.mocked(exists).mockImplementation(async (path) => !String(path).endsWith(missing));
+
+    // When the primary command loads the partial bundle.
+    await store.loadSampleData();
+
+    // Then there is no stale repeat to link and the missing resource is named.
+    expect(store.analyzeResult?.output_path).toBe("/sample/sample_data/mame/original/13_mame_verdict.xlsx");
+    expect(store.sampleDataLoaded).toBe(true);
+    expect(resequenceStore.getState().analyzeResult).toBeNull();
+    expect(resequenceStore.getState().wells).toEqual([]);
+    expect(store.analyzeMessage).toContain(missing);
+  });
+
+  it.each([
+    "/resolved/samples/mame/13_mame_verdict.xlsx",
+    "/sample/sample_data/mame/13_mame_verdict.xlsx",
+  ])("replaces a verdict workbook an earlier sample load left at %s", async (previous) => {
+    // Given a form seeded by an earlier sample load, which seeding alone would keep.
+    useBundledResponses();
+    vi.mocked(saveBuildEvolveproToStorage).mockClear();
+    vi.mocked(loadBuildEvolveproFromStorage).mockReturnValueOnce(
+      { verdictXlsx: previous } as ReturnType<typeof loadBuildEvolveproFromStorage>,
+    );
+
+    // When sample data loads again.
+    await makeStore({ formStoragePath: "/sample" }).loadSampleData();
+
+    // Then the form names the original run's copy, which the evidence panel matches.
+    expect(saveBuildEvolveproToStorage).toHaveBeenCalledWith(
+      expect.objectContaining({ verdictXlsx: "/sample/sample_data/mame/original/13_mame_verdict.xlsx" }),
+      "/sample",
+    );
+  });
+
+  it("keeps a verdict workbook the user picked when sample data loads", async () => {
+    // Given a form holding a workbook outside every sample location.
+    useBundledResponses();
+    vi.mocked(saveBuildEvolveproToStorage).mockClear();
+    vi.mocked(loadBuildEvolveproFromStorage).mockReturnValueOnce(
+      { verdictXlsx: "/data/my_verdict.xlsx" } as ReturnType<typeof loadBuildEvolveproFromStorage>,
+    );
+
+    // When sample data loads.
+    await makeStore({ formStoragePath: "/sample" }).loadSampleData();
+
+    // Then the user's choice is not overwritten.
+    expect(saveBuildEvolveproToStorage).not.toHaveBeenCalled();
+  });
+
+  it("stores a Windows project copy path that round-trips to the original run output", async () => {
+    // Given the real form storage and a Windows project folder.
+    const actual = await vi.importActual<typeof import("@/lib/mame/buildEvolveproFormStorage")>(
+      "@/lib/mame/buildEvolveproFormStorage",
+    );
+    vi.mocked(loadBuildEvolveproFromStorage).mockImplementation(actual.loadBuildEvolveproFromStorage);
+    vi.mocked(saveBuildEvolveproToStorage).mockImplementation(actual.saveBuildEvolveproToStorage);
+    vi.mocked(seedBuildEvolveproForm).mockImplementation(actual.seedBuildEvolveproForm);
+    useBundledResponses();
+    const project = "C:\\Users\\lab\\kuma\\demo";
+    const store = makeStore({ projectPath: project, formStoragePath: project });
+    try {
+      // When sample data loads.
+      await store.loadSampleData();
+
+      // Then the step 4 form restores exactly the path the evidence panel compares against.
+      const output = store.analyzeResult?.output_path;
+      expect(output).toBe(`${project}\\sample_data\\mame\\original\\13_mame_verdict.xlsx`);
+      expect(actual.loadBuildEvolveproFromStorage(project).verdictXlsx).toBe(output);
+    } finally {
+      vi.mocked(loadBuildEvolveproFromStorage).mockImplementation(
+        () => ({ verdictXlsx: "" }) as ReturnType<typeof loadBuildEvolveproFromStorage>,
+      );
+      vi.mocked(saveBuildEvolveproToStorage).mockImplementation(() => undefined);
+      vi.mocked(seedBuildEvolveproForm).mockImplementation(() => undefined);
+      localStorage.clear();
+    }
+  });
+
+  it("leaves both runs unloaded and reports the failure when the project copy fails", async () => {
+    // Given a project folder that rejects copies.
+    useBundledResponses();
+    vi.mocked(copyFile).mockRejectedValue(new Error("disk full"));
+    const store = makeStore({ formStoragePath: "/sample" });
+
+    try {
+      // When sample data loads.
+      await store.loadSampleData();
+
+      // Then no writable output falls back to the bundled resource path.
+      expect(store.analyzeResult).toBeNull();
+      expect(resequenceStore.getState().analyzeResult).toBeNull();
+      expect(store.analyzeMessage).toContain("13_mame_verdict.xlsx (copy to project failed)");
+    } finally {
+      vi.mocked(copyFile).mockResolvedValue(undefined);
+    }
   });
 });

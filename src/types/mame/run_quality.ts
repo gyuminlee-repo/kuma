@@ -51,6 +51,7 @@ export interface RunQualityFinding {
     | "flow_cell_reused"
     | "variants_at_reference_edge"
     | "amplicon_extraction_skipped"
+    | "mixed_depth_factor_amplicon_scale"
   severity: RunQualitySeverity
   [key: string]: unknown
 }

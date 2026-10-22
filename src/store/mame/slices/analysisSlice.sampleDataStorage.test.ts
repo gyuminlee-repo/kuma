@@ -37,11 +37,15 @@ vi.mock("@tauri-apps/api/path", () => ({
 vi.mock("@tauri-apps/plugin-fs", () => ({
   readTextFile: vi.fn(() => Promise.resolve("{}")),
   exists: vi.fn(() => Promise.resolve(true)),
+  copyFile: vi.fn(() => Promise.resolve()),
+  mkdir: vi.fn(() => Promise.resolve()),
 }));
 
 const mockSeedBuildEvolveproForm = vi.fn();
 vi.mock("@/lib/mame/buildEvolveproFormStorage", () => ({
   seedBuildEvolveproForm: (...args: unknown[]) => mockSeedBuildEvolveproForm(...args),
+  loadBuildEvolveproFromStorage: () => ({ verdictXlsx: "" }),
+  saveBuildEvolveproToStorage: vi.fn(),
 }));
 
 import { useRoundStore } from "@/store/round/roundSlice";
