@@ -2735,14 +2735,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "KURO gleicht UniProt-Einträge über ein Sequenz-Alignment ab, sodass ein Konstrukt mit einem zusätzlichen Rest weiterhin automatisch zugeordnet wird.",
-      "Die AM1-Codontabelle wird nicht mehr als Seed-Datei mitgeliefert. Projekte, die sie verwendet haben, bieten ihre gespeicherte Kopie weiter zur Installation an.",
-      "MAME Schritt 2 erklärt die Reihenfolge der Prüfungen, die das Urteil jedes Wells bestimmt, und übernimmt das frühere Pipeline-Kapitel.",
-      "Eine neue FAQ-Seite beantwortet häufige Fragen zu KURO und MAME auf Englisch und Koreanisch.",
-      "Die Anleitung zeigt jeden Dialog, beide KURO-Auswahlmodi und das 3D-Panel mit seiner Struktur, beschriftet wie auf dem Bildschirm."
+      "MAME 2.3 analysiert eine Nanopore-Resequenzierung separat mit denselben Replikat-Auswahlregeln und bewahrt den ursprünglichen Lauf.",
+      "Beide Läufe behalten getrennte Arbeitsmappen und Picklisten, und die automatische Sicherung stellt Eingaben und Urteile wieder her.",
+      "Die optionale manuelle Bestätigung der Plattenkopie liegt jetzt in Schritt 2.4, mit gewählter Kopie und Bestätigungsnotiz.",
+      "Bei der Cell-Stock-Vorbereitung wählen Sie den ursprünglichen oder den Resequenzierungslauf für Vorschau und Geräteexport.",
+      "Schritt 4 verknüpft Aktivität mit expliziten Klonbelegen, ohne den neuesten Lauf zu bevorzugen oder Klone zusammenzulegen."
     ],
-    "highlightsStamp": "0.16.75+7a304882",
+    "highlightsStamp": "0.16.76+d0c839c4",
     "releases": {
+      "0.16.76": [
+        "MAME 2.3 analysiert eine Nanopore-Resequenzierung separat mit denselben Replikat-Auswahlregeln und bewahrt den ursprünglichen Lauf.",
+        "Beide Läufe behalten getrennte Arbeitsmappen und Picklisten, und die automatische Sicherung stellt Eingaben und Urteile wieder her.",
+        "Die optionale manuelle Bestätigung der Plattenkopie liegt jetzt in Schritt 2.4, mit gewählter Kopie und Bestätigungsnotiz.",
+        "Bei der Cell-Stock-Vorbereitung wählen Sie den ursprünglichen oder den Resequenzierungslauf für Vorschau und Geräteexport.",
+        "Schritt 4 verknüpft Aktivität mit expliziten Klonbelegen, ohne den neuesten Lauf zu bevorzugen oder Klone zusammenzulegen."
+      ],
       "0.16.75": [
         "KURO gleicht UniProt-Einträge über ein Sequenz-Alignment ab, sodass ein Konstrukt mit einem zusätzlichen Rest weiterhin automatisch zugeordnet wird.",
         "Die AM1-Codontabelle wird nicht mehr als Seed-Datei mitgeliefert. Projekte, die sie verwendet haben, bieten ihre gespeicherte Kopie weiter zur Installation an.",
@@ -3267,6 +3274,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.76": "d0c839c4",
       "0.16.75": "7a304882",
       "0.16.69": "60279e8e",
       "0.16.68": "33844e5d",

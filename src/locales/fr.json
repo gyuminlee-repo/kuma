@@ -2735,14 +2735,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "KURO rapproche les entrées UniProt par un alignement de séquences, si bien qu'un construit avec un résidu de plus est toujours associé automatiquement.",
-      "La table de codons AM1 n'est plus fournie comme fichier d'amorçage. Les projets qui l'utilisaient proposent toujours d'installer leur copie enregistrée.",
-      "MAME étape 2 explique l'ordre des contrôles qui décide du verdict de chaque puits et intègre l'ancien chapitre sur le pipeline.",
-      "Une nouvelle page FAQ répond aux questions courantes sur KURO et MAME en anglais et en coréen.",
-      "Le guide montre chaque dialogue, les deux modes de sélection de KURO et le panneau 3D avec sa structure, libellés comme à l'écran."
+      "MAME 2.3 analyse séparément un reséquençage nanopore avec les mêmes règles de sélection des réplicats et préserve le run d'origine.",
+      "Les deux runs gardent des classeurs et listes de prélèvement distincts, et la sauvegarde auto restaure entrées et verdicts.",
+      "La confirmation manuelle facultative de la copie de plaque passe à l'étape 2.4, avec la copie choisie et la note enregistrées.",
+      "La préparation du Cell stock permet de choisir le run d'origine ou de reséquençage pour l'aperçu et l'export instrument.",
+      "L'étape 4 relie l'activité à une preuve de clone explicite, sans privilégier le run le plus récent ni regrouper des clones."
     ],
-    "highlightsStamp": "0.16.75+7a304882",
+    "highlightsStamp": "0.16.76+d0c839c4",
     "releases": {
+      "0.16.76": [
+        "MAME 2.3 analyse séparément un reséquençage nanopore avec les mêmes règles de sélection des réplicats et préserve le run d'origine.",
+        "Les deux runs gardent des classeurs et listes de prélèvement distincts, et la sauvegarde auto restaure entrées et verdicts.",
+        "La confirmation manuelle facultative de la copie de plaque passe à l'étape 2.4, avec la copie choisie et la note enregistrées.",
+        "La préparation du Cell stock permet de choisir le run d'origine ou de reséquençage pour l'aperçu et l'export instrument.",
+        "L'étape 4 relie l'activité à une preuve de clone explicite, sans privilégier le run le plus récent ni regrouper des clones."
+      ],
       "0.16.75": [
         "KURO rapproche les entrées UniProt par un alignement de séquences, si bien qu'un construit avec un résidu de plus est toujours associé automatiquement.",
         "La table de codons AM1 n'est plus fournie comme fichier d'amorçage. Les projets qui l'utilisaient proposent toujours d'installer leur copie enregistrée.",
@@ -3267,6 +3274,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.76": "d0c839c4",
       "0.16.75": "7a304882",
       "0.16.69": "60279e8e",
       "0.16.68": "33844e5d",
