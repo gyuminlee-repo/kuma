@@ -1,6 +1,6 @@
 import { functionalUpdate } from "@tanstack/react-table";
 import { resolveResource } from "@tauri-apps/api/path";
-import { exists, readTextFile } from "@tauri-apps/plugin-fs";
+import { copyFile, exists, mkdir, readTextFile } from "@tauri-apps/plugin-fs";
 import i18next from "i18next";
 import type { StateCreator } from "zustand";
 import { sendRequest } from "@/lib/ipc-mame";
@@ -8,17 +8,23 @@ import { sendRunRequest } from "@/lib/mame/runRequests";
 import { toRpcParams } from "@/lib/mame/janusSettings";
 import { updateMameResultSelection } from "@/lib/mame/resultSnapshot";
 import { overridesFromReplicates } from "@/lib/mame/selectionOverrides";
+import { pickAnalyzeYield } from "@/lib/mame/analyzeYield";
 import {
   sampleReplicates,
   sampleSummary,
   sampleVerdicts,
   sampleWells,
 } from "@/lib/mame/sampleData";
-import { seedBuildEvolveproForm } from "@/lib/mame/buildEvolveproFormStorage";
+import {
+  loadBuildEvolveproFromStorage,
+  saveBuildEvolveproToStorage,
+  seedBuildEvolveproForm,
+} from "@/lib/mame/buildEvolveproFormStorage";
 import { useRoundStore } from "@/store/round/roundSlice";
 import type { ActivityRecord, PlateMeta } from "@/types/mame/activity";
 import type {
   AnalyzeSummary,
+  AnalyzeResult,
   ApplySelectionOverridesResult,
   PlateDataResult,
   SelectionOverride,
@@ -44,6 +50,11 @@ type SampleAnalysisFixture = {
   summary?: AnalyzeSummary;
   wells?: WellEntry[];
   runHealth?: RunHealthData;
+};
+
+type SampleRun = AnalyzeResult & {
+  readonly wells: WellEntry[];
+  readonly runHealth: RunHealthData;
 };
 
 async function sendOverrides(
@@ -329,6 +340,12 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       "samples/mame/14_mame_activity_long_raw.csv",
       "samples/mame/12_mame_agilent_numeric_index.xlsx",
       "samples/mame/16_mame_agilent_numeric_confirmation.xlsx",
+      "samples/mame/sample_analyze_response.json",
+      "samples/mame/sample_resequence_response.json",
+      "samples/mame/18_mame_resequence_verdict.xlsx",
+      "samples/mame/sample_original_picks.csv",
+      "samples/mame/18_mame_resequence_verdict_picks.csv",
+      "samples/mame/19_mame_activity_resequence_clone.csv",
     ];
     // Bundled but deliberately not seeded here (not a gap, no free form
     // field to put them in):
@@ -391,6 +408,11 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       activityRawCsvPath,
       numericReportXlsxPath,
       remeasureNumericXlsxPath,
+      originalResponsePath,
+      resequenceResponsePath,
+      resequenceVerdictPath,
+      originalPicksPath,
+      resequencePicksPath,
     ] = resolved;
 
     // Critical inputs: reference.fasta and activity CSV. Abort with a
@@ -434,6 +456,81 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       optionalFailures.push("12_mame_agilent_numeric_index.xlsx");
     if (!remeasureNumericXlsxPath)
       optionalFailures.push("16_mame_agilent_numeric_confirmation.xlsx");
+    for (let index = 15; index < relPaths.length; index++) {
+      if (!resolved[index]) optionalFailures.push(relPaths[index].replace("samples/mame/", ""));
+    }
+
+    // Manual confirmation rewrites a run's workbook and pick list in place, so
+    // the writable outputs live in the project folder, never in the read-only
+    // resource bundle. A failed copy leaves that run unloaded rather than
+    // falling back to the bundled path. Copied on every load (overwrite).
+    // Each run gets its own folder: the sidecar refuses two independent runs
+    // whose outputs share a parent directory (run_scope.py).
+    const projectDir = get().formStoragePath;
+    // Join with the project folder's own separator, the rule fromPortablePath
+    // uses when the step 4 form restores a path: a mixed C:\proj/sample_data
+    // string would never equal the restored C:\proj\sample_data one.
+    const sep = projectDir?.includes("\\") ? "\\" : "/";
+    const copyRoot = projectDir
+      ? [projectDir.replace(/[/\\]+$/, ""), "sample_data", "mame"].join(sep)
+      : null;
+    const originalDir = copyRoot ? `${copyRoot}${sep}original` : null;
+    const resequenceDir = copyRoot ? `${copyRoot}${sep}resequence` : null;
+    const copyOutput = async (
+      source: string | null | undefined,
+      dir: string | null,
+    ): Promise<string | null> => {
+      if (!source) return null;
+      const name = source.replace(/.*[/\\]/, "");
+      try {
+        if (!dir) throw new Error("no project folder");
+        await mkdir(dir, { recursive: true });
+        const target = `${dir}${sep}${name}`;
+        await copyFile(source, target);
+        return target;
+      } catch (error) {
+        console.warn("[analysisSlice] sample output copy failed:", error instanceof Error ? error.message : String(error));
+        optionalFailures.push(`${name} (copy to project failed)`);
+        return null;
+      }
+    };
+    const originalWorkbook = await copyOutput(verdictXlsxPath, originalDir);
+    const originalPicks = await copyOutput(originalPicksPath, originalDir);
+    const repeatWorkbook = await copyOutput(resequenceVerdictPath, resequenceDir);
+    const repeatPicks = await copyOutput(resequencePicksPath, resequenceDir);
+
+    const readRun = async (
+      responsePath: string | null | undefined,
+      workbookPath: string | null | undefined,
+      picksPath: string | null | undefined,
+    ): Promise<SampleRun | null> => {
+      if (!responsePath || !workbookPath) return null;
+      try {
+        const run: SampleRun = JSON.parse(await readTextFile(responsePath));
+        if (!Array.isArray(run.verdicts) || !Array.isArray(run.replicates)
+          || !Array.isArray(run.wells) || !run.summary || !run.distribution_stats) {
+          throw new Error(`invalid sample response: ${responsePath}`);
+        }
+        return {
+          ...run,
+          output_path: workbookPath,
+          ...(run.layout_provenance && expectedPath ? {
+            layout_provenance: { ...run.layout_provenance, expected_path: expectedPath },
+          } : {}),
+          ...(run.janus_autosave ? {
+            janus_autosave: {
+              ...run.janus_autosave,
+              output_path: picksPath ?? null,
+              ...(picksPath ? {} : { status: "skipped" as const }),
+            },
+          } : {}),
+        };
+      } catch (error) {
+        console.warn("[analysisSlice] sample response load failed:", error instanceof Error ? error.message : String(error));
+        optionalFailures.push(responsePath.replace(/.*[/\\]/, ""));
+        return null;
+      }
+    };
 
     // The fixture is read before anything is shown, because what it holds
     // decides what gets shown. It is the output of a real pipeline run over the
@@ -456,6 +553,8 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
         optionalFailures.push("sample_analysis_result.json");
       }
     }
+    const originalRun = await readRun(originalResponsePath, originalWorkbook, originalPicks);
+    const repeatedRun = await readRun(resequenceResponsePath, repeatWorkbook, repeatPicks);
 
     // Populate input store via cross-slice setters (skip ones that failed).
     //
@@ -538,6 +637,10 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
 
     const wells = fixture?.wells ?? sampleWells();
     set({
+      // Preserve the original screen fixture; only cache consumers use the
+      // fresh full response. A missing optional response must clear an old run.
+      analyzeResult: originalRun,
+      janusAutosave: originalRun?.janus_autosave ?? null,
       verdicts: fixture?.verdicts ?? sampleVerdicts(),
       replicates: fixture?.replicates ?? sampleReplicates(),
       summary: fixture?.summary ?? sampleSummary(),
@@ -594,6 +697,44 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
     if (fixture?.runHealth) {
       set({ runHealth: fixture.runHealth });
     }
+    // Resolve after construction to avoid a slice/store module cycle.
+    // The single primary command loads both runs, but only the primary branch
+    // creates a round, uploads activity and seeds the step-4 form above/below.
+    const { resequenceStore } = await import("../mameAppStore");
+    // Same inputs the primary sample seeds; inputDir stays empty (no raw run).
+    const repeat = resequenceStore.getState();
+    repeat.setReferencePath(designFastaPath ?? refPath);
+    if (expectedPath) repeat.chooseExpectedPath(expectedPath);
+    if (barcodesPath) repeat.setParams({ rawRunParams: { customBarcodesPath: barcodesPath } });
+    if (resequenceDir && repeatedRun) repeat.setOutputPath(resequenceDir);
+    resequenceStore.getState().clearResults();
+    if (repeatedRun) {
+      resequenceStore.setState({
+        analyzeResult: repeatedRun,
+        verdicts: repeatedRun.verdicts,
+        replicates: repeatedRun.replicates,
+        summary: repeatedRun.summary,
+        analyzeYield: pickAnalyzeYield(repeatedRun),
+        layoutProvenance: repeatedRun.layout_provenance ?? null,
+        mappingIntegrity: repeatedRun.mapping_integrity ?? null,
+        staleUnits: repeatedRun.stale_units ?? null,
+        offLayoutRecords: repeatedRun.off_layout_records ?? null,
+        runQuality: repeatedRun.run_quality ?? null,
+        contamination: repeatedRun.contamination ?? null,
+        referenceResolution: repeatedRun.reference_resolution ?? null,
+        demuxResume: repeatedRun.demux_resume ?? null,
+        distributionStats: repeatedRun.distribution_stats,
+        compareParams: repeatedRun.compare_params ?? null,
+        janusAutosave: repeatedRun.janus_autosave ?? null,
+        wells: repeatedRun.wells,
+        selectedWell: repeatedRun.wells.find((well) => well.selected) ?? repeatedRun.wells[0] ?? null,
+        runHealth: repeatedRun.runHealth,
+        sampleDataLoaded: true,
+        selectedNativeBarcodes: [...new Set(repeatedRun.verdicts.map((verdict) => verdict.native_barcode))],
+        detectedBarcodeCount: new Set(repeatedRun.verdicts.map((verdict) => verdict.native_barcode)).size,
+        analyzeMessage: `Sample data loaded (${repeatedRun.wells.length} wells, ${repeatedRun.output_path.replace(/.*[/\\]/, "")})`,
+      });
+    }
 
     // Seed the step 4 inputs for this project only.
     //
@@ -611,6 +752,27 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
     // BuildEvolveproInputPanel reads its storage row off
     // `useKumaProject().path` regardless of scratch, and `formStoragePath` is
     // the always-populated mirror of that same path.
+    // Seeding fills empty fields only, so a verdict workbook left by an earlier
+    // sample load (the bundled resource, or the copy folder before each run got
+    // its own) would survive and no longer equal the original run's output,
+    // which the resequencing evidence panel requires. Those are replaced; a
+    // workbook the user picked is kept.
+    const storageKey = get().formStoragePath;
+    if (originalWorkbook && storageKey) {
+      const form = loadBuildEvolveproFromStorage(storageKey);
+      // Windows paths compare case-insensitively.
+      const norm = (path: string) => {
+        const slashed = path.replace(/\\/g, "/");
+        return sep === "\\" ? slashed.toLowerCase() : slashed;
+      };
+      const previous = form.verdictXlsx ? norm(form.verdictXlsx) : "";
+      const sampleLocations = [verdictXlsxPath, copyRoot ? `${copyRoot}${sep}13_mame_verdict.xlsx` : null]
+        .filter((path): path is string => Boolean(path))
+        .map(norm);
+      if (!form.migrationNotice && previous !== norm(originalWorkbook) && sampleLocations.includes(previous)) {
+        saveBuildEvolveproToStorage({ ...form, verdictXlsx: originalWorkbook }, storageKey);
+      }
+    }
     seedBuildEvolveproForm(
       {
         activityPath: activityRawCsvPath ?? activityCsvPath,
@@ -620,7 +782,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
         remeasureReportXlsx: variantLabelsReportPath ?? undefined,
         numericReportXlsx: numericReportXlsxPath ?? undefined,
         remeasureNumericXlsx: remeasureNumericXlsxPath ?? undefined,
-        verdictXlsx: verdictXlsxPath ?? undefined,
+        verdictXlsx: originalWorkbook ?? verdictXlsxPath ?? undefined,
         expectedXlsx: expectedPath ?? undefined,
       },
       get().formStoragePath,

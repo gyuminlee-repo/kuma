@@ -72,6 +72,12 @@
       "samples/mame/15_mame_activity_variant.csv": "samples/mame/15_mame_activity_variant.csv",
       "samples/mame/16_mame_agilent_numeric_confirmation.xlsx": "samples/mame/16_mame_agilent_numeric_confirmation.xlsx",
       "samples/mame/sample_analysis_result.json": "samples/mame/sample_analysis_result.json",
+      "samples/mame/sample_analyze_response.json": "samples/mame/sample_analyze_response.json",
+      "samples/mame/sample_resequence_response.json": "samples/mame/sample_resequence_response.json",
+      "samples/mame/18_mame_resequence_verdict.xlsx": "samples/mame/18_mame_resequence_verdict.xlsx",
+      "samples/mame/sample_original_picks.csv": "samples/mame/sample_original_picks.csv",
+      "samples/mame/18_mame_resequence_verdict_picks.csv": "samples/mame/18_mame_resequence_verdict_picks.csv",
+      "samples/mame/19_mame_activity_resequence_clone.csv": "samples/mame/19_mame_activity_resequence_clone.csv",
       "resources/NOTICE.md": "resources/NOTICE.md",
       "sidecar-hashes.json": "sidecar-hashes.json",
       "samples/mame/17_mame_well_labeled_confirmation.xlsx": "samples/mame/17_mame_well_labeled_confirmation.xlsx"

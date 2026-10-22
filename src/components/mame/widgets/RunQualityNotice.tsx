@@ -106,6 +106,12 @@ export function RunQualityNotice() {
                   variants: (runQuality.edge_variants ?? []).join(", "),
                   variantCount: runQuality.edge_variants?.length ?? 0,
                   margin: runQuality.edge_margin_bp ?? 0,
+                  // Producer fields of mixed_depth_factor_amplicon_scale.
+                  positions: finding.positions,
+                  assumedPositions: finding.assumed_positions,
+                  ratio: finding.ratio,
+                  bandLow: finding.band_low,
+                  bandHigh: finding.band_high,
                 })}
               </li>
             ))}

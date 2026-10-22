@@ -71,6 +71,19 @@ rescued variants. The combined evidence hash includes this provenance.
 Adding a link records the declared correspondence. Workbook evidence is
 validated when building the EVOLVEpro input, before publishing the output.
 
+## Trying it with sample data
+
+Help > Load Sample Data loads both runs: the original plate (NB01 to NB03) and
+a resequencing run (NB04 to NB06) of three wells that failed it, F28A among
+them. Step 4 starts on the original activity file, which suits `same_clone`:
+link F28A at NB03/A1 to the resequenced F28A at NB05/A1. For
+`measured_resequence_clone`, replace the activity file with
+`19_mame_activity_resequence_clone.csv` from the bundled samples, where the
+resequenced F28A was measured in the free well A3, and choose A3 as its
+activity well. The sample workbooks and pick lists are copies in the project
+`sample_data/mame/original/` and `sample_data/mame/resequence/` folders, so
+manual confirmation never edits the installed files.
+
 ## RPC
 
 Cache consumers accept `run_scope: "primary" | "resequence"`; omission means
