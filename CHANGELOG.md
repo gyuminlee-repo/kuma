@@ -8,6 +8,8 @@ Optional manual plate-copy confirmation is available in step 2.4. The operator r
 
 Step 4 links activity to an explicitly identified clone. A same-clone repeat can supply sequencing evidence, while a newly measured resequencing clone requires its own activity well. Only automatically selected PASS evidence is accepted for these links. Run recency does not determine priority, and activity from different clones is not silently pooled. The export manifest records the linked workbooks and their hashes.
 
+Load Sample Data now includes a resequencing run of the same plate, produced by the real pipeline: three wells that failed the original run (low depth, mixed, wrong amino acid) are sequenced again, and an activity file measured from a resequenced clone is bundled for the step 4 links. Step 4 starts on the original activity file for a same-clone link; selecting the bundled 19_mame_activity_resequence_clone.csv instead tries a measured resequencing clone in well A3. The sample's writable workbooks and pick lists are copied into the project's sample_data folder, one folder per run, so confirming a copy in step 2.4 never edits the installed files. A run quality finding that previously showed its raw key is now translated.
+
 Automated builds are now published as prereleases until they are confirmed.
 
 ### Highlights
