@@ -2789,14 +2789,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "KURO matches UniProt entries on a sequence alignment, so a construct with one extra residue is still matched automatically.",
-      "The AM1 codon table no longer ships as a seed file. Projects that used it still offer their saved copy for installation.",
-      "MAME step 2 explains the order of checks that decides each well verdict and absorbs the former pipeline chapter.",
-      "A new FAQ page answers common KURO and MAME questions in English and Korean.",
-      "The guide shows every dialog, both KURO selection modes and the 3D panel with its structure, labeled as on screen."
+      "MAME 2.3 analyzes nanopore resequencing separately with the same replicate selection rules, preserving the original run.",
+      "Both runs keep separate workbooks and pick lists, and autosave restores their inputs and verdicts.",
+      "Optional manual plate-copy confirmation is now in step 2.4, with the selected copy and confirmation note recorded.",
+      "Cell stock preparation lets you choose the original or resequencing run for preview and instrument export.",
+      "Step 4 links activity to explicit clone evidence without preferring the newest run or pooling different clones."
     ],
-    "highlightsStamp": "0.16.75+7a304882",
+    "highlightsStamp": "0.16.76+d0c839c4",
     "releases": {
+      "0.16.76": [
+        "MAME 2.3 analyzes nanopore resequencing separately with the same replicate selection rules, preserving the original run.",
+        "Both runs keep separate workbooks and pick lists, and autosave restores their inputs and verdicts.",
+        "Optional manual plate-copy confirmation is now in step 2.4, with the selected copy and confirmation note recorded.",
+        "Cell stock preparation lets you choose the original or resequencing run for preview and instrument export.",
+        "Step 4 links activity to explicit clone evidence without preferring the newest run or pooling different clones."
+      ],
       "0.16.75": [
         "KURO matches UniProt entries on a sequence alignment, so a construct with one extra residue is still matched automatically.",
         "The AM1 codon table no longer ships as a seed file. Projects that used it still offer their saved copy for installation.",
@@ -3321,6 +3328,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.76": "d0c839c4",
       "0.16.75": "7a304882",
       "0.16.74": "5562e779",
       "0.16.73": "4da5762b",

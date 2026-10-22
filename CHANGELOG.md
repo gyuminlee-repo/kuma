@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.16.76 (Independent nanopore resequencing and explicit clone evidence)
+
+MAME step 2.3 analyzes a nanopore resequencing run independently with the same n-replicate selection rules as the original run. Each run keeps its own inputs, verdicts, workbook and pick list. Autosave restores both runs without replacing the original evidence.
+
+Optional manual plate-copy confirmation is available in step 2.4. The operator records the selected copy and confirmation note while the automatic verdict remains available. Cell stock preparation in step 3 explicitly selects the original or resequencing run for preview and instrument export.
+
+Step 4 links activity to an explicitly identified clone. A same-clone repeat can supply sequencing evidence, while a newly measured resequencing clone requires its own activity well. Only automatically selected PASS evidence is accepted for these links. Run recency does not determine priority, and activity from different clones is not silently pooled. The export manifest records the linked workbooks and their hashes.
+
+Automated builds are now published as prereleases until they are confirmed.
+
+### Highlights
+
+- MAME 2.3 analyzes nanopore resequencing separately with the same replicate selection rules, preserving the original run.
+- Both runs keep separate workbooks and pick lists, and autosave restores their inputs and verdicts.
+- Optional manual plate-copy confirmation is now in step 2.4, with the selected copy and confirmation note recorded.
+- Cell stock preparation lets you choose the original or resequencing run for preview and instrument export.
+- Step 4 links activity to explicit clone evidence without preferring the newest run or pooling different clones.
+
 ## v0.16.75 (UniProt matches that survive an insertion, and a guide that shows the screen)
 
 KURO scored the identity between the loaded protein and a UniProt candidate position by position, so one inserted residue pushed every later residue out of register. The public EGFP construct, which carries one more valine than GFP near the N terminus, scored 5 % against GFP (P42212) and never reached the 95 % auto-match. Identity now counts the identical residues in the same global alignment the residue position map already uses. That pair scores 97.9 % and is selected automatically, and a pair four substitutions apart still stays below the gate.

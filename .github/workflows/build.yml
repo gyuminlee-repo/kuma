@@ -447,6 +447,7 @@ jobs:
           FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         with:
           draft: false
+          prerelease: true
           generate_release_notes: true
           append_body: true
           body_path: .github/release-footer.md

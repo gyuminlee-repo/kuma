@@ -2735,14 +2735,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "O KURO compara entradas do UniProt por um alinhamento de sequências, então um construto com um resíduo a mais continua sendo pareado automaticamente.",
-      "A tabela de códons AM1 não é mais distribuída como arquivo semente. Projetos que a usaram continuam oferecendo a instalação da cópia salva.",
-      "O MAME etapa 2 explica a ordem das verificações que decide o veredito de cada poço e incorpora o antigo capítulo do pipeline.",
-      "Uma nova página de perguntas frequentes responde dúvidas comuns sobre KURO e MAME em inglês e coreano.",
-      "O guia mostra cada diálogo, os dois modos de seleção do KURO e o painel 3D com a estrutura, rotulados como na tela."
+      "O MAME 2.3 analisa separadamente um ressequenciamento nanopore com as mesmas regras de seleção de réplicas e preserva a corrida original.",
+      "As duas corridas mantêm pastas de trabalho e listas de coleta separadas, e o salvamento automático restaura entradas e vereditos.",
+      "A confirmação manual opcional da cópia de placa agora fica na etapa 2.4, com a cópia escolhida e a nota registradas.",
+      "O preparo do Cell stock permite escolher a corrida original ou de ressequenciamento para prévia e exportação ao equipamento.",
+      "A etapa 4 liga a atividade a evidências explícitas do clone sem priorizar a corrida mais recente nem juntar clones diferentes."
     ],
-    "highlightsStamp": "0.16.75+7a304882",
+    "highlightsStamp": "0.16.76+d0c839c4",
     "releases": {
+      "0.16.76": [
+        "O MAME 2.3 analisa separadamente um ressequenciamento nanopore com as mesmas regras de seleção de réplicas e preserva a corrida original.",
+        "As duas corridas mantêm pastas de trabalho e listas de coleta separadas, e o salvamento automático restaura entradas e vereditos.",
+        "A confirmação manual opcional da cópia de placa agora fica na etapa 2.4, com a cópia escolhida e a nota registradas.",
+        "O preparo do Cell stock permite escolher a corrida original ou de ressequenciamento para prévia e exportação ao equipamento.",
+        "A etapa 4 liga a atividade a evidências explícitas do clone sem priorizar a corrida mais recente nem juntar clones diferentes."
+      ],
       "0.16.75": [
         "O KURO compara entradas do UniProt por um alinhamento de sequências, então um construto com um resíduo a mais continua sendo pareado automaticamente.",
         "A tabela de códons AM1 não é mais distribuída como arquivo semente. Projetos que a usaram continuam oferecendo a instalação da cópia salva.",
@@ -3267,6 +3274,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.76": "d0c839c4",
       "0.16.75": "7a304882",
       "0.16.69": "60279e8e",
       "0.16.68": "33844e5d",
