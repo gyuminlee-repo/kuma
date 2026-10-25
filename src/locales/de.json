@@ -1408,7 +1408,7 @@
       "labelObserved": "Observed",
       "expectedNone": "No expected mutation",
       "observedNone": "No change observed",
-      "labelVerdictNotes": "Notes",
+      "labelVerdictNotes": "Notizen",
       "labelNoCallAa": "No-call codons",
       "labelNoCallAaHelp": "Consensus N translated to X, excluded from the observed changes",
       "sectionReplicates": "Replicate comparison",

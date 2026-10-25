@@ -127,7 +127,7 @@ function QcVerdictInspector() {
       <KVRow label={t("mame.qc.verdict.inspectorCall")} value={selected.verdict} />
       {/* verdict_notes: backend-authored diagnostic string (VerdictRecord.verdict_notes).
           Replaces a fabricated "Identity %" that no backend field backed. */}
-      <KVRow label={t("mame.verdictTable.colNotes")} value={selected.verdict_notes} />
+      <KVRow label={t("mame.verdictDetail.labelVerdictNotes")} value={selected.verdict_notes} />
     </div>
   );
 }

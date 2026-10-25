@@ -699,13 +699,30 @@ const ENGLISH_HEADER_KEY_SET = new Set(ENGLISH_HEADER_KEYS);
 // The list only means anything next to the source file that carries the sibling
 // literals, so that file's presence under ROOT is what turns the block on. The
 // synthetic bundles in tests/scripts/i18n-parity.test.ts have no src/components
-// at all and the block stands down for them rather than reporting twenty
+// at all and the block stands down for them rather than reporting eighty-odd
 // absences. Keying off the keys themselves would be weaker: renaming the whole
 // namespace in en.json, the nine locales and the source together would leave
-// nothing to compare and the gate would go quiet instead of failing. Anchoring
-// on the file means the only way to switch the gate off is to delete the table.
+// nothing to compare and the gate would go quiet instead of failing.
+//
+// Deleting the file is not the only way to switch this off; RENAMING it does the
+// same. That is why ENGLISH_HEADERS_ENFORCED also governs the Class E exemption
+// further down, and why the miss is announced rather than merely implied. The
+// two must move together: an exemption that outlived its gate would hide a
+// translated header from Class F and from Class E at once, which is the one
+// outcome neither check is allowed to produce. If this file moves, point the
+// constant at its new path in the same change.
 const HEADER_EVIDENCE_FILE = join(SRC_DIR, "components", "widgets", "resultTableColumns.tsx");
-if (existsSync(HEADER_EVIDENCE_FILE)) {
+const ENGLISH_HEADERS_ENFORCED = existsSync(HEADER_EVIDENCE_FILE);
+if (!ENGLISH_HEADERS_ENFORCED) {
+  console.log(
+    `\nenglish column headers: NOT CHECKED. ${relative(ROOT, HEADER_EVIDENCE_FILE)} is not ` +
+      "there, so this bundle is not read as the app's. If that file was renamed or moved, " +
+      "update HEADER_EVIDENCE_FILE in scripts/i18n-parity.mjs: until then no locale is held " +
+      "to the English headers. The keys also stop being exempt from the untranslated count " +
+      "below, so one of the two checks still sees them.",
+  );
+}
+if (ENGLISH_HEADERS_ENFORCED) {
   const drift = [];
   for (const key of ENGLISH_HEADER_KEYS) {
     if (typeof fe[key] !== "string") {
@@ -799,8 +816,15 @@ for (const lang of Object.keys(flatLocales)) {
   // work and must not be counted as debt. Without this, the two gates
   // contradict: Class F fails a locale that translates "Median weak strand"
   // and Class E fails the same locale for leaving it in English.
+  //
+  // The exemption is tied to ENGLISH_HEADERS_ENFORCED, not applied flat. With
+  // Class F standing down there is no requirement to be exempt from, and a flat
+  // exemption would leave a translated header answerable to neither check.
   untranslated[lang] = Object.keys(fe).filter(
-    (k) => isProse(fe[k]) && fl[k] === fe[k] && !ENGLISH_HEADER_KEY_SET.has(k),
+    (k) =>
+      isProse(fe[k]) &&
+      fl[k] === fe[k] &&
+      !(ENGLISH_HEADERS_ENFORCED && ENGLISH_HEADER_KEY_SET.has(k)),
   );
 }
 

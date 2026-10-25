@@ -591,14 +591,36 @@ describe("i18n-parity english column headers", () => {
     expect(run.output).toContain("ENGLISH_HEADER_KEYS lists candidatePopover.colTol");
   });
 
-  it("stands down on a bundle that has no result table to be consistent with", () => {
-    const xx = classFBundle("xx");
-    setIn(xx, "resultTable.well", "Vertiefung");
-    const fx = classFFixture(classFBundle("en"), xx, false);
+  it("says so, loudly, when the file it keys off is not there", () => {
+    const fx = classFFixture(classFBundle("en"), classFBundle("xx"), false);
+
+    const run = fx.run("i18n-parity.mjs");
+
+    expect(run.output).toContain("english column headers: NOT CHECKED");
+    expect(run.output).toContain("resultTableColumns.tsx");
+    expect(run.output).not.toContain("drifted");
+  });
+
+  it("drops the Class E exemption with it, so a header is never answerable to neither", () => {
+    // Nothing is translated here beyond the prose: every header holds English,
+    // which is what Class F demands. With Class F standing down that is no
+    // longer a requirement, so the whitespace-bearing ones become ordinary
+    // untranslated debt and `xx`, budgeted at zero, has to fail for them.
+    const fx = classFFixture(classFBundle("en"), classFBundle("xx"), false);
+
+    const run = fx.run("i18n-parity.mjs");
+
+    expect(run.status).toBe(1);
+    expect(run.output).toContain("untranslated value(s), baseline 0");
+    expect(run.output).toMatch(/- (candidatePopover|mame|manifestDiff|strictSpatial)\./);
+  });
+
+  it("exempts them again once the gate is back on", () => {
+    const fx = classFFixture(classFBundle("en"), classFBundle("xx"), true);
 
     const run = fx.run("i18n-parity.mjs");
 
     expect(run.status).toBe(0);
-    expect(run.output).not.toContain("english column headers");
+    expect(run.output).toContain("xx: 0 / baseline 0");
   });
 });
