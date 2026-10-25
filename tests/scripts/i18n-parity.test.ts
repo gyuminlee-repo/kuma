@@ -9,15 +9,23 @@
  * highlightsStamp comparison can tell it apart from a fresh translation.
  *
  * Each case runs the real script against a throwaway repo (see
- * ./script-fixture); this repository's src/locales/ is never read or written.
+ * ./script-fixture); this repository's src/locales/ is never written. The
+ * Class F cases below do read en.json, for the header values they assert on.
  *
  * Those cases are all child processes and never touch a DOM, so this file opts
  * out of the project-wide jsdom environment and skips booting it.
  *
  * @vitest-environment node
  */
+import { readFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { afterEach, describe, expect, it } from "vitest";
 import { createFixtureRepo, type FixtureRepo } from "./script-fixture";
+
+// Anchored to this file, not to cwd, matching ./script-fixture.
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 const STAMP = "9.9.9+1a2b3c4d";
 const PREVIOUS_STAMP = "9.9.8+99887766";
@@ -416,6 +424,203 @@ describe("i18n-parity interpolation checks", () => {
 
     expect(run.status).toBe(0);
     expect(run.output).toContain("untranslated (value byte-identical to en");
+    expect(run.output).toContain("xx: 0 / baseline 0");
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Class F: table column headers that stay English in every locale.
+//
+// The key list lives in the script and is reviewed as a diff to the gate, which
+// is the whole point of keeping it there. Restating eighty-odd keys here would
+// pin the list rather than the behaviour, and would have to be edited every
+// time a column is added. So the fixture reads the list out of the script and
+// takes the values from the real en.json: what these cases assert is that a
+// drifted locale is caught, named and given a non-zero exit, and that a bundle
+// with no result table in it is left alone.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const CLASS_F_STAMP = "9.9.9+beefcafe";
+const CLASS_F_ARCHIVE = { "9.9.9": "beefcafe" };
+
+/** Dotted keys the script lists in ENGLISH_HEADER_KEYS_BY_TABLE. */
+function headerKeysFromScript(): string[] {
+  const script = readFileSync(join(REPO_ROOT, "scripts", "i18n-parity.mjs"), "utf-8");
+  const open = script.indexOf("const ENGLISH_HEADER_KEYS_BY_TABLE = {");
+  const close = script.indexOf("\n};", open);
+  if (open < 0 || close < 0) throw new Error("ENGLISH_HEADER_KEYS_BY_TABLE not found");
+  const keys = [...script.slice(open, close).matchAll(/"([A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)+)"/g)]
+    .map((m) => m[1])
+    .filter((k) => !k.endsWith(".tsx"));
+  if (keys.length === 0) throw new Error("no keys parsed out of ENGLISH_HEADER_KEYS_BY_TABLE");
+  return [...new Set(keys)];
+}
+
+const CLASS_F_KEYS = headerKeysFromScript();
+
+function setIn(target: Record<string, unknown>, dotted: string, value: unknown): void {
+  const parts = dotted.split(".");
+  let node = target;
+  for (const part of parts.slice(0, -1)) {
+    if (typeof node[part] !== "object" || node[part] === null) node[part] = {};
+    node = node[part] as Record<string, unknown>;
+  }
+  node[parts.at(-1) as string] = value;
+}
+
+function getIn(source: Record<string, unknown>, dotted: string): unknown {
+  let node: unknown = source;
+  for (const part of dotted.split(".")) {
+    if (typeof node !== "object" || node === null) return undefined;
+    node = (node as Record<string, unknown>)[part];
+  }
+  return node;
+}
+
+const REAL_EN = JSON.parse(
+  readFileSync(join(REPO_ROOT, "src", "locales", "en.json"), "utf-8"),
+) as Record<string, unknown>;
+
+/**
+ * en.json's own value for each listed header, so the fixture is not a reinvention.
+ * The prose around it differs per locale because `xx` has no UNTRANSLATED_BASELINE
+ * entry and is budgeted at zero: English prose left in place there is Class E
+ * growth and would fail the run for a reason this suite is not about.
+ */
+function classFBundle(
+  lang: "en" | "xx" = "en",
+  keys: string[] = CLASS_F_KEYS,
+): Record<string, unknown> {
+  const prose =
+    lang === "en"
+      ? "The plate the operator points at is the one that runs."
+      : "Die angezeigte Platte ist die, die laeuft.";
+  const bundle: Record<string, unknown> = {
+    whatsNewDialog: {
+      title: lang === "en" ? "What is new" : "Neuerungen",
+      highlights: [prose],
+      highlightsStamp: CLASS_F_STAMP,
+      releases: { "9.9.9": [prose] },
+      releaseStamps: { ...CLASS_F_ARCHIVE },
+    },
+  };
+  for (const key of keys) {
+    const value = getIn(REAL_EN, key);
+    if (typeof value !== "string") throw new Error(`en.json has no string at ${key}`);
+    setIn(bundle, key, value);
+  }
+  return bundle;
+}
+
+/**
+ * @param withEvidenceFile whether to plant src/components/widgets/resultTableColumns.tsx,
+ *   the file whose hardcoded sibling headers are the reason the rule exists and
+ *   the signal the script reads to decide a bundle is this app's.
+ */
+function classFFixture(
+  en: Record<string, unknown>,
+  xx: Record<string, unknown>,
+  withEvidenceFile = true,
+): FixtureRepo {
+  const created = createFixtureRepo();
+  repo = created;
+  created.writeJson("src/locales/en.json", en);
+  created.writeJson("src/locales/xx.json", xx);
+  if (withEvidenceFile) {
+    created.write(
+      "src/components/widgets/resultTableColumns.tsx",
+      "// Headers here are hardcoded English literals; see ENGLISH_HEADER_KEYS_BY_TABLE.\n",
+    );
+  }
+  return created;
+}
+
+describe("i18n-parity english column headers", () => {
+  it("passes a bundle whose listed headers all match en", () => {
+    const fx = classFFixture(classFBundle("en"), classFBundle("xx"));
+
+    const run = fx.run("i18n-parity.mjs");
+
+    expect(run.status).toBe(0);
+    expect(run.output).toContain(
+      `${CLASS_F_KEYS.length} key(s) checked across 1 locale(s), 0 drifted`,
+    );
+    // Headers held in English are required, not debt: Class E must not bill
+    // them to a locale budgeted at zero.
+    expect(run.output).toContain("xx: 0 / baseline 0");
+    expect(run.output).toContain("i18n-parity: ok");
+  });
+
+  it("fails a locale that translated one of them, naming the locale and the key", () => {
+    const xx = classFBundle("xx");
+    setIn(xx, "resultTable.well", "Vertiefung");
+    const fx = classFFixture(classFBundle("en"), xx);
+
+    const run = fx.run("i18n-parity.mjs");
+
+    expect(run.status).toBe(1);
+    expect(run.output).toContain("1 drifted");
+    expect(run.output).toContain('xx: resultTable.well is "Vertiefung"');
+    expect(run.output).toContain(
+      `expected the English ${JSON.stringify(getIn(REAL_EN, "resultTable.well"))}`,
+    );
+    expect(run.output).toContain("i18n-parity: FAIL");
+  });
+
+  it("names every drifted header rather than stopping at the first", () => {
+    const xx = classFBundle("xx");
+    setIn(xx, "mame.verdictTable.colVerdict", "Urteil");
+    setIn(xx, "manifestDiff.colPath", "Pfad");
+    const fx = classFFixture(classFBundle("en"), xx);
+
+    const run = fx.run("i18n-parity.mjs");
+
+    expect(run.status).toBe(1);
+    expect(run.output).toContain("2 drifted");
+    expect(run.output).toContain("mame.verdictTable.colVerdict");
+    expect(run.output).toContain("manifestDiff.colPath");
+  });
+
+  it("fails a key the list names but en.json no longer defines", () => {
+    const kept = CLASS_F_KEYS.filter((k) => k !== "candidatePopover.colTol");
+    const fx = classFFixture(classFBundle("en", kept), classFBundle("xx", kept));
+
+    const run = fx.run("i18n-parity.mjs");
+
+    expect(run.status).toBe(1);
+    expect(run.output).toContain("ENGLISH_HEADER_KEYS lists candidatePopover.colTol");
+  });
+
+  it("says so, loudly, when the file it keys off is not there", () => {
+    const fx = classFFixture(classFBundle("en"), classFBundle("xx"), false);
+
+    const run = fx.run("i18n-parity.mjs");
+
+    expect(run.output).toContain("english column headers: NOT CHECKED");
+    expect(run.output).toContain("resultTableColumns.tsx");
+    expect(run.output).not.toContain("drifted");
+  });
+
+  it("drops the Class E exemption with it, so a header is never answerable to neither", () => {
+    // Nothing is translated here beyond the prose: every header holds English,
+    // which is what Class F demands. With Class F standing down that is no
+    // longer a requirement, so the whitespace-bearing ones become ordinary
+    // untranslated debt and `xx`, budgeted at zero, has to fail for them.
+    const fx = classFFixture(classFBundle("en"), classFBundle("xx"), false);
+
+    const run = fx.run("i18n-parity.mjs");
+
+    expect(run.status).toBe(1);
+    expect(run.output).toContain("untranslated value(s), baseline 0");
+    expect(run.output).toMatch(/- (candidatePopover|mame|manifestDiff|strictSpatial)\./);
+  });
+
+  it("exempts them again once the gate is back on", () => {
+    const fx = classFFixture(classFBundle("en"), classFBundle("xx"), true);
+
+    const run = fx.run("i18n-parity.mjs");
+
+    expect(run.status).toBe(0);
     expect(run.output).toContain("xx: 0 / baseline 0");
   });
 });

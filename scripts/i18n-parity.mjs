@@ -45,7 +45,7 @@
  * release tag, skips build and release entirely. package.json exposes it as
  * `i18n:parity` and as the second half of `i18n:check`.
  */
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -552,6 +552,212 @@ for (const c of dynamicKeyCalls) console.log(`  dynamic key: ${c}`);
 for (const c of opaqueOptionCalls) console.log(`  opaque options: ${c}`);
 for (const c of unresolvedKeyCalls) console.log(`  unresolved key: ${c}`);
 
+// ── Class F: table column headers stay English in every locale ─────────
+//
+// Product decision, taken 2026-10-25: a table column header reads the same in
+// every locale. The header is a short field name an operator matches against an
+// exported CSV, a protocol or a figure, and those are English everywhere, so a
+// translated header costs more than it gives.
+//
+// The app was already half-way there without anyone writing it down. Every
+// header in src/components/widgets/resultTableColumns.tsx (step 5) and in the
+// header row of src/components/widgets/EvolveproSelectTable.tsx is a hardcoded
+// English string rather than a t() call, and VerdictTable.tsx does the same for
+// its activity columns (ACTIVITY_COLUMN_LABELS). The handful of headers on those
+// same rows that did go through t() rendered half-translated, which is what
+// started this: Korean read "웰 | Mutation | Forward Primer | HP".
+//
+// This gate keeps every listed key byte-identical to en.json in all nine
+// translated locales. The list is grouped by the component that renders the
+// table so a reviewer can see which surface a key belongs to; adding a column as
+// a t() key means adding it here too. Not on the list, on purpose: row headers
+// (scope="row"), help and tooltip text carried on a header cell, aria-labels,
+// form labels and cell values.
+const ENGLISH_HEADER_KEYS_BY_TABLE = {
+  "src/components/dialogs/BenchmarkDialog.tsx": [
+    "benchmarkDialog.metricHitRate",
+    "benchmarkDialog.metricMeanFitness",
+    "benchmarkDialog.metricPositionCov",
+    "benchmarkDialog.metricStructuralSpread",
+    "benchmarkDialog.strategyColHeader",
+  ],
+  "src/components/dialogs/ManifestDiffDialog.tsx": [
+    "manifestDiff.colA",
+    "manifestDiff.colB",
+    "manifestDiff.colPath",
+    "manifestDiff.colStatus",
+  ],
+  "src/components/layout/SharedAboutDialog.tsx": [
+    "settings.shortcutAction",
+    "settings.shortcutKeys",
+  ],
+  "src/components/mame/panels/BuildEvolveproInputPanel.tsx": [
+    "mame.buildEvolvepro.colVariant",
+    "mame.buildEvolvepro.mismatchedAuthoritative",
+    "mame.buildEvolvepro.mismatchedFallback",
+  ],
+  "src/components/mame/widgets/RunHealthPanel.tsx": [
+    "mame.runHealth.classCountColClass",
+    "mame.runHealth.classCountColCount",
+    "mame.runHealth.colNeighborAvg",
+    "mame.runHealth.colReads",
+    "mame.runHealth.colSeverity",
+    "mame.runHealth.colWell",
+    "mame.runHealth.colZScore",
+  ],
+  "src/components/mame/widgets/RunQcSection.tsx": [
+    "mame.runQuality.indelRecurrence.colAnchor",
+    "mame.runQuality.indelRecurrence.colDistinctSequences",
+    "mame.runQuality.indelRecurrence.colExpectedVariants",
+    "mame.runQuality.indelRecurrence.colPosition",
+    "mame.runQuality.indelRecurrence.colWells",
+    "mame.runQuality.positionRecurrence.colFractionRange",
+    "mame.runQuality.positionRecurrence.colMedianFraction",
+    "mame.runQuality.positionRecurrence.colMedianShare",
+    "mame.runQuality.positionRecurrence.colPosition",
+    "mame.runQuality.positionRecurrence.colShareRange",
+    "mame.runQuality.positionRecurrence.colSharesKnown",
+    "mame.runQuality.positionRecurrence.colWells",
+  ],
+  "src/components/mame/widgets/VerdictTable.tsx": [
+    "mame.verdictTable.colAaChanges",
+    "mame.verdictTable.colBarcode",
+    "mame.verdictTable.colDepth",
+    "mame.verdictTable.colMutantId",
+    "mame.verdictTable.colNotes",
+    "mame.verdictTable.colQuality",
+    "mame.verdictTable.colRecovered",
+    "mame.verdictTable.colVerdict",
+    "mame.verdictTable.evolveproExport.header",
+    "mame.verdictTable.replicateFlags.header",
+  ],
+  "src/components/panels/InputPanel/StrictSpatialSection.tsx": [
+    "strictSpatial.comparisonMetric",
+    "strictSpatial.comparisonSelected",
+    "strictSpatial.comparisonTopN",
+  ],
+  "src/components/panels/Selection3DPanel.tsx": [
+    "selection3d.colAccPos",
+    "selection3d.colActiveSite",
+    "selection3d.colBindingSite",
+    "selection3d.colDomain",
+    "selection3d.colPlddt",
+    "selection3d.colRefPos",
+    "selection3d.colVariant",
+    "selection3d.colYPred",
+    "selection3d.domainTableColCount",
+    "selection3d.domainTableColDomain",
+  ],
+  "src/components/widgets/EvolveproSelectTable.tsx": [
+    "resultTable.includeHeader",
+  ],
+  "src/components/widgets/popovers/CandidatePopover.tsx": [
+    "candidatePopover.colForward",
+    "candidatePopover.colFwdLen",
+    "candidatePopover.colGcF",
+    "candidatePopover.colGcR",
+    "candidatePopover.colHash",
+    "candidatePopover.colOt",
+    "candidatePopover.colPen",
+    "candidatePopover.colRevLen",
+    "candidatePopover.colReverse",
+    "candidatePopover.colTmF",
+    "candidatePopover.colTmOv",
+    "candidatePopover.colTmR",
+    "candidatePopover.colTol",
+  ],
+  "src/components/widgets/popovers/FailedMutationPopover.tsx": [
+    "failedMutationPopover.colFwd",
+    "failedMutationPopover.colPen",
+    "failedMutationPopover.colRev",
+    "failedMutationPopover.colTmF",
+    "failedMutationPopover.colTmR",
+  ],
+  "src/components/widgets/popovers/HairpinDetail.tsx": [
+    "hairpinDetail.colDg",
+    "hairpinDetail.colStatus",
+    "hairpinDetail.colTm",
+    "hairpinDetail.colType",
+  ],
+  "src/components/widgets/popovers/OffTargetDetail.tsx": [
+    "offTargetDetail.colMatch",
+    "offTargetDetail.colPosition",
+    "offTargetDetail.colPrimer",
+    "offTargetDetail.colSequence",
+    "offTargetDetail.colStrand",
+    "offTargetDetail.colTm",
+  ],
+  "src/components/widgets/resultTableColumns.tsx": [
+    "resultTable.well",
+  ],
+};
+
+/** Flattened for lookup; the grouping above is what a reviewer reads. */
+const ENGLISH_HEADER_KEYS = Object.values(ENGLISH_HEADER_KEYS_BY_TABLE).flat();
+const ENGLISH_HEADER_KEY_SET = new Set(ENGLISH_HEADER_KEYS);
+
+// The list only means anything next to the source file that carries the sibling
+// literals, so that file's presence under ROOT is what turns the block on. The
+// synthetic bundles in tests/scripts/i18n-parity.test.ts have no src/components
+// at all and the block stands down for them rather than reporting eighty-odd
+// absences. Keying off the keys themselves would be weaker: renaming the whole
+// namespace in en.json, the nine locales and the source together would leave
+// nothing to compare and the gate would go quiet instead of failing.
+//
+// Deleting the file is not the only way to switch this off; RENAMING it does the
+// same. That is why ENGLISH_HEADERS_ENFORCED also governs the Class E exemption
+// further down, and why the miss is announced rather than merely implied. The
+// two must move together: an exemption that outlived its gate would hide a
+// translated header from Class F and from Class E at once, which is the one
+// outcome neither check is allowed to produce. If this file moves, point the
+// constant at its new path in the same change.
+const HEADER_EVIDENCE_FILE = join(SRC_DIR, "components", "widgets", "resultTableColumns.tsx");
+const ENGLISH_HEADERS_ENFORCED = existsSync(HEADER_EVIDENCE_FILE);
+if (!ENGLISH_HEADERS_ENFORCED) {
+  console.log(
+    `\nenglish column headers: NOT CHECKED. ${relative(ROOT, HEADER_EVIDENCE_FILE)} is not ` +
+      "there, so this bundle is not read as the app's. If that file was renamed or moved, " +
+      "update HEADER_EVIDENCE_FILE in scripts/i18n-parity.mjs: until then no locale is held " +
+      "to the English headers. The keys also stop being exempt from the untranslated count " +
+      "below, so one of the two checks still sees them.",
+  );
+}
+if (ENGLISH_HEADERS_ENFORCED) {
+  const drift = [];
+  for (const key of ENGLISH_HEADER_KEYS) {
+    if (typeof fe[key] !== "string") {
+      ok = false;
+      console.error(
+        `  ENGLISH_HEADER_KEYS lists ${key}, which en.json does not define as a string. ` +
+          "Remove it from scripts/i18n-parity.mjs or restore the key.",
+      );
+      continue;
+    }
+    for (const lang of Object.keys(flatLocales).sort()) {
+      const got = flatLocales[lang][key];
+      if (got !== fe[key]) drift.push({ lang, key, got, want: fe[key] });
+    }
+  }
+  console.log(
+    `\nenglish column headers: ${ENGLISH_HEADER_KEYS.length} key(s) checked across ` +
+      `${Object.keys(flatLocales).length} locale(s), ${drift.length} drifted`,
+  );
+  if (drift.length) {
+    ok = false;
+    for (const { lang, key, got, want } of drift) {
+      console.error(
+        `  ${lang}: ${key} is ${JSON.stringify(got)}, expected the English ${JSON.stringify(want)}`,
+      );
+    }
+    console.error(
+      "  These label columns whose neighbours in the same header row are hardcoded English " +
+        "literals, so translating one of them renders a half-translated row. Copy the en.json " +
+        "value verbatim, or, if the column really should be translated, drop the key from " +
+        "ENGLISH_HEADER_KEYS in scripts/i18n-parity.mjs and say why.",
+    );
+  }
+}
+
 // ── Class E: values that are byte-identical to English ─────────────────────
 //
 // This is not a broken string, it is untranslated work, and there are thousands
@@ -587,23 +793,38 @@ const UNTRANSLATED_BASELINE = {
   // Tightened again when the codon-strategy select left the UI: its six keys were
   // deleted from all ten locales, so the counts fell without anything being
   // translated. Slack taken back rather than left as headroom.
-  de: 554,
-  es: 542,
-  fr: 539,
-  ja: 606,
-  ko: 152,
-  "pt-BR": 544,
-  ru: 647,
-  "zh-CN": 600,
-  "zh-TW": 600,
+  // Tightened 2026-10-25 to the counts the gate reported after the Class F
+  // work above. Two things lowered them: the column headers reverted to English
+  // in that change, and Class F keys no longer counting as debt at all. Slack
+  // taken back rather than left as headroom, per the paragraph above.
+  de: 522,
+  es: 511,
+  fr: 502,
+  ja: 570,
+  ko: 136,
+  "pt-BR": 514,
+  ru: 611,
+  "zh-CN": 563,
+  "zh-TW": 563,
 };
 
 const isProse = (v) => typeof v === "string" && v.trim() !== "" && /\s/.test(v.trim());
 const untranslated = {};
 for (const lang of Object.keys(flatLocales)) {
   const fl = flatLocales[lang];
+  // Class F keys are REQUIRED to equal English, so they are not untranslated
+  // work and must not be counted as debt. Without this, the two gates
+  // contradict: Class F fails a locale that translates "Median weak strand"
+  // and Class E fails the same locale for leaving it in English.
+  //
+  // The exemption is tied to ENGLISH_HEADERS_ENFORCED, not applied flat. With
+  // Class F standing down there is no requirement to be exempt from, and a flat
+  // exemption would leave a translated header answerable to neither check.
   untranslated[lang] = Object.keys(fe).filter(
-    (k) => isProse(fe[k]) && fl[k] === fe[k],
+    (k) =>
+      isProse(fe[k]) &&
+      fl[k] === fe[k] &&
+      !(ENGLISH_HEADERS_ENFORCED && ENGLISH_HEADER_KEY_SET.has(k)),
   );
 }
 
