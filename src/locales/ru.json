@@ -3380,7 +3380,7 @@
     "includeTitle": "Include this row in plate map and exports",
     "excludeTitle": "Exclude this row from plate map and exports",
     "excludedRowAriaLabel": "{{mutation}} is excluded from downstream outputs",
-    "well": "Лунка",
+    "well": "Well",
     "wellHint": "Лунка прямого праймера в текущей схеме экспорта. Сортировка меняет порядок экспорта; R1, R2 и т. д. обозначают отдельные раунды экспорта."
   },
   "mameSidebar": {

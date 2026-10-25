@@ -1904,7 +1904,7 @@
     "colGcR": "GC% R",
     "colTol": "Tol",
     "colPenTitle": "Pénalité = écart Tm + écart GC + changements de codon + hairpin/homodimer",
-    "colPen": "Pén",
+    "colPen": "Pen",
     "colOt": "OT",
     "labelBest": "best",
     "btnBoth": "Les deux",
@@ -1986,7 +1986,7 @@
     "colRev": "Rev",
     "colTmF": "Tm F",
     "colTmR": "Tm R",
-    "colPen": "Pén",
+    "colPen": "Pen",
     "btnSelect": "Sélectionner",
     "btnShowManual": "Ou saisir manuellement...",
     "btnHideManual": "Masquer la saisie manuelle",
@@ -3380,7 +3380,7 @@
     "includeTitle": "Include this row in plate map and exports",
     "excludeTitle": "Exclude this row from plate map and exports",
     "excludedRowAriaLabel": "{{mutation}} is excluded from downstream outputs",
-    "well": "Puits",
+    "well": "Well",
     "wellHint": "Puits de l'amorce directe dans la disposition d'export actuelle. Le tri modifie l'ordre d'export ; R1, R2, etc. désignent des séries d'export distinctes."
   },
   "mameSidebar": {

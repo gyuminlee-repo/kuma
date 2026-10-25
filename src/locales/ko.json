@@ -1935,8 +1935,8 @@
     "alternativesError": "대안 불러오기 실패: {{message}}",
     "rankedByPenalty": "페널티 기준 정렬 (낮을수록 우수). #1이 기본값으로 자동 선택됩니다.",
     "colHash": "#",
-    "colForward": "정방향",
-    "colReverse": "역방향",
+    "colForward": "Forward",
+    "colReverse": "Reverse",
     "colFwdLen": "Fwd",
     "colRevLen": "Rev",
     "colTmF": "Tm F",
@@ -3426,7 +3426,7 @@
     "allFailedDesc": "아래 실패 원인을 확인한 후 파라미터를 조정하고 다시 시도하세요.",
     "noResultsTitle": "결과 없음",
     "noResultsDesc": "서열을 불러오고 변이를 정의한 후 디자인을 실행하세요.",
-    "includeHeader": "포함",
+    "includeHeader": "Include",
     "includeAriaLabel": "{{mutation}}을(를) downstream 출력에 포함",
     "includeTitle": "이 행을 plate map 및 export에 포함",
     "excludeTitle": "이 행을 plate map 및 export에서 제외",
@@ -3434,7 +3434,7 @@
     "pipelineFillHint": "파이프라인 + 실패 시 채우기가 이미 해당 위치를 대체했으므로 재시도가 비활성화됩니다.",
     "pipelineFillNote": "파이프라인 + 실패 시 채우기가 해당 위치를 대체했으므로 재시도가 불필요합니다.",
     "removeCustomRescueTitle": "커스텀 rescue 제거: 실패로 복원",
-    "well": "웰",
+    "well": "Well",
     "wellHint": "현재 내보내기 배치의 정방향 프라이머 웰입니다. 정렬하면 내보내기 순서도 바뀝니다. R1, R2 등은 각각의 내보내기 라운드입니다."
   },
   "mameSidebar": {

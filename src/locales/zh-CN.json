@@ -3380,7 +3380,7 @@
     "includeTitle": "Include this row in plate map and exports",
     "excludeTitle": "Exclude this row from plate map and exports",
     "excludedRowAriaLabel": "{{mutation}} is excluded from downstream outputs",
-    "well": "孔位",
+    "well": "Well",
     "wellHint": "当前导出布局中的正向引物孔位。排序会改变导出顺序；R1、R2 等表示独立的导出轮次。"
   },
   "mameSidebar": {

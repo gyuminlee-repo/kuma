@@ -3380,7 +3380,7 @@
     "includeTitle": "Include this row in plate map and exports",
     "excludeTitle": "Exclude this row from plate map and exports",
     "excludedRowAriaLabel": "{{mutation}} is excluded from downstream outputs",
-    "well": "ウェル",
+    "well": "Well",
     "wellHint": "現在のエクスポート配置におけるフォワードプライマーのウェルです。並べ替えるとエクスポート順も変わります。R1、R2 などは別々のエクスポートラウンドを示します。"
   },
   "mameSidebar": {

@@ -3380,7 +3380,7 @@
     "includeTitle": "Include this row in plate map and exports",
     "excludeTitle": "Exclude this row from plate map and exports",
     "excludedRowAriaLabel": "{{mutation}} is excluded from downstream outputs",
-    "well": "Poço",
+    "well": "Well",
     "wellHint": "Poço do primer direto no layout de exportação atual. A ordenação altera a ordem de exportação; R1, R2 etc. identificam rodadas de exportação separadas."
   },
   "mameSidebar": {

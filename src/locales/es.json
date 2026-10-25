@@ -3380,7 +3380,7 @@
     "includeTitle": "Include this row in plate map and exports",
     "excludeTitle": "Exclude this row from plate map and exports",
     "excludedRowAriaLabel": "{{mutation}} is excluded from downstream outputs",
-    "well": "Pocillo",
+    "well": "Well",
     "wellHint": "Pocillo del cebador directo en el diseño de exportación actual. Ordenar cambia el orden de exportación; R1, R2, etc. identifican rondas de exportación independientes."
   },
   "mameSidebar": {

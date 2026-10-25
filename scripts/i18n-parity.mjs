@@ -552,6 +552,87 @@ for (const c of dynamicKeyCalls) console.log(`  dynamic key: ${c}`);
 for (const c of opaqueOptionCalls) console.log(`  opaque options: ${c}`);
 for (const c of unresolvedKeyCalls) console.log(`  unresolved key: ${c}`);
 
+// ── Class F: column headers that must stay English in every locale ─────
+//
+// The KURO result table (step 5) and the two popovers that open from its rows
+// label their columns with hardcoded English literals: every header in
+// src/components/widgets/resultTableColumns.tsx and in the header row of
+// src/components/widgets/EvolveproSelectTable.tsx is a string in the source,
+// not a t() call. The headers that do go through t() sit in the same <tr> as
+// those literals, so a locale that translates one of them produces a mixed row
+// such as "웰 | Mutation | Forward Primer | HP". The popovers
+// (CandidatePopover, FailedMutationPopover) repeat the same column tokens.
+//
+// The convention is therefore the sibling literals rather than a written rule,
+// and it is only enforceable for the keys listed here. This gate keeps those
+// keys byte-identical to en.json in all ten locales. Adding a column to one of
+// those tables as a t() key means adding it here too; a column on a table that
+// is translated end to end (MAME verdict, run health, run quality, manifest
+// diff) does not belong on this list.
+const ENGLISH_HEADER_KEYS = [
+  "resultTable.well",
+  "resultTable.includeHeader",
+  "candidatePopover.colHash",
+  "candidatePopover.colForward",
+  "candidatePopover.colReverse",
+  "candidatePopover.colFwdLen",
+  "candidatePopover.colRevLen",
+  "candidatePopover.colTmF",
+  "candidatePopover.colTmR",
+  "candidatePopover.colTmOv",
+  "candidatePopover.colGcF",
+  "candidatePopover.colGcR",
+  "candidatePopover.colTol",
+  "candidatePopover.colPen",
+  "candidatePopover.colOt",
+  "failedMutationPopover.colFwd",
+  "failedMutationPopover.colRev",
+  "failedMutationPopover.colTmF",
+  "failedMutationPopover.colTmR",
+  "failedMutationPopover.colPen",
+];
+
+// A bundle that defines none of these keys is not this app's bundle (the script
+// is run against synthetic fixtures in tests/scripts/i18n-parity.test.ts), so the
+// block stands down rather than reporting twenty absences. Once en.json defines
+// one of them it is the real bundle, and a key missing from it is a rename that
+// dropped a column out of the gate, which fails.
+if (ENGLISH_HEADER_KEYS.some((key) => typeof fe[key] === "string")) {
+  const drift = [];
+  for (const key of ENGLISH_HEADER_KEYS) {
+    if (typeof fe[key] !== "string") {
+      ok = false;
+      console.error(
+        `  ENGLISH_HEADER_KEYS lists ${key}, which en.json does not define as a string. ` +
+          "Remove it from scripts/i18n-parity.mjs or restore the key.",
+      );
+      continue;
+    }
+    for (const lang of Object.keys(flatLocales).sort()) {
+      const got = flatLocales[lang][key];
+      if (got !== fe[key]) drift.push({ lang, key, got, want: fe[key] });
+    }
+  }
+  console.log(
+    `\nenglish column headers: ${ENGLISH_HEADER_KEYS.length} key(s) checked across ` +
+      `${Object.keys(flatLocales).length} locale(s), ${drift.length} drifted`,
+  );
+  if (drift.length) {
+    ok = false;
+    for (const { lang, key, got, want } of drift) {
+      console.error(
+        `  ${lang}: ${key} is ${JSON.stringify(got)}, expected the English ${JSON.stringify(want)}`,
+      );
+    }
+    console.error(
+      "  These label columns whose neighbours in the same header row are hardcoded English " +
+        "literals, so translating one of them renders a half-translated row. Copy the en.json " +
+        "value verbatim, or, if the column really should be translated, drop the key from " +
+        "ENGLISH_HEADER_KEYS in scripts/i18n-parity.mjs and say why.",
+    );
+  }
+}
+
 // ── Class E: values that are byte-identical to English ─────────────────────
 //
 // This is not a broken string, it is untranslated work, and there are thousands
