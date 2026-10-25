@@ -9,7 +9,8 @@
  * highlightsStamp comparison can tell it apart from a fresh translation.
  *
  * Each case runs the real script against a throwaway repo (see
- * ./script-fixture); this repository's src/locales/ is never read or written.
+ * ./script-fixture); this repository's src/locales/ is never written. The
+ * Class F cases below do read en.json, for the header values they assert on.
  *
  * Those cases are all child processes and never touch a DOM, so this file opts
  * out of the project-wide jsdom environment and skips booting it.
@@ -560,7 +561,9 @@ describe("i18n-parity english column headers", () => {
     expect(run.status).toBe(1);
     expect(run.output).toContain("1 drifted");
     expect(run.output).toContain('xx: resultTable.well is "Vertiefung"');
-    expect(run.output).toContain('expected the English "Well"');
+    expect(run.output).toContain(
+      `expected the English ${JSON.stringify(getIn(REAL_EN, "resultTable.well"))}`,
+    );
     expect(run.output).toContain("i18n-parity: FAIL");
   });
 

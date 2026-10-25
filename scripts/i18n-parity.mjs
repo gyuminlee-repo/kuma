@@ -777,7 +777,7 @@ const UNTRANSLATED_BASELINE = {
   // deleted from all ten locales, so the counts fell without anything being
   // translated. Slack taken back rather than left as headroom.
   // Tightened 2026-10-25 to the counts the gate reported after the Class F
-  // work below. Two things lowered them: the column headers reverted to English
+  // work above. Two things lowered them: the column headers reverted to English
   // in that change, and Class F keys no longer counting as debt at all. Slack
   // taken back rather than left as headroom, per the paragraph above.
   de: 522,
