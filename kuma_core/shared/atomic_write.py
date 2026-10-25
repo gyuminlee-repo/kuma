@@ -187,8 +187,11 @@ def atomic_write_text(
 
     Raises:
         Exception: Whatever the write raised. The staging file is removed
-            first in every case, including :class:`KeyboardInterrupt`, so a
-            failed export never leaves a ``.tmp`` beside the target.
+            first in every case, including :class:`KeyboardInterrupt`, with one
+            window that cannot be closed from here: an interrupt delivered
+            after the kernel created the file and before ``open`` returned
+            leaves the stage behind, because nothing in this frame yet knows
+            its name. Every failure after that point cleans up.
     """
     path = Path(path)
     codecs.lookup(encoding)  # an unknown encoding fails before any file exists
@@ -230,8 +233,14 @@ def atomic_write_text(
 def atomic_output_path(path: Path) -> Iterator[Path]:
     """Stage an external writer's output beside its target and publish on success.
 
-    The caller must validate the staged artifact before leaving the context.
-    A conversion, validation, flush, or rename failure leaves the target intact.
+    Leaving the context publishes whatever the stage holds, so a writer that
+    can fail quietly has to be checked before the context ends. An out-of-process
+    converter is the case that needs it: ``export_pdf`` validates its stage
+    because a converter can exit 0 and leave something that is not a PDF. An
+    in-process writer such as ``openpyxl`` or ``csv`` raises instead, and the
+    exception leaves the context before the publish, so no separate check buys
+    anything there. A conversion, validation, flush, or rename failure leaves
+    the target intact.
     """
     path = Path(path)
     tmp_path = _temp_path_for(path)

@@ -49,7 +49,6 @@ the next scan would report as corrupt.
 from __future__ import annotations
 
 import json
-import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -58,6 +57,7 @@ from kuma_core.kuro import codon_compute as _compute
 from kuma_core.kuro import codon_formats as _formats
 from kuma_core.kuro.codon_import import validate_codon_table_data
 from kuma_core.kuro.codon_table import _document_from_report
+from kuma_core.shared.atomic_write import atomic_write_text
 
 import sidecar_kuro.core as _core
 from sidecar_kuro.core import (
@@ -257,11 +257,15 @@ def _judge_and_install(
     directory = ensure_user_codon_dir()
     directory.mkdir(parents=True, exist_ok=True)
     target = directory / f"{key}.json"
-    tmp = target.with_suffix(".json.tmp")
-    tmp.write_text(
-        json.dumps(stored, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    # The shared primitive rather than a second hand-rolled stage-and-rename:
+    # it removes its staging file for any failure, which the local copy did
+    # not, so an interrupted install left a <key>.json.tmp in the user's
+    # codon-table directory for the registry scan to find.
+    atomic_write_text(
+        target,
+        json.dumps(stored, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
     )
-    os.replace(tmp, target)
 
     # Same send -> relist -> select order saveCustomPolymerase uses: the
     # caches go before anything reads the folder again, so the frontend's

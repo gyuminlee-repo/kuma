@@ -124,7 +124,9 @@ def handle_save(params: dict) -> dict:
         with os.fdopen(tmp_fd, "w", encoding="utf-8") as fh:
             fh.write(serialized)
         os.replace(tmp_name, str(prefs_path))
-    except OSError as exc:
+    except BaseException as exc:
+        # Any failure, not only OSError: a Ctrl-C between the write and the
+        # rename used to leave preferences_*.tmp beside the real file.
         logger.error("Atomic write failed for %s: %s", prefs_path, exc)
         try:
             os.unlink(tmp_name)

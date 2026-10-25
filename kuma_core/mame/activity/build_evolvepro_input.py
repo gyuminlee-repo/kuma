@@ -642,7 +642,12 @@ def _publish_artifact_bundle(
         for destination, stage in staged:
             stage.replace(destination)
             published.append(destination)
-    except Exception:
+    except BaseException:
+        # Not only Exception. Each file's publish is an atomic replace, so no
+        # single file is ever half written, but a Ctrl-C between two replaces
+        # used to leave the set half new and half old with the .bak copies
+        # still on disk, which is the one state this bundle exists to prevent.
+        # Same reason atomic_write_text widened its own cleanup.
         for destination in reversed(published):
             destination.unlink(missing_ok=True)
         for destination, backup in backups.items():

@@ -278,7 +278,6 @@ def _rewrite_result_workbook(state) -> dict:
     fact to report, not a reason to lose it.
     """
     from kuma_core.mame.export import WellMapper, write_excel
-    from kuma_core.shared.atomic_write import atomic_output_path
 
     result: dict = {"status": "skipped", "output_path": None, "error": None}
     if not state.last_output_path:
@@ -286,23 +285,26 @@ def _rewrite_result_workbook(state) -> dict:
     target = Path(state.last_output_path)
     result["output_path"] = str(target)
     try:
-        # ``write_excel`` stages its own save, so this outer stage is not what
-        # makes the rewrite atomic. It is kept because it also reserves the
-        # destination directory: a rewrite addresses a workbook the run already
-        # wrote once, so a vanished output folder is a fact to report rather
-        # than a folder to re-create behind the operator.
-        with atomic_output_path(target) as staged:
-            write_excel(
-                verdict_records=state.last_verdicts,
-                replicate_results=state.last_replicates,
-                output_path=staged,
-                mapper=WellMapper(),
-                ngs_run_meta=state.last_run_meta,
-                kuma_version=KUMA_VERSION,
-                designed_mutant_ids=state.last_designed_mutant_ids,
-                barcode_prefix_note=state.last_barcode_prefix_note,
-                analysis=state.last_analysis_conditions,
+        # A rewrite addresses a workbook the run already wrote once, so a
+        # vanished output folder is a fact to report rather than a folder to
+        # re-create behind the operator. Stated here rather than left to the
+        # side effect of a staging file failing to open, which is what the
+        # check used to be.
+        if not target.parent.is_dir():
+            raise FileNotFoundError(
+                f"The output folder is gone: {target.parent}"
             )
+        write_excel(
+            verdict_records=state.last_verdicts,
+            replicate_results=state.last_replicates,
+            output_path=target,
+            mapper=WellMapper(),
+            ngs_run_meta=state.last_run_meta,
+            kuma_version=KUMA_VERSION,
+            designed_mutant_ids=state.last_designed_mutant_ids,
+            barcode_prefix_note=state.last_barcode_prefix_note,
+            analysis=state.last_analysis_conditions,
+        )
         result["status"] = "saved"
     except Exception as exc:  # noqa: BLE001 - the confirmation itself must survive
         result["status"] = "failed"

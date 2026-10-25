@@ -1082,81 +1082,156 @@ _ATOMIC_WRITERS = {
     "generate_mame_package": "kuma_core/mame/ingest/barcode_package.py",
 }
 
-# Handlers are found by two anchors, not one. ``_validate_output_path`` alone
-# missed ``handle_export_barcode_worklist`` and ``handle_export_variant_template``,
-# which take the operator's path straight out of the params and wrote it
-# directly; both are bench documents. The name anchor catches an export or save
-# handler whichever way it resolves its path.
-_HANDLER_NAME_ANCHOR = re.compile(r"^handle_.*(export|save|generate)")
+# Three anchors, not one. ``_validate_output_path`` alone missed
+# ``handle_export_barcode_worklist`` and ``handle_export_variant_template``,
+# which take the operator's path straight out of the params. A name anchor
+# narrowed to export/save/generate missed nothing today and would miss a
+# ``handle_write_*`` or ``handle_dump_*`` tomorrow, so it is every handler. The
+# third anchor is the write itself: any function in these modules that opens a
+# file for writing has to be registered, whatever it is called, which is what
+# keeps a "no-write" declaration from being a free pass.
+_HANDLER_NAME_ANCHOR = re.compile(r"^handle_")
 
 _STAGING_NAMES = {"atomic_output_path", "atomic_write_text"}
 
-# Every sidecar handler function that resolves an operator-named output path.
+# Calls that put bytes on disk without going through the staging primitives.
+_WRITE_METHODS = {"write_text", "write_bytes", "save", "to_csv", "to_excel"}
+_CSV_WRITER_FACTORIES = {"writer", "DictWriter"}
+_WRITE_MODES = "wxa"
+
+
+def _direct_writes(node):
+    """Return the direct-write calls inside *node*, as ``name@line`` strings.
+
+    ``open`` counts only for a writing mode, so the many ``open(path)`` reads in
+    these modules stay quiet. ``os.fdopen`` counts the same way: it is how the
+    preferences writer puts bytes on disk, and leaving it out made that handler
+    look inert. ``.save``/``.write_text``/``.write_bytes``/
+    ``.to_csv``/``.to_excel`` and the two ``csv`` writer factories count as
+    attribute calls, which is how an ``openpyxl`` workbook and a ``Path`` write
+    both get seen without naming the receiver.
+    """
+    hits = []
+    for call in ast.walk(node):
+        if not isinstance(call, ast.Call):
+            continue
+        func = call.func
+        is_attr = isinstance(func, ast.Attribute)
+        name = func.attr if is_attr else (func.id if isinstance(func, ast.Name) else None)
+        if name in ("open", "fdopen"):
+            mode = None
+            if len(call.args) > 1 and isinstance(call.args[1], ast.Constant):
+                mode = call.args[1].value
+            for kw in call.keywords:
+                if kw.arg == "mode" and isinstance(kw.value, ast.Constant):
+                    mode = kw.value.value
+            if isinstance(mode, str) and any(ch in mode for ch in _WRITE_MODES):
+                hits.append(f"{name}({mode})@{call.lineno}")
+        elif is_attr and name in _WRITE_METHODS:
+            hits.append(f".{name}()@{call.lineno}")
+        elif is_attr and name in _CSV_WRITER_FACTORIES:
+            hits.append(f"csv.{name}()@{call.lineno}")
+    return hits
+
+
+# Every function in a sidecar handler module that one of the three anchors
+# reaches.
 # "here"          the function body stages the write itself
 # "callee"        it hands the resolved path to a writer from _ATOMIC_WRITERS
 # "transitive"    the writer is reached through the named intermediate module
-# "validate-only" the function checks the path and writes nothing
-# "direct"        known debt: the path is written without a staged rename
+# "validate-only" the function checks a path and writes nothing
+# "no-write"      it writes nothing at all (asserted, not taken on trust)
+# "app-state"     it writes application state under the user profile
+# "exempt-write"  it writes directly to a path the operator never named
+# "direct"        known debt: an operator path written without a staged rename
 #
-# A new handler that resolves a user output path is absent from this table and
-# fails the test below, which is the point: it has to state how it publishes.
+# A new function any anchor reaches is absent from this table and fails the
+# test below, which is the point: it has to state how it publishes. The two
+# kinds that admit a direct write, "direct" and "exempt-write", are each also
+# frozen in a set further down, so declaring one is a two-place edit a reviewer
+# sees rather than a word changed on one line.
 _OUTPUT_PATH_HANDLERS = {
+    ("sidecar_kuro/handlers/codon.py", "handle_import_codon_table"): ("no-write", None),
     ("sidecar_kuro/handlers/codon.py", "handle_export_codon_table"): ("direct", None),
+    ("sidecar_kuro/handlers/codon.py", "handle_compute_codon_table"): ("no-write", None),
+    ("sidecar_kuro/handlers/design.py", "handle_design_sdm_primers"): ("exempt-write", None),
+    ("sidecar_kuro/handlers/design.py", "handle_retry_failed"): ("no-write", None),
+    ("sidecar_kuro/handlers/design.py", "handle_swap_primer"): ("no-write", None),
+    ("sidecar_kuro/handlers/design.py", "handle_commit_design_result"): ("no-write", None),
+    ("sidecar_kuro/handlers/design.py", "handle_evaluate_primer"): ("no-write", None),
+    ("sidecar_kuro/handlers/design.py", "handle_get_alternatives"): ("no-write", None),
+    ("sidecar_kuro/handlers/export.py", "handle_get_plate_map"): ("no-write", None),
     ("sidecar_kuro/handlers/export.py", "handle_export_excel"): ("direct", None),
     ("sidecar_kuro/handlers/export.py", "handle_export_order"): ("direct", None),
     ("sidecar_kuro/handlers/export.py", "handle_export_mapping"): ("direct", None),
-    ("sidecar_kuro/handlers/export.py", "handle_export_benchmark_csv"): ("direct", None),
-    ("sidecar_kuro/handlers/export.py", "handle_export_macrogen"): ("direct", None),
     ("sidecar_kuro/handlers/export.py", "handle_save_workspace"): ("here", None),
     ("sidecar_kuro/handlers/export.py", "handle_save_json"): ("here", None),
-    # Dry runs answer with rows; they open no file.
-    ("sidecar_kuro/handlers/export.py", "handle_export_echo_mapping_dry_run"): (
-        "no-write",
-        None,
-    ),
-    ("sidecar_kuro/handlers/export.py", "handle_export_janus_mapping_dry_run"): (
-        "no-write",
-        None,
-    ),
-    # Fans out to the handlers above and writes nothing of its own.
+    ("sidecar_kuro/handlers/export.py", "handle_load_workspace"): ("no-write", None),
+    ("sidecar_kuro/handlers/export.py", "handle_export_benchmark_csv"): ("direct", None),
+    ("sidecar_kuro/handlers/export.py", "handle_export_macrogen"): ("direct", None),
+    ("sidecar_kuro/handlers/export.py", "_export_primers_fasta"): ("direct", None),
+    ("sidecar_kuro/handlers/export.py", "handle_export_echo_mapping_dry_run"): ("no-write", None),
+    ("sidecar_kuro/handlers/export.py", "handle_export_janus_mapping_dry_run"): ("no-write", None),
     ("sidecar_kuro/handlers/export.py", "handle_export_all"): ("no-write", None),
-    # Application state under the user profile, not an operator-named export.
-    ("sidecar_kuro/handlers/misc.py", "handle_save_custom_polymerase"): (
-        "app-state",
-        None,
-    ),
-    ("sidecar_kuro/handlers/settings.py", "handle_save"): ("app-state", None),
-    ("sidecar_mame/handlers/activity.py", "handle_activity_export_evolvepro_xlsx"): (
-        "callee",
-        "export_evolvepro_xlsx",
-    ),
+    ("sidecar_kuro/handlers/external.py", "handle_fetch_domains"): ("no-write", None),
+    ("sidecar_kuro/handlers/external.py", "handle_search_uniprot"): ("no-write", None),
+    ("sidecar_kuro/handlers/external.py", "handle_check_structures_available"): ("no-write", None),
+    ("sidecar_kuro/handlers/external.py", "handle_fetch_structure"): ("no-write", None),
+    ("sidecar_kuro/handlers/external.py", "handle_load_structure_file"): ("no-write", None),
+    ("sidecar_kuro/handlers/external.py", "handle_fetch_interface_residues"): ("no-write", None),
+    ("sidecar_kuro/handlers/external.py", "handle_fetch_pdb_text"): ("no-write", None),
+    ("sidecar_kuro/handlers/external.py", "handle_fetch_active_site"): ("no-write", None),
+    ("sidecar_kuro/handlers/external.py", "handle_compute_dispersion"): ("no-write", None),
+    ("sidecar_kuro/handlers/external.py", "handle_predict_structure_esmfold"): ("no-write", None),
+    ("sidecar_kuro/handlers/external.py", "handle_annotate_domains_by_sequence"): ("no-write", None),
+    ("sidecar_kuro/handlers/misc.py", "handle_list_polymerases"): ("no-write", None),
+    ("sidecar_kuro/handlers/misc.py", "handle_get_polymerase_details"): ("no-write", None),
+    ("sidecar_kuro/handlers/misc.py", "handle_save_custom_polymerase"): ("app-state", None),
+    ("sidecar_kuro/handlers/misc.py", "ensure_user_codon_dir"): ("app-state", None),
+    ("sidecar_kuro/handlers/misc.py", "handle_list_organisms"): ("no-write", None),
+    ("sidecar_kuro/handlers/misc.py", "handle_preview_evolvepro_source"): ("no-write", None),
+    ("sidecar_kuro/handlers/misc.py", "handle_load_evolvepro_csv"): ("no-write", None),
+    ("sidecar_kuro/handlers/misc.py", "handle_run_benchmark"): ("no-write", None),
+    ("sidecar_kuro/handlers/sequence.py", "handle_load_fasta"): ("no-write", None),
+    ("sidecar_kuro/handlers/sequence.py", "handle_parse_mutations_text"): ("no-write", None),
+    ("sidecar_kuro/handlers/settings.py", "handle_load"): ("no-write", None),
+    ("sidecar_kuro/handlers/settings.py", "handle_save"): ("app-state", None),  # writes via os.fdopen
+    ("sidecar_mame/handlers/activity.py", "handle_activity_upload"): ("no-write", None),
+    ("sidecar_mame/handlers/activity.py", "handle_activity_set_plate_meta"): ("no-write", None),
+    ("sidecar_mame/handlers/activity.py", "handle_activity_merge"): ("no-write", None),
+    ("sidecar_mame/handlers/activity.py", "handle_activity_export_evolvepro_xlsx"): ("callee",
+        "export_evolvepro_xlsx"),
+    ("sidecar_mame/handlers/activity.py", "handle_merge_for_evolvepro"): ("no-write", None),
+    ("sidecar_mame/handlers/activity.py", "handle_build_evolvepro_input"): ("no-write", None),
+    ("sidecar_mame/handlers/activity.py", "handle_detect_measurement_source"): ("no-write", None),
     ("sidecar_mame/handlers/analyze.py", "_acceptance_findings"): ("validate-only", None),
-    ("sidecar_mame/handlers/analyze.py", "handle_analyze"): (
-        "transitive",
-        ("kuma_core/mame/pipeline.py", "write_excel"),
-    ),
-    ("sidecar_mame/handlers/barcode_package.py", "handle_generate_mame_package"): (
-        "callee",
-        "generate_mame_package",
-    ),
-    ("sidecar_mame/handlers/barcode_worklist.py", "handle_export_barcode_worklist"): (
-        "callee",
-        "write_barcode_worklist_csv",
-    ),
+    ("sidecar_mame/handlers/analyze.py", "handle_validate_inputs"): ("no-write", None),
+    ("sidecar_mame/handlers/analyze.py", "handle_analyze"): ("transitive",
+        ("kuma_core/mame/pipeline.py", "write_excel")),
+    ("sidecar_mame/handlers/barcode_package.py", "handle_inspect_variant_source"): ("no-write", None),
+    ("sidecar_mame/handlers/barcode_package.py", "handle_check_plate_order"): ("no-write", None),
+    ("sidecar_mame/handlers/barcode_package.py", "handle_generate_mame_package"): ("callee",
+        "generate_mame_package"),
+    ("sidecar_mame/handlers/barcode_worklist.py", "handle_export_barcode_worklist"): ("callee",
+        "write_barcode_worklist_csv"),
+    ("sidecar_mame/handlers/build_well_layout.py", "handle_build_well_layout"): ("no-write", None),
+    ("sidecar_mame/handlers/classify_round.py", "handle_classify_round"): ("no-write", None),
+    ("sidecar_mame/handlers/combinatorial_demux.py", "handle_run_combinatorial_demux"): ("no-write", None),
+    ("sidecar_mame/handlers/demux.py", "handle_demux_and_filter"): ("here", None),
+    ("sidecar_mame/handlers/detect_native_barcodes.py", "handle_detect_native_barcodes"): ("no-write", None),
     ("sidecar_mame/handlers/export.py", "handle_export_excel"): ("callee", "write_excel"),
-    ("sidecar_mame/handlers/export.py", "handle_export_janus_mapping"): (
-        "callee",
-        "export_mame_janus_csv",
-    ),
-    ("sidecar_mame/handlers/export.py", "handle_export_janus_mapping_dry_run"): (
-        "no-write",
-        None,
-    ),
+    ("sidecar_mame/handlers/export.py", "handle_get_plate_data"): ("no-write", None),
+    ("sidecar_mame/handlers/export.py", "handle_apply_selection_overrides"): ("no-write", None),
+    ("sidecar_mame/handlers/export.py", "handle_export_janus_mapping"): ("callee",
+        "export_mame_janus_csv"),
+    ("sidecar_mame/handlers/export.py", "handle_export_janus_mapping_dry_run"): ("no-write", None),
+    ("sidecar_mame/handlers/health.py", "handle_get_run_health"): ("no-write", None),
+    ("sidecar_mame/handlers/ingest.py", "handle_parse_reference"): ("no-write", None),
+    ("sidecar_mame/handlers/kuma_meta.py", "handle_read_kuma_meta"): ("no-write", None),
+    ("sidecar_mame/handlers/load.py", "handle_load_analyze_result"): ("no-write", None),
     ("sidecar_mame/handlers/report.py", "handle_export_run_report"): ("here", None),
-    ("sidecar_mame/handlers/variant_template.py", "handle_export_variant_template"): (
-        "callee",
-        "write_variant_template",
-    ),
+    ("sidecar_mame/handlers/variant_template.py", "handle_export_variant_template"): ("callee",
+        "write_variant_template"),
 }
 
 # The KURO handlers above that still write the operator's path directly. The
@@ -1168,34 +1243,82 @@ _KNOWN_DIRECT_WRITERS = {
     ("sidecar_kuro/handlers/export.py", "handle_export_mapping"),
     ("sidecar_kuro/handlers/export.py", "handle_export_benchmark_csv"),
     ("sidecar_kuro/handlers/export.py", "handle_export_macrogen"),
+    ("sidecar_kuro/handlers/export.py", "_export_primers_fasta"),
+}
+
+# Functions that write directly to a path the operator never chose. Frozen for
+# the same reason as the debt set above.
+#   handle_design_sdm_primers  a NamedTemporaryFile holding the mutation list
+#   _write_reference_fasta     a derived FASTA inside the run's own demux
+#                              output directory or a TemporaryDirectory
+#   ensure_user_codon_dir      the bundled seed tables copied into that same
+#                              user directory on first use
+#   handle_save                preferences.json under the user profile, staged
+#                              with mkstemp and renamed
+_KNOWN_NON_OPERATOR_WRITERS = {
+    ("sidecar_kuro/handlers/design.py", "handle_design_sdm_primers"),
+    ("sidecar_mame/handlers/analyze.py", "_write_reference_fasta"),
+    ("sidecar_kuro/handlers/misc.py", "ensure_user_codon_dir"),
+    ("sidecar_kuro/handlers/settings.py", "handle_save"),
 }
 
 
-def _handler_calls(relative):
-    """Map every function in *relative* to the plain names it calls."""
-    path = ROOT / "python-core" / relative
-    tree = ast.parse(path.read_text(encoding="utf-8"))
+def _handler_functions(source, origin="<registry>"):
+    """Map every function in *source* to the names it calls and the writes it does.
+
+    Attribute calls are included alongside plain names, so ``mod.write_excel(...)``
+    after an ``import`` of the module, or an aliased import, reads the same as a
+    bare call. Reading only ``ast.Name`` let both forms through unseen.
+    """
     found = {}
-    for node in ast.walk(tree):
+    for node in ast.walk(ast.parse(source, filename=origin)):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            found[node.name] = {
-                call.func.id
-                for call in ast.walk(node)
-                if isinstance(call, ast.Call) and isinstance(call.func, ast.Name)
-            }
+            found[node.name] = (
+                {
+                    (call.func.attr if isinstance(call.func, ast.Attribute) else call.func.id)
+                    for call in ast.walk(node)
+                    if isinstance(call, ast.Call)
+                    and isinstance(call.func, (ast.Name, ast.Attribute))
+                },
+                _direct_writes(node),
+            )
     return found
 
 
-def _handlers_resolving_user_paths():
-    modules = sorted(
-        p.relative_to(ROOT / "python-core").as_posix()
-        for p in (ROOT / "python-core").glob("sidecar_*/handlers/*.py")
+def _handler_modules():
+    """Every handler module, including any future subpackage.
+
+    The handler directories are found first and recursed into second, so a
+    subpackage added under one of them is covered while a build or vendor tree
+    elsewhere under ``python-core`` cannot match. A flat glob would silently
+    stop covering the day a sidecar grows a subpackage. ``__pycache__`` is
+    skipped because its ``.py`` files do not exist.
+    """
+    root = ROOT / "python-core"
+    return sorted(
+        p.relative_to(root).as_posix()
+        for handlers in root.glob("sidecar_*/handlers")
+        for p in handlers.rglob("*.py")
+        if "__pycache__" not in p.parts
     )
+
+
+def _anchored(name, calls, writes):
+    return bool(
+        _HANDLER_NAME_ANCHOR.match(name)
+        or "_validate_output_path" in calls
+        or writes
+    )
+
+
+def _handlers_resolving_user_paths(modules=None, read=None):
+    modules = _handler_modules() if modules is None else modules
+    read = read or (lambda m: (ROOT / "python-core" / m).read_text(encoding="utf-8"))
     return {
-        (module, name): calls
+        (module, name): (calls, writes)
         for module in modules
-        for name, calls in _handler_calls(module).items()
-        if "_validate_output_path" in calls or _HANDLER_NAME_ANCHOR.match(name)
+        for name, (calls, writes) in _handler_functions(read(module), module).items()
+        if _anchored(name, calls, writes)
     }
 
 
@@ -1205,13 +1328,17 @@ def test_core01_every_user_output_handler_declares_how_it_publishes():
     Found by AST rather than by grep so that renaming a handler, or adding a
     new one in either sidecar, cannot slip past unlisted.
     """
-    found = _handlers_resolving_user_paths()
-    assert set(found) == set(_OUTPUT_PATH_HANDLERS), {
-        "unregistered": sorted(set(found) - set(_OUTPUT_PATH_HANDLERS)),
-        "stale": sorted(set(_OUTPUT_PATH_HANDLERS) - set(found)),
+    _check_registry(_handlers_resolving_user_paths())
+
+
+def _check_registry(found, registry=None):
+    registry = _OUTPUT_PATH_HANDLERS if registry is None else registry
+    assert set(found) == set(registry), {
+        "unregistered": sorted(set(found) - set(registry)),
+        "stale": sorted(set(registry) - set(found)),
     }
-    for key, calls in found.items():
-        kind, detail = _OUTPUT_PATH_HANDLERS[key]
+    for key, (calls, writes) in found.items():
+        kind, detail = registry[key]
         if kind == "here":
             assert calls & _STAGING_NAMES, key
         elif kind == "callee":
@@ -1221,10 +1348,22 @@ def test_core01_every_user_output_handler_declares_how_it_publishes():
             intermediate, writer = detail
             assert writer in (ROOT / intermediate).read_text(encoding="utf-8"), key
             assert writer in _ATOMIC_WRITERS, key
-        elif kind in ("validate-only", "no-write", "app-state"):
+        elif kind in ("validate-only", "no-write"):
+            # The declaration is checked, not believed: a body that opens a
+            # file for writing cannot wear one of these labels, which is what
+            # stopped "no-write" from being a one-word way past this gate.
+            assert not writes, (key, kind, writes)
             assert not (calls & _STAGING_NAMES), key
+        elif kind in ("app-state", "exempt-write"):
+            # These may write, to a path the operator never chose. Saying so
+            # costs a second edit in the frozen set below, which a reviewer
+            # sees, rather than one word changed on one line.
+            assert not writes or key in _KNOWN_NON_OPERATOR_WRITERS, (key, writes)
         else:
+            # Debt. Writing the operator's path straight is allowed only for
+            # the handlers already named in the frozen set below.
             assert kind == "direct", key
+            assert key in _KNOWN_DIRECT_WRITERS, key
 
 
 def test_core01_direct_writer_debt_may_shrink_but_never_grow():
@@ -1240,3 +1379,165 @@ def test_core01_delegated_writers_actually_stage_their_output():
         source = (ROOT / module).read_text(encoding="utf-8")
         assert f"def {writer}(" in source, writer
         assert "atomic_output_path" in source, module
+
+
+# A handler that would slip past the gate if the gate trusted its declaration.
+_BYPASS_FIXTURE = """
+def handle_export_something(params):
+    output = params["output"]
+    with open(output, "w", encoding="utf-8") as fh:
+        fh.write("partial")
+    return {"output_path": output}
+"""
+
+
+def _fixture_registry(kind):
+    return {("sidecar_mame/handlers/fixture.py", "handle_export_something"): (kind, None)}
+
+
+def _fixture_found():
+    return _handlers_resolving_user_paths(
+        modules=["sidecar_mame/handlers/fixture.py"],
+        read=lambda _: _BYPASS_FIXTURE,
+    )
+
+
+@pytest.mark.parametrize("kind", ["no-write", "validate-only"])
+def test_core01_a_quiet_declaration_cannot_hide_a_direct_write(kind):
+    """Declaring a writing handler inert must fail, not pass.
+
+    Before the write check this was the cheapest way past the registry: one
+    word on one line, with ``open(path, "w")`` still in the body.
+    """
+    found = _fixture_found()
+    assert list(found) == [("sidecar_mame/handlers/fixture.py", "handle_export_something")]
+    with pytest.raises(AssertionError) as caught:
+        _check_registry(found, _fixture_registry(kind))
+    assert "open(w)@4" in str(caught.value)
+
+
+def test_core01_an_unregistered_writing_handler_fails_the_gate():
+    with pytest.raises(AssertionError) as caught:
+        _check_registry(_fixture_found(), {})
+    assert "unregistered" in str(caught.value)
+
+
+def test_core01_an_exempt_write_must_also_be_named_in_the_frozen_set():
+    with pytest.raises(AssertionError):
+        _check_registry(_fixture_found(), _fixture_registry("exempt-write"))
+
+
+def test_core01_a_direct_declaration_must_also_be_named_in_the_debt_set():
+    with pytest.raises(AssertionError):
+        _check_registry(_fixture_found(), _fixture_registry("direct"))
+
+
+def test_core01_the_write_detector_sees_attribute_and_factory_writes():
+    """Verified against inputs whose answer is known, both ways."""
+    writes = _direct_writes(
+        ast.parse(
+            "def f(p):\n"
+            "    open(p)\n"
+            "    open(p, 'r')\n"
+            "    p.read_text()\n"
+            "    open(p, 'w')\n"
+            "    os.fdopen(fd, 'w')\n"
+            "    open(p, mode='ab')\n"
+            "    wb.save(p)\n"
+            "    p.write_text('x')\n"
+            "    p.write_bytes(b'x')\n"
+            "    df.to_csv(p)\n"
+            "    df.to_excel(p)\n"
+            "    csv.writer(fh)\n"
+            "    csv.DictWriter(fh, [])\n"
+        ).body[0]
+    )
+    assert [w.split("@")[0] for w in writes] == [
+        "open(w)",
+        "fdopen(w)",
+        "open(ab)",
+        ".save()",
+        ".write_text()",
+        ".write_bytes()",
+        ".to_csv()",
+        ".to_excel()",
+        "csv.writer()",
+        "csv.DictWriter()",
+    ]
+
+
+# ---------------------------------------------------------------------------
+# core01: the hand-rolled stage-and-rename writers clean up for any failure
+# ---------------------------------------------------------------------------
+
+def test_core01_bundle_rollback_survives_an_interrupt_between_publishes(
+    tmp_path, monkeypatch
+):
+    """A Ctrl-C mid-publish must leave the whole bundle on its previous version.
+
+    Each file's publish is an atomic replace, so no single file is ever half
+    written. What used to escape the rollback was the gap between two of them:
+    the first destination already held the new bytes, the second still held the
+    old ones, and both ``.bak`` copies stayed on disk.
+    """
+    # The module, not the same-named function the package re-exports.
+    from kuma_core.mame.activity.build_evolvepro_input import (
+        _publish_artifact_bundle,
+    )
+
+    first = tmp_path / "round1.xlsx"
+    second = tmp_path / "gc_export.xlsx"
+    manifest = tmp_path / "round1.xlsx.manifest.json"
+    first.write_text("OLD FIRST")
+    second.write_text("OLD SECOND")
+    manifest.write_text("OLD MANIFEST")
+
+    writers = [
+        (first, lambda path: path.write_text("NEW FIRST")),
+        (second, lambda path: path.write_text("NEW SECOND")),
+    ]
+
+    real_replace = Path.replace
+    calls = {"n": 0}
+
+    def counting_replace(self, target):
+        calls["n"] += 1
+        # Three destinations exist, so calls 1-3 move them aside and call 4 is
+        # the first publish. Interrupt there, with every backup already made.
+        if calls["n"] == 4:
+            raise KeyboardInterrupt()
+        return real_replace(self, target)
+
+    monkeypatch.setattr(Path, "replace", counting_replace)
+    with pytest.raises(KeyboardInterrupt):
+        _publish_artifact_bundle(writers, manifest, {"schema": 1})
+
+    assert first.read_text(encoding="utf-8") == "OLD FIRST"
+    assert second.read_text(encoding="utf-8") == "OLD SECOND"
+    assert manifest.read_text(encoding="utf-8") == "OLD MANIFEST"
+    assert sorted(p.name for p in tmp_path.iterdir()) == sorted(
+        [first.name, second.name, manifest.name]
+    )
+
+
+def test_core01_preferences_save_leaves_no_stage_when_interrupted(
+    tmp_path, monkeypatch
+):
+    """The preferences writer is a second hand-rolled stage-and-rename.
+
+    It cleaned up for OSError only, so an interrupt between the write and the
+    rename left a ``preferences_*.tmp`` beside the real file.
+    """
+    from sidecar_kuro.handlers import settings as settings_handler
+
+    prefs = tmp_path / "preferences.json"
+    monkeypatch.setenv("KUMA_PREFERENCES_PATH", str(prefs))
+    monkeypatch.setattr(
+        settings_handler.os,
+        "replace",
+        lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()),
+    )
+    with pytest.raises(KeyboardInterrupt):
+        settings_handler.handle_save({"settings": {"theme": "dark"}})
+    assert not prefs.exists()
+    assert list(tmp_path.iterdir()) == []
