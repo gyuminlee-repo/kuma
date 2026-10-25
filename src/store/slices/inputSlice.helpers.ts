@@ -112,12 +112,17 @@ export function buildEvolveproLoadParams(config: EvolveproLoadConfig): Record<st
   if (usePipeline && structuralDiversityEnabled && config.strictSpatialEnabled) {
     // The opt-in method owns its full-pool eligibility and selection. Legacy
     // quotas, Pareto shortlists, anchors and kappa must not narrow its pool.
+    // A domain the user switched off is not one of those heuristics: it states
+    // which residues are eligible at all, so it travels on every path.
     return {
       filepath, top_n: topN, ref_seq: refSeq, structure_accession: structureAccession,
       score_order: evolveproScoreOrder, strict_spatial: true, structural_diversity: true,
       strict_spatial_budget: config.strictSpatialBudgetMode ?? "unique_sites",
       strict_spatial_site_cap: config.strictSpatialBudgetMode === "distinct_variants"
         ? config.strictSpatialSiteCap ?? null : null,
+      ...(excludedDomains.length > 0 && {
+        excluded_ranges: excludedDomains.map((d) => ({ start: d.start, end: d.end })),
+      }),
       ...(evolveproVariantColumn && { variant_column: evolveproVariantColumn }),
       ...(evolveproScoreColumn && { score_column: evolveproScoreColumn }),
       ...(evolveproSheetName && { sheet_name: evolveproSheetName }),

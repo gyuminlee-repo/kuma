@@ -3,6 +3,11 @@ import { useAppStore } from "@/store/appStore";
 import { strictSpatialFixture } from "@/test-utils/strictSpatialFixture";
 import { currentStrictSpatialResult, strictSpatialContextKey } from "./strictSpatial";
 
+const DOMAINS = [
+  { name: "Linker", id: "PF00001", start: 10, end: 24, db: "Pfam" },
+  { name: "Core", id: "PF00002", start: 30, end: 60, db: "Pfam" },
+];
+
 function state() {
   const result = strictSpatialFixture();
   const input = { ...useAppStore.getState(), strictSpatialEnabled: true,
@@ -27,8 +32,18 @@ describe("strict spatial selection freshness", () => {
     { evolveproScoreOrder: "asc" as const }, { strictSpatialEnabled: false },
     { structuralDiversityEnabled: false }, { evolveproMode: "topN" as const },
     { strictSpatialBudgetMode: "distinct_variants" as const }, { strictSpatialSiteCap: 2 },
+    { refDomains: DOMAINS, disabledDomains: ["Linker-10"] },
   ])("invalidates after an input changes: %j", (patch) => {
     expect(currentStrictSpatialResult({ ...state(), ...patch })).toBeNull();
+  });
+  it("keys the certificate to the ranges the user disabled", () => {
+    const base = { ...state(), refDomains: DOMAINS };
+    const none = strictSpatialContextKey(base);
+    const one = strictSpatialContextKey({ ...base, disabledDomains: ["Linker-10"] });
+    const other = strictSpatialContextKey({ ...base, disabledDomains: ["Core-30"] });
+    expect(one).not.toBe(none);
+    expect(other).not.toBe(one);
+    expect(strictSpatialContextKey({ ...base, disabledDomains: ["Linker-10"] })).toBe(one);
   });
   it("rejects an echoed policy that does not match the current budget", () => {
     const input = state();

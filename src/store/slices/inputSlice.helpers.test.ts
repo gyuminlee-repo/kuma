@@ -305,6 +305,24 @@ describe("strict spatial opt-in requests", () => {
       strictSpatialBudgetMode: "unique_sites", strictSpatialSiteCap: 19 }));
     expect(params).toMatchObject({ strict_spatial_budget: "unique_sites", strict_spatial_site_cap: null });
   });
+  it("still excludes the domains the user disabled", () => {
+    const excludedDomains = [
+      { name: "Linker", id: "PF00001", start: 10, end: 24, db: "Pfam" },
+      { name: "Signal", id: "PF00002", start: 80, end: 95, db: "Pfam" },
+    ];
+    const params = buildEvolveproLoadParams(makeConfig({
+      structuralDiversityEnabled: true, strictSpatialEnabled: true, excludedDomains,
+    }));
+    expect(params).toMatchObject({ strict_spatial: true });
+    expect(params.excluded_ranges).toEqual([{ start: 10, end: 24 }, { start: 80, end: 95 }]);
+  });
+  it("omits the key when nothing is disabled", () => {
+    const params = buildEvolveproLoadParams(makeConfig({
+      structuralDiversityEnabled: true, strictSpatialEnabled: true, excludedDomains: [],
+    }));
+    expect(params).toMatchObject({ strict_spatial: true });
+    expect(params).not.toHaveProperty("excluded_ranges");
+  });
 });
 
 describe("buildEvolveproLoadStateUpdate: structure coverage", () => {
