@@ -27,9 +27,11 @@ import { useMameAppStore } from "@/store/mame/mameAppStore"
 import { cn } from "@/lib/utils"
 
 /** How many pore-scan readings to name; the first and last are what an operator reads. */
-function poreSummary(start: number | null, end: number | null): string | null {
-  if (start === null) return null
-  return end === null || end === start ? `${start}` : `${start} → ${end}`
+function poreSummary(start: number | null | undefined, end: number | null | undefined): string | null {
+  // `== null` rather than `=== null`: an older or partial result can omit the
+  // key entirely, and `undefined` must read as "no pore count", never render.
+  if (start == null) return null
+  return end == null || end === start ? `${start}` : `${start} → ${end}`
 }
 
 export function RunQualityNotice() {

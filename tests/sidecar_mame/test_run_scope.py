@@ -147,3 +147,38 @@ def test_concurrent_cache_consumers_are_rejected_before_mutation(tmp_path):
         release.set()
         worker.join(5)
     assert not worker.is_alive()
+
+
+def test_failed_resequence_analyze_leaves_no_empty_destination(tmp_path):
+    """The destination is reserved before validation, so it must be given back.
+
+    `call_in_run_scope` creates the resequencing folder before the disjointness
+    check and before the handler runs, because the check reads the reserved
+    path rather than the operator's raw choice. Any failure after that point
+    used to leave a `resequence-*` folder the operator had to recognise as
+    litter. A folder holding partial output is kept; an empty one is removed.
+    """
+    def explode(_request):
+        raise RuntimeError("sidecar failed after the destination was reserved")
+
+    with pytest.raises(RuntimeError, match="after the destination"):
+        call_in_run_scope("analyze", explode, {
+            "run_scope": "resequence", "output": str(tmp_path / "run.xlsx"),
+        })
+
+    assert list(tmp_path.glob("resequence-*")) == []
+
+
+def test_partly_written_resequence_destination_is_kept_for_inspection(tmp_path):
+    """Evidence of what a failed run did get to is not litter."""
+    def half_write(request):
+        folder = Path(request["output"]).parent
+        (folder / "demux_filtered").mkdir()
+        raise RuntimeError("sidecar failed midway")
+
+    with pytest.raises(RuntimeError, match="midway"):
+        call_in_run_scope("analyze", half_write, {
+            "run_scope": "resequence", "output": str(tmp_path / "run.xlsx"),
+        })
+
+    assert [p.name for p in tmp_path.glob("resequence-*")] != []

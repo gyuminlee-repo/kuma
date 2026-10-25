@@ -46,6 +46,8 @@ def _copy_verdict(workbook: python_calamine.CalamineWorkbook, plate: str, well: 
     if sheet not in workbook.sheet_names:
         raise ValueError(f"Resequencing mapping names unknown plate {plate!r}")
     rows = workbook.get_sheet_by_name(sheet).to_python()
+    if not rows:
+        raise ValueError(f"Plate {plate!r} has no well/verdict evidence")
     header = [str(cell).strip().lower() for cell in rows[0]]
     if "well_id" not in header or "verdict" not in header:
         raise ValueError(f"Plate {plate!r} has no well/verdict evidence")
@@ -98,6 +100,12 @@ def validate_resequence_links(evidence: ResequenceEvidence, original_path: str |
         repeat_key = (nb_label(link.resequence_plate), repeat_well)
         if variant in mapped or repeat_key in used_sources or source_well in used_activity_wells:
             raise ValueError("Duplicate clone mapping across resequencing runs")
+        # Only a same-clone link reaches back into the original run. A measured
+        # resequencing clone states where its OWN activity was read on the final
+        # plate, which is routinely a well the original run never scored, so
+        # `source is None` is the ordinary case here and not an omission. A well
+        # the original assigned to a different variant is rejected one layer up,
+        # in build_evolvepro_input against the active well->variant mapping.
         if link.relationship == "same_clone":
             if source is None or source.mutant_id != link.mutant_id:
                 raise ValueError(f"Incompatible original clone identity: {link.mutant_id}")

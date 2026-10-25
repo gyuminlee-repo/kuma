@@ -8,7 +8,11 @@ import pytest
 
 from kuma_core.mame.activity.build_evolvepro_input import build_evolvepro_input
 from kuma_core.mame.activity.evolvepro_xlsx import read_evolvepro_rows
-from kuma_core.mame.activity.resequence_evidence import CloneEvidenceLink, ResequenceEvidence
+from kuma_core.mame.activity.resequence_evidence import (
+    CloneEvidenceLink,
+    ResequenceEvidence,
+    validate_resequence_links,
+)
 
 
 def _workbook(path: Path, *, repeated=False, identity="G2A", source_call="LOWDEPTH", reference="same-reference"):
@@ -154,3 +158,59 @@ def test_measured_clone_relation_requires_an_activity_well():
             relationship="measured_resequence_clone", mutant_id="G2A",
             resequence_well="C1", resequence_plate="NB02",
         )
+
+
+def test_measured_activity_well_may_be_absent_from_the_original_verdict(tmp_path, inputs):
+    """Design, not an omission: a measured clone names a well the original never scored.
+
+    `validate_resequence_links` deliberately leaves `source` unchecked on the
+    measured branch. The original run did not place this clone, so there is no
+    original identity to agree with, and docs/mame_resequencing.md calls the
+    sample well A3 "the free well". The collision that would matter, an activity
+    well the original assigned to a DIFFERENT variant, is refused one layer up
+    by build_evolvepro_input against the active well->variant mapping, which is
+    what the next two assertions pin.
+    """
+    original, _, activity, evidence = inputs
+    measured = CloneEvidenceLink(
+        relationship="measured_resequence_clone", mutant_id="G2A",
+        activity_well="D1", resequence_well="C1", resequence_plate="NB02",
+    )
+    evidence = evidence.model_copy(update={"links": [measured]})
+    # D1 is in no sheet of the original workbook, and the link still validates.
+    assert validate_resequence_links(evidence, original) == {"2A": "D01"}
+
+    activity.write_text("well,value\nWT_1,1\nD1,9.1\nB1,2.3\n", encoding="utf-8")
+    result = build_evolvepro_input(
+        tmp_path / "free.xlsx", activity_path=activity, verdict_xlsx=original,
+        resequence_evidence=evidence,
+    )
+    assert dict(read_evolvepro_rows(result.output_path)) == pytest.approx({"2A": 9.1, "3W": 2.3})
+
+
+def test_measured_activity_well_held_by_another_variant_is_refused(tmp_path, inputs):
+    """The negative half of the rule above, with no layout sheet to appeal to."""
+    original, _, activity, evidence = inputs
+    # B1 is F3W in the original verdict, which is the derived mapping here.
+    measured = CloneEvidenceLink(
+        relationship="measured_resequence_clone", mutant_id="G2A",
+        activity_well="B1", resequence_well="C1", resequence_plate="NB02",
+    )
+    evidence = evidence.model_copy(update={"links": [measured]})
+    activity.write_text("well,value\nWT_1,1\nB1,2.3\n", encoding="utf-8")
+    output = tmp_path / "collide.xlsx"
+    with pytest.raises(ValueError, match="belongs to another variant"):
+        build_evolvepro_input(output, activity_path=activity, verdict_xlsx=original, resequence_evidence=evidence)
+    assert not output.exists()
+
+
+def test_empty_plate_sheet_is_a_user_facing_error_not_an_indexerror(tmp_path, inputs):
+    """A sheet with no rows must raise ValueError; the dispatcher only maps that."""
+    original, repeated, _activity, evidence = inputs
+    book = openpyxl.load_workbook(repeated)
+    sheet = book["NB02"]
+    book.remove(sheet)
+    book.create_sheet("NB02")  # present, named, and completely empty
+    book.save(repeated)
+    with pytest.raises(ValueError, match="no well/verdict evidence"):
+        validate_resequence_links(evidence, original)

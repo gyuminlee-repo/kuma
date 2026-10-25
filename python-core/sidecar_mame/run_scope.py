@@ -39,33 +39,49 @@ def call_in_run_scope(method: str, handler: Callable, params: dict) -> dict:
     try:
         request = dict(params)
         snapshot = request.pop("result_snapshot", None)
+        folder: Path | None = None
         if method == "analyze" and scope == "resequence":
             output = Path(request["output"]).resolve()
             if not output.parent.is_dir():
                 raise ValueError("Resequencing output parent must be an existing directory")
             # Always a new directory, even when the operator picks the primary
             # destination. Demux, workbook, picks and manifests stay together.
+            # Reserved here rather than later because the disjointness check
+            # below reads the reserved path, not the operator's raw choice.
             folder = Path(mkdtemp(prefix="resequence-", dir=output.parent))
             request["output"] = str(folder / output.name)
             request["demux_output_dir"] = str(folder / "demux_filtered")
-        # Restore and re-export must not point at the other run's workbook or
-        # siblings (including the primary pick list).
-        target = request.get("output_path") if method == "load_analyze_result" else request.get("output")
-        other_token = run_scope.set("primary" if scope == "resequence" else "resequence")
         try:
-            other_path = get_state().last_output_path
-        finally:
-            run_scope.reset(other_token)
-        if target and other_path and Path(target).resolve().parent == Path(other_path).resolve().parent:
-            raise ValueError("Independent runs must use separate output directories")
-        if snapshot is not None:
-            from sidecar_mame.handlers.load import LoadAnalyzeResultParams, handle_load_analyze_result
-
-            restored = LoadAnalyzeResultParams.model_validate(snapshot)
-            if other_path and Path(restored.output_path).resolve().parent == Path(other_path).resolve().parent:
+            # Restore and re-export must not point at the other run's workbook or
+            # siblings (including the primary pick list).
+            target = request.get("output_path") if method == "load_analyze_result" else request.get("output")
+            other_token = run_scope.set("primary" if scope == "resequence" else "resequence")
+            try:
+                other_path = get_state().last_output_path
+            finally:
+                run_scope.reset(other_token)
+            if target and other_path and Path(target).resolve().parent == Path(other_path).resolve().parent:
                 raise ValueError("Independent runs must use separate output directories")
-            handle_load_analyze_result(restored.model_dump())
-        return handler(request)
+            if snapshot is not None:
+                from sidecar_mame.handlers.load import LoadAnalyzeResultParams, handle_load_analyze_result
+
+                restored = LoadAnalyzeResultParams.model_validate(snapshot)
+                if other_path and Path(restored.output_path).resolve().parent == Path(other_path).resolve().parent:
+                    raise ValueError("Independent runs must use separate output directories")
+                handle_load_analyze_result(restored.model_dump())
+            return handler(request)
+        except BaseException:
+            # A destination reserved for a run that never wrote anything is not
+            # a run, it is litter the operator has to recognise and delete. A
+            # folder holding partial output is kept, because that is evidence.
+            if folder is not None:
+                try:
+                    if folder.is_dir() and not any(folder.iterdir()):
+                        folder.rmdir()
+                except OSError:
+                    # Tidying must never replace the failure being reported.
+                    pass
+            raise
     finally:
         run_scope.reset(token)
         _operation_lock.release()
