@@ -903,3 +903,340 @@ def test_core01_text_stage_is_private_before_publication(tmp_path, monkeypatch):
         atomic_write.os.umask(old_umask)
     assert output.read_text(encoding="utf-8") == "ORIGINAL"
     assert list(tmp_path.iterdir()) == [output]
+
+
+# ---------------------------------------------------------------------------
+# core01: every user-named export publishes through a staged rename
+# ---------------------------------------------------------------------------
+
+def _mame_export_writers():
+    """The MAME writers that publish to a path the operator named.
+
+    Each entry is (id, callable taking the destination, previous bytes marker).
+    Empty record lists keep these inert: no sequence design, analysis or
+    instrument behaviour is exercised, only the file boundary.
+    """
+    from kuma_core.mame.activity.export_evolvepro import export_evolvepro_xlsx
+    from kuma_core.mame.barcode_worklist import (
+        BarcodeWorklist,
+        write_barcode_worklist_csv,
+    )
+    from kuma_core.mame.export import (
+        export_mame_janus_csv,
+        export_mame_janus_xlsx,
+        write_excel,
+    )
+    from kuma_core.mame.ingest import barcode_package
+    from kuma_core.mame.io.variant_template import write_variant_template
+
+    seeds = {
+        f"{side}_{i}": "ACGTACGTAC"
+        for side in ("fwd", "rev")
+        for i in range(1, barcode_package._N_FWD + 1)
+    }
+    empty_worklist = BarcodeWorklist(
+        rows=[], reverse_indices=[], forward_indices=[], missing_seeds=[]
+    )
+    return [
+        ("janus_csv", lambda path: export_mame_janus_csv([], path), ".csv"),
+        ("janus_xlsx", lambda path: export_mame_janus_xlsx([], path), ".xlsx"),
+        ("result_workbook", lambda path: write_excel([], [], path), ".xlsx"),
+        ("evolvepro_xlsx", lambda path: export_evolvepro_xlsx([], path), ".xlsx"),
+        (
+            "barcode_worklist",
+            lambda path: write_barcode_worklist_csv(empty_worklist, path),
+            ".csv",
+        ),
+        ("variant_template", lambda path: write_variant_template(path), ".xlsx"),
+        (
+            "package_barcodes_xlsx",
+            lambda path: barcode_package._write_barcodes_xlsx(
+                path=path,
+                seeds=seeds,
+                fwd_flanking="acgt",
+                rev_flanking="acgt",
+                gene_prefix="gene",
+            ),
+            ".xlsx",
+        ),
+        (
+            "package_amplicon_fasta",
+            lambda path: barcode_package._write_amplicon_fasta(
+                path=path,
+                cds_seq="ATG" * 40,
+                gene_start=0,
+                gene_end=120,
+                gene_name="gene",
+            ),
+            ".fa",
+        ),
+        (
+            "package_context_json",
+            lambda path: barcode_package._write_mame_context_json(
+                path=path,
+                project_root=path.parent,
+                barcodes_xlsx=path.parent / "barcodes_sequence.xlsx",
+                amplicon_fa=path.parent / "gene_amplicon.fa",
+            ),
+            ".json",
+        ),
+    ]
+
+
+@pytest.mark.parametrize(
+    "name,writer,suffix",
+    _mame_export_writers(),
+    ids=[entry[0] for entry in _mame_export_writers()],
+)
+def test_core01_mame_export_publish_failure_keeps_previous_file(
+    tmp_path, monkeypatch, name, writer, suffix
+):
+    """A Janus worklist or workbook that fails to publish leaves the old one.
+
+    The lab reads these files as instructions. A truncated replacement that
+    still carries the expected name is worse than no new file at all.
+    """
+    output = tmp_path / f"previous{suffix}"
+    output.write_bytes(b"PREVIOUS RUN")
+    monkeypatch.setattr(
+        atomic_write,
+        "_replace_with_retry",
+        lambda *_: (_ for _ in ()).throw(OSError("publish")),
+    )
+    with pytest.raises(OSError, match="publish"):
+        writer(output)
+    assert output.read_bytes() == b"PREVIOUS RUN"
+    assert list(tmp_path.iterdir()) == [output]
+
+
+@pytest.mark.parametrize(
+    "name,writer,suffix",
+    _mame_export_writers(),
+    ids=[entry[0] for entry in _mame_export_writers()],
+)
+def test_core01_mame_export_writes_a_sibling_stage_not_the_target(
+    tmp_path, monkeypatch, name, writer, suffix
+):
+    """The bytes land on a sibling first; the target only ever appears whole."""
+    output = tmp_path / f"previous{suffix}"
+    output.write_bytes(b"PREVIOUS RUN")
+    seen: list[tuple[Path, Path]] = []
+    real_replace = atomic_write._replace_with_retry
+
+    def record(tmp_target, final_target):
+        seen.append((Path(tmp_target), Path(final_target)))
+        assert Path(final_target) == output
+        assert Path(tmp_target) != output
+        assert Path(tmp_target).parent == output.parent
+        assert output.read_bytes() == b"PREVIOUS RUN"
+        real_replace(tmp_target, final_target)
+
+    monkeypatch.setattr(atomic_write, "_replace_with_retry", record)
+    writer(output)
+    assert len(seen) == 1
+    assert list(tmp_path.iterdir()) == [output]
+    assert output.read_bytes() != b"PREVIOUS RUN"
+
+
+def test_core01_text_stage_is_removed_when_the_content_cannot_be_written(tmp_path):
+    """A non-OSError failure mid-write must not leave a .tmp in the export folder."""
+    output = tmp_path / "generic.json"
+    output.write_text("ORIGINAL")
+    with pytest.raises(TypeError):
+        atomic_write.atomic_write_text(output, 123)  # type: ignore[arg-type]
+    assert output.read_text(encoding="utf-8") == "ORIGINAL"
+    assert list(tmp_path.iterdir()) == [output]
+
+
+def test_core01_text_stage_is_removed_when_the_write_is_interrupted(
+    tmp_path, monkeypatch
+):
+    """Ctrl-C during the flush leaves the original file and no staged leftover."""
+    output = tmp_path / "generic.json"
+    output.write_text("ORIGINAL")
+    monkeypatch.setattr(
+        atomic_write.os,
+        "fsync",
+        lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()),
+    )
+    with pytest.raises(KeyboardInterrupt):
+        atomic_write.atomic_write_text(output, "NEW")
+    assert output.read_text(encoding="utf-8") == "ORIGINAL"
+    assert list(tmp_path.iterdir()) == [output]
+
+
+# ---------------------------------------------------------------------------
+# core01: the registry that keeps a new export handler from writing directly
+# ---------------------------------------------------------------------------
+
+# Writers a handler is allowed to delegate publication to, and the module that
+# must carry the staging primitive for that delegation to mean anything.
+_ATOMIC_WRITERS = {
+    "write_excel": "kuma_core/mame/export/excel_writer.py",
+    "export_mame_janus_csv": "kuma_core/mame/export/janus_mapping.py",
+    "export_mame_janus_xlsx": "kuma_core/mame/export/janus_mapping.py",
+    "export_evolvepro_xlsx": "kuma_core/mame/activity/export_evolvepro.py",
+    "export_pdf": "kuma_core/mame/report/pdf_export.py",
+    "write_barcode_worklist_csv": "kuma_core/mame/barcode_worklist.py",
+    "write_variant_template": "kuma_core/mame/io/variant_template.py",
+    "generate_mame_package": "kuma_core/mame/ingest/barcode_package.py",
+}
+
+# Handlers are found by two anchors, not one. ``_validate_output_path`` alone
+# missed ``handle_export_barcode_worklist`` and ``handle_export_variant_template``,
+# which take the operator's path straight out of the params and wrote it
+# directly; both are bench documents. The name anchor catches an export or save
+# handler whichever way it resolves its path.
+_HANDLER_NAME_ANCHOR = re.compile(r"^handle_.*(export|save|generate)")
+
+_STAGING_NAMES = {"atomic_output_path", "atomic_write_text"}
+
+# Every sidecar handler function that resolves an operator-named output path.
+# "here"          the function body stages the write itself
+# "callee"        it hands the resolved path to a writer from _ATOMIC_WRITERS
+# "transitive"    the writer is reached through the named intermediate module
+# "validate-only" the function checks the path and writes nothing
+# "direct"        known debt: the path is written without a staged rename
+#
+# A new handler that resolves a user output path is absent from this table and
+# fails the test below, which is the point: it has to state how it publishes.
+_OUTPUT_PATH_HANDLERS = {
+    ("sidecar_kuro/handlers/codon.py", "handle_export_codon_table"): ("direct", None),
+    ("sidecar_kuro/handlers/export.py", "handle_export_excel"): ("direct", None),
+    ("sidecar_kuro/handlers/export.py", "handle_export_order"): ("direct", None),
+    ("sidecar_kuro/handlers/export.py", "handle_export_mapping"): ("direct", None),
+    ("sidecar_kuro/handlers/export.py", "handle_export_benchmark_csv"): ("direct", None),
+    ("sidecar_kuro/handlers/export.py", "handle_export_macrogen"): ("direct", None),
+    ("sidecar_kuro/handlers/export.py", "handle_save_workspace"): ("here", None),
+    ("sidecar_kuro/handlers/export.py", "handle_save_json"): ("here", None),
+    # Dry runs answer with rows; they open no file.
+    ("sidecar_kuro/handlers/export.py", "handle_export_echo_mapping_dry_run"): (
+        "no-write",
+        None,
+    ),
+    ("sidecar_kuro/handlers/export.py", "handle_export_janus_mapping_dry_run"): (
+        "no-write",
+        None,
+    ),
+    # Fans out to the handlers above and writes nothing of its own.
+    ("sidecar_kuro/handlers/export.py", "handle_export_all"): ("no-write", None),
+    # Application state under the user profile, not an operator-named export.
+    ("sidecar_kuro/handlers/misc.py", "handle_save_custom_polymerase"): (
+        "app-state",
+        None,
+    ),
+    ("sidecar_kuro/handlers/settings.py", "handle_save"): ("app-state", None),
+    ("sidecar_mame/handlers/activity.py", "handle_activity_export_evolvepro_xlsx"): (
+        "callee",
+        "export_evolvepro_xlsx",
+    ),
+    ("sidecar_mame/handlers/analyze.py", "_acceptance_findings"): ("validate-only", None),
+    ("sidecar_mame/handlers/analyze.py", "handle_analyze"): (
+        "transitive",
+        ("kuma_core/mame/pipeline.py", "write_excel"),
+    ),
+    ("sidecar_mame/handlers/barcode_package.py", "handle_generate_mame_package"): (
+        "callee",
+        "generate_mame_package",
+    ),
+    ("sidecar_mame/handlers/barcode_worklist.py", "handle_export_barcode_worklist"): (
+        "callee",
+        "write_barcode_worklist_csv",
+    ),
+    ("sidecar_mame/handlers/export.py", "handle_export_excel"): ("callee", "write_excel"),
+    ("sidecar_mame/handlers/export.py", "handle_export_janus_mapping"): (
+        "callee",
+        "export_mame_janus_csv",
+    ),
+    ("sidecar_mame/handlers/export.py", "handle_export_janus_mapping_dry_run"): (
+        "no-write",
+        None,
+    ),
+    ("sidecar_mame/handlers/report.py", "handle_export_run_report"): ("here", None),
+    ("sidecar_mame/handlers/variant_template.py", "handle_export_variant_template"): (
+        "callee",
+        "write_variant_template",
+    ),
+}
+
+# The KURO handlers above that still write the operator's path directly. The
+# set may shrink, never grow: a new "direct" entry fails this assertion.
+_KNOWN_DIRECT_WRITERS = {
+    ("sidecar_kuro/handlers/codon.py", "handle_export_codon_table"),
+    ("sidecar_kuro/handlers/export.py", "handle_export_excel"),
+    ("sidecar_kuro/handlers/export.py", "handle_export_order"),
+    ("sidecar_kuro/handlers/export.py", "handle_export_mapping"),
+    ("sidecar_kuro/handlers/export.py", "handle_export_benchmark_csv"),
+    ("sidecar_kuro/handlers/export.py", "handle_export_macrogen"),
+}
+
+
+def _handler_calls(relative):
+    """Map every function in *relative* to the plain names it calls."""
+    path = ROOT / "python-core" / relative
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    found = {}
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            found[node.name] = {
+                call.func.id
+                for call in ast.walk(node)
+                if isinstance(call, ast.Call) and isinstance(call.func, ast.Name)
+            }
+    return found
+
+
+def _handlers_resolving_user_paths():
+    modules = sorted(
+        p.relative_to(ROOT / "python-core").as_posix()
+        for p in (ROOT / "python-core").glob("sidecar_*/handlers/*.py")
+    )
+    return {
+        (module, name): calls
+        for module in modules
+        for name, calls in _handler_calls(module).items()
+        if "_validate_output_path" in calls or _HANDLER_NAME_ANCHOR.match(name)
+    }
+
+
+def test_core01_every_user_output_handler_declares_how_it_publishes():
+    """A handler that resolves an operator path must be registered above.
+
+    Found by AST rather than by grep so that renaming a handler, or adding a
+    new one in either sidecar, cannot slip past unlisted.
+    """
+    found = _handlers_resolving_user_paths()
+    assert set(found) == set(_OUTPUT_PATH_HANDLERS), {
+        "unregistered": sorted(set(found) - set(_OUTPUT_PATH_HANDLERS)),
+        "stale": sorted(set(_OUTPUT_PATH_HANDLERS) - set(found)),
+    }
+    for key, calls in found.items():
+        kind, detail = _OUTPUT_PATH_HANDLERS[key]
+        if kind == "here":
+            assert calls & _STAGING_NAMES, key
+        elif kind == "callee":
+            assert detail in calls, key
+            assert detail in _ATOMIC_WRITERS, key
+        elif kind == "transitive":
+            intermediate, writer = detail
+            assert writer in (ROOT / intermediate).read_text(encoding="utf-8"), key
+            assert writer in _ATOMIC_WRITERS, key
+        elif kind in ("validate-only", "no-write", "app-state"):
+            assert not (calls & _STAGING_NAMES), key
+        else:
+            assert kind == "direct", key
+
+
+def test_core01_direct_writer_debt_may_shrink_but_never_grow():
+    direct = {
+        key for key, (kind, _) in _OUTPUT_PATH_HANDLERS.items() if kind == "direct"
+    }
+    assert direct <= _KNOWN_DIRECT_WRITERS, sorted(direct - _KNOWN_DIRECT_WRITERS)
+
+
+def test_core01_delegated_writers_actually_stage_their_output():
+    """The delegation targets are only trustworthy if they really stage."""
+    for writer, module in _ATOMIC_WRITERS.items():
+        source = (ROOT / module).read_text(encoding="utf-8")
+        assert f"def {writer}(" in source, writer
+        assert "atomic_output_path" in source, module

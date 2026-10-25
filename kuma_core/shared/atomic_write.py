@@ -186,7 +186,9 @@ def atomic_write_text(
         The resolved absolute path that was written.
 
     Raises:
-        OSError: On any I/O failure (the temp file is cleaned up first).
+        Exception: Whatever the write raised. The staging file is removed
+            first in every case, including :class:`KeyboardInterrupt`, so a
+            failed export never leaves a ``.tmp`` beside the target.
     """
     path = Path(path)
     codecs.lookup(encoding)  # an unknown encoding fails before any file exists
@@ -204,9 +206,13 @@ def atomic_write_text(
             if fsync:
                 os.fsync(fh.fileno())
         _replace_with_retry(tmp_path, path)
-    except (OSError, UnicodeError):
-        # Leave the original file intact; best-effort remove the partial temp
-        # file before re-raising the original failure to the caller.
+    except BaseException:
+        # Any failure, not only I/O: a TypeError from the content, a
+        # ValueError from an encoder, or a KeyboardInterrupt mid-flush left
+        # the staging file behind in the operator's export folder, where the
+        # next person reads it as a half-written export. Leave the original
+        # file intact; best-effort remove the partial temp file before
+        # re-raising the original failure to the caller.
         if reserved:
             try:
                 tmp_path.unlink()

@@ -81,6 +81,7 @@ from typing import TYPE_CHECKING
 from kuma_core.mame.export.nb_label import nb_label, nb_order_key
 from kuma_core.mame.models import ReplicateResult, VerdictClass
 from kuma_core.mame.plate_geometry import DEFAULT_ADDRESSING, PlateAddressing
+from kuma_core.shared.atomic_write import atomic_output_path
 from kuma_core.shared.janus_deck import JANUS_DEVICE_HEADER
 
 if TYPE_CHECKING:
@@ -948,8 +949,13 @@ def export_mame_janus_csv(
     resolved = _resolve_settings(settings, dest_layout)
     rows = _build_janus_rows(replicates, settings=resolved)
 
+    # Staged and renamed. This file is a robot worklist: a run interrupted
+    # mid-write used to leave a truncated CSV under the name the operator
+    # chose, and the lab reads whatever carries that name as the worklist.
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_path.open("w", newline="", encoding="utf-8") as fh:
+    with atomic_output_path(output_path) as staged, staged.open(
+        "w", newline="", encoding="utf-8"
+    ) as fh:
         # No comment line: the lab reads this file with a plain DictReader /
         # spreadsheet import, and a "# kuma_run_meta: ..." line before the
         # header pushed every column one row down for that reader. Run
@@ -1066,8 +1072,11 @@ def export_mame_janus_xlsx(
                     meta_ws, ["manual_confirmation", f"{row['name']}: {row[MANUAL_COLUMN]}"]
                 )
 
+    # Same reason as the CSV above: a half-written worklist must never wear
+    # the operator's file name.
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    wb.save(output_path)
+    with atomic_output_path(output_path) as staged:
+        wb.save(staged)
     return output_path
 
 

@@ -286,6 +286,11 @@ def _rewrite_result_workbook(state) -> dict:
     target = Path(state.last_output_path)
     result["output_path"] = str(target)
     try:
+        # ``write_excel`` stages its own save, so this outer stage is not what
+        # makes the rewrite atomic. It is kept because it also reserves the
+        # destination directory: a rewrite addresses a workbook the run already
+        # wrote once, so a vanished output folder is a fact to report rather
+        # than a folder to re-create behind the operator.
         with atomic_output_path(target) as staged:
             write_excel(
                 verdict_records=state.last_verdicts,

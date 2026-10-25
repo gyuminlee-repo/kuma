@@ -35,6 +35,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from kuma_core.shared import thermo
+from kuma_core.shared.atomic_write import atomic_output_path, atomic_write_text
 
 from kuma_core.mame.ingest.polymerase import PolymeraseProfile, get_profile
 
@@ -1344,7 +1345,10 @@ def _write_barcodes_xlsx(
     for name, seq in _barcode_rows(seeds, fwd_flanking, rev_flanking, gene_prefix):
         ws.append([name, seq])
 
-    wb.save(str(path))
+    # Staged and renamed: analyze reads this workbook back as the campaign's
+    # barcode source, so a half-written one must never hold its name.
+    with atomic_output_path(path) as staged:
+        wb.save(str(staged))
 
 
 def _write_amplicon_fasta(
@@ -1356,7 +1360,11 @@ def _write_amplicon_fasta(
 ) -> None:
     """Write a single-record FASTA of the gene region."""
     amplicon = cds_seq[gene_start:gene_end].upper()
-    with path.open("w", encoding="utf-8") as fh:
+    # Staged and renamed. A FASTA truncated mid-write still parses, as a
+    # shorter gene, which is the one corruption here that nothing detects.
+    with atomic_output_path(path) as staged, staged.open(
+        "w", encoding="utf-8"
+    ) as fh:
         fh.write(f">{gene_name}_amplicon start={gene_start} end={gene_end}\n")
         # 60-character line wrap (standard FASTA)
         for i in range(0, len(amplicon), 60):
@@ -1393,7 +1401,8 @@ def _write_mame_context_json(
         "custom_barcodes_path": _ctx_path(barcodes_xlsx, root),
         "reference_path": _ctx_path(amplicon_fa, root),
     }
-    path.write_text(
+    atomic_write_text(
+        path,
         json.dumps(context, indent=2, ensure_ascii=False),
         encoding="utf-8",
     )

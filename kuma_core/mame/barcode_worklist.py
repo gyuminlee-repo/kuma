@@ -166,8 +166,15 @@ def write_barcode_worklist_csv(worklist: BarcodeWorklist, output: Path) -> Path:
     """
     import csv
 
+    from kuma_core.shared.atomic_write import atomic_output_path
+
+    # Staged and renamed: this list is read at the bench, so a run cut short
+    # mid-write must leave the previous sheet rather than a shorter one under
+    # the same name, which reads as a complete plate.
     output.parent.mkdir(parents=True, exist_ok=True)
-    with output.open("w", encoding="utf-8", newline="") as handle:
+    with atomic_output_path(output) as staged, staged.open(
+        "w", encoding="utf-8", newline=""
+    ) as handle:
         writer = csv.writer(handle)
         writer.writerow(WORKLIST_HEADER)
         for row in worklist.rows:
