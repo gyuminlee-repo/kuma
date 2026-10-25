@@ -187,3 +187,29 @@ describe("RunQualityNotice", () => {
     expect(notice.textContent).not.toContain("{{");
   });
 });
+
+describe("RunQualityNotice, absent pore counts", () => {
+  beforeEach(() => {
+    useMameAppStore.setState({ runQuality: null });
+  });
+
+  it("stays silent about pores when the keys are missing rather than null", () => {
+    // The sidecar sends `null` today (kuma_core/mame/run_quality.py), so this
+    // is defensive: an older result or a trimmed payload omits the key, and
+    // `start === null` would let `undefined` through into the rendered string.
+    const { pore_start: _s, pore_end: _e, ...withoutPores } = quality({
+      severity: "warning",
+      findings: [{ code: "median_depth_below_recommended", severity: "warning" }],
+    });
+
+    useMameAppStore.setState({
+      runQuality: withoutPores as unknown as RunQuality,
+    });
+
+    render(<RunQualityNotice />);
+
+    const notice = screen.getByTestId("run-quality-notice");
+    expect(notice.textContent).not.toContain("undefined");
+    expect(notice.textContent).not.toContain("NaN");
+  });
+});
