@@ -15,6 +15,11 @@ export function strictSpatialContextKey(state: AppState): string {
     state.evolveproScoreOrder, state.evolveproSheetName,
     state.structureAccession || state.uniprotAccession, gene?.translation ?? "", state.maxPrimers,
     state.strictSpatialBudgetMode, state.strictSpatialSiteCap,
+    // Disabled domains leave the pool as excluded_ranges, so a certificate
+    // issued under one exclusion set must not survive a change to it.
+    (state.refDomains ?? [])
+      .filter((d) => state.disabledDomains.includes(`${d.name}-${d.start}`))
+      .map((d) => [d.start, d.end]),
   ]);
 }
 
