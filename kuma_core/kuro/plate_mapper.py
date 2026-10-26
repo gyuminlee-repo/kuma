@@ -6,6 +6,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from kuma_core.shared.atomic_write import atomic_output_path
 from kuma_core.shared.janus_deck import (
     JANUS_DEVICE_HEADER,
     KURO_PRIMER_DECK,
@@ -634,7 +635,11 @@ def export_plate_excel(
             rescued_info=rescued_info,
         )
 
-    wb.save(output_path)
+    # Staged and renamed. An interrupted write used to leave a truncated
+    # file under the name the operator chose, and the lab reads whatever
+    # carries that name as the order or the worklist.
+    with atomic_output_path(output_path) as staged:
+        wb.save(staged)
 
 
 def export_idt_csv(
@@ -658,7 +663,12 @@ def export_idt_csv(
     """
     import csv
 
-    with open(output_path, "w", newline="", encoding=encoding) as f:
+    # Staged and renamed. An interrupted write used to leave a truncated
+    # file under the name the operator chose, and the lab reads whatever
+    # carries that name as the order or the worklist.
+    with atomic_output_path(output_path) as staged, staged.open(
+        "w", newline="", encoding=encoding
+    ) as f:
         writer = csv.writer(f)
         writer.writerow(["Name", "Sequence", "Scale", "Purification"])
         for r in results:
@@ -683,7 +693,12 @@ def export_twist_csv(
     """
     import csv
 
-    with open(output_path, "w", newline="", encoding=encoding) as f:
+    # Staged and renamed. An interrupted write used to leave a truncated
+    # file under the name the operator chose, and the lab reads whatever
+    # carries that name as the order or the worklist.
+    with atomic_output_path(output_path) as staged, staged.open(
+        "w", newline="", encoding=encoding
+    ) as f:
         writer = csv.writer(f)
         writer.writerow(["Name", "Sequence", "Notes"])
         for r in results:
@@ -1047,7 +1062,12 @@ def export_echo_mapping_csv(
         source_plate=source_plate,
     )
 
-    with open(output_path, "w", newline="", encoding=encoding) as f:
+    # Staged and renamed. An interrupted write used to leave a truncated
+    # file under the name the operator chose, and the lab reads whatever
+    # carries that name as the order or the worklist.
+    with atomic_output_path(output_path) as staged, staged.open(
+        "w", newline="", encoding=encoding
+    ) as f:
         writer = csv.writer(f)
         writer.writerow(ECHO_DEVICE_HEADER)
         for row in rows:
@@ -1202,7 +1222,12 @@ def export_janus_mapping_csv(
         fwd_mappings, rev_mappings, rev_groups, transfer_vol, deck,
     )
 
-    with open(output_path, "w", newline="", encoding=encoding) as f:
+    # Staged and renamed. An interrupted write used to leave a truncated
+    # file under the name the operator chose, and the lab reads whatever
+    # carries that name as the order or the worklist.
+    with atomic_output_path(output_path) as staged, staged.open(
+        "w", newline="", encoding=encoding
+    ) as f:
         writer = csv.writer(f)
         writer.writerow(JANUS_DEVICE_HEADER)
         for row in rows:
@@ -1518,7 +1543,11 @@ def export_echo_mapping_xlsx(
         max_len = max(len(str(cell.value or "")) for cell in col)
         ws2.column_dimensions[col[0].column_letter].width = min(max_len + 2, 30)
 
-    wb.save(output_path)
+    # Staged and renamed. An interrupted write used to leave a truncated
+    # file under the name the operator chose, and the lab reads whatever
+    # carries that name as the order or the worklist.
+    with atomic_output_path(output_path) as staged:
+        wb.save(staged)
 
 
 def export_janus_mapping_xlsx(
@@ -1599,7 +1628,11 @@ def export_janus_mapping_xlsx(
         max_len = max(len(str(cell.value or "")) for cell in col)
         ws2.column_dimensions[col[0].column_letter].width = min(max_len + 2, 30)
 
-    wb.save(output_path)
+    # Staged and renamed. An interrupted write used to leave a truncated
+    # file under the name the operator chose, and the lab reads whatever
+    # carries that name as the order or the worklist.
+    with atomic_output_path(output_path) as staged:
+        wb.save(staged)
 
 
 # ---------------------------------------------------------------------------
@@ -1696,4 +1729,8 @@ def export_macrogen_xls(
                 sheet.write(row, 6, purification)
             row += 1
             no += 1
-    wb.save(output_path)
+    # Staged and renamed. An interrupted write used to leave a truncated
+    # file under the name the operator chose, and the lab reads whatever
+    # carries that name as the order or the worklist.
+    with atomic_output_path(Path(output_path)) as staged:
+        wb.save(str(staged))

@@ -349,7 +349,10 @@ def handle_export_codon_table(params: dict) -> dict:
         text = json.dumps(document, ensure_ascii=False, indent=2) + "\n"
     else:
         text = _formats.format_table(document, p.format)
-    resolved.write_text(text, encoding="utf-8")
+    # Staged and renamed. A codon table is re-imported by its own importer and
+    # fed to the design engine, so a truncated one under the operator's chosen
+    # name reads as a valid table with codons missing.
+    atomic_write_text(resolved, text, encoding="utf-8")
     return {"path": str(resolved), "format": p.format, "bytes": len(text.encode())}
 
 # How many codons the preview names as diverging from the reference table. Ten

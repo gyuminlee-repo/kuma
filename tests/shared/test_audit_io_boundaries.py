@@ -1085,6 +1085,7 @@ _ATOMIC_WRITERS = {
     "write_barcode_worklist_csv": ("kuma_core/mame/barcode_worklist.py", "atomic_output_path"),
     "write_variant_template": ("kuma_core/mame/io/variant_template.py", "atomic_output_path"),
     "generate_mame_package": ("kuma_core/mame/ingest/barcode_package.py", "atomic_output_path"),
+    "export_macrogen_xls": ("kuma_core/kuro/plate_mapper.py", "atomic_output_path"),
     "build_evolvepro_input": (
         "kuma_core/mame/activity/build_evolvepro_input.py",
         "_publish_artifact_bundle",
@@ -1348,7 +1349,7 @@ def _forwarded_output_paths(node):
 # sees rather than a word changed on one line.
 _OUTPUT_PATH_HANDLERS = {
     ("sidecar_kuro/handlers/codon.py", "handle_import_codon_table"): ("app-state", None),
-    ("sidecar_kuro/handlers/codon.py", "handle_export_codon_table"): ("direct", None),
+    ("sidecar_kuro/handlers/codon.py", "handle_export_codon_table"): ("here", None),
     ("sidecar_kuro/handlers/codon.py", "handle_compute_codon_table"): ("app-state", None),
     ("sidecar_kuro/handlers/design.py", "handle_design_sdm_primers"): ("exempt-write", None),
     ("sidecar_kuro/handlers/design.py", "handle_retry_failed"): ("no-write", None),
@@ -1357,18 +1358,29 @@ _OUTPUT_PATH_HANDLERS = {
     ("sidecar_kuro/handlers/design.py", "handle_evaluate_primer"): ("no-write", None),
     ("sidecar_kuro/handlers/design.py", "handle_get_alternatives"): ("no-write", None),
     ("sidecar_kuro/handlers/export.py", "handle_get_plate_map"): ("no-write", None),
-    ("sidecar_kuro/handlers/export.py", "handle_export_excel"): ("direct", None),
-    ("sidecar_kuro/handlers/export.py", "handle_export_order"): ("direct", None),
-    ("sidecar_kuro/handlers/export.py", "handle_export_mapping"): ("direct", None),
+    ("sidecar_kuro/handlers/export.py", "handle_export_excel"): ("here", None),
+    ("sidecar_kuro/handlers/export.py", "handle_export_order"): ("transitive",
+        ("kuma_core/kuro/plate_mapper.py", "atomic_output_path")),
+    ("sidecar_kuro/handlers/export.py", "handle_export_mapping"): ("transitive",
+        ("kuma_core/kuro/plate_mapper.py", "atomic_output_path")),
     ("sidecar_kuro/handlers/export.py", "handle_save_workspace"): ("here", None),
     ("sidecar_kuro/handlers/export.py", "handle_save_json"): ("here", None),
     ("sidecar_kuro/handlers/export.py", "handle_load_workspace"): ("no-write", None),
-    ("sidecar_kuro/handlers/export.py", "handle_export_benchmark_csv"): ("direct", None),
-    ("sidecar_kuro/handlers/export.py", "handle_export_macrogen"): ("direct", None),
-    ("sidecar_kuro/handlers/export.py", "_export_primers_fasta"): ("direct", None),
+    ("sidecar_kuro/handlers/export.py", "handle_export_benchmark_csv"): ("here", None),
+    ("sidecar_kuro/handlers/export.py", "handle_export_macrogen"): ("callee",
+        "export_macrogen_xls"),
     ("sidecar_kuro/handlers/export.py", "handle_export_echo_mapping_dry_run"): ("no-write", None),
     ("sidecar_kuro/handlers/export.py", "handle_export_janus_mapping_dry_run"): ("no-write", None),
-    ("sidecar_kuro/handlers/export.py", "handle_export_all"): ("direct", None),
+    # Six of the eight bundle artefacts are written by plate_mapper exporters,
+    # which is what this points at. The other two go through
+    # ``_export_primers_fasta`` in this same module and ``write_run_manifest``
+    # (``kuma_core/shared/run_manifest.py``); both call ``atomic_write_text``.
+    # The kind names one intermediate by design, so the rest is this comment.
+    # ``_export_primers_fasta`` is deliberately not registered: it staged its
+    # way out of every anchor in ``_anchored``, and a write put back into it
+    # returns it to the found set as "unregistered", which is the gate working.
+    ("sidecar_kuro/handlers/export.py", "handle_export_all"): ("transitive",
+        ("kuma_core/kuro/plate_mapper.py", "atomic_output_path")),
     ("sidecar_kuro/handlers/external.py", "handle_fetch_domains"): ("no-write", None),
     ("sidecar_kuro/handlers/external.py", "handle_search_uniprot"): ("no-write", None),
     ("sidecar_kuro/handlers/external.py", "handle_check_structures_available"): ("no-write", None),
@@ -1432,18 +1444,15 @@ _OUTPUT_PATH_HANDLERS = {
         "write_variant_template"),
 }
 
-# The KURO handlers above that still write the operator's path directly. The
-# set may shrink, never grow: a new "direct" entry fails this assertion.
-_KNOWN_DIRECT_WRITERS = {
-    ("sidecar_kuro/handlers/codon.py", "handle_export_codon_table"),
-    ("sidecar_kuro/handlers/export.py", "handle_export_excel"),
-    ("sidecar_kuro/handlers/export.py", "handle_export_order"),
-    ("sidecar_kuro/handlers/export.py", "handle_export_mapping"),
-    ("sidecar_kuro/handlers/export.py", "handle_export_benchmark_csv"),
-    ("sidecar_kuro/handlers/export.py", "handle_export_macrogen"),
-    ("sidecar_kuro/handlers/export.py", "_export_primers_fasta"),
-    ("sidecar_kuro/handlers/export.py", "handle_export_all"),
-}
+# Handlers that still write the operator's path directly. The set may shrink,
+# never grow: a new "direct" entry fails this assertion.
+#
+# Empty today. It held the eight KURO export handlers until they were staged
+# the way the MAME ones were, so the sidecars now agree that no operator-named
+# output is written in place. Kept rather than deleted, because an empty frozen
+# set is what makes the next "direct" registration a visible set edit instead
+# of one word on one line.
+_KNOWN_DIRECT_WRITERS: set[tuple[str, str]] = set()
 
 # Functions that write directly to a path the operator never chose. Frozen for
 # the same reason as the debt set above.

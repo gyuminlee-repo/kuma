@@ -10,7 +10,7 @@ from typing import Callable, NamedTuple
 
 import openpyxl
 
-from kuma_core.shared.atomic_write import atomic_write_text
+from kuma_core.shared.atomic_write import atomic_output_path, atomic_write_text
 
 from kuma_core.kuro.plate_mapper import (
     PlateMapping,
@@ -358,29 +358,38 @@ def handle_export_excel(params: dict) -> dict:
         else None
     )
 
-    export_plate_excel(
-        mappings, resolved,
-        rev_groups=rev_groups,
-        results=results_for_export,
-        overlap_mode=run_overlap_mode,
-        rescued_info=rescued_info,
-    )
-    if p.project_id or p.report_data or p.benchmark_raw:
-        wb = openpyxl.load_workbook(resolved)
-        if p.report_data and isinstance(p.report_data, dict):
-            _write_report_sheet(wb, p.report_data)
-        if p.benchmark_raw and isinstance(p.benchmark_raw, dict):
-            _write_benchmark_raw_sheet(wb, p.benchmark_raw)
-        if "__kuma_meta__" in wb.sheetnames:
-            del wb["__kuma_meta__"]
-        meta = wb.create_sheet("__kuma_meta__")
-        meta.sheet_state = "hidden"
-        meta.append(["project_id", p.project_id or ""])
-        meta.append(["kuma_version", p.kuma_version or KUMA_VERSION])
-        meta.append(["kuro_module_version", KURO_MODULE_VERSION])
-        meta.append(["exported_at", datetime.now(timezone.utc).isoformat()])
-        meta.append(["overlap_mode", run_overlap_mode])
-        wb.save(resolved)
+    # One stage, one publish, for both passes. ``export_plate_excel`` stages its
+    # own save, but publishing it and then reopening the published file to add
+    # the report / benchmark / meta sheets leaves the operator's chosen name
+    # holding a workbook that is missing those sheets for the length of the
+    # second pass, and holding a truncated one if the second pass dies. Staging
+    # the whole handler makes the file appear once, complete. The stage keeps
+    # the ``.xlsx`` suffix (``_temp_path_for``), which is what openpyxl reads
+    # the format from.
+    with atomic_output_path(resolved) as staged:
+        export_plate_excel(
+            mappings, staged,
+            rev_groups=rev_groups,
+            results=results_for_export,
+            overlap_mode=run_overlap_mode,
+            rescued_info=rescued_info,
+        )
+        if p.project_id or p.report_data or p.benchmark_raw:
+            wb = openpyxl.load_workbook(staged)
+            if p.report_data and isinstance(p.report_data, dict):
+                _write_report_sheet(wb, p.report_data)
+            if p.benchmark_raw and isinstance(p.benchmark_raw, dict):
+                _write_benchmark_raw_sheet(wb, p.benchmark_raw)
+            if "__kuma_meta__" in wb.sheetnames:
+                del wb["__kuma_meta__"]
+            meta = wb.create_sheet("__kuma_meta__")
+            meta.sheet_state = "hidden"
+            meta.append(["project_id", p.project_id or ""])
+            meta.append(["kuma_version", p.kuma_version or KUMA_VERSION])
+            meta.append(["kuro_module_version", KURO_MODULE_VERSION])
+            meta.append(["exported_at", datetime.now(timezone.utc).isoformat()])
+            meta.append(["overlap_mode", run_overlap_mode])
+            wb.save(staged)
 
     finished_at = datetime.now(timezone.utc)
 
@@ -656,7 +665,10 @@ def handle_export_benchmark_csv(params: dict) -> dict:
         "n_trials",
     ]
     encoding = "utf-8-sig" if p.bom else "utf-8"
-    with open(resolved, "w", encoding=encoding, newline="") as f:
+    # Staged and renamed, like every other export the operator names.
+    with atomic_output_path(resolved) as staged, staged.open(
+        "w", encoding=encoding, newline=""
+    ) as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         for strategy, metrics in p.results.items():
@@ -754,10 +766,16 @@ def handle_export_macrogen(params: dict) -> dict:
 
 
 def _export_primers_fasta(mappings: list[PlateMapping], output_path: Path) -> None:
+    """Write the bundle's primer FASTA, staged and renamed.
+
+    One of the eight files ``handle_export_all`` writes. A truncated FASTA is
+    the worst of the eight to leave behind: it parses, so a reader takes the
+    primers it does contain as the whole set.
+    """
     lines = []
     for m in mappings:
         lines.append(f">{m.primer_name}\n{m.sequence}\n")
-    output_path.write_text("".join(lines), encoding="utf-8")
+    atomic_write_text(output_path, "".join(lines), encoding="utf-8")
 
 
 def _export_echo_for_all(
