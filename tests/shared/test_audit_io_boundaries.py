@@ -1259,7 +1259,10 @@ def _output_path_aliases(node):
             continue
         if _binds_an_output_path(value):
             aliases.add(targets[0].id)
-    return aliases
+    # Frozen on the way out, not at each use: the only consumer tests
+    # membership and never mutates, which the parameter type states, and
+    # freezing here converts once per handler rather than once per argument.
+    return frozenset(aliases)
 
 
 def _binds_an_output_path(value):
