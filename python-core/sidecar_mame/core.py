@@ -46,6 +46,7 @@ from kuma_core.shared.sidecar import (  # noqa: E402
     validate_dirpath,
     validate_filepath,
     validate_output_path,
+    validate_reloaded_output_path,
 )
 
 logger = get_logger("sidecar_mame")
@@ -174,3 +175,12 @@ def _validate_output_path(
 ) -> Path:
     """Validate an output file path. Parent directory must exist; file may not."""
     return validate_output_path(filepath, allowed_extensions=allowed_extensions)
+
+
+def _validate_reloaded_output_path(
+    filepath: str | None, *, allowed_extensions: set[str]
+) -> Path:
+    """Validate an output path replayed from an earlier run (no parent check)."""
+    return validate_reloaded_output_path(
+        filepath, allowed_extensions=allowed_extensions
+    )

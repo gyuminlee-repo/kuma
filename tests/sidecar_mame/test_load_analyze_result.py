@@ -287,8 +287,12 @@ def test_replicate_serialize_roundtrip_lossless() -> None:
 def test_load_then_get_plate_data_matches_post_analyze() -> None:
     verdicts, replicates = _sample_state()
 
-    # Baseline: state as analyze would leave it.
-    set_last_analyze(verdicts, replicates, "/tmp/out.xlsx", run_meta=None)
+    # Baseline: state as analyze would leave it. ``resolve`` because that is the
+    # form ``handle_analyze`` stores and ``load_analyze_result`` now validates
+    # into; on macOS ``/tmp`` is a symlink to ``/private/tmp``, so comparing the
+    # literal would make this a Linux-only pass.
+    out_path = str(Path("/tmp/out.xlsx").resolve())
+    set_last_analyze(verdicts, replicates, out_path, run_meta=None)
     expected = handle_get_plate_data({})
 
     # Wipe state (simulate sidecar restart) and confirm get_plate_data breaks.
@@ -302,7 +306,7 @@ def test_load_then_get_plate_data_matches_post_analyze() -> None:
     payload = {
         "verdicts": [_serialize_verdict(v) for v in verdicts],
         "replicates": [_serialize_replicate(r) for r in replicates],
-        "output_path": "/tmp/out.xlsx",
+        "output_path": out_path,
         "run_meta": {
             "instrument": "P2S",
             "position": "P2S-00",
@@ -324,7 +328,7 @@ def test_load_then_get_plate_data_matches_post_analyze() -> None:
 
     # run_meta round-trips into state.
     st2 = get_state()
-    assert st2.last_output_path == "/tmp/out.xlsx"
+    assert st2.last_output_path == out_path
     assert st2.last_run_meta is not None
     # State holds it as ``object``; the round trip must give the real model back.
     assert isinstance(st2.last_run_meta, NgsRunMeta)
