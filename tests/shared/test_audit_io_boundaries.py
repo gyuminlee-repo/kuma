@@ -1240,9 +1240,13 @@ def _output_path_aliases(node):
 
     One level, no transitive propagation through further assignments. The point
     is to see the operator's path leave the function, and one binding is what
-    stands between the validator and the writer in every case here. An alias
-    assigned after the call that uses it would be missed; nothing does that,
-    because the value has to exist before it can be passed.
+    stands between the validator and the writer in every case here.
+
+    Position does not matter: ``ast.walk`` collects every binding in the
+    function before any call is examined, so an alias assigned below the call
+    that uses it still counts. The error that leaves is over-detection rather
+    than under-detection, and a spurious forward costs a registry label rather
+    than a missed write.
     """
     aliases = set()
     for statement in ast.walk(node):
@@ -1325,9 +1329,15 @@ def _forwarded_output_paths(node):
 # "here"          the function body stages the write itself
 # "callee"        it hands the resolved path to a writer from _ATOMIC_WRITERS
 # "transitive"    the writer is reached through the named intermediate module
-# "validate-only" the function checks a path and writes nothing
-# "no-write"      it writes nothing at all (asserted, not taken on trust)
-# "app-state"     it writes application state under the user profile
+# "validate-only" the function checks a path and its own body writes nothing
+# "no-write"      its own body performs no direct write and forwards no
+#                 destination (asserted, not taken on trust). It does NOT
+#                 say nothing is written anywhere downstream: a write
+#                 reached through a helper the anchors do not see is
+#                 invisible here, which is why three handlers wore this
+#                 label while installing a codon table or a structure cache
+# "app-state"     application state under the user profile or a cache is
+#                 written, by the body or by a helper it calls
 # "exempt-write"  it writes directly to a path the operator never named
 # "direct"        known debt: an operator path written without a staged rename
 #
@@ -1337,9 +1347,9 @@ def _forwarded_output_paths(node):
 # frozen in a set further down, so declaring one is a two-place edit a reviewer
 # sees rather than a word changed on one line.
 _OUTPUT_PATH_HANDLERS = {
-    ("sidecar_kuro/handlers/codon.py", "handle_import_codon_table"): ("no-write", None),
+    ("sidecar_kuro/handlers/codon.py", "handle_import_codon_table"): ("app-state", None),
     ("sidecar_kuro/handlers/codon.py", "handle_export_codon_table"): ("direct", None),
-    ("sidecar_kuro/handlers/codon.py", "handle_compute_codon_table"): ("no-write", None),
+    ("sidecar_kuro/handlers/codon.py", "handle_compute_codon_table"): ("app-state", None),
     ("sidecar_kuro/handlers/design.py", "handle_design_sdm_primers"): ("exempt-write", None),
     ("sidecar_kuro/handlers/design.py", "handle_retry_failed"): ("no-write", None),
     ("sidecar_kuro/handlers/design.py", "handle_swap_primer"): ("no-write", None),
@@ -1368,7 +1378,7 @@ _OUTPUT_PATH_HANDLERS = {
     ("sidecar_kuro/handlers/external.py", "handle_fetch_pdb_text"): ("no-write", None),
     ("sidecar_kuro/handlers/external.py", "handle_fetch_active_site"): ("no-write", None),
     ("sidecar_kuro/handlers/external.py", "handle_compute_dispersion"): ("no-write", None),
-    ("sidecar_kuro/handlers/external.py", "handle_predict_structure_esmfold"): ("no-write", None),
+    ("sidecar_kuro/handlers/external.py", "handle_predict_structure_esmfold"): ("app-state", None),
     ("sidecar_kuro/handlers/external.py", "handle_annotate_domains_by_sequence"): ("no-write", None),
     ("sidecar_kuro/handlers/misc.py", "handle_list_polymerases"): ("no-write", None),
     ("sidecar_kuro/handlers/misc.py", "handle_get_polymerase_details"): ("no-write", None),
@@ -1415,7 +1425,8 @@ _OUTPUT_PATH_HANDLERS = {
     ("sidecar_mame/handlers/health.py", "handle_get_run_health"): ("no-write", None),
     ("sidecar_mame/handlers/ingest.py", "handle_parse_reference"): ("no-write", None),
     ("sidecar_mame/handlers/kuma_meta.py", "handle_read_kuma_meta"): ("no-write", None),
-    ("sidecar_mame/handlers/load.py", "handle_load_analyze_result"): ("forwards-only", None),
+    ("sidecar_mame/handlers/load.py", "handle_load_analyze_result"): ("transitive",
+        ("python-core/sidecar_mame/handlers/export.py", "write_excel")),
     ("sidecar_mame/handlers/report.py", "handle_export_run_report"): ("here", None),
     ("sidecar_mame/handlers/variant_template.py", "handle_export_variant_template"): ("callee",
         "write_variant_template"),
@@ -1448,16 +1459,22 @@ _KNOWN_NON_OPERATOR_WRITERS = {
     ("sidecar_mame/handlers/analyze.py", "_write_reference_fasta"),
     ("sidecar_kuro/handlers/misc.py", "ensure_user_codon_dir"),
     ("sidecar_kuro/handlers/settings.py", "handle_save"),
-    ("sidecar_mame/handlers/analyze.py", "_write_reference_fasta"),
 }
 
 # Handlers that pass an output destination to something that does not write it.
-#   handle_load_analyze_result  hands the path to the in-memory analyze cache
-#                               so a reloaded workspace knows where its
-#                               workbook was, and opens no file
-_KNOWN_NON_WRITING_FORWARDERS = {
-    ("sidecar_mame/handlers/load.py", "handle_load_analyze_result"),
-}
+#
+# What this kind guarantees: the body performs no direct write, it does forward
+# a destination, and a human put the entry in this set.
+#
+# What it does NOT guarantee: that the receiving function leaves the path
+# alone. Nothing here reads the callee. The label is only as good as the review
+# that added the member, which is why it is a set edit and not a word.
+#
+# Empty today. ``handle_load_analyze_result`` held the one entry until the path
+# it forwards turned out to reach ``_rewrite_result_workbook`` two RPCs later,
+# so it is declared ``transitive`` instead. Kept because the shape recurs and
+# the next one should land here rather than in ``no-write``.
+_KNOWN_NON_WRITING_FORWARDERS: set[tuple[str, str]] = set()
 
 
 class _HandlerFacts(NamedTuple):
