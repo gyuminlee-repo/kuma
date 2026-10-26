@@ -2736,14 +2736,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "O MAME 2.3 analisa separadamente um ressequenciamento nanopore com as mesmas regras de seleção de réplicas e preserva a corrida original.",
-      "As duas corridas mantêm pastas de trabalho e listas de coleta separadas, e o salvamento automático restaura entradas e vereditos.",
-      "A confirmação manual opcional da cópia de placa agora fica na etapa 2.4, com a cópia escolhida e a nota registradas.",
-      "O preparo do Cell stock permite escolher a corrida original ou de ressequenciamento para prévia e exportação ao equipamento.",
-      "A etapa 4 liga a atividade a evidências explícitas do clone sem priorizar a corrida mais recente nem juntar clones diferentes."
+      "O KURO não seleciona mais variantes dentro de um domínio desativado, e alterar os domínios desativados invalida uma seleção anterior.",
+      "Uma pasta de trabalho esperada com uma planilha de placa vazia agora é relatada como problema de entrada, não como falha interna.",
+      "Uma corrida de ressequenciamento que falha não deixa mais uma pasta vazia ao lado da saída escolhida, e a saída parcial é mantida.",
+      "Os cabeçalhos de coluna das tabelas aparecem em inglês em todos os idiomas, então uma linha de cabeçalho nunca mistura idiomas.",
+      "Uma exportação interrompida no meio mantém o arquivo anterior, então uma lista de trabalho do robô nunca é lida pela metade."
     ],
-    "highlightsStamp": "0.16.76+d0c839c4",
+    "highlightsStamp": "0.16.77+53eff3f8",
     "releases": {
+      "0.16.77": [
+        "O KURO não seleciona mais variantes dentro de um domínio desativado, e alterar os domínios desativados invalida uma seleção anterior.",
+        "Uma pasta de trabalho esperada com uma planilha de placa vazia agora é relatada como problema de entrada, não como falha interna.",
+        "Uma corrida de ressequenciamento que falha não deixa mais uma pasta vazia ao lado da saída escolhida, e a saída parcial é mantida.",
+        "Os cabeçalhos de coluna das tabelas aparecem em inglês em todos os idiomas, então uma linha de cabeçalho nunca mistura idiomas.",
+        "Uma exportação interrompida no meio mantém o arquivo anterior, então uma lista de trabalho do robô nunca é lida pela metade."
+      ],
       "0.16.76": [
         "O MAME 2.3 analisa separadamente um ressequenciamento nanopore com as mesmas regras de seleção de réplicas e preserva a corrida original.",
         "As duas corridas mantêm pastas de trabalho e listas de coleta separadas, e o salvamento automático restaura entradas e vereditos.",
@@ -3275,6 +3282,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.77": "53eff3f8",
       "0.16.76": "d0c839c4",
       "0.16.75": "7a304882",
       "0.16.69": "60279e8e",

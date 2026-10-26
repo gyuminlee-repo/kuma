@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.16.77 (Disabled domains honoured in strict selection, English table headers, exports that are never read half written)
+
+KURO strict spatial selection left out the disabled domain ranges when it asked the sidecar for a selection. A domain the user switched off stayed eligible, so variants inside it could be picked, while the general path had always sent those ranges. The strict spatial certificate now binds to the exclusion set as well, so changing which domains are off invalidates a selection issued under the previous set. The selection changes for any design that disabled a domain on that path.
+
+MAME reports an expected workbook that carries a present but empty plate sheet as the same missing well and verdict evidence the header check already reports. It used to fail with an internal index error the dispatcher does not turn into a user-facing message. A resequencing run reserves its destination folder before the handler runs, and a failure after that point used to leave an empty resequence folder beside the operator's chosen output. An empty reserved folder is now removed on failure, while a folder holding partial output is kept because it records how far the run got. The flow cell line is hardened against a missing pore count so that no literal placeholder can reach the screen.
+
+Every table column header in the app reads in English in all locales, 86 keys across 15 components. A column header is a short field name an operator matches against an exported CSV, a protocol or a figure, and the remaining columns of those same header rows are English literals in the source, so translating one column rendered a half translated row. Tables that are translated end to end are unaffected. The well inspector note label used to share a header key and now has its own key, so it stays translated.
+
+Every export whose file name the operator chooses is written beside the target and renamed into place. Eleven MAME writers used to put the chosen name on a file they were still writing, among them the Janus robot worklist in both formats, the result workbook, the EVOLVEpro activity workbook, the barcode worklist, the variant template and the step 1 package artefacts. An interrupted write left a truncated file under the name the bench reads as the finished article, and a short robot worklist still loads. A reader now sees either the previous file or the complete new one. Staging files are cleaned up for any interruption including a keyboard interrupt, and the EVOLVEpro input bundle rolls back for any failure rather than leaving the set half new and half old.
+
+### Highlights
+
+- KURO no longer picks variants inside a domain you switched off, and changing which domains are off invalidates an earlier selection.
+- An expected workbook with an empty plate sheet is now reported as an input problem instead of an internal failure.
+- A resequencing run that fails no longer leaves an empty folder beside your chosen output, while partial output is kept.
+- Table column headers now read in English in every language, so a header row never mixes languages against an exported CSV.
+- An export interrupted part way leaves the previous file in place, so a robot worklist is never read half written.
+
 ## v0.16.76 (Independent nanopore resequencing and explicit clone evidence)
 
 MAME step 2.3 analyzes a nanopore resequencing run independently with the same n-replicate selection rules as the original run. Each run keeps its own inputs, verdicts, workbook and pick list. Autosave restores both runs without replacing the original evidence.
