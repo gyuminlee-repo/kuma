@@ -23,7 +23,11 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict
 
 from kuma_core.mame.export.analysis_meta import AnalysisConditions
-from sidecar_mame.core import set_last_analyze
+from sidecar_mame.core import (
+    _ALLOWED_EXCEL_EXTENSIONS,
+    _validate_reloaded_output_path,
+    set_last_analyze,
+)
 from sidecar_mame.handlers.analyze import (
     _deserialize_replicate,
     _deserialize_verdict,
@@ -90,6 +94,35 @@ def _rebuild_run_meta(run_meta: dict[str, Any] | None) -> Any | None:
     return NgsRunMeta(**{f: run_meta.get(f) for f in fields})
 
 
+def _reloaded_output_path(raw: str) -> str:
+    """Validate the replayed workbook path before it becomes a write target.
+
+    ``output_path`` arrives in the payload and goes straight into
+    ``state.last_output_path``, which ``apply_selection_overrides`` later hands
+    to ``_rewrite_result_workbook``. Two RPCs with no file argument between them
+    therefore wrote an ``.xlsx`` wherever the payload pointed. The same symlink,
+    traversal and extension rules every other MAME output path goes through now
+    apply here, so the replayed path can only name a workbook.
+
+    Blank is kept as blank rather than rejected. The restore that rebuilds state
+    from the input snapshot alone sends ``""`` when the snapshot records no
+    output path (``injectSnapshotResultsIntoSidecar`` in
+    ``src/hooks/useAutosaveHydration.ts`` passes ``fromPortablePath(..., "")``),
+    and an empty ``last_output_path`` is already the "nothing to rewrite" case
+    every writer checks for. Refusing it would break that restore and guard
+    nothing: no path means no write.
+
+    The returned string is the resolved path, which is the form
+    ``handle_analyze`` stores, so a reload leaves state looking exactly as the
+    original run left it.
+    """
+    if not raw or not raw.strip():
+        return ""
+    return str(
+        _validate_reloaded_output_path(raw, allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS)
+    )
+
+
 def handle_load_analyze_result(params: dict) -> dict:
     """Re-inject a serialized analyze payload into ``SidecarState``.
 
@@ -110,7 +143,7 @@ def handle_load_analyze_result(params: dict) -> dict:
     set_last_analyze(
         verdicts,
         replicates,
-        p.output_path,
+        _reloaded_output_path(p.output_path),
         run_meta=run_meta,
         designed_mutant_ids=designed,
         barcode_prefix_note=p.barcode_prefix_note,

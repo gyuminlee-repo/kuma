@@ -419,3 +419,30 @@ def validate_output_path(filepath: str | None, *, allowed_extensions: set[str]) 
         raise FileNotFoundError(f"Parent directory does not exist: {resolved.parent}")
     _validate_extension(resolved, allowed_extensions)
     return resolved
+
+
+def validate_reloaded_output_path(
+    filepath: str | None, *, allowed_extensions: set[str], value_name: str = "output_path"
+) -> Path:
+    """Validate an output path a caller hands back from an earlier run.
+
+    Same symlink, traversal and extension rules as :func:`validate_output_path`,
+    which is what keeps a reloaded path from naming a file the operator never
+    chose: a restore that reaches a rewrite writes to this path, so an
+    unchecked one is a write primitive with the destination supplied by the
+    payload.
+
+    The parent-directory check is deliberately NOT applied. A reloaded path is
+    not a destination the operator just picked; it is the absolute path the
+    original run recorded, persisted verbatim (``src/lib/mame/resultSnapshot.ts``
+    stores the analyze response as-is), so a project folder that moved, or one
+    opened on another machine, carries a parent that does not exist here.
+    Refusing it would fail the whole restore and lose the verdicts, where today
+    the restore succeeds and only the later rewrite reports the gone folder
+    (``_rewrite_result_workbook`` already states that case). Parent existence
+    was never a safety property anyway: every path this guard has to reject has
+    a parent that exists.
+    """
+    _, resolved = _validate_path_common(filepath, value_name=value_name)
+    _validate_extension(resolved, allowed_extensions)
+    return resolved
