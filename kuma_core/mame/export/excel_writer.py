@@ -39,6 +39,7 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.workbook import Workbook
 
 from kuma_core.mame.export.well_mapper import WellMapper, seq_to_well
+from kuma_core.shared.atomic_write import atomic_output_path
 from kuma_core.shared.version import KUMA_VERSION
 from kuma_core.mame.ingest.consensus_metadata import format_noisy_positions
 from kuma_core.mame.select.purity import (
@@ -927,6 +928,11 @@ def write_excel(
         analysis,
     )
 
+    # Staged and renamed: an interrupted save used to leave a truncated
+    # workbook under the operator's own file name, which reads as a finished
+    # result. openpyxl raises on failure, so the exception alone aborts the
+    # publish and no separate validation of the stage is needed.
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    wb.save(output_path)
+    with atomic_output_path(output_path) as staged:
+        wb.save(staged)
     return output_path

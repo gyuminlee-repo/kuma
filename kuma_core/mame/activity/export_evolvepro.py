@@ -7,6 +7,7 @@ import csv
 from pathlib import Path
 
 from kuma_core.mame.activity.models import MergedRow
+from kuma_core.shared.atomic_write import atomic_output_path
 
 # Columns matching kuro/evolvepro.py VARIANT_COLUMNS + SCORE_COLUMNS + auxiliary
 COLUMNS = [
@@ -147,5 +148,13 @@ def export_evolvepro_xlsx(
             continue
         kept.append((to_evolvepro(r.mutation), r.fold_change))
 
-    n_written = write_evolvepro_xlsx(kept, path)
+    # Staged and renamed so an interrupted export leaves the previous
+    # workbook rather than a truncated one under the same name. Staged here
+    # and not inside ``write_evolvepro_xlsx``: ``_publish_artifact_bundle``
+    # calls that writer with a stage path it owns, and a second stage inside
+    # it would publish into that bundle's private file. No ``mkdir``: a
+    # missing parent still raises FileNotFoundError, now from the stage
+    # reservation instead of from ``workbook.save``.
+    with atomic_output_path(path) as staged:
+        n_written = write_evolvepro_xlsx(kept, staged)
     return n_written, excluded

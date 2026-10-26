@@ -186,7 +186,12 @@ def atomic_write_text(
         The resolved absolute path that was written.
 
     Raises:
-        OSError: On any I/O failure (the temp file is cleaned up first).
+        Exception: Whatever the write raised. The staging file is removed
+            first in every case, including :class:`KeyboardInterrupt`, with one
+            window that cannot be closed from here: an interrupt delivered
+            after the kernel created the file and before ``open`` returned
+            leaves the stage behind, because nothing in this frame yet knows
+            its name. Every failure after that point cleans up.
     """
     path = Path(path)
     codecs.lookup(encoding)  # an unknown encoding fails before any file exists
@@ -204,9 +209,13 @@ def atomic_write_text(
             if fsync:
                 os.fsync(fh.fileno())
         _replace_with_retry(tmp_path, path)
-    except (OSError, UnicodeError):
-        # Leave the original file intact; best-effort remove the partial temp
-        # file before re-raising the original failure to the caller.
+    except BaseException:
+        # Any failure, not only I/O: a TypeError from the content, a
+        # ValueError from an encoder, or a KeyboardInterrupt mid-flush left
+        # the staging file behind in the operator's export folder, where the
+        # next person reads it as a half-written export. Leave the original
+        # file intact; best-effort remove the partial temp file before
+        # re-raising the original failure to the caller.
         if reserved:
             try:
                 tmp_path.unlink()
@@ -224,8 +233,14 @@ def atomic_write_text(
 def atomic_output_path(path: Path) -> Iterator[Path]:
     """Stage an external writer's output beside its target and publish on success.
 
-    The caller must validate the staged artifact before leaving the context.
-    A conversion, validation, flush, or rename failure leaves the target intact.
+    Leaving the context publishes whatever the stage holds, so a writer that
+    can fail quietly has to be checked before the context ends. An out-of-process
+    converter is the case that needs it: ``export_pdf`` validates its stage
+    because a converter can exit 0 and leave something that is not a PDF. An
+    in-process writer such as ``openpyxl`` or ``csv`` raises instead, and the
+    exception leaves the context before the publish, so no separate check buys
+    anything there. A conversion, validation, flush, or rename failure leaves
+    the target intact.
     """
     path = Path(path)
     tmp_path = _temp_path_for(path)

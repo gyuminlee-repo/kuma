@@ -43,6 +43,7 @@ from pathlib import Path
 from openpyxl import Workbook
 
 from kuma_core.mame.plate_geometry import PLATE_CAPACITY, seq_to_well, well_to_seq
+from kuma_core.shared.atomic_write import atomic_output_path
 
 #: Sheet the template is written to. Deliberately not ``expected_mutations``:
 #: see the module docstring.
@@ -111,7 +112,12 @@ def write_variant_template(
         sheet.append([seq_to_well(seq), variant])
 
     path = Path(output_path)
-    workbook.save(path)
+    # Staged and renamed, same reason as every other operator-named export:
+    # an interrupted save must not leave a short template wearing the name
+    # the operator will hand to the bench. No ``mkdir`` here, so a missing
+    # parent still raises as it did before.
+    with atomic_output_path(path) as staged:
+        workbook.save(staged)
     workbook.close()
     return path
 
