@@ -23,6 +23,7 @@ import shutil
 import subprocess
 import sys
 import threading
+from typing import NamedTuple
 from types import SimpleNamespace
 import zipfile
 
@@ -1071,15 +1072,23 @@ def test_core01_text_stage_is_removed_when_the_write_is_interrupted(
 
 # Writers a handler is allowed to delegate publication to, and the module that
 # must carry the staging primitive for that delegation to mean anything.
+# Writers a handler may delegate publication to, with the token whose presence
+# in that module is the proof it stages. Most publish through
+# ``atomic_output_path``; the Step 3 bundle publishes a whole set under one
+# rollback, so its own primitive is the proof.
 _ATOMIC_WRITERS = {
-    "write_excel": "kuma_core/mame/export/excel_writer.py",
-    "export_mame_janus_csv": "kuma_core/mame/export/janus_mapping.py",
-    "export_mame_janus_xlsx": "kuma_core/mame/export/janus_mapping.py",
-    "export_evolvepro_xlsx": "kuma_core/mame/activity/export_evolvepro.py",
-    "export_pdf": "kuma_core/mame/report/pdf_export.py",
-    "write_barcode_worklist_csv": "kuma_core/mame/barcode_worklist.py",
-    "write_variant_template": "kuma_core/mame/io/variant_template.py",
-    "generate_mame_package": "kuma_core/mame/ingest/barcode_package.py",
+    "write_excel": ("kuma_core/mame/export/excel_writer.py", "atomic_output_path"),
+    "export_mame_janus_csv": ("kuma_core/mame/export/janus_mapping.py", "atomic_output_path"),
+    "export_mame_janus_xlsx": ("kuma_core/mame/export/janus_mapping.py", "atomic_output_path"),
+    "export_evolvepro_xlsx": ("kuma_core/mame/activity/export_evolvepro.py", "atomic_output_path"),
+    "export_pdf": ("kuma_core/mame/report/pdf_export.py", "atomic_output_path"),
+    "write_barcode_worklist_csv": ("kuma_core/mame/barcode_worklist.py", "atomic_output_path"),
+    "write_variant_template": ("kuma_core/mame/io/variant_template.py", "atomic_output_path"),
+    "generate_mame_package": ("kuma_core/mame/ingest/barcode_package.py", "atomic_output_path"),
+    "build_evolvepro_input": (
+        "kuma_core/mame/activity/build_evolvepro_input.py",
+        "_publish_artifact_bundle",
+    ),
 }
 
 # Three anchors, not one. ``_validate_output_path`` alone missed
@@ -1097,19 +1106,46 @@ _STAGING_NAMES = {"atomic_output_path", "atomic_write_text"}
 # Calls that put bytes on disk without going through the staging primitives.
 _WRITE_METHODS = {"write_text", "write_bytes", "save", "to_csv", "to_excel"}
 _CSV_WRITER_FACTORIES = {"writer", "DictWriter"}
-_WRITE_MODES = "wxa"
+_WRITE_MODES = "wxa+"
+
+
+def _write_mode_argument(call, name, is_attr):
+    """Return (mode node, present) for an ``open``-family call.
+
+    ``Path.open(mode, ...)`` puts the mode first while the builtin ``open`` and
+    ``os.fdopen`` put the path or descriptor there, so the index depends on the
+    shape of the call. Reading only ``args[1]`` let ``fasta_path.open("w")``
+    through, which is how ``_write_reference_fasta`` looked inert.
+    """
+    index = 0 if (is_attr and name == "open") else 1
+    if len(call.args) > index:
+        return call.args[index], True
+    for keyword in call.keywords:
+        if keyword.arg == "mode":
+            return keyword.value, True
+    return None, False
 
 
 def _direct_writes(node):
     """Return the direct-write calls inside *node*, as ``name@line`` strings.
 
-    ``open`` counts only for a writing mode, so the many ``open(path)`` reads in
-    these modules stay quiet. ``os.fdopen`` counts the same way: it is how the
-    preferences writer puts bytes on disk, and leaving it out made that handler
-    look inert. ``.save``/``.write_text``/``.write_bytes``/
-    ``.to_csv``/``.to_excel`` and the two ``csv`` writer factories count as
-    attribute calls, which is how an ``openpyxl`` workbook and a ``Path`` write
-    both get seen without naming the receiver.
+    Modes are judged by exclusion rather than by a list of the ones known to
+    write: anything containing ``w``, ``x``, ``a`` or ``+`` counts, and a mode
+    that is not a literal string counts as well, because a variable mode cannot
+    be proved harmless from here. The ``+`` cases (``r+``, ``rb+``, ``r+b``)
+    write to an existing file and were invisible before. An ``open`` with no
+    mode at all is the default read and stays quiet, which is what keeps the
+    many ``open(path)`` reads in these modules from registering.
+
+    The method list is NOT inverted the same way. A mode string is a closed
+    grammar, so excluding is cheap and exact there, while treating every
+    unknown method call as a possible write would put most of the repository
+    into the registry for no gain in what the gate actually protects.
+
+    ``.save``/``.write_text``/``.write_bytes``/``.to_csv``/``.to_excel`` and the
+    two ``csv`` writer factories count as attribute calls, which is how an
+    ``openpyxl`` workbook and a ``Path`` write are both seen without naming the
+    receiver.
     """
     hits = []
     for call in ast.walk(node):
@@ -1119,18 +1155,165 @@ def _direct_writes(node):
         is_attr = isinstance(func, ast.Attribute)
         name = func.attr if is_attr else (func.id if isinstance(func, ast.Name) else None)
         if name in ("open", "fdopen"):
-            mode = None
-            if len(call.args) > 1 and isinstance(call.args[1], ast.Constant):
-                mode = call.args[1].value
-            for kw in call.keywords:
-                if kw.arg == "mode" and isinstance(kw.value, ast.Constant):
-                    mode = kw.value.value
-            if isinstance(mode, str) and any(ch in mode for ch in _WRITE_MODES):
-                hits.append(f"{name}({mode})@{call.lineno}")
+            mode, present = _write_mode_argument(call, name, is_attr)
+            if not present:
+                continue
+            if isinstance(mode, ast.Constant) and isinstance(mode.value, str):
+                if any(ch in mode.value for ch in _WRITE_MODES):
+                    hits.append(f"open({mode.value})@{call.lineno}")
+            else:
+                hits.append(f"open(<non-literal mode>)@{call.lineno}")
         elif is_attr and name in _WRITE_METHODS:
             hits.append(f".{name}()@{call.lineno}")
         elif is_attr and name in _CSV_WRITER_FACTORIES:
             hits.append(f"csv.{name}()@{call.lineno}")
+    return hits
+
+
+# An identifier that names an output destination. Narrower than "any path":
+# ``filepath`` is the KURO name for a file being read as well as one being
+# written, so matching it would flag every loader. ``output`` and the ``out_``
+# forms are only ever destinations in this repository.
+_OUTPUT_NAME = re.compile(r"output|out_path|out_dir|outdir|dest_path|dest_dir", re.I)
+
+# Calls that convert or report rather than forward work. ``Path(p.output_dir)``
+# and ``ValueError(f"output_dir must be ...")`` are not somebody else writing.
+_NOT_A_FORWARD = {
+    "Path", "str", "int", "float", "len", "bool", "isinstance", "getattr",
+    "print", "format", "repr", "sorted", "ValueError", "RuntimeError",
+    "FileNotFoundError", "TypeError", "KeyError", "NotADirectoryError",
+    "debug", "info", "warning", "error", "exception",
+    # Validating a path reads it. Handing the operator's path to the validator
+    # is what every export handler does before it decides anything, so counting
+    # it as delegation would make the rule fire on the check itself.
+    "_validate_output_path", "_validate_filepath",
+}
+
+
+# How a handler usually gets hold of the operator's path.
+_PATH_VALIDATORS = {"_validate_output_path"}
+_MAPPING_READERS = {"get", "pop"}
+
+
+def _output_name_in(expr, aliases=frozenset()):
+    """Name an output destination mentioned inside *expr*, or None.
+
+    Bare string constants are ignored so that a message reading "output_dir
+    must be absolute" is not mistaken for a destination. A string that is a
+    subscript key is kept, because ``params["output"]`` is exactly how a
+    handler takes the operator's path when it skips the model.
+
+    *aliases* are local names :func:`_output_path_aliases` proved hold a
+    destination even though they are not named like one.
+    """
+    for node in ast.walk(expr):
+        if isinstance(node, ast.Name) and (
+            _OUTPUT_NAME.search(node.id) or node.id in aliases
+        ):
+            return node.id
+        if isinstance(node, ast.Attribute) and _OUTPUT_NAME.search(node.attr):
+            return node.attr
+        if isinstance(node, ast.Subscript):
+            key = node.slice
+            if (
+                isinstance(key, ast.Constant)
+                and isinstance(key.value, str)
+                and _OUTPUT_NAME.search(key.value)
+            ):
+                return f"[{key.value!r}]"
+    return None
+
+
+def _output_path_aliases(node):
+    """Local names that hold an output destination under another name.
+
+    The name rule alone reads the call site, and KURO binds the operator's path
+    to ``resolved``, which looks like nothing. ``resolved =
+    _validate_output_path(p.filepath)`` followed by ``export_idt_csv(results,
+    resolved)`` therefore showed no forward at all, and a "no-write"
+    declaration on such a handler passed. Three bindings count:
+
+    - the result of a path validator, which is what the value is for
+    - an expression the name rule already matches, so ``dest = p.output_xlsx``
+      carries over
+    - ``params.get("output_path")`` and friends, the mapping form of the same
+
+    One level, no transitive propagation through further assignments. The point
+    is to see the operator's path leave the function, and one binding is what
+    stands between the validator and the writer in every case here. An alias
+    assigned after the call that uses it would be missed; nothing does that,
+    because the value has to exist before it can be passed.
+    """
+    aliases = set()
+    for statement in ast.walk(node):
+        if isinstance(statement, ast.Assign):
+            targets = statement.targets
+        elif isinstance(statement, ast.AnnAssign):
+            targets = [statement.target]
+        else:
+            continue
+        if len(targets) != 1 or not isinstance(targets[0], ast.Name):
+            continue
+        value = statement.value
+        if value is None:
+            continue
+        if _binds_an_output_path(value):
+            aliases.add(targets[0].id)
+    return aliases
+
+
+def _binds_an_output_path(value):
+    for node in ast.walk(value):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        name = func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", None)
+        if name in _PATH_VALIDATORS:
+            return True
+        if (
+            name in _MAPPING_READERS
+            and node.args
+            and isinstance(node.args[0], ast.Constant)
+            and isinstance(node.args[0].value, str)
+            and _OUTPUT_NAME.search(node.args[0].value)
+        ):
+            return True
+    return _output_name_in(value) is not None
+
+
+def _forwarded_output_paths(node):
+    """Return the calls in *node* that hand an output destination onward.
+
+    The gate used to read the handler body alone, so a handler that took the
+    operator's path and passed it to a writer one call away declared itself
+    inert and passed. Three did: the Step 3 builder, the combinatorial demux
+    and the KURO export-everything fan-out. Following the whole call graph is
+    not needed to see it. What the operator's path is named, and the fact that
+    it leaves the function as an argument, is enough and stays cheap.
+    """
+    aliases = _output_path_aliases(node)
+    hits = []
+    for call in ast.walk(node):
+        if not isinstance(call, ast.Call):
+            continue
+        func = call.func
+        callee = (
+            func.attr if isinstance(func, ast.Attribute)
+            else func.id if isinstance(func, ast.Name)
+            else "<expr>"
+        )
+        if callee in _NOT_A_FORWARD:
+            continue
+        for argument in list(call.args) + [kw.value for kw in call.keywords]:
+            found = _output_name_in(argument, aliases)
+            if found:
+                hits.append(f"{callee}(...{found}...)@{call.lineno}")
+                break
+        else:
+            for keyword in call.keywords:
+                if keyword.arg and _OUTPUT_NAME.search(keyword.arg):
+                    hits.append(f"{callee}({keyword.arg}=)@{call.lineno}")
+                    break
     return hits
 
 
@@ -1172,7 +1355,7 @@ _OUTPUT_PATH_HANDLERS = {
     ("sidecar_kuro/handlers/export.py", "_export_primers_fasta"): ("direct", None),
     ("sidecar_kuro/handlers/export.py", "handle_export_echo_mapping_dry_run"): ("no-write", None),
     ("sidecar_kuro/handlers/export.py", "handle_export_janus_mapping_dry_run"): ("no-write", None),
-    ("sidecar_kuro/handlers/export.py", "handle_export_all"): ("no-write", None),
+    ("sidecar_kuro/handlers/export.py", "handle_export_all"): ("direct", None),
     ("sidecar_kuro/handlers/external.py", "handle_fetch_domains"): ("no-write", None),
     ("sidecar_kuro/handlers/external.py", "handle_search_uniprot"): ("no-write", None),
     ("sidecar_kuro/handlers/external.py", "handle_check_structures_available"): ("no-write", None),
@@ -1202,9 +1385,10 @@ _OUTPUT_PATH_HANDLERS = {
     ("sidecar_mame/handlers/activity.py", "handle_activity_export_evolvepro_xlsx"): ("callee",
         "export_evolvepro_xlsx"),
     ("sidecar_mame/handlers/activity.py", "handle_merge_for_evolvepro"): ("no-write", None),
-    ("sidecar_mame/handlers/activity.py", "handle_build_evolvepro_input"): ("no-write", None),
+    ("sidecar_mame/handlers/activity.py", "handle_build_evolvepro_input"): ("callee", "build_evolvepro_input"),
     ("sidecar_mame/handlers/activity.py", "handle_detect_measurement_source"): ("no-write", None),
     ("sidecar_mame/handlers/analyze.py", "_acceptance_findings"): ("validate-only", None),
+    ("sidecar_mame/handlers/analyze.py", "_write_reference_fasta"): ("exempt-write", None),
     ("sidecar_mame/handlers/analyze.py", "handle_validate_inputs"): ("no-write", None),
     ("sidecar_mame/handlers/analyze.py", "handle_analyze"): ("transitive",
         ("kuma_core/mame/pipeline.py", "write_excel")),
@@ -1216,19 +1400,19 @@ _OUTPUT_PATH_HANDLERS = {
         "write_barcode_worklist_csv"),
     ("sidecar_mame/handlers/build_well_layout.py", "handle_build_well_layout"): ("no-write", None),
     ("sidecar_mame/handlers/classify_round.py", "handle_classify_round"): ("no-write", None),
-    ("sidecar_mame/handlers/combinatorial_demux.py", "handle_run_combinatorial_demux"): ("no-write", None),
+    ("sidecar_mame/handlers/combinatorial_demux.py", "handle_run_combinatorial_demux"): ("transitive", ("kuma_core/mame/ingest/combinatorial_demux.py", "atomic_write_text")),
     ("sidecar_mame/handlers/demux.py", "handle_demux_and_filter"): ("here", None),
     ("sidecar_mame/handlers/detect_native_barcodes.py", "handle_detect_native_barcodes"): ("no-write", None),
     ("sidecar_mame/handlers/export.py", "handle_export_excel"): ("callee", "write_excel"),
     ("sidecar_mame/handlers/export.py", "handle_get_plate_data"): ("no-write", None),
-    ("sidecar_mame/handlers/export.py", "handle_apply_selection_overrides"): ("no-write", None),
+    ("sidecar_mame/handlers/export.py", "handle_apply_selection_overrides"): ("transitive", ("python-core/sidecar_mame/handlers/export.py", "write_excel")),
     ("sidecar_mame/handlers/export.py", "handle_export_janus_mapping"): ("callee",
         "export_mame_janus_csv"),
     ("sidecar_mame/handlers/export.py", "handle_export_janus_mapping_dry_run"): ("no-write", None),
     ("sidecar_mame/handlers/health.py", "handle_get_run_health"): ("no-write", None),
     ("sidecar_mame/handlers/ingest.py", "handle_parse_reference"): ("no-write", None),
     ("sidecar_mame/handlers/kuma_meta.py", "handle_read_kuma_meta"): ("no-write", None),
-    ("sidecar_mame/handlers/load.py", "handle_load_analyze_result"): ("no-write", None),
+    ("sidecar_mame/handlers/load.py", "handle_load_analyze_result"): ("forwards-only", None),
     ("sidecar_mame/handlers/report.py", "handle_export_run_report"): ("here", None),
     ("sidecar_mame/handlers/variant_template.py", "handle_export_variant_template"): ("callee",
         "write_variant_template"),
@@ -1244,6 +1428,7 @@ _KNOWN_DIRECT_WRITERS = {
     ("sidecar_kuro/handlers/export.py", "handle_export_benchmark_csv"),
     ("sidecar_kuro/handlers/export.py", "handle_export_macrogen"),
     ("sidecar_kuro/handlers/export.py", "_export_primers_fasta"),
+    ("sidecar_kuro/handlers/export.py", "handle_export_all"),
 }
 
 # Functions that write directly to a path the operator never chose. Frozen for
@@ -1260,7 +1445,22 @@ _KNOWN_NON_OPERATOR_WRITERS = {
     ("sidecar_mame/handlers/analyze.py", "_write_reference_fasta"),
     ("sidecar_kuro/handlers/misc.py", "ensure_user_codon_dir"),
     ("sidecar_kuro/handlers/settings.py", "handle_save"),
+    ("sidecar_mame/handlers/analyze.py", "_write_reference_fasta"),
 }
+
+# Handlers that pass an output destination to something that does not write it.
+#   handle_load_analyze_result  hands the path to the in-memory analyze cache
+#                               so a reloaded workspace knows where its
+#                               workbook was, and opens no file
+_KNOWN_NON_WRITING_FORWARDERS = {
+    ("sidecar_mame/handlers/load.py", "handle_load_analyze_result"),
+}
+
+
+class _HandlerFacts(NamedTuple):
+    calls: set
+    writes: list
+    forwards: list
 
 
 def _handler_functions(source, origin="<registry>"):
@@ -1273,14 +1473,19 @@ def _handler_functions(source, origin="<registry>"):
     found = {}
     for node in ast.walk(ast.parse(source, filename=origin)):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            found[node.name] = (
-                {
+            # Two definitions of one name in one module would collapse into
+            # the later one and take the earlier one's writes with them. No
+            # module does that today; the check keeps it that way.
+            assert node.name not in found, (origin, node.name)
+            found[node.name] = _HandlerFacts(
+                calls={
                     (call.func.attr if isinstance(call.func, ast.Attribute) else call.func.id)
                     for call in ast.walk(node)
                     if isinstance(call, ast.Call)
                     and isinstance(call.func, (ast.Name, ast.Attribute))
                 },
-                _direct_writes(node),
+                writes=_direct_writes(node),
+                forwards=_forwarded_output_paths(node),
             )
     return found
 
@@ -1303,11 +1508,17 @@ def _handler_modules():
     )
 
 
-def _anchored(name, calls, writes):
+def _anchored(name, facts):
+    """Three anchors. Forwarding is NOT one of them.
+
+    Forwarding an output path constrains what a registered handler may claim,
+    and making it an anchor as well would pull in every private helper that
+    passes a destination along, which is noise the gate does not need.
+    """
     return bool(
         _HANDLER_NAME_ANCHOR.match(name)
-        or "_validate_output_path" in calls
-        or writes
+        or "_validate_output_path" in facts.calls
+        or facts.writes
     )
 
 
@@ -1315,10 +1526,10 @@ def _handlers_resolving_user_paths(modules=None, read=None):
     modules = _handler_modules() if modules is None else modules
     read = read or (lambda m: (ROOT / "python-core" / m).read_text(encoding="utf-8"))
     return {
-        (module, name): (calls, writes)
+        (module, name): facts
         for module in modules
-        for name, (calls, writes) in _handler_functions(read(module), module).items()
-        if _anchored(name, calls, writes)
+        for name, facts in _handler_functions(read(module), module).items()
+        if _anchored(name, facts)
     }
 
 
@@ -1337,33 +1548,58 @@ def _check_registry(found, registry=None):
         "unregistered": sorted(set(found) - set(registry)),
         "stale": sorted(set(registry) - set(found)),
     }
-    for key, (calls, writes) in found.items():
+    for key, facts in found.items():
         kind, detail = registry[key]
-        if kind == "here":
-            assert calls & _STAGING_NAMES, key
-        elif kind == "callee":
-            assert detail in calls, key
-            assert detail in _ATOMIC_WRITERS, key
-        elif kind == "transitive":
-            intermediate, writer = detail
-            assert writer in (ROOT / intermediate).read_text(encoding="utf-8"), key
-            assert writer in _ATOMIC_WRITERS, key
-        elif kind in ("validate-only", "no-write"):
-            # The declaration is checked, not believed: a body that opens a
-            # file for writing cannot wear one of these labels, which is what
-            # stopped "no-write" from being a one-word way past this gate.
-            assert not writes, (key, kind, writes)
-            assert not (calls & _STAGING_NAMES), key
-        elif kind in ("app-state", "exempt-write"):
-            # These may write, to a path the operator never chose. Saying so
-            # costs a second edit in the frozen set below, which a reviewer
-            # sees, rather than one word changed on one line.
-            assert not writes or key in _KNOWN_NON_OPERATOR_WRITERS, (key, writes)
+        _check_one_handler(key, facts, kind, detail)
+
+
+def _check_one_handler(key, facts, kind, detail):
+    """Verify one registered handler against what its source actually does."""
+    if kind == "here":
+        assert facts.calls & _STAGING_NAMES, key
+    elif kind == "callee":
+        assert detail in facts.calls, key
+        _assert_writer_stages(detail, key)
+    elif kind == "transitive":
+        intermediate, token = detail
+        assert token in (ROOT / intermediate).read_text(encoding="utf-8"), key
+        if token in _ATOMIC_WRITERS:
+            _assert_writer_stages(token, key)
         else:
-            # Debt. Writing the operator's path straight is allowed only for
-            # the handlers already named in the frozen set below.
-            assert kind == "direct", key
-            assert key in _KNOWN_DIRECT_WRITERS, key
+            # No named writer to point at, so the intermediate module has
+            # to carry a staging primitive itself.
+            source = (ROOT / intermediate).read_text(encoding="utf-8")
+            assert any(n in source for n in _STAGING_NAMES), (key, intermediate)
+    elif kind in ("validate-only", "no-write"):
+        # The declaration is checked, not believed. A body that opens a
+        # file for writing cannot wear one of these labels, and neither can
+        # one that hands an output destination to somebody else: that was
+        # the hole the first version of this gate left open.
+        assert not facts.writes, (key, kind, facts.writes)
+        assert not facts.calls & _STAGING_NAMES, key
+        assert not facts.forwards, (key, kind, facts.forwards)
+    elif kind == "forwards-only":
+        # Passes a destination onward to something that does not write it,
+        # such as the in-memory analyze cache. Frozen, so the claim is a
+        # reviewed edit rather than a label.
+        assert facts.forwards, key
+        assert not facts.writes, (key, facts.writes)
+        assert key in _KNOWN_NON_WRITING_FORWARDERS, key
+    elif kind in ("app-state", "exempt-write"):
+        # These may write, to a path the operator never chose. Saying so
+        # costs a second edit in the frozen set below, which a reviewer
+        # sees, rather than one word changed on one line.
+        assert not facts.writes or key in _KNOWN_NON_OPERATOR_WRITERS, (key, facts.writes)
+    else:
+        # Debt. Writing the operator's path straight is allowed only for
+        # the handlers already named in the frozen set below.
+        assert kind == "direct", key
+        assert key in _KNOWN_DIRECT_WRITERS, key
+
+
+def _assert_writer_stages(writer, key):
+    module, token = _ATOMIC_WRITERS[writer]
+    assert token in (ROOT / module).read_text(encoding="utf-8"), (key, module, token)
 
 
 def test_core01_direct_writer_debt_may_shrink_but_never_grow():
@@ -1375,30 +1611,60 @@ def test_core01_direct_writer_debt_may_shrink_but_never_grow():
 
 def test_core01_delegated_writers_actually_stage_their_output():
     """The delegation targets are only trustworthy if they really stage."""
-    for writer, module in _ATOMIC_WRITERS.items():
+    for writer, (module, token) in _ATOMIC_WRITERS.items():
         source = (ROOT / module).read_text(encoding="utf-8")
         assert f"def {writer}(" in source, writer
-        assert "atomic_output_path" in source, module
+        assert token in source, (module, token)
 
 
-# A handler that would slip past the gate if the gate trusted its declaration.
-_BYPASS_FIXTURE = """
+def test_core01_the_frozen_sets_hold_no_entry_the_registry_dropped():
+    """A frozen exemption outliving its registry entry is a dead licence.
+
+    ``_write_reference_fasta`` became one the moment the write detector was
+    thought to have seen it and had not, and nothing said so.
+    """
+    registered = set(_OUTPUT_PATH_HANDLERS)
+    for name, frozen in (
+        ("_KNOWN_DIRECT_WRITERS", _KNOWN_DIRECT_WRITERS),
+        ("_KNOWN_NON_OPERATOR_WRITERS", _KNOWN_NON_OPERATOR_WRITERS),
+        ("_KNOWN_NON_WRITING_FORWARDERS", _KNOWN_NON_WRITING_FORWARDERS),
+    ):
+        assert frozen <= registered, (name, sorted(frozen - registered))
+
+
+# Two handlers that would slip past a gate that trusted its declaration. The
+# first writes in its own body. The second is the shape the first version of
+# this gate missed entirely: the body is clean and the write is one call away.
+_BYPASS_FIXTURES = {
+    "direct": """
 def handle_export_something(params):
     output = params["output"]
     with open(output, "w", encoding="utf-8") as fh:
         fh.write("partial")
     return {"output_path": output}
-"""
+""",
+    "delegating": """
+def _really_write_it(output_path):
+    with open(output_path, "w", encoding="utf-8") as fh:
+        fh.write("partial")
+
+
+def handle_export_something(params):
+    output = params["output"]
+    _really_write_it(output)
+    return {"output_path": output}
+""",
+}
 
 
 def _fixture_registry(kind):
     return {("sidecar_mame/handlers/fixture.py", "handle_export_something"): (kind, None)}
 
 
-def _fixture_found():
+def _fixture_found(shape="direct"):
     return _handlers_resolving_user_paths(
         modules=["sidecar_mame/handlers/fixture.py"],
-        read=lambda _: _BYPASS_FIXTURE,
+        read=lambda _: _BYPASS_FIXTURES[shape],
     )
 
 
@@ -1414,6 +1680,24 @@ def test_core01_a_quiet_declaration_cannot_hide_a_direct_write(kind):
     with pytest.raises(AssertionError) as caught:
         _check_registry(found, _fixture_registry(kind))
     assert "open(w)@4" in str(caught.value)
+
+
+@pytest.mark.parametrize("kind", ["no-write", "validate-only"])
+def test_core01_a_quiet_declaration_cannot_hide_a_delegated_write(kind):
+    """The body is clean and the operator's path still reaches ``open(..., "w")``.
+
+    This is the shape that got past the first version of the gate three times
+    over: the Step 3 builder, the combinatorial demux and the KURO
+    export-everything fan-out all declared themselves inert while handing the
+    destination to the function that writes it.
+    """
+    handler = ("sidecar_mame/handlers/fixture.py", "handle_export_something")
+    facts = _fixture_found("delegating")[handler]
+    # The body itself is clean. Only the forward gives it away.
+    assert facts.writes == []
+    with pytest.raises(AssertionError) as caught:
+        _check_one_handler(handler, facts, kind, None)
+    assert "_really_write_it(...output...)" in str(caught.value)
 
 
 def test_core01_an_unregistered_writing_handler_fails_the_gate():
@@ -1432,17 +1716,28 @@ def test_core01_a_direct_declaration_must_also_be_named_in_the_debt_set():
         _check_registry(_fixture_found(), _fixture_registry("direct"))
 
 
-def test_core01_the_write_detector_sees_attribute_and_factory_writes():
-    """Verified against inputs whose answer is known, both ways."""
+def test_core01_the_write_detector_sees_every_shape_it_claims_to():
+    """Verified against inputs whose answer is known, both ways.
+
+    The reads must stay absent and the writes must all appear, including the
+    two shapes that used to escape: ``Path.open`` with the mode as its first
+    argument, and a mode that updates in place rather than truncating.
+    """
     writes = _direct_writes(
         ast.parse(
-            "def f(p):\n"
+            "def f(p, fd, fh, mode):\n"
             "    open(p)\n"
             "    open(p, 'r')\n"
+            "    p.open()\n"
+            "    p.open('rb')\n"
             "    p.read_text()\n"
             "    open(p, 'w')\n"
             "    os.fdopen(fd, 'w')\n"
             "    open(p, mode='ab')\n"
+            "    p.open('w', encoding='utf-8')\n"
+            "    p.open('r+b')\n"
+            "    open(p, 'rb+')\n"
+            "    open(p, mode)\n"
             "    wb.save(p)\n"
             "    p.write_text('x')\n"
             "    p.write_bytes(b'x')\n"
@@ -1454,8 +1749,12 @@ def test_core01_the_write_detector_sees_attribute_and_factory_writes():
     )
     assert [w.split("@")[0] for w in writes] == [
         "open(w)",
-        "fdopen(w)",
+        "open(w)",
         "open(ab)",
+        "open(w)",
+        "open(r+b)",
+        "open(rb+)",
+        "open(<non-literal mode>)",
         ".save()",
         ".write_text()",
         ".write_bytes()",
@@ -1466,6 +1765,43 @@ def test_core01_the_write_detector_sees_attribute_and_factory_writes():
     ]
 
 
+def test_core01_the_forward_detector_separates_delegation_from_reporting():
+    """Known-answer check on the rule that closed the call-chain hole."""
+    forwards = _forwarded_output_paths(
+        ast.parse(
+            "def f(params, p):\n"
+            "    raise_if(ValueError('output_dir must be absolute'))\n"
+            "    logger.info('wrote output=%s', 1)\n"
+            "    Path(p.output_dir)\n"
+            "    _validate_output_path(params['output'])\n"
+            "    read_variant_source(p.expected_mutations_xlsx)\n"
+            "    load_fasta(p.filepath)\n"
+            "    build_it(p.output_xlsx)\n"
+            "    run_it(output_dir=p.somewhere)\n"
+            "    write_it(params['output_path'])\n"
+            "    resolved = _validate_output_path(p.filepath)\n"
+            "    export_idt_csv(results, resolved)\n"
+            "    dest = p.output_xlsx\n"
+            "    save_it(dest)\n"
+            "    picked = params.get('output_dir')\n"
+            "    dump_it(picked)\n"
+        ).body[0]
+    )
+    assert [f.split("@")[0] for f in forwards] == [
+        "build_it(...output_xlsx...)",
+        "run_it(output_dir=)",
+        "write_it(...['output_path']...)",
+        # The three alias shapes. Without them a handler could bind the
+        # operator's path to a name of its own and hand it to a writer with
+        # nothing in the call site to show for it, which is how KURO spells
+        # every one of its exports.
+        "export_idt_csv(...resolved...)",
+        "save_it(...dest...)",
+        "dump_it(...picked...)",
+    ]
+
+
+
 # ---------------------------------------------------------------------------
 # core01: the hand-rolled stage-and-rename writers clean up for any failure
 # ---------------------------------------------------------------------------
@@ -1473,12 +1809,13 @@ def test_core01_the_write_detector_sees_attribute_and_factory_writes():
 def test_core01_bundle_rollback_survives_an_interrupt_between_publishes(
     tmp_path, monkeypatch
 ):
-    """A Ctrl-C mid-publish must leave the whole bundle on its previous version.
+    """A Ctrl-C between two publishes leaves the whole bundle on its old version.
 
     Each file's publish is an atomic replace, so no single file is ever half
-    written. What used to escape the rollback was the gap between two of them:
-    the first destination already held the new bytes, the second still held the
-    old ones, and both ``.bak`` copies stayed on disk.
+    written. What used to escape the rollback was the gap between two of them.
+    The interrupt here lands after the first destination already holds the new
+    bytes and before the second does, which is the state the rollback exists to
+    undo, and the assertion below proves that state was reached.
     """
     # The module, not the same-named function the package re-exports.
     from kuma_core.mame.activity.build_evolvepro_input import (
@@ -1498,19 +1835,29 @@ def test_core01_bundle_rollback_survives_an_interrupt_between_publishes(
     ]
 
     real_replace = Path.replace
-    calls = {"n": 0}
+    published: list[str] = []
 
-    def counting_replace(self, target):
-        calls["n"] += 1
-        # Three destinations exist, so calls 1-3 move them aside and call 4 is
-        # the first publish. Interrupt there, with every backup already made.
-        if calls["n"] == 4:
+    def interrupt_between_publishes(self, target):
+        # Chosen by destination rather than by call number, so a change to how
+        # many files the bundle moves aside first cannot silently move the
+        # injection point. The first publish goes through and the second is
+        # interrupted, which is the only moment the set is half new and half
+        # old. Stopping before any publish would prove nothing: the rollback
+        # would have had nothing to undo.
+        if Path(target) == second and first.read_text(encoding="utf-8") == "NEW FIRST":
             raise KeyboardInterrupt()
-        return real_replace(self, target)
+        result = real_replace(self, target)
+        published.append(Path(target).name)
+        return result
 
-    monkeypatch.setattr(Path, "replace", counting_replace)
+    monkeypatch.setattr(Path, "replace", interrupt_between_publishes)
     with pytest.raises(KeyboardInterrupt):
         _publish_artifact_bundle(writers, manifest, {"schema": 1})
+
+    # The first destination really did receive its new bytes before the
+    # interrupt, so what follows is the rollback undoing a publish rather than
+    # a bundle that never started.
+    assert first.name in published
 
     assert first.read_text(encoding="utf-8") == "OLD FIRST"
     assert second.read_text(encoding="utf-8") == "OLD SECOND"

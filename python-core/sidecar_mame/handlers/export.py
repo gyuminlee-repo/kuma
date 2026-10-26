@@ -290,6 +290,12 @@ def _rewrite_result_workbook(state) -> dict:
         # re-create behind the operator. Stated here rather than left to the
         # side effect of a staging file failing to open, which is what the
         # check used to be.
+        #
+        # It is a check at this instant, not a guarantee for the whole rewrite:
+        # ``write_excel`` builds the workbook first and mkdirs only at the save,
+        # so a folder that disappears in between is still re-created. The
+        # reservation this replaced had the same gap, and closing it would mean
+        # holding a handle for the length of the build.
         if not target.parent.is_dir():
             raise FileNotFoundError(
                 f"The output folder is gone: {target.parent}"
