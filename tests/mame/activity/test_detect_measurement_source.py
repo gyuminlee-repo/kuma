@@ -174,12 +174,40 @@ def test_a_blank_does_not_block_a_well_report(tmp_path: Path) -> None:
     assert result.evidence["sample_name_samples"]["unclassified"] == ["BLANK"]
 
 
-def test_a_calibration_number_beside_wells_offers_both_readings(tmp_path: Path) -> None:
-    """A pure number is a calibration row under the well field and an ID under the numeric one."""
-    path = _write_block_workbook(tmp_path / "cal.xlsx", ["0", "WT_1", "A1", "B1"])
+def test_a_calibration_number_beside_a_plate_of_wells_is_a_well_report(tmp_path: Path) -> None:
+    """The shape of a real one-replicate report: 95 wells, three WT rows, one standard named 0."""
+    wells = [f"{row}{column}" for row in "ABCDEFGH" for column in range(1, 13)][:95]
+    path = _write_block_workbook(tmp_path / "cal.xlsx", ["0", "WT_1", "WT_2", "WT_3", *wells])
+    result = detect_measurement_source(path)
+    assert result.candidates == [RAW_REPORT]
+    assert result.ambiguous is False
+    assert result.evidence["n_numbers_read_as_calibration"] == 1
+
+
+def test_a_few_well_names_beside_numeric_ids_read_as_another_experiments(tmp_path: Path) -> None:
+    """90 IDs and 2 well names: no rawReport reading. The round question of a numeric file stays."""
+    ids = [str(i) for i in range(1, 91)]
+    path = _write_block_workbook(tmp_path / "ids.xlsx", ["WT1", *ids[:40], "G7", *ids[40:], "H8"])
+    clean = _write_block_workbook(tmp_path / "clean.xlsx", ["WT1", *ids])
+    result = detect_measurement_source(path)
+    assert RAW_REPORT not in result.candidates
+    assert result.candidates == detect_measurement_source(clean).candidates == [NUMERIC_REPORT, CONFIRMATION_NUMERIC_IDS]
+    assert result.evidence["n_wells_read_as_foreign"] == 2
+
+
+def test_as_many_numbers_as_wells_offers_both_readings(tmp_path: Path) -> None:
+    path = _write_block_workbook(tmp_path / "tie.xlsx", ["WT1", "A1", "B1", "1", "2"])
     result = detect_measurement_source(path)
     assert result.candidates == [RAW_REPORT, NUMERIC_REPORT]
     assert result.ambiguous is True
+
+
+def test_the_count_rule_does_not_reach_real_notations(tmp_path: Path) -> None:
+    """Wells beside variant labels, or beside suffixed IDs, still offer every reading."""
+    variants = _write_block_workbook(tmp_path / "v.xlsx", ["WT1", "A1", "B1", "C1", "S11I"])
+    assert detect_measurement_source(variants).candidates == [RAW_REPORT, CONFIRMATION_VARIANT_LABELS]
+    suffixed = _write_block_workbook(tmp_path / "s.xlsx", ["WT1", "A1", "B1", "C1", "1-2"])
+    assert detect_measurement_source(suffixed).candidates == [RAW_REPORT, NUMERIC_REPORT]
 
 
 def test_bare_wild_type_row_is_not_a_sample(tmp_path: Path) -> None:

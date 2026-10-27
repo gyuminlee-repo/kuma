@@ -51,8 +51,12 @@ What a sample name is comes from ``gc_sample``, the module every reader asks:
   reading.  A GC run is shared, and whether such a row belongs to this run is
   a question about the layout and the plate order, which this detector is not
   given.  The build answers it and sets those rows aside with their positions.
-* a file whose names fit more than one grammar reports one candidate per
-  grammar present, with ``ambiguous`` set.  Which notation is this run's own is
+* pure numbers beside well names are settled by count: more wells reads the
+  numbers as calibration standards, more numbers reads the wells as another
+  experiment's. A tie offers both. A wrong guess is refused loudly by the
+  build (no member row, or the run in two notations), never mislabelled.
+* any other file whose names fit more than one grammar reports one candidate
+  per grammar present, with ``ambiguous`` set.  Which notation is this run's own is
   again a membership question, so the operator chooses and the build refuses
   the run's own rows written in the other notation.
 
@@ -90,7 +94,7 @@ from .build_evolvepro_input import (
     _normalise_activity_header,
 )
 from .evolvepro_xlsx import _extract_rows, _str, iter_block_rows
-from .gc_sample import NUMERIC_ID, VARIANT, WELL, classify_sample, is_wt_name, namespaces_of
+from .gc_sample import NUMERIC_CALIBRATION, NUMERIC_ID, VARIANT, WELL, classify_sample, is_wt_name, namespaces_of
 
 LONG_FORMAT = "longFormat"
 GC_SHEET = "gcSheet"
@@ -237,6 +241,26 @@ def _detect_block(path: Path, rows: list[list], evidence: dict[str, Any], slot: 
         # Names of no namespace never block a reading: the build sets them
         # aside with their positions.  The count is shown before it runs.
         evidence["n_skipped_rows"] = len(unclassified)
+
+    # Pure numbers beside well names: the one question settled by count.
+    # A pure number is a calibration standard in a well report and a position
+    # ID in a numeric report, and only those two readings compete here, so the
+    # larger group names the file. One-replicate block reports put a handful
+    # of concentration-named standards beside the plate's wells; a numeric
+    # report numbers nearly every sample. A wrong guess fails loudly rather
+    # than quietly: read as wells, a numeric report has no well of the run and
+    # the build refuses it for having no member row; read as numbers, a well
+    # report's wells of this plate are the run in the other notation and the
+    # build refuses the file. Suffixed IDs (12-2) and variant labels are real
+    # notations, not this question, so they keep every reading on offer.
+    pure_numbers = all(classify_sample(name, "well").kind == NUMERIC_CALIBRATION for name in numeric)
+    if wells and numeric and not variants and pure_numbers and len(wells) != len(numeric):
+        if len(wells) > len(numeric):
+            evidence["n_numbers_read_as_calibration"] = len(numeric)
+            numeric = []
+        else:
+            evidence["n_wells_read_as_foreign"] = len(wells)
+            wells = []
 
     if slot == "confirmation":
         # The slot names the round, so a namespace has one reading here and

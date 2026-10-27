@@ -120,3 +120,34 @@ def test_every_offered_format_is_refused_only_for_membership(tmp_path: Path, fix
             assert any(fragment in message for fragment in MEMBERSHIP_REFUSALS), (candidate, message)
     # Not vacuous: the reading meant for the file builds.
     assert built >= 1, detected.candidates
+
+
+@pytest.mark.parametrize(
+    ("samples", "expected"),
+    [
+        # A numeric report carrying more foreign well names than IDs: the count
+        # reads it as a well report, and the build finds no well of this run.
+        ([("WT1", 10.0), ("1", 20.0), ("2", 5.0), ("D7", 1.0), ("E8", 1.0), ("F9", 1.0)], "rawReport"),
+        # A well report of this plate with more standards than wells: the count
+        # reads it as numeric, and the build meets the plate's own wells.
+        ([("WT1", 10.0), ("A1", 20.0), ("B1", 5.0), ("1", 1.0), ("5", 2.0), ("10", 3.0)], "numericReport"),
+    ],
+)
+def test_a_wrong_count_guess_is_refused_for_membership(tmp_path: Path, samples: list[tuple[str, object]], expected: str) -> None:
+    """The count rule may guess wrong; the build must then refuse loudly, never decode."""
+    layout = _sheet(tmp_path / "layout.xlsx", [["Mutant", "Well Pos."], *[list(row) for row in PLATE]])
+    verdict = _sheet(
+        tmp_path / "verdict.xlsx",
+        [["well_id", "mutant_id", "verdict"], *[[f"{w[0]}{int(w[1:]):02d}", m, "PASS"] for m, w in PLATE]],
+    )
+    path = _blocks(tmp_path / "guess.xlsx", samples)
+    detected = detect_measurement_source(path)
+    assert detected.candidates[0] == expected
+    assert ("rawReport" in detected.candidates) != ("numericReport" in detected.candidates)
+    with pytest.raises(ValueError) as caught:
+        build_evolvepro_input(
+            tmp_path / "out.xlsx", layout_xlsx=layout, verdict_xlsx=verdict, **{FIELD[expected]: path}
+        )
+    message = str(caught.value)
+    assert not any(fragment in message for fragment in FORMAT_REFUSALS), message
+    assert any(fragment in message for fragment in MEMBERSHIP_REFUSALS), message

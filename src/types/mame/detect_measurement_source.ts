@@ -54,8 +54,11 @@ export interface DetectMeasurementSourceResult {
    * Every source the file could be, never narrowed to a guess. Two pairs are
    * the same file in the primary slot: a pre-normalized GC sheet is also a valid
    * long-format file, and a numeric-ID block file is a primary screen or a
-   * numeric confirmation because both decoders call the same parser. A file
-   * whose names fit several label grammars lists one candidate per grammar.
+   * numeric confirmation because both decoders call the same parser. Pure
+   * numbers beside well names are settled by count (more wells: the numbers
+   * are calibration standards; more numbers: the wells are another
+   * experiment's; a tie offers both). Any other file whose names fit several
+   * label grammars lists one candidate per grammar.
    * Any block file may carry sample names of no namespace (BLANK, internal
    * standards, another experiment's samples); they never block a reading,
    * `evidence.sample_name_namespaces.unclassified` counts them, and the build
