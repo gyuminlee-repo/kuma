@@ -832,6 +832,10 @@ def _well_confirmation(path: str | Path, well_to_variant: dict[str, str], wt_wel
             f"remeasure_well_xlsx has {len(unmapped)} well(s) absent from "
             f"{mapping_source}: " + ", ".join(sorted(unmapped))
         )
+    if not values:
+        # Same rule as every other reader: a file with no row of this run is
+        # refused, not merged as an empty confirmation.
+        raise _no_member_rows(source, ledger)
     return values
 
 
@@ -989,9 +993,8 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
     which holds one row per designed variant, so a caller that needs the assay
     spread behind this round has to take them from the result.
 
-    Every GC row a reader set aside (``BLANK``, calibration numbers, IDs
-    outside the order, wells off the mapping, rows without a name or area, rows
-    in *excluded_rows*) is named with its position in ``warnings``, counted in
+    Every GC row a reader set aside (``BLANK``, calibration numbers, wells off
+    the mapping, rows without a name or area, rows in *excluded_rows*) is named with its position in ``warnings``, counted in
     ``exclusion_reason_counts`` and listed in the manifest ``excluded_rows``.
     The WT rows the reference was taken from are listed in ``wt_rows``.
     """

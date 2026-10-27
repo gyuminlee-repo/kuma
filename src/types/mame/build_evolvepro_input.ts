@@ -89,7 +89,7 @@ export interface ExcludedGcRow {
  * A GC row a reader set aside, or flagged and kept (`kept`). `reason` is one
  * of the `exclusion_reason_counts` keys: non_well_sample, unrecognized_sample,
  * numeric_calibration, no_area, no_name, unmapped_well, unmapped_variant,
- * out_of_range_id, operator_excluded, duplicate_replicate, duplicate_well.
+ * operator_excluded, duplicate_replicate, duplicate_well.
  */
 export interface ReportedGcRow extends GcRowPosition {
   reason: string

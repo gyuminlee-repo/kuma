@@ -30,7 +30,7 @@ well 라벨 형식이 요구하는 것은 `layout_xlsx` 자체가 아니라 **�
 
 `numeric_report_xlsx`는 라벨 대신 순번을 싣는다. 순번 `i`는 플레이트 순서의 `i`번째 variant다. ID 집합이 그 순서와 일대일로 맞지 않으면 이웃 variant에 값을 붙이는 대신 거절한다.
 
-GC run은 여러 실험이 함께 쓰므로 report 에 이 run 의 것이 아닌 행이 섞일 수 있다. `BLANK`, internal standard, 농도 번호로 이름 붙은 보정 행(well 라벨 report 의 `1`, `5`, `10`), 다른 실험의 시료, 플레이트 범위를 넘는 순번이 그렇다. 이런 행은 빼고 블록 번호와 시트 행 번호를 붙여 warning 과 manifest `excluded_rows` 에 남긴다. 사유별 개수는 `exclusion_reason_counts` 에 들어간다. 이 run 의 well 이나 variant 가 다른 표기로 적힌 행(well 라벨 report 안의 이 run variant 이름, 숫자 ID report 안의 이 플레이트 well 이름)은 파일을 거절한다. 같은 측정이 두 표기로 나뉘었다는 뜻이기 때문이다. 이 run 의 행이 하나도 없는 파일도 거절한다. WT 반복 번호가 겹치는 행과 1회 측정 report 에서 두 번 나온 well 은 평균에 그대로 넣고 warning 으로 알린다. 확인 측정의 숫자 ID 는 예외다. 그 순번이 세는 부분집합은 규칙으로 추정한 것이라 범위를 넘는 순번은 다른 실험의 시료가 아니라 벤치가 다른 부분집합을 골랐다는 신호로 보고 거절한다.
+GC run은 여러 실험이 함께 쓰므로 report 에 이 run 의 것이 아닌 행이 섞일 수 있다. `BLANK`, internal standard, 농도 번호로 이름 붙은 보정 행(well 라벨 report 의 `1`, `5`, `10`), 다른 실험의 시료가 그렇다. 이런 행은 빼고 블록 번호와 시트 행 번호를 붙여 warning 과 manifest `excluded_rows` 에 남긴다. 사유별 개수는 `exclusion_reason_counts` 에 들어간다. 이 run 의 well 이나 variant 가 다른 표기로 적힌 행(well 라벨 report 안의 이 run variant 이름, 숫자 ID report 안의 이 플레이트 well 이름)은 파일을 거절한다. 같은 측정이 두 표기로 나뉘었다는 뜻이기 때문이다. 이 run 의 행이 하나도 없는 파일도 거절한다. WT 반복 번호가 겹치는 행과 1회 측정 report 에서 두 번 나온 well 은 평균에 그대로 넣고 warning 으로 알린다. 숫자 ID 는 이름이 아니라 위치이므로 플레이트 범위(확인 측정이면 WT 초과 부분집합)를 넘는 순번은 파일이나 순서 기준이 틀렸다는 신호로 보고 빼지 않고 거절한다.
 
 ### 범용 long-format 계약
 

@@ -178,15 +178,22 @@ def test_numeric_slot_refuses_a_well_of_the_plate(tmp_path: Path, plate) -> None
         _build(tmp_path, plate, numeric_report_xlsx=report)
 
 
-def test_numeric_slot_sets_aside_names_ids_and_wells_of_no_membership(tmp_path: Path, plate) -> None:
+def test_numeric_slot_sets_aside_names_and_wells_of_no_membership(tmp_path: Path, plate) -> None:
     report = _blocks(
         tmp_path / "n.xlsx",
-        [("WT1", 10.0), ("1", 20.0), ("BLANK", 0.1), ("2", 5.0), ("3", 12.0), ("200", 9.0), ("G7", 3.0)],
+        [("WT1", 10.0), ("1", 20.0), ("BLANK", 0.1), ("2", 5.0), ("3", 12.0), ("G7", 3.0)],
     )
     result = _build(tmp_path, plate, numeric_report_xlsx=report)
     assert dict(read_evolvepro_rows(tmp_path / "out.xlsx")) == pytest.approx({"5F": 2.0, "10L": 0.5, "11I": 1.2})
-    assert result.exclusion_reason_counts == {"unrecognized_sample": 2, "out_of_range_id": 1}
-    assert {(row["sample_name"], row["block_index"]) for row in result.excluded_rows} == {("BLANK", 3), ("200", 6), ("G7", 7)}
+    assert result.exclusion_reason_counts == {"unrecognized_sample": 2}
+    assert {(row["sample_name"], row["block_index"]) for row in result.excluded_rows} == {("BLANK", 3), ("G7", 6)}
+
+
+def test_numeric_slot_refuses_an_id_past_the_plate(tmp_path: Path, plate) -> None:
+    """An ID is a position: one past the plate says the file or the order is wrong."""
+    report = _blocks(tmp_path / "n.xlsx", [("WT1", 10.0), ("1", 20.0), ("2", 5.0), ("3", 12.0), ("200", 9.0)])
+    with pytest.raises(ValueError, match=r"IDs must be 1\.\.3"):
+        _build(tmp_path, plate, numeric_report_xlsx=report)
 
 
 # ---------------------------------------------------------------------------
@@ -259,3 +266,57 @@ def test_an_operator_cannot_exclude_a_row_in_the_other_notation(tmp_path: Path, 
     excluded = [OperatorExclusion(source="round1_report_xlsx", block_index=5, row_index=23, sample_name="11I", area=9.0)]
     with pytest.raises(ValueError, match="names variant 11I of this run"):
         _build(tmp_path, plate, round1_report_xlsx=report, excluded_rows=excluded)
+
+
+ALL_ABOVE_WT = [("WT1", 10.0), ("1", 20.0), ("2", 15.0), ("3", 12.0)]
+
+
+@pytest.mark.parametrize(
+    ("field", "excluded_name"),
+    [("numeric_report_xlsx", "BLANK"), ("numeric_report_xlsx", "WT2"), ("remeasure_numeric_xlsx", "WT2")],
+)
+def test_an_operator_exclusion_on_the_numeric_path_is_reported_once(tmp_path: Path, plate, field: str, excluded_name: str) -> None:
+    rows = ALL_ABOVE_WT + [(excluded_name, 33.0)]
+    report = _blocks(tmp_path / "n.xlsx", rows)
+    excluded = [OperatorExclusion(source=field, block_index=5, row_index=23, sample_name=excluded_name, area=33.0)]
+    sources: dict[str, object] = {field: report}
+    if field == "remeasure_numeric_xlsx":
+        sources["numeric_report_xlsx"] = _blocks(tmp_path / "primary.xlsx", ALL_ABOVE_WT)
+    result = _build(tmp_path, plate, excluded_rows=excluded, **sources)
+    assert result.exclusion_reason_counts == {"operator_excluded": 1}
+    assert [(row["source"], row["sample_name"], row["reason"]) for row in _manifest(result)["excluded_rows"]] == [
+        (field, excluded_name, "operator_excluded"),
+    ]
+    assert sum(f"'{excluded_name}' (block 5, row 23)" in warning for warning in result.warnings) == 1
+
+
+def test_well_confirmation_with_no_row_of_this_run_is_refused(tmp_path: Path, plate) -> None:
+    confirm = _blocks(tmp_path / "c.xlsx", [("H12-1", 10.0), ("BLANK", 0.1), ("G7-1", 4.0)])
+    with pytest.raises(ValueError, match="remeasure_well_xlsx has no row that belongs to this run"):
+        _build(tmp_path, plate, round1_report_xlsx=_blocks(tmp_path / "r.xlsx", PRIMARY), remeasure_well_xlsx=confirm)
+
+
+def test_reported_rows_are_the_rows_a_spreadsheet_shows(tmp_path: Path, plate) -> None:
+    """The reader drops empty rows above the first cell; positions must not shift with it."""
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    row = 4  # three empty rows above, and an empty first column
+    for name, area in SHARED_RUN:
+        for offset, cells in enumerate((["Signal:", "FID1B"], ["Area", "Sample Name"], [area, name], ["Sum", area])):
+            for column, value in enumerate(cells, start=2):
+                ws.cell(row=row + offset, column=column, value=value)
+        row += 5
+    wb.save(tmp_path / "r.xlsx")
+    result = _build(tmp_path, plate, round1_report_xlsx=tmp_path / "r.xlsx")
+    (blank,) = result.excluded_rows
+    assert (blank["sample_name"], blank["block_index"], blank["row_index"]) == ("BLANK", 5, 26)
+    assert openpyxl.load_workbook(tmp_path / "r.xlsx").active.cell(row=26, column=3).value == "BLANK"
+
+    flat = openpyxl.Workbook()
+    sheet = flat.active
+    for offset, cells in enumerate([["Sample Name", "Area"], ["A1", 2.0], ["BLANK", 0.1], ["B1", 0.5]]):
+        for column, value in enumerate(cells, start=1):
+            sheet.cell(row=3 + offset, column=column, value=value)
+    flat.save(tmp_path / "gc.xlsx")
+    result = _build(tmp_path, plate, gc_data_xlsx=tmp_path / "gc.xlsx")
+    assert [(row["sample_name"], row["row_index"]) for row in result.excluded_rows] == [("BLANK", 5)]

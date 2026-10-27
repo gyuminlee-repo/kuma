@@ -35,8 +35,6 @@ from .gc_sample import (
     NO_NAME_ROW,
     NUMERIC_CALIBRATION,
     NUMERIC_CALIBRATION_ROW,
-    OPERATOR_EXCLUDED,
-    OUT_OF_RANGE_ID,
     UNRECOGNIZED_SAMPLE,
     VARIANT,
     WELL,
@@ -255,25 +253,24 @@ def _decode_against(
     order_label: str,
     label: str | None = None,
     excluded: list[ReportedRow] | None = None,
-    order_is_stated: bool = True,
 ) -> tuple[list[DecodedId], list[DecodedSlot]]:
     """Match ascending numeric IDs onto *order* positionally.
 
-    Membership comes first. An ID inside ``1..len(order)`` is this run's. An
-    ID outside it, and any name of no namespace (``BLANK``, an internal
-    standard), has nothing tying it to this run: a GC run is shared, so such
-    rows are set aside and reported in *excluded* under *label*. A well or
-    variant label that the order names is this run's own measurement in the
-    other notation and refuses the file.
+    A name of no namespace (``BLANK``, an internal standard) has nothing tying
+    it to this run: a GC run is shared, so such rows are set aside and
+    reported in *excluded* under *label*. A well or variant label that the
+    order names is this run's own measurement in the other notation and
+    refuses the file. Rows the caller's *skip* excluded are recorded by that
+    caller, so they are not reported again here.
 
-    That reading needs an order the file was filled against. A primary
-    screen's order is the stated plate, so an ID past it cannot be on this
-    plate. A confirmation's order is the above-WT subset this app inferred by
-    rule (*order_is_stated* False): an ID past it says the bench picked a
-    different subset, not that the sample is foreign, so it still refuses.
-
-    The IDs that remain must line up with the order one to one. A partial set
-    is refused: guessing would attach a real measurement to the wrong variant,
+    A numeric ID is a position, not a name, so an ID outside
+    ``1..len(order)`` is not evidence of another experiment's sample: such a
+    sample would be just as likely to fall inside the range, where nothing
+    tells it apart. An ID past the order says the file or the order is wrong
+    (another plate's report against this order, say), and the decode aborts.
+    Setting such IDs aside would decode the in-range part of a foreign plate
+    as this run. The IDs must line up with the order one to one for the same
+    reason: guessing would attach a real measurement to the wrong variant,
     and every consumer downstream treats the label as ground truth.
     """
     report = [] if excluded is None else excluded
@@ -281,6 +278,8 @@ def _decode_against(
     member_wells = {entry[2] for entry in order}
     member_variants = {entry[0] for entry in order if entry[0] is not None}
     for row, sample, area, note in block.others:
+        if note == "operator":
+            continue
         if (
             sample.kind == WELL and sample.well in member_wells
             or sample.kind == VARIANT and sample.variant in member_variants
@@ -292,27 +291,26 @@ def _decode_against(
                 "states this run's measurements in two notations; supply one notation per file."
             )
         reason = (
-            OPERATOR_EXCLUDED if note == "operator"
-            else NO_AREA if note == "no_area"
+            NO_AREA if note == "no_area"
             else NO_NAME_ROW if sample.kind == NO_NAME
             else NUMERIC_CALIBRATION_ROW if sample.kind == NUMERIC_CALIBRATION
             else UNRECOGNIZED_SAMPLE
         )
         report.append(ReportedRow(tag, row.sample_name, reason, row.row_index, row.block_index, area))
-    outside = [base_id for base_id in sorted(block.reps) if not 1 <= base_id <= len(order)]
-    if outside and not order_is_stated:
+    ids = sorted(block.reps)
+    if not ids:
+        raise ValueError(f"{source} carries no numeric sample IDs to decode.")
+    lo, hi = ids[0], ids[-1]
+    if lo < 1 or hi > len(order):
         raise ValueError(
-            f"{source} has numeric IDs {min(block.reps)}..{max(block.reps)}, but {order_label} holds "
+            f"{source} has numeric IDs {lo}..{hi}, but {order_label} holds "
             f"{len(order)} variants. IDs must be 1..{len(order)}; a decode "
             "outside that range would label measurements with the wrong "
             "variant. Check that the layout matches this run."
         )
-    for base_id in outside:
-        for row, area in zip(block.id_rows.get(base_id, []), block.reps[base_id]):
-            report.append(ReportedRow(tag, row.sample_name, OUT_OF_RANGE_ID, row.row_index, row.block_index, area))
     for row, area in block.duplicate_rows:
         sample = classify_sample(row.sample_name, "numeric_id")
-        if sample.numeric_id is not None and 1 <= sample.numeric_id <= len(order):
+        if sample.numeric_id is not None:
             report.append(ReportedRow(tag, row.sample_name, DUPLICATE_REPLICATE, row.row_index, row.block_index, area))
     seen_wt: set[int] = set()
     for row, area in zip(block.wt_rows, block.wt_areas):
@@ -320,16 +318,6 @@ def _decode_against(
         if replicate > 0 and replicate in seen_wt:
             report.append(ReportedRow(tag, row.sample_name, DUPLICATE_REPLICATE, row.row_index, row.block_index, area))
         seen_wt.add(replicate)
-    ids = [base_id for base_id in sorted(block.reps) if 1 <= base_id <= len(order)]
-    if not ids:
-        raise ValueError(
-            f"{source} carries no numeric sample IDs to decode"
-            + (
-                f": its IDs {outside[0]}..{outside[-1]} all lie outside 1..{len(order)}, "
-                f"the {len(order)} variants of {order_label}. Check that the layout matches this run."
-                if outside else "."
-            )
-        )
     if len(ids) != len(order):
         raise ValueError(
             f"{source} carries {len(ids)} numeric IDs but {order_label} holds "
@@ -505,7 +493,6 @@ def decode_confirmation_against(
         order_label="the above-WT subset of the primary screen",
         label=source_label,
         excluded=excluded,
-        order_is_stated=False,
     )
     return DecodeResult(
         rows=rows,

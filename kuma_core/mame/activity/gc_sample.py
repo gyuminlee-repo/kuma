@@ -205,7 +205,6 @@ NO_AREA = "no_area"
 NO_NAME_ROW = "no_name"
 UNMAPPED_WELL = "unmapped_well"
 UNMAPPED_VARIANT = "unmapped_variant"
-OUT_OF_RANGE_ID = "out_of_range_id"
 OPERATOR_EXCLUDED = "operator_excluded"
 DUPLICATE_REPLICATE = "duplicate_replicate"
 DUPLICATE_WELL = "duplicate_well"
@@ -283,7 +282,6 @@ __all__ = [
     "NUMERIC_CALIBRATION_ROW",
     "NUMERIC_ID",
     "OPERATOR_EXCLUDED",
-    "OUT_OF_RANGE_ID",
     "ReportedRow",
     "SampleClass",
     "UNMAPPED_VARIANT",

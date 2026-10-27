@@ -72,7 +72,17 @@ class RelativeActivityRecord:
 # ---------------------------------------------------------------------------
 
 def _extract_rows(path: Path, sheet_index: int) -> list[list]:
-    """Return all rows from a calamine sheet as a list of lists."""
+    """Return all rows from a calamine sheet as a list of lists.
+
+    calamine starts the list at the first non-empty row, so ``rows[0]`` is
+    not sheet row 1 when the sheet opens with empty rows. A caller that
+    reports positions takes the offset from :func:`_extract_rows_at`.
+    """
+    return _extract_rows_at(path, sheet_index)[0]
+
+
+def _extract_rows_at(path: Path, sheet_index: int) -> tuple[list[list], int]:
+    """The sheet rows and how many empty sheet rows precede ``rows[0]``."""
     wb = python_calamine.CalamineWorkbook.from_path(str(path))
     sheets = wb.sheet_names
     if sheet_index >= len(sheets):
@@ -80,7 +90,9 @@ def _extract_rows(path: Path, sheet_index: int) -> list[list]:
             f"sheet_index={sheet_index} out of range "
             f"(file has {len(sheets)} sheet(s)): {path}"
         )
-    return list(wb.get_sheet_by_index(sheet_index).to_python())
+    sheet = wb.get_sheet_by_index(sheet_index)
+    start = sheet.start
+    return list(sheet.to_python()), (start[0] if start else 0)
 
 
 def _str(cell: object) -> str:
@@ -163,7 +175,7 @@ def _has_block_signature(row: list) -> bool:
     return any("signal:" in t for t in texts) and any("fid1b" in t for t in texts)
 
 
-def iter_block_rows(rows: list[list]):
+def iter_block_rows(rows: list[list], row_offset: int = 0):
     """Yield a :class:`GcRow` for every data row of every FID1B block.
 
     A FID1B block is::
@@ -179,7 +191,8 @@ def iter_block_rows(rows: list[list]):
 
     This is the only block walk. A row with an empty name or an empty area is
     yielded; only a row with neither is skipped, because it holds nothing to
-    report.
+    report. *row_offset* is the number of empty sheet rows the reader dropped
+    above ``rows[0]``, so ``row_index`` is the row a spreadsheet shows.
 
     Raises:
         ValueError: A signal row is not followed by a header row containing
@@ -211,7 +224,7 @@ def iter_block_rows(rows: list[list]):
         if sn_col is None or area_col is None:
             raise ValueError(
                 "FID1B block header missing 'Sample Name' / 'Area' in header "
-                f"row {i + 1}: {[_str(c) for c in rows[i]]!r}"
+                f"row {i + 1 + row_offset}: {[_str(c) for c in rows[i]]!r}"
             )
 
         i += 1
@@ -232,13 +245,13 @@ def iter_block_rows(rows: list[list]):
                 yield GcRow(
                     sample_name=sample_name,
                     area_raw=area_raw,
-                    row_index=i + 1,
+                    row_index=i + 1 + row_offset,
                     block_index=block_index,
                 )
             i += 1
 
 
-def iter_flat_rows(rows: list[list], reader: str, source: object):
+def iter_flat_rows(rows: list[list], reader: str, source: object, row_offset: int = 0):
     """Yield a :class:`GcRow` per data row of a flat ``Sample Name``/``Area`` sheet.
 
     The header is the first row. Rows with neither a name nor an area are
@@ -267,7 +280,7 @@ def iter_flat_rows(rows: list[list], reader: str, source: object):
             f"{reader}: 'Area' column not found. "
             f"Header: {[_str(c) for c in rows[0]]!r} in {source}"
         )
-    for row_idx, row in enumerate(rows[1:], start=2):
+    for row_idx, row in enumerate(rows[1:], start=2 + row_offset):
         extended = list(row)
         while len(extended) <= max(sn_col, area_col):
             extended.append("")
@@ -279,13 +292,15 @@ def iter_flat_rows(rows: list[list], reader: str, source: object):
 
 def read_block_report(path: str | Path, *, sheet_index: int = 0) -> list[GcRow]:
     """Every data row of a FID1B block report, positioned and unjudged."""
-    return list(iter_block_rows(_extract_rows(Path(path), sheet_index)))
+    rows, offset = _extract_rows_at(Path(path), sheet_index)
+    return list(iter_block_rows(rows, offset))
 
 
 def read_flat_sheet(path: str | Path, *, sheet_index: int = 0, reader: str = "read_flat_sheet") -> list[GcRow]:
     """Every data row of a flat ``Sample Name``/``Area`` sheet, positioned and unjudged."""
     resolved = Path(path)
-    return list(iter_flat_rows(_extract_rows(resolved, sheet_index), reader, resolved))
+    rows, offset = _extract_rows_at(resolved, sheet_index)
+    return list(iter_flat_rows(rows, reader, resolved, offset))
 
 
 # ---------------------------------------------------------------------------
