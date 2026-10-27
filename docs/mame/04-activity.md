@@ -30,6 +30,8 @@ well 라벨 형식이 요구하는 것은 `layout_xlsx` 자체가 아니라 **�
 
 `numeric_report_xlsx`는 라벨 대신 순번을 싣는다. 순번 `i`는 플레이트 순서의 `i`번째 variant다. ID 집합이 그 순서와 일대일로 맞지 않으면 이웃 variant에 값을 붙이는 대신 거절한다.
 
+GC run은 여러 실험이 함께 쓰므로 report 에 이 run 의 것이 아닌 행이 섞일 수 있다. `BLANK`, internal standard, 농도 번호로 이름 붙은 보정 행(well 라벨 report 의 `1`, `5`, `10`), 다른 실험의 시료, 플레이트 범위를 넘는 순번이 그렇다. 이런 행은 빼고 블록 번호와 시트 행 번호를 붙여 warning 과 manifest `excluded_rows` 에 남긴다. 사유별 개수는 `exclusion_reason_counts` 에 들어간다. 이 run 의 well 이나 variant 가 다른 표기로 적힌 행(well 라벨 report 안의 이 run variant 이름, 숫자 ID report 안의 이 플레이트 well 이름)은 파일을 거절한다. 같은 측정이 두 표기로 나뉘었다는 뜻이기 때문이다. 이 run 의 행이 하나도 없는 파일도 거절한다. WT 반복 번호가 겹치는 행과 1회 측정 report 에서 두 번 나온 well 은 평균에 그대로 넣고 warning 으로 알린다. 확인 측정의 숫자 ID 는 예외다. 그 순번이 세는 부분집합은 규칙으로 추정한 것이라 범위를 넘는 순번은 다른 실험의 시료가 아니라 벤치가 다른 부분집합을 골랐다는 신호로 보고 거절한다.
+
 ### 범용 long-format 계약
 
 CSV 또는 XLSX에서 다음을 요구한다.
@@ -49,7 +51,7 @@ CSV 또는 XLSX에서 다음을 요구한다.
 
 `remeasure_numeric_xlsx`는 같은 report를 순번으로 받는다. 순번이 세는 대상은 플레이트 전체가 아니라 **1차 스크리닝에서 WT를 넘은 부분집합**이다. 장비가 hit만 다시 돌린 뒤 받은 순서대로 번호를 매기기 때문이다. order source는 `expected_xlsx` 또는 `layout_xlsx` 중 **정확히 하나**여야 한다. 둘 다 주면 거절한다. primary 쪽 `numeric_report_xlsx`는 둘을 함께 받아도 `expected_xlsx`를 우선하므로 두 경로의 계약이 이 점에서 다르다.
 
-`remeasure_well_xlsx`는 sample name이 `A1-1`, `A1-2`, `A1-3`처럼 `<well>-<반복번호>`인 report를 받는다. bare `A1`은 반복 1이다. well→variant 매핑은 well 라벨 primary와 같은 것(`layout_xlsx`, 없으면 verdict의 `mutant_id`)을 쓴다. 분모는 WT로 선언된 well의 area와 report에 있는 WT 행 area의 평균이며 둘 다 없으면 거절한다. well 라벨이 아닌 sample name은 같은 GC run을 쓴 다른 실험의 시료이므로 건너뛰고 개수와 이름을 warning으로 남긴다. 매핑에 없는 well도 warning으로 남긴다.
+`remeasure_well_xlsx`는 sample name이 `A1-1`, `A1-2`, `A1-3`처럼 `<well>-<반복번호>`인 report를 받는다. bare `A1`은 반복 1이다. well→variant 매핑은 well 라벨 primary와 같은 것(`layout_xlsx`, 없으면 verdict의 `mutant_id`)을 쓴다. 분모는 WT로 선언된 well의 area와 report에 있는 WT 행 area의 평균이며 둘 다 없으면 거절한다. well 라벨이 아닌 sample name은 같은 GC run을 쓴 다른 실험의 시료이므로 빼고 이름과 위치를 warning과 manifest `excluded_rows`에 남긴다. 매핑에 없는 well도 warning으로 남긴다.
 
 activity rank나 이전 EVOLVEpro 파일로 variant 이름을 추론하는 방식은 지원하지 않는다. 이전 저장 상태가 그 방식을 가리키면 KUMA는 실행하지 않고 변환 안내를 표시한다. 판정 대상은 legacy `sourceMode: "rank"`와 legacy `round1Source`의 `prev`·`numeric`이다. 현재의 numeric-ID decode는 그 대상이 아니다.
 

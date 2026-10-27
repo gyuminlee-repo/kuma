@@ -25,6 +25,8 @@ Well labels need **a map saying which variant sits in each well**. Given a Plate
 
 For numeric IDs, number i means the i-th variant in plate order, so a file stating that order is needed. The designed variant list is used first, the plate layout when that is absent. An ID set that does not match the order one to one is refused rather than attached to neighboring variants.
 
+A GC run is shared, so a report can carry rows that are not this run's: `BLANK`, internal standards, calibration standards named by concentration (`1`, `5`, `10` in a well-labeled report), other experiments' samples, and position numbers past the plate. Those rows are set aside, and each is named with its block and sheet row in the warnings and in the manifest `excluded_rows`, with a count per reason in `exclusion_reason_counts`. A row that names this run's own well or variant in the other notation (a variant name of this run in a well-labeled report, a well of this plate in a numeric-ID report) refuses the file, because one run's measurements are then split across two notations. A file with no row of this run is refused too. WT rows that repeat a replicate number, and a well measured twice in a one-replicate report, stay in the mean and are flagged in the warnings. Numeric-ID confirmation is the exception: the subset its numbers count is inferred by rule, so a number past it says the bench picked a different subset, and it is refused.
+
 ### Generic long-format requirements
 
 - Exactly one label column and exactly one value column.
@@ -39,7 +41,7 @@ After the primary screen measures every well once, the variants worth a second l
 
 - **Well / variant labels**: a raw Agilent report with WT rows whose sample names are well labels (A1, A1-1) or variant labels (S11I, S11I-1).
 - **Numeric-ID replicate report**: the numbers count the subset that exceeded WT in the primary screen, not the whole plate. The order reference must be exactly one of the designed variant list or the plate layout. Giving both is refused.
-- **Well-labeled replicate report**: the sample names are wells with a replicate number, such as A1-1, A1-2, A1-3. Wells are mapped to variants the same way as in the primary measurement, and each area is divided by the mean of the WT well plus any WT rows, so the report needs no WT block. Sample names that are not well labels, such as other samples that shared the GC run, are skipped and reported as a warning.
+- **Well-labeled replicate report**: the sample names are wells with a replicate number, such as A1-1, A1-2, A1-3. Wells are mapped to variants the same way as in the primary measurement, and each area is divided by the mean of the WT well plus any WT rows, so the report needs no WT block. Sample names that are not well labels, such as other samples that shared the GC run, are set aside and named with their position in a warning.
 
 The format is read from the file, per field: the same well-labeled report is the experiment data in the first field and a well-labeled confirmation in the additional field. A numeric-ID replicate report is never applied automatically, because its numbers count only the above-WT subset. If the format cannot be read, the screen says why and asks for it.
 

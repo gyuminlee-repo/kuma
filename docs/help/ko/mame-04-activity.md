@@ -25,6 +25,8 @@ well 라벨 형식에는 **각 웰에 어떤 변이체가 들어 있는지 알�
 
 숫자 ID 형식에서 번호 i 는 플레이트 순서로 i 번째 변이체를 뜻한다. 그래서 변이체가 어떤 순서로 놓였는지 알려 줄 기준 파일이 필요하다. 설계 변이 목록을 먼저 쓰고 없으면 plate layout 을 쓴다. ID 집합이 그 순서와 일대일로 맞지 않으면 이웃 변이체에 값을 붙이는 대신 거절한다.
 
+GC run 은 여러 실험이 함께 쓰므로 report 에 이 run 의 것이 아닌 행이 섞일 수 있다. `BLANK`, internal standard, 농도 번호로 이름 붙은 보정 행(well 라벨 report 의 `1`, `5`, `10`), 다른 실험의 시료, 플레이트 범위를 넘는 순번이 그렇다. 이런 행은 빼고 블록 번호와 시트 행 번호를 붙여 warning 과 manifest `excluded_rows` 에 남긴다. 사유별 개수는 `exclusion_reason_counts` 에 들어간다. 이 run 의 well 이나 variant 가 다른 표기로 적힌 행(well 라벨 report 안의 이 run variant 이름, 숫자 ID report 안의 이 플레이트 well 이름)은 파일을 거절한다. 같은 측정이 두 표기로 나뉘었다는 뜻이기 때문이다. 이 run 의 행이 하나도 없는 파일도 거절한다. WT 반복 번호가 겹치는 행과 1회 측정 report 에서 두 번 나온 well 은 평균에 그대로 넣고 warning 으로 알린다. 확인 측정의 숫자 ID 는 예외다. 그 순번이 세는 부분집합은 규칙으로 추정한 것이라 범위를 넘는 순번은 다른 실험의 시료가 아니라 벤치가 다른 부분집합을 골랐다는 신호로 보고 거절한다.
+
 ### 범용 long-format 파일 요건
 
 - 라벨 열은 정확히 하나, 값 열도 정확히 하나여야 한다.
@@ -39,7 +41,7 @@ well 라벨 형식에는 **각 웰에 어떤 변이체가 들어 있는지 알�
 
 - **Well / variant 라벨**: WT 행이 있는 raw Agilent report 로 sample name 이 well 라벨(A1, A1-1)이거나 변이체 라벨(S11I, S11I-1)이다.
 - **숫자 ID 반복 측정 report**: 번호는 플레이트 전체가 아니라 1차 스크리닝에서 WT 를 넘은 부분집합을 센다. 순서 기준은 설계 변이 목록과 plate layout 중 정확히 하나여야 하며 둘 다 주면 거절한다.
-- **Well 라벨 반복 측정 report**: sample name 이 A1-1, A1-2, A1-3 처럼 well 과 반복 번호다. well 은 1차 측정과 같은 방식으로 변이체에 매핑하고 각 area 를 WT well 과 WT 행의 평균으로 나누므로 report 에 WT 블록이 없어도 된다. 같은 GC run 을 쓴 다른 시료처럼 well 라벨이 아닌 sample name 은 건너뛰고 경고로 알린다.
+- **Well 라벨 반복 측정 report**: sample name 이 A1-1, A1-2, A1-3 처럼 well 과 반복 번호다. well 은 1차 측정과 같은 방식으로 변이체에 매핑하고 각 area 를 WT well 과 WT 행의 평균으로 나누므로 report 에 WT 블록이 없어도 된다. 같은 GC run 을 쓴 다른 시료처럼 well 라벨이 아닌 sample name 은 빼고 이름과 위치를 경고로 알린다.
 
 형식은 필드마다 파일에서 읽는다. 같은 well 라벨 report 가 첫 필드에서는 실험 데이터이고 추가 필드에서는 well 라벨 확인 측정이다. 숫자 ID 반복 측정 report 는 번호가 WT 를 넘은 부분집합만 세므로 자동으로 적용하지 않는다. 형식을 읽지 못하면 화면이 이유를 보여 주고 형식을 묻는다.
 
