@@ -278,8 +278,9 @@ def _decode_against(
     member_wells = {entry[2] for entry in order}
     member_variants = {entry[0] for entry in order if entry[0] is not None}
     for row, sample, area, note in block.others:
-        if note == "operator":
-            continue
+        # Checked before the operator's exclusions, as the well readers do:
+        # this run's measurement in the other notation cannot be unticked,
+        # or it would vanish without a trace.
         if (
             sample.kind == WELL and sample.well in member_wells
             or sample.kind == VARIANT and sample.variant in member_variants
@@ -290,6 +291,9 @@ def _decode_against(
                 f"of {order_label}, but this report numbers its samples. The file "
                 "states this run's measurements in two notations; supply one notation per file."
             )
+        if note == "operator":
+            # Recorded by the caller that excluded it.
+            continue
         reason = (
             NO_AREA if note == "no_area"
             else NO_NAME_ROW if sample.kind == NO_NAME

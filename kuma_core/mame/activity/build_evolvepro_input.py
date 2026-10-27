@@ -539,12 +539,23 @@ def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str,
     return values, well_by_variant, warnings, wt_relative
 
 
-def _no_member_rows(source: str, ledger: _RowLedger) -> ValueError:
+def _no_member_rows(source: str, ledger: _RowLedger, well_to_variant: dict[str, str]) -> ValueError:
     listed = ", ".join(
         f"{row.sample_name!r} ({row.location}, {row.reason})" for row in ledger.rows if row.source == source and not row.kept
     )
+    # When the operator excluded every well the mapping names, that is the
+    # cause, not the file.
+    unticked = [
+        row for row in ledger.rows
+        if row.source == source and row.reason == OPERATOR_EXCLUDED
+        and classify_sample(row.sample_name, "well").well in well_to_variant
+    ]
+    cause = (
+        f"every well of this run in it ({len(unticked)} row(s)) is in excluded_rows"
+        if unticked else "no sample name is a well the mapping names"
+    )
     return ValueError(
-        f"{source} has no row that belongs to this run: no sample name is a well the mapping names"
+        f"{source} has no row that belongs to this run: {cause}"
         + (f". Set aside: {listed}" if listed else "")
     )
 
@@ -563,7 +574,7 @@ def _raw_report_primary(path: str | Path, well_to_variant: dict[str, str], varia
     if not wt:
         raise ValueError("round1_report_xlsx has no WT block areas")
     if not any(well in well_to_variant for _, well, _, _ in wells):
-        raise _no_member_rows(source, ledger)
+        raise _no_member_rows(source, ledger, well_to_variant)
     mean_wt = _wt_mean_of(source, wt, ledger)
     ledger.flag_repeats(source, [(well, row, area) for row, well, area, _ in wells if well not in wt_wells], DUPLICATE_WELL)
     values: dict[str, list[float]] = {}
@@ -595,7 +606,7 @@ def _gc_primary(path: str | Path, well_to_variant: dict[str, str], variant_to_we
     for row, area in wt:
         ledger.set_aside(source, row, NON_WELL_SAMPLE, area)
     if not any(well in well_to_variant for _, well, _, _ in wells):
-        raise _no_member_rows(source, ledger)
+        raise _no_member_rows(source, ledger, well_to_variant)
     ledger.flag_repeats(source, [(well, row, area) for row, well, area, _ in wells if well not in wt_wells], DUPLICATE_WELL)
     values: dict[str, list[float]] = {}
     for row, well, area, _replicate in wells:
@@ -835,7 +846,7 @@ def _well_confirmation(path: str | Path, well_to_variant: dict[str, str], wt_wel
     if not values:
         # Same rule as every other reader: a file with no row of this run is
         # refused, not merged as an empty confirmation.
-        raise _no_member_rows(source, ledger)
+        raise _no_member_rows(source, ledger, well_to_variant)
     return values
 
 
@@ -994,7 +1005,8 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
     spread behind this round has to take them from the result.
 
     Every GC row a reader set aside (``BLANK``, calibration numbers, wells off
-    the mapping, rows without a name or area, rows in *excluded_rows*) is named with its position in ``warnings``, counted in
+    the mapping, rows without a name or area, rows in *excluded_rows*) is
+    named with its position in ``warnings``, counted in
     ``exclusion_reason_counts`` and listed in the manifest ``excluded_rows``.
     The WT rows the reference was taken from are listed in ``wt_rows``.
     """

@@ -320,3 +320,46 @@ def test_reported_rows_are_the_rows_a_spreadsheet_shows(tmp_path: Path, plate) -
     flat.save(tmp_path / "gc.xlsx")
     result = _build(tmp_path, plate, gc_data_xlsx=tmp_path / "gc.xlsx")
     assert [(row["sample_name"], row["row_index"]) for row in result.excluded_rows] == [("BLANK", 5)]
+
+
+@pytest.mark.parametrize("field", ["numeric_report_xlsx", "remeasure_numeric_xlsx"])
+def test_an_operator_cannot_untick_this_runs_well_in_a_numeric_report(tmp_path: Path, plate, field: str) -> None:
+    """Rule 3 comes before the operator's exclusions on the numeric path too."""
+    report = _blocks(tmp_path / "n.xlsx", ALL_ABOVE_WT + [("C1", 9.0)])
+    excluded = [OperatorExclusion(source=field, block_index=5, row_index=23, sample_name="C1", area=9.0)]
+    sources: dict[str, object] = {field: report}
+    if field == "remeasure_numeric_xlsx":
+        sources["numeric_report_xlsx"] = _blocks(tmp_path / "primary.xlsx", ALL_ABOVE_WT)
+    with pytest.raises(ValueError, match="names well C01"):
+        _build(tmp_path, plate, excluded_rows=excluded, **sources)
+
+
+def test_a_confirmation_emptied_by_the_operator_says_so(tmp_path: Path, plate) -> None:
+    confirm = _blocks(tmp_path / "c.xlsx", [("H12-1", 10.0), ("A1-1", 20.0)])
+    excluded = [OperatorExclusion(source="remeasure_well_xlsx", block_index=2, row_index=8, sample_name="A1-1", area=20.0)]
+    with pytest.raises(ValueError, match=r"every well of this run in it \(1 row\(s\)\) is in excluded_rows"):
+        _build(tmp_path, plate, round1_report_xlsx=_blocks(tmp_path / "r.xlsx", PRIMARY), remeasure_well_xlsx=confirm, excluded_rows=excluded)
+
+
+def test_rows_that_carry_only_formatting_do_not_shift_positions(tmp_path: Path, plate) -> None:
+    """Styled but empty rows above the data: the reader skips them and the offset still holds."""
+    from openpyxl.styles import Border, PatternFill, Side
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    for row in (1, 2, 3):
+        for column in (1, 2, 3, 4):
+            cell = ws.cell(row=row, column=column)
+            cell.fill = PatternFill("solid", fgColor="FFFF00")
+            cell.border = Border(top=Side(style="thin"))
+    row = 4
+    for name, area in SHARED_RUN:
+        for offset, cells in enumerate((["Signal:", "FID1B"], ["Area", "Sample Name"], [area, name], ["Sum", area])):
+            for column, value in enumerate(cells, start=2):
+                ws.cell(row=row + offset, column=column, value=value)
+        row += 5
+    wb.save(tmp_path / "styled.xlsx")
+    result = _build(tmp_path, plate, round1_report_xlsx=tmp_path / "styled.xlsx")
+    (blank,) = result.excluded_rows
+    assert blank["row_index"] == 26
+    assert openpyxl.load_workbook(tmp_path / "styled.xlsx").active.cell(row=26, column=3).value == "BLANK"
