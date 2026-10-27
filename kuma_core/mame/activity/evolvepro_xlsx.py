@@ -56,6 +56,10 @@ class AgilentRecord:
     is_wt: bool
     replicate_n: int
     is_relative: bool = field(default=False)
+    # Where the row sits in the workbook: the 1-based FID1B block number and
+    # the 1-based sheet row. Zero when a caller builds a record by hand.
+    block_index: int = 0
+    row_index: int = 0
 
 
 @dataclass(frozen=True)
@@ -69,6 +73,8 @@ class RelativeActivityRecord:
     sample_name: str
     area: float
     is_relative: bool = field(default=True)
+    # 1-based sheet row; zero when a caller builds a record by hand.
+    row_index: int = 0
 
 
 # ---------------------------------------------------------------------------
@@ -153,8 +159,50 @@ def _sample_name_is_calibration(name: str) -> bool:
 _BLOCK_REP_ID_RE = re.compile(r"^(\d+)(?:-(\d+))?$")
 
 
-def _iter_fid1b_blocks(rows: list[list]):
-    """Yield ``(sample_name, area_raw)`` for every data row in FID1B blocks.
+@dataclass(frozen=True)
+class GcRow:
+    """One data row of a GC report exactly as read, with its position.
+
+    This is the reading layer: it states what the sheet holds and where, and
+    judges nothing. Whether a name is wild-type, a well, a numeric ID, a
+    calibration standard or somebody else's sample is decided by
+    ``gc_sample`` (what the name is) and by the build (whether it belongs to
+    this run). A row whose name or area is empty is still a row here, so a
+    caller can report it rather than lose it.
+
+    row_index: 1-based sheet row, the number a spreadsheet shows.
+    block_index: 1-based FID1B block number, ``None`` for a flat sheet.
+    """
+
+    sample_name: str
+    area_raw: str
+    row_index: int
+    block_index: int | None = None
+
+    @property
+    def location(self) -> str:
+        if self.block_index is None:
+            return f"row {self.row_index}"
+        return f"block {self.block_index}, row {self.row_index}"
+
+    def area(self, context: str) -> float | None:
+        """The area as a number, ``None`` when the cell is empty.
+
+        A cell that holds something other than a finite number is a malformed
+        file rather than a row to set aside, so it raises.
+        """
+        if self.area_raw == "":
+            return None
+        return _float_or_raise(self.area_raw, context)
+
+
+def _has_block_signature(row: list) -> bool:
+    texts = [_str(c).lower() for c in row]
+    return any("signal:" in t for t in texts) and any("fid1b" in t for t in texts)
+
+
+def iter_block_rows(rows: list[list]):
+    """Yield a :class:`GcRow` for every data row of every FID1B block.
 
     A FID1B block is::
 
@@ -167,10 +215,9 @@ def _iter_fid1b_blocks(rows: list[list]):
     two observed layouts (``[Area, Sample Name]`` and
     ``['', Area, '', Sample Name]``) both parse.
 
-    Yields:
-        Tuples of ``(sample_name, area_raw)`` as stripped strings. Empty
-        rows and rows whose sample name is blank are skipped. The caller
-        decides how to interpret each name (calibration, WT, numeric ID).
+    This is the only block walk. A row with an empty name or an empty area is
+    yielded; only a row with neither is skipped, because it holds nothing to
+    report.
 
     Raises:
         ValueError: A signal row is not followed by a header row containing
@@ -178,15 +225,13 @@ def _iter_fid1b_blocks(rows: list[list]):
     """
     i = 0
     n = len(rows)
+    block_index = 0
     while i < n:
-        row_texts = [_str(c).lower() for c in rows[i]]
-        is_signal = any("signal:" in t for t in row_texts) and any(
-            "fid1b" in t for t in row_texts
-        )
-        if not is_signal:
+        if not _has_block_signature(rows[i]):
             i += 1
             continue
 
+        block_index += 1
         i += 1
         if i >= n:
             raise ValueError(
@@ -203,8 +248,8 @@ def _iter_fid1b_blocks(rows: list[list]):
                 area_col = col_idx
         if sn_col is None or area_col is None:
             raise ValueError(
-                "FID1B block header missing 'Sample Name' / 'Area': "
-                f"{[_str(c) for c in rows[i]]!r}"
+                "FID1B block header missing 'Sample Name' / 'Area' in header "
+                f"row {i + 1}: {[_str(c) for c in rows[i]]!r}"
             )
 
         i += 1
@@ -221,9 +266,64 @@ def _iter_fid1b_blocks(rows: list[list]):
                 extended.append("")
             sample_name = _str(extended[sn_col])
             area_raw = _str(extended[area_col])
-            if sample_name:
-                yield sample_name, area_raw
+            if sample_name or area_raw:
+                yield GcRow(
+                    sample_name=sample_name,
+                    area_raw=area_raw,
+                    row_index=i + 1,
+                    block_index=block_index,
+                )
             i += 1
+
+
+def iter_flat_rows(rows: list[list], reader: str, source: object):
+    """Yield a :class:`GcRow` per data row of a flat ``Sample Name``/``Area`` sheet.
+
+    The header is the first row. Rows with neither a name nor an area are
+    skipped; every other row is yielded, empty name or empty area included.
+
+    Raises:
+        ValueError: The sheet is empty or either column is missing.
+    """
+    if not rows:
+        raise ValueError(f"{reader}: empty file {source}")
+    header_lower = [_str(c).lower() for c in rows[0]]
+    sn_col: int | None = None
+    area_col: int | None = None
+    for idx, h in enumerate(header_lower):
+        if h == "sample name":
+            sn_col = idx
+        elif h == "area":
+            area_col = idx
+    if sn_col is None:
+        raise ValueError(
+            f"{reader}: 'Sample Name' column not found. "
+            f"Header: {[_str(c) for c in rows[0]]!r} in {source}"
+        )
+    if area_col is None:
+        raise ValueError(
+            f"{reader}: 'Area' column not found. "
+            f"Header: {[_str(c) for c in rows[0]]!r} in {source}"
+        )
+    for row_idx, row in enumerate(rows[1:], start=2):
+        extended = list(row)
+        while len(extended) <= max(sn_col, area_col):
+            extended.append("")
+        sample_name = _str(extended[sn_col])
+        area_raw = _str(extended[area_col])
+        if sample_name or area_raw:
+            yield GcRow(sample_name=sample_name, area_raw=area_raw, row_index=row_idx)
+
+
+def read_block_report(path: str | Path, *, sheet_index: int = 0) -> list[GcRow]:
+    """Every data row of a FID1B block report, positioned and unjudged."""
+    return list(iter_block_rows(_extract_rows(Path(path), sheet_index)))
+
+
+def read_flat_sheet(path: str | Path, *, sheet_index: int = 0, reader: str = "read_flat_sheet") -> list[GcRow]:
+    """Every data row of a flat ``Sample Name``/``Area`` sheet, positioned and unjudged."""
+    resolved = Path(path)
+    return list(iter_flat_rows(_extract_rows(resolved, sheet_index), reader, resolved))
 
 
 # ---------------------------------------------------------------------------
@@ -279,7 +379,7 @@ def detect_format(
     if has_signal and has_fid1b:
         # Walk the blocks and inspect data sample names. A numeric-name
         # majority means rep-batch; otherwise standard.
-        block_names = [name for name, _ in _iter_fid1b_blocks(rows)]
+        block_names = [row.sample_name for row in iter_block_rows(rows) if row.sample_name]
         if not block_names:
             # No data rows resolved; fall back to standard (preserves the
             # original behaviour for degenerate / empty block files).
@@ -365,100 +465,44 @@ def parse_agilent_standard(
         List of AgilentRecord, one per non-calibration sample.
     """
     resolved = Path(path)
-    rows = _extract_rows(resolved, sheet_index)
     stats = _AgilentParseStats()
     records: list[AgilentRecord] = []
 
-    i = 0
-    while i < len(rows):
-        row = rows[i]
-        row_texts = [_str(c).lower() for c in row]
+    for row in read_block_report(resolved, sheet_index=sheet_index):
+        sample_name = row.sample_name
+        if not sample_name:
+            continue
 
-        # Detect Signal row.
-        if any("signal:" in t for t in row_texts) and any("fid1b" in t for t in row_texts):
-            # Next row should be the column header.
-            i += 1
-            if i >= len(rows):
-                raise ValueError(
-                    f"parse_agilent_standard: Signal block at row {i} has no "
-                    f"subsequent header row in {resolved}"
-                )
-            header_row = [_str(c).lower() for c in rows[i]]
-            sn_col: int | None = None
-            area_col: int | None = None
-            for col_idx, hdr in enumerate(header_row):
-                if hdr == "sample name":
-                    sn_col = col_idx
-                elif hdr == "area":
-                    area_col = col_idx
+        # Calibration skip: purely numeric sample name.
+        if _sample_name_is_calibration(sample_name):
+            logger.warning(
+                "parse_agilent_standard: skipping calibration row "
+                "(numeric Sample Name=%r) at row %d in %s",
+                sample_name,
+                row.row_index,
+                resolved.name,
+            )
+            stats.n_calibration_skipped += 1
+            continue
 
-            if sn_col is None or area_col is None:
-                raise ValueError(
-                    f"parse_agilent_standard: expected 'Sample Name' and 'Area' "
-                    f"in header row {i + 1} but found {[_str(c) for c in rows[i]]!r} "
-                    f"in {resolved}"
-                )
+        area = row.area(f"Sample Name={sample_name!r} row {row.row_index} in {resolved}")
+        if area is None:
+            continue
 
-            # Parse data rows until 'Sum' row or end.
-            i += 1
-            while i < len(rows):
-                data_row = rows[i]
-                if not data_row:
-                    i += 1
-                    continue
+        is_wt = bool(WT_PATTERN.match(sample_name))
+        rep_n = _replicate_n_from_wt(sample_name) if is_wt else 0
 
-                first_cell = _str(data_row[0]).lower()
-                if first_cell == "sum":
-                    i += 1
-                    break
-
-                # Extend row if needed.
-                while len(data_row) <= max(sn_col, area_col):
-                    data_row = list(data_row) + [""]
-
-                sample_name = _str(data_row[sn_col])
-                if not sample_name:
-                    i += 1
-                    continue
-
-                # Calibration skip: purely numeric sample name.
-                if _sample_name_is_calibration(sample_name):
-                    logger.warning(
-                        "parse_agilent_standard: skipping calibration row "
-                        "(numeric Sample Name=%r) at row %d in %s",
-                        sample_name,
-                        i + 1,
-                        resolved.name,
-                    )
-                    stats.n_calibration_skipped += 1
-                    i += 1
-                    continue
-
-                area_raw = _str(data_row[area_col])
-                if area_raw == "":
-                    i += 1
-                    continue
-
-                area = _float_or_raise(
-                    area_raw,
-                    f"Sample Name={sample_name!r} row {i + 1} in {resolved}",
-                )
-
-                is_wt = bool(WT_PATTERN.match(sample_name))
-                rep_n = _replicate_n_from_wt(sample_name) if is_wt else 0
-
-                records.append(
-                    AgilentRecord(
-                        sample_name=sample_name,
-                        area=area,
-                        is_wt=is_wt,
-                        replicate_n=rep_n,
-                    )
-                )
-                stats.n_records_parsed += 1
-                i += 1
-        else:
-            i += 1
+        records.append(
+            AgilentRecord(
+                sample_name=sample_name,
+                area=area,
+                is_wt=is_wt,
+                replicate_n=rep_n,
+                block_index=row.block_index or 0,
+                row_index=row.row_index,
+            )
+        )
+        stats.n_records_parsed += 1
 
     logger.debug(
         "parse_agilent_standard: %d records, %d calibration skipped from %s",
@@ -632,20 +676,22 @@ def parse_agilent_block_rep_batch(
 
     Raises:
         ValueError: A block area cell is non-numeric, or a signal row lacks
-            a following header row (raised by _iter_fid1b_blocks).
+            a following header row (raised by iter_block_rows).
     """
     resolved = Path(path)
-    rows = _extract_rows(resolved, sheet_index)
 
     reps: dict[int, list[float]] = {}
     rep_index_seen: dict[int, set[int]] = {}
     wt_areas: list[float] = []
     n_blocks = 0
 
-    for sample_name, area_raw in _iter_fid1b_blocks(rows):
+    for row in read_block_report(resolved, sheet_index=sheet_index):
+        sample_name = row.sample_name
+        if not sample_name:
+            continue
         n_blocks += 1
         area = _float_or_raise(
-            area_raw,
+            row.area_raw,
             f"Sample Name={sample_name!r} in {resolved}",
         )
 
@@ -713,47 +759,15 @@ def parse_relative_only(
         ValueError: Area cell is non-numeric.
     """
     resolved = Path(path)
-    rows = _extract_rows(resolved, sheet_index)
-
-    if not rows:
-        raise ValueError(f"parse_relative_only: empty file {resolved}")
-
-    header_lower = [_str(c).lower() for c in rows[0]]
-    sn_col: int | None = None
-    area_col: int | None = None
-    for idx, h in enumerate(header_lower):
-        if h == "sample name":
-            sn_col = idx
-        elif h == "area":
-            area_col = idx
-
-    if sn_col is None:
-        raise ValueError(
-            f"parse_relative_only: 'Sample Name' column not found. "
-            f"Header: {[_str(c) for c in rows[0]]!r} in {resolved}"
-        )
-    if area_col is None:
-        raise ValueError(
-            f"parse_relative_only: 'Area' column not found. "
-            f"Header: {[_str(c) for c in rows[0]]!r} in {resolved}"
-        )
-
     records: list[RelativeActivityRecord] = []
-    for row_idx, row in enumerate(rows[1:], start=2):
-        while len(row) <= max(sn_col, area_col):
-            row = list(row) + [""]
-
-        sample_name = _str(row[sn_col])
-        area_raw = _str(row[area_col])
-        if not sample_name and not area_raw:
-            continue
-
+    for row in read_flat_sheet(resolved, sheet_index=sheet_index, reader="parse_relative_only"):
         area = _float_or_raise(
-            area_raw,
-            f"Sample Name={sample_name!r} row {row_idx} in {resolved}",
+            row.area_raw,
+            f"Sample Name={row.sample_name!r} row {row.row_index} in {resolved}",
         )
-
-        records.append(RelativeActivityRecord(sample_name=sample_name, area=area))
+        records.append(
+            RelativeActivityRecord(sample_name=row.sample_name, area=area, row_index=row.row_index)
+        )
 
     return records
 

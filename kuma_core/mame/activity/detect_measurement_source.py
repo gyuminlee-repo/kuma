@@ -90,7 +90,7 @@ from .build_evolvepro_input import (
     _strip_confirmation_rep_suffix,
 )
 from .constants import WT_PATTERN
-from .evolvepro_xlsx import _BLOCK_REP_ID_RE, _extract_rows, _iter_fid1b_blocks, _str
+from .evolvepro_xlsx import _BLOCK_REP_ID_RE, _extract_rows, _str, iter_block_rows
 from .plate_layout_xlsx import _WELL_RE
 
 LONG_FORMAT = "longFormat"
@@ -189,7 +189,7 @@ def _detect_tabular(path: Path, evidence: dict[str, Any]) -> MeasurementSourceDe
 def _detect_block(path: Path, rows: list[list], evidence: dict[str, Any], slot: Slot = "primary") -> MeasurementSourceDetection:
     """A FID1B block workbook, told apart by its sample-name namespace."""
     try:
-        names = [name for name, _ in _iter_fid1b_blocks(rows)]
+        names = [row.sample_name for row in iter_block_rows(rows) if row.sample_name]
     except ValueError as exc:
         evidence["block_walk_error"] = str(exc)
         return MeasurementSourceDetection(
