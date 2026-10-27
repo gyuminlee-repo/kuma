@@ -3,11 +3,13 @@
 v0.3 Phase A-2.
 Spec: notes/architecture/2026-05-06-v0.3-phase-ab-interfaces.md §2-2
 
-Supported formats:
-  AGILENT_STANDARD: report.xlsx (FID1B 5-row block layout)
-  AGILENT_REP_BATCH: replicate_report.xlsx (numeric ID + _rep pattern)
-  RELATIVE_ONLY: relative_activity.xlsx ([Sample Name, Area] already normalised)
-  EVOLVEPRO: round_activity.xlsx ([Variant, activity])
+Supported inputs:
+  report.xlsx: FID1B block layout, well-labelled or numeric-ID sample names
+  relative_activity.xlsx: flat [Sample Name, Area], already normalised
+  round_activity.xlsx: EVOLVEpro [Variant, activity]
+
+Which reader applies is decided by the step 4.1 field the file was chosen
+for (see detect_measurement_source); nothing here dispatches on content.
 
 WT_PATTERN is imported from activity.constants as the single source of truth.
 Uses python-calamine for reading. openpyxl is used for writing only.
@@ -19,7 +21,6 @@ import logging
 import math
 import re
 from dataclasses import dataclass, field
-from enum import Enum
 from pathlib import Path
 
 import python_calamine
@@ -28,18 +29,6 @@ from .constants import WT_PATTERN
 from .variant_notation import to_evolvepro  # noqa: F401 (re-exported for callers)
 
 logger = logging.getLogger(__name__)
-
-# Replicate pattern for AGILENT_REP_BATCH: numeric id optionally followed by
-# underscore + rep label (e.g. '12', '12_rep1', '12_A').
-_REP_BATCH_SAMPLE_RE = re.compile(r"^(\d+)(?:[_\-].*)?$")
-
-
-class XlsxFormat(str, Enum):
-    AGILENT_STANDARD = "agilent_standard"
-    AGILENT_REP_BATCH = "agilent_rep_batch"
-    RELATIVE_ONLY = "relative_only"
-    EVOLVEPRO = "evolvepro"
-
 
 @dataclass(frozen=True)
 class AgilentRecord:
@@ -121,11 +110,6 @@ def _float_or_raise(cell: object, context: str) -> float:
             f"Area value {raw!r} is not finite, {context}"
         )
     return value
-
-
-def _is_numeric_id(sample_name: str) -> bool:
-    """Return True if sample_name starts with a pure integer."""
-    return _REP_BATCH_SAMPLE_RE.match(sample_name) is not None
 
 
 def _replicate_n_from_wt(sample_name: str) -> int:
@@ -327,105 +311,6 @@ def read_flat_sheet(path: str | Path, *, sheet_index: int = 0, reader: str = "re
 
 
 # ---------------------------------------------------------------------------
-# Format detection
-# ---------------------------------------------------------------------------
-
-def detect_format(
-    path: str | Path,
-    *,
-    sheet_index: int = 0,
-    rep_batch_numeric_ratio: float = 0.5,
-) -> XlsxFormat:
-    """Auto-detect xlsx format from sheet content.
-
-    Priority (spec §2-2, revised for FID1B rep-batch files):
-        1. FID1B block layout: inspect block data sample names.
-           If >= rep_batch_numeric_ratio of them are numeric base/rep IDs
-           (e.g. '12', '12-2'), classify as AGILENT_REP_BATCH. Otherwise
-           (well names like 'A1' plus at most a few calibration rows),
-           classify as AGILENT_STANDARD.
-        2. Columns ['Variant', 'activity'] (flat) -> EVOLVEPRO
-        3. ['Sample Name', 'Area'] (flat) + >= rep_batch_numeric_ratio of
-           data rows have a numeric-id sample name -> AGILENT_REP_BATCH
-        4. ['Sample Name', 'Area'] (flat) -> RELATIVE_ONLY
-
-    Both standard and replicate-batch reports can use FID1B blocks. Classify
-    their data sample names as well: numeric base IDs and replicate suffixes
-    distinguish replicate batches from well names with occasional calibration
-    rows.
-
-    Args:
-        path:                   Path to xlsx file.
-        sheet_index:            Zero-based sheet index.
-        rep_batch_numeric_ratio: Fraction of data rows that must look like
-            numeric IDs to classify as AGILENT_REP_BATCH (default 0.5).
-
-    Raises:
-        ValueError: Format cannot be determined.
-    """
-    resolved = Path(path)
-    rows = _extract_rows(resolved, sheet_index)
-
-    # Priority 1: FID1B block marker anywhere in first 20 rows.
-    has_signal = False
-    has_fid1b = False
-    for row in rows[:20]:
-        for cell in row:
-            text = _str(cell).lower()
-            if "signal:" in text:
-                has_signal = True
-            if "fid1b" in text:
-                has_fid1b = True
-    if has_signal and has_fid1b:
-        # Walk the blocks and inspect data sample names. A numeric-name
-        # majority means rep-batch; otherwise standard.
-        block_names = [row.sample_name for row in iter_block_rows(rows) if row.sample_name]
-        if not block_names:
-            # No data rows resolved; fall back to standard (preserves the
-            # original behaviour for degenerate / empty block files).
-            return XlsxFormat.AGILENT_STANDARD
-        numeric_block = sum(
-            1 for name in block_names if _BLOCK_REP_ID_RE.match(name)
-        )
-        ratio = numeric_block / len(block_names)
-        if ratio >= rep_batch_numeric_ratio:
-            return XlsxFormat.AGILENT_REP_BATCH
-        return XlsxFormat.AGILENT_STANDARD
-
-    if not rows:
-        raise ValueError(f"detect_format: empty file {resolved}")
-
-    # Normalise header row.
-    header_lower = [_str(c).lower() for c in rows[0]]
-
-    # Priority 2: EVOLVEpro columns.
-    if "variant" in header_lower and "activity" in header_lower:
-        return XlsxFormat.EVOLVEPRO
-
-    # Priority 3 & 4: [Sample Name, Area]
-    if "sample name" in header_lower and "area" in header_lower:
-        sn_col = header_lower.index("sample name")
-        data_rows = [row for row in rows[1:] if row and _str(row[0]) != ""]
-        if not data_rows:
-            return XlsxFormat.RELATIVE_ONLY
-
-        numeric_count = sum(
-            1
-            for row in data_rows
-            if len(row) > sn_col and _is_numeric_id(_str(row[sn_col]))
-        )
-        ratio = numeric_count / len(data_rows)
-        if ratio >= rep_batch_numeric_ratio:
-            return XlsxFormat.AGILENT_REP_BATCH
-        return XlsxFormat.RELATIVE_ONLY
-
-    raise ValueError(
-        f"detect_format: cannot determine format of {resolved}. "
-        f"Header row: {[_str(c) for c in rows[0]]!r}"
-    )
-
-
-# ---------------------------------------------------------------------------
 # Parser 1: AGILENT_STANDARD (FID1B 5-row block)
 # ---------------------------------------------------------------------------
 
@@ -514,107 +399,6 @@ def parse_agilent_standard(
 
 
 # ---------------------------------------------------------------------------
-# Parser 2: AGILENT_REP_BATCH (numeric ID + rep)
-# ---------------------------------------------------------------------------
-
-def parse_agilent_rep_batch(
-    path: str | Path,
-    *,
-    sheet_index: int = 0,
-    mutant_count: int | None = None,
-) -> list[AgilentRecord]:
-    """Parse rep-batch Agilent xlsx with numeric sample IDs.
-
-    Sample names use a numeric ID (1, 2, 3, ...) optionally suffixed with
-    a replicate label ('_rep1', '_A', etc.).
-
-    When mutant_count is None, it is estimated as the maximum integer found
-    among sample names that match the numeric-ID pattern.
-
-    Args:
-        path:         Path to xlsx file.
-        sheet_index:  Zero-based sheet index.
-        mutant_count: Known number of mutants. None triggers auto-estimation.
-
-    Returns:
-        List of AgilentRecord. sample_name preserves original value.
-        Well-ID mapping is performed by the caller (join layer).
-    """
-    resolved = Path(path)
-    rows = _extract_rows(resolved, sheet_index)
-
-    if not rows:
-        raise ValueError(f"parse_agilent_rep_batch: empty file {resolved}")
-
-    header_lower = [_str(c).lower() for c in rows[0]]
-    sn_col: int | None = None
-    area_col: int | None = None
-    for idx, h in enumerate(header_lower):
-        if h == "sample name":
-            sn_col = idx
-        elif h == "area":
-            area_col = idx
-
-    if sn_col is None or area_col is None:
-        raise ValueError(
-            f"parse_agilent_rep_batch: 'Sample Name' / 'Area' columns not found. "
-            f"Header: {[_str(c) for c in rows[0]]!r} in {resolved}"
-        )
-
-    records: list[AgilentRecord] = []
-    max_numeric_id = 0
-
-    for row_idx, row in enumerate(rows[1:], start=2):
-        while len(row) <= max(sn_col, area_col):
-            row = list(row) + [""]
-
-        sample_name = _str(row[sn_col])
-        area_raw = _str(row[area_col])
-        if not sample_name and not area_raw:
-            continue
-
-        area = _float_or_raise(
-            area_raw,
-            f"Sample Name={sample_name!r} row {row_idx} in {resolved}",
-        )
-
-        is_wt = bool(WT_PATTERN.match(sample_name))
-        rep_n = _replicate_n_from_wt(sample_name) if is_wt else 0
-
-        if not is_wt:
-            m = _REP_BATCH_SAMPLE_RE.match(sample_name)
-            if m:
-                numeric_id = int(m.group(1))
-                if numeric_id > max_numeric_id:
-                    max_numeric_id = numeric_id
-
-        records.append(
-            AgilentRecord(
-                sample_name=sample_name,
-                area=area,
-                is_wt=is_wt,
-                replicate_n=rep_n,
-            )
-        )
-
-    if mutant_count is None:
-        mutant_count = max_numeric_id
-        logger.debug(
-            "parse_agilent_rep_batch: auto-estimated mutant_count=%d from %s",
-            mutant_count,
-            resolved.name,
-        )
-    else:
-        logger.debug(
-            "parse_agilent_rep_batch: mutant_count=%d (caller-provided) from %s",
-            mutant_count,
-            resolved.name,
-        )
-
-    return records
-
-
-# ---------------------------------------------------------------------------
 # Parser 2b: FID1B block layout with numeric base/rep IDs
 # ---------------------------------------------------------------------------
 
@@ -654,11 +438,10 @@ def parse_agilent_block_rep_batch(
 ) -> BlockRepBatchResult:
     """Parse a FID1B block-layout Agilent report with numeric base/rep IDs.
 
-    This handles a block shape that the two existing parsers cannot:
-    parse_agilent_standard skips pure-numeric names as calibration (losing
-    every replicate-1 row), and parse_agilent_rep_batch assumes a single
-    flat header (raising on the per-block layout). This parser walks the
-    blocks and groups numeric base IDs across their replicate suffixes.
+    This handles a block shape parse_agilent_standard cannot: it skips
+    pure-numeric names as calibration, losing every replicate-1 row. This
+    parser walks the blocks and groups numeric base IDs across their
+    replicate suffixes.
 
     Sample-name grammar inside each FID1B block:
         '<base>'          replicate 1 (e.g. '12')

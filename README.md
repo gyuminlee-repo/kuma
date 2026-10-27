@@ -314,7 +314,7 @@ Workspace files from schema v0.2 and earlier are **not automatically migrated**.
 
 ### v0.3 xlsx pipeline (v0.2.8+)
 
-xlsx-native readers cover the inputs the wet-lab actually produces: `mutants-well position.xlsx`, Agilent GC-FID raw exports (standard / rep-batch), and EVOLVEpro xlsx files. `kuma_core/mame/activity/evolvepro_xlsx.py:detect_format` auto-dispatches.
+xlsx-native readers cover the inputs the wet-lab actually produces: `mutants-well position.xlsx`, Agilent GC-FID raw exports (standard / rep-batch), and EVOLVEpro xlsx files. Nothing dispatches on file content: the step 4.1 field the operator fills names the reader, and `kuma_core/mame/activity/detect_measurement_source.py` only reports which fields a file could fill.
 
 `mame.activity.merge_for_evolvepro` (v0.2.9.0) replaces the legacy merge for EVOLVEpro export: it joins activity to genotype, runs `merge_replicates_priority` (authoritative-prefer with mismatch flag), executes the label-swap guard, and surfaces `replicate_stats` plus `export_blocked` in the response. The 5/12 demo continues to use the legacy `activity.merge` path; the v0.3 button "EVOLVEpro용 병합 (v0.3)" lives next to it in the panel and never replaces it.
 
