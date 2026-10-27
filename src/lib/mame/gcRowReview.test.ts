@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PreviewGcRow } from "@/types/mame/build_evolvepro_input";
 import {
-  buildBlocks,
   effectiveExclusions,
   groupRows,
   isRowExcluded,
@@ -72,20 +71,5 @@ describe("gcRowReview", () => {
     const { suspicious, groups } = groupRows([BLANK, USED, FLAGGED, WT, LOCKED]);
     expect(suspicious).toEqual([FLAGGED]);
     expect(groups.map((g) => g.status)).toEqual(["used", "wt", "locked", "set_aside"]);
-  });
-
-  it("blocks the build when every WT row or every measurement row of a file is unticked", () => {
-    const rows = [USED, USED_2, WT, BLANK];
-    expect(buildBlocks(rows, [])).toEqual([]);
-    expect(buildBlocks(rows, [toExcludedRow(USED)])).toEqual([]);
-    expect(buildBlocks(rows, [toExcludedRow(WT)])).toEqual([{ source: "round1_report_xlsx", reason: "allWtExcluded" }]);
-    expect(buildBlocks(rows, [toExcludedRow(USED), toExcludedRow(USED_2)])).toEqual([
-      { source: "round1_report_xlsx", reason: "allUsedExcluded" },
-    ]);
-  });
-
-  it("does not block on WT for a file whose reader found no WT row", () => {
-    const flat = row({ source: "activity_path", block_index: null });
-    expect(buildBlocks([flat], [])).toEqual([]);
   });
 });

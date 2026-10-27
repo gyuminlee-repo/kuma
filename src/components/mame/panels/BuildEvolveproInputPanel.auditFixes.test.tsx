@@ -15,7 +15,7 @@ const mocks = vi.hoisted(() => ({ build: vi.fn(), detect: vi.fn(), open: vi.fn()
 vi.mock("@/lib/ipc-mame", () => ({
   buildEvolveproInput: mocks.build,
   detectMeasurementSource: mocks.detect,
-  previewGcRows: vi.fn(async () => ({ rows: [], refusal: null })),
+  previewGcRows: vi.fn(async () => ({ rows: [], refusal: null, selection_refusal: null })),
   sendRequest: vi.fn(),
   cancelAndRespawn: vi.fn(),
   isSidecarRunning: () => false,
@@ -58,6 +58,7 @@ describe("builder state audit", () => {
   it("allows a fully resolved stored source to reach the build boundary", async () => {
     seed("/project");
     render(panel("/project"));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" }));
     await screen.findByRole("alert");
     expect(mocks.build).toHaveBeenCalledWith(expect.objectContaining({ activity_path: "/project/old.csv" }));
@@ -76,7 +77,7 @@ describe("builder state audit", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeInTheDocument());
     expect(mocks.build).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("radio", { name: "Generic long-format" }));
-    expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeEnabled();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" }));
     await screen.findByRole("alert");
     expect(mocks.build).toHaveBeenCalledWith(expect.objectContaining({ activity_path: "/project/new.xlsx" }));

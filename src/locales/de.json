@@ -1401,8 +1401,6 @@
         "lockedHint": "Eine Messung dieses Runs in der anderen Schreibweise. Sie lässt den Build scheitern, ob angehakt oder nicht.",
         "keptNote": "behalten, markiert",
         "blockedLabel": "Warum der Build nicht laufen kann",
-        "allWtExcluded": "Alle WT-Zeilen von {{source}} sind abgewählt. Der Build braucht mindestens eine WT-Zeile als Teiler.",
-        "allUsedExcluded": "Alle Messzeilen von {{source}} sind abgewählt. Der Build braucht mindestens eine.",
         "resultExcludedTitle": "Ausgelassene oder markierte Zeilen ({{count}})",
         "resultWtTitle": "Als Referenz verwendete WT-Zeilen ({{count}})",
         "reason": {
@@ -1427,7 +1425,11 @@
         "colSample": "Sample",
         "colArea": "Area",
         "colReason": "Reason",
-        "colPosition": "Position"
+        "colPosition": "Position",
+        "blockedLoading": "Die Zeilen werden noch gelesen; der Build wartet darauf.",
+        "blockedFailed": "Die Zeilen konnten nicht gelesen werden. Lesen Sie sie oben erneut, bevor Sie bauen.",
+        "blockedChecking": "Die abgewählten Zeilen werden mit dem Build geprüft...",
+        "selectionRefusal": "Der Build lehnt die Zeilen in dieser Auswahl ab: {{message}}"
       }
     },
     "verdictBadge": {

@@ -283,15 +283,21 @@ describe("preview_gc_rows enforces its declared row shape", () => {
 
   it("accepts every status and an empty review", () => {
     for (const status of ["used", "wt", "set_aside", "ignored", "locked", "unjudged"]) {
-      expect(validate(PREVIEW, { rows: [row({ status })], refusal: null })).toBe(true);
+      expect(validate(PREVIEW, { rows: [row({ status })], refusal: null, selection_refusal: null })).toBe(true);
     }
-    expect(validate(PREVIEW, { rows: [], refusal: null })).toBe(true);
-    expect(validate(PREVIEW, { rows: [], refusal: "round1_report_xlsx has no WT block areas" })).toBe(true);
+    expect(validate(PREVIEW, { rows: [], refusal: null, selection_refusal: null })).toBe(true);
+    expect(validate(PREVIEW, { rows: [], refusal: "round1_report_xlsx has no WT block areas", selection_refusal: null })).toBe(true);
   });
 
   it("refuses an unknown status, a missing position or a missing refusal key", () => {
-    expect(validate(PREVIEW, { rows: [row({ status: "maybe" })], refusal: null })).toBe(false);
-    expect(validate(PREVIEW, { rows: [row({ row_index: undefined })], refusal: null })).toBe(false);
+    expect(validate(PREVIEW, { rows: [row({ status: "maybe" })], refusal: null, selection_refusal: null })).toBe(false);
+    expect(validate(PREVIEW, { rows: [row({ row_index: undefined })], refusal: null, selection_refusal: null })).toBe(false);
     expect(validate(PREVIEW, { rows: [row()] })).toBe(false);
+  });
+
+  it("carries the refusal an operator's selection causes, and requires the key", () => {
+    expect(validate(PREVIEW, { rows: [row()], refusal: null, selection_refusal: "no WT/WT_1/WT1 rows for cohort(s): P2" })).toBe(true);
+    expect(validate(PREVIEW, { rows: [row()], refusal: null })).toBe(false);
+    expect(validate(PREVIEW, { rows: [row()], refusal: null, selection_refusal: 3 })).toBe(false);
   });
 });

@@ -473,5 +473,10 @@ export function seedBuildEvolveproForm(
     else if (paths.remeasureNumericXlsx) next.confirmationSource = "numericIds";
     else if (paths.remeasureWellXlsx) next.confirmationSource = "wellLabels";
   }
+  // The same rule as an operator's own edit (applyBuildEvolveproPatch): a
+  // seeded file the review reads makes the saved unticks name another file.
+  if (buildEvolveproReviewSignature(next) !== buildEvolveproReviewSignature(current)) {
+    next.excludedRows = [];
+  }
   saveBuildEvolveproToStorage(next, projectPath);
 }

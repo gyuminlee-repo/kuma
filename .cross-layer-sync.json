@@ -1116,7 +1116,7 @@
         "scripts/stubs/core.ts",
         "src/types/mame/validators.ts"
       ],
-      "note": "Step 3 단일 파이프라인 계약: 조립/strict NGS gate <-> Pydantic request <-> dispatcher/handler response <-> TS RPC type/client <-> 프로젝트별 form state/UI <-> Analyze round evidence 연결. primary source는 activity_path, gc_data_xlsx, round1_report_xlsx 중 정확히 하나이고 verdict_xlsx는 필수다. 응답 키와 TS 필드명은 byte-for-byte 일치하며 round evidence signature 변경은 완료 서명을 무효화한다. mame.activity.preview_gc_rows shares the request model (EvolveproSourceParams) and the core reading stage (_read_sources), so the 4.1 row review states the build's own judgement; its row shape is PreviewGcRow in src/types/mame/build_evolvepro_input.ts and isPreviewGcRowsResult in validators.ts, and scripts/stubs/core.ts answers it in MOCK_MODE.",
+      "note": "Step 3 단일 파이프라인 계약: 조립/strict NGS gate <-> Pydantic request <-> dispatcher/handler response <-> TS RPC type/client <-> 프로젝트별 form state/UI <-> Analyze round evidence 연결. primary source는 activity_path, gc_data_xlsx, round1_report_xlsx 중 정확히 하나이고 verdict_xlsx는 필수다. 응답 키와 TS 필드명은 byte-for-byte 일치하며 round evidence signature 변경은 완료 서명을 무효화한다. mame.activity.preview_gc_rows shares the request model (EvolveproSourceParams) and the core reading stage (_read_sources), so the 4.1 row review states the build's own judgement; with excluded_rows it also runs the build's pre-write checks (_judge_build) and returns selection_refusal, the only thing the panel blocks a build on; its row shape is PreviewGcRow in src/types/mame/build_evolvepro_input.ts and isPreviewGcRowsResult in validators.ts, and scripts/stubs/core.ts answers it in MOCK_MODE.",
       "severity": "warning"
     },
     {

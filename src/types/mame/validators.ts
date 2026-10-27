@@ -214,7 +214,8 @@ const isPreviewGcRowsResult: MameResultValidator = (value) =>
   isRecord(value) &&
   Array.isArray(value.rows) &&
   value.rows.every(isPreviewGcRow) &&
-  (value.refusal === null || isString(value.refusal));
+  (value.refusal === null || isString(value.refusal)) &&
+  (value.selection_refusal === null || isString(value.selection_refusal));
 
 /**
  * `mame.activity.build_evolvepro_input`.

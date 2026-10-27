@@ -20,7 +20,7 @@ vi.mock("@tauri-apps/plugin-fs", () => ({ mkdir: mockMkdir }));
 vi.mock("@/lib/ipc-mame", () => ({
   buildEvolveproInput: vi.fn(),
   detectMeasurementSource: vi.fn(),
-  previewGcRows: vi.fn(async () => ({ rows: [], refusal: null })),
+  previewGcRows: vi.fn(async () => ({ rows: [], refusal: null, selection_refusal: null })),
 }));
 vi.mock("@/lib/openFolder", () => ({ revealInOSFolder: vi.fn() }));
 vi.mock("@/lib/workspace", () => ({ registerArtifacts: vi.fn().mockResolvedValue(undefined) }));
@@ -127,6 +127,7 @@ function renderPanel() {
 }
 
 async function build(): Promise<void> {
+  await waitFor(() => expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeEnabled());
   fireEvent.click(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" }));
   await waitFor(() => expect(buildEvolveproInput).toHaveBeenCalledTimes(1));
 }
@@ -247,6 +248,7 @@ describe("BuildEvolveproInputPanel unified Activity-step inputs", () => {
     expect(screen.getByRole("alert")).toContainElement(checkbox);
 
     fireEvent.click(checkbox);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" }));
     await waitFor(() => expect(buildEvolveproInput).toHaveBeenCalledTimes(2));
 
@@ -1204,7 +1206,7 @@ describe("BuildEvolveproInputPanel sibling additional experiment file", () => {
     expect(screen.queryByRole("radio", { name: "Numeric-ID Agilent report" })).not.toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Well-labeled replicate report" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("radio", { name: "Well / variant labels" }));
-    expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeEnabled();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeEnabled());
   });
 
   it("does not overwrite the primary when a primary-only file is browsed as additional", async () => {
@@ -1337,7 +1339,7 @@ describe("BuildEvolveproInputPanel independent detection lifetimes", () => {
     expect(screen.getByRole("textbox", { name: ADDITIONAL_LABEL })).toHaveValue("");
     expect(screen.queryByText(/Old error must stay hidden/)).not.toBeInTheDocument();
     expect(screen.queryByRole("radiogroup", { name: "Additional measurement format" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeEnabled();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeEnabled());
   });
 
   it("ignores pending detection after clearing restored inputs", async () => {
@@ -1395,7 +1397,7 @@ describe("BuildEvolveproInputPanel independent detection lifetimes", () => {
     await act(async () => fireEvent.click(screen.getByRole("button", { name: `Browse ${ADDITIONAL_LABEL}` })));
     await act(async () => request.resolve(detection(["confirmationVariantLabels"])));
     expect(screen.getByText("Detected: Well / variant labels")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeEnabled();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Convert to EVOLVEpro input format" })).toBeEnabled());
   });
 
   it("does not apply a native picker result returned after reset", async () => {

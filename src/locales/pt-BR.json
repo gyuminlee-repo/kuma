@@ -1401,8 +1401,6 @@
         "lockedHint": "Uma medição deste run na outra notação. Faz a construção ser recusada, marcada ou não.",
         "keptNote": "mantida, sinalizada",
         "blockedLabel": "Por que a construção não pode rodar",
-        "allWtExcluded": "Todas as linhas WT de {{source}} estão desmarcadas. A construção precisa de pelo menos uma linha WT como divisor.",
-        "allUsedExcluded": "Todas as linhas de medição de {{source}} estão desmarcadas. A construção precisa de pelo menos uma.",
         "resultExcludedTitle": "Linhas deixadas de fora ou sinalizadas ({{count}})",
         "resultWtTitle": "Linhas WT usadas como referência ({{count}})",
         "reason": {
@@ -1427,7 +1425,11 @@
         "colSample": "Sample",
         "colArea": "Area",
         "colReason": "Reason",
-        "colPosition": "Position"
+        "colPosition": "Position",
+        "blockedLoading": "As linhas ainda estão sendo lidas; a construção espera por elas.",
+        "blockedFailed": "Não foi possível ler as linhas. Leia-as de novo acima antes de construir.",
+        "blockedChecking": "Verificando com a construção as linhas que você desmarcou...",
+        "selectionRefusal": "A construção recusa as linhas como estão marcadas: {{message}}"
       }
     },
     "verdictBadge": {

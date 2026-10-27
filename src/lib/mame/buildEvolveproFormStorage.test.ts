@@ -198,6 +198,17 @@ describe("unticked review rows", () => {
     expect(applyBuildEvolveproPatch(reviewed, { mismatchThreshold: 0.2 }).excludedRows).toEqual([row]);
   });
 
+  it("empties them when seeding fills an input the review reads, and keeps them otherwise", () => {
+    saveBuildEvolveproToStorage(reviewed, PROJECT);
+    seedBuildEvolveproForm({ round1ReportXlsx: "/project/sample.xlsx", outputXlsx: "/project/out.xlsx" }, PROJECT);
+    // The report is already chosen, so the seed leaves it; only the output fills.
+    expect(loadBuildEvolveproFromStorage(PROJECT).excludedRows).toEqual([row]);
+    seedBuildEvolveproForm({ layoutXlsx: "/project/layout.xlsx" }, PROJECT);
+    const seeded = loadBuildEvolveproFromStorage(PROJECT);
+    expect(seeded.layoutXlsx).toBe("/project/layout.xlsx");
+    expect(seeded.excludedRows).toEqual([]);
+  });
+
   it("takes an explicit selection as given", () => {
     expect(applyBuildEvolveproPatch(reviewed, { excludedRows: [] }).excludedRows).toEqual([]);
   });

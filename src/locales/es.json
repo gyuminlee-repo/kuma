@@ -1401,8 +1401,6 @@
         "lockedHint": "Una medición de este run en la otra notación. Rechaza la construcción esté marcada o no.",
         "keptNote": "conservada, señalada",
         "blockedLabel": "Por qué no se puede construir",
-        "allWtExcluded": "Todas las filas WT de {{source}} están desmarcadas. La construcción necesita al menos una fila WT como divisor.",
-        "allUsedExcluded": "Todas las filas de medición de {{source}} están desmarcadas. La construcción necesita al menos una.",
         "resultExcludedTitle": "Filas dejadas fuera o señaladas ({{count}})",
         "resultWtTitle": "Filas WT usadas como referencia ({{count}})",
         "reason": {
@@ -1427,7 +1425,11 @@
         "colSample": "Sample",
         "colArea": "Area",
         "colReason": "Reason",
-        "colPosition": "Position"
+        "colPosition": "Position",
+        "blockedLoading": "Las filas aún se están leyendo; la construcción espera a que terminen.",
+        "blockedFailed": "No se pudieron leer las filas. Vuelva a leerlas arriba antes de construir.",
+        "blockedChecking": "Comprobando con la construcción las filas que desmarcó...",
+        "selectionRefusal": "La construcción rechaza las filas tal como están marcadas: {{message}}"
       }
     },
     "verdictBadge": {

@@ -155,7 +155,7 @@ const MAME_REPLIES: Record<string, (params?: unknown) => unknown> = {
   "mame.activity.detect_measurement_source": () => mameBundle.measurement_detection ?? {},
   // Not recorded by the capture bundle yet. An empty review list rather than a
   // thrown error, so step 4.1 renders its empty state instead of a failure.
-  "mame.activity.preview_gc_rows": () => mameBundle.gc_row_preview ?? { rows: [], refusal: null },
+  "mame.activity.preview_gc_rows": () => mameBundle.gc_row_preview ?? { rows: [], refusal: null, selection_refusal: null },
   ping: () => ({ ok: true }),
 };
 

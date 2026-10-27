@@ -692,8 +692,6 @@
         "lockedHint": "A measurement of this run in the other notation. It refuses the build whether ticked or not.",
         "keptNote": "kept, flagged",
         "blockedLabel": "Why the build cannot run",
-        "allWtExcluded": "Every WT row of {{source}} is unticked. The build needs at least one WT row to divide by.",
-        "allUsedExcluded": "Every measurement row of {{source}} is unticked. The build needs at least one.",
         "resultExcludedTitle": "Rows left out or flagged ({{count}})",
         "resultWtTitle": "WT rows used as the reference ({{count}})",
         "reason": {
@@ -718,7 +716,11 @@
         "colSample": "Sample",
         "colArea": "Area",
         "colReason": "Reason",
-        "colPosition": "Position"
+        "colPosition": "Position",
+        "blockedLoading": "The rows are still being read; the build waits for them.",
+        "blockedFailed": "The rows could not be read. Read them again above before building.",
+        "blockedChecking": "Checking the rows you unticked with the build...",
+        "selectionRefusal": "The build refuses the rows as ticked: {{message}}"
       }
     },
     "runHealth": {

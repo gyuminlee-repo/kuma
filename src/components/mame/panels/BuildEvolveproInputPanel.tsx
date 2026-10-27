@@ -37,7 +37,7 @@ import {
   reasonText,
   rowLocation,
 } from "./GcRowReview";
-import { buildBlocks, effectiveExclusions } from "@/lib/mame/gcRowReview";
+import { effectiveExclusions } from "@/lib/mame/gcRowReview";
 import { Input } from "@/components/ui/input";
 import { InlineHelp } from "@/components/ui/InlineHelp";
 import {
@@ -682,16 +682,25 @@ export function BuildEvolveproInputPanel() {
   const [review, setReview] = useState<GcRowReviewState>({ status: "idle" });
   const [reviewNonce, setReviewNonce] = useState(0);
   const reviewGenerationRef = useRef(0);
+  // The build's answer for one set of unticked rows, keyed by that set. The
+  // build button waits for an answer to the set on screen.
+  const [selection, setSelection] = useState<{ key: string; refusal: string | null } | null>(null);
+  const excludedRowsRef = useRef(form.excludedRows);
+  excludedRowsRef.current = form.excludedRows;
   useEffect(() => {
     const generation = ++reviewGenerationRef.current;
+    setSelection(null);
     if (!reviewReady) {
       setReview({ status: "idle" });
       return;
     }
     setReview({ status: "loading" });
-    previewGcRows(reviewParamsOf(form)).then(
+    const sent = excludedRowsRef.current;
+    previewGcRows({ ...reviewParamsOf(form), excluded_rows: sent }).then(
       (result) => {
-        if (reviewGenerationRef.current === generation) setReview({ status: "ready", result });
+        if (reviewGenerationRef.current !== generation) return;
+        setReview({ status: "ready", result });
+        setSelection({ key: JSON.stringify(sent), refusal: result.selection_refusal });
       },
       (err: unknown) => {
         if (reviewGenerationRef.current === generation) {
@@ -707,7 +716,44 @@ export function BuildEvolveproInputPanel() {
   }, []);
   const reviewRows = review.status === "ready" ? review.result.rows : null;
   const sentExclusions = reviewRows ? effectiveExclusions(reviewRows, form.excludedRows) : form.excludedRows;
-  const reviewBlocks = reviewRows ? buildBlocks(reviewRows, form.excludedRows) : [];
+  const selectionKey = JSON.stringify(sentExclusions);
+  const checkingSelection = review.status === "ready" && selection?.key !== selectionKey;
+  // Ask the build again once the ticks settle. The rows stay on screen: they
+  // are the defaults and do not move with the selection.
+  useEffect(() => {
+    if (!checkingSelection) return;
+    const generation = reviewGenerationRef.current;
+    const sent = sentExclusions;
+    const timer = window.setTimeout(() => {
+      previewGcRows({ ...reviewParamsOf(form), excluded_rows: sent }).then(
+        (result) => {
+          if (reviewGenerationRef.current === generation) {
+            setSelection({ key: JSON.stringify(sent), refusal: result.selection_refusal });
+          }
+        },
+        (err: unknown) => {
+          if (reviewGenerationRef.current === generation) {
+            setReview({ status: "failed", message: describeRpcError(err, "mame") });
+          }
+        },
+      );
+    }, 250);
+    return () => window.clearTimeout(timer);
+  // sentExclusions and form are read through selectionKey and reviewSignature.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkingSelection, selectionKey, reviewSignature]);
+  // Why the row review keeps the build from running, in the order an operator
+  // would resolve them. Every answer here comes from the build's own checks.
+  const reviewBlocks: string[] = [];
+  if (reviewReady && (review.status === "idle" || review.status === "loading")) {
+    reviewBlocks.push(t("mame.buildEvolvepro.rowReview.blockedLoading"));
+  } else if (reviewReady && review.status === "failed") {
+    reviewBlocks.push(t("mame.buildEvolvepro.rowReview.blockedFailed"));
+  } else if (checkingSelection) {
+    reviewBlocks.push(t("mame.buildEvolvepro.rowReview.blockedChecking"));
+  } else if (review.status === "ready" && selection?.refusal) {
+    reviewBlocks.push(t("mame.buildEvolvepro.rowReview.selectionRefusal", { message: selection.refusal }));
+  }
 
   const missing: { label: string; fieldId: string }[] = [];
   const need = (key: string, fieldId: string) =>
@@ -1424,8 +1470,8 @@ export function BuildEvolveproInputPanel() {
           className="space-y-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400"
         >
           {reviewBlocks.map((block) => (
-            <li key={`${block.source}:${block.reason}`}>
-              {t(`mame.buildEvolvepro.rowReview.${block.reason}`, { source: t(GC_SOURCE_LABEL[block.source]) })}
+            <li key={block} className="whitespace-pre-wrap break-words">
+              {block}
             </li>
           ))}
         </ul>

@@ -100,11 +100,12 @@ export interface ReportedGcRow extends GcRowPosition {
  * `mame.activity.preview_gc_rows` request: the build's own sources, mapping and
  * evidence. Mirrors `PreviewGcRowsParams` (python-core/sidecar_mame/models.py),
  * which shares the build's validation, so the preview refuses what the build
- * refuses.
+ * refuses. `excluded_rows` is the operator's selection, which the build's own
+ * checks judge into `selection_refusal`.
  */
 export type PreviewGcRowsParams = Omit<
   BuildEvolveproInputParams,
-  "output_xlsx" | "excluded_rows" | "gc_export_xlsx" | "mismatch_threshold" | "allow_label_mismatch"
+  "output_xlsx" | "gc_export_xlsx" | "mismatch_threshold" | "allow_label_mismatch"
 >
 
 /**
@@ -142,6 +143,12 @@ export interface PreviewGcRowsResult {
   rows: PreviewGcRow[]
   /** Why the build would refuse these files as given, or null. */
   refusal: string | null
+  /**
+   * The refusal the build gives with the sent `excluded_rows`, when that
+   * selection is what causes it; null otherwise. `rows` and `refusal` state
+   * the defaults before any exclusion.
+   */
+  selection_refusal: string | null
 }
 
 export interface MismatchedVariant {

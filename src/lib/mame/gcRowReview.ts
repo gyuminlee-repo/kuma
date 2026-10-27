@@ -4,10 +4,9 @@
  *
  * The rows and their statuses come from `mame.activity.preview_gc_rows`, which
  * runs the build's own reading stage, so nothing here judges a row. This module
- * only turns the operator's ticks into `excluded_rows` and states the two
- * conditions under which a build cannot succeed: every WT row of a file
- * unticked (nothing to divide by) or every measurement row of a file unticked
- * (nothing of this run left).
+ * only turns the operator's ticks into `excluded_rows`. Whether a selection
+ * can be built is the build's answer too: the preview returns it as
+ * `selection_refusal`, so no rule about which ticks a build needs lives here.
  */
 import type {
   ExcludedGcRow,
@@ -95,35 +94,4 @@ export function groupRows(rows: readonly PreviewGcRow[]): RowGroups {
     return members.length > 0 ? [{ status, rows: members }] : [];
   });
   return { suspicious, groups };
-}
-
-export type BuildBlockReason = "allWtExcluded" | "allUsedExcluded";
-
-export interface BuildBlock {
-  source: GcSourceField;
-  reason: BuildBlockReason;
-}
-
-/**
- * Per file: a build cannot run when the operator unticked every WT row the
- * file had (no reference to divide by) or every measurement row (no row of this
- * run left). A file whose reader found no WT row to begin with, such as a
- * pre-normalized sheet, is not blocked on WT.
- */
-export function buildBlocks(
-  rows: readonly PreviewGcRow[],
-  excluded: readonly ExcludedGcRow[],
-): BuildBlock[] {
-  const blocks: BuildBlock[] = [];
-  const sources = [...new Set(rows.map((row) => row.source))];
-  for (const source of sources) {
-    const own = rows.filter((row) => row.source === source);
-    for (const [status, reason] of [["wt", "allWtExcluded"], ["used", "allUsedExcluded"]] as const) {
-      const members = own.filter((row) => row.status === status);
-      if (members.length > 0 && members.every((row) => isRowExcluded(row, excluded))) {
-        blocks.push({ source, reason });
-      }
-    }
-  }
-  return blocks;
 }

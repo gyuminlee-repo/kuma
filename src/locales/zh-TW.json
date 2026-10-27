@@ -1401,8 +1401,6 @@
         "lockedHint": "以另一種標記寫出的本次 run 測量。不論是否勾選，建置都會被拒絕。",
         "keptNote": "計入平均，已標記",
         "blockedLabel": "無法建置的原因",
-        "allWtExcluded": "{{source}} 的所有 WT 列都已取消勾選。至少需要一列 WT 作為除數。",
-        "allUsedExcluded": "{{source}} 的所有測量列都已取消勾選。至少需要一列測量。",
         "resultExcludedTitle": "被排除或標記的列 ({{count}})",
         "resultWtTitle": "作為參照的 WT 列 ({{count}})",
         "reason": {
@@ -1427,7 +1425,11 @@
         "colSample": "Sample",
         "colArea": "Area",
         "colReason": "Reason",
-        "colPosition": "Position"
+        "colPosition": "Position",
+        "blockedLoading": "仍在讀取這些列，建置會等待讀取完成。",
+        "blockedFailed": "無法讀取這些列。建置前請在上方重新讀取。",
+        "blockedChecking": "正在依建置規則檢查您取消勾選的列...",
+        "selectionRefusal": "依目前勾選，建置會被拒絕：{{message}}"
       }
     },
     "verdictBadge": {

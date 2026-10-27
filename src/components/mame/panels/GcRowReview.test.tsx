@@ -27,7 +27,7 @@ const LOCKED = row({ row_index: 5, sample_name: "A1", status: "locked", reason: 
 const FLAGGED = row({ block_index: 2, row_index: 2, sample_name: "WT", status: "wt", flags: ["duplicate_replicate"] });
 
 function ready(rows: PreviewGcRow[], refusal: string | null = null): GcRowReviewState {
-  return { status: "ready", result: { rows, refusal } };
+  return { status: "ready", result: { rows, refusal, selection_refusal: null } };
 }
 
 function renderReview(state: GcRowReviewState, excludedRows: ExcludedGcRow[] = []) {

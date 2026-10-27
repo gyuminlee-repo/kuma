@@ -1401,8 +1401,6 @@
         "lockedHint": "Измерение этого запуска в другой записи. Сборка будет отклонена независимо от отметки.",
         "keptNote": "оставлена, отмечена",
         "blockedLabel": "Почему сборка невозможна",
-        "allWtExcluded": "Со всех строк WT в {{source}} снята отметка. Сборке нужна хотя бы одна строка WT в качестве делителя.",
-        "allUsedExcluded": "Со всех строк измерений в {{source}} снята отметка. Сборке нужна хотя бы одна.",
         "resultExcludedTitle": "Исключённые или отмеченные строки ({{count}})",
         "resultWtTitle": "Строки WT, взятые за опору ({{count}})",
         "reason": {
@@ -1427,7 +1425,11 @@
         "colSample": "Sample",
         "colArea": "Area",
         "colReason": "Reason",
-        "colPosition": "Position"
+        "colPosition": "Position",
+        "blockedLoading": "Строки ещё читаются; сборка ждёт их.",
+        "blockedFailed": "Не удалось прочитать строки. Прочитайте их снова выше перед сборкой.",
+        "blockedChecking": "Проверка снятых строк правилами сборки...",
+        "selectionRefusal": "Сборка отклоняет строки в текущей отметке: {{message}}"
       }
     },
     "verdictBadge": {

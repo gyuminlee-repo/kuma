@@ -116,23 +116,36 @@ function renderPanel() {
 }
 
 const BUILD_BUTTON = { name: "Convert to EVOLVEpro input format" };
+const WT_REFUSAL = "round1_report_xlsx has no WT block areas";
+
+/**
+ * The mocked build's answer for a selection. It refuses only when WT is gone,
+ * like a raw report does; the screen must show this answer and nothing of its own.
+ */
+let refusalFor: (excluded: readonly { row_index: number }[]) => string | null = (excluded) =>
+  excluded.some((row) => row.row_index === WT.row_index) ? WT_REFUSAL : null;
 
 async function reviewLoaded(): Promise<void> {
   await screen.findByRole("checkbox", { name: "Use 5F at block 1, row 2" });
 }
 
 beforeEach(() => {
+  refusalFor = (excluded) => (excluded.some((row) => row.row_index === WT.row_index) ? WT_REFUSAL : null);
   localStorage.clear();
   useRoundStore.setState({ rounds: [], active_round_id: null });
   vi.clearAllMocks();
   vi.mocked(buildEvolveproInput).mockResolvedValue(RESULT);
-  vi.mocked(previewGcRows).mockResolvedValue({ rows: ROWS, refusal: null });
+  vi.mocked(previewGcRows).mockImplementation(async (params) => ({
+    rows: ROWS,
+    refusal: null,
+    selection_refusal: refusalFor(params.excluded_rows ?? []),
+  }));
 });
 afterEach(cleanup);
 
 describe("BuildEvolveproInputPanel row review", () => {
-  it("reads the rows with the build's inputs once they are all chosen", async () => {
-    saveBuildEvolveproToStorage(form(), PROJECT);
+  it("reads the rows with the build's inputs and the saved selection", async () => {
+    saveBuildEvolveproToStorage(form({ excludedRows: [toExcludedRow(USED)] }), PROJECT);
     renderPanel();
     await reviewLoaded();
     expect(previewGcRows).toHaveBeenCalledWith(
@@ -140,6 +153,7 @@ describe("BuildEvolveproInputPanel row review", () => {
         round1_report_xlsx: "/project/report.xlsx",
         layout_xlsx: LAYOUT,
         verdict_xlsx: "/project/ngs/verdict.xlsx",
+        excluded_rows: [toExcludedRow(USED)],
       }),
     );
   });
@@ -151,11 +165,43 @@ describe("BuildEvolveproInputPanel row review", () => {
     expect(screen.getByText(/Choose the measurement file/)).toBeInTheDocument();
   });
 
-  it("sends an unticked row to the build as excluded_rows", async () => {
+  it("keeps the build closed while the rows are being read", async () => {
+    let resolve: (value: Awaited<ReturnType<typeof previewGcRows>>) => void = () => undefined;
+    vi.mocked(previewGcRows).mockImplementationOnce(() => new Promise((done) => { resolve = done; }));
+    saveBuildEvolveproToStorage(form(), PROJECT);
+    renderPanel();
+    expect(screen.getByRole("button", BUILD_BUTTON)).toBeDisabled();
+    expect(screen.getByRole("status", { name: "Why the build cannot run" })).toHaveTextContent("The rows are still being read");
+    fireEvent.click(screen.getByRole("button", BUILD_BUTTON));
+    expect(buildEvolveproInput).not.toHaveBeenCalled();
+    resolve({ rows: ROWS, refusal: null, selection_refusal: null });
+    await waitFor(() => expect(screen.getByRole("button", BUILD_BUTTON)).toBeEnabled());
+  });
+
+  it("keeps the build closed when the rows could not be read, until they are read again", async () => {
+    vi.mocked(previewGcRows).mockRejectedValueOnce(new Error("file is open in Excel"));
+    saveBuildEvolveproToStorage(form(), PROJECT);
+    renderPanel();
+    const retry = await screen.findByRole("button", { name: "Read again" });
+    expect(screen.getByRole("button", BUILD_BUTTON)).toBeDisabled();
+    expect(screen.getByRole("status", { name: "Why the build cannot run" })).toHaveTextContent("could not be read");
+    fireEvent.click(screen.getByRole("button", BUILD_BUTTON));
+    expect(buildEvolveproInput).not.toHaveBeenCalled();
+    fireEvent.click(retry);
+    await reviewLoaded();
+    await waitFor(() => expect(screen.getByRole("button", BUILD_BUTTON)).toBeEnabled());
+    expect(previewGcRows).toHaveBeenCalledTimes(2);
+  });
+
+  it("asks the build about an untick and sends it as excluded_rows", async () => {
     saveBuildEvolveproToStorage(form(), PROJECT);
     renderPanel();
     await reviewLoaded();
     fireEvent.click(screen.getByRole("checkbox", { name: "Use 5F at block 1, row 2" }));
+    expect(screen.getByRole("button", BUILD_BUTTON)).toBeDisabled();
+    expect(screen.getByRole("status", { name: "Why the build cannot run" })).toHaveTextContent("Checking the rows you unticked");
+    await waitFor(() => expect(screen.getByRole("button", BUILD_BUTTON)).toBeEnabled());
+    expect(previewGcRows).toHaveBeenLastCalledWith(expect.objectContaining({ excluded_rows: [toExcludedRow(USED)] }));
     fireEvent.click(screen.getByRole("button", BUILD_BUTTON));
     await waitFor(() => expect(buildEvolveproInput).toHaveBeenCalledTimes(1));
     expect(buildEvolveproInput).toHaveBeenCalledWith(
@@ -168,27 +214,34 @@ describe("BuildEvolveproInputPanel row review", () => {
     saveBuildEvolveproToStorage(form(), PROJECT);
     renderPanel();
     await reviewLoaded();
+    await waitFor(() => expect(screen.getByRole("button", BUILD_BUTTON)).toBeEnabled());
     fireEvent.click(screen.getByRole("button", BUILD_BUTTON));
     await waitFor(() => expect(buildEvolveproInput).toHaveBeenCalledTimes(1));
     expect(buildEvolveproInput).toHaveBeenCalledWith(expect.objectContaining({ excluded_rows: [] }));
   });
 
-  it("blocks the build and says why when every WT row is unticked", async () => {
+  it("blocks the build with the build's own refusal for the selection", async () => {
     saveBuildEvolveproToStorage(form(), PROJECT);
     renderPanel();
     await reviewLoaded();
-    expect(screen.getByRole("button", BUILD_BUTTON)).toBeEnabled();
     fireEvent.click(screen.getByRole("checkbox", { name: "Use WT at block 1, row 4" }));
+    await waitFor(() =>
+      expect(screen.getByRole("status", { name: "Why the build cannot run" })).toHaveTextContent(WT_REFUSAL),
+    );
     expect(screen.getByRole("button", BUILD_BUTTON)).toBeDisabled();
-    expect(screen.getByRole("status", { name: "Why the build cannot run" })).toHaveTextContent(/Every WT row of/);
+    fireEvent.click(screen.getByRole("checkbox", { name: "Use WT at block 1, row 4" }));
+    await waitFor(() => expect(screen.getByRole("button", BUILD_BUTTON)).toBeEnabled());
   });
 
-  it("blocks the build when every measurement row is unticked", async () => {
-    saveBuildEvolveproToStorage(form({ excludedRows: [toExcludedRow(USED), toExcludedRow(USED_2)] }), PROJECT);
+  it("does not block a selection the build accepts, even with every WT row unticked", async () => {
+    // A relative-scale file needs no WT: only the build knows that.
+    refusalFor = () => null;
+    saveBuildEvolveproToStorage(form(), PROJECT);
     renderPanel();
     await reviewLoaded();
-    expect(screen.getByRole("button", BUILD_BUTTON)).toBeDisabled();
-    expect(screen.getByRole("status", { name: "Why the build cannot run" })).toHaveTextContent(/Every measurement row of/);
+    fireEvent.click(screen.getByRole("checkbox", { name: "Use WT at block 1, row 4" }));
+    await waitFor(() => expect(previewGcRows).toHaveBeenLastCalledWith(expect.objectContaining({ excluded_rows: [toExcludedRow(WT)] })));
+    await waitFor(() => expect(screen.getByRole("button", BUILD_BUTTON)).toBeEnabled());
   });
 
   it("does not send a saved untick the review no longer lists", async () => {
@@ -196,6 +249,8 @@ describe("BuildEvolveproInputPanel row review", () => {
     saveBuildEvolveproToStorage(form({ excludedRows: [stale, toExcludedRow(USED_2)] }), PROJECT);
     renderPanel();
     await reviewLoaded();
+    await waitFor(() => expect(screen.getByRole("button", BUILD_BUTTON)).toBeEnabled());
+    expect(previewGcRows).toHaveBeenLastCalledWith(expect.objectContaining({ excluded_rows: [toExcludedRow(USED_2)] }));
     fireEvent.click(screen.getByRole("button", BUILD_BUTTON));
     await waitFor(() => expect(buildEvolveproInput).toHaveBeenCalledTimes(1));
     expect(buildEvolveproInput).toHaveBeenCalledWith(
@@ -219,19 +274,11 @@ describe("BuildEvolveproInputPanel row review", () => {
     expect(loadBuildEvolveproFromStorage(PROJECT).excludedRows).toEqual([]);
   });
 
-  it("offers a retry when the rows could not be read", async () => {
-    vi.mocked(previewGcRows).mockRejectedValueOnce(new Error("file is open in Excel"));
-    saveBuildEvolveproToStorage(form(), PROJECT);
-    renderPanel();
-    fireEvent.click(await screen.findByRole("button", { name: "Read again" }));
-    await reviewLoaded();
-    expect(previewGcRows).toHaveBeenCalledTimes(2);
-  });
-
   it("shows the rows the build left out and the WT rows it used", async () => {
     saveBuildEvolveproToStorage(form(), PROJECT);
     renderPanel();
     await reviewLoaded();
+    await waitFor(() => expect(screen.getByRole("button", BUILD_BUTTON)).toBeEnabled());
     fireEvent.click(screen.getByRole("button", BUILD_BUTTON));
     expect(await screen.findByText("Rows left out or flagged (1)")).toBeInTheDocument();
     expect(screen.getByText("WT rows used as the reference (1)")).toBeInTheDocument();

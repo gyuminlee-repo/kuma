@@ -1401,8 +1401,6 @@
         "lockedHint": "Une mesure de ce run dans l'autre notation. Elle fait refuser la construction, cochée ou non.",
         "keptNote": "conservée, signalée",
         "blockedLabel": "Pourquoi la construction ne peut pas s'exécuter",
-        "allWtExcluded": "Toutes les lignes WT de {{source}} sont décochées. La construction a besoin d'au moins une ligne WT comme diviseur.",
-        "allUsedExcluded": "Toutes les lignes de mesure de {{source}} sont décochées. La construction en a besoin d'au moins une.",
         "resultExcludedTitle": "Lignes écartées ou signalées ({{count}})",
         "resultWtTitle": "Lignes WT utilisées comme référence ({{count}})",
         "reason": {
@@ -1427,7 +1425,11 @@
         "colSample": "Sample",
         "colArea": "Area",
         "colReason": "Reason",
-        "colPosition": "Position"
+        "colPosition": "Position",
+        "blockedLoading": "Les lignes sont encore en cours de lecture ; la construction les attend.",
+        "blockedFailed": "Impossible de lire les lignes. Relisez-les ci-dessus avant de construire.",
+        "blockedChecking": "Vérification par la construction des lignes décochées...",
+        "selectionRefusal": "La construction refuse les lignes telles que cochées : {{message}}"
       }
     },
     "verdictBadge": {

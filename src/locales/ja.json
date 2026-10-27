@@ -1401,8 +1401,6 @@
         "lockedHint": "別の表記で書かれたこの run の測定です。チェックの有無にかかわらずビルドは拒否されます。",
         "keptNote": "平均に含む、要確認",
         "blockedLabel": "ビルドできない理由",
-        "allWtExcluded": "{{source}} の WT 行がすべてチェック解除されています。割る基準の WT 行が 1 つ以上必要です。",
-        "allUsedExcluded": "{{source}} の測定行がすべてチェック解除されています。測定行が 1 つ以上必要です。",
         "resultExcludedTitle": "除外または要確認の行 ({{count}})",
         "resultWtTitle": "基準に使った WT 行 ({{count}})",
         "reason": {
@@ -1427,7 +1425,11 @@
         "colSample": "Sample",
         "colArea": "Area",
         "colReason": "Reason",
-        "colPosition": "Position"
+        "colPosition": "Position",
+        "blockedLoading": "行をまだ読み込み中です。読み終わるまでビルドは待機します。",
+        "blockedFailed": "行を読み込めませんでした。ビルドの前に上で読み直してください。",
+        "blockedChecking": "チェックを外した行をビルドの基準で確認中...",
+        "selectionRefusal": "今のチェックではビルドが拒否されます: {{message}}"
       }
     },
     "verdictBadge": {
