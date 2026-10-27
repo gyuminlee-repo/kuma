@@ -24,7 +24,9 @@ from pathlib import Path
 
 import python_calamine
 
-from .gc_sample import NUMERIC_CALIBRATION, NUMERIC_ID, WT, classify_sample
+from collections.abc import Callable
+
+from .gc_sample import NUMERIC_CALIBRATION, NUMERIC_ID, WT, SampleClass, classify_sample
 from .variant_notation import to_evolvepro  # noqa: F401 (re-exported for callers)
 
 logger = logging.getLogger(__name__)
@@ -146,6 +148,14 @@ class GcRow:
         if self.area_raw == "":
             return None
         return _float_or_raise(self.area_raw, context)
+
+
+def _area_for_report(row: GcRow) -> float | None:
+    """The area of a row that will not be used: ``None`` when unreadable."""
+    try:
+        return row.area("")
+    except ValueError:
+        return None
 
 
 def _has_block_signature(row: list) -> bool:
@@ -382,17 +392,31 @@ class BlockRepBatchResult:
         base ID, so no replicate is silently dropped.
     wt_areas: All WT block areas (one per WT block such as 'WT1', 'WT2').
     n_blocks: Number of FID1B data rows consumed (diagnostics only).
+    id_rows: the rows behind ``reps``, parallel to each list.
+    wt_rows: the rows behind ``wt_areas``, parallel.
+    duplicate_rows: ID rows whose replicate number repeats an earlier row of
+        the same ID. They stay in ``reps``; the decoder reports them.
+    others: every named row that is not used, as ``(row, class, area, note)``.
+        ``note`` is ``"no_area"`` for a WT or ID row without an area,
+        ``"operator"`` for a row the caller's *skip* excluded, else ``None``.
+        Whether a well or variant among them belongs to the run is the
+        decoder's call, since only it holds the plate order.
     """
 
     reps: dict[int, list[float]]
     wt_areas: list[float]
     n_blocks: int
+    id_rows: dict[int, list[GcRow]] = field(default_factory=dict)
+    wt_rows: list[GcRow] = field(default_factory=list)
+    duplicate_rows: list[tuple[GcRow, float]] = field(default_factory=list)
+    others: list[tuple[GcRow, SampleClass, float | None, str | None]] = field(default_factory=list)
 
 
 def parse_agilent_block_rep_batch(
     path: str | Path,
     *,
     sheet_index: int = 0,
+    skip: Callable[[GcRow, float | None], bool] | None = None,
 ) -> BlockRepBatchResult:
     """Parse a FID1B block-layout Agilent report with numeric base/rep IDs.
 
@@ -406,7 +430,9 @@ def parse_agilent_block_rep_batch(
         '<base>-<rep>'    replicate <rep> (e.g. '12-2', '12-3')
         'WT<n>' / 'WT_<n>' wild-type block area
 
-    Non-numeric, non-WT names are ignored with a debug log.
+    Every other name, and a WT or ID row without an area, is kept in
+    ``others`` for the decoder to report. *skip* (row, area) lets a caller
+    exclude rows it was told to leave out.
 
     Args:
         path:        Path to the xlsx file.
@@ -416,38 +442,40 @@ def parse_agilent_block_rep_batch(
         BlockRepBatchResult with grouped replicate areas and WT areas.
 
     Raises:
-        ValueError: A block area cell is non-numeric, or a signal row lacks
-            a following header row (raised by iter_block_rows).
+        ValueError: A WT or ID area cell is not a finite number, or a signal
+            row lacks a following header row (raised by iter_block_rows).
     """
     resolved = Path(path)
 
     reps: dict[int, list[float]] = {}
-    rep_index_seen: dict[int, set[int]] = {}
     wt_areas: list[float] = []
     n_blocks = 0
+    id_rows: dict[int, list[GcRow]] = {}
+    wt_rows: list[GcRow] = []
+    duplicate_rows: list[tuple[GcRow, float]] = []
+    others: list[tuple[GcRow, SampleClass, float | None, str | None]] = []
+    rep_index_seen: dict[int, set[int]] = {}
 
     for row in read_block_report(resolved, sheet_index=sheet_index):
         sample_name = row.sample_name
-        if not sample_name:
-            continue
-        n_blocks += 1
-        area = _float_or_raise(
-            row.area_raw,
-            f"Sample Name={sample_name!r} in {resolved}",
-        )
-
         sample = classify_sample(sample_name, "numeric_id")
+        if sample_name:
+            n_blocks += 1
+        if sample.kind not in (WT, NUMERIC_ID):
+            area = _area_for_report(row)
+            excluded = skip is not None and skip(row, area)
+            others.append((row, sample, area, "operator" if excluded else None))
+            continue
+        area = row.area(f"Sample Name={sample_name!r} in {resolved}")
+        if skip is not None and skip(row, area):
+            others.append((row, sample, area, "operator"))
+            continue
+        if area is None:
+            others.append((row, sample, None, "no_area"))
+            continue
         if sample.kind == WT:
             wt_areas.append(area)
-            continue
-
-        if sample.kind != NUMERIC_ID:
-            logger.debug(
-                "parse_agilent_block_rep_batch: ignoring non-numeric, "
-                "non-WT sample name %r in %s",
-                sample_name,
-                resolved.name,
-            )
+            wt_rows.append(row)
             continue
 
         assert sample.numeric_id is not None
@@ -455,16 +483,10 @@ def parse_agilent_block_rep_batch(
         rep_idx = sample.replicate
         seen = rep_index_seen.setdefault(base_id, set())
         if rep_idx in seen:
-            logger.warning(
-                "parse_agilent_block_rep_batch: duplicate replicate %d for "
-                "base ID %d in %s; keeping all areas",
-                rep_idx,
-                base_id,
-                resolved.name,
-            )
+            duplicate_rows.append((row, area))
         seen.add(rep_idx)
         reps.setdefault(base_id, []).append(area)
-
+        id_rows.setdefault(base_id, []).append(row)
     logger.debug(
         "parse_agilent_block_rep_batch: %d base IDs, %d WT areas, "
         "%d blocks from %s",
@@ -473,7 +495,15 @@ def parse_agilent_block_rep_batch(
         n_blocks,
         resolved.name,
     )
-    return BlockRepBatchResult(reps=reps, wt_areas=wt_areas, n_blocks=n_blocks)
+    return BlockRepBatchResult(
+        reps=reps,
+        wt_areas=wt_areas,
+        n_blocks=n_blocks,
+        id_rows=id_rows,
+        wt_rows=wt_rows,
+        duplicate_rows=duplicate_rows,
+        others=others,
+    )
 
 
 # ---------------------------------------------------------------------------

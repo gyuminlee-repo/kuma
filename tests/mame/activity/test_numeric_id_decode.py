@@ -149,9 +149,26 @@ class TestPrimaryScreen:
         with pytest.raises(ValueError, match="no WT block areas"):
             decode_primary_screen(report, _layout(tmp_path))
 
-    def test_id_beyond_the_layout_refuses(self, tmp_path):
+    def test_id_beyond_the_layout_is_set_aside(self, tmp_path):
+        # The plate holds 5 variants, so ID 6 cannot be on it: a shared GC run
+        # carries other experiments' samples. It is reported, not decoded.
         report = _report(tmp_path, {i: [1.0] for i in range(1, 7)}, [_WT])
-        with pytest.raises(ValueError, match=r"IDs must be 1\.\.5"):
+        result = decode_primary_screen(report, _layout(tmp_path), source_label="numeric_report_xlsx")
+        assert [r.id for r in result.rows] == [1, 2, 3, 4, 5]
+        assert [(row.source, row.sample_name, row.reason) for row in result.excluded] == [
+            ("numeric_report_xlsx", "6", "out_of_range_id"),
+        ]
+        assert result.excluded[0].block_index is not None
+
+    def test_ids_past_the_layout_do_not_fill_a_gap(self, tmp_path):
+        # 2..6 against 5 variants: 6 is set aside and 2..5 still miss ID 1.
+        report = _report(tmp_path, {i: [1.0] for i in range(2, 7)}, [_WT])
+        with pytest.raises(ValueError, match="line up one to one"):
+            decode_primary_screen(report, _layout(tmp_path))
+
+    def test_ids_all_past_the_layout_refuse(self, tmp_path):
+        report = _report(tmp_path, {i: [1.0] for i in range(7, 9)}, [_WT])
+        with pytest.raises(ValueError, match=r"all lie outside 1\.\.5"):
             decode_primary_screen(report, _layout(tmp_path))
 
     def test_partial_id_set_refuses_rather_than_shifting(self, tmp_path):
