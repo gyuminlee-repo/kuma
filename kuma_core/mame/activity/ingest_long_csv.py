@@ -11,7 +11,7 @@ from typing import cast
 
 import pandas as pd
 
-from kuma_core.mame.activity.constants import WT_PATTERN
+from kuma_core.mame.activity.gc_sample import is_wt_name, wt_replicate
 from kuma_core.mame.activity.models import (
     ActivityRecord,
     ActivityTable,
@@ -32,9 +32,6 @@ WELL_RE_384 = re.compile(r"^[A-P](0[1-9]|1[0-9]|2[0-4])$")
 # 2-digit column (see plate_layout_xlsx._normalise_well).
 WELL_RE_RAW = re.compile(r"^([A-P])(\d{1,2})$")
 
-# Strips the 'WT'/'WT_' prefix off a label already matched by WT_PATTERN, leaving
-# the replicate number. Not a detection pattern; WT_PATTERN remains the only one.
-_WT_SUFFIX_RE = re.compile(r"^WT_?")
 
 # Header aliases for raw instrument exports (e.g. GC-FID). Headers are already
 # lower-cased before lookup. Canonical column wins if present; aliases are tried
@@ -197,18 +194,19 @@ def ingest_long_csv(
         # of a well coordinate. They used to be dropped by the well parser below,
         # which forced the WT denominator to be back-computed from plate-designated
         # WT wells. Keep them in a separate collection so downstream never treats
-        # them as mutant wells. well_raw is already upper-cased, so the
-        # shared WT_PATTERN applies. Bare WT has unspecified replicate index 0.
-        wt_match = WT_PATTERN.match(well_raw)
-        if wt_match:
+        # them as mutant wells. Whether a label is wild-type is gc_sample's
+        # call, the same one every GC reader makes. Bare WT has unspecified
+        # replicate index 0. The well test below stays local: this reader
+        # accepts 384-well coordinates (A-P), which the GC chain does not.
+        if is_wt_name(well_raw):
             wt_records.append(
                 WtReplicateRecord(
                     plate_id=plate_id,
                     sample_name=well_raw,
                     value=value,
                     # Numeric suffix is the replicate index, matching the
-                    # reports-mode convention (evolvepro_xlsx._replicate_n_from_wt).
-                    replicate_idx=int(_WT_SUFFIX_RE.sub("", well_raw) or "0"),
+                    # reports-mode convention (gc_sample.wt_replicate).
+                    replicate_idx=wt_replicate(well_raw),
                     source_file=path.name,
                 )
             )

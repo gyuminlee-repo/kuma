@@ -171,6 +171,26 @@ function isLabelAudit(value: unknown): boolean {
   );
 }
 
+function isGcRowPosition(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isString(value.source) &&
+    isString(value.sample_name) &&
+    isFiniteNumber(value.row_index) &&
+    (value.block_index === null || isFiniteNumber(value.block_index)) &&
+    isNullableFiniteNumber(value.area)
+  );
+}
+
+function isReportedGcRow(value: unknown): boolean {
+  return (
+    isGcRowPosition(value) &&
+    isRecord(value) &&
+    isString(value.reason) &&
+    typeof value.kept === "boolean"
+  );
+}
+
 /**
  * `mame.activity.build_evolvepro_input`.
  *
@@ -200,7 +220,11 @@ const isBuildEvolveproInputResult: MameResultValidator = (value) =>
   isString(value.evidence_hash) &&
   isRecordOfString(value.artifact_hashes) &&
   isFiniteNumberArray(value.wt_values) &&
-  isRecordOfFiniteNumberArray(value.variant_replicates);
+  isRecordOfFiniteNumberArray(value.variant_replicates) &&
+  Array.isArray(value.excluded_rows) &&
+  value.excluded_rows.every(isReportedGcRow) &&
+  Array.isArray(value.wt_rows) &&
+  value.wt_rows.every(isGcRowPosition);
 
 /**
  * `strategy.classify_round`.

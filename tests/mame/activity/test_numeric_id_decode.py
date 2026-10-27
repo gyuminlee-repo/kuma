@@ -154,6 +154,13 @@ class TestPrimaryScreen:
         with pytest.raises(ValueError, match=r"IDs must be 1\.\.5"):
             decode_primary_screen(report, _layout(tmp_path))
 
+    def test_another_plates_report_is_not_decoded_in_part(self, tmp_path):
+        # A 10-ID report against a 5-variant order: IDs 1..5 must not be
+        # labelled as this run while 6..10 are set aside.
+        report = _report(tmp_path, {i: [1.0] for i in range(1, 11)}, [_WT])
+        with pytest.raises(ValueError, match=r"IDs must be 1\.\.5"):
+            decode_primary_screen(report, _layout(tmp_path))
+
     def test_partial_id_set_refuses_rather_than_shifting(self, tmp_path):
         # ID 3 absent. A positional decode would silently rename 4 and 5.
         report = _report(tmp_path, {1: [1.0], 2: [1.0], 4: [1.0], 5: [1.0]}, [_WT])

@@ -3,13 +3,15 @@
 v0.3 Phase A-2.
 Spec: notes/architecture/2026-05-06-v0.3-phase-ab-interfaces.md §2-2
 
-Supported formats:
-  AGILENT_STANDARD: report.xlsx (FID1B 5-row block layout)
-  AGILENT_REP_BATCH: replicate_report.xlsx (numeric ID + _rep pattern)
-  RELATIVE_ONLY: relative_activity.xlsx ([Sample Name, Area] already normalised)
-  EVOLVEPRO: round_activity.xlsx ([Variant, activity])
+Supported inputs:
+  report.xlsx: FID1B block layout, well-labelled or numeric-ID sample names
+  relative_activity.xlsx: flat [Sample Name, Area], already normalised
+  round_activity.xlsx: EVOLVEpro [Variant, activity]
 
-WT_PATTERN is imported from activity.constants as the single source of truth.
+Which reader applies is decided by the step 4.1 field the file was chosen
+for (see detect_measurement_source); nothing here dispatches on content.
+
+What a sample name is (wild-type, calibration, numeric ID) is asked of gc_sample.
 Uses python-calamine for reading. openpyxl is used for writing only.
 """
 
@@ -17,29 +19,17 @@ from __future__ import annotations
 
 import logging
 import math
-import re
 from dataclasses import dataclass, field
-from enum import Enum
 from pathlib import Path
 
 import python_calamine
 
-from .constants import WT_PATTERN
+from collections.abc import Callable
+
+from .gc_sample import NUMERIC_CALIBRATION, NUMERIC_ID, WT, SampleClass, classify_sample
 from .variant_notation import to_evolvepro  # noqa: F401 (re-exported for callers)
 
 logger = logging.getLogger(__name__)
-
-# Replicate pattern for AGILENT_REP_BATCH: numeric id optionally followed by
-# underscore + rep label (e.g. '12', '12_rep1', '12_A').
-_REP_BATCH_SAMPLE_RE = re.compile(r"^(\d+)(?:[_\-].*)?$")
-
-
-class XlsxFormat(str, Enum):
-    AGILENT_STANDARD = "agilent_standard"
-    AGILENT_REP_BATCH = "agilent_rep_batch"
-    RELATIVE_ONLY = "relative_only"
-    EVOLVEPRO = "evolvepro"
-
 
 @dataclass(frozen=True)
 class AgilentRecord:
@@ -56,6 +46,10 @@ class AgilentRecord:
     is_wt: bool
     replicate_n: int
     is_relative: bool = field(default=False)
+    # Where the row sits in the workbook: the 1-based FID1B block number and
+    # the 1-based sheet row. Zero when a caller builds a record by hand.
+    block_index: int = 0
+    row_index: int = 0
 
 
 @dataclass(frozen=True)
@@ -69,6 +63,8 @@ class RelativeActivityRecord:
     sample_name: str
     area: float
     is_relative: bool = field(default=True)
+    # 1-based sheet row; zero when a caller builds a record by hand.
+    row_index: int = 0
 
 
 # ---------------------------------------------------------------------------
@@ -76,7 +72,17 @@ class RelativeActivityRecord:
 # ---------------------------------------------------------------------------
 
 def _extract_rows(path: Path, sheet_index: int) -> list[list]:
-    """Return all rows from a calamine sheet as a list of lists."""
+    """Return all rows from a calamine sheet as a list of lists.
+
+    calamine starts the list at the first non-empty row, so ``rows[0]`` is
+    not sheet row 1 when the sheet opens with empty rows. A caller that
+    reports positions takes the offset from :func:`_extract_rows_at`.
+    """
+    return _extract_rows_at(path, sheet_index)[0]
+
+
+def _extract_rows_at(path: Path, sheet_index: int) -> tuple[list[list], int]:
+    """The sheet rows and how many empty sheet rows precede ``rows[0]``."""
     wb = python_calamine.CalamineWorkbook.from_path(str(path))
     sheets = wb.sheet_names
     if sheet_index >= len(sheets):
@@ -84,7 +90,9 @@ def _extract_rows(path: Path, sheet_index: int) -> list[list]:
             f"sheet_index={sheet_index} out of range "
             f"(file has {len(sheets)} sheet(s)): {path}"
         )
-    return list(wb.get_sheet_by_index(sheet_index).to_python())
+    sheet = wb.get_sheet_by_index(sheet_index)
+    start = sheet.start
+    return list(sheet.to_python()), (start[0] if start else 0)
 
 
 def _str(cell: object) -> str:
@@ -117,44 +125,58 @@ def _float_or_raise(cell: object, context: str) -> float:
     return value
 
 
-def _is_numeric_id(sample_name: str) -> bool:
-    """Return True if sample_name starts with a pure integer."""
-    return _REP_BATCH_SAMPLE_RE.match(sample_name) is not None
+@dataclass(frozen=True)
+class GcRow:
+    """One data row of a GC report exactly as read, with its position.
 
+    This is the reading layer: it states what the sheet holds and where, and
+    judges nothing. Whether a name is wild-type, a well, a numeric ID, a
+    calibration standard or somebody else's sample is decided by
+    ``gc_sample`` (what the name is) and by the build (whether it belongs to
+    this run). A row whose name or area is empty is still a row here, so a
+    caller can report it rather than lose it.
 
-def _replicate_n_from_wt(sample_name: str) -> int:
-    """Extract replicate number from WT sample name.
-
-    'WT_1' → 1, 'WT1' → 1, 'WT' → 0 (unspecified).
+    row_index: 1-based sheet row, the number a spreadsheet shows.
+    block_index: 1-based FID1B block number, ``None`` for a flat sheet.
     """
-    m = re.match(r"^WT_?(\d+)$", sample_name, re.IGNORECASE)
-    if m:
-        return int(m.group(1))
-    return 0
+
+    sample_name: str
+    area_raw: str
+    row_index: int
+    block_index: int | None = None
+
+    @property
+    def location(self) -> str:
+        if self.block_index is None:
+            return f"row {self.row_index}"
+        return f"block {self.block_index}, row {self.row_index}"
+
+    def area(self, context: str) -> float | None:
+        """The area as a number, ``None`` when the cell is empty.
+
+        A cell that holds something other than a finite number is a malformed
+        file rather than a row to set aside, so it raises.
+        """
+        if self.area_raw == "":
+            return None
+        return _float_or_raise(self.area_raw, context)
 
 
-def _sample_name_is_calibration(name: str) -> bool:
-    """Return True if sample_name is purely numeric (calibration row).
-
-    This is intentional non-error use of float() as a type probe:
-    float('0') succeeds (calibration); float('WT_1') fails (not calibration).
-    """
+def _area_for_report(row: GcRow) -> float | None:
+    """The area of a row that will not be used: ``None`` when unreadable."""
     try:
-        float(name)
-        return True
+        return row.area("")
     except ValueError:
-        # Non-numeric: not a calibration row. This is the success path.
-        return False
+        return None
 
 
-# Replicate-suffix pattern for FID1B block sample names in rep-batch files.
-# Matches a numeric base ID optionally followed by a '-<rep>' suffix:
-#   '12' (base=12, rep=None), '12-2' (base=12, rep=2), '12-3' (base=12, rep=3).
-_BLOCK_REP_ID_RE = re.compile(r"^(\d+)(?:-(\d+))?$")
+def _has_block_signature(row: list) -> bool:
+    texts = [_str(c).lower() for c in row]
+    return any("signal:" in t for t in texts) and any("fid1b" in t for t in texts)
 
 
-def _iter_fid1b_blocks(rows: list[list]):
-    """Yield ``(sample_name, area_raw)`` for every data row in FID1B blocks.
+def iter_block_rows(rows: list[list], row_offset: int = 0):
+    """Yield a :class:`GcRow` for every data row of every FID1B block.
 
     A FID1B block is::
 
@@ -167,10 +189,10 @@ def _iter_fid1b_blocks(rows: list[list]):
     two observed layouts (``[Area, Sample Name]`` and
     ``['', Area, '', Sample Name]``) both parse.
 
-    Yields:
-        Tuples of ``(sample_name, area_raw)`` as stripped strings. Empty
-        rows and rows whose sample name is blank are skipped. The caller
-        decides how to interpret each name (calibration, WT, numeric ID).
+    This is the only block walk. A row with an empty name or an empty area is
+    yielded; only a row with neither is skipped, because it holds nothing to
+    report. *row_offset* is the number of empty sheet rows the reader dropped
+    above ``rows[0]``, so ``row_index`` is the row a spreadsheet shows.
 
     Raises:
         ValueError: A signal row is not followed by a header row containing
@@ -178,15 +200,13 @@ def _iter_fid1b_blocks(rows: list[list]):
     """
     i = 0
     n = len(rows)
+    block_index = 0
     while i < n:
-        row_texts = [_str(c).lower() for c in rows[i]]
-        is_signal = any("signal:" in t for t in row_texts) and any(
-            "fid1b" in t for t in row_texts
-        )
-        if not is_signal:
+        if not _has_block_signature(rows[i]):
             i += 1
             continue
 
+        block_index += 1
         i += 1
         if i >= n:
             raise ValueError(
@@ -203,8 +223,8 @@ def _iter_fid1b_blocks(rows: list[list]):
                 area_col = col_idx
         if sn_col is None or area_col is None:
             raise ValueError(
-                "FID1B block header missing 'Sample Name' / 'Area': "
-                f"{[_str(c) for c in rows[i]]!r}"
+                "FID1B block header missing 'Sample Name' / 'Area' in header "
+                f"row {i + 1 + row_offset}: {[_str(c) for c in rows[i]]!r}"
             )
 
         i += 1
@@ -221,108 +241,66 @@ def _iter_fid1b_blocks(rows: list[list]):
                 extended.append("")
             sample_name = _str(extended[sn_col])
             area_raw = _str(extended[area_col])
-            if sample_name:
-                yield sample_name, area_raw
+            if sample_name or area_raw:
+                yield GcRow(
+                    sample_name=sample_name,
+                    area_raw=area_raw,
+                    row_index=i + 1 + row_offset,
+                    block_index=block_index,
+                )
             i += 1
 
 
-# ---------------------------------------------------------------------------
-# Format detection
-# ---------------------------------------------------------------------------
+def iter_flat_rows(rows: list[list], reader: str, source: object, row_offset: int = 0):
+    """Yield a :class:`GcRow` per data row of a flat ``Sample Name``/``Area`` sheet.
 
-def detect_format(
-    path: str | Path,
-    *,
-    sheet_index: int = 0,
-    rep_batch_numeric_ratio: float = 0.5,
-) -> XlsxFormat:
-    """Auto-detect xlsx format from sheet content.
-
-    Priority (spec §2-2, revised for FID1B rep-batch files):
-        1. FID1B block layout: inspect block data sample names.
-           If >= rep_batch_numeric_ratio of them are numeric base/rep IDs
-           (e.g. '12', '12-2'), classify as AGILENT_REP_BATCH. Otherwise
-           (well names like 'A1' plus at most a few calibration rows),
-           classify as AGILENT_STANDARD.
-        2. Columns ['Variant', 'activity'] (flat) -> EVOLVEPRO
-        3. ['Sample Name', 'Area'] (flat) + >= rep_batch_numeric_ratio of
-           data rows have a numeric-id sample name -> AGILENT_REP_BATCH
-        4. ['Sample Name', 'Area'] (flat) -> RELATIVE_ONLY
-
-    Both standard and replicate-batch reports can use FID1B blocks. Classify
-    their data sample names as well: numeric base IDs and replicate suffixes
-    distinguish replicate batches from well names with occasional calibration
-    rows.
-
-    Args:
-        path:                   Path to xlsx file.
-        sheet_index:            Zero-based sheet index.
-        rep_batch_numeric_ratio: Fraction of data rows that must look like
-            numeric IDs to classify as AGILENT_REP_BATCH (default 0.5).
+    The header is the first row. Rows with neither a name nor an area are
+    skipped; every other row is yielded, empty name or empty area included.
 
     Raises:
-        ValueError: Format cannot be determined.
+        ValueError: The sheet is empty or either column is missing.
     """
-    resolved = Path(path)
-    rows = _extract_rows(resolved, sheet_index)
-
-    # Priority 1: FID1B block marker anywhere in first 20 rows.
-    has_signal = False
-    has_fid1b = False
-    for row in rows[:20]:
-        for cell in row:
-            text = _str(cell).lower()
-            if "signal:" in text:
-                has_signal = True
-            if "fid1b" in text:
-                has_fid1b = True
-    if has_signal and has_fid1b:
-        # Walk the blocks and inspect data sample names. A numeric-name
-        # majority means rep-batch; otherwise standard.
-        block_names = [name for name, _ in _iter_fid1b_blocks(rows)]
-        if not block_names:
-            # No data rows resolved; fall back to standard (preserves the
-            # original behaviour for degenerate / empty block files).
-            return XlsxFormat.AGILENT_STANDARD
-        numeric_block = sum(
-            1 for name in block_names if _BLOCK_REP_ID_RE.match(name)
-        )
-        ratio = numeric_block / len(block_names)
-        if ratio >= rep_batch_numeric_ratio:
-            return XlsxFormat.AGILENT_REP_BATCH
-        return XlsxFormat.AGILENT_STANDARD
-
     if not rows:
-        raise ValueError(f"detect_format: empty file {resolved}")
-
-    # Normalise header row.
+        raise ValueError(f"{reader}: empty file {source}")
     header_lower = [_str(c).lower() for c in rows[0]]
-
-    # Priority 2: EVOLVEpro columns.
-    if "variant" in header_lower and "activity" in header_lower:
-        return XlsxFormat.EVOLVEPRO
-
-    # Priority 3 & 4: [Sample Name, Area]
-    if "sample name" in header_lower and "area" in header_lower:
-        sn_col = header_lower.index("sample name")
-        data_rows = [row for row in rows[1:] if row and _str(row[0]) != ""]
-        if not data_rows:
-            return XlsxFormat.RELATIVE_ONLY
-
-        numeric_count = sum(
-            1
-            for row in data_rows
-            if len(row) > sn_col and _is_numeric_id(_str(row[sn_col]))
+    sn_col: int | None = None
+    area_col: int | None = None
+    for idx, h in enumerate(header_lower):
+        if h == "sample name":
+            sn_col = idx
+        elif h == "area":
+            area_col = idx
+    if sn_col is None:
+        raise ValueError(
+            f"{reader}: 'Sample Name' column not found. "
+            f"Header: {[_str(c) for c in rows[0]]!r} in {source}"
         )
-        ratio = numeric_count / len(data_rows)
-        if ratio >= rep_batch_numeric_ratio:
-            return XlsxFormat.AGILENT_REP_BATCH
-        return XlsxFormat.RELATIVE_ONLY
+    if area_col is None:
+        raise ValueError(
+            f"{reader}: 'Area' column not found. "
+            f"Header: {[_str(c) for c in rows[0]]!r} in {source}"
+        )
+    for row_idx, row in enumerate(rows[1:], start=2 + row_offset):
+        extended = list(row)
+        while len(extended) <= max(sn_col, area_col):
+            extended.append("")
+        sample_name = _str(extended[sn_col])
+        area_raw = _str(extended[area_col])
+        if sample_name or area_raw:
+            yield GcRow(sample_name=sample_name, area_raw=area_raw, row_index=row_idx)
 
-    raise ValueError(
-        f"detect_format: cannot determine format of {resolved}. "
-        f"Header row: {[_str(c) for c in rows[0]]!r}"
-    )
+
+def read_block_report(path: str | Path, *, sheet_index: int = 0) -> list[GcRow]:
+    """Every data row of a FID1B block report, positioned and unjudged."""
+    rows, offset = _extract_rows_at(Path(path), sheet_index)
+    return list(iter_block_rows(rows, offset))
+
+
+def read_flat_sheet(path: str | Path, *, sheet_index: int = 0, reader: str = "read_flat_sheet") -> list[GcRow]:
+    """Every data row of a flat ``Sample Name``/``Area`` sheet, positioned and unjudged."""
+    resolved = Path(path)
+    rows, offset = _extract_rows_at(resolved, sheet_index)
+    return list(iter_flat_rows(rows, reader, resolved, offset))
 
 
 # ---------------------------------------------------------------------------
@@ -365,184 +343,33 @@ def parse_agilent_standard(
         List of AgilentRecord, one per non-calibration sample.
     """
     resolved = Path(path)
-    rows = _extract_rows(resolved, sheet_index)
     stats = _AgilentParseStats()
     records: list[AgilentRecord] = []
 
-    i = 0
-    while i < len(rows):
-        row = rows[i]
-        row_texts = [_str(c).lower() for c in row]
-
-        # Detect Signal row.
-        if any("signal:" in t for t in row_texts) and any("fid1b" in t for t in row_texts):
-            # Next row should be the column header.
-            i += 1
-            if i >= len(rows):
-                raise ValueError(
-                    f"parse_agilent_standard: Signal block at row {i} has no "
-                    f"subsequent header row in {resolved}"
-                )
-            header_row = [_str(c).lower() for c in rows[i]]
-            sn_col: int | None = None
-            area_col: int | None = None
-            for col_idx, hdr in enumerate(header_row):
-                if hdr == "sample name":
-                    sn_col = col_idx
-                elif hdr == "area":
-                    area_col = col_idx
-
-            if sn_col is None or area_col is None:
-                raise ValueError(
-                    f"parse_agilent_standard: expected 'Sample Name' and 'Area' "
-                    f"in header row {i + 1} but found {[_str(c) for c in rows[i]]!r} "
-                    f"in {resolved}"
-                )
-
-            # Parse data rows until 'Sum' row or end.
-            i += 1
-            while i < len(rows):
-                data_row = rows[i]
-                if not data_row:
-                    i += 1
-                    continue
-
-                first_cell = _str(data_row[0]).lower()
-                if first_cell == "sum":
-                    i += 1
-                    break
-
-                # Extend row if needed.
-                while len(data_row) <= max(sn_col, area_col):
-                    data_row = list(data_row) + [""]
-
-                sample_name = _str(data_row[sn_col])
-                if not sample_name:
-                    i += 1
-                    continue
-
-                # Calibration skip: purely numeric sample name.
-                if _sample_name_is_calibration(sample_name):
-                    logger.warning(
-                        "parse_agilent_standard: skipping calibration row "
-                        "(numeric Sample Name=%r) at row %d in %s",
-                        sample_name,
-                        i + 1,
-                        resolved.name,
-                    )
-                    stats.n_calibration_skipped += 1
-                    i += 1
-                    continue
-
-                area_raw = _str(data_row[area_col])
-                if area_raw == "":
-                    i += 1
-                    continue
-
-                area = _float_or_raise(
-                    area_raw,
-                    f"Sample Name={sample_name!r} row {i + 1} in {resolved}",
-                )
-
-                is_wt = bool(WT_PATTERN.match(sample_name))
-                rep_n = _replicate_n_from_wt(sample_name) if is_wt else 0
-
-                records.append(
-                    AgilentRecord(
-                        sample_name=sample_name,
-                        area=area,
-                        is_wt=is_wt,
-                        replicate_n=rep_n,
-                    )
-                )
-                stats.n_records_parsed += 1
-                i += 1
-        else:
-            i += 1
-
-    logger.debug(
-        "parse_agilent_standard: %d records, %d calibration skipped from %s",
-        stats.n_records_parsed,
-        stats.n_calibration_skipped,
-        resolved.name,
-    )
-    return records
-
-
-# ---------------------------------------------------------------------------
-# Parser 2: AGILENT_REP_BATCH (numeric ID + rep)
-# ---------------------------------------------------------------------------
-
-def parse_agilent_rep_batch(
-    path: str | Path,
-    *,
-    sheet_index: int = 0,
-    mutant_count: int | None = None,
-) -> list[AgilentRecord]:
-    """Parse rep-batch Agilent xlsx with numeric sample IDs.
-
-    Sample names use a numeric ID (1, 2, 3, ...) optionally suffixed with
-    a replicate label ('_rep1', '_A', etc.).
-
-    When mutant_count is None, it is estimated as the maximum integer found
-    among sample names that match the numeric-ID pattern.
-
-    Args:
-        path:         Path to xlsx file.
-        sheet_index:  Zero-based sheet index.
-        mutant_count: Known number of mutants. None triggers auto-estimation.
-
-    Returns:
-        List of AgilentRecord. sample_name preserves original value.
-        Well-ID mapping is performed by the caller (join layer).
-    """
-    resolved = Path(path)
-    rows = _extract_rows(resolved, sheet_index)
-
-    if not rows:
-        raise ValueError(f"parse_agilent_rep_batch: empty file {resolved}")
-
-    header_lower = [_str(c).lower() for c in rows[0]]
-    sn_col: int | None = None
-    area_col: int | None = None
-    for idx, h in enumerate(header_lower):
-        if h == "sample name":
-            sn_col = idx
-        elif h == "area":
-            area_col = idx
-
-    if sn_col is None or area_col is None:
-        raise ValueError(
-            f"parse_agilent_rep_batch: 'Sample Name' / 'Area' columns not found. "
-            f"Header: {[_str(c) for c in rows[0]]!r} in {resolved}"
-        )
-
-    records: list[AgilentRecord] = []
-    max_numeric_id = 0
-
-    for row_idx, row in enumerate(rows[1:], start=2):
-        while len(row) <= max(sn_col, area_col):
-            row = list(row) + [""]
-
-        sample_name = _str(row[sn_col])
-        area_raw = _str(row[area_col])
-        if not sample_name and not area_raw:
+    for row in read_block_report(resolved, sheet_index=sheet_index):
+        sample_name = row.sample_name
+        if not sample_name:
             continue
 
-        area = _float_or_raise(
-            area_raw,
-            f"Sample Name={sample_name!r} row {row_idx} in {resolved}",
-        )
+        sample = classify_sample(sample_name, "well")
+        # Calibration skip: purely numeric sample name.
+        if sample.kind == NUMERIC_CALIBRATION:
+            logger.warning(
+                "parse_agilent_standard: skipping calibration row "
+                "(numeric Sample Name=%r) at row %d in %s",
+                sample_name,
+                row.row_index,
+                resolved.name,
+            )
+            stats.n_calibration_skipped += 1
+            continue
 
-        is_wt = bool(WT_PATTERN.match(sample_name))
-        rep_n = _replicate_n_from_wt(sample_name) if is_wt else 0
+        area = row.area(f"Sample Name={sample_name!r} row {row.row_index} in {resolved}")
+        if area is None:
+            continue
 
-        if not is_wt:
-            m = _REP_BATCH_SAMPLE_RE.match(sample_name)
-            if m:
-                numeric_id = int(m.group(1))
-                if numeric_id > max_numeric_id:
-                    max_numeric_id = numeric_id
+        is_wt = sample.kind == WT
+        rep_n = sample.replicate if is_wt else 0
 
         records.append(
             AgilentRecord(
@@ -550,23 +377,18 @@ def parse_agilent_rep_batch(
                 area=area,
                 is_wt=is_wt,
                 replicate_n=rep_n,
+                block_index=row.block_index or 0,
+                row_index=row.row_index,
             )
         )
+        stats.n_records_parsed += 1
 
-    if mutant_count is None:
-        mutant_count = max_numeric_id
-        logger.debug(
-            "parse_agilent_rep_batch: auto-estimated mutant_count=%d from %s",
-            mutant_count,
-            resolved.name,
-        )
-    else:
-        logger.debug(
-            "parse_agilent_rep_batch: mutant_count=%d (caller-provided) from %s",
-            mutant_count,
-            resolved.name,
-        )
-
+    logger.debug(
+        "parse_agilent_standard: %d records, %d calibration skipped from %s",
+        stats.n_records_parsed,
+        stats.n_calibration_skipped,
+        resolved.name,
+    )
     return records
 
 
@@ -585,43 +407,47 @@ class BlockRepBatchResult:
         base ID, so no replicate is silently dropped.
     wt_areas: All WT block areas (one per WT block such as 'WT1', 'WT2').
     n_blocks: Number of FID1B data rows consumed (diagnostics only).
+    id_rows: the rows behind ``reps``, parallel to each list.
+    wt_rows: the rows behind ``wt_areas``, parallel.
+    duplicate_rows: ID rows whose replicate number repeats an earlier row of
+        the same ID. They stay in ``reps``; the decoder reports them.
+    others: every named row that is not used, as ``(row, class, area, note)``.
+        ``note`` is ``"no_area"`` for a WT or ID row without an area,
+        ``"operator"`` for a row the caller's *skip* excluded, else ``None``.
+        Whether a well or variant among them belongs to the run is the
+        decoder's call, since only it holds the plate order.
     """
 
     reps: dict[int, list[float]]
     wt_areas: list[float]
     n_blocks: int
-
-
-def _block_rep_index(rep_token: str | None) -> int:
-    """Map an optional replicate suffix token to a 1-based replicate number.
-
-    None (no suffix) -> 1, '2' -> 2, '3' -> 3, and so on. Caller passes the
-    second capture group of _BLOCK_REP_ID_RE.
-    """
-    if rep_token is None:
-        return 1
-    return int(rep_token)
+    id_rows: dict[int, list[GcRow]] = field(default_factory=dict)
+    wt_rows: list[GcRow] = field(default_factory=list)
+    duplicate_rows: list[tuple[GcRow, float]] = field(default_factory=list)
+    others: list[tuple[GcRow, SampleClass, float | None, str | None]] = field(default_factory=list)
 
 
 def parse_agilent_block_rep_batch(
     path: str | Path,
     *,
     sheet_index: int = 0,
+    skip: Callable[[GcRow, float | None], bool] | None = None,
 ) -> BlockRepBatchResult:
     """Parse a FID1B block-layout Agilent report with numeric base/rep IDs.
 
-    This handles a block shape that the two existing parsers cannot:
-    parse_agilent_standard skips pure-numeric names as calibration (losing
-    every replicate-1 row), and parse_agilent_rep_batch assumes a single
-    flat header (raising on the per-block layout). This parser walks the
-    blocks and groups numeric base IDs across their replicate suffixes.
+    This handles a block shape parse_agilent_standard cannot: it skips
+    pure-numeric names as calibration, losing every replicate-1 row. This
+    parser walks the blocks and groups numeric base IDs across their
+    replicate suffixes.
 
     Sample-name grammar inside each FID1B block:
         '<base>'          replicate 1 (e.g. '12')
         '<base>-<rep>'    replicate <rep> (e.g. '12-2', '12-3')
         'WT<n>' / 'WT_<n>' wild-type block area
 
-    Non-numeric, non-WT names are ignored with a debug log.
+    Every other name, and a WT or ID row without an area, is kept in
+    ``others`` for the decoder to report. *skip* (row, area) lets a caller
+    exclude rows it was told to leave out.
 
     Args:
         path:        Path to the xlsx file.
@@ -631,52 +457,51 @@ def parse_agilent_block_rep_batch(
         BlockRepBatchResult with grouped replicate areas and WT areas.
 
     Raises:
-        ValueError: A block area cell is non-numeric, or a signal row lacks
-            a following header row (raised by _iter_fid1b_blocks).
+        ValueError: A WT or ID area cell is not a finite number, or a signal
+            row lacks a following header row (raised by iter_block_rows).
     """
     resolved = Path(path)
-    rows = _extract_rows(resolved, sheet_index)
 
     reps: dict[int, list[float]] = {}
-    rep_index_seen: dict[int, set[int]] = {}
     wt_areas: list[float] = []
     n_blocks = 0
+    id_rows: dict[int, list[GcRow]] = {}
+    wt_rows: list[GcRow] = []
+    duplicate_rows: list[tuple[GcRow, float]] = []
+    others: list[tuple[GcRow, SampleClass, float | None, str | None]] = []
+    rep_index_seen: dict[int, set[int]] = {}
 
-    for sample_name, area_raw in _iter_fid1b_blocks(rows):
-        n_blocks += 1
-        area = _float_or_raise(
-            area_raw,
-            f"Sample Name={sample_name!r} in {resolved}",
-        )
-
-        if WT_PATTERN.match(sample_name) or sample_name.upper() == "WT":
+    for row in read_block_report(resolved, sheet_index=sheet_index):
+        sample_name = row.sample_name
+        sample = classify_sample(sample_name, "numeric_id")
+        if sample_name:
+            n_blocks += 1
+        if sample.kind not in (WT, NUMERIC_ID):
+            area = _area_for_report(row)
+            excluded = skip is not None and skip(row, area)
+            others.append((row, sample, area, "operator" if excluded else None))
+            continue
+        area = row.area(f"Sample Name={sample_name!r} in {resolved}")
+        if skip is not None and skip(row, area):
+            others.append((row, sample, area, "operator"))
+            continue
+        if area is None:
+            others.append((row, sample, None, "no_area"))
+            continue
+        if sample.kind == WT:
             wt_areas.append(area)
+            wt_rows.append(row)
             continue
 
-        m = _BLOCK_REP_ID_RE.match(sample_name)
-        if not m:
-            logger.debug(
-                "parse_agilent_block_rep_batch: ignoring non-numeric, "
-                "non-WT sample name %r in %s",
-                sample_name,
-                resolved.name,
-            )
-            continue
-
-        base_id = int(m.group(1))
-        rep_idx = _block_rep_index(m.group(2))
+        assert sample.numeric_id is not None
+        base_id = sample.numeric_id
+        rep_idx = sample.replicate
         seen = rep_index_seen.setdefault(base_id, set())
         if rep_idx in seen:
-            logger.warning(
-                "parse_agilent_block_rep_batch: duplicate replicate %d for "
-                "base ID %d in %s; keeping all areas",
-                rep_idx,
-                base_id,
-                resolved.name,
-            )
+            duplicate_rows.append((row, area))
         seen.add(rep_idx)
         reps.setdefault(base_id, []).append(area)
-
+        id_rows.setdefault(base_id, []).append(row)
     logger.debug(
         "parse_agilent_block_rep_batch: %d base IDs, %d WT areas, "
         "%d blocks from %s",
@@ -685,7 +510,15 @@ def parse_agilent_block_rep_batch(
         n_blocks,
         resolved.name,
     )
-    return BlockRepBatchResult(reps=reps, wt_areas=wt_areas, n_blocks=n_blocks)
+    return BlockRepBatchResult(
+        reps=reps,
+        wt_areas=wt_areas,
+        n_blocks=n_blocks,
+        id_rows=id_rows,
+        wt_rows=wt_rows,
+        duplicate_rows=duplicate_rows,
+        others=others,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -713,47 +546,15 @@ def parse_relative_only(
         ValueError: Area cell is non-numeric.
     """
     resolved = Path(path)
-    rows = _extract_rows(resolved, sheet_index)
-
-    if not rows:
-        raise ValueError(f"parse_relative_only: empty file {resolved}")
-
-    header_lower = [_str(c).lower() for c in rows[0]]
-    sn_col: int | None = None
-    area_col: int | None = None
-    for idx, h in enumerate(header_lower):
-        if h == "sample name":
-            sn_col = idx
-        elif h == "area":
-            area_col = idx
-
-    if sn_col is None:
-        raise ValueError(
-            f"parse_relative_only: 'Sample Name' column not found. "
-            f"Header: {[_str(c) for c in rows[0]]!r} in {resolved}"
-        )
-    if area_col is None:
-        raise ValueError(
-            f"parse_relative_only: 'Area' column not found. "
-            f"Header: {[_str(c) for c in rows[0]]!r} in {resolved}"
-        )
-
     records: list[RelativeActivityRecord] = []
-    for row_idx, row in enumerate(rows[1:], start=2):
-        while len(row) <= max(sn_col, area_col):
-            row = list(row) + [""]
-
-        sample_name = _str(row[sn_col])
-        area_raw = _str(row[area_col])
-        if not sample_name and not area_raw:
-            continue
-
+    for row in read_flat_sheet(resolved, sheet_index=sheet_index, reader="parse_relative_only"):
         area = _float_or_raise(
-            area_raw,
-            f"Sample Name={sample_name!r} row {row_idx} in {resolved}",
+            row.area_raw,
+            f"Sample Name={row.sample_name!r} row {row.row_index} in {resolved}",
         )
-
-        records.append(RelativeActivityRecord(sample_name=sample_name, area=area))
+        records.append(
+            RelativeActivityRecord(sample_name=row.sample_name, area=area, row_index=row.row_index)
+        )
 
     return records
 

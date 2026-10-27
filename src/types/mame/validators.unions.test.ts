@@ -73,6 +73,11 @@ function buildEvolveproResult(overrides: Record<string, unknown> = {}) {
     artifact_hashes: {},
     wt_values: [1.0, 0.98, 1.02],
     variant_replicates: { "5F": [1.48, 1.52], "10L": [0.61] },
+    excluded_rows: [{
+      source: "round1_report_xlsx", sample_name: "BLANK", reason: "non_well_sample",
+      row_index: 23, block_index: 5, area: 0.3, kept: false,
+    }],
+    wt_rows: [{ source: "round1_report_xlsx", sample_name: "WT1", row_index: 3, block_index: 1, area: 10 }],
     ...overrides,
   };
 }
@@ -164,6 +169,14 @@ describe("build_evolvepro_input enforces its declared unions", () => {
     expect(
       validate(BUILD_EVOLVEPRO, buildEvolveproResult({
         variant_replicates: { "5F": 1.5 },
+      })),
+    ).toBe(false);
+  });
+
+  it("refuses a set-aside row without its position", () => {
+    expect(
+      validate(BUILD_EVOLVEPRO, buildEvolveproResult({
+        excluded_rows: [{ source: "round1_report_xlsx", sample_name: "BLANK", reason: "non_well_sample", kept: false }],
       })),
     ).toBe(false);
   });

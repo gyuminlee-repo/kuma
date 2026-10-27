@@ -309,7 +309,7 @@ Fold change와 log2_fc는 플레이트별 WT 평균을 기준으로 계산된다
 
 ### v0.3 xlsx 파이프라인 (v0.2.8+)
 
-실험실 산출물에 직접 대응하는 xlsx reader: `mutants-well position.xlsx`, Agilent GC-FID raw export(standard / rep-batch), EVOLVEpro xlsx. `kuma_core/mame/activity/evolvepro_xlsx.py:detect_format`이 포맷 자동 분기.
+실험실 산출물에 직접 대응하는 xlsx reader: `mutants-well position.xlsx`, Agilent GC-FID raw export(standard / rep-batch), EVOLVEpro xlsx. 파일 내용으로 reader 를 자동 분기하지 않는다. 운영자가 채운 4.1 입력란이 reader 를 정하고 `kuma_core/mame/activity/detect_measurement_source.py` 는 파일이 들어갈 수 있는 입력란만 알려 준다.
 
 `mame.activity.merge_for_evolvepro` (v0.2.9.0)가 EVOLVEpro 내보내기용 병합을 대체: 활성-지노타입 join + `merge_replicates_priority` (authoritative 우선·mismatch 플래그) + 라벨 교체 가드. 응답에 `replicate_stats`·`export_blocked` 노출. 5/12 데모는 기존 `activity.merge`를 그대로 사용하며 v0.3 버튼 "EVOLVEpro용 병합 (v0.3)"이 패널에 병행 배치.
 

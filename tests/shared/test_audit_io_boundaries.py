@@ -497,10 +497,11 @@ def long_csv_boundary():
     env = {name: getattr(models, name) for name in [
         "ActivityRecord", "ActivityTable", "DropReason", "DroppedRow", "PlateConfig", "PlateMeta", "WtReplicateRecord"]}
     from decimal import Decimal, InvalidOperation
+    from kuma_core.mame.activity.gc_sample import is_wt_name, wt_replicate
     return boundary("kuma_core/mame/activity/ingest_long_csv.py", {
         "ingest_long_csv", "_normalise_well", "_is_valid_well", "_DETAIL_MAX_CHARS",
-        "WELL_RE_96", "WELL_RE_384", "WELL_RE_RAW", "_WT_SUFFIX_RE", "WELL_COL_ALIASES", "VALUE_COL_ALIASES"},
-        pd=pd, cast=cast, WT_PATTERN=re.compile(r"^WT_?\d+$"),
+        "WELL_RE_96", "WELL_RE_384", "WELL_RE_RAW", "WELL_COL_ALIASES", "VALUE_COL_ALIASES"},
+        pd=pd, cast=cast, is_wt_name=is_wt_name, wt_replicate=wt_replicate,
         Decimal=Decimal, InvalidOperation=InvalidOperation, **env)
 
 

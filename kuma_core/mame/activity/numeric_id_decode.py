@@ -24,10 +24,23 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import TypeAlias
 
-from .evolvepro_xlsx import BlockRepBatchResult, parse_agilent_block_rep_batch
+from .evolvepro_xlsx import BlockRepBatchResult, GcRow, parse_agilent_block_rep_batch
+from .gc_sample import (
+    DUPLICATE_REPLICATE,
+    NO_AREA,
+    NO_NAME,
+    NO_NAME_ROW,
+    NUMERIC_CALIBRATION,
+    NUMERIC_CALIBRATION_ROW,
+    UNRECOGNIZED_SAMPLE,
+    VARIANT,
+    WELL,
+    ReportedRow,
+    classify_sample,
+)
 from .plate_layout_xlsx import _normalise_well, parse_plate_layout_xlsx
 from .variant_notation import to_evolvepro
 
@@ -100,6 +113,12 @@ class DecodeResult:
     #: the scale every decoded value carries, which is what a caller needs to
     #: state the spread of the assay behind the round.
     wt_areas: tuple[float, ...] = ()
+    #: Rows the decode did not use (and suspicious rows it did), with their
+    #: positions: names of no namespace, calibration numbers, IDs outside the
+    #: order, rows without an area, repeated replicate numbers.
+    excluded: list[ReportedRow] = field(default_factory=list)
+    #: The WT rows behind ``wt_areas``, as ``(row, area)``.
+    wt_rows: list[tuple[GcRow, float]] = field(default_factory=list)
 
     def by_variant(self) -> dict[str, list[float]]:
         return {r.variant: list(r.relative) for r in self.rows}
@@ -232,13 +251,56 @@ def _decode_against(
     *,
     source: str,
     order_label: str,
+    label: str | None = None,
+    excluded: list[ReportedRow] | None = None,
 ) -> tuple[list[DecodedId], list[DecodedSlot]]:
     """Match ascending numeric IDs onto *order* positionally.
 
-    An ID outside ``1..len(order)`` aborts the decode. Guessing would attach a
-    real measurement to the wrong variant, and every consumer downstream treats
-    the label as ground truth.
+    A name of no namespace (``BLANK``, an internal standard) has nothing tying
+    it to this run: a GC run is shared, so such rows are set aside and
+    reported in *excluded* under *label*. A well or variant label that the
+    order names is this run's own measurement in the other notation and
+    refuses the file. Rows the caller's *skip* excluded are recorded by that
+    caller, so they are not reported again here.
+
+    A numeric ID is a position, not a name, so an ID outside
+    ``1..len(order)`` is not evidence of another experiment's sample: such a
+    sample would be just as likely to fall inside the range, where nothing
+    tells it apart. An ID past the order says the file or the order is wrong
+    (another plate's report against this order, say), and the decode aborts.
+    Setting such IDs aside would decode the in-range part of a foreign plate
+    as this run. The IDs must line up with the order one to one for the same
+    reason: guessing would attach a real measurement to the wrong variant,
+    and every consumer downstream treats the label as ground truth.
     """
+    report = [] if excluded is None else excluded
+    tag = label or source
+    member_wells = {entry[2] for entry in order}
+    member_variants = {entry[0] for entry in order if entry[0] is not None}
+    for row, sample, area, note in block.others:
+        # Checked before the operator's exclusions, as the well readers do:
+        # this run's measurement in the other notation cannot be unticked,
+        # or it would vanish without a trace.
+        if (
+            sample.kind == WELL and sample.well in member_wells
+            or sample.kind == VARIANT and sample.variant in member_variants
+        ):
+            raise ValueError(
+                f"{source} {row.location}: sample {row.sample_name!r} names "
+                f"{'well ' + str(sample.well) if sample.kind == WELL else 'variant ' + str(sample.variant)} "
+                f"of {order_label}, but this report numbers its samples. The file "
+                "states this run's measurements in two notations; supply one notation per file."
+            )
+        if note == "operator":
+            # Recorded by the caller that excluded it.
+            continue
+        reason = (
+            NO_AREA if note == "no_area"
+            else NO_NAME_ROW if sample.kind == NO_NAME
+            else NUMERIC_CALIBRATION_ROW if sample.kind == NUMERIC_CALIBRATION
+            else UNRECOGNIZED_SAMPLE
+        )
+        report.append(ReportedRow(tag, row.sample_name, reason, row.row_index, row.block_index, area))
     ids = sorted(block.reps)
     if not ids:
         raise ValueError(f"{source} carries no numeric sample IDs to decode.")
@@ -250,6 +312,16 @@ def _decode_against(
             "outside that range would label measurements with the wrong "
             "variant. Check that the layout matches this run."
         )
+    for row, area in block.duplicate_rows:
+        sample = classify_sample(row.sample_name, "numeric_id")
+        if sample.numeric_id is not None:
+            report.append(ReportedRow(tag, row.sample_name, DUPLICATE_REPLICATE, row.row_index, row.block_index, area))
+    seen_wt: set[int] = set()
+    for row, area in zip(block.wt_rows, block.wt_areas):
+        replicate = classify_sample(row.sample_name, "numeric_id").replicate
+        if replicate > 0 and replicate in seen_wt:
+            report.append(ReportedRow(tag, row.sample_name, DUPLICATE_REPLICATE, row.row_index, row.block_index, area))
+        seen_wt.add(replicate)
     if len(ids) != len(order):
         raise ValueError(
             f"{source} carries {len(ids)} numeric IDs but {order_label} holds "
@@ -291,6 +363,8 @@ def decode_primary_screen(
     layout_xlsx: str | Path | None = None,
     *,
     expected_xlsx: str | Path | None = None,
+    source_label: str | None = None,
+    skip: Callable[[GcRow, float | None], bool] | None = None,
 ) -> DecodeResult:
     """Decode the whole-plate primary screen. ID ``i`` is the ``i``-th variant.
 
@@ -310,8 +384,9 @@ def decode_primary_screen(
             "preferred) or layout_xlsx (hand-written plate file)"
         )
     source = Path(report_xlsx).name
-    block = parse_agilent_block_rep_batch(report_xlsx)
+    block = parse_agilent_block_rep_batch(report_xlsx, skip=skip)
     wt_mean = _wt_mean(block, source)
+    excluded: list[ReportedRow] = []
     if expected_xlsx is not None:
         order, warnings = expected_variant_order(expected_xlsx)
         order_label = "the KURO expected_mutations design"
@@ -325,6 +400,8 @@ def decode_primary_screen(
         wt_mean,
         source=source,
         order_label=order_label,
+        label=source_label,
+        excluded=excluded,
     )
     return DecodeResult(
         rows=rows,
@@ -333,6 +410,8 @@ def decode_primary_screen(
         slots=slots,
         warnings=warnings,
         wt_areas=tuple(block.wt_areas),
+        excluded=excluded,
+        wt_rows=list(zip(block.wt_rows, block.wt_areas)),
     )
 
 
@@ -379,6 +458,9 @@ def decode_confirmation(
 def decode_confirmation_against(
     report_xlsx: str | Path,
     subset: DecodeOrder,
+    *,
+    source_label: str | None = None,
+    skip: Callable[[GcRow, float | None], bool] | None = None,
 ) -> DecodeResult:
     """Decode a replicated confirmation against a subset the caller assembled.
 
@@ -398,8 +480,9 @@ def decode_confirmation_against(
             not match the subset size.
     """
     source = Path(report_xlsx).name
-    block = parse_agilent_block_rep_batch(report_xlsx)
+    block = parse_agilent_block_rep_batch(report_xlsx, skip=skip)
     wt_mean = _wt_mean(block, source)
+    excluded: list[ReportedRow] = []
     if not subset:
         raise ValueError(
             f"No primary-screen variant exceeded wild-type ({WT_RELATIVE}), so "
@@ -412,6 +495,8 @@ def decode_confirmation_against(
         wt_mean,
         source=source,
         order_label="the above-WT subset of the primary screen",
+        label=source_label,
+        excluded=excluded,
     )
     return DecodeResult(
         rows=rows,
@@ -420,4 +505,6 @@ def decode_confirmation_against(
         slots=slots,
         warnings=[],
         wt_areas=tuple(block.wt_areas),
+        excluded=excluded,
+        wt_rows=list(zip(block.wt_rows, block.wt_areas)),
     )

@@ -5,7 +5,7 @@ import pytest
 from openpyxl import Workbook
 
 from kuma_core.mame.activity.build_evolvepro_input import (
-    _confirmation, _strip_confirmation_rep_suffix, _read_long, _WT_RE,
+    _RowLedger, _confirmation, _strip_confirmation_rep_suffix, _read_long, _WT_RE,
 )
 from kuma_core.mame.activity.constants import WT_PATTERN
 from kuma_core.mame.activity.detect_measurement_source import detect_measurement_source
@@ -71,8 +71,13 @@ def test_well_confirmation_role_is_the_slot_and_mapping_is_unambiguous(tmp_path:
     assert confirmation.candidates == ["confirmationWellLabels"]
     assert not confirmation.ambiguous
     assert _confirmation(path, {"A01": "11I", "H12": "12V"}) == {"11I": [1.0, 1.0], "12V": [1.0]}
-    with pytest.raises(ValueError, match="no unambiguous variant mapping"):
-        _confirmation(path, {"A01": "11I"})
+    # A well the mapping does not name has nothing tying it to this run: it is
+    # set aside with its position, never mapped onto a neighbour.
+    ledger = _RowLedger()
+    assert _confirmation(path, {"A01": "11I"}, ledger=ledger) == {"11I": [1.0, 1.0]}
+    assert [(row.source, row.sample_name, row.reason, row.block_index, row.row_index) for row in ledger.rows] == [
+        ("remeasure_report_xlsx", "H12-1", "unmapped_well", 4, 18),
+    ]
 
 
 def test_confirmation_rejects_mixed_namespaces_and_empty_control_only(tmp_path: Path):
@@ -85,8 +90,10 @@ def test_confirmation_rejects_mixed_namespaces_and_empty_control_only(tmp_path: 
 def test_generic_reader_cannot_normalise_invalid_well_into_mapping(tmp_path: Path):
     path = tmp_path / "invalid.csv"
     path.write_text("well,value\nWT,1\nI1,2\n")
-    with pytest.raises(ValueError, match="neither a canonical well nor variant"):
-        _read_long(path, "raw", {"I01": "11I"}, {}, [])
+    ledger = _RowLedger()
+    with pytest.raises(ValueError, match="no measurement rows outside WT records"):
+        _read_long(path, "raw", {"I01": "11I"}, {}, [], ledger=ledger)
+    assert [(row.sample_name, row.reason, row.row_index) for row in ledger.rows] == [("I1", "unrecognized_sample", 3)]
 
 
 def test_conflicting_layout_identity_is_not_last_row_wins(tmp_path: Path):

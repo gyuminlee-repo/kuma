@@ -7,15 +7,40 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 import math
-import re
 from collections.abc import Callable
 from typing import cast
 from uuid import uuid4
 
 import pandas as pd
 
-from .evolvepro_xlsx import parse_agilent_standard, parse_relative_only, write_evolvepro_xlsx, write_relative_activity_xlsx
-from .constants import WT_PATTERN
+from .evolvepro_xlsx import GcRow, read_block_report, read_flat_sheet, write_evolvepro_xlsx, write_relative_activity_xlsx
+from .gc_sample import (
+    DUPLICATE_REPLICATE,
+    DUPLICATE_WELL,
+    NO_AREA,
+    NO_NAME,
+    NO_NAME_ROW,
+    NON_WELL_SAMPLE,
+    NUMERIC_CALIBRATION,
+    NUMERIC_CALIBRATION_ROW,
+    OPERATOR_EXCLUDED,
+    UNMAPPED_VARIANT,
+    UNMAPPED_WELL,
+    UNRECOGNIZED,
+    UNRECOGNIZED_SAMPLE,
+    VARIANT,
+    WELL,
+    WT,
+    WT_PATTERN as _WT_RE,  # noqa: F401 (re-exported: tests pin the shared WT contract)
+    ReportedRow,
+    SampleClass,
+    _short_variant,
+    _strip_confirmation_rep_suffix,  # noqa: F401 (re-exported for callers)
+    classify_sample,
+    count_reasons,
+    describe_rows,
+    is_wt_name,
+)
 from .label_audit import LabelAudit, audit_labels
 from .merge import merge_replicates_priority
 from .numeric_id_decode import (
@@ -27,13 +52,11 @@ from .numeric_id_decode import (
     layout_variant_order,
 )
 from .models import MergeReplicatesStats, Variant
-from .plate_layout_xlsx import _WELL_RE, _normalise_well, parse_plate_layout_xlsx
-from .variant_notation import _SHORT_RE, is_canonical_internal, to_evolvepro
+from .plate_layout_xlsx import _normalise_well, parse_plate_layout_xlsx
+from .variant_notation import is_canonical_internal, to_evolvepro
 from .verdict_ngs import _PASS, parse_verdict_rows
 from .resequence_evidence import ResequenceEvidence, validate_resequence_links
 
-_WT_RE = WT_PATTERN
-_CONFIRMATION_REP_SUFFIX = re.compile(r"^(?P<label>.+)-[1-9]\d*$")
 _WELL_COLUMNS = {"well_id", "well", "well pos.", "sample name", "sample"}
 _VARIANT_COLUMNS = {"variant", "mutation", "mutant", "mutant_id"}
 _VALUE_COLUMNS = {"value", "area", "activity", "peak area"}
@@ -110,30 +133,14 @@ class BuildEvolveproResult:
     # mean was exported for it.  Every other variant carries the primary
     # source's.
     variant_replicates: dict[str, list[float]] = field(default_factory=dict)
+    # Every GC row a reader set aside or flagged, with its input field, sample
+    # name, position, area and reason. Rows flagged ``kept`` stayed in use.
+    excluded_rows: list[dict[str, object]] = field(default_factory=list)
+    # The WT rows each reader divided by, with field, name, position and area.
+    # A shared GC run can carry another experiment's WT under the same name,
+    # and nothing in the name tells them apart, so the rows are stated.
+    wt_rows: list[dict[str, object]] = field(default_factory=list)
 
-
-
-def _short_variant(label: object) -> str | None:
-    text = str(label).strip()
-    if is_canonical_internal(text):
-        return to_evolvepro(text)
-    return text if _SHORT_RE.match(text) else None
-
-
-def _strip_confirmation_rep_suffix(label: str) -> str:
-    """Accept only an explicit positive replicate suffix on a canonical label.
-
-    A name such as S11I-1 is a replicate of S11I. Arbitrary hyphenated names,
-    zero/negative indices, extra suffixes, and multi-mutant labels stay intact
-    and are rejected by the consumer. No fuzzy matching or mutation inference.
-    """
-    match = _CONFIRMATION_REP_SUFFIX.fullmatch(label)
-    if match is None:
-        return label
-    base = match.group("label")
-    if _WELL_RE.fullmatch(base) or _short_variant(base) is not None:
-        return base
-    return label
 
 
 def _layout_maps(layout_xlsx: str | Path | None) -> tuple[dict[str, str], dict[str, str]]:
@@ -196,12 +203,182 @@ def _wt_wells(layout_xlsx: str | Path | None, verdict_xlsx: str | Path) -> set[s
                 wells.add(entry.well_id)
         return wells
     for well, row in parse_verdict_rows(verdict_xlsx).items():
-        if row.mutant_id.strip().upper() == "WT":
+        if is_wt_name(row.mutant_id):
             wells.add(well)
     return wells
 
 
-def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str, str], variant_to_well: dict[str, str], unmapped: list[str], wt_wells: set[str] | None = None, measured_variants: frozenset[str] = frozenset()) -> tuple[dict[str, list[float]], dict[str, str], list[str], list[float]]:
+@dataclass(frozen=True)
+class OperatorExclusion:
+    """One GC row the operator chose to leave out, as it read when chosen.
+
+    The name and area are what the operator saw. If the file at that position
+    now says something else, the file changed after review, and the build
+    refuses rather than leaving out a different row.
+    """
+
+    source: str
+    row_index: int
+    sample_name: str
+    area: float | None = None
+    block_index: int | None = None
+
+
+class _RowLedger:
+    """Every GC row a reader set aside or flagged, and every WT row it used.
+
+    One channel for all readers: each entry carries the input field, the
+    sample name and the position, and the build turns the lot into warnings,
+    ``exclusion_reason_counts`` and the manifest ``excluded_rows`` list.
+    """
+
+    def __init__(self, exclusions: list[OperatorExclusion] | None = None) -> None:
+        self.rows: list[ReportedRow] = []
+        self.wt_rows: list[dict[str, object]] = []
+        self._pending: dict[tuple[str, int | None, int], OperatorExclusion] = {}
+        for exclusion in exclusions or []:
+            key = (exclusion.source, exclusion.block_index, exclusion.row_index)
+            if key in self._pending:
+                raise ValueError(f"excluded_rows names {exclusion.source} {_where(exclusion.block_index, exclusion.row_index)} twice")
+            self._pending[key] = exclusion
+
+    def set_aside(self, source: str, row: GcRow, reason: str, area: float | None = None) -> None:
+        self.rows.append(ReportedRow(
+            source=source,
+            sample_name=row.sample_name,
+            reason=reason,
+            row_index=row.row_index,
+            block_index=row.block_index,
+            area=area,
+        ))
+
+    def operator_skips(self, source: str, row: GcRow, area: float | None) -> bool:
+        """True when the operator excluded this row; refuses a row that changed."""
+        exclusion = self._pending.pop((source, row.block_index, row.row_index), None)
+        if exclusion is None:
+            return False
+        same_area = (
+            exclusion.area is None and area is None
+            or exclusion.area is not None and area is not None
+            and math.isclose(exclusion.area, area, rel_tol=1e-9, abs_tol=0.0)
+        )
+        if exclusion.sample_name != row.sample_name or not same_area:
+            raise ValueError(
+                f"{source} {row.location} no longer holds the row that was excluded: "
+                f"excluded {exclusion.sample_name!r} area {exclusion.area}, the file now has "
+                f"{row.sample_name!r} area {area}. The file changed after its rows were "
+                "reviewed; review them again."
+            )
+        self.set_aside(source, row, OPERATOR_EXCLUDED, area)
+        return True
+
+    def used_wt(self, source: str, row: GcRow, area: float) -> None:
+        self.wt_rows.append({
+            "source": source,
+            "sample_name": row.sample_name,
+            "row_index": row.row_index,
+            "block_index": row.block_index,
+            "area": area,
+        })
+
+    def flag_repeats(self, source: str, keyed: list[tuple[object, GcRow, float]], reason: str) -> None:
+        """Flag every row whose key was already seen. The rows stay in use."""
+        seen: set[object] = set()
+        for key, row, area in keyed:
+            if key in seen:
+                self.set_aside(source, row, reason, area)
+            seen.add(key)
+
+    def finish(self) -> None:
+        if self._pending:
+            listed = ", ".join(
+                f"{exclusion.source} {_where(exclusion.block_index, exclusion.row_index)} ({exclusion.sample_name!r})"
+                for exclusion in self._pending.values()
+            )
+            raise ValueError(
+                f"excluded_rows names row(s) no input of this build holds: {listed}. "
+                "The file changed after its rows were reviewed, or the row belongs to another field."
+            )
+
+
+def _where(block_index: int | None, row_index: int) -> str:
+    return f"row {row_index}" if block_index is None else f"block {block_index}, row {row_index}"
+
+
+def _lenient_area(row: GcRow) -> float | None:
+    """The area of a row that will not be used, for the report only."""
+    try:
+        return row.area("")
+    except ValueError:
+        return None
+
+
+def _wt_mean_of(source: str, wt: list[tuple[GcRow, float]], ledger: _RowLedger) -> float:
+    ledger.flag_repeats(
+        source,
+        [(classify_sample(row.sample_name, "well").replicate, row, area) for row, area in wt
+         if classify_sample(row.sample_name, "well").replicate > 0],
+        DUPLICATE_REPLICATE,
+    )
+    for row, area in wt:
+        ledger.used_wt(source, row, area)
+    return sum(area for _, area in wt) / len(wt)
+
+
+def _refuse_other_notation(source: str, row: GcRow, sample: SampleClass, unit: str) -> None:
+    """Membership rule 3: this run's own measurement written in another notation."""
+    raise ValueError(
+        f"{source} {row.location}: sample {row.sample_name!r} names "
+        f"{'variant ' + str(sample.variant) if sample.kind == VARIANT else 'well ' + str(sample.well)} "
+        f"of this run, but this field reads {unit} labels. The file states this run's "
+        "measurements in two notations; supply it in the field that matches, or one notation per file."
+    )
+
+
+def _well_slot_rows(source: str, path: str | Path, rows: list[GcRow], run_variants: set[str], ledger: _RowLedger) -> tuple[list[tuple[GcRow, float]], list[tuple[GcRow, str, float, int]]]:
+    """WT rows and well rows of a field whose unit is the well; everything else is set aside.
+
+    A pure number is a calibration standard. A variant label of this run is
+    the run's own measurement in the other notation and refuses the file. Any
+    other name (``BLANK``, an internal standard, a variant this run did not
+    make, another experiment's sample) has nothing tying it to this run and is
+    set aside with its position.
+    """
+    wt: list[tuple[GcRow, float]] = []
+    wells: list[tuple[GcRow, str, float, int]] = []
+    for row in rows:
+        sample = classify_sample(row.sample_name, "well")
+        if sample.kind == VARIANT and sample.variant in run_variants:
+            _refuse_other_notation(source, row, sample, "well")
+        if sample.kind == NO_NAME:
+            area = _lenient_area(row)
+            if not ledger.operator_skips(source, row, area):
+                ledger.set_aside(source, row, NO_NAME_ROW, area)
+            continue
+        if sample.kind not in (WT, WELL):
+            area = _lenient_area(row)
+            if ledger.operator_skips(source, row, area):
+                continue
+            reason = NUMERIC_CALIBRATION_ROW if sample.kind == NUMERIC_CALIBRATION else NON_WELL_SAMPLE
+            ledger.set_aside(source, row, reason, area)
+            continue
+        value = row.area(f"Sample Name={row.sample_name!r} row {row.row_index} in {path}")
+        if ledger.operator_skips(source, row, value):
+            continue
+        if value is None:
+            ledger.set_aside(source, row, NO_AREA)
+            continue
+        if sample.kind == WT:
+            wt.append((row, value))
+        else:
+            assert sample.well is not None
+            wells.append((row, sample.well, value, sample.replicate))
+    return wt, wells
+
+
+def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str, str], variant_to_well: dict[str, str], unmapped: list[str], wt_wells: set[str] | None = None, measured_variants: frozenset[str] = frozenset(), ledger: _RowLedger | None = None) -> tuple[dict[str, list[float]], dict[str, str], list[str], list[float]]:
+    source_name = "activity_path"
+    ledger = _RowLedger() if ledger is None else ledger
     source = Path(path)
     frame = pd.read_excel(source) if source.suffix.lower() in {".xlsx", ".xls"} else pd.read_csv(source, sep=None, engine="python")
     frame.columns = [_normalise_activity_header(column) for column in frame.columns]
@@ -214,68 +391,111 @@ def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str,
     paired_well_column = well_columns[0] if len(well_columns) == 1 and well_columns[0] != label_column else None
     conflicts: list[str] = []
     unchecked: list[str] = []
-    rows: list[tuple[str, float, str]] = []
-    namespaces: set[str] = set()
+    well_rows: list[tuple[GcRow, str, float, str]] = []
+    variant_rows: list[tuple[GcRow, str, float, str]] = []
     wt_values: dict[str, list[float]] = {}
+    wt_seen: list[tuple[str, GcRow, float]] = []
     for row_number, (_, row) in enumerate(frame.iterrows(), start=2):
-        sample = str(row[label_column]).strip()
-        label = _strip_confirmation_rep_suffix(sample)
+        raw_label = cast(object, row[label_column])
+        sample = "" if cast(bool, pd.isna(raw_label)) else str(raw_label).strip()
+        raw_value = cast(object, row[value_column])
+        value_empty = cast(bool, pd.isna(raw_value)) or str(raw_value).strip() == ""
+        position = GcRow(sample_name=sample, area_raw="" if value_empty else str(raw_value).strip(), row_index=row_number)
+        kind = classify_sample(sample, "well")
+        if kind.kind == NO_NAME:
+            area = _lenient_area(position)
+            if not ledger.operator_skips(source_name, position, area):
+                ledger.set_aside(source_name, position, NO_NAME_ROW, area)
+            continue
+        if kind.kind in (NUMERIC_CALIBRATION, UNRECOGNIZED):
+            area = _lenient_area(position)
+            if ledger.operator_skips(source_name, position, area):
+                continue
+            ledger.set_aside(source_name, position, NUMERIC_CALIBRATION_ROW if kind.kind == NUMERIC_CALIBRATION else UNRECOGNIZED_SAMPLE, area)
+            continue
+        label = kind.label
         if paired_well_column is not None:
-            well_label = _strip_confirmation_rep_suffix(str(row[paired_well_column]).strip())
-            well = _normalise_well(well_label)
+            paired = classify_sample(str(row[paired_well_column]).strip(), "well")
+            if paired.kind != WELL or paired.well is None:
+                raise ValueError(f"invalid 96-well coordinate: {paired.label!r}")
+            well = paired.well
             layout_variant = "WT" if well in (wt_wells or set()) else well_to_variant.get(well)
-            sample_variant = "WT" if _WT_RE.fullmatch(label) else _short_variant(label)
+            sample_variant = "WT" if kind.kind == WT else kind.variant
             if sample_variant is None:
                 raise ValueError(f"activity_path sample {sample!r} is not a canonical variant")
             if layout_variant is None:
                 unchecked.append(well)
             elif sample_variant != layout_variant:
                 conflicts.append(f"row {row_number}: well={well}, sample={sample}, layout_variant={layout_variant}")
+        if value_empty:
+            if ledger.operator_skips(source_name, position, None):
+                continue
+            ledger.set_aside(source_name, position, NO_AREA)
+            continue
         # frame is a flat CSV/Excel read, so the value column holds scalars and a
         # single-label lookup cannot yield a Series. Newer pandas types row[...]
         # as Series | ndarray | Any, which float() refuses, so the cast records
         # what the file format guarantees. The except below is the runtime
         # enforcement: a cell that is not a number becomes a ValueError.
         try:
-            value = float(cast(float | str, row[value_column]))
+            value = float(cast(float | str, raw_value))
         except (TypeError, ValueError):
             raise ValueError(f"activity_path has a non-numeric value for {label!r}") from None
         if not math.isfinite(value) or value < 0:
             raise ValueError(f"activity_path has an invalid value for {label!r}")
-        cohort = str(row["plate_id"]).strip() if "plate_id" in frame.columns else "file"
-        if _WT_RE.fullmatch(label):
-            wt_values.setdefault(cohort, []).append(value)
+        if ledger.operator_skips(source_name, position, value):
             continue
-        try:
-            well = _normalise_well(label)
-        except (ValueError, IndexError):
-            well = None
-        short = _short_variant(label)
-        if well is not None:
-            namespaces.add("well")
-            if short is not None:
-                raise ValueError(f"activity_path label {label!r} is ambiguous between well and variant namespaces")
-            variant = well_to_variant.get(well)
-            if variant is None:
-                unmapped.append(well)
-                continue
-            rows.append((variant, value, cohort))
-        elif short is not None:
-            if short in measured_variants and (
-                paired_well_column is None
-                or _normalise_well(str(row[paired_well_column])) != variant_to_well.get(short)
-            ):
-                raise ValueError(f"Measured resequencing activity requires its explicit well: {short}")
-            namespaces.add("variant")
-            rows.append((short, value, cohort))
-        else:
-            raise ValueError(f"activity_path label {label!r} is neither a canonical well nor variant")
+        cohort = str(row["plate_id"]).strip() if "plate_id" in frame.columns else "file"
+        if kind.kind == WT:
+            wt_values.setdefault(cohort, []).append(value)
+            wt_seen.append((cohort, position, value))
+            continue
+        if kind.kind == WELL:
+            assert kind.well is not None
+            well_rows.append((position, kind.well, value, cohort))
+            continue
+        assert kind.variant is not None
+        short = kind.variant
+        if short in measured_variants and (
+            paired_well_column is None
+            or classify_sample(str(row[paired_well_column]).strip(), "well").well != variant_to_well.get(short)
+        ):
+            raise ValueError(f"Measured resequencing activity requires its explicit well: {short}")
+        variant_rows.append((position, short, value, cohort))
     if conflicts:
         raise ValueError("errors.mame.measurementIdentityConflict|" + "; ".join(conflicts))
+    # Membership. A well on the mapping or a variant the run made is this run's
+    # measurement; a file holding both in quantity is one run in two notations
+    # and is refused. One notation with members sets the other aside.
+    well_members = [entry for entry in well_rows if entry[1] in well_to_variant]
+    variant_members = [entry for entry in variant_rows if entry[1] in variant_to_well]
+    if well_rows and variant_rows:
+        if well_members and variant_members or not well_members and not variant_members:
+            raise ValueError("activity_path cannot mix well and variant label namespaces")
+        if well_members:
+            for position, _short, value, _cohort in variant_rows:
+                ledger.set_aside(source_name, position, UNMAPPED_VARIANT, value)
+            variant_rows = []
+        else:
+            for position, well, value, _cohort in well_rows:
+                unmapped.append(well)
+                ledger.set_aside(source_name, position, UNMAPPED_WELL, value)
+            well_rows = []
+    rows: list[tuple[str, float, str]] = []
+    namespaces: set[str] = set()
+    for position, well, value, cohort in well_rows:
+        namespaces.add("well")
+        variant = well_to_variant.get(well)
+        if variant is None:
+            unmapped.append(well)
+            ledger.set_aside(source_name, position, UNMAPPED_WELL, value)
+            continue
+        rows.append((variant, value, cohort))
+    for _position, short, value, cohort in variant_rows:
+        namespaces.add("variant")
+        rows.append((short, value, cohort))
     if not rows:
         raise ValueError("activity_path has no measurement rows outside WT records")
-    if len(namespaces) != 1:
-        raise ValueError("activity_path cannot mix well and variant label namespaces")
     cohorts = {cohort for _, _, cohort in rows}
     if (namespaces == {"well"} or paired_well_column is not None) and len(cohorts) > 1:
         raise ValueError(
@@ -286,6 +506,10 @@ def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str,
         missing = sorted({cohort for _, _, cohort in rows if not wt_values.get(cohort)})
         if missing:
             raise ValueError(f"activity_path raw data has no WT/WT_1/WT1 rows for cohort(s): {', '.join(missing)}")
+    for cohort in sorted({cohort for cohort, _, _ in wt_seen}):
+        members = [(position, value) for c, position, value in wt_seen if c == cohort]
+        if cohort in cohorts:
+            _wt_mean_of(source_name, members, ledger)
     values: dict[str, list[float]] = {}
     well_by_variant = dict(variant_to_well)
     for variant, value, cohort in rows:
@@ -315,46 +539,86 @@ def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str,
     return values, well_by_variant, warnings, wt_relative
 
 
-def _raw_report_primary(path: str | Path, well_to_variant: dict[str, str], variant_to_well: dict[str, str], unmapped: list[str], well_values: dict[str, list[float]], wt_wells: set[str]) -> tuple[dict[str, list[float]], dict[str, str], list[tuple[str, float]], list[float]]:
-    records = parse_agilent_standard(path)
-    wt = [record.area for record in records if record.is_wt]
+def _no_member_rows(source: str, ledger: _RowLedger, well_to_variant: dict[str, str]) -> ValueError:
+    listed = ", ".join(
+        f"{row.sample_name!r} ({row.location}, {row.reason})" for row in ledger.rows if row.source == source and not row.kept
+    )
+    # When the operator excluded every well the mapping names, that is the
+    # cause, not the file.
+    unticked = [
+        row for row in ledger.rows
+        if row.source == source and row.reason == OPERATOR_EXCLUDED
+        and classify_sample(row.sample_name, "well").well in well_to_variant
+    ]
+    cause = (
+        f"every well of this run in it ({len(unticked)} row(s)) is in excluded_rows"
+        if unticked else "no sample name is a well the mapping names"
+    )
+    return ValueError(
+        f"{source} has no row that belongs to this run: {cause}"
+        + (f". Set aside: {listed}" if listed else "")
+    )
+
+
+def _raw_report_primary(path: str | Path, well_to_variant: dict[str, str], variant_to_well: dict[str, str], unmapped: list[str], well_values: dict[str, list[float]], wt_wells: set[str], ledger: _RowLedger | None = None) -> tuple[dict[str, list[float]], dict[str, str], list[tuple[str, float]], list[float]]:
+    """Whole-plate one-replicate screen labelled by well.
+
+    WT is the report's WT name rows (``WT_1`` ...). A measurement on a well the
+    run declared WT is skipped: the plate WT well is not this format's
+    reference, the named WT rows are. ``_well_confirmation`` reads it the other
+    way round because its report carries no WT names.
+    """
+    source = "round1_report_xlsx"
+    ledger = _RowLedger() if ledger is None else ledger
+    wt, wells = _well_slot_rows(source, path, read_block_report(path), set(variant_to_well), ledger)
     if not wt:
         raise ValueError("round1_report_xlsx has no WT block areas")
-    mean_wt = sum(wt) / len(wt)
+    if not any(well in well_to_variant for _, well, _, _ in wells):
+        raise _no_member_rows(source, ledger, well_to_variant)
+    mean_wt = _wt_mean_of(source, wt, ledger)
+    ledger.flag_repeats(source, [(well, row, area) for row, well, area, _ in wells if well not in wt_wells], DUPLICATE_WELL)
     values: dict[str, list[float]] = {}
     export_rows: list[tuple[str, float]] = []
-    for record in records:
-        if record.is_wt:
-            continue
-        try:
-            well = _normalise_well(_strip_confirmation_rep_suffix(record.sample_name))
-        except (ValueError, IndexError):
-            raise ValueError(f"round1_report_xlsx sample {record.sample_name!r} is not a well") from None
+    for row, well, area, _replicate in wells:
         if well in wt_wells:
             continue
-        well_values.setdefault(well, []).append(record.area / mean_wt)
+        well_values.setdefault(well, []).append(area / mean_wt)
         variant = well_to_variant.get(well)
         if variant is None:
             unmapped.append(well)
+            ledger.set_aside(source, row, UNMAPPED_WELL, area)
             continue
-        relative = record.area / mean_wt
+        relative = area / mean_wt
         values.setdefault(variant, []).append(relative)
         export_rows.append((well, relative))
-    return values, variant_to_well, export_rows, [area / mean_wt for area in wt]
+    return values, variant_to_well, export_rows, [area / mean_wt for _, area in wt]
 
 
-def _gc_primary(path: str | Path, well_to_variant: dict[str, str], variant_to_well: dict[str, str], unmapped: list[str], well_values: dict[str, list[float]], wt_wells: set[str]) -> tuple[dict[str, list[float]], dict[str, str]]:
+def _gc_primary(path: str | Path, well_to_variant: dict[str, str], variant_to_well: dict[str, str], unmapped: list[str], well_values: dict[str, list[float]], wt_wells: set[str], ledger: _RowLedger | None = None) -> tuple[dict[str, list[float]], dict[str, str]]:
+    """Pre-normalised flat sheet labelled by well. It carries no WT scale.
+
+    A WT-named row has no place in an already-relative sheet and is set aside
+    like any other name that is not a well.
+    """
+    source = "gc_data_xlsx"
+    ledger = _RowLedger() if ledger is None else ledger
+    wt, wells = _well_slot_rows(source, path, read_flat_sheet(path, reader="parse_relative_only"), set(variant_to_well), ledger)
+    for row, area in wt:
+        ledger.set_aside(source, row, NON_WELL_SAMPLE, area)
+    if not any(well in well_to_variant for _, well, _, _ in wells):
+        raise _no_member_rows(source, ledger, well_to_variant)
+    ledger.flag_repeats(source, [(well, row, area) for row, well, area, _ in wells if well not in wt_wells], DUPLICATE_WELL)
     values: dict[str, list[float]] = {}
-    for record in parse_relative_only(path):
-        well = _normalise_well(record.sample_name)
+    for row, well, area, _replicate in wells:
         if well in wt_wells:
             continue
-        well_values.setdefault(well, []).append(record.area)
+        well_values.setdefault(well, []).append(area)
         variant = well_to_variant.get(well)
         if variant is None:
             unmapped.append(well)
+            ledger.set_aside(source, row, UNMAPPED_WELL, area)
             continue
-        values.setdefault(variant, []).append(record.area)
+        values.setdefault(variant, []).append(area)
     return values, variant_to_well
 
 
@@ -377,18 +641,25 @@ def _decode_order(expected_xlsx: str | Path | None, layout_xlsx: str | Path | No
     return layout_variant_order(layout_xlsx)
 
 
-def _numeric_primary(path: str | Path, expected_xlsx: str | Path | None, layout_xlsx: str | Path | None, well_values: dict[str, list[float]]) -> tuple[dict[str, list[float]], dict[str, str], list[float], list[str]]:
+def _numeric_primary(path: str | Path, expected_xlsx: str | Path | None, layout_xlsx: str | Path | None, well_values: dict[str, list[float]], ledger: _RowLedger | None = None) -> tuple[dict[str, list[float]], dict[str, str], list[float], list[str]]:
     """Whole-plate screen whose sample names are positions rather than labels.
 
     ID ``i`` is the ``i``-th variant of the plate order. The decoder refuses an
     ID set that does not line up with that order one to one rather than
     labelling a measurement with a neighbouring variant.
     """
+    source = "numeric_report_xlsx"
+    ledger = _RowLedger() if ledger is None else ledger
     result = decode_primary_screen(
         path,
         layout_xlsx if expected_xlsx is None else None,
         expected_xlsx=expected_xlsx,
+        source_label=source,
+        skip=lambda row, area: ledger.operator_skips(source, row, area),
     )
+    ledger.rows.extend(result.excluded)
+    for row, area in result.wt_rows:
+        ledger.used_wt(source, row, area)
     for slot in result.slots:
         well_values.setdefault(slot.well, []).extend(slot.relative)
     values = {row.variant: list(row.relative) for row in result.rows}
@@ -414,7 +685,7 @@ def _above_wt_subset(order: DecodeOrder, well_values: dict[str, list[float]]) ->
     return subset
 
 
-def _numeric_confirmation(path: str | Path, order: DecodeOrder, well_values: dict[str, list[float]]) -> dict[str, list[float]]:
+def _numeric_confirmation(path: str | Path, order: DecodeOrder, well_values: dict[str, list[float]], ledger: _RowLedger | None = None) -> dict[str, list[float]]:
     """Replicated confirmation whose sample names are positions in the subset.
 
     The subset is every slot the primary screen put above wild-type, which is
@@ -422,6 +693,8 @@ def _numeric_confirmation(path: str | Path, order: DecodeOrder, well_values: dic
     supplied. A confirmation covering a different set produces an ID count the
     decoder cannot place, and it refuses instead of mislabelling.
     """
+    source = "remeasure_numeric_xlsx"
+    ledger = _RowLedger() if ledger is None else ledger
     subset = _above_wt_subset(order, well_values)
     if not subset:
         raise ValueError(
@@ -429,94 +702,151 @@ def _numeric_confirmation(path: str | Path, order: DecodeOrder, well_values: dic
             "confirmation has no subset to index into. Check that the primary "
             "WT rows are the ones this screen was normalized against."
         )
-    return decode_confirmation_against(path, subset).by_variant()
+    result = decode_confirmation_against(
+        path,
+        subset,
+        source_label=source,
+        skip=lambda row, area: ledger.operator_skips(source, row, area),
+    )
+    ledger.rows.extend(result.excluded)
+    for row, area in result.wt_rows:
+        ledger.used_wt(source, row, area)
+    return result.by_variant()
 
 
-def _confirmation(path: str | Path, well_to_variant: dict[str, str] | None = None, internal_identities: dict[str, str] | None = None) -> dict[str, list[float]]:
-    records = parse_agilent_standard(path)
-    wt = [record.area for record in records if record.is_wt]
+def _label_slot_rows(source: str, path: str | Path, ledger: _RowLedger) -> tuple[list[tuple[GcRow, float]], list[tuple[GcRow, SampleClass, float]]]:
+    """WT rows and label rows (well or variant) of a replicated label report."""
+    wt: list[tuple[GcRow, float]] = []
+    labelled: list[tuple[GcRow, SampleClass, float]] = []
+    for row in read_block_report(path):
+        sample = classify_sample(row.sample_name, "variant")
+        if sample.kind == NO_NAME:
+            area = _lenient_area(row)
+            if not ledger.operator_skips(source, row, area):
+                ledger.set_aside(source, row, NO_NAME_ROW, area)
+            continue
+        if sample.kind in (NUMERIC_CALIBRATION, UNRECOGNIZED):
+            area = _lenient_area(row)
+            if ledger.operator_skips(source, row, area):
+                continue
+            ledger.set_aside(source, row, NUMERIC_CALIBRATION_ROW if sample.kind == NUMERIC_CALIBRATION else UNRECOGNIZED_SAMPLE, area)
+            continue
+        value = row.area(f"Sample Name={row.sample_name!r} row {row.row_index} in {path}")
+        if ledger.operator_skips(source, row, value):
+            continue
+        if value is None:
+            ledger.set_aside(source, row, NO_AREA)
+            continue
+        if sample.kind == WT:
+            wt.append((row, value))
+        else:
+            labelled.append((row, sample, value))
+    return wt, labelled
+
+
+def _confirmation(path: str | Path, well_to_variant: dict[str, str] | None = None, internal_identities: dict[str, str] | None = None, run_variants: set[str] | None = None, ledger: _RowLedger | None = None, warnings: list[str] | None = None) -> dict[str, list[float]]:
+    """Replicated confirmation labelled by well or by variant, one notation per file.
+
+    A well the mapping does not name, and a variant outside *run_variants*
+    (when given), have nothing tying them to this run and are set aside. Wells
+    and variants that both belong to the run are the run in two notations and
+    refuse the file.
+    """
+    source = "remeasure_report_xlsx"
+    ledger = _RowLedger() if ledger is None else ledger
+    wt, labelled = _label_slot_rows(source, path, ledger)
     if not wt:
         raise ValueError("remeasure_report_xlsx has no WT block areas")
-    mean_wt = sum(wt) / len(wt)
-    values: dict[str, list[float]] = {}
-    namespaces: set[str] = set()
-    for record in records:
-        if record.is_wt:
-            continue
-        label = _strip_confirmation_rep_suffix(record.sample_name)
-        if _WELL_RE.fullmatch(label):
-            namespaces.add("well")
-            well = _normalise_well(label)
-            variant = (well_to_variant or {}).get(well)
-            if variant is None:
-                raise ValueError(f"remeasure_report_xlsx well {well!r} has no unambiguous variant mapping")
-        else:
-            namespaces.add("variant")
-            variant = _short_variant(label)
-            if variant is None:
-                raise ValueError(f"remeasure_report_xlsx sample {record.sample_name!r} is not a canonical well or variant label")
-        expected_identity = (internal_identities or {}).get(variant)
-        if is_canonical_internal(label) and expected_identity and label != expected_identity:
-            raise ValueError(f"remeasure_report_xlsx sample {label!r} conflicts with declared identity {expected_identity!r}")
-        values.setdefault(variant, []).append(record.area / mean_wt)
-    if len(namespaces) > 1:
+    mapping = well_to_variant or {}
+    well_members = [entry for entry in labelled if entry[1].kind == WELL and entry[1].well in mapping]
+    variant_members = [
+        entry for entry in labelled
+        if entry[1].kind == VARIANT and (run_variants is None or entry[1].variant in run_variants)
+    ]
+    if well_members and variant_members:
         raise ValueError("remeasure_report_xlsx cannot mix well and variant label namespaces")
+    mean_wt = _wt_mean_of(source, wt, ledger)
+    values: dict[str, list[float]] = {}
+    unmapped: list[str] = []
+    replicate_keys: list[tuple[object, GcRow, float]] = []
+    for row, sample, area in labelled:
+        if sample.kind == WELL:
+            assert sample.well is not None
+            variant = mapping.get(sample.well)
+            if variant is None or variant_members:
+                unmapped.append(sample.well)
+                ledger.set_aside(source, row, UNMAPPED_WELL, area)
+                continue
+        else:
+            assert sample.variant is not None
+            variant = sample.variant
+            if well_members or run_variants is not None and variant not in run_variants:
+                ledger.set_aside(source, row, UNMAPPED_VARIANT, area)
+                continue
+            expected_identity = (internal_identities or {}).get(variant)
+            if sample.internal and expected_identity and sample.internal != expected_identity:
+                raise ValueError(f"remeasure_report_xlsx sample {sample.internal!r} conflicts with declared identity {expected_identity!r}")
+        replicate_keys.append(((variant, sample.replicate), row, area))
+        values.setdefault(variant, []).append(area / mean_wt)
+    ledger.flag_repeats(source, replicate_keys, DUPLICATE_REPLICATE)
+    if unmapped and warnings is not None:
+        warnings.append(
+            f"remeasure_report_xlsx has {len(set(unmapped))} well(s) the mapping does not name: "
+            + ", ".join(sorted(set(unmapped)))
+        )
     if not values:
         raise ValueError("remeasure_report_xlsx has no measurement rows outside WT records")
     return values
 
 
-def _well_confirmation(path: str | Path, well_to_variant: dict[str, str], wt_wells: set[str], mapping_source: str, warnings: list[str]) -> dict[str, list[float]]:
+def _well_confirmation(path: str | Path, well_to_variant: dict[str, str], wt_wells: set[str], mapping_source: str, warnings: list[str], ledger: _RowLedger | None = None) -> dict[str, list[float]]:
     """Replicated confirmation whose sample names are wells (``A1-1``, ``A1-2``).
 
     The bench re-measures the wells it picked and names each injection after
     the well, so the report carries no ``WT1`` block: wild-type is the well the
     run declared as WT. Its areas, together with any ``WT<n>`` rows the report
     does carry, are the mean every other area is divided by. A bare well is
-    replicate 1. Unlike ``_confirmation`` this reader skips a sample name that
-    is not a well and does not refuse it: a GC run is shared, so the real export
-    carries other experiments' samples beside the re-measured wells.
+    replicate 1. A GC run is shared, so the export carries other experiments'
+    samples beside the re-measured wells; those are set aside and reported.
     """
-    wt: list[float] = []
-    areas: list[tuple[str, float]] = []
-    skipped: list[str] = []
-    for record in parse_agilent_standard(path):
-        if record.is_wt:
-            wt.append(record.area)
-            continue
-        label = _strip_confirmation_rep_suffix(record.sample_name)
-        if not _WELL_RE.fullmatch(label):
-            skipped.append(record.sample_name)
-            continue
-        well = _normalise_well(label)
+    source = "remeasure_well_xlsx"
+    ledger = _RowLedger() if ledger is None else ledger
+    wt_named, wells = _well_slot_rows(source, path, read_block_report(path), set(well_to_variant.values()), ledger)
+    wt: list[tuple[GcRow, float]] = list(wt_named)
+    areas: list[tuple[GcRow, str, float, int]] = []
+    for row, well, area, replicate in wells:
         if well in wt_wells:
-            wt.append(record.area)
+            wt.append((row, area))
         else:
-            areas.append((well, record.area))
+            areas.append((row, well, area, replicate))
     if not wt:
         raise ValueError(
             "remeasure_well_xlsx has no WT areas: declare the WT well in "
             f"{mapping_source} or include WT1/WT_1 rows in the report"
         )
-    mean_wt = sum(wt) / len(wt)
+    ledger.flag_repeats(source, [(classify_sample(row.sample_name, "well").replicate, row, area) for row, area in wt_named if classify_sample(row.sample_name, "well").replicate > 0], DUPLICATE_REPLICATE)
+    for row, area in wt:
+        ledger.used_wt(source, row, area)
+    mean_wt = sum(area for _, area in wt) / len(wt)
+    ledger.flag_repeats(source, [((well, replicate), row, area) for row, well, area, replicate in areas], DUPLICATE_REPLICATE)
     values: dict[str, list[float]] = {}
     unmapped: set[str] = set()
-    for well, area in areas:
+    for row, well, area, _replicate in areas:
         variant = well_to_variant.get(well)
         if variant is None:
             unmapped.add(well)
+            ledger.set_aside(source, row, UNMAPPED_WELL, area)
             continue
         values.setdefault(variant, []).append(area / mean_wt)
-    if skipped:
-        warnings.append(
-            f"remeasure_well_xlsx skipped {len(skipped)} sample(s) that are not "
-            "well labels: " + ", ".join(skipped)
-        )
     if unmapped:
         warnings.append(
             f"remeasure_well_xlsx has {len(unmapped)} well(s) absent from "
             f"{mapping_source}: " + ", ".join(sorted(unmapped))
         )
+    if not values:
+        # Same rule as every other reader: a file with no row of this run is
+        # refused, not merged as an empty confirmation.
+        raise _no_member_rows(source, ledger, well_to_variant)
     return values
 
 
@@ -662,7 +992,7 @@ def _publish_artifact_bundle(
     return artifact_hashes
 
 
-def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path | None = None, activity_scale: str = "raw", gc_data_xlsx: str | Path | None = None, round1_report_xlsx: str | Path | None = None, numeric_report_xlsx: str | Path | None = None, remeasure_report_xlsx: str | Path | None = None, remeasure_numeric_xlsx: str | Path | None = None, remeasure_well_xlsx: str | Path | None = None, verdict_xlsx: str | Path, layout_xlsx: str | Path | None = None, expected_xlsx: str | Path | None = None, mismatch_threshold: float = 0.1, gc_export_xlsx: str | Path | None = None, allow_label_mismatch: bool = False, resequence_evidence: ResequenceEvidence | None = None) -> BuildEvolveproResult:
+def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path | None = None, activity_scale: str = "raw", gc_data_xlsx: str | Path | None = None, round1_report_xlsx: str | Path | None = None, numeric_report_xlsx: str | Path | None = None, remeasure_report_xlsx: str | Path | None = None, remeasure_numeric_xlsx: str | Path | None = None, remeasure_well_xlsx: str | Path | None = None, verdict_xlsx: str | Path, layout_xlsx: str | Path | None = None, expected_xlsx: str | Path | None = None, mismatch_threshold: float = 0.1, gc_export_xlsx: str | Path | None = None, allow_label_mismatch: bool = False, resequence_evidence: ResequenceEvidence | None = None, excluded_rows: list[OperatorExclusion] | None = None) -> BuildEvolveproResult:
     """Build Step 3 output from exactly one supported primary source.
 
     Raw generic activity uses WT rows per file/plate cohort; relative generic
@@ -673,6 +1003,12 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
     scale as the exported column. They are dropped from the workbook itself,
     which holds one row per designed variant, so a caller that needs the assay
     spread behind this round has to take them from the result.
+
+    Every GC row a reader set aside (``BLANK``, calibration numbers, wells off
+    the mapping, rows without a name or area, rows in *excluded_rows*) is
+    named with its position in ``warnings``, counted in
+    ``exclusion_reason_counts`` and listed in the manifest ``excluded_rows``.
+    The WT rows the reference was taken from are listed in ``wt_rows``.
     """
     if activity_scale not in {"raw", "relative_to_wt"}:
         raise ValueError("activity_scale must be 'raw' or 'relative_to_wt'")
@@ -710,6 +1046,7 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
         raise ValueError("Measured resequencing clones require one final activity source, not unscoped confirmation measurements")
     name, source = selected[0]
     warnings: list[str] = []
+    ledger = _RowLedger(excluded_rows)
     gc_export_rows: list[tuple[str, float]] = []
     # One well<->variant mapping serves every well-labeled source. A layout
     # sheet states it directly; without one it is derived from the verdict
@@ -743,10 +1080,10 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
             "layout_xlsx, or a verdict_xlsx that names mutant_id per well"
         )
     if name == "activity_path":
-        fallback, well_by_variant, source_warnings, wt_values = _read_long(source, activity_scale, well_to_variant, variant_to_well, unmapped, wt_wells, frozenset(measured))
+        fallback, well_by_variant, source_warnings, wt_values = _read_long(source, activity_scale, well_to_variant, variant_to_well, unmapped, wt_wells, frozenset(measured), ledger)
         warnings.extend(source_warnings)
     elif name == "gc_data_xlsx":
-        fallback, well_by_variant = _gc_primary(source, well_to_variant, variant_to_well, unmapped, well_values, wt_wells)
+        fallback, well_by_variant = _gc_primary(source, well_to_variant, variant_to_well, unmapped, well_values, wt_wells, ledger)
         # A pre-normalized sheet states each well relative to a WT mean taken
         # somewhere upstream; the replicates behind that mean never reach this
         # app, so there is nothing to record.
@@ -754,10 +1091,10 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
         if gc_export_xlsx is not None:
             warnings.append("gc_export_xlsx applies only to round1_report_xlsx and was ignored")
     elif name == "round1_report_xlsx":
-        fallback, well_by_variant, gc_export_rows, wt_values = _raw_report_primary(source, well_to_variant, variant_to_well, unmapped, well_values, wt_wells)
+        fallback, well_by_variant, gc_export_rows, wt_values = _raw_report_primary(source, well_to_variant, variant_to_well, unmapped, well_values, wt_wells, ledger)
     else:
         fallback, well_by_variant, wt_values, decode_warnings = _numeric_primary(
-            source, expected_xlsx, layout_xlsx, well_values
+            source, expected_xlsx, layout_xlsx, well_values, ledger
         )
         warnings.extend(decode_warnings)
         if gc_export_xlsx is not None:
@@ -774,7 +1111,7 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
             }
         order, order_warnings = _decode_order(expected_xlsx, layout_xlsx)
         warnings.extend(order_warnings)
-        authoritative = _numeric_confirmation(remeasure_numeric_xlsx, order, well_values)
+        authoritative = _numeric_confirmation(remeasure_numeric_xlsx, order, well_values, ledger)
     elif remeasure_report_xlsx is not None:
         # Retain any declared reference amino acid until after contradiction
         # checks. Short notation intentionally omits it; a full label does not.
@@ -790,11 +1127,12 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
             if existing is not None and existing != label:
                 raise ValueError(f"confirmation mapping has conflicting full identities for {short!r}")
             internal_identities[short] = label
-        authoritative = _confirmation(remeasure_report_xlsx, well_to_variant, internal_identities)
+        authoritative = _confirmation(remeasure_report_xlsx, well_to_variant, internal_identities, set(variant_to_well), ledger, warnings)
     elif remeasure_well_xlsx is not None:
-        authoritative = _well_confirmation(remeasure_well_xlsx, well_to_variant, wt_wells, mapping_source, warnings)
+        authoritative = _well_confirmation(remeasure_well_xlsx, well_to_variant, wt_wells, mapping_source, warnings, ledger)
     else:
         authoritative = {}
+    ledger.finish()
     merged, stats = merge_replicates_priority({Variant(key): value for key, value in authoritative.items()}, {Variant(key): value for key, value in fallback.items()}, mismatch_threshold=mismatch_threshold)
     mismatched = [{"variant": str(variant), "authoritative": merged[variant], "fallback": sum(fallback[str(variant)]) / len(fallback[str(variant)])} for variant in stats.mismatched]
     input_count = len(merged)
@@ -859,6 +1197,21 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
             f"{len(distinct)} measured well(s) absent from {mapping_source}: "
             + ", ".join(distinct)
         )
+    # Every other GC row a reader set aside or flagged, by name and position.
+    # Unmapped wells of the primary are counted above as distinct wells, which
+    # is what manifest readers already know that key to mean; a confirmation's
+    # unmapped wells are added to it the same way.
+    confirmation_unmapped = {
+        (row.source, classify_sample(row.sample_name, "well").well)
+        for row in ledger.rows
+        if row.reason == UNMAPPED_WELL and row.source != name
+    }
+    if confirmation_unmapped:
+        reason_counts[UNMAPPED_WELL] = reason_counts.get(UNMAPPED_WELL, 0) + len(confirmation_unmapped)
+    reported = [row for row in ledger.rows if row.reason != UNMAPPED_WELL]
+    warnings.extend(describe_rows(reported))
+    for reason, count in count_reasons(reported).items():
+        reason_counts[reason] = reason_counts.get(reason, 0) + count
     if audit and audit.is_closed_permutation and not allow_label_mismatch:
         raise ValueError("Label swap detected; export blocked. Review the layout and verdict labels or set allow_label_mismatch=True after review.")
     if not merged:
@@ -926,6 +1279,8 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
         "exported_count": len(output_rows),
         "excluded_count": len(excluded),
         "exclusion_reason_counts": reason_counts,
+        "excluded_rows": [row.as_dict() for row in ledger.rows],
+        "wt_rows": ledger.wt_rows,
         "normalization_sources": normalization_sources,
         "evidence_hash": evidence_hash,
         **({"resequence_evidence": evidence_provenance} if evidence_provenance else {}),
@@ -954,4 +1309,6 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
         artifact_hashes=artifact_hashes,
         wt_values=wt_values,
         variant_replicates=variant_replicates,
+        excluded_rows=[row.as_dict() for row in ledger.rows],
+        wt_rows=ledger.wt_rows,
     )

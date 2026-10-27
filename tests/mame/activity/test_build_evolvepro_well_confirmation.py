@@ -7,6 +7,7 @@ shared, so the same export also holds other experiments' samples.
 """
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -152,9 +153,16 @@ def test_unrelated_samples_and_unmapped_wells_are_skipped_with_a_warning(tmp_pat
 
     assert _rows(out) == pytest.approx({"5F": 1.5, "10L": 0.5})
     assert (
-        "remeasure_well_xlsx skipped 2 sample(s) that are not well labels: "
-        "Other-A-1, Other2-Y0.0-2"
+        "remeasure_well_xlsx excluded 2 row(s) (non_well_sample): "
+        "'Other-A-1' (block 4, row 18), 'Other2-Y0.0-2' (block 5, row 23)"
     ) in result.warnings
+    assert result.exclusion_reason_counts["non_well_sample"] == 2
+    assert result.manifest_path is not None
+    manifest = json.loads(result.manifest_path.read_text(encoding="utf-8"))
+    assert {
+        (row["sample_name"], row["block_index"], row["row_index"], row["reason"])
+        for row in manifest["excluded_rows"]
+    } >= {("Other-A-1", 4, 18, "non_well_sample"), ("C5-1", 3, 13, "unmapped_well")}
     assert (
         "remeasure_well_xlsx has 1 well(s) absent from verdict_xlsx: C05"
     ) in result.warnings
@@ -231,7 +239,8 @@ def test_the_shared_run_export_overrides_every_remeasured_variant(tmp_path: Path
     assert _rows(out) == pytest.approx(expected)
     assert (result.n_authoritative, result.n_fallback_only) == (11, 0)
     assert all(len(replicates) == 3 for replicates in result.variant_replicates.values())
-    assert sum("skipped 36 sample(s)" in warning for warning in result.warnings) == 1
+    assert sum("excluded 36 row(s) (non_well_sample)" in warning for warning in result.warnings) == 1
+    assert result.exclusion_reason_counts["non_well_sample"] == 36
 
     # The same export with the unrelated samples removed gives the same workbook.
     cleaned_out = tmp_path / "cleaned.xlsx"
@@ -242,7 +251,7 @@ def test_the_shared_run_export_overrides_every_remeasured_variant(tmp_path: Path
         verdict_xlsx=verdict,
     )
     assert _rows(cleaned_out) == _rows(out)
-    assert not any("skipped" in warning for warning in cleaned.warnings)
+    assert not any("excluded" in warning for warning in cleaned.warnings)
 
 
 def test_a_detected_confirmation_type_is_one_its_builder_path_reads(tmp_path: Path, run):

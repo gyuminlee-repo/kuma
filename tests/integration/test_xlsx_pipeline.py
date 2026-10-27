@@ -148,28 +148,19 @@ def test_scenario_d_evolvepro_read():
 
 
 # ---------------------------------------------------------------------------
-# Scenario E: agilent format detection + standard parsing
+# Scenario E: agilent numeric-ID block parsing
 # ---------------------------------------------------------------------------
 
 @requires_real_data
 def test_scenario_e_agilent_rep_batch_format():
-    """Scenario E: the agilent rep-batch workbook is AGILENT_REP_BATCH format.
+    """Scenario E: the agilent rep-batch workbook groups its numeric IDs.
 
     The file is a FID1B block layout whose data sample names are numeric base
     IDs ('1'..'34') with '-2'/'-3' replicate suffixes plus WT blocks. The
     block rep-batch parser groups all three replicates per base ID, so no
     replicate is lost.
     """
-    from kuma_core.mame.activity.evolvepro_xlsx import (
-        XlsxFormat,
-        detect_format,
-        parse_agilent_block_rep_batch,
-    )
-
-    fmt = detect_format(_data(_named("agilent_rep_batch")))
-    assert fmt == XlsxFormat.AGILENT_REP_BATCH, (
-        f"Expected AGILENT_REP_BATCH format, got {fmt}"
-    )
+    from kuma_core.mame.activity.evolvepro_xlsx import parse_agilent_block_rep_batch
 
     result = parse_agilent_block_rep_batch(_data(_named("agilent_rep_batch")))
     # 34 base IDs, each with all three replicates preserved (no rep1 loss).

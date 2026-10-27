@@ -117,7 +117,7 @@ Round 2 EVOLVEpro pred        ── 다음 라운드 (이 폴더 범위 밖)
   - `python-core/sidecar_mame/handlers/activity.py`, `_ALLOWED_ACTIVITY_EXTENSIONS` (`.csv`/`.xlsx`/`.xls`, 라인 32), `handle_activity_upload`
   - `kuma_core/mame/activity/ingest_long_csv.py`, `WELL_COL_ALIASES`, `VALUE_COL_ALIASES` (라인 36-37), `ingest_long_csv`
   - `kuma_core/mame/activity/plate_layout_xlsx.py`, `parse_plate_layout_xlsx` (라인 68, 헤더 판정 141-169), `Mutant` + `Well Pos.` 또는 `sample_name` + `well`
-  - `kuma_core/mame/activity/evolvepro_xlsx.py`, `parse_agilent_standard` (327), `parse_agilent_block_rep_batch` (595), `parse_relative_only` (685), `read_evolvepro_rows` (812), `write_evolvepro_xlsx` (876)
+  - `kuma_core/mame/activity/evolvepro_xlsx.py`, `parse_agilent_standard` (316), `parse_agilent_block_rep_batch` (430), `parse_relative_only` (528), `read_evolvepro_rows` (623), `write_evolvepro_xlsx` (687). sample name 판정은 `kuma_core/mame/activity/gc_sample.py` `classify_sample`
   - `python-core/sidecar_mame/models.py`, `BuildEvolveproInputParams`, `_axis_sources` (라인 296, 409)
   - `kuma_core/mame/io/kuro_reader.py:11-22` — expected_mutations 컬럼
   - `kuma_core/mame/ingest/sort_barcode.py:74-75, 135, 207-220` — barcode/sample map

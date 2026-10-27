@@ -114,15 +114,15 @@ def test_numeric_block_file_is_exactly_two_candidates() -> None:
 def test_variant_label_block_file_is_one_candidate() -> None:
     """The variant-label block file has one consumer, so it stays single.
 
-    `_raw_report_primary` refuses a sample name that is not a well
-    (`build_evolvepro_input.py:270-272`), so there is no primary reading of it.
+    No primary field reads variant labels: the round-1 report reads wells and
+    the numeric report reads position IDs, so there is no primary reading.
     """
     result = detect_measurement_source(TEMPLATES / "09_mame_agilent_rep_batch.xlsx")
     assert result.candidates == [CONFIRMATION_VARIANT_LABELS]
     assert result.ambiguous is False
     assert result.evidence["sample_name_namespaces"]["numericId"] == 0
     assert result.evidence["sample_name_namespaces"]["well"] == 0
-    assert "_raw_report_primary" in result.evidence["ambiguity"]
+    assert "no primary field reads variant labels" in result.evidence["ambiguity"]
 
 
 def test_block_evidence_names_the_namespace_and_the_wild_type_rows() -> None:
@@ -136,19 +136,21 @@ def test_block_evidence_names_the_namespace_and_the_wild_type_rows() -> None:
     assert "1-2" in result.evidence["sample_name_samples"]["numericId"]
 
 
-def test_mixed_namespace_block_file_is_refused(tmp_path: Path) -> None:
-    """A block file whose sample names are half wells and half numeric ids."""
+def test_mixed_namespace_block_file_reports_every_reading(tmp_path: Path) -> None:
+    """Half wells and half numeric ids: which is this run's is a membership question.
+
+    The detector is not given the layout or the plate order, so it names both
+    readings and the operator chooses. The build then refuses this run's rows
+    written in the other notation.
+    """
     path = _write_block_workbook(
         tmp_path / "mixed.xlsx",
         ["WT1", "WT2", "WT3", "A4", "A5", "1", "2-2"],
     )
     result = detect_measurement_source(path)
-    assert result.candidates == []
-    assert result.ambiguous is False
-    assert "well" in result.reason
-    assert "numeric id" in result.reason
-    assert "A4" in result.reason
-    assert "1" in result.reason
+    assert result.candidates == [RAW_REPORT, NUMERIC_REPORT]
+    assert result.ambiguous is True
+    assert result.reason == ""
     assert result.evidence["sample_name_namespaces"] == {
         "well": 2,
         "numericId": 2,
@@ -157,6 +159,79 @@ def test_mixed_namespace_block_file_is_refused(tmp_path: Path) -> None:
     }
     assert result.evidence["sample_name_samples"]["well"] == ["A4", "A5"]
     assert result.evidence["sample_name_samples"]["numericId"] == ["1", "2-2"]
+
+
+def test_a_blank_does_not_block_a_well_report(tmp_path: Path) -> None:
+    """The shared-run report: wells, WT rows and a BLANK. One reading, BLANK counted."""
+    path = _write_block_workbook(
+        tmp_path / "shared.xlsx",
+        ["WT1", "WT2", "WT3", "A1", "BLANK", "B1", "C1"],
+    )
+    result = detect_measurement_source(path)
+    assert result.candidates == [RAW_REPORT]
+    assert result.ambiguous is False
+    assert result.evidence["n_skipped_rows"] == 1
+    assert result.evidence["sample_name_samples"]["unclassified"] == ["BLANK"]
+
+
+def test_a_calibration_number_beside_a_plate_of_wells_is_a_well_report(tmp_path: Path) -> None:
+    """The shape of a real one-replicate report: 95 wells, three WT rows, one standard named 0."""
+    wells = [f"{row}{column}" for row in "ABCDEFGH" for column in range(1, 13)][:95]
+    path = _write_block_workbook(tmp_path / "cal.xlsx", ["0", "WT_1", "WT_2", "WT_3", *wells])
+    result = detect_measurement_source(path)
+    assert result.candidates == [RAW_REPORT]
+    assert result.ambiguous is False
+    assert result.evidence["n_numbers_read_as_calibration"] == 1
+
+
+def test_a_few_well_names_beside_numeric_ids_read_as_another_experiments(tmp_path: Path) -> None:
+    """90 IDs and 2 well names: no rawReport reading. The round question of a numeric file stays."""
+    ids = [str(i) for i in range(1, 91)]
+    path = _write_block_workbook(tmp_path / "ids.xlsx", ["WT1", *ids[:40], "G7", *ids[40:], "H8"])
+    clean = _write_block_workbook(tmp_path / "clean.xlsx", ["WT1", *ids])
+    result = detect_measurement_source(path)
+    assert RAW_REPORT not in result.candidates
+    assert result.candidates == detect_measurement_source(clean).candidates == [NUMERIC_REPORT, CONFIRMATION_NUMERIC_IDS]
+    assert result.evidence["n_wells_read_as_foreign"] == 2
+
+
+@pytest.mark.parametrize(
+    ("n_wells", "n_numbers", "expected"),
+    [
+        (95, 1, [RAW_REPORT]),
+        # Boundary: the smaller side at exactly 10 % of the larger still decides.
+        (20, 2, [RAW_REPORT]),
+        (20, 3, [RAW_REPORT, NUMERIC_REPORT]),
+        # The reviewer's case: 10 IDs of this run beside 12 foreign well names.
+        (12, 10, [RAW_REPORT, NUMERIC_REPORT]),
+        (2, 20, [NUMERIC_REPORT, CONFIRMATION_NUMERIC_IDS]),
+        (3, 20, [RAW_REPORT, NUMERIC_REPORT]),
+    ],
+)
+def test_the_count_rule_decides_only_when_one_side_is_overwhelming(
+    tmp_path: Path, n_wells: int, n_numbers: int, expected: list[str]
+) -> None:
+    wells = [f"{row}{column}" for row in "ABCDEFGH" for column in range(1, 13)][:n_wells]
+    numbers = [str(i) for i in range(1, n_numbers + 1)]
+    path = _write_block_workbook(tmp_path / "count.xlsx", ["WT1", *wells, *numbers])
+    result = detect_measurement_source(path)
+    assert result.candidates == expected
+    assert result.ambiguous is (len(expected) > 1)
+
+
+def test_as_many_numbers_as_wells_offers_both_readings(tmp_path: Path) -> None:
+    path = _write_block_workbook(tmp_path / "tie.xlsx", ["WT1", "A1", "B1", "1", "2"])
+    result = detect_measurement_source(path)
+    assert result.candidates == [RAW_REPORT, NUMERIC_REPORT]
+    assert result.ambiguous is True
+
+
+def test_the_count_rule_does_not_reach_real_notations(tmp_path: Path) -> None:
+    """Wells beside variant labels, or beside suffixed IDs, still offer every reading."""
+    variants = _write_block_workbook(tmp_path / "v.xlsx", ["WT1", "A1", "B1", "C1", "S11I"])
+    assert detect_measurement_source(variants).candidates == [RAW_REPORT, CONFIRMATION_VARIANT_LABELS]
+    suffixed = _write_block_workbook(tmp_path / "s.xlsx", ["WT1", "A1", "B1", "C1", "1-2"])
+    assert detect_measurement_source(suffixed).candidates == [RAW_REPORT, NUMERIC_REPORT]
 
 
 def test_bare_wild_type_row_is_not_a_sample(tmp_path: Path) -> None:
@@ -275,23 +350,24 @@ def test_well_labeled_confirmation_reports_the_samples_it_will_skip(tmp_path: Pa
 
 
 @pytest.mark.parametrize(
-    ("names", "fragment"),
+    ("names", "expected"),
     [
-        # The variant-label and numeric readers refuse a name they cannot place.
-        (["WT1", "S11I", "Other-A-1"], "unrecognised"),
-        (["WT1", "1", "1-2", "Other-A-1"], "unrecognised"),
-        (["A1-1", "S11I"], "variant label"),
-        (["A1-1", "1-2"], "numeric id"),
+        # Names of no namespace never block a reading; the build sets them aside.
+        (["WT1", "S11I", "Other-A-1"], [CONFIRMATION_VARIANT_LABELS]),
+        (["WT1", "1", "1-2", "Other-A-1"], [CONFIRMATION_NUMERIC_IDS]),
+        # Two notations: every reading is offered and the operator chooses.
+        (["A1-1", "S11I"], [CONFIRMATION_WELL_LABELS, CONFIRMATION_VARIANT_LABELS]),
+        (["A1-1", "1-2"], [CONFIRMATION_WELL_LABELS, CONFIRMATION_NUMERIC_IDS]),
     ],
 )
-def test_confirmation_slot_refuses_what_no_reader_takes(
-    tmp_path: Path, names: list[str], fragment: str
+def test_confirmation_slot_reads_past_names_of_no_namespace(
+    tmp_path: Path, names: list[str], expected: list[str]
 ) -> None:
     path = _write_block_workbook(tmp_path / "confirm.xlsx", names)
     result = detect_measurement_source(path, slot="confirmation")
-    assert result.candidates == []
-    assert "mixes sample-name namespaces" in result.reason
-    assert fragment in result.reason
+    assert result.candidates == expected
+    assert result.ambiguous is (len(expected) > 1)
+    assert result.reason == ""
 
 
 def test_confirmation_slot_refuses_a_file_that_is_not_a_block_report() -> None:

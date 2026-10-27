@@ -1102,6 +1102,7 @@
       "id": "mame-build-evolvepro-input",
       "files": [
         "kuma_core/mame/activity/build_evolvepro_input.py",
+        "kuma_core/mame/activity/gc_sample.py",
         "kuma_core/mame/activity/verdict_ngs.py",
         "python-core/sidecar_mame/models.py",
         "python-core/sidecar_mame/dispatcher.py",
@@ -1385,6 +1386,7 @@
       "files": [
         "src/components/mame/panels/BuildEvolveproInputPanel.tsx",
         "kuma_core/mame/activity/detect_measurement_source.py",
+        "kuma_core/mame/activity/gc_sample.py",
         "kuma_core/mame/activity/build_evolvepro_input.py",
         "kuma_core/mame/activity/evolvepro_xlsx.py",
         "kuma_core/mame/activity/plate_layout_xlsx.py",
@@ -1393,7 +1395,8 @@
         "python-core/sidecar_mame/handlers/activity.py",
         "src/types/mame/detect_measurement_source.ts",
         "src/types/mame/validators.ts",
-        "src/lib/ipc-mame/index.ts"
+        "src/lib/ipc-mame/index.ts",
+        "kuma_core/mame/activity/numeric_id_decode.py"
       ],
       "symbols": [
         "detect_measurement_source",
@@ -1402,7 +1405,7 @@
         "DetectMeasurementSourceResult",
         "detectMeasurementSource"
       ],
-      "note": "Step 4.1 measurement source detection: the detector reads the file and reports every source it could be, so the seven names in MEASUREMENT_SOURCES must match the MeasurementSource union in TS and the membership set the result validator checks. The membership tests are borrowed rather than re-written (_WELL_RE from plate_layout_xlsx, _BLOCK_REP_ID_RE and _iter_fid1b_blocks from evolvepro_xlsx, _short_variant and the column sets from build_evolvepro_input), so a change to any of those changes what this reports. With slot=\"confirmation\" each sample-name namespace has one reading (a well-label file is confirmationWellLabels alone) and in the primary slot a well-label file is rawReport alone. Two pairs are reported as two candidates rather than resolved: a gcSheet is also a valid longFormat file, and a numeric-ID block file is numericReport or confirmationNumericIds because decode_primary_screen and decode_confirmation_against call the same parse_agilent_block_rep_batch.",
+      "note": "Step 4.1 measurement source detection: the detector reads the file and reports every source it could be, so the seven names in MEASUREMENT_SOURCES must match the MeasurementSource union in TS and the membership set the result validator checks. What a sample name is comes from gc_sample (classify_sample, namespaces_of, is_wt_name), the one module every GC reader and the detector ask, so a change there changes what this reports and what the build reads. The detector judges names only: a name of no namespace (BLANK, internal standards) never blocks a reading, pure numbers beside well names are settled by count only when the smaller side is at most 10% of the larger (_COUNT_RULE_MINORITY_SHARE; a wrong guess is usually refused by the build for membership, except foreign wells overlapping this layout and outnumbering the run's IDs tenfold), and any other file whose names fit several grammars reports one candidate per grammar with ambiguous set. Whether a row belongs to this run needs the layout, verdict and order source, so the build (build_evolvepro_input readers, numeric_id_decode._decode_against) decides it and refuses this run's rows written in another notation. With slot=\"confirmation\" each sample-name namespace has one reading (a well-label file is confirmationWellLabels alone) and in the primary slot a well-label file is rawReport alone. Two pairs are reported as two candidates rather than resolved: a gcSheet is also a valid longFormat file, and a numeric-ID block file is numericReport or confirmationNumericIds because decode_primary_screen and decode_confirmation_against call the same parse_agilent_block_rep_batch.",
       "severity": "warning"
     },
     {

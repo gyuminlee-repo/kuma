@@ -72,7 +72,7 @@ class WtReplicateRecord(BaseModel):
     ``ActivityTable.records`` on purpose: nothing that walks ActivityRecord can
     mistake them for a mutant well, and they never reach the EVOLVEpro export.
     ``replicate_idx`` is the numeric suffix of the label, matching the reports-mode
-    convention in ``evolvepro_xlsx._replicate_n_from_wt``.
+    convention in ``gc_sample.wt_replicate``.
     """
 
     plate_id: str

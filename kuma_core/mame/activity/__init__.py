@@ -21,13 +21,10 @@ from kuma_core.mame.activity.plate_layout_xlsx import (
     parse_plate_layout_xlsx,
 )
 from kuma_core.mame.activity.evolvepro_xlsx import (
-    XlsxFormat,
     AgilentRecord,
     BlockRepBatchResult,
     RelativeActivityRecord,
-    detect_format,
     parse_agilent_standard,
-    parse_agilent_rep_batch,
     parse_agilent_block_rep_batch,
     parse_relative_only,
     read_evolvepro_xlsx,
@@ -67,13 +64,10 @@ __all__ = [
     "PlateLayoutEntry",
     "parse_plate_layout_xlsx",
     # A-2
-    "XlsxFormat",
     "AgilentRecord",
     "BlockRepBatchResult",
     "RelativeActivityRecord",
-    "detect_format",
     "parse_agilent_standard",
-    "parse_agilent_rep_batch",
     "parse_agilent_block_rep_batch",
     "parse_relative_only",
     "read_evolvepro_xlsx",
