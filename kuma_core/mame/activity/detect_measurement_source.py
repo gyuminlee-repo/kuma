@@ -90,7 +90,8 @@ from .build_evolvepro_input import (
     _strip_confirmation_rep_suffix,
 )
 from .constants import WT_PATTERN
-from .evolvepro_xlsx import _BLOCK_REP_ID_RE, _extract_rows, _str, iter_block_rows
+from .evolvepro_xlsx import _extract_rows, _str, iter_block_rows
+from .gc_sample import _BLOCK_REP_ID_RE
 from .plate_layout_xlsx import _WELL_RE
 
 LONG_FORMAT = "longFormat"

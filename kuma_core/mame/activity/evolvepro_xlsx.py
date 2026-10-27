@@ -11,7 +11,7 @@ Supported inputs:
 Which reader applies is decided by the step 4.1 field the file was chosen
 for (see detect_measurement_source); nothing here dispatches on content.
 
-WT_PATTERN is imported from activity.constants as the single source of truth.
+What a sample name is (wild-type, calibration, numeric ID) is asked of gc_sample.
 Uses python-calamine for reading. openpyxl is used for writing only.
 """
 
@@ -19,13 +19,12 @@ from __future__ import annotations
 
 import logging
 import math
-import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import python_calamine
 
-from .constants import WT_PATTERN
+from .gc_sample import NUMERIC_CALIBRATION, NUMERIC_ID, WT, classify_sample
 from .variant_notation import to_evolvepro  # noqa: F401 (re-exported for callers)
 
 logger = logging.getLogger(__name__)
@@ -110,37 +109,6 @@ def _float_or_raise(cell: object, context: str) -> float:
             f"Area value {raw!r} is not finite, {context}"
         )
     return value
-
-
-def _replicate_n_from_wt(sample_name: str) -> int:
-    """Extract replicate number from WT sample name.
-
-    'WT_1' → 1, 'WT1' → 1, 'WT' → 0 (unspecified).
-    """
-    m = re.match(r"^WT_?(\d+)$", sample_name, re.IGNORECASE)
-    if m:
-        return int(m.group(1))
-    return 0
-
-
-def _sample_name_is_calibration(name: str) -> bool:
-    """Return True if sample_name is purely numeric (calibration row).
-
-    This is intentional non-error use of float() as a type probe:
-    float('0') succeeds (calibration); float('WT_1') fails (not calibration).
-    """
-    try:
-        float(name)
-        return True
-    except ValueError:
-        # Non-numeric: not a calibration row. This is the success path.
-        return False
-
-
-# Replicate-suffix pattern for FID1B block sample names in rep-batch files.
-# Matches a numeric base ID optionally followed by a '-<rep>' suffix:
-#   '12' (base=12, rep=None), '12-2' (base=12, rep=2), '12-3' (base=12, rep=3).
-_BLOCK_REP_ID_RE = re.compile(r"^(\d+)(?:-(\d+))?$")
 
 
 @dataclass(frozen=True)
@@ -358,8 +326,9 @@ def parse_agilent_standard(
         if not sample_name:
             continue
 
+        sample = classify_sample(sample_name, "well")
         # Calibration skip: purely numeric sample name.
-        if _sample_name_is_calibration(sample_name):
+        if sample.kind == NUMERIC_CALIBRATION:
             logger.warning(
                 "parse_agilent_standard: skipping calibration row "
                 "(numeric Sample Name=%r) at row %d in %s",
@@ -374,8 +343,8 @@ def parse_agilent_standard(
         if area is None:
             continue
 
-        is_wt = bool(WT_PATTERN.match(sample_name))
-        rep_n = _replicate_n_from_wt(sample_name) if is_wt else 0
+        is_wt = sample.kind == WT
+        rep_n = sample.replicate if is_wt else 0
 
         records.append(
             AgilentRecord(
@@ -418,17 +387,6 @@ class BlockRepBatchResult:
     reps: dict[int, list[float]]
     wt_areas: list[float]
     n_blocks: int
-
-
-def _block_rep_index(rep_token: str | None) -> int:
-    """Map an optional replicate suffix token to a 1-based replicate number.
-
-    None (no suffix) -> 1, '2' -> 2, '3' -> 3, and so on. Caller passes the
-    second capture group of _BLOCK_REP_ID_RE.
-    """
-    if rep_token is None:
-        return 1
-    return int(rep_token)
 
 
 def parse_agilent_block_rep_batch(
@@ -478,12 +436,12 @@ def parse_agilent_block_rep_batch(
             f"Sample Name={sample_name!r} in {resolved}",
         )
 
-        if WT_PATTERN.match(sample_name) or sample_name.upper() == "WT":
+        sample = classify_sample(sample_name, "numeric_id")
+        if sample.kind == WT:
             wt_areas.append(area)
             continue
 
-        m = _BLOCK_REP_ID_RE.match(sample_name)
-        if not m:
+        if sample.kind != NUMERIC_ID:
             logger.debug(
                 "parse_agilent_block_rep_batch: ignoring non-numeric, "
                 "non-WT sample name %r in %s",
@@ -492,8 +450,9 @@ def parse_agilent_block_rep_batch(
             )
             continue
 
-        base_id = int(m.group(1))
-        rep_idx = _block_rep_index(m.group(2))
+        assert sample.numeric_id is not None
+        base_id = sample.numeric_id
+        rep_idx = sample.replicate
         seen = rep_index_seen.setdefault(base_id, set())
         if rep_idx in seen:
             logger.warning(
