@@ -205,7 +205,7 @@ def ingest_long_csv(
                     sample_name=well_raw,
                     value=value,
                     # Numeric suffix is the replicate index, matching the
-                    # reports-mode convention (evolvepro_xlsx._replicate_n_from_wt).
+                    # reports-mode convention (gc_sample.wt_replicate).
                     replicate_idx=wt_replicate(well_raw),
                     source_file=path.name,
                 )
