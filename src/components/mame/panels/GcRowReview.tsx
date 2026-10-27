@@ -258,10 +258,12 @@ function RowTable({
               ...(row.status === "locked" ? [t("mame.buildEvolvepro.rowReview.lockedHint")] : []),
               ...(toggleable && !included ? [reasonText(t, "operator_excluded")] : []),
             ];
+            // Struck through: the data of a row left out. The Reason cell says why and stays plain.
+            const struck = toggleable && !included ? " line-through" : "";
             return (
               <tr
                 key={key}
-                className={`border-t border-border ${highlight ? "bg-amber-500/10" : ""} ${toggleable && !included ? "text-muted-foreground line-through" : ""}`}
+                className={`border-t border-border ${highlight ? "bg-amber-500/10" : ""} ${toggleable && !included ? "text-muted-foreground" : ""}`}
               >
                 <td className="px-2 py-1">
                   <input
@@ -277,15 +279,15 @@ function RowTable({
                     onChange={(event) => onChange(setRowIncluded(excludedRows, row, event.target.checked))}
                   />
                 </td>
-                <td className="truncate px-2 py-1" title={t(GC_SOURCE_LABEL[row.source])}>
+                <td className={`truncate px-2 py-1${struck}`} title={t(GC_SOURCE_LABEL[row.source])}>
                   {t(GC_SOURCE_LABEL[row.source])}
                 </td>
-                <td className="px-2 py-1 text-right font-mono">{row.block_index ?? "-"}</td>
-                <td className="px-2 py-1 text-right font-mono">{row.row_index}</td>
-                <td className="truncate px-2 py-1 font-mono" title={row.sample_name}>
+                <td className={`px-2 py-1 text-right font-mono${struck}`}>{row.block_index ?? "-"}</td>
+                <td className={`px-2 py-1 text-right font-mono${struck}`}>{row.row_index}</td>
+                <td className={`truncate px-2 py-1 font-mono${struck}`} title={row.sample_name}>
                   {row.sample_name || "-"}
                 </td>
-                <td className="px-2 py-1 text-right font-mono">{formatArea(row.area)}</td>
+                <td className={`px-2 py-1 text-right font-mono${struck}`}>{formatArea(row.area)}</td>
                 <td id={reasonId} className="min-w-0 px-2 py-1 break-words">
                   {reasons.join("; ")}
                 </td>

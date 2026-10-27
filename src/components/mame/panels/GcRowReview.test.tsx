@@ -112,6 +112,18 @@ describe("GcRowReview", () => {
     expect(screen.getByRole("checkbox", { name: "Use WT at block 1, row 3" })).not.toHaveAccessibleDescription();
   });
 
+  it("strikes through the data of an unticked row but not its reason", () => {
+    renderReview(ready([USED, WT]), [toExcludedRow(USED)]);
+    const cells = within(screen.getByRole("checkbox", { name: "Use 5F at block 1, row 2" }).closest("tr") as HTMLElement).getAllByRole("cell");
+    const [, file, block, rowCell, sample, area, reason] = cells;
+    for (const cell of [file, block, rowCell, sample, area]) expect(cell).toHaveClass("line-through");
+    expect(reason).toHaveTextContent("left out by you");
+    expect(reason).not.toHaveClass("line-through");
+    expect(reason.closest("tr")).not.toHaveClass("line-through");
+    const kept = within(screen.getByRole("checkbox", { name: "Use WT at block 1, row 3" }).closest("tr") as HTMLElement).getAllByRole("cell");
+    for (const cell of kept) expect(cell).not.toHaveClass("line-through");
+  });
+
   it("gives every group table the same column widths", () => {
     const { container } = render(
       <GcRowReview state={ready([USED, WT, BLANK])} excludedRows={[]} onChange={vi.fn()} onRetry={vi.fn()} />,
