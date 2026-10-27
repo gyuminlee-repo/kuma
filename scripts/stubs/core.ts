@@ -51,6 +51,30 @@ type RealBundle = Record<string, unknown>;
 const realBundle = realDataJson as RealBundle;
 const mameBundle = mameRealDataJson as RealBundle;
 
+/**
+ * Step 4.1 row review from the recorded bundle (gen_mame_capture_data.py,
+ * `gc_row_preview`). The recording holds the defaults and the build's refusal
+ * for one selection, every WT row unticked; that refusal is returned when the
+ * screen sends that selection, so the blocked build shows in the browser. Any
+ * other selection is answered as accepted, which the stub cannot judge. A
+ * bundle without the recording gets an empty list, the screen's empty state.
+ */
+function previewGcRowsReply(params?: unknown): unknown {
+  const recorded = mameBundle.gc_row_preview as
+    | { preview: { rows: { status: string; source: string; block_index: number | null; row_index: number }[]; refusal: string | null }; all_wt_unticked_refusal: string | null }
+    | undefined;
+  if (!recorded) return { rows: [], refusal: null, selection_refusal: null };
+  const sent = (params as { excluded_rows?: { source: string; block_index?: number | null; row_index: number }[] } | undefined)?.excluded_rows ?? [];
+  const wt = recorded.preview.rows.filter((row) => row.status === "wt");
+  const allWtUnticked = wt.length > 0 && wt.every((row) =>
+    sent.some((entry) => entry.source === row.source && (entry.block_index ?? null) === row.block_index && entry.row_index === row.row_index),
+  );
+  return {
+    ...recorded.preview,
+    selection_refusal: allWtUnticked ? recorded.all_wt_unticked_refusal : null,
+  };
+}
+
 const KURO_REPLIES: Record<string, (params?: unknown) => unknown> = {
   list_polymerases: () => realBundle.polymerases ?? [],
   load_fasta: () => realBundle.seq_info ?? {},
@@ -153,9 +177,7 @@ const MAME_REPLIES: Record<string, (params?: unknown) => unknown> = {
   "mame.build_well_layout": () => mameBundle.well_layout ?? {},
   "mame.detect_native_barcodes": () => mameBundle.native_barcodes ?? {},
   "mame.activity.detect_measurement_source": () => mameBundle.measurement_detection ?? {},
-  // Not recorded by the capture bundle yet. An empty review list rather than a
-  // thrown error, so step 4.1 renders its empty state instead of a failure.
-  "mame.activity.preview_gc_rows": () => mameBundle.gc_row_preview ?? { rows: [], refusal: null, selection_refusal: null },
+  "mame.activity.preview_gc_rows": previewGcRowsReply,
   ping: () => ({ ok: true }),
 };
 

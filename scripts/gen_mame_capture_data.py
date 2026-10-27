@@ -27,7 +27,9 @@ import os
 import platform
 import sys
 import time
+from collections.abc import Callable
 from pathlib import Path
+from typing import cast
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -76,6 +78,46 @@ from scripts.capture_sidecar import Sidecar  # noqa: E402
 def log(message: str) -> None:
     sys.stdout.write(f"{message}\n")
     sys.stdout.flush()
+
+
+SAMPLES = ROOT / "src-tauri" / "samples" / "mame"
+
+
+def record_gc_row_preview(call: Callable[[str, dict[str, object]], object], work_dir: Path) -> dict[str, object]:
+    """Record the step 4.1 row review over the shipped synthetic sample files.
+
+    The raw round-1 report sample holds only WT and well rows, so a copy with a
+    BLANK block and a numeric calibration block appended is reviewed instead:
+    the browser stub then shows used, wt and set_aside rows. A second call
+    unticks every WT row and records the build's refusal for that selection,
+    which the stub returns when the screen sends the same selection.
+    """
+    import openpyxl
+
+    report = work_dir / "gc_row_preview_report.xlsx"
+    wb = openpyxl.load_workbook(SAMPLES / "11_mame_gc_fid_round1_raw.xlsx")
+    ws = wb.active
+    assert ws is not None
+    for name, area in (("BLANK", 3), ("1", 250)):
+        for row in (["Signal:", "FID1B"], ["Area", "Sample Name"], [area, name], ["Sum", area], []):
+            ws.append(row)
+    wb.save(report)
+    params: dict[str, object] = {
+        "round1_report_xlsx": str(report),
+        "layout_xlsx": str(SAMPLES / "06_mame_plate_layout.xlsx"),
+        "verdict_xlsx": str(SAMPLES / "13_mame_verdict.xlsx"),
+    }
+    preview = call("mame.activity.preview_gc_rows", params)
+    assert isinstance(preview, dict)
+    rows = cast(list[dict[str, object]], preview["rows"])
+    wt = [
+        {key: row[key] for key in ("source", "row_index", "block_index", "sample_name", "area")}
+        for row in rows
+        if row["status"] == "wt"
+    ]
+    unticked = call("mame.activity.preview_gc_rows", {**params, "excluded_rows": wt})
+    assert isinstance(unticked, dict)
+    return {"preview": preview, "all_wt_unticked_refusal": unticked["selection_refusal"]}
 
 
 def main() -> int:
@@ -234,6 +276,9 @@ def main() -> int:
                                      / "15_mame_activity_variant.csv")},
         )
         log("mame.activity.detect_measurement_source ok")
+
+        bundle["gc_row_preview"] = record_gc_row_preview(sidecar.call, args.output_dir)
+        log("mame.activity.preview_gc_rows ok")
     finally:
         sidecar.close()
 
