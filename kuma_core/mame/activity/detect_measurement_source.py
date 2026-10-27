@@ -51,10 +51,19 @@ What a sample name is comes from ``gc_sample``, the module every reader asks:
   reading.  A GC run is shared, and whether such a row belongs to this run is
   a question about the layout and the plate order, which this detector is not
   given.  The build answers it and sets those rows aside with their positions.
-* pure numbers beside well names are settled by count: more wells reads the
-  numbers as calibration standards, more numbers reads the wells as another
-  experiment's. A tie offers both. A wrong guess is refused loudly by the
-  build (no member row, or the run in two notations), never mislabelled.
+* pure numbers beside well names are settled by count, and only when the
+  smaller side is at most ``_COUNT_RULE_MINORITY_SHARE`` (10 %) of the larger:
+  many wells reads the numbers as calibration standards, many numbers reads
+  the wells as another experiment's. Anything closer offers both readings.
+  A wrong guess usually fails loudly in the build: a numeric report read as
+  wells has no well of the run (no member row), and a well report read as
+  numbers meets the plate's own wells (the run in two notations). It does not
+  fail loudly in one case: a numeric report of this run carrying more than
+  ten times as many *another experiment's* well names whose coordinates
+  overlap this layout. Read as a well report, those foreign wells are taken
+  as this run's measurements and the run's own IDs are set aside as
+  calibration rows. Nothing in the names separates them; the excluded rows
+  in the warnings and the manifest are the only trace.
 * any other file whose names fit more than one grammar reports one candidate
   per grammar present, with ``ambiguous`` set.  Which notation is this run's own is
   again a membership question, so the operator chooses and the build refuses
@@ -120,6 +129,14 @@ _TABULAR_SUFFIXES = {".csv", ".tsv", ".txt"}
 _WORKBOOK_SUFFIXES = {".xlsx", ".xls"}
 
 _SAMPLE_ECHO = 5
+
+# Largest share the smaller of {pure numbers, well names} may have of the
+# larger for the count to name the file. An empirical choice, not a derived
+# one: the one real one-replicate report measured carries 1 calibration row
+# beside 95 wells (about 1 %), and a numeric report numbers nearly every
+# sample. 10 % leaves room for a few standards or a few stray wells and puts
+# anything closer to the operator.
+_COUNT_RULE_MINORITY_SHARE = 0.10
 
 
 @dataclass
@@ -242,25 +259,26 @@ def _detect_block(path: Path, rows: list[list], evidence: dict[str, Any], slot: 
         # aside with their positions.  The count is shown before it runs.
         evidence["n_skipped_rows"] = len(unclassified)
 
-    # Pure numbers beside well names: the one question settled by count.
-    # A pure number is a calibration standard in a well report and a position
-    # ID in a numeric report, and only those two readings compete here, so the
-    # larger group names the file. One-replicate block reports put a handful
-    # of concentration-named standards beside the plate's wells; a numeric
-    # report numbers nearly every sample. A wrong guess fails loudly rather
-    # than quietly: read as wells, a numeric report has no well of the run and
-    # the build refuses it for having no member row; read as numbers, a well
-    # report's wells of this plate are the run in the other notation and the
-    # build refuses the file. Suffixed IDs (12-2) and variant labels are real
-    # notations, not this question, so they keep every reading on offer.
+    # Pure numbers beside well names: the one question settled by count, and
+    # only when one side is overwhelming. A pure number is a calibration
+    # standard in a well report and a position ID in a numeric report, and
+    # only those two readings compete here. One-replicate block reports put a
+    # handful of concentration-named standards beside the plate's wells; a
+    # numeric report numbers nearly every sample. Anything closer than that is
+    # put to the operator (both candidates, ambiguous). Suffixed IDs (12-2)
+    # and variant labels are real notations, not this question, so they keep
+    # every reading on offer. See the module docstring for what a wrong
+    # guess costs.
     pure_numbers = all(classify_sample(name, "well").kind == NUMERIC_CALIBRATION for name in numeric)
-    if wells and numeric and not variants and pure_numbers and len(wells) != len(numeric):
-        if len(wells) > len(numeric):
-            evidence["n_numbers_read_as_calibration"] = len(numeric)
-            numeric = []
-        else:
-            evidence["n_wells_read_as_foreign"] = len(wells)
-            wells = []
+    if wells and numeric and not variants and pure_numbers:
+        minority, majority = sorted((len(wells), len(numeric)))
+        if minority <= _COUNT_RULE_MINORITY_SHARE * majority:
+            if len(wells) > len(numeric):
+                evidence["n_numbers_read_as_calibration"] = len(numeric)
+                numeric = []
+            else:
+                evidence["n_wells_read_as_foreign"] = len(wells)
+                wells = []
 
     if slot == "confirmation":
         # The slot names the round, so a namespace has one reading here and

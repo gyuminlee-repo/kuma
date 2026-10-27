@@ -125,12 +125,14 @@ def test_every_offered_format_is_refused_only_for_membership(tmp_path: Path, fix
 @pytest.mark.parametrize(
     ("samples", "expected"),
     [
-        # A numeric report carrying more foreign well names than IDs: the count
-        # reads it as a well report, and the build finds no well of this run.
-        ([("WT1", 10.0), ("1", 20.0), ("2", 5.0), ("D7", 1.0), ("E8", 1.0), ("F9", 1.0)], "rawReport"),
-        # A well report of this plate with more standards than wells: the count
-        # reads it as numeric, and the build meets the plate's own wells.
-        ([("WT1", 10.0), ("A1", 20.0), ("B1", 5.0), ("1", 1.0), ("5", 2.0), ("10", 3.0)], "numericReport"),
+        # A numeric report carrying ten times as many foreign well names (off
+        # this layout) as IDs: the count reads it as a well report, and the
+        # build finds no well of this run.
+        ([("WT1", 10.0), ("1", 20.0)] + [(f"D{column}", 1.0) for column in range(2, 12)], "rawReport"),
+        # A well report of this plate with ten times as many standards as
+        # wells: the count reads it as numeric, and the build meets the plate's
+        # own well.
+        ([("WT1", 10.0), ("A1", 20.0)] + [(str(i), 1.0) for i in range(1, 11)], "numericReport"),
     ],
 )
 def test_a_wrong_count_guess_is_refused_for_membership(tmp_path: Path, samples: list[tuple[str, object]], expected: str) -> None:

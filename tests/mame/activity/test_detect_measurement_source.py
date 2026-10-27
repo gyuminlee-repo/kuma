@@ -195,6 +195,30 @@ def test_a_few_well_names_beside_numeric_ids_read_as_another_experiments(tmp_pat
     assert result.evidence["n_wells_read_as_foreign"] == 2
 
 
+@pytest.mark.parametrize(
+    ("n_wells", "n_numbers", "expected"),
+    [
+        (95, 1, [RAW_REPORT]),
+        # Boundary: the smaller side at exactly 10 % of the larger still decides.
+        (20, 2, [RAW_REPORT]),
+        (20, 3, [RAW_REPORT, NUMERIC_REPORT]),
+        # The reviewer's case: 10 IDs of this run beside 12 foreign well names.
+        (12, 10, [RAW_REPORT, NUMERIC_REPORT]),
+        (2, 20, [NUMERIC_REPORT, CONFIRMATION_NUMERIC_IDS]),
+        (3, 20, [RAW_REPORT, NUMERIC_REPORT]),
+    ],
+)
+def test_the_count_rule_decides_only_when_one_side_is_overwhelming(
+    tmp_path: Path, n_wells: int, n_numbers: int, expected: list[str]
+) -> None:
+    wells = [f"{row}{column}" for row in "ABCDEFGH" for column in range(1, 13)][:n_wells]
+    numbers = [str(i) for i in range(1, n_numbers + 1)]
+    path = _write_block_workbook(tmp_path / "count.xlsx", ["WT1", *wells, *numbers])
+    result = detect_measurement_source(path)
+    assert result.candidates == expected
+    assert result.ambiguous is (len(expected) > 1)
+
+
 def test_as_many_numbers_as_wells_offers_both_readings(tmp_path: Path) -> None:
     path = _write_block_workbook(tmp_path / "tie.xlsx", ["WT1", "A1", "B1", "1", "2"])
     result = detect_measurement_source(path)
