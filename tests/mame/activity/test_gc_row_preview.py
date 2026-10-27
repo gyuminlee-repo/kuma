@@ -18,6 +18,7 @@ import pytest
 
 from kuma_core.mame.activity.build_evolvepro_input import (
     OperatorExclusion,
+    PreviewRow,
     build_evolvepro_input,
     preview_gc_rows,
 )
@@ -77,7 +78,7 @@ CASES: dict[str, Any] = {
 }
 
 
-def _positions(rows: Sequence[dict[str, Any]], *, statuses: set[str] | None = None) -> set[tuple[Any, ...]]:
+def _positions(rows: Sequence[PreviewRow], *, statuses: set[str] | None = None) -> set[tuple[Any, ...]]:
     return {
         (row["source"], row["block_index"], row["row_index"], row["sample_name"])
         for row in rows

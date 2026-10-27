@@ -1413,6 +1413,7 @@ _OUTPUT_PATH_HANDLERS = {
     ("sidecar_mame/handlers/activity.py", "handle_merge_for_evolvepro"): ("no-write", None),
     ("sidecar_mame/handlers/activity.py", "handle_build_evolvepro_input"): ("callee", "build_evolvepro_input"),
     ("sidecar_mame/handlers/activity.py", "handle_detect_measurement_source"): ("no-write", None),
+    ("sidecar_mame/handlers/activity.py", "handle_preview_gc_rows"): ("no-write", None),
     ("sidecar_mame/handlers/analyze.py", "_acceptance_findings"): ("validate-only", None),
     ("sidecar_mame/handlers/analyze.py", "_write_reference_fasta"): ("exempt-write", None),
     ("sidecar_mame/handlers/analyze.py", "handle_validate_inputs"): ("no-write", None),

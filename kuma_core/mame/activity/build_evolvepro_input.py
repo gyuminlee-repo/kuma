@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 import math
 from collections.abc import Callable
-from typing import cast
+from typing import TypedDict, cast
 from uuid import uuid4
 
 import pandas as pd
@@ -1441,6 +1441,21 @@ _SOURCE_SLOT: dict[str, Slot] = {
 PREVIEW_STATUSES = ("used", "wt", "set_aside", "ignored", "locked", "unjudged")
 
 
+class PreviewRow(TypedDict):
+    """One previewed GC row. Mirrors ``PreviewGcRow`` in src/types/mame/build_evolvepro_input.ts."""
+
+    source: str
+    block_index: int | None
+    row_index: int
+    sample_name: str
+    area: float | None
+    kind: str
+    status: str
+    reason: str | None
+    detail: str
+    flags: list[str]
+
+
 @dataclass
 class GcRowPreview:
     """Every row of the GC files a build would read, with the build's judgement.
@@ -1457,7 +1472,7 @@ class GcRowPreview:
         ``unjudged``; no other code labels them.
     """
 
-    rows: list[dict[str, object]]
+    rows: list[PreviewRow]
     refusal: str | None
 
 
@@ -1503,9 +1518,9 @@ def preview_gc_rows(*, activity_path: str | Path | None = None, activity_scale: 
     if any(event[3] == "locked" for event in ledger.events) and refusal is None:
         refusal = next(event[4] for event in ledger.events if event[3] == "locked")
 
-    judged: dict[tuple[str, int | None, int], dict[str, object]] = {}
+    judged: dict[tuple[str, int | None, int], PreviewRow] = {}
 
-    def entry(source: str, row: GcRow, area: float | None) -> dict[str, object]:
+    def entry(source: str, row: GcRow, area: float | None) -> PreviewRow:
         key = (source, row.block_index, row.row_index)
         if key not in judged:
             judged[key] = {
@@ -1538,7 +1553,7 @@ def preview_gc_rows(*, activity_path: str | Path | None = None, activity_scale: 
         )
         item = entry(reported.source, row, reported.area)
         if reported.kept:
-            cast(list[str], item["flags"]).append(reported.reason)
+            item["flags"].append(reported.reason)
         else:
             item["status"], item["reason"] = "set_aside", reported.reason
 
@@ -1557,10 +1572,6 @@ def preview_gc_rows(*, activity_path: str | Path | None = None, activity_scale: 
     order = list(sources)
     rows = sorted(
         judged.values(),
-        key=lambda item: (
-            order.index(str(item["source"])),
-            cast(int, item["block_index"] or 0),
-            cast(int, item["row_index"]),
-        ),
+        key=lambda item: (order.index(item["source"]), item["block_index"] or 0, item["row_index"]),
     )
     return GcRowPreview(rows=rows, refusal=refusal)

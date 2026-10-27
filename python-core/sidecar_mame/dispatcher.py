@@ -44,6 +44,7 @@ from sidecar_mame.handlers.activity import (
     handle_build_evolvepro_input,
     handle_detect_measurement_source,
     handle_merge_for_evolvepro,
+    handle_preview_gc_rows,
     reset_activity_state,
 )
 from sidecar_mame.handlers.barcode_package import (
@@ -123,6 +124,8 @@ _METHODS = {
     "mame.activity.build_evolvepro_input": handle_build_evolvepro_input,
     # Step 4.1: read the measurement file rather than asking which format it is
     "mame.activity.detect_measurement_source": handle_detect_measurement_source,
+    # Step 4.1 row review: every GC row with the build's judgement, nothing written
+    "mame.activity.preview_gc_rows": handle_preview_gc_rows,
     # Feature B: MAME Barcode Setup
     "generate_mame_package": handle_generate_mame_package,
     "check_plate_order": handle_check_plate_order,

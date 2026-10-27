@@ -4,6 +4,8 @@ import type { ProgressNotification } from "./types";
 import type {
   BuildEvolveproInputParams,
   BuildEvolveproInputResult,
+  PreviewGcRowsParams,
+  PreviewGcRowsResult,
 } from "@/types/mame/build_evolvepro_input";
 import type {
   ClassifyRoundResult,
@@ -182,6 +184,22 @@ export async function buildEvolveproInput(
 ): Promise<BuildEvolveproInputResult> {
   return sendRequest<BuildEvolveproInputResult>(
     "mame.activity.build_evolvepro_input",
+    params as unknown as Record<string, unknown>,
+    120_000,
+  );
+}
+
+/**
+ * Every GC row a build of these inputs would read, with the build's judgement.
+ *
+ * Mirrors `mame.activity.preview_gc_rows`. Same 120 s as the build: it runs the
+ * build's reading stage over the same files and writes nothing.
+ */
+export async function previewGcRows(
+  params: PreviewGcRowsParams,
+): Promise<PreviewGcRowsResult> {
+  return sendRequest<PreviewGcRowsResult>(
+    "mame.activity.preview_gc_rows",
     params as unknown as Record<string, unknown>,
     120_000,
   );

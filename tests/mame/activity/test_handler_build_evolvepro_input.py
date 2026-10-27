@@ -254,3 +254,36 @@ def test_handler_passes_operator_excluded_rows_and_reports_them(tmp_path: Path):
     params["excluded_rows"][0]["unexpected"] = 1
     with pytest.raises(ValueError):
         handle_build_evolvepro_input(params)
+
+
+def test_preview_handler_lists_every_row_and_writes_nothing(tmp_path: Path):
+    from sidecar_mame.dispatcher import _METHODS
+    from sidecar_mame.handlers.activity import handle_preview_gc_rows
+
+    assert _METHODS["mame.activity.preview_gc_rows"] is handle_preview_gc_rows
+    report = _agilent(tmp_path / "round1.xlsx")
+    before = sorted(path.name for path in tmp_path.iterdir())
+    response = handle_preview_gc_rows({
+        "round1_report_xlsx": str(report),
+        "layout_xlsx": str(_layout(tmp_path / "layout.xlsx")),
+        "verdict_xlsx": str(_verdict(tmp_path / "verdict.xlsx")),
+    })
+    assert set(response) == {"rows", "refusal"}
+    assert response["refusal"] is None
+    assert [(row["sample_name"], row["status"]) for row in response["rows"]] == [
+        ("WT_1", "wt"), ("WT_2", "wt"), ("A1", "used"), ("B1", "used"),
+    ]
+    assert sorted(path.name for path in tmp_path.iterdir()) == sorted(before + ["layout.xlsx", "verdict.xlsx"])
+    json.dumps(response)
+
+
+def test_preview_handler_refuses_what_the_build_refuses(tmp_path: Path):
+    from pydantic import ValidationError
+    from sidecar_mame.handlers.activity import handle_preview_gc_rows
+
+    with pytest.raises(ValidationError):
+        handle_preview_gc_rows({
+            "round1_report_xlsx": str(_agilent(tmp_path / "a.xlsx")),
+            "gc_data_xlsx": str(_gc(tmp_path / "gc.xlsx")),
+            "verdict_xlsx": str(_verdict(tmp_path / "verdict.xlsx")),
+        })

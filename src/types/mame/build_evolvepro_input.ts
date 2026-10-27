@@ -96,6 +96,54 @@ export interface ReportedGcRow extends GcRowPosition {
   kept: boolean
 }
 
+/**
+ * `mame.activity.preview_gc_rows` request: the build's own sources, mapping and
+ * evidence. Mirrors `PreviewGcRowsParams` (python-core/sidecar_mame/models.py),
+ * which shares the build's validation, so the preview refuses what the build
+ * refuses.
+ */
+export type PreviewGcRowsParams = Omit<
+  BuildEvolveproInputParams,
+  "output_xlsx" | "excluded_rows" | "gc_export_xlsx" | "mismatch_threshold" | "allow_label_mismatch"
+>
+
+/**
+ * What the build does with a row. `used` and `wt` rows enter the build and an
+ * operator may leave them out; every other status is the reader's own call:
+ * `set_aside` (no membership, `reason` says why), `ignored` (passed over, a
+ * declared WT well in a one-replicate report), `locked` (this run's row in the
+ * other notation, which refuses the build however it is ticked) and
+ * `unjudged` (the build refused the files before reaching the row).
+ */
+export type GcRowStatus = "used" | "wt" | "set_aside" | "ignored" | "locked" | "unjudged"
+
+export const GC_ROW_STATUSES: readonly GcRowStatus[] = [
+  "used", "wt", "set_aside", "ignored", "locked", "unjudged",
+]
+
+export interface PreviewGcRow {
+  source: GcSourceField
+  block_index: number | null
+  row_index: number
+  sample_name: string
+  area: number | null
+  /** What the name is in this field (gc_sample classify_sample kind). */
+  kind: string
+  status: GcRowStatus
+  /** Exclusion reason, ignored detail, or `other_notation` for a locked row. */
+  reason: string | null
+  /** The refusal sentence for a locked row; empty otherwise. */
+  detail: string
+  /** `duplicate_replicate` / `duplicate_well`: kept in use but suspicious. */
+  flags: string[]
+}
+
+export interface PreviewGcRowsResult {
+  rows: PreviewGcRow[]
+  /** Why the build would refuse these files as given, or null. */
+  refusal: string | null
+}
+
 export interface MismatchedVariant {
   variant: string
   authoritative: number

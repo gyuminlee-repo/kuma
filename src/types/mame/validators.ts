@@ -26,7 +26,7 @@
  */
 
 import { isRecord } from "../validators";
-import { BUILD_EVOLVEPRO_PRIMARY_FORMATS } from "./build_evolvepro_input";
+import { BUILD_EVOLVEPRO_PRIMARY_FORMATS, GC_ROW_STATUSES } from "./build_evolvepro_input";
 import { MEASUREMENT_SOURCES } from "./detect_measurement_source";
 import { hasValidRunQuality } from "./runQualityValidator";
 
@@ -190,6 +190,31 @@ function isReportedGcRow(value: unknown): boolean {
     typeof value.kept === "boolean"
   );
 }
+
+const GC_ROW_STATUS_SET = new Set<string>(GC_ROW_STATUSES);
+
+function isPreviewGcRow(value: unknown): boolean {
+  return (
+    isGcRowPosition(value) &&
+    isRecord(value) &&
+    isString(value.kind) &&
+    isMemberOf(GC_ROW_STATUS_SET)(value.status) &&
+    (value.reason === null || isString(value.reason)) &&
+    isString(value.detail) &&
+    isStringArray(value.flags)
+  );
+}
+
+/**
+ * `mame.activity.preview_gc_rows`. The panel ticks rows by position and sends
+ * name and area back as `excluded_rows`, which the build compares against the
+ * file, so a row missing either is refused here rather than there.
+ */
+const isPreviewGcRowsResult: MameResultValidator = (value) =>
+  isRecord(value) &&
+  Array.isArray(value.rows) &&
+  value.rows.every(isPreviewGcRow) &&
+  (value.refusal === null || isString(value.refusal));
 
 /**
  * `mame.activity.build_evolvepro_input`.
@@ -405,6 +430,7 @@ const VALIDATORS: Record<string, MameResultValidator> = {
     isFiniteNumber(value.verdict_count) && isFiniteNumber(value.replicate_count),
   "mame.activity.build_evolvepro_input": isBuildEvolveproInputResult,
   "mame.activity.detect_measurement_source": isDetectMeasurementSourceResult,
+  "mame.activity.preview_gc_rows": isPreviewGcRowsResult,
   "strategy.classify_round": isClassifyRoundResult,
   "mame.build_well_layout": isBuildWellLayoutResult,
   health_info: isHealthInfoResult,

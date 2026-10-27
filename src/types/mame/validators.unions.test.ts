@@ -264,3 +264,34 @@ describe("build_evolvepro_input enforces its declared unions", () => {
     ).toBe(false);
   });
 });
+
+describe("preview_gc_rows enforces its declared row shape", () => {
+  const PREVIEW = "mame.activity.preview_gc_rows";
+  const row = (overrides: Record<string, unknown> = {}) => ({
+    source: "round1_report_xlsx",
+    block_index: 5,
+    row_index: 23,
+    sample_name: "BLANK",
+    area: 0.3,
+    kind: "unrecognized",
+    status: "set_aside",
+    reason: "non_well_sample",
+    detail: "",
+    flags: [],
+    ...overrides,
+  });
+
+  it("accepts every status and an empty review", () => {
+    for (const status of ["used", "wt", "set_aside", "ignored", "locked", "unjudged"]) {
+      expect(validate(PREVIEW, { rows: [row({ status })], refusal: null })).toBe(true);
+    }
+    expect(validate(PREVIEW, { rows: [], refusal: null })).toBe(true);
+    expect(validate(PREVIEW, { rows: [], refusal: "round1_report_xlsx has no WT block areas" })).toBe(true);
+  });
+
+  it("refuses an unknown status, a missing position or a missing refusal key", () => {
+    expect(validate(PREVIEW, { rows: [row({ status: "maybe" })], refusal: null })).toBe(false);
+    expect(validate(PREVIEW, { rows: [row({ row_index: undefined })], refusal: null })).toBe(false);
+    expect(validate(PREVIEW, { rows: [row()] })).toBe(false);
+  });
+});

@@ -639,6 +639,34 @@ def handle_build_evolvepro_input(params: dict) -> dict:
     }
 
 
+def handle_preview_gc_rows(params: dict) -> dict:
+    """List every GC row a build of these inputs would read, with its fate.
+
+    Same inputs as ``mame.activity.build_evolvepro_input`` and the same
+    judgement (the core runs the build's own reading stage), so the review
+    list an operator ticks is the build they will get. Writes nothing.
+    """
+    from kuma_core.mame.activity.build_evolvepro_input import preview_gc_rows
+    from sidecar_mame.models import PreviewGcRowsParams
+
+    p = PreviewGcRowsParams.model_validate(params)
+    preview = preview_gc_rows(
+        activity_path=p.activity_path,
+        activity_scale=p.activity_scale,
+        gc_data_xlsx=p.gc_data_xlsx,
+        round1_report_xlsx=p.round1_report_xlsx,
+        numeric_report_xlsx=p.numeric_report_xlsx,
+        remeasure_report_xlsx=p.remeasure_report_xlsx,
+        remeasure_numeric_xlsx=p.remeasure_numeric_xlsx,
+        remeasure_well_xlsx=p.remeasure_well_xlsx,
+        verdict_xlsx=p.verdict_xlsx,
+        layout_xlsx=p.layout_xlsx,
+        expected_xlsx=p.expected_xlsx,
+        resequence_evidence=p.resequence_evidence,
+    )
+    return {"rows": preview.rows, "refusal": preview.refusal}
+
+
 def handle_detect_measurement_source(params: dict) -> dict:
     """Report which step 4.1 measurement sources the given file could be.
 
@@ -680,6 +708,7 @@ __all__ = [
     "handle_merge_for_evolvepro",
     "handle_build_evolvepro_input",
     "handle_detect_measurement_source",
+    "handle_preview_gc_rows",
     "ExportBlockedError",
     "_rounds",
 ]

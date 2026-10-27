@@ -441,8 +441,12 @@ class ExcludedGcRow(BaseModel):
     area: float | None = Field(default=None, allow_inf_nan=False)
 
 
-class BuildEvolveproInputParams(BaseModel):
-    """Strict request contract for the unified MAME Step 3 builder."""
+class EvolveproSourceParams(BaseModel):
+    """The sources, mapping and evidence a Step 3 build reads.
+
+    Shared by the build request and the row preview, so both refuse exactly
+    the same parameter combinations.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
@@ -458,7 +462,6 @@ class BuildEvolveproInputParams(BaseModel):
     resequence_evidence: ResequenceEvidence | None = None
     layout_xlsx: str | None = None
     expected_xlsx: str | None = None
-    output_xlsx: str
     # allow_inf_nan=False, not an invented ceiling. ``gt=0.0`` alone does not
     # exclude infinity, because ``inf > 0.0`` holds; measured, an ``inf`` here
     # validated and reached merge.py, where ``diff > mismatch_threshold`` is
@@ -538,7 +541,7 @@ class BuildEvolveproInputParams(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def _primary_source(self) -> "BuildEvolveproInputParams":
+    def _primary_source(self) -> "EvolveproSourceParams":
         sources = [
             name for name, value in (
                 ("activity_path", self.activity_path),
@@ -575,7 +578,8 @@ class BuildEvolveproInputParams(BaseModel):
         # a data question the builder answers, so it is not asserted here.
         return self
 
-    @field_validator("output_xlsx", "gc_export_xlsx", mode="after")
+    # check_fields=False: output_xlsx is declared on the build request only.
+    @field_validator("output_xlsx", "gc_export_xlsx", mode="after", check_fields=False)
     @classmethod
     def _check_output_xlsx(cls, v: str | None) -> str | None:
         if v is None:
@@ -588,6 +592,23 @@ class BuildEvolveproInputParams(BaseModel):
         if not p.parent.exists():
             raise ValueError(f"Parent of output path does not exist: {p.parent}")
         return v
+
+
+class BuildEvolveproInputParams(EvolveproSourceParams):
+    """Strict request contract for the unified MAME Step 3 builder."""
+
+    output_xlsx: str
+
+
+class PreviewGcRowsParams(EvolveproSourceParams):
+    """Parameters for ``mame.activity.preview_gc_rows``: the build's own inputs.
+
+    Every source, path and combination rule of the build request applies, so
+    the preview refuses exactly what the build refuses. A preview writes
+    nothing and reports the defaults an operator then reviews, so
+    ``excluded_rows``, ``gc_export_xlsx``, ``mismatch_threshold`` and
+    ``allow_label_mismatch`` are accepted and not used.
+    """
 
 
 class DetectNativeBarcodesParams(BaseModel):
