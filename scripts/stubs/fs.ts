@@ -28,6 +28,9 @@ export async function writeFile(
 export async function rename(_oldPath: string, _newPath: string): Promise<void> {
 }
 
+export async function copyFile(_fromPath: string, _toPath: string, _options?: unknown): Promise<void> {
+}
+
 // Added when the plugin-fs alias was switched on for the capture run: these
 // four are imported by the app and their absence broke the dev bundle before
 // a single screen rendered.
