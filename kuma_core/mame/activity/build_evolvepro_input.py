@@ -34,6 +34,7 @@ from .gc_sample import (
     WT_PATTERN as _WT_RE,  # noqa: F401 (re-exported: tests pin the shared WT contract)
     ReportedRow,
     SampleClass,
+    Slot,
     _short_variant,
     _strip_confirmation_rep_suffix,  # noqa: F401 (re-exported for callers)
     classify_sample,
@@ -1418,3 +1419,148 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
         excluded_rows=[row.as_dict() for row in ledger.rows],
         wt_rows=ledger.wt_rows,
     )
+
+
+# Input fields that hold a GC file, and how each is read: a FID1B block
+# report, a flat Sample Name/Area sheet, or (activity_path) a long-format table
+# whose rows only the reader itself enumerates.
+_BLOCK_SOURCES = ("round1_report_xlsx", "numeric_report_xlsx", "remeasure_report_xlsx", "remeasure_numeric_xlsx", "remeasure_well_xlsx")
+_FLAT_SOURCES = ("gc_data_xlsx",)
+_SOURCE_SLOT: dict[str, Slot] = {
+    "activity_path": "well",
+    "gc_data_xlsx": "well",
+    "round1_report_xlsx": "well",
+    "numeric_report_xlsx": "numeric_id",
+    "remeasure_report_xlsx": "variant",
+    "remeasure_numeric_xlsx": "numeric_id",
+    "remeasure_well_xlsx": "well",
+}
+
+# Statuses a previewed row can carry. "used" and "wt" rows are the ones an
+# operator may leave out; every other status is the reader's own call.
+PREVIEW_STATUSES = ("used", "wt", "set_aside", "ignored", "locked", "unjudged")
+
+
+@dataclass
+class GcRowPreview:
+    """Every row of the GC files a build would read, with the build's judgement.
+
+    rows: one dict per row, in file order per field, carrying ``source``,
+        ``block_index``, ``row_index``, ``sample_name``, ``area``, ``kind``
+        (what the name is, from gc_sample), ``status`` (one of
+        PREVIEW_STATUSES), ``reason`` (the exclusion reason, the ignored
+        detail, or ``other_notation`` for a locked row), ``detail`` (a
+        sentence for a locked row) and ``flags`` (duplicate_replicate,
+        duplicate_well).
+    refusal: the build's refusal message when the files as given cannot be
+        built at all. Rows the reading stage had not reached by then are
+        ``unjudged``; no other code labels them.
+    """
+
+    rows: list[dict[str, object]]
+    refusal: str | None
+
+
+def preview_gc_rows(*, activity_path: str | Path | None = None, activity_scale: str = "raw", gc_data_xlsx: str | Path | None = None, round1_report_xlsx: str | Path | None = None, numeric_report_xlsx: str | Path | None = None, remeasure_report_xlsx: str | Path | None = None, remeasure_numeric_xlsx: str | Path | None = None, remeasure_well_xlsx: str | Path | None = None, verdict_xlsx: str | Path, layout_xlsx: str | Path | None = None, expected_xlsx: str | Path | None = None, resequence_evidence: ResequenceEvidence | None = None) -> GcRowPreview:
+    """List every row the build would read and what the build does with it.
+
+    Runs the build's own reading stage (``_read_sources``) with a ledger in
+    preview mode and writes nothing. Operator exclusions are not applied: this
+    states the defaults an operator then reviews. A row of this run written in
+    the other notation is ``locked``: it refuses the build whether or not it
+    is left out.
+    """
+    ledger = _RowLedger(preview=True)
+    refusal: str | None = None
+    sources = {
+        "activity_path": activity_path,
+        "gc_data_xlsx": gc_data_xlsx,
+        "round1_report_xlsx": round1_report_xlsx,
+        "numeric_report_xlsx": numeric_report_xlsx,
+        "remeasure_report_xlsx": remeasure_report_xlsx,
+        "remeasure_numeric_xlsx": remeasure_numeric_xlsx,
+        "remeasure_well_xlsx": remeasure_well_xlsx,
+    }
+    try:
+        _read_sources(
+            activity_path=activity_path,
+            activity_scale=activity_scale,
+            gc_data_xlsx=gc_data_xlsx,
+            round1_report_xlsx=round1_report_xlsx,
+            numeric_report_xlsx=numeric_report_xlsx,
+            remeasure_report_xlsx=remeasure_report_xlsx,
+            remeasure_numeric_xlsx=remeasure_numeric_xlsx,
+            remeasure_well_xlsx=remeasure_well_xlsx,
+            verdict_xlsx=verdict_xlsx,
+            layout_xlsx=layout_xlsx,
+            expected_xlsx=expected_xlsx,
+            gc_export_xlsx=None,
+            resequence_evidence=resequence_evidence,
+            ledger=ledger,
+        )
+    except ValueError as exc:
+        refusal = str(exc)
+    if any(event[3] == "locked" for event in ledger.events) and refusal is None:
+        refusal = next(event[4] for event in ledger.events if event[3] == "locked")
+
+    judged: dict[tuple[str, int | None, int], dict[str, object]] = {}
+
+    def entry(source: str, row: GcRow, area: float | None) -> dict[str, object]:
+        key = (source, row.block_index, row.row_index)
+        if key not in judged:
+            judged[key] = {
+                "source": source,
+                "block_index": row.block_index,
+                "row_index": row.row_index,
+                "sample_name": row.sample_name,
+                "area": area if area is None or math.isfinite(area) else None,
+                "kind": classify_sample(row.sample_name, _SOURCE_SLOT[source]).kind,
+                "status": "unjudged",
+                "reason": None,
+                "detail": "",
+                "flags": [],
+            }
+        return judged[key]
+
+    for source, row, area, status, detail in ledger.events:
+        item = entry(source, row, area)
+        item["status"] = status
+        if status == "locked":
+            item["reason"], item["detail"] = "other_notation", detail
+        elif status == "ignored":
+            item["reason"] = detail
+    for reported in ledger.rows:
+        row = GcRow(
+            sample_name=reported.sample_name,
+            area_raw="",
+            row_index=reported.row_index,
+            block_index=reported.block_index,
+        )
+        item = entry(reported.source, row, reported.area)
+        if reported.kept:
+            cast(list[str], item["flags"]).append(reported.reason)
+        else:
+            item["status"], item["reason"] = "set_aside", reported.reason
+
+    for source, path in sources.items():
+        if path is None:
+            continue
+        if source in _BLOCK_SOURCES:
+            file_rows = read_block_report(path)
+        elif source in _FLAT_SOURCES:
+            file_rows = read_flat_sheet(path, reader="parse_relative_only")
+        else:
+            continue
+        for row in file_rows:
+            entry(source, row, _lenient_area(row))
+
+    order = list(sources)
+    rows = sorted(
+        judged.values(),
+        key=lambda item: (
+            order.index(str(item["source"])),
+            cast(int, item["block_index"] or 0),
+            cast(int, item["row_index"]),
+        ),
+    )
+    return GcRowPreview(rows=rows, refusal=refusal)
