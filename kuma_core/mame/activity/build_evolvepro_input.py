@@ -507,6 +507,8 @@ def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str,
                 ledger.set_aside(source_name, position, UNMAPPED_WELL, value)
             well_rows = []
     rows: list[tuple[str, float, str]] = []
+    # Recorded once the file is accepted below: a refused file uses no row.
+    used: list[tuple[GcRow, float]] = []
     namespaces: set[str] = set()
     for position, well, value, cohort in well_rows:
         namespaces.add("well")
@@ -515,11 +517,11 @@ def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str,
             unmapped.append(well)
             ledger.set_aside(source_name, position, UNMAPPED_WELL, value)
             continue
-        ledger.use(source_name, position, value)
+        used.append((position, value))
         rows.append((variant, value, cohort))
     for position, short, value, cohort in variant_rows:
         namespaces.add("variant")
-        ledger.use(source_name, position, value)
+        used.append((position, value))
         rows.append((short, value, cohort))
     if not rows:
         raise ValueError("activity_path has no measurement rows outside WT records")
@@ -533,6 +535,8 @@ def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str,
         missing = sorted({cohort for _, _, cohort in rows if not wt_values.get(cohort)})
         if missing:
             raise ValueError(f"activity_path raw data has no WT/WT_1/WT1 rows for cohort(s): {', '.join(missing)}")
+    for position, value in used:
+        ledger.use(source_name, position, value)
     for cohort in sorted({cohort for cohort, _, _ in wt_seen}):
         members = [(position, value) for c, position, value in wt_seen if c == cohort]
         if cohort in cohorts:
@@ -691,8 +695,8 @@ def _numeric_primary(path: str | Path, expected_xlsx: str | Path | None, layout_
         source_label=source,
         skip=lambda row, area: ledger.operator_skips(source, row, area),
         other_notation=lambda row, message: ledger.other_notation(source, row, message),
+        excluded=ledger.rows,
     )
-    ledger.rows.extend(result.excluded)
     for row, area in result.wt_rows:
         ledger.used_wt(source, row, area)
     for row, area in result.used_rows:
@@ -745,8 +749,8 @@ def _numeric_confirmation(path: str | Path, order: DecodeOrder, well_values: dic
         source_label=source,
         skip=lambda row, area: ledger.operator_skips(source, row, area),
         other_notation=lambda row, message: ledger.other_notation(source, row, message),
+        excluded=ledger.rows,
     )
-    ledger.rows.extend(result.excluded)
     for row, area in result.wt_rows:
         ledger.used_wt(source, row, area)
     for row, area in result.used_rows:
@@ -827,8 +831,10 @@ def _confirmation(path: str | Path, well_to_variant: dict[str, str] | None = Non
             if sample.internal and expected_identity and sample.internal != expected_identity:
                 raise ValueError(f"remeasure_report_xlsx sample {sample.internal!r} conflicts with declared identity {expected_identity!r}")
         replicate_keys.append(((variant, sample.replicate), row, area))
-        ledger.use(source, row, area)
         values.setdefault(variant, []).append(area / mean_wt)
+    # Recorded after the identity check above: a refused file uses no row.
+    for _key, row, area in replicate_keys:
+        ledger.use(source, row, area)
     ledger.flag_repeats(source, replicate_keys, DUPLICATE_REPLICATE)
     if unmapped and warnings is not None:
         warnings.append(
@@ -1055,7 +1061,7 @@ class _SourcesRead:
     authoritative: dict[str, list[float]]
 
 
-def _read_sources(*, activity_path: str | Path | None, activity_scale: str, gc_data_xlsx: str | Path | None, round1_report_xlsx: str | Path | None, numeric_report_xlsx: str | Path | None, remeasure_report_xlsx: str | Path | None, remeasure_numeric_xlsx: str | Path | None, remeasure_well_xlsx: str | Path | None, verdict_xlsx: str | Path, layout_xlsx: str | Path | None, expected_xlsx: str | Path | None, gc_export_xlsx: str | Path | None, resequence_evidence: ResequenceEvidence | None, ledger: _RowLedger) -> _SourcesRead:
+def _read_sources(*, activity_path: str | Path | None, activity_scale: str, gc_data_xlsx: str | Path | None, round1_report_xlsx: str | Path | None, numeric_report_xlsx: str | Path | None, remeasure_report_xlsx: str | Path | None, remeasure_numeric_xlsx: str | Path | None, remeasure_well_xlsx: str | Path | None, verdict_xlsx: str | Path, layout_xlsx: str | Path | None, expected_xlsx: str | Path | None, gc_export_xlsx: str | Path | None, resequence_evidence: ResequenceEvidence | None, ledger: _RowLedger, output_xlsx: str | Path | None = None) -> _SourcesRead:
     """Read the primary and confirmation sources and judge every row once.
 
     The build and the row preview both run this, so the preview states the
@@ -1084,6 +1090,10 @@ def _read_sources(*, activity_path: str | Path | None, activity_scale: str, gc_d
     if verdict_xlsx is None:
         raise ValueError("verdict_xlsx is required")
     linked = validate_resequence_links(resequence_evidence, verdict_xlsx) if resequence_evidence else {}
+    if resequence_evidence and output_xlsx is not None and Path(output_xlsx).resolve() in {
+        Path(verdict_xlsx).resolve(), Path(resequence_evidence.verdict_xlsx).resolve(),
+    }:
+        raise ValueError("Activity output must not overwrite either NGS evidence workbook")
     measured = {
         to_evolvepro(link.mutant_id): _normalise_well(link.activity_well)
         for link in (resequence_evidence.links if resequence_evidence else [])
@@ -1197,28 +1207,35 @@ def _read_sources(*, activity_path: str | Path | None, activity_scale: str, gc_d
     )
 
 
-def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path | None = None, activity_scale: str = "raw", gc_data_xlsx: str | Path | None = None, round1_report_xlsx: str | Path | None = None, numeric_report_xlsx: str | Path | None = None, remeasure_report_xlsx: str | Path | None = None, remeasure_numeric_xlsx: str | Path | None = None, remeasure_well_xlsx: str | Path | None = None, verdict_xlsx: str | Path, layout_xlsx: str | Path | None = None, expected_xlsx: str | Path | None = None, mismatch_threshold: float = 0.1, gc_export_xlsx: str | Path | None = None, allow_label_mismatch: bool = False, resequence_evidence: ResequenceEvidence | None = None, excluded_rows: list[OperatorExclusion] | None = None) -> BuildEvolveproResult:
-    """Build Step 3 output from exactly one supported primary source.
+@dataclass
+class _Judged:
+    """Everything a build decides before it writes: the judgement stage."""
 
-    Raw generic activity uses WT rows per file/plate cohort; relative generic
-    activity is already normalized. NGS PASS evidence is mandatory for every
-    selected variant, including confirmation-selected values.
+    ledger: _RowLedger
+    name: str
+    warnings: list[str]
+    gc_export_rows: list[tuple[str, float]]
+    well_by_variant: dict[str, str]
+    wt_values: list[float]
+    fallback: dict[str, list[float]]
+    authoritative: dict[str, list[float]]
+    merged: dict[Variant, float]
+    stats: MergeReplicatesStats
+    mismatched: list[dict[str, object]]
+    input_count: int
+    excluded: list[str]
+    audit: LabelAudit | None
+    reason_counts: dict[str, int]
+    rescued: list[str]
 
-    The WT rows the primary source carried leave in ``wt_values`` on the same
-    scale as the exported column. They are dropped from the workbook itself,
-    which holds one row per designed variant, so a caller that needs the assay
-    spread behind this round has to take them from the result.
 
-    Every GC row a reader set aside (``BLANK``, calibration numbers, wells off
-    the mapping, rows without a name or area, rows in *excluded_rows*) is
-    named with its position in ``warnings``, counted in
-    ``exclusion_reason_counts`` and listed in the manifest ``excluded_rows``.
-    The WT rows the reference was taken from are listed in ``wt_rows``.
+def _judge_build(*, activity_path: str | Path | None, activity_scale: str, gc_data_xlsx: str | Path | None, round1_report_xlsx: str | Path | None, numeric_report_xlsx: str | Path | None, remeasure_report_xlsx: str | Path | None, remeasure_numeric_xlsx: str | Path | None, remeasure_well_xlsx: str | Path | None, verdict_xlsx: str | Path, layout_xlsx: str | Path | None, expected_xlsx: str | Path | None, mismatch_threshold: float, gc_export_xlsx: str | Path | None, allow_label_mismatch: bool, resequence_evidence: ResequenceEvidence | None, excluded_rows: list[OperatorExclusion] | None, output_xlsx: str | Path | None) -> _Judged:
+    """Run every check a build makes before writing, and raise its refusal.
+
+    The build writes what this returns; the row preview runs it with the
+    operator's exclusions to learn whether that selection would be refused.
+    *output_xlsx* is None for the preview, which skips the overwrite check.
     """
-    if resequence_evidence and Path(output_xlsx).resolve() in {
-        Path(verdict_xlsx).resolve(), Path(resequence_evidence.verdict_xlsx).resolve(),
-    }:
-        raise ValueError("Activity output must not overwrite either NGS evidence workbook")
     ledger = _RowLedger(excluded_rows)
     read = _read_sources(
         activity_path=activity_path,
@@ -1235,6 +1252,7 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
         gc_export_xlsx=gc_export_xlsx,
         resequence_evidence=resequence_evidence,
         ledger=ledger,
+        output_xlsx=output_xlsx,
     )
     name, warnings, gc_export_rows, unmapped = read.name, read.warnings, read.gc_export_rows, read.unmapped
     well_by_variant, wt_values, fallback, authoritative = read.well_by_variant, read.wt_values, read.fallback, read.authoritative
@@ -1323,6 +1341,56 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
         raise ValueError("Label swap detected; export blocked. Review the layout and verdict labels or set allow_label_mismatch=True after review.")
     if not merged:
         raise ValueError("No variants with explicit PASS NGS evidence remain to write")
+    return _Judged(
+        ledger=ledger, name=name, warnings=warnings, gc_export_rows=gc_export_rows,
+        well_by_variant=well_by_variant, wt_values=wt_values, fallback=fallback,
+        authoritative=authoritative, merged=merged, stats=stats, mismatched=mismatched,
+        input_count=input_count, excluded=excluded, audit=audit,
+        reason_counts=reason_counts, rescued=rescued,
+    )
+
+
+def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path | None = None, activity_scale: str = "raw", gc_data_xlsx: str | Path | None = None, round1_report_xlsx: str | Path | None = None, numeric_report_xlsx: str | Path | None = None, remeasure_report_xlsx: str | Path | None = None, remeasure_numeric_xlsx: str | Path | None = None, remeasure_well_xlsx: str | Path | None = None, verdict_xlsx: str | Path, layout_xlsx: str | Path | None = None, expected_xlsx: str | Path | None = None, mismatch_threshold: float = 0.1, gc_export_xlsx: str | Path | None = None, allow_label_mismatch: bool = False, resequence_evidence: ResequenceEvidence | None = None, excluded_rows: list[OperatorExclusion] | None = None) -> BuildEvolveproResult:
+    """Build Step 3 output from exactly one supported primary source.
+
+    Raw generic activity uses WT rows per file/plate cohort; relative generic
+    activity is already normalized. NGS PASS evidence is mandatory for every
+    selected variant, including confirmation-selected values.
+
+    The WT rows the primary source carried leave in ``wt_values`` on the same
+    scale as the exported column. They are dropped from the workbook itself,
+    which holds one row per designed variant, so a caller that needs the assay
+    spread behind this round has to take them from the result.
+
+    Every GC row a reader set aside (``BLANK``, calibration numbers, wells off
+    the mapping, rows without a name or area, rows in *excluded_rows*) is
+    named with its position in ``warnings``, counted in
+    ``exclusion_reason_counts`` and listed in the manifest ``excluded_rows``.
+    The WT rows the reference was taken from are listed in ``wt_rows``.
+    """
+    judged = _judge_build(
+        activity_path=activity_path,
+        activity_scale=activity_scale,
+        gc_data_xlsx=gc_data_xlsx,
+        round1_report_xlsx=round1_report_xlsx,
+        numeric_report_xlsx=numeric_report_xlsx,
+        remeasure_report_xlsx=remeasure_report_xlsx,
+        remeasure_numeric_xlsx=remeasure_numeric_xlsx,
+        remeasure_well_xlsx=remeasure_well_xlsx,
+        verdict_xlsx=verdict_xlsx,
+        layout_xlsx=layout_xlsx,
+        expected_xlsx=expected_xlsx,
+        mismatch_threshold=mismatch_threshold,
+        gc_export_xlsx=gc_export_xlsx,
+        allow_label_mismatch=allow_label_mismatch,
+        resequence_evidence=resequence_evidence,
+        excluded_rows=excluded_rows,
+        output_xlsx=output_xlsx,
+    )
+    ledger, name, warnings, gc_export_rows = judged.ledger, judged.name, judged.warnings, judged.gc_export_rows
+    well_by_variant, wt_values, fallback, authoritative = judged.well_by_variant, judged.wt_values, judged.fallback, judged.authoritative
+    merged, stats, mismatched, input_count = judged.merged, judged.stats, judged.mismatched, judged.input_count
+    excluded, audit, reason_counts, rescued = judged.excluded, judged.audit, judged.reason_counts, judged.rescued
     output_path = Path(output_xlsx)
     output_rows = sorted(
         ((str(variant), float(value)) for variant, value in merged.items()),
@@ -1470,13 +1538,18 @@ class GcRowPreview:
     refusal: the build's refusal message when the files as given cannot be
         built at all. Rows the reading stage had not reached by then are
         ``unjudged``; no other code labels them.
+    selection_refusal: the refusal the build gives with the operator's
+        excluded_rows applied, when that refusal is caused by the selection:
+        the same build without them does not refuse with the same message.
+        ``rows`` and ``refusal`` always state the defaults, before exclusions.
     """
 
     rows: list[PreviewRow]
     refusal: str | None
+    selection_refusal: str | None = None
 
 
-def preview_gc_rows(*, activity_path: str | Path | None = None, activity_scale: str = "raw", gc_data_xlsx: str | Path | None = None, round1_report_xlsx: str | Path | None = None, numeric_report_xlsx: str | Path | None = None, remeasure_report_xlsx: str | Path | None = None, remeasure_numeric_xlsx: str | Path | None = None, remeasure_well_xlsx: str | Path | None = None, verdict_xlsx: str | Path, layout_xlsx: str | Path | None = None, expected_xlsx: str | Path | None = None, resequence_evidence: ResequenceEvidence | None = None) -> GcRowPreview:
+def preview_gc_rows(*, activity_path: str | Path | None = None, activity_scale: str = "raw", gc_data_xlsx: str | Path | None = None, round1_report_xlsx: str | Path | None = None, numeric_report_xlsx: str | Path | None = None, remeasure_report_xlsx: str | Path | None = None, remeasure_numeric_xlsx: str | Path | None = None, remeasure_well_xlsx: str | Path | None = None, verdict_xlsx: str | Path, layout_xlsx: str | Path | None = None, expected_xlsx: str | Path | None = None, resequence_evidence: ResequenceEvidence | None = None, excluded_rows: list[OperatorExclusion] | None = None, mismatch_threshold: float = 0.1, allow_label_mismatch: bool = False) -> GcRowPreview:
     """List every row the build would read and what the build does with it.
 
     Runs the build's own reading stage (``_read_sources``) with a ledger in
@@ -1484,6 +1557,14 @@ def preview_gc_rows(*, activity_path: str | Path | None = None, activity_scale: 
     states the defaults an operator then reviews. A row of this run written in
     the other notation is ``locked``: it refuses the build whether or not it
     is left out.
+
+    With *excluded_rows*, the build's whole judgement stage (``_judge_build``)
+    also runs with them and then without them, and ``selection_refusal`` holds
+    the first refusal only when the second does not give the same one. A
+    refusal the files give regardless (a label swap awaiting acknowledgement,
+    a row in the other notation) is not the selection's and is not reported
+    there, so it never blocks an operator from reaching the build that states
+    it.
     """
     ledger = _RowLedger(preview=True)
     refusal: str | None = None
@@ -1574,4 +1655,34 @@ def preview_gc_rows(*, activity_path: str | Path | None = None, activity_scale: 
         judged.values(),
         key=lambda item: (order.index(item["source"]), item["block_index"] or 0, item["row_index"]),
     )
-    return GcRowPreview(rows=rows, refusal=refusal)
+    selection_refusal: str | None = None
+    if excluded_rows:
+        def judge(exclusions: list[OperatorExclusion] | None) -> str | None:
+            try:
+                _judge_build(
+                    activity_path=activity_path,
+                    activity_scale=activity_scale,
+                    gc_data_xlsx=gc_data_xlsx,
+                    round1_report_xlsx=round1_report_xlsx,
+                    numeric_report_xlsx=numeric_report_xlsx,
+                    remeasure_report_xlsx=remeasure_report_xlsx,
+                    remeasure_numeric_xlsx=remeasure_numeric_xlsx,
+                    remeasure_well_xlsx=remeasure_well_xlsx,
+                    verdict_xlsx=verdict_xlsx,
+                    layout_xlsx=layout_xlsx,
+                    expected_xlsx=expected_xlsx,
+                    mismatch_threshold=mismatch_threshold,
+                    gc_export_xlsx=None,
+                    allow_label_mismatch=allow_label_mismatch,
+                    resequence_evidence=resequence_evidence,
+                    excluded_rows=exclusions,
+                    output_xlsx=None,
+                )
+            except ValueError as exc:
+                return str(exc)
+            return None
+
+        selected = judge(excluded_rows)
+        if selected is not None and judge(None) != selected:
+            selection_refusal = selected
+    return GcRowPreview(rows=rows, refusal=refusal, selection_refusal=selection_refusal)

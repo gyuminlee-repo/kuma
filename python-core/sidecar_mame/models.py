@@ -605,9 +605,10 @@ class PreviewGcRowsParams(EvolveproSourceParams):
 
     Every source, path and combination rule of the build request applies, so
     the preview refuses exactly what the build refuses. A preview writes
-    nothing and reports the defaults an operator then reviews, so
-    ``excluded_rows``, ``gc_export_xlsx``, ``mismatch_threshold`` and
-    ``allow_label_mismatch`` are accepted and not used.
+    nothing and reports the defaults an operator then reviews; the build's
+    checks also run with ``excluded_rows``, ``mismatch_threshold`` and
+    ``allow_label_mismatch`` to report a refusal the selection causes.
+    ``gc_export_xlsx`` is accepted and not used.
     """
 
 

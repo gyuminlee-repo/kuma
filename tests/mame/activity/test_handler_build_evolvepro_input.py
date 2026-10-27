@@ -268,13 +268,30 @@ def test_preview_handler_lists_every_row_and_writes_nothing(tmp_path: Path):
         "layout_xlsx": str(_layout(tmp_path / "layout.xlsx")),
         "verdict_xlsx": str(_verdict(tmp_path / "verdict.xlsx")),
     })
-    assert set(response) == {"rows", "refusal"}
+    assert set(response) == {"rows", "refusal", "selection_refusal"}
     assert response["refusal"] is None
     assert [(row["sample_name"], row["status"]) for row in response["rows"]] == [
         ("WT_1", "wt"), ("WT_2", "wt"), ("A1", "used"), ("B1", "used"),
     ]
     assert sorted(path.name for path in tmp_path.iterdir()) == sorted(before + ["layout.xlsx", "verdict.xlsx"])
     json.dumps(response)
+    assert response["selection_refusal"] is None
+
+    wt = [
+        {key: row[key] for key in ("source", "row_index", "block_index", "sample_name", "area")}
+        for row in response["rows"] if row["status"] == "wt"
+    ]
+    params = {
+        "round1_report_xlsx": str(report),
+        "layout_xlsx": str(tmp_path / "layout.xlsx"),
+        "verdict_xlsx": str(tmp_path / "verdict.xlsx"),
+    }
+    selected = handle_preview_gc_rows({**params, "excluded_rows": wt})
+    assert selected["selection_refusal"] is not None
+    assert selected["rows"] == response["rows"]
+    one = handle_preview_gc_rows({**params, "excluded_rows": wt[:1]})
+    assert one["selection_refusal"] is None
+    assert sorted(path.name for path in tmp_path.iterdir()) == sorted(before + ["layout.xlsx", "verdict.xlsx"])
 
 
 def test_preview_handler_refuses_what_the_build_refuses(tmp_path: Path):

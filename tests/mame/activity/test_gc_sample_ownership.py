@@ -51,7 +51,7 @@ ALLOWED: dict[tuple[str, str, str], str] = {
     ("build_evolvepro_input.py", "_verdict_maps", "_short_variant"): "verdict mutant_id notation",
     ("build_evolvepro_input.py", "_strict_ngs_gate", "_short_variant"): "verdict mutant_id notation",
     # Resequencing links name their wells explicitly; this spells them.
-    ("build_evolvepro_input.py", "build_evolvepro_input", "_normalise_well"): "resequence link well spelling",
+    ("build_evolvepro_input.py", "_judge_build", "_normalise_well"): "resequence link well spelling",
     ("build_evolvepro_input.py", "_read_sources", "_normalise_well"): "resequence link well spelling",
     ("numeric_id_decode.py", "expected_variant_order", "_normalise_well"): "design-list well spelling",
     # Selection rule (WT-exceeding variants). Two copies remain until the

@@ -644,9 +644,11 @@ def handle_preview_gc_rows(params: dict) -> dict:
 
     Same inputs as ``mame.activity.build_evolvepro_input`` and the same
     judgement (the core runs the build's own reading stage), so the review
-    list an operator ticks is the build they will get. Writes nothing.
+    list an operator ticks is the build they will get. ``excluded_rows`` go
+    through the build's own checks and a refusal they cause is returned as
+    ``selection_refusal``. Writes nothing.
     """
-    from kuma_core.mame.activity.build_evolvepro_input import preview_gc_rows
+    from kuma_core.mame.activity.build_evolvepro_input import OperatorExclusion, preview_gc_rows
     from sidecar_mame.models import PreviewGcRowsParams
 
     p = PreviewGcRowsParams.model_validate(params)
@@ -663,8 +665,11 @@ def handle_preview_gc_rows(params: dict) -> dict:
         layout_xlsx=p.layout_xlsx,
         expected_xlsx=p.expected_xlsx,
         resequence_evidence=p.resequence_evidence,
+        excluded_rows=[OperatorExclusion(**row.model_dump()) for row in p.excluded_rows],
+        mismatch_threshold=p.mismatch_threshold,
+        allow_label_mismatch=p.allow_label_mismatch,
     )
-    return {"rows": preview.rows, "refusal": preview.refusal}
+    return {"rows": preview.rows, "refusal": preview.refusal, "selection_refusal": preview.selection_refusal}
 
 
 def handle_detect_measurement_source(params: dict) -> dict:

@@ -385,6 +385,7 @@ def decode_primary_screen(
     source_label: str | None = None,
     skip: Callable[[GcRow, float | None], bool] | None = None,
     other_notation: Callable[[GcRow, str], None] | None = None,
+    excluded: list[ReportedRow] | None = None,
 ) -> DecodeResult:
     """Decode the whole-plate primary screen. ID ``i`` is the ``i``-th variant.
 
@@ -406,7 +407,9 @@ def decode_primary_screen(
     source = Path(report_xlsx).name
     block = parse_agilent_block_rep_batch(report_xlsx, skip=skip)
     wt_mean = _wt_mean(block, source)
-    excluded: list[ReportedRow] = []
+    # The caller's list when given, so rows set aside before a refusal
+    # (a BLANK ahead of an ID count that does not line up) stay recorded.
+    excluded = [] if excluded is None else excluded
     if expected_xlsx is not None:
         order, warnings = expected_variant_order(expected_xlsx)
         order_label = "the KURO expected_mutations design"
@@ -484,6 +487,7 @@ def decode_confirmation_against(
     source_label: str | None = None,
     skip: Callable[[GcRow, float | None], bool] | None = None,
     other_notation: Callable[[GcRow, str], None] | None = None,
+    excluded: list[ReportedRow] | None = None,
 ) -> DecodeResult:
     """Decode a replicated confirmation against a subset the caller assembled.
 
@@ -505,7 +509,9 @@ def decode_confirmation_against(
     source = Path(report_xlsx).name
     block = parse_agilent_block_rep_batch(report_xlsx, skip=skip)
     wt_mean = _wt_mean(block, source)
-    excluded: list[ReportedRow] = []
+    # The caller's list when given, so rows set aside before a refusal
+    # (a BLANK ahead of an ID count that does not line up) stay recorded.
+    excluded = [] if excluded is None else excluded
     if not subset:
         raise ValueError(
             f"No primary-screen variant exceeded wild-type ({WT_RELATIVE}), so "
