@@ -54,10 +54,13 @@ export interface DetectMeasurementSourceResult {
    * Every source the file could be, never narrowed to a guess. Two pairs are
    * the same file in the primary slot: a pre-normalized GC sheet is also a valid
    * long-format file, and a numeric-ID block file is a primary screen or a
-   * numeric confirmation because both decoders call the same parser. A
-   * well-labeled confirmation may carry sample names of no namespace, which its
-   * reader skips; `evidence.sample_name_namespaces.unclassified` counts them. Each pair is reported whole
-   * and the operator chooses. An empty list is an answer: the file is none of
+   * numeric confirmation because both decoders call the same parser. A file
+   * whose names fit several label grammars lists one candidate per grammar.
+   * Any block file may carry sample names of no namespace (BLANK, internal
+   * standards, another experiment's samples); they never block a reading,
+   * `evidence.sample_name_namespaces.unclassified` counts them, and the build
+   * sets them aside with their positions. Each reading is reported whole and
+   * the operator chooses. An empty list is an answer: the file is none of
    * them, and `reason` says what was seen.
    */
   candidates: MeasurementSource[];
@@ -71,8 +74,8 @@ export interface DetectMeasurementSourceResult {
    * the sample-name namespaces it counted and a few
    * examples of each, and optional counts: n_sample_rows (non-WT samples),
    * n_recognized_rows (syntactically recognized non-WT labels), n_control_rows
-   * (WT controls used for normalization), n_skipped_rows (only genuinely
-   * skipped rows if reported), and n_unique_labels. These are observations, not NGS-qualified variant counts. Consumers must validate
+   * (WT controls used for normalization), n_skipped_rows (names of no
+   * namespace the build will set aside, present only when there are any), and n_unique_labels. These are observations, not NGS-qualified variant counts. Consumers must validate
    * numeric values at runtime and must not substitute zero for a missing count.
    * The shape stays open so operators can see the evidence for classification.
    */
