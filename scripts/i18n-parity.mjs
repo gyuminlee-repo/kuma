@@ -595,6 +595,16 @@ const ENGLISH_HEADER_KEYS_BY_TABLE = {
     "mame.buildEvolvepro.colVariant",
     "mame.buildEvolvepro.mismatchedAuthoritative",
     "mame.buildEvolvepro.mismatchedFallback",
+    "mame.buildEvolvepro.rowReview.colPosition",
+  ],
+  "src/components/mame/panels/GcRowReview.tsx": [
+    "mame.buildEvolvepro.rowReview.colArea",
+    "mame.buildEvolvepro.rowReview.colBlock",
+    "mame.buildEvolvepro.rowReview.colFile",
+    "mame.buildEvolvepro.rowReview.colReason",
+    "mame.buildEvolvepro.rowReview.colRow",
+    "mame.buildEvolvepro.rowReview.colSample",
+    "mame.buildEvolvepro.rowReview.colUse",
   ],
   "src/components/mame/widgets/RunHealthPanel.tsx": [
     "mame.runHealth.classCountColClass",

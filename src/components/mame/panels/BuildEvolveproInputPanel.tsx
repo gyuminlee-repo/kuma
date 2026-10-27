@@ -16,7 +16,7 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import { mkdir } from "@tauri-apps/plugin-fs";
 import { FolderOpen, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { buildEvolveproInput, detectMeasurementSource } from "@/lib/ipc-mame";
+import { buildEvolveproInput, detectMeasurementSource, previewGcRows } from "@/lib/ipc-mame";
 import { useKumaProject } from "@/state/projectContext";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { useRoundStore } from "@/store/round/roundSlice";
@@ -30,6 +30,14 @@ import {
 } from "@/lib/round/roundArtifacts";
 import { Button } from "@/components/ui/button";
 import { ResequenceEvidencePanel } from "./ResequenceEvidencePanel";
+import {
+  GC_SOURCE_LABEL,
+  GcRowReview,
+  type GcRowReviewState,
+  reasonText,
+  rowLocation,
+} from "./GcRowReview";
+import { buildBlocks, effectiveExclusions } from "@/lib/mame/gcRowReview";
 import { Input } from "@/components/ui/input";
 import { InlineHelp } from "@/components/ui/InlineHelp";
 import {
@@ -40,6 +48,7 @@ import { Label } from "@/components/ui/label";
 import type {
   BuildEvolveproInputParams,
   BuildEvolveproInputResult,
+  PreviewGcRowsParams,
 } from "@/types/mame/build_evolvepro_input";
 import type {
   DetectMeasurementSourceResult,
@@ -55,6 +64,9 @@ import {
   hasBuildEvolveproFormValues,
   buildEvolveproNeedsOrderSource,
   hasBuildEvolveproOrderSource,
+  hasBuildEvolveproConfirmationInputs,
+  applyBuildEvolveproPatch,
+  buildEvolveproReviewSignature,
 } from "@/lib/mame/buildEvolveproFormStorage";
 
 function getFilename(p: string): string {
@@ -142,6 +154,35 @@ function primaryPathOf(form: FormState): string {
     case "numericReport":
       return form.numericReportXlsx;
   }
+}
+
+/**
+ * The build's sources, mapping and evidence, without the output and the
+ * operator's choices: what the row review reads.
+ */
+function reviewParamsOf(form: FormState): PreviewGcRowsParams {
+  const layout = form.layoutXlsx || undefined;
+  const primary =
+    form.primarySource === "longFormat"
+      ? { activity_path: form.activityPath, activity_scale: form.activityScale }
+      : form.primarySource === "gcSheet"
+        ? { gc_data_xlsx: form.gcDataXlsx }
+        : form.primarySource === "rawReport"
+          ? { round1_report_xlsx: form.round1ReportXlsx }
+          : { numeric_report_xlsx: form.numericReportXlsx };
+  return {
+    ...primary,
+    layout_xlsx: layout,
+    expected_xlsx: form.expectedXlsx || undefined,
+    remeasure_report_xlsx:
+      form.confirmationSource === "variantLabels" ? form.remeasureReportXlsx : undefined,
+    remeasure_numeric_xlsx:
+      form.confirmationSource === "numericIds" ? form.remeasureNumericXlsx : undefined,
+    remeasure_well_xlsx:
+      form.confirmationSource === "wellLabels" ? form.remeasureWellXlsx : undefined,
+    verdict_xlsx: form.verdictXlsx,
+    resequence_evidence: form.resequenceEvidence ?? undefined,
+  };
 }
 
 /** The optional path remains in the established project-scoped storage fields. */
@@ -286,7 +327,9 @@ export function BuildEvolveproInputPanel() {
 
   const setForm = useCallback((partial: Partial<FormState>) => {
     setFormRaw((prev) => {
-      const next = { ...prev, ...partial, migrationNotice: false };
+      // Empties the row review's unticked rows when an input it was read
+      // from changes; picking the same value again keeps them.
+      const next = applyBuildEvolveproPatch(prev, partial);
       saveToStorage(next, project?.path);
       formGenerationRef.current += 1;
       setBuildEvolveproCompletion(null);
@@ -624,6 +667,48 @@ export function BuildEvolveproInputPanel() {
     ] : []),
   ];
 
+  // Row review. Read once the inputs a build needs are all chosen, and again
+  // whenever one of them changes. A response for inputs the operator has since
+  // changed is dropped, the same guard the detection and build calls use.
+  const reviewSignature = buildEvolveproReviewSignature(form);
+  const reviewReady =
+    Boolean(primaryPathOf(form)) &&
+    Boolean(form.verdictXlsx) &&
+    !form.migrationNotice &&
+    hasBuildEvolveproConfirmationInputs(form) &&
+    (!buildEvolveproNeedsOrderSource(form) || hasBuildEvolveproOrderSource(form)) &&
+    !unresolved &&
+    !additionalUnresolved;
+  const [review, setReview] = useState<GcRowReviewState>({ status: "idle" });
+  const [reviewNonce, setReviewNonce] = useState(0);
+  const reviewGenerationRef = useRef(0);
+  useEffect(() => {
+    const generation = ++reviewGenerationRef.current;
+    if (!reviewReady) {
+      setReview({ status: "idle" });
+      return;
+    }
+    setReview({ status: "loading" });
+    previewGcRows(reviewParamsOf(form)).then(
+      (result) => {
+        if (reviewGenerationRef.current === generation) setReview({ status: "ready", result });
+      },
+      (err: unknown) => {
+        if (reviewGenerationRef.current === generation) {
+          setReview({ status: "failed", message: describeRpcError(err, "mame") });
+        }
+      },
+    );
+  // form is read through reviewSignature, which names every field the review reads.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reviewSignature, reviewReady, reviewNonce]);
+  useEffect(() => () => {
+    reviewGenerationRef.current += 1;
+  }, []);
+  const reviewRows = review.status === "ready" ? review.result.rows : null;
+  const sentExclusions = reviewRows ? effectiveExclusions(reviewRows, form.excludedRows) : form.excludedRows;
+  const reviewBlocks = reviewRows ? buildBlocks(reviewRows, form.excludedRows) : [];
+
   const missing: { label: string; fieldId: string }[] = [];
   const need = (key: string, fieldId: string) =>
     missing.push({ label: t(`mame.buildEvolvepro.${key}`), fieldId });
@@ -651,7 +736,8 @@ export function BuildEvolveproInputPanel() {
   if (!form.outputXlsx) need("outputXlsx", "bep-output-path");
   if (form.migrationNotice) missing.push({ label: "Unsupported saved mode", fieldId: "bep-input-files" });
 
-  const canBuild = missing.length === 0 && !isBuilding && !unresolved && !additionalUnresolved;
+  const canBuild =
+    missing.length === 0 && reviewBlocks.length === 0 && !isBuilding && !unresolved && !additionalUnresolved;
 
   function buildParams(): BuildEvolveproInputParams {
     const layout = form.layoutXlsx || undefined;
@@ -681,6 +767,7 @@ export function BuildEvolveproInputPanel() {
       output_xlsx: form.outputXlsx,
       allow_label_mismatch: allowLabelMismatch,
       mismatch_threshold: form.mismatchThreshold,
+      excluded_rows: sentExclusions,
     };
   }
 
@@ -1220,6 +1307,13 @@ export function BuildEvolveproInputPanel() {
         </div>
       </section>
 
+      <GcRowReview
+        state={review}
+        excludedRows={form.excludedRows}
+        onChange={(next) => setForm({ excludedRows: next })}
+        onRetry={() => setReviewNonce((nonce) => nonce + 1)}
+      />
+
       <section aria-labelledby="bep-output">
         <h3
           id="bep-output"
@@ -1321,6 +1415,20 @@ export function BuildEvolveproInputPanel() {
             ))}
           </span>
         </div>
+      )}
+
+      {reviewBlocks.length > 0 && (
+        <ul
+          role="status"
+          aria-label={t("mame.buildEvolvepro.rowReview.blockedLabel")}
+          className="space-y-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400"
+        >
+          {reviewBlocks.map((block) => (
+            <li key={`${block.source}:${block.reason}`}>
+              {t(`mame.buildEvolvepro.rowReview.${block.reason}`, { source: t(GC_SOURCE_LABEL[block.source]) })}
+            </li>
+          ))}
+        </ul>
       )}
 
       {buildError !== null && (
@@ -1490,6 +1598,23 @@ function BuildResult({ result }: { result: BuildEvolveproInputResult }) {
       )}
 
 
+      {result.excluded_rows.length > 0 && (
+        <ResultRowTable
+          title={t("mame.buildEvolvepro.rowReview.resultExcludedTitle", { count: result.excluded_rows.length })}
+          rows={result.excluded_rows.map((row) => ({
+            ...row,
+            note: `${reasonText(t, row.reason)}${row.kept ? ` (${t("mame.buildEvolvepro.rowReview.keptNote")})` : ""}`,
+          }))}
+        />
+      )}
+
+      {result.wt_rows.length > 0 && (
+        <ResultRowTable
+          title={t("mame.buildEvolvepro.rowReview.resultWtTitle", { count: result.wt_rows.length })}
+          rows={result.wt_rows.map((row) => ({ ...row, note: "" }))}
+        />
+      )}
+
       {result.mismatched.length > 0 && (
         <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 space-y-1">
           <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
@@ -1548,6 +1673,53 @@ function BuildResult({ result }: { result: BuildEvolveproInputResult }) {
         {t("mame.buildEvolvepro.openFolder")}
       </Button>
     </section>
+  );
+}
+
+/** The rows a finished build set aside, flagged or divided by, with positions. */
+function ResultRowTable({
+  title,
+  rows,
+}: {
+  title: string;
+  rows: {
+    source: keyof typeof GC_SOURCE_LABEL;
+    block_index: number | null;
+    row_index: number;
+    sample_name: string;
+    area: number | null;
+    note: string;
+  }[];
+}) {
+  const { t } = useTranslation();
+  return (
+    <details className="rounded-md border border-border px-3 py-2">
+      <summary className="cursor-pointer text-xs font-semibold text-foreground">{title}</summary>
+      <div className="mt-2 max-h-40 overflow-y-auto rounded-md border border-border">
+        <table className="w-full text-xs">
+          <thead className="sticky top-0 bg-muted">
+            <tr>
+              <th className="px-2 py-1 text-left font-medium">{t("mame.buildEvolvepro.rowReview.colFile")}</th>
+              <th className="px-2 py-1 text-left font-medium">{t("mame.buildEvolvepro.rowReview.colPosition")}</th>
+              <th className="px-2 py-1 text-left font-medium">{t("mame.buildEvolvepro.rowReview.colSample")}</th>
+              <th className="px-2 py-1 text-right font-medium">{t("mame.buildEvolvepro.rowReview.colArea")}</th>
+              <th className="px-2 py-1 text-left font-medium">{t("mame.buildEvolvepro.rowReview.colReason")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={`${row.source}:${row.block_index ?? "-"}:${row.row_index}`} className="border-t border-border">
+                <td className="max-w-[10rem] truncate px-2 py-1">{t(GC_SOURCE_LABEL[row.source])}</td>
+                <td className="px-2 py-1 font-mono">{rowLocation(t, row)}</td>
+                <td className="max-w-[8rem] truncate px-2 py-1 font-mono" title={row.sample_name}>{row.sample_name || "-"}</td>
+                <td className="px-2 py-1 text-right font-mono">{row.area === null ? "-" : row.area}</td>
+                <td className="min-w-0 px-2 py-1 break-words">{row.note}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </details>
   );
 }
 

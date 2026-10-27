@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({ build: vi.fn(), detect: vi.fn(), open: vi.fn()
 vi.mock("@/lib/ipc-mame", () => ({
   buildEvolveproInput: mocks.build,
   detectMeasurementSource: mocks.detect,
+  previewGcRows: vi.fn(async () => ({ rows: [], refusal: null })),
   sendRequest: vi.fn(),
   cancelAndRespawn: vi.fn(),
   isSidecarRunning: () => false,

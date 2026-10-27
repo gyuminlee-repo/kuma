@@ -20,6 +20,7 @@ vi.mock("@tauri-apps/plugin-fs", () => ({ mkdir: mockMkdir }));
 vi.mock("@/lib/ipc-mame", () => ({
   buildEvolveproInput: vi.fn(),
   detectMeasurementSource: vi.fn(),
+  previewGcRows: vi.fn(async () => ({ rows: [], refusal: null })),
 }));
 vi.mock("@/lib/openFolder", () => ({ revealInOSFolder: vi.fn() }));
 vi.mock("@/lib/workspace", () => ({ registerArtifacts: vi.fn().mockResolvedValue(undefined) }));
@@ -221,6 +222,7 @@ describe("BuildEvolveproInputPanel unified Activity-step inputs", () => {
       verdict_xlsx: "/project/ngs/verdict.xlsx",
       output_xlsx: RESULT.output_path,
       mismatch_threshold: 0.1,
+      excluded_rows: [],
     });
   });
 
@@ -348,6 +350,7 @@ describe("BuildEvolveproInputPanel unified Activity-step inputs", () => {
       verdict_xlsx: "/project/ngs/verdict.xlsx",
       output_xlsx: RESULT.output_path,
       mismatch_threshold: 0.1,
+      excluded_rows: [],
     });
   });
 
@@ -370,6 +373,7 @@ describe("BuildEvolveproInputPanel unified Activity-step inputs", () => {
         verdict_xlsx: "/project/ngs/verdict.xlsx",
         output_xlsx: RESULT.output_path,
         mismatch_threshold: 0.1,
+        excluded_rows: [],
       });
     },
   );
@@ -395,6 +399,7 @@ describe("BuildEvolveproInputPanel unified Activity-step inputs", () => {
       verdict_xlsx: "/project/ngs/verdict.xlsx",
       output_xlsx: RESULT.output_path,
       mismatch_threshold: 0.1,
+      excluded_rows: [],
     });
   });
 
