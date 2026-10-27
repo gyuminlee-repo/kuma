@@ -119,6 +119,8 @@ class DecodeResult:
     excluded: list[ReportedRow] = field(default_factory=list)
     #: The WT rows behind ``wt_areas``, as ``(row, area)``.
     wt_rows: list[tuple[GcRow, float]] = field(default_factory=list)
+    #: The ID rows the decode placed, as ``(row, area)``.
+    used_rows: list[tuple[GcRow, float]] = field(default_factory=list)
 
     def by_variant(self) -> dict[str, list[float]]:
         return {r.variant: list(r.relative) for r in self.rows}
@@ -253,6 +255,7 @@ def _decode_against(
     order_label: str,
     label: str | None = None,
     excluded: list[ReportedRow] | None = None,
+    other_notation: Callable[[GcRow, str], None] | None = None,
 ) -> tuple[list[DecodedId], list[DecodedSlot]]:
     """Match ascending numeric IDs onto *order* positionally.
 
@@ -285,12 +288,18 @@ def _decode_against(
             sample.kind == WELL and sample.well in member_wells
             or sample.kind == VARIANT and sample.variant in member_variants
         ):
-            raise ValueError(
+            message = (
                 f"{source} {row.location}: sample {row.sample_name!r} names "
                 f"{'well ' + str(sample.well) if sample.kind == WELL else 'variant ' + str(sample.variant)} "
                 f"of {order_label}, but this report numbers its samples. The file "
                 "states this run's measurements in two notations; supply one notation per file."
             )
+            if other_notation is None:
+                raise ValueError(message)
+            # A caller that reviews rows records it and reads on; any other
+            # caller's callback raises, as this does.
+            other_notation(row, message)
+            continue
         if note == "operator":
             # Recorded by the caller that excluded it.
             continue
@@ -358,6 +367,16 @@ def _decode_against(
     return rows, slots
 
 
+def _used_rows(block: BlockRepBatchResult, rows: list[DecodedId], slots: list[DecodedSlot]) -> list[tuple[GcRow, float]]:
+    """The ID rows behind every decoded slot, in decode order."""
+    placed = [slot.id for slot in slots] or [row.id for row in rows]
+    return [
+        (row, area)
+        for base_id in placed
+        for row, area in zip(block.id_rows.get(base_id, []), block.reps[base_id])
+    ]
+
+
 def decode_primary_screen(
     report_xlsx: str | Path,
     layout_xlsx: str | Path | None = None,
@@ -365,6 +384,7 @@ def decode_primary_screen(
     expected_xlsx: str | Path | None = None,
     source_label: str | None = None,
     skip: Callable[[GcRow, float | None], bool] | None = None,
+    other_notation: Callable[[GcRow, str], None] | None = None,
 ) -> DecodeResult:
     """Decode the whole-plate primary screen. ID ``i`` is the ``i``-th variant.
 
@@ -402,6 +422,7 @@ def decode_primary_screen(
         order_label=order_label,
         label=source_label,
         excluded=excluded,
+        other_notation=other_notation,
     )
     return DecodeResult(
         rows=rows,
@@ -412,6 +433,7 @@ def decode_primary_screen(
         wt_areas=tuple(block.wt_areas),
         excluded=excluded,
         wt_rows=list(zip(block.wt_rows, block.wt_areas)),
+        used_rows=_used_rows(block, rows, slots),
     )
 
 
@@ -461,6 +483,7 @@ def decode_confirmation_against(
     *,
     source_label: str | None = None,
     skip: Callable[[GcRow, float | None], bool] | None = None,
+    other_notation: Callable[[GcRow, str], None] | None = None,
 ) -> DecodeResult:
     """Decode a replicated confirmation against a subset the caller assembled.
 
@@ -497,6 +520,7 @@ def decode_confirmation_against(
         order_label="the above-WT subset of the primary screen",
         label=source_label,
         excluded=excluded,
+        other_notation=other_notation,
     )
     return DecodeResult(
         rows=rows,
@@ -507,4 +531,5 @@ def decode_confirmation_against(
         wt_areas=tuple(block.wt_areas),
         excluded=excluded,
         wt_rows=list(zip(block.wt_rows, block.wt_areas)),
+        used_rows=_used_rows(block, rows, slots),
     )
