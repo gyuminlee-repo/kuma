@@ -87,6 +87,21 @@ export function reasonText(
   return REASON_KEYS.has(code) ? t(`mame.buildEvolvepro.rowReview.reason.${code}`) : code;
 }
 
+/**
+ * A build message with each input field key (`round1_report_xlsx`) replaced by
+ * the label the File column shows for it. The backend message and the
+ * manifest keep the key; only the screen reads the label.
+ */
+export function withSourceLabels(
+  t: (key: string, options?: Record<string, unknown>) => string,
+  message: string,
+): string {
+  return (Object.keys(GC_SOURCE_LABEL) as GcSourceField[]).reduce(
+    (text, source) => text.replace(new RegExp(`\\b${source}\\b`, "g"), t(GC_SOURCE_LABEL[source])),
+    message,
+  );
+}
+
 function formatArea(area: number | null): string {
   return area === null ? "-" : String(Number(area.toPrecision(6)));
 }
@@ -138,7 +153,7 @@ export function GcRowReview({
       <div className="space-y-2">
         {refusal !== null && (
           <p role="alert" className="whitespace-pre-wrap break-words rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-            {t("mame.buildEvolvepro.rowReview.refusal", { message: refusal })}
+            {t("mame.buildEvolvepro.rowReview.refusal", { message: withSourceLabels(t, refusal) })}
           </p>
         )}
         {rows.length === 0 ? (
@@ -207,7 +222,17 @@ function RowTable({
   const tableId = useId();
   return (
     <div className="max-h-64 overflow-auto rounded-md border border-border">
-      <table className="w-full text-xs">
+      <table className="w-full table-fixed text-xs">
+        {/* One set of widths for every group, so the columns line up. */}
+        <colgroup>
+          <col className="w-10" />
+          <col className="w-36" />
+          <col className="w-14" />
+          <col className="w-12" />
+          <col className="w-32" />
+          <col className="w-20" />
+          <col />
+        </colgroup>
         <thead className="sticky top-0 bg-muted">
           <tr>
             <th className="px-2 py-1 text-left font-medium">{t("mame.buildEvolvepro.rowReview.colUse")}</th>
@@ -231,6 +256,7 @@ function RowTable({
               ...(row.reason !== null ? [reasonText(t, row.reason)] : []),
               ...row.flags.map((flag) => reasonText(t, flag)),
               ...(row.status === "locked" ? [t("mame.buildEvolvepro.rowReview.lockedHint")] : []),
+              ...(toggleable && !included ? [reasonText(t, "operator_excluded")] : []),
             ];
             return (
               <tr
@@ -251,12 +277,12 @@ function RowTable({
                     onChange={(event) => onChange(setRowIncluded(excludedRows, row, event.target.checked))}
                   />
                 </td>
-                <td className="max-w-[10rem] truncate px-2 py-1" title={t(GC_SOURCE_LABEL[row.source])}>
+                <td className="truncate px-2 py-1" title={t(GC_SOURCE_LABEL[row.source])}>
                   {t(GC_SOURCE_LABEL[row.source])}
                 </td>
                 <td className="px-2 py-1 text-right font-mono">{row.block_index ?? "-"}</td>
                 <td className="px-2 py-1 text-right font-mono">{row.row_index}</td>
-                <td className="max-w-[8rem] truncate px-2 py-1 font-mono" title={row.sample_name}>
+                <td className="truncate px-2 py-1 font-mono" title={row.sample_name}>
                   {row.sample_name || "-"}
                 </td>
                 <td className="px-2 py-1 text-right font-mono">{formatArea(row.area)}</td>

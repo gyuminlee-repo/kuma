@@ -1,8 +1,10 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import i18n from "@/lib/i18n";
+import ko from "@/locales/ko.json";
 import type { ExcludedGcRow, PreviewGcRow } from "@/types/mame/build_evolvepro_input";
 import { toExcludedRow } from "@/lib/mame/gcRowReview";
-import { GcRowReview, type GcRowReviewState } from "./GcRowReview";
+import { GcRowReview, withSourceLabels, type GcRowReviewState } from "./GcRowReview";
 
 function row(overrides: Partial<PreviewGcRow>): PreviewGcRow {
   return {
@@ -102,5 +104,52 @@ describe("GcRowReview", () => {
     expect(within(table).getAllByRole("columnheader").map((th) => th.textContent)).toEqual([
       "Use", "File", "Block", "Row", "Sample", "Area", "Reason",
     ]);
+  });
+
+  it("names an unticked row as left out by the operator", () => {
+    renderReview(ready([USED, WT]), [toExcludedRow(USED)]);
+    expect(screen.getByRole("checkbox", { name: "Use 5F at block 1, row 2" })).toHaveAccessibleDescription("left out by you");
+    expect(screen.getByRole("checkbox", { name: "Use WT at block 1, row 3" })).not.toHaveAccessibleDescription();
+  });
+
+  it("gives every group table the same column widths", () => {
+    const { container } = render(
+      <GcRowReview state={ready([USED, WT, BLANK])} excludedRows={[]} onChange={vi.fn()} onRetry={vi.fn()} />,
+    );
+    const tables = [...container.querySelectorAll("table")];
+    expect(tables.length).toBeGreaterThan(1);
+    const widths = tables.map((table) => [...table.querySelectorAll("colgroup col")].map((col) => col.className).join("|"));
+    expect(new Set(widths).size).toBe(1);
+    for (const table of tables) expect(table).toHaveClass("table-fixed");
+    expect(screen.getByText("BLANK")).toHaveAttribute("title", "BLANK");
+  });
+
+  it("shows a refusal with the field labels the File column uses", () => {
+    renderReview(ready([USED], "round1_report_xlsx has no WT block areas"));
+    expect(screen.getByRole("alert")).toHaveTextContent("Raw Agilent report has no WT block areas");
+    expect(screen.getByRole("alert")).not.toHaveTextContent("round1_report_xlsx");
+  });
+});
+
+describe("withSourceLabels in Korean", () => {
+  // The app loads a locale chunk on demand; the test supplies the same file.
+  i18n.addResourceBundle("ko", "translation", ko, true, true);
+  afterEach(async () => {
+    await i18n.changeLanguage("en");
+  });
+
+  it("replaces each field key with its Korean File-column label and leaves the rest", async () => {
+    await i18n.changeLanguage("ko");
+    const t = i18n.t.bind(i18n) as (key: string, options?: Record<string, unknown>) => string;
+    expect(withSourceLabels(t, "numeric_report_xlsx carries 2 numeric IDs; remeasure_well_xlsx has no WT areas")).toBe(
+      "숫자 ID Agilent report carries 2 numeric IDs; Well 라벨 반복 측정 report has no WT areas",
+    );
+    expect(withSourceLabels(t, "excluded_rows names a row")).toBe("excluded_rows names a row");
+  });
+
+  it("shows the Korean label in the review refusal", async () => {
+    await i18n.changeLanguage("ko");
+    renderReview(ready([USED], "gc_data_xlsx has no row that belongs to this run"));
+    expect(screen.getByRole("alert")).toHaveTextContent("GC data 시트 has no row that belongs to this run");
   });
 });

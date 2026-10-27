@@ -35,6 +35,7 @@ import {
   GcRowReview,
   type GcRowReviewState,
   reasonText,
+  withSourceLabels,
   rowLocation,
 } from "./GcRowReview";
 import { effectiveExclusions } from "@/lib/mame/gcRowReview";
@@ -752,7 +753,7 @@ export function BuildEvolveproInputPanel() {
   } else if (checkingSelection) {
     reviewBlocks.push(t("mame.buildEvolvepro.rowReview.blockedChecking"));
   } else if (review.status === "ready" && selection?.refusal) {
-    reviewBlocks.push(t("mame.buildEvolvepro.rowReview.selectionRefusal", { message: selection.refusal }));
+    reviewBlocks.push(t("mame.buildEvolvepro.rowReview.selectionRefusal", { message: withSourceLabels(t, selection.refusal) }));
   }
 
   const missing: { label: string; fieldId: string }[] = [];

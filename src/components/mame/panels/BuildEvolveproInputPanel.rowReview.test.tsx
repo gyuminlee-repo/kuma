@@ -226,7 +226,9 @@ describe("BuildEvolveproInputPanel row review", () => {
     await reviewLoaded();
     fireEvent.click(screen.getByRole("checkbox", { name: "Use WT at block 1, row 4" }));
     await waitFor(() =>
-      expect(screen.getByRole("status", { name: "Why the build cannot run" })).toHaveTextContent(WT_REFUSAL),
+      expect(screen.getByRole("status", { name: "Why the build cannot run" })).toHaveTextContent(
+        "The build refuses the rows as ticked: Raw Agilent report has no WT block areas",
+      ),
     );
     expect(screen.getByRole("button", BUILD_BUTTON)).toBeDisabled();
     fireEvent.click(screen.getByRole("checkbox", { name: "Use WT at block 1, row 4" }));
