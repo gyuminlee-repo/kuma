@@ -50,6 +50,50 @@ export interface BuildEvolveproInputParams {
   /** Optional well-level relative-activity review export for raw round-1 reports. */
   gc_export_xlsx?: string | null
   allow_label_mismatch?: boolean
+  /**
+   * GC rows the operator left out after reviewing them, each as it read then.
+   * The build refuses when that position no longer holds the same name and
+   * area. Mirrors `ExcludedGcRow` in `python-core/sidecar_mame/models.py`.
+   */
+  excluded_rows?: ExcludedGcRow[]
+}
+
+/** Input fields that hold a GC file. */
+export type GcSourceField =
+  | "activity_path"
+  | "gc_data_xlsx"
+  | "round1_report_xlsx"
+  | "numeric_report_xlsx"
+  | "remeasure_report_xlsx"
+  | "remeasure_numeric_xlsx"
+  | "remeasure_well_xlsx"
+
+/** Where a GC row sits: 1-based sheet row, 1-based FID1B block or null for a flat sheet. */
+export interface GcRowPosition {
+  source: GcSourceField
+  row_index: number
+  block_index: number | null
+  sample_name: string
+  area: number | null
+}
+
+export interface ExcludedGcRow {
+  source: GcSourceField
+  row_index: number
+  block_index?: number | null
+  sample_name: string
+  area?: number | null
+}
+
+/**
+ * A GC row a reader set aside, or flagged and kept (`kept`). `reason` is one
+ * of the `exclusion_reason_counts` keys: non_well_sample, unrecognized_sample,
+ * numeric_calibration, no_area, no_name, unmapped_well, unmapped_variant,
+ * out_of_range_id, operator_excluded, duplicate_replicate, duplicate_well.
+ */
+export interface ReportedGcRow extends GcRowPosition {
+  reason: string
+  kept: boolean
 }
 
 export interface MismatchedVariant {
@@ -134,4 +178,13 @@ export interface BuildEvolveproInputResult {
    * the next one.
    */
   variant_replicates: Record<string, number[]>
+
+  /** Every GC row a reader set aside or flagged, with its position and reason. */
+  excluded_rows: ReportedGcRow[]
+
+  /**
+   * The WT rows each reference was divided by. A shared GC run can carry
+   * another experiment's WT under the same name, so the rows are stated.
+   */
+  wt_rows: GcRowPosition[]
 }

@@ -420,6 +420,27 @@ class ExportBarcodeWorklistParams(BaseModel):
         return v
 
 
+class ExcludedGcRow(BaseModel):
+    """One GC row the operator left out, as it read when it was reviewed.
+
+    ``source`` is the input field that holds the file. ``row_index`` is the
+    1-based sheet row and ``block_index`` the 1-based FID1B block (``None``
+    for a flat sheet or a long-format file). The build refuses the request
+    when that position no longer holds ``sample_name`` and ``area``.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    source: Literal[
+        "activity_path", "gc_data_xlsx", "round1_report_xlsx", "numeric_report_xlsx",
+        "remeasure_report_xlsx", "remeasure_numeric_xlsx", "remeasure_well_xlsx",
+    ]
+    row_index: int = Field(ge=1)
+    block_index: int | None = Field(default=None, ge=1)
+    sample_name: str
+    area: float | None = Field(default=None, allow_inf_nan=False)
+
+
 class BuildEvolveproInputParams(BaseModel):
     """Strict request contract for the unified MAME Step 3 builder."""
 
@@ -450,6 +471,9 @@ class BuildEvolveproInputParams(BaseModel):
     mismatch_threshold: float = Field(default=0.1, gt=0.0, allow_inf_nan=False)
     gc_export_xlsx: str | None = None
     allow_label_mismatch: bool = False
+    # GC rows the operator left out after reviewing them. Recorded in the
+    # manifest as operator_excluded, apart from the rows set aside on their own.
+    excluded_rows: list[ExcludedGcRow] = Field(default_factory=list)
 
     @field_validator("activity_path", mode="after")
     @classmethod

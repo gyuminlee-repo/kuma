@@ -19,7 +19,7 @@ _RESULT_KEYS = {
     "gc_export_path", "label_audit", "manifest_path", "primary_format",
     "input_count", "evaluable_count", "exclusion_reason_counts",
     "normalization_sources", "evidence_hash", "artifact_hashes",
-    "wt_values", "variant_replicates",
+    "wt_values", "variant_replicates", "excluded_rows", "wt_rows",
 }
 
 
@@ -167,6 +167,7 @@ def test_handler_forwards_complete_build_arguments_to_core(
         "mismatch_threshold": 0.25,
         "gc_export_xlsx": str(gc_export),
         "allow_label_mismatch": True,
+        "excluded_rows": [],
     }
     forwarded: dict[str, object] = {}
 
@@ -194,6 +195,8 @@ def test_handler_forwards_complete_build_arguments_to_core(
             artifact_hashes={},
             wt_values=[],
             variant_replicates={},
+            excluded_rows=[],
+            wt_rows=[],
         )
 
     core_module = importlib.import_module(
@@ -221,3 +224,33 @@ def test_method_registered_in_dispatcher():
     from sidecar_mame.dispatcher import _METHODS
 
     assert _METHODS["mame.activity.build_evolvepro_input"] is handle_build_evolvepro_input
+
+
+def test_handler_passes_operator_excluded_rows_and_reports_them(tmp_path: Path):
+    """excluded_rows travels from the RPC to the manifest as operator_excluded."""
+    output = tmp_path / "out.xlsx"
+    params = {
+        "round1_report_xlsx": str(_agilent(tmp_path / "round1.xlsx")),
+        "layout_xlsx": str(_layout(tmp_path / "layout.xlsx")),
+        "verdict_xlsx": str(_verdict(tmp_path / "verdict.xlsx")),
+        "output_xlsx": str(output),
+        # WT_2 sits in block 2, sheet row 8.
+        "excluded_rows": [{
+            "source": "round1_report_xlsx", "block_index": 2, "row_index": 8,
+            "sample_name": "WT_2", "area": 2.4,
+        }],
+    }
+    response = handle_build_evolvepro_input(params)
+    assert set(response) == _RESULT_KEYS
+    assert response["exclusion_reason_counts"] == {"operator_excluded": 1}
+    assert [row["sample_name"] for row in response["wt_rows"]] == ["WT_1"]
+    assert response["excluded_rows"][0]["reason"] == "operator_excluded"
+    manifest = json.loads(Path(response["manifest_path"]).read_text(encoding="utf-8"))
+    assert manifest["excluded_rows"][0]["block_index"] == 2
+
+    params["excluded_rows"][0]["area"] = 2.5
+    with pytest.raises(ValueError, match="no longer holds the row"):
+        handle_build_evolvepro_input(params)
+    params["excluded_rows"][0]["unexpected"] = 1
+    with pytest.raises(ValueError):
+        handle_build_evolvepro_input(params)

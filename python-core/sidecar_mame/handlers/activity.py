@@ -567,7 +567,7 @@ def _serialise_label_audit(audit: Any) -> dict | None:
 
 def handle_build_evolvepro_input(params: dict) -> dict:
     """Build the strict single-path MAME Step 3 EVOLVEpro input workbook."""
-    from kuma_core.mame.activity.build_evolvepro_input import build_evolvepro_input
+    from kuma_core.mame.activity.build_evolvepro_input import OperatorExclusion, build_evolvepro_input
     from sidecar_mame.models import BuildEvolveproInputParams
 
     p = BuildEvolveproInputParams.model_validate(params)
@@ -589,6 +589,7 @@ def handle_build_evolvepro_input(params: dict) -> dict:
             mismatch_threshold=p.mismatch_threshold,
             gc_export_xlsx=p.gc_export_xlsx,
             allow_label_mismatch=p.allow_label_mismatch,
+            excluded_rows=[OperatorExclusion(**row.model_dump()) for row in p.excluded_rows],
         )
     except ValueError as exc:
         # The core owns the audit decision, while this adapter owns the GUI
@@ -631,6 +632,10 @@ def handle_build_evolvepro_input(params: dict) -> dict:
         # without this a reader cannot tell how many measurements produced it,
         # and that count is what says how much weight the mean carries.
         "variant_replicates": result.variant_replicates,
+        # Every GC row a reader set aside or flagged, by field, name, position
+        # and reason, and the WT rows each reference was taken from.
+        "excluded_rows": result.excluded_rows,
+        "wt_rows": result.wt_rows,
     }
 
 
