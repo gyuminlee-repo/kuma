@@ -157,6 +157,7 @@ def test_unrelated_samples_and_unmapped_wells_are_skipped_with_a_warning(tmp_pat
         "'Other-A-1' (block 4, row 18), 'Other2-Y0.0-2' (block 5, row 23)"
     ) in result.warnings
     assert result.exclusion_reason_counts["non_well_sample"] == 2
+    assert result.manifest_path is not None
     manifest = json.loads(result.manifest_path.read_text(encoding="utf-8"))
     assert {
         (row["sample_name"], row["block_index"], row["row_index"], row["reason"])

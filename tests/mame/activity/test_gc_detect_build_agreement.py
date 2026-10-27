@@ -14,13 +14,15 @@ and repeated replicate numbers. All synthetic.
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 import openpyxl
 import pytest
 
 from kuma_core.mame.activity.build_evolvepro_input import build_evolvepro_input
-from kuma_core.mame.activity.detect_measurement_source import detect_measurement_source
+from kuma_core.mame.activity.detect_measurement_source import Slot, detect_measurement_source
 
 PLATE = [("V5F", "A1"), ("K10L", "B1"), ("S11I", "C1"), ("WT", "H12")]
 
@@ -58,13 +60,14 @@ MEMBERSHIP_REFUSALS = (
 def _sheet(path: Path, rows: list[list[object]]) -> Path:
     wb = openpyxl.Workbook()
     ws = wb.active
+    assert ws is not None
     for row in rows:
         ws.append(row)
     wb.save(path)
     return path
 
 
-def _blocks(path: Path, samples: list[tuple[str, object]]) -> Path:
+def _blocks(path: Path, samples: Sequence[tuple[str, object]]) -> Path:
     rows: list[list[object]] = []
     for name, area in samples:
         rows += [["Signal:", "FID1B"], ["Area", "Sample Name"], [area, name], ["Sum", area], []]
@@ -88,7 +91,7 @@ FIXTURES = {
 
 @pytest.mark.parametrize("fixture", sorted(FIXTURES))
 @pytest.mark.parametrize("slot", ["primary", "confirmation"])
-def test_every_offered_format_is_refused_only_for_membership(tmp_path: Path, fixture: str, slot: str) -> None:
+def test_every_offered_format_is_refused_only_for_membership(tmp_path: Path, fixture: str, slot: Slot) -> None:
     layout = _sheet(tmp_path / "layout.xlsx", [["Mutant", "Well Pos."], *[list(row) for row in PLATE]])
     verdict = _sheet(
         tmp_path / "verdict.xlsx",
@@ -106,7 +109,7 @@ def test_every_offered_format_is_refused_only_for_membership(tmp_path: Path, fix
     built = 0
     for candidate in detected.candidates:
         field = FIELD[candidate]
-        sources: dict[str, object] = {field: path}
+        sources: dict[str, Any] = {field: path}
         if field.startswith("remeasure_"):
             sources["round1_report_xlsx"] = primary
         try:
@@ -135,7 +138,7 @@ def test_every_offered_format_is_refused_only_for_membership(tmp_path: Path, fix
         ([("WT1", 10.0), ("A1", 20.0)] + [(str(i), 1.0) for i in range(1, 11)], "numericReport"),
     ],
 )
-def test_a_wrong_count_guess_is_refused_for_membership(tmp_path: Path, samples: list[tuple[str, object]], expected: str) -> None:
+def test_a_wrong_count_guess_is_refused_for_membership(tmp_path: Path, samples: Sequence[tuple[str, object]], expected: str) -> None:
     """The count rule may guess wrong; the build must then refuse loudly, never decode."""
     layout = _sheet(tmp_path / "layout.xlsx", [["Mutant", "Well Pos."], *[list(row) for row in PLATE]])
     verdict = _sheet(
@@ -143,12 +146,13 @@ def test_a_wrong_count_guess_is_refused_for_membership(tmp_path: Path, samples: 
         [["well_id", "mutant_id", "verdict"], *[[f"{w[0]}{int(w[1:]):02d}", m, "PASS"] for m, w in PLATE]],
     )
     path = _blocks(tmp_path / "guess.xlsx", samples)
+    source: dict[str, Any] = {FIELD[expected]: path}
     detected = detect_measurement_source(path)
     assert detected.candidates[0] == expected
     assert ("rawReport" in detected.candidates) != ("numericReport" in detected.candidates)
     with pytest.raises(ValueError) as caught:
         build_evolvepro_input(
-            tmp_path / "out.xlsx", layout_xlsx=layout, verdict_xlsx=verdict, **{FIELD[expected]: path}
+            tmp_path / "out.xlsx", layout_xlsx=layout, verdict_xlsx=verdict, **source
         )
     message = str(caught.value)
     assert not any(fragment in message for fragment in FORMAT_REFUSALS), message

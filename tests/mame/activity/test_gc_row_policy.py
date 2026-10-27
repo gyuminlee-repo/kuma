@@ -13,7 +13,9 @@ All fixtures are synthetic.
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 import openpyxl
 import pytest
@@ -28,6 +30,7 @@ PLATE = [("V5F", "A1"), ("K10L", "B1"), ("S11I", "C1"), ("WT", "H12")]
 def _layout(path: Path) -> Path:
     wb = openpyxl.Workbook()
     ws = wb.active
+    assert ws is not None
     ws.append(["Mutant", "Well Pos."])
     for row in PLATE:
         ws.append(row)
@@ -38,6 +41,7 @@ def _layout(path: Path) -> Path:
 def _verdict(path: Path) -> Path:
     wb = openpyxl.Workbook()
     ws = wb.active
+    assert ws is not None
     ws.append(["well_id", "mutant_id", "verdict"])
     for mutant, well in PLATE:
         ws.append([f"{well[0]}{int(well[1:]):02d}", mutant, "PASS"])
@@ -45,9 +49,10 @@ def _verdict(path: Path) -> Path:
     return path
 
 
-def _blocks(path: Path, samples: list[tuple[str, object]]) -> Path:
+def _blocks(path: Path, samples: Sequence[tuple[str, object]]) -> Path:
     wb = openpyxl.Workbook()
     ws = wb.active
+    assert ws is not None
     for name, area in samples:
         ws.append(["Signal:", "FID1B"])
         ws.append(["Area", "Sample Name"])
@@ -58,9 +63,10 @@ def _blocks(path: Path, samples: list[tuple[str, object]]) -> Path:
     return path
 
 
-def _flat(path: Path, samples: list[tuple[str, object]]) -> Path:
+def _flat(path: Path, samples: Sequence[tuple[str, object]]) -> Path:
     wb = openpyxl.Workbook()
     ws = wb.active
+    assert ws is not None
     ws.append(["Sample Name", "Area"])
     for row in samples:
         ws.append(list(row))
@@ -68,18 +74,26 @@ def _flat(path: Path, samples: list[tuple[str, object]]) -> Path:
     return path
 
 
+def _cell(path: Path, row: int, column: int) -> object:
+    """A cell as a spreadsheet opens it, 1-based."""
+    sheet = openpyxl.load_workbook(path).active
+    assert sheet is not None
+    return sheet.cell(row=row, column=column).value
+
+
 @pytest.fixture
 def plate(tmp_path: Path) -> dict[str, Path]:
     return {"layout": _layout(tmp_path / "layout.xlsx"), "verdict": _verdict(tmp_path / "verdict.xlsx")}
 
 
-def _build(tmp_path: Path, plate: dict[str, Path], **sources: object):
+def _build(tmp_path: Path, plate: dict[str, Path], **sources: Any):
     return build_evolvepro_input(
         tmp_path / "out.xlsx", layout_xlsx=plate["layout"], verdict_xlsx=plate["verdict"], **sources
     )
 
 
 def _manifest(result) -> dict:
+    assert result.manifest_path is not None
     return json.loads(result.manifest_path.read_text(encoding="utf-8"))
 
 
@@ -279,7 +293,7 @@ def test_an_operator_exclusion_on_the_numeric_path_is_reported_once(tmp_path: Pa
     rows = ALL_ABOVE_WT + [(excluded_name, 33.0)]
     report = _blocks(tmp_path / "n.xlsx", rows)
     excluded = [OperatorExclusion(source=field, block_index=5, row_index=23, sample_name=excluded_name, area=33.0)]
-    sources: dict[str, object] = {field: report}
+    sources: dict[str, Any] = {field: report}
     if field == "remeasure_numeric_xlsx":
         sources["numeric_report_xlsx"] = _blocks(tmp_path / "primary.xlsx", ALL_ABOVE_WT)
     result = _build(tmp_path, plate, excluded_rows=excluded, **sources)
@@ -300,6 +314,7 @@ def test_reported_rows_are_the_rows_a_spreadsheet_shows(tmp_path: Path, plate) -
     """The reader drops empty rows above the first cell; positions must not shift with it."""
     wb = openpyxl.Workbook()
     ws = wb.active
+    assert ws is not None
     row = 4  # three empty rows above, and an empty first column
     for name, area in SHARED_RUN:
         for offset, cells in enumerate((["Signal:", "FID1B"], ["Area", "Sample Name"], [area, name], ["Sum", area])):
@@ -310,10 +325,11 @@ def test_reported_rows_are_the_rows_a_spreadsheet_shows(tmp_path: Path, plate) -
     result = _build(tmp_path, plate, round1_report_xlsx=tmp_path / "r.xlsx")
     (blank,) = result.excluded_rows
     assert (blank["sample_name"], blank["block_index"], blank["row_index"]) == ("BLANK", 5, 26)
-    assert openpyxl.load_workbook(tmp_path / "r.xlsx").active.cell(row=26, column=3).value == "BLANK"
+    assert _cell(tmp_path / "r.xlsx", 26, 3) == "BLANK"
 
     flat = openpyxl.Workbook()
     sheet = flat.active
+    assert sheet is not None
     for offset, cells in enumerate([["Sample Name", "Area"], ["A1", 2.0], ["BLANK", 0.1], ["B1", 0.5]]):
         for column, value in enumerate(cells, start=1):
             sheet.cell(row=3 + offset, column=column, value=value)
@@ -327,7 +343,7 @@ def test_an_operator_cannot_untick_this_runs_well_in_a_numeric_report(tmp_path: 
     """Rule 3 comes before the operator's exclusions on the numeric path too."""
     report = _blocks(tmp_path / "n.xlsx", ALL_ABOVE_WT + [("C1", 9.0)])
     excluded = [OperatorExclusion(source=field, block_index=5, row_index=23, sample_name="C1", area=9.0)]
-    sources: dict[str, object] = {field: report}
+    sources: dict[str, Any] = {field: report}
     if field == "remeasure_numeric_xlsx":
         sources["numeric_report_xlsx"] = _blocks(tmp_path / "primary.xlsx", ALL_ABOVE_WT)
     with pytest.raises(ValueError, match="names well C01"):
@@ -347,6 +363,7 @@ def test_rows_that_carry_only_formatting_do_not_shift_positions(tmp_path: Path, 
 
     wb = openpyxl.Workbook()
     ws = wb.active
+    assert ws is not None
     for row in (1, 2, 3):
         for column in (1, 2, 3, 4):
             cell = ws.cell(row=row, column=column)
@@ -362,4 +379,4 @@ def test_rows_that_carry_only_formatting_do_not_shift_positions(tmp_path: Path, 
     result = _build(tmp_path, plate, round1_report_xlsx=tmp_path / "styled.xlsx")
     (blank,) = result.excluded_rows
     assert blank["row_index"] == 26
-    assert openpyxl.load_workbook(tmp_path / "styled.xlsx").active.cell(row=26, column=3).value == "BLANK"
+    assert _cell(tmp_path / "styled.xlsx", 26, 3) == "BLANK"
