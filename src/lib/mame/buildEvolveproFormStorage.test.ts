@@ -17,7 +17,9 @@
  */
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  applyBuildEvolveproPatch,
   BUILD_EVOLVEPRO_DEFAULT_STATE,
+  hasBuildEvolveproFormValues,
   BUILD_EVOLVEPRO_STORAGE_KEY,
   hasBuildEvolveproConfirmationInputs,
   loadBuildEvolveproFromStorage,
@@ -140,5 +142,68 @@ describe("confirmation sources saved before well labels existed", () => {
     const base = { ...BUILD_EVOLVEPRO_DEFAULT_STATE, confirmationSource: "wellLabels" as const };
     expect(hasBuildEvolveproConfirmationInputs(base)).toBe(false);
     expect(hasBuildEvolveproConfirmationInputs({ ...base, remeasureWellXlsx: "/project/a.xlsx" })).toBe(true);
+  });
+});
+
+
+describe("unticked review rows", () => {
+  const row = { source: "round1_report_xlsx" as const, row_index: 23, block_index: 5, sample_name: "WT4", area: 40 };
+  const reviewed = {
+    ...BUILD_EVOLVEPRO_DEFAULT_STATE,
+    primarySource: "rawReport" as const,
+    round1ReportXlsx: "/project/r.xlsx",
+    verdictXlsx: "/project/v.xlsx",
+    excludedRows: [row],
+  };
+
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it("loads a save from before the review existed with nothing unticked", () => {
+    localStorage.setItem(
+      `${BUILD_EVOLVEPRO_STORAGE_KEY}:v2:${encodeURIComponent(PROJECT)}`,
+      JSON.stringify({ primarySource: "rawReport", round1ReportXlsx: "/project/r.xlsx" }),
+    );
+    const state = loadBuildEvolveproFromStorage(PROJECT);
+    expect(state.excludedRows).toEqual([]);
+    expect(state.round1ReportXlsx).toBe("/project/r.xlsx");
+  });
+
+  it("round-trips unticked rows and drops malformed ones", () => {
+    saveBuildEvolveproToStorage(reviewed, PROJECT);
+    expect(loadBuildEvolveproFromStorage(PROJECT).excludedRows).toEqual([row]);
+    const key = `${BUILD_EVOLVEPRO_STORAGE_KEY}:v2:${encodeURIComponent(PROJECT)}`;
+    const saved = JSON.parse(localStorage.getItem(key) ?? "{}");
+    saved.excludedRows = [row, { source: "nowhere", row_index: 1, sample_name: "x" }, { ...row, row_index: "23" }, "junk"];
+    localStorage.setItem(key, JSON.stringify(saved));
+    expect(loadBuildEvolveproFromStorage(PROJECT).excludedRows).toEqual([row]);
+  });
+
+  it("empties them when an input the review was read from changes", () => {
+    for (const patch of [
+      { round1ReportXlsx: "/project/other.xlsx" },
+      { layoutXlsx: "/project/layout.xlsx" },
+      { verdictXlsx: "/project/v2.xlsx" },
+      { expectedXlsx: "/project/expected.xlsx" },
+      { confirmationSource: "wellLabels" as const, remeasureWellXlsx: "/project/c.xlsx" },
+    ]) {
+      expect(applyBuildEvolveproPatch(reviewed, patch).excludedRows).toEqual([]);
+    }
+  });
+
+  it("keeps them when the same value is picked again or an unrelated field changes", () => {
+    expect(applyBuildEvolveproPatch(reviewed, { round1ReportXlsx: "/project/r.xlsx" }).excludedRows).toEqual([row]);
+    expect(applyBuildEvolveproPatch(reviewed, { outputXlsx: "/project/out.xlsx" }).excludedRows).toEqual([row]);
+    expect(applyBuildEvolveproPatch(reviewed, { mismatchThreshold: 0.2 }).excludedRows).toEqual([row]);
+  });
+
+  it("takes an explicit selection as given", () => {
+    expect(applyBuildEvolveproPatch(reviewed, { excludedRows: [] }).excludedRows).toEqual([]);
+  });
+
+  it("does not count an empty selection as a restored value", () => {
+    expect(hasBuildEvolveproFormValues({ ...BUILD_EVOLVEPRO_DEFAULT_STATE, excludedRows: [] })).toBe(false);
+    expect(hasBuildEvolveproFormValues({ ...BUILD_EVOLVEPRO_DEFAULT_STATE, excludedRows: [row] })).toBe(true);
   });
 });

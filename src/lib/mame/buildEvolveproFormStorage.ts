@@ -1,5 +1,6 @@
 /** Project-scoped persisted state for the Step 3 EVOLVEpro input builder. */
 import { isResequenceEvidence, type ResequenceEvidence } from "@/types/mame/resequence";
+import type { ExcludedGcRow, GcSourceField } from "@/types/mame/build_evolvepro_input";
 
 export const BUILD_EVOLVEPRO_STORAGE_KEY = "kuma:mame:buildEvolvepro";
 const STORAGE_VERSION = 2;
@@ -38,6 +39,12 @@ export interface BuildEvolveproFormState {
    * for the next round; empty means hands off.
    */
   outputXlsxRoundId: string;
+  /**
+   * GC rows the operator unticked in the row review, each as it read then.
+   * Sent as `excluded_rows`. Emptied whenever an input the review was read
+   * from changes (see `applyBuildEvolveproPatch`).
+   */
+  excludedRows: ExcludedGcRow[];
   migrationNotice: boolean;
 }
 
@@ -60,6 +67,7 @@ export const BUILD_EVOLVEPRO_DEFAULT_STATE: BuildEvolveproFormState = {
   verdictEvidenceSignature: "",
   outputXlsx: "",
   outputXlsxRoundId: "",
+  excludedRows: [],
   migrationNotice: false,
 };
 
@@ -69,6 +77,90 @@ function storageKey(projectPath: string): string {
 
 function stringValue(payload: Record<string, unknown>, key: string): string {
   return typeof payload[key] === "string" ? payload[key] : "";
+}
+
+const GC_SOURCE_FIELDS: readonly GcSourceField[] = [
+  "activity_path",
+  "gc_data_xlsx",
+  "round1_report_xlsx",
+  "numeric_report_xlsx",
+  "remeasure_report_xlsx",
+  "remeasure_numeric_xlsx",
+  "remeasure_well_xlsx",
+];
+
+function isNullableFinite(value: unknown): value is number | null | undefined {
+  return value === null || value === undefined || (typeof value === "number" && Number.isFinite(value));
+}
+
+/** Rows saved by this build of the panel; anything else (older saves, edits) is dropped. */
+function readExcludedRows(value: unknown): ExcludedGcRow[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item: unknown) => {
+    if (typeof item !== "object" || item === null) return [];
+    const row = item as Record<string, unknown>;
+    if (
+      typeof row.source !== "string" ||
+      !GC_SOURCE_FIELDS.includes(row.source as GcSourceField) ||
+      typeof row.row_index !== "number" ||
+      !Number.isInteger(row.row_index) ||
+      typeof row.sample_name !== "string" ||
+      !isNullableFinite(row.block_index) ||
+      !isNullableFinite(row.area)
+    ) {
+      return [];
+    }
+    return [{
+      source: row.source as GcSourceField,
+      row_index: row.row_index,
+      block_index: row.block_index ?? null,
+      sample_name: row.sample_name,
+      area: row.area ?? null,
+    }];
+  });
+}
+
+/**
+ * The inputs a row review was read from. A review describes these files read
+ * against this mapping and evidence; once any of them changes, the rows the
+ * operator unticked may name other rows or none.
+ */
+export function buildEvolveproReviewSignature(state: BuildEvolveproFormState): string {
+  return JSON.stringify([
+    state.primarySource,
+    state.confirmationSource,
+    state.activityPath,
+    state.activityScale,
+    state.gcDataXlsx,
+    state.round1ReportXlsx,
+    state.numericReportXlsx,
+    state.remeasureReportXlsx,
+    state.remeasureNumericXlsx,
+    state.remeasureWellXlsx,
+    state.layoutXlsx,
+    state.verdictXlsx,
+    state.expectedXlsx,
+    state.resequenceEvidence ?? null,
+  ]);
+}
+
+/**
+ * Apply a form edit. When the edit changes an input the row review was read
+ * from, the operator's unticked rows are emptied; picking the same value again
+ * keeps them. An edit that sets `excludedRows` itself is taken as given.
+ */
+export function applyBuildEvolveproPatch(
+  previous: BuildEvolveproFormState,
+  partial: Partial<BuildEvolveproFormState>,
+): BuildEvolveproFormState {
+  const next = { ...previous, ...partial, migrationNotice: false };
+  if (
+    !("excludedRows" in partial) &&
+    buildEvolveproReviewSignature(next) !== buildEvolveproReviewSignature(previous)
+  ) {
+    next.excludedRows = [];
+  }
+  return next;
 }
 
 function pathBelongsToProject(path: string, projectPath: string): boolean {
@@ -206,6 +298,8 @@ function readState(
     // is the safe reading of those: treat the stored path as hand-picked and
     // leave it alone rather than rewriting a destination this build never set.
     outputXlsxRoundId: stringValue(payload, "outputXlsxRoundId"),
+    // Absent on records saved before the row review existed: nothing unticked.
+    excludedRows: readExcludedRows(payload.excludedRows),
     migrationNotice: Boolean(payload.migrationNotice),
   };
 }
@@ -331,7 +425,10 @@ export function hasCompletedBuildEvolveproOutput(state: BuildEvolveproFormState,
 
 export function hasBuildEvolveproFormValues(state: BuildEvolveproFormState): boolean {
   return state.migrationNotice || Object.entries(state).some(([key, value]) =>
-    key !== "migrationNotice" && value !== BUILD_EVOLVEPRO_DEFAULT_STATE[key as keyof BuildEvolveproFormState]);
+    key !== "migrationNotice" &&
+    (key === "excludedRows"
+      ? state.excludedRows.length > 0
+      : value !== BUILD_EVOLVEPRO_DEFAULT_STATE[key as keyof BuildEvolveproFormState]));
 }
 
 /** Seeds supported sample inputs into one project's form without overwriting user choices. */
