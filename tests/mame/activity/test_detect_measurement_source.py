@@ -114,15 +114,15 @@ def test_numeric_block_file_is_exactly_two_candidates() -> None:
 def test_variant_label_block_file_is_one_candidate() -> None:
     """The variant-label block file has one consumer, so it stays single.
 
-    `_raw_report_primary` refuses a sample name that is not a well
-    (`build_evolvepro_input.py:270-272`), so there is no primary reading of it.
+    No primary field reads variant labels: the round-1 report reads wells and
+    the numeric report reads position IDs, so there is no primary reading.
     """
     result = detect_measurement_source(TEMPLATES / "09_mame_agilent_rep_batch.xlsx")
     assert result.candidates == [CONFIRMATION_VARIANT_LABELS]
     assert result.ambiguous is False
     assert result.evidence["sample_name_namespaces"]["numericId"] == 0
     assert result.evidence["sample_name_namespaces"]["well"] == 0
-    assert "_raw_report_primary" in result.evidence["ambiguity"]
+    assert "no primary field reads variant labels" in result.evidence["ambiguity"]
 
 
 def test_block_evidence_names_the_namespace_and_the_wild_type_rows() -> None:
@@ -136,19 +136,21 @@ def test_block_evidence_names_the_namespace_and_the_wild_type_rows() -> None:
     assert "1-2" in result.evidence["sample_name_samples"]["numericId"]
 
 
-def test_mixed_namespace_block_file_is_refused(tmp_path: Path) -> None:
-    """A block file whose sample names are half wells and half numeric ids."""
+def test_mixed_namespace_block_file_reports_every_reading(tmp_path: Path) -> None:
+    """Half wells and half numeric ids: which is this run's is a membership question.
+
+    The detector is not given the layout or the plate order, so it names both
+    readings and the operator chooses. The build then refuses this run's rows
+    written in the other notation.
+    """
     path = _write_block_workbook(
         tmp_path / "mixed.xlsx",
         ["WT1", "WT2", "WT3", "A4", "A5", "1", "2-2"],
     )
     result = detect_measurement_source(path)
-    assert result.candidates == []
-    assert result.ambiguous is False
-    assert "well" in result.reason
-    assert "numeric id" in result.reason
-    assert "A4" in result.reason
-    assert "1" in result.reason
+    assert result.candidates == [RAW_REPORT, NUMERIC_REPORT]
+    assert result.ambiguous is True
+    assert result.reason == ""
     assert result.evidence["sample_name_namespaces"] == {
         "well": 2,
         "numericId": 2,
@@ -157,6 +159,27 @@ def test_mixed_namespace_block_file_is_refused(tmp_path: Path) -> None:
     }
     assert result.evidence["sample_name_samples"]["well"] == ["A4", "A5"]
     assert result.evidence["sample_name_samples"]["numericId"] == ["1", "2-2"]
+
+
+def test_a_blank_does_not_block_a_well_report(tmp_path: Path) -> None:
+    """The shared-run report: wells, WT rows and a BLANK. One reading, BLANK counted."""
+    path = _write_block_workbook(
+        tmp_path / "shared.xlsx",
+        ["WT1", "WT2", "WT3", "A1", "BLANK", "B1", "C1"],
+    )
+    result = detect_measurement_source(path)
+    assert result.candidates == [RAW_REPORT]
+    assert result.ambiguous is False
+    assert result.evidence["n_skipped_rows"] == 1
+    assert result.evidence["sample_name_samples"]["unclassified"] == ["BLANK"]
+
+
+def test_a_calibration_number_beside_wells_offers_both_readings(tmp_path: Path) -> None:
+    """A pure number is a calibration row under the well field and an ID under the numeric one."""
+    path = _write_block_workbook(tmp_path / "cal.xlsx", ["0", "WT_1", "A1", "B1"])
+    result = detect_measurement_source(path)
+    assert result.candidates == [RAW_REPORT, NUMERIC_REPORT]
+    assert result.ambiguous is True
 
 
 def test_bare_wild_type_row_is_not_a_sample(tmp_path: Path) -> None:
@@ -275,23 +298,24 @@ def test_well_labeled_confirmation_reports_the_samples_it_will_skip(tmp_path: Pa
 
 
 @pytest.mark.parametrize(
-    ("names", "fragment"),
+    ("names", "expected"),
     [
-        # The variant-label and numeric readers refuse a name they cannot place.
-        (["WT1", "S11I", "Other-A-1"], "unrecognised"),
-        (["WT1", "1", "1-2", "Other-A-1"], "unrecognised"),
-        (["A1-1", "S11I"], "variant label"),
-        (["A1-1", "1-2"], "numeric id"),
+        # Names of no namespace never block a reading; the build sets them aside.
+        (["WT1", "S11I", "Other-A-1"], [CONFIRMATION_VARIANT_LABELS]),
+        (["WT1", "1", "1-2", "Other-A-1"], [CONFIRMATION_NUMERIC_IDS]),
+        # Two notations: every reading is offered and the operator chooses.
+        (["A1-1", "S11I"], [CONFIRMATION_WELL_LABELS, CONFIRMATION_VARIANT_LABELS]),
+        (["A1-1", "1-2"], [CONFIRMATION_WELL_LABELS, CONFIRMATION_NUMERIC_IDS]),
     ],
 )
-def test_confirmation_slot_refuses_what_no_reader_takes(
-    tmp_path: Path, names: list[str], fragment: str
+def test_confirmation_slot_reads_past_names_of_no_namespace(
+    tmp_path: Path, names: list[str], expected: list[str]
 ) -> None:
     path = _write_block_workbook(tmp_path / "confirm.xlsx", names)
     result = detect_measurement_source(path, slot="confirmation")
-    assert result.candidates == []
-    assert "mixes sample-name namespaces" in result.reason
-    assert fragment in result.reason
+    assert result.candidates == expected
+    assert result.ambiguous is (len(expected) > 1)
+    assert result.reason == ""
 
 
 def test_confirmation_slot_refuses_a_file_that_is_not_a_block_report() -> None:

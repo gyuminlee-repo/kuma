@@ -29,31 +29,32 @@ the file cannot say which, so the slot it was chosen for decides: ``slot="primar
 (the default) names it ``rawReport`` alone and ``slot="confirmation"`` names it
 ``confirmationWellLabels`` alone.  In the confirmation slot every namespace has one
 reading (numeric IDs are ``confirmationNumericIds``, variant labels
-``confirmationVariantLabels``), so no pair is reported there.  A well-labeled
-confirmation is the one block shape allowed to carry sample names of no namespace:
-a GC run is shared, and ``_well_confirmation`` skips them with a warning.
-Canonical positive replicate suffixes (A1-1, S11I-1) identify repeat labels,
-not new coordinates or inferred mutations.
+``confirmationVariantLabels``), so no pair is reported there.
 
-A variant-label block file is not a pair.  Only ``_confirmation`` reads it: the
-primary path ``_raw_report_primary`` puts every non-WT sample name through
-``_normalise_well`` and turns the failure into a refusal
-(``build_evolvepro_input.py:270-272``), and ``_normalise_well`` fails on a
-variant label because it takes ``int(raw[1:])`` (``plate_layout_xlsx.py:70``:
-``_normalise_well("F89W")`` raises ``ValueError``).
+A variant-label block file is not a pair either.  No primary field reads
+variant labels: the round-1 report's unit is the well and the numeric report's
+unit is the position ID, so in either of them a variant label of the run is the
+run's own measurement in the other notation, which the build refuses
+(``build_evolvepro_input._well_slot_rows`` and
+``numeric_id_decode._decode_against``).  That follows from what each field
+reads, not from how a reader happens to fail.
 
-Membership tests are the ones the consuming paths already use, so a file this
-module names is a file that path accepts:
+What a sample name is comes from ``gc_sample``, the module every reader asks:
 
-* wells use ``_WELL_RE`` (``plate_layout_xlsx.py:26``).  ``_normalise_well``
-  is not a test: it is documented as trusting its caller and
-  ``_normalise_well("1-2")`` returns ``"1-2"`` rather than raising.
-* numeric IDs use ``_BLOCK_REP_ID_RE`` (``evolvepro_xlsx.py:153``), the pattern
-  ``parse_agilent_block_rep_batch`` groups replicates with, so ``1``, ``1-2``
-  and ``1-3`` are one namespace.  A pure-integer test would miss two of those
-  three.
-* variant labels use ``_short_variant`` (``build_evolvepro_input.py:96``), which
-  is what ``_confirmation`` requires of every non-WT row it reads.
+* ``gc_sample.namespaces_of`` says which label grammars a name fits: a well
+  (``A1``, ``A1-2``), a numeric ID (``12``, ``12-2``) or a variant label
+  (``S11I``, ``11I-2``).  A pure number fits only the numeric grammar; under a
+  well or variant field the build reads the same number as a calibration
+  standard.
+* a name that fits no grammar (``BLANK``, an internal standard, another
+  experiment's sample) is counted as ``unclassified`` and never blocks a
+  reading.  A GC run is shared, and whether such a row belongs to this run is
+  a question about the layout and the plate order, which this detector is not
+  given.  The build answers it and sets those rows aside with their positions.
+* a file whose names fit more than one grammar reports one candidate per
+  grammar present, with ``ambiguous`` set.  Which notation is this run's own is
+  again a membership question, so the operator chooses and the build refuses
+  the run's own rows written in the other notation.
 
 What this detector does *not* look at, so a pass here is not a promise the run
 will succeed:
@@ -71,8 +72,9 @@ will succeed:
   ``sample name`` + ``value`` sheet reports ``longFormat`` the same as a
   ``well`` + ``area`` one.
 * block internals.  Only the sample name of each FID1B block is classified.
-  Replicate counts, area presence, WT block placement and whether the IDs form
-  a gapless run are the parser's business and are not checked here.
+  Replicate counts, area presence, WT block placement, whether the IDs form
+  a gapless run and whether a row belongs to this run are the build's
+  business and are not checked here.
 """
 from __future__ import annotations
 
@@ -86,13 +88,9 @@ from .build_evolvepro_input import (
     _WELL_COLUMNS,
     _long_columns,
     _normalise_activity_header,
-    _short_variant,
-    _strip_confirmation_rep_suffix,
 )
-from .constants import WT_PATTERN
 from .evolvepro_xlsx import _extract_rows, _str, iter_block_rows
-from .gc_sample import _BLOCK_REP_ID_RE
-from .plate_layout_xlsx import _WELL_RE
+from .gc_sample import NUMERIC_ID, VARIANT, WELL, classify_sample, is_wt_name, namespaces_of
 
 LONG_FORMAT = "longFormat"
 GC_SHEET = "gcSheet"
@@ -129,11 +127,6 @@ class MeasurementSourceDetection:
     ambiguous: bool
     evidence: dict[str, Any] = field(default_factory=dict)
     reason: str = ""
-
-
-def _is_wt(sample_name: str) -> bool:
-    """Use exactly the same WT contract as the activity readers."""
-    return WT_PATTERN.fullmatch(sample_name) is not None
 
 
 def _echo(values: list[str]) -> list[str]:
@@ -201,20 +194,20 @@ def _detect_block(path: Path, rows: list[list], evidence: dict[str, Any], slot: 
             reason=f"{path.name} carries the FID1B signature but its blocks do not parse: {exc}",
         )
 
-    wt = [name for name in names if _is_wt(name)]
+    wt = [name for name in names if is_wt_name(name)]
     wells: list[str] = []
     numeric: list[str] = []
     variants: list[str] = []
     unclassified: list[str] = []
     for name in names:
-        if _is_wt(name):
+        if is_wt_name(name):
             continue
-        label = _strip_confirmation_rep_suffix(name)
-        if _WELL_RE.fullmatch(label):
+        found = namespaces_of(name)
+        if WELL in found:
             wells.append(name)
-        elif _BLOCK_REP_ID_RE.match(name):
+        elif NUMERIC_ID in found:
             numeric.append(name)
-        elif _short_variant(label) is not None:
+        elif VARIANT in found:
             variants.append(name)
         else:
             unclassified.append(name)
@@ -223,7 +216,7 @@ def _detect_block(path: Path, rows: list[list], evidence: dict[str, Any], slot: 
     evidence["n_recognized_rows"] = len(wells) + len(numeric) + len(variants)
     evidence["n_control_rows"] = len(wt)
     evidence["n_unique_labels"] = len({
-        _strip_confirmation_rep_suffix(name) for name in wells + numeric + variants
+        classify_sample(name, "well").label for name in wells + numeric + variants
     })
     evidence["n_block_rows"] = len(names)
     evidence["n_wt_rows"] = len(wt)
@@ -240,6 +233,10 @@ def _detect_block(path: Path, rows: list[list], evidence: dict[str, Any], slot: 
         "unclassified": _echo(unclassified),
         "wt": _echo(wt),
     }
+    if unclassified:
+        # Names of no namespace never block a reading: the build sets them
+        # aside with their positions.  The count is shown before it runs.
+        evidence["n_skipped_rows"] = len(unclassified)
 
     if slot == "confirmation":
         # The slot names the round, so a namespace has one reading here and
@@ -257,21 +254,7 @@ def _detect_block(path: Path, rows: list[list], evidence: dict[str, Any], slot: 
             CONFIRMATION_VARIANT_LABELS: variants,
         }
     occupied = [source for source, members in populated.items() if members]
-    if occupied == [CONFIRMATION_WELL_LABELS]:
-        # The one shape allowed to carry names of no namespace: a GC run is
-        # shared, so the export holds other experiments' samples beside the
-        # re-measured wells, and `_well_confirmation` skips them with a warning
-        # where every other reader refuses.  `unclassified` is counted in the
-        # evidence above, and reported as skipped rows so the panel shows the
-        # count before the build runs.
-        evidence["n_skipped_rows"] = len(unclassified)
-        return MeasurementSourceDetection(
-            path=str(path),
-            candidates=[CONFIRMATION_WELL_LABELS],
-            ambiguous=False,
-            evidence=evidence,
-        )
-    if occupied == [NUMERIC_REPORT] and not unclassified:
+    if occupied == [NUMERIC_REPORT]:
         # The numeric namespace does not say which round it came from.  Both
         # consumers call the same parser on the same file and differ only in
         # the order source the caller hands over afterwards, so the file cannot
@@ -295,68 +278,41 @@ def _detect_block(path: Path, rows: list[list], evidence: dict[str, Any], slot: 
             ambiguous=True,
             evidence=evidence,
         )
-    if occupied == [RAW_REPORT] and not unclassified:
-        # Not a pair: the slot the file was chosen for names the round, and a
-        # confirmation is read with slot="confirmation".
-        return MeasurementSourceDetection(
-            path=str(path),
-            candidates=[RAW_REPORT],
-            ambiguous=False,
-            evidence=evidence,
-        )
-    if occupied == [CONFIRMATION_VARIANT_LABELS] and not unclassified:
-        # Not a pair, unlike the numeric case above: the primary path
-        # `_raw_report_primary` refuses a non-well sample name
-        # (`build_evolvepro_input.py:270-272`, raised out of
-        # `_normalise_well`'s `int(raw[1:])` at `plate_layout_xlsx.py:70`),
-        # so no primary reading of a variant-label block file exists.
+    if occupied == [CONFIRMATION_VARIANT_LABELS] and slot == "primary":
         evidence["ambiguity"] = (
-            "none: _raw_report_primary refuses a sample name that is not a "
-            "well (build_evolvepro_input.py:270-272), so a variant-label "
-            "block file has one consumer"
+            "none: no primary field reads variant labels. The round-1 report "
+            "reads wells and the numeric report reads position IDs, and both "
+            "refuse this run's variant labels as the other notation, so a "
+            "variant-label block file has one consumer"
         )
+    if len(occupied) > 1:
+        # More than one notation.  Which one is this run's own is a question
+        # about the layout and the plate order, which the build holds and this
+        # detector does not, so every reading is put to the operator.
+        evidence["ambiguity"] = (
+            "the sample names fit more than one label grammar; the build keeps "
+            "the run's own notation and refuses this run's rows written in the other"
+        )
+    if occupied:
         return MeasurementSourceDetection(
             path=str(path),
-            candidates=[CONFIRMATION_VARIANT_LABELS],
-            ambiguous=False,
+            candidates=occupied,
+            ambiguous=len(occupied) > 1,
             evidence=evidence,
         )
-    if len(occupied) == 1 and not unclassified:
-        return MeasurementSourceDetection(
-            path=str(path),
-            candidates=[occupied[0]],
-            ambiguous=False,
-            evidence=evidence,
-        )
-    if not occupied and not unclassified:
-        return MeasurementSourceDetection(
-            path=str(path),
-            candidates=[],
-            ambiguous=False,
-            evidence=evidence,
-            reason=(
-                f"{path.name} carries the FID1B signature but has no sample rows "
-                f"outside its {len(wt)} wild-type row(s)"
-            ),
-        )
-    named = ", ".join(
-        f"{label} ({len(members)}: {', '.join(_echo(members))})"
-        for label, members in (
-            ("well", wells),
-            ("numeric id", numeric),
-            ("variant label", variants),
-            ("unrecognised", unclassified),
-        )
-        if members
-    )
     return MeasurementSourceDetection(
         path=str(path),
         candidates=[],
         ambiguous=False,
         evidence=evidence,
         reason=(
-            f"{path.name} mixes sample-name namespaces inside its FID1B blocks: {named}. "
-            "One block file states one namespace."
+            f"{path.name} carries the FID1B signature but has no sample rows "
+            f"outside its {len(wt)} wild-type row(s)"
+            + (
+                f" that are wells, numeric IDs or variant labels; its other "
+                f"{len(unclassified)} name(s) ({', '.join(_echo(unclassified))}) fit none"
+                if unclassified else ""
+            )
         ),
     )
 
