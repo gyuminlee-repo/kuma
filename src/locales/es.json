@@ -1744,6 +1744,9 @@
     "primerLenFwdHelp": "Forward primer length range (nt). Default 17-39 covers most SDM cases.",
     "primerLenRevHelp": "Reverse primer length range (nt). Default 19-27.",
     "autoRescueHelp": "Controla el rescate del sidecar con restricciones relajadas y la cascada del frontend de 4 etapas (top-N) / 6 (pipeline).",
+    "strictOfftargetLabel": "Comprobación off-target estricta",
+    "strictOfftargetTitle": "Descarta un candidato ante cualquier coincidencia exacta de 15 bases o más en otra parte del template.",
+    "strictOfftargetHelp": "Descarta un candidato cuando cualquier tramo continuo de 15 bases o más coincide exactamente con el template, en cualquiera de las dos cadenas, fuera del sitio de unión previsto. No comprueba si el extremo 3' del cebador podría extenderse allí, por lo que es una prueba conservadora de identidad de secuencia, más estricta que las reglas off-target por defecto, y puede descartar candidatos que estas aceptan. Desactivada por defecto.",
     "seedHelp": "Registra solo metadatos de procedencia; no afecta el ranking de primers. Vacío no registra seed.",
     "tmSectionHelp": "Melting temperature targets define how the engine balances primer stability and selectivity."
   },
@@ -1967,6 +1970,7 @@
     "recoveryHeading": "Recuperación de fallos",
     "designFailed": "{{mutation}}: Diseño fallido",
     "reasonLabel": "Razón:",
+    "strictOfftargetHint": "Solo la comprobación off-target estricta descartó esta posición. Desactive \"Comprobación off-target estricta\" en Parameters y vuelva a diseñar para recuperarla.",
     "retrySection": "Reintentar con parámetros",
     "labelTm": "Tm:",
     "labelF": "F",

@@ -494,6 +494,7 @@ export interface DesignSdmPrimersParams {
   rev_len_max?: number | null;
   rev_len_min?: number | null;
   seed?: number | null;
+  strict_offtarget?: boolean;
   target_start?: number;
   tm_fwd_target?: number | null;
   tm_overlap_target?: number | null;
@@ -516,6 +517,7 @@ export interface EvaluatePrimerParams {
   mutation?: string;
   overlap_len?: number;
   reverse_seq?: string;
+  strict_offtarget?: boolean;
   [k: string]: unknown;
 }
 export interface EvolveproStepStatsModel {
@@ -970,6 +972,7 @@ export interface RetryFailedParams {
   polymerase?: string;
   rev_len_max?: number | null;
   rev_len_min?: number | null;
+  strict_offtarget?: boolean;
   target_start?: number;
   tm_fwd_target?: number;
   tm_overlap_target?: number;
@@ -1172,6 +1175,7 @@ export interface WorkspaceSettingsModel {
   roundSize?: number | null;
   saveCache?: boolean | null;
   selectedPolymerase?: string | null;
+  strictOfftarget?: boolean | null;
   structuralDiversityEnabled?: boolean | null;
   structuralKappa?: number | null;
   structureAccession?: string | null;

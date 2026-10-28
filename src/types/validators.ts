@@ -976,6 +976,7 @@ function isWorkspaceSettings(value: unknown): boolean {
     isOptional(value.pipelineMode, isBoolean) &&
     isOptional(value.evolveproMode, (v) => v === "topN" || v === "pipeline" || v === "others") &&
     isOptional(value.overlapMode, (v) => v === "partial" || v === "full") &&
+    isOptional(value.strictOfftarget, isBoolean) &&
     isOptionalNullable(value.randomSeed, isNumber) &&
     isOptional(value.echoTransferVol, isNumber) &&
     isOptionalNullable(value.echoQuadrant, isPersistedEchoQuadrant) &&

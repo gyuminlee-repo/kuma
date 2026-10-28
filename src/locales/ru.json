@@ -1744,6 +1744,9 @@
     "primerLenFwdHelp": "Forward primer length range (nt). Default 17-39 covers most SDM cases.",
     "primerLenRevHelp": "Reverse primer length range (nt). Default 19-27.",
     "autoRescueHelp": "Управляет sidecar-спасением с ослабленными ограничениями и каскадом frontend из 4 этапов (top-N) / 6 (pipeline).",
+    "strictOfftargetLabel": "Строгая проверка off-target",
+    "strictOfftargetTitle": "Отклоняет кандидата при любом точном совпадении 15 оснований и более в другом месте template.",
+    "strictOfftargetHelp": "Отклоняет кандидата, если любой непрерывный участок длиной 15 оснований и более точно совпадает с template на любой из цепей вне предполагаемого сайта связывания. Проверка не выясняет, может ли 3'-конец праймера быть удлинён в этом месте, то есть это консервативный тест на идентичность последовательности, строже правил off-target по умолчанию, и он может отклонять кандидатов, которые те принимают. По умолчанию выключена.",
     "seedHelp": "Записывает только метаданные происхождения и не влияет на ранжирование primer. Пустое значение не записывает seed.",
     "tmSectionHelp": "Melting temperature targets define how the engine balances primer stability and selectivity."
   },
@@ -1967,6 +1970,7 @@
     "recoveryHeading": "Восстановление после Failure",
     "designFailed": "{{mutation}}: Design Failed",
     "reasonLabel": "Причина:",
+    "strictOfftargetHint": "Эту позицию отбросила только строгая проверка off-target. Отключите \"Строгая проверка off-target\" в Parameters и запустите проектирование снова, чтобы её вернуть.",
     "retrySection": "Повторить с параметрами",
     "labelTm": "Tm:",
     "labelF": "F",

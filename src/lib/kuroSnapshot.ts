@@ -109,7 +109,7 @@ export interface KuroSnapshotState
     | "tmFwdTarget" | "tmRevTarget" | "tmOverlapTarget"
     | "gcMin" | "gcMax" | "primerLenEnabled"
     | "fwdLenMin" | "fwdLenMax" | "revLenMin" | "revLenMax" | "fillOnFailure"
-    | "overlapMode" | "tmTolerance" | "randomSeed"
+    | "overlapMode" | "strictOfftarget" | "tmTolerance" | "randomSeed"
     | "echoTransferVol" | "echoQuadrant" | "echoUsedQuadrants" | "echoRoundPicks" | "janusTransferVol"
     | "benchmarkTopPercentile" | "benchmarkRandomTrials" | "benchmarkRandomSeed"
     | "designResults" | "successCount" | "totalCount" | "failedMutations"
@@ -204,6 +204,7 @@ export function buildKuroSnapshot(
       rev_len_max: state.revLenMax,
       fill_on_failure: state.fillOnFailure,
       overlap_mode: state.overlapMode,
+      strict_offtarget: state.strictOfftarget,
       // schema 5+
       tm_tolerance: state.tmTolerance,
       random_seed: state.randomSeed,

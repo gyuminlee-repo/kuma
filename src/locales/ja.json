@@ -1744,6 +1744,9 @@
     "primerLenFwdHelp": "Forward primer length range (nt). Default 17-39 covers most SDM cases.",
     "primerLenRevHelp": "Reverse primer length range (nt). Default 19-27.",
     "autoRescueHelp": "sidecar の制約緩和リカバリと、4 段階 (top-N) / 6 段階 (pipeline) のフロントエンドカスケードを制御します。",
+    "strictOfftargetLabel": "厳格 off-target 検査",
+    "strictOfftargetTitle": "template の他の位置に 15 bases 以上の完全一致があれば候補を除外します。",
+    "strictOfftargetHelp": "候補の連続する 15 bases 以上が、意図した結合部位の外で template のいずれかの鎖と完全一致した場合、その候補を除外します。primer の 3' 末端がそこで伸長できるかは問わない保守的な配列一致検査であり、既定の off-target 判定より厳しく、既定では通る候補も除外されることがあります。既定はオフです。",
     "seedHelp": "来歴メタデータのみを記録し、primer の順位には影響しません。空欄では seed を記録しません。",
     "tmSectionHelp": "Melting temperature targets define how the engine balances primer stability and selectivity."
   },
@@ -1967,6 +1970,7 @@
     "recoveryHeading": "失敗リカバリ",
     "designFailed": "{{mutation}}: 設計失敗",
     "reasonLabel": "理由:",
+    "strictOfftargetHint": "この位置は厳格 off-target 検査だけが原因で除外されました。Parameters の「厳格 off-target 検査」をオフにして再設計すると復帰します。",
     "retrySection": "パラメータを変えて再試行",
     "labelTm": "Tm:",
     "labelF": "F",

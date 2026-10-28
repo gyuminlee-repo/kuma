@@ -1744,6 +1744,9 @@
     "primerLenFwdHelp": "Forward primer length range (nt). Default 17-39 covers most SDM cases.",
     "primerLenRevHelp": "Reverse primer length range (nt). Default 19-27.",
     "autoRescueHelp": "Controla o resgate do sidecar com restrições relaxadas e a cascata do frontend de 4 estágios (top-N) / 6 (pipeline).",
+    "strictOfftargetLabel": "Verificação off-target estrita",
+    "strictOfftargetTitle": "Descarta um candidato diante de qualquer correspondência exata de 15 bases ou mais em outra parte do template.",
+    "strictOfftargetHelp": "Descarta um candidato quando qualquer trecho contínuo de 15 bases ou mais corresponde exatamente ao template, em qualquer das fitas, fora do sítio de ligação pretendido. A verificação não pergunta se a extremidade 3' do primer poderia ser estendida ali, sendo um teste conservador de identidade de sequência, mais estrito que as regras off-target padrão, e pode descartar candidatos que elas aceitam. Desligada por padrão.",
     "seedHelp": "Registra somente metadados de procedência e não afeta a classificação dos primers. Vazio não registra seed.",
     "tmSectionHelp": "Melting temperature targets define how the engine balances primer stability and selectivity."
   },
@@ -1967,6 +1970,7 @@
     "recoveryHeading": "Recuperação de falha",
     "designFailed": "{{mutation}}: Design falhou",
     "reasonLabel": "Motivo:",
+    "strictOfftargetHint": "Apenas a verificação off-target estrita descartou esta posição. Desligue \"Verificação off-target estrita\" em Parameters e projete novamente para recuperá-la.",
     "retrySection": "Tentar novamente com parâmetros",
     "labelTm": "Tm:",
     "labelF": "F",

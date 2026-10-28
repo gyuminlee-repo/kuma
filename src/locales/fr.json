@@ -1744,6 +1744,9 @@
     "primerLenFwdHelp": "Forward primer length range (nt). Default 17-39 covers most SDM cases.",
     "primerLenRevHelp": "Reverse primer length range (nt). Default 19-27.",
     "autoRescueHelp": "Contrôle le sauvetage sidecar à contraintes relâchées et la cascade frontend de 4 étapes (top-N) / 6 (pipeline).",
+    "strictOfftargetLabel": "Contrôle off-target strict",
+    "strictOfftargetTitle": "Rejette un candidat dès qu'une correspondance exacte de 15 bases ou plus existe ailleurs sur le template.",
+    "strictOfftargetHelp": "Rejette un candidat lorsqu'un segment continu de 15 bases ou plus correspond exactement au template, sur l'un ou l'autre brin, hors du site de liaison prévu. Le contrôle ne demande pas si l'extrémité 3' de l'amorce pourrait y être étendue : c'est un test d'identité de séquence conservateur, plus strict que les règles off-target par défaut, et il peut rejeter des candidats que celles-ci acceptent. Désactivé par défaut.",
     "seedHelp": "Enregistre seulement les métadonnées de provenance et n'affecte pas le classement des primers. Vide n'enregistre pas de seed.",
     "tmSectionHelp": "Melting temperature targets define how the engine balances primer stability and selectivity."
   },
@@ -1967,6 +1970,7 @@
     "recoveryHeading": "Récupération d'échec",
     "designFailed": "{{mutation}} : Design échoué",
     "reasonLabel": "Raison :",
+    "strictOfftargetHint": "Seul le contrôle off-target strict a écarté cette position. Désactivez \"Contrôle off-target strict\" dans Parameters et relancez la conception pour la récupérer.",
     "retrySection": "Réessayer avec des paramètres",
     "labelTm": "Tm :",
     "labelF": "F",

@@ -39,7 +39,9 @@ export const HEADER_TOOLTIPS: Record<string, string> = {
   // hit now rejects the candidate outright instead of just flagging it, so
   // a rejected candidate never reaches this table. This column still
   // carries real signal for user-added custom primer rows (Evaluate tab),
-  // which are not filtered the same way.
+  // which are not filtered the same way. The strict off-target switch does
+  // not change that: its hits join the same lists and reject the candidate
+  // on the same path, so a design-search row still cannot carry one.
   has_offtarget: "Off-target binding detected on template strand (custom-evaluated primers only; design-search results are always OK by construction)",
   hairpin: "Hairpin/Homodimer worst Tm (amber = warning; hairpin judged by folded fraction at the recommended Ta)",
   gc_fwd: "Forward primer GC content (40-60% recommended)",

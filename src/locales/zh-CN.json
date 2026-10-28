@@ -1744,6 +1744,9 @@
     "primerLenFwdHelp": "Forward primer length range (nt). Default 17-39 covers most SDM cases.",
     "primerLenRevHelp": "Reverse primer length range (nt). Default 19-27.",
     "autoRescueHelp": "控制 sidecar 的放宽约束补救步骤及 4 阶段 (top-N) / 6 阶段 (pipeline) 前端级联。",
+    "strictOfftargetLabel": "严格 off-target 检查",
+    "strictOfftargetTitle": "若 template 其他位置存在 15 bases 以上的精确匹配，则剔除该候选。",
+    "strictOfftargetHelp": "当候选中任意连续 15 bases 以上的片段在预期结合位点之外与 template 任一条链精确匹配时，剔除该候选。该检查不判断 primer 3' 末端能否在该处延伸，属于保守的序列一致性检查，比默认 off-target 判定更严格，可能剔除默认判定接受的候选。默认关闭。",
     "seedHelp": "仅记录溯源元数据，不影响 primer 排名。留空则不记录 seed。",
     "tmSectionHelp": "Melting temperature targets define how the engine balances primer stability and selectivity."
   },
@@ -1967,6 +1970,7 @@
     "recoveryHeading": "失败恢复",
     "designFailed": "{{mutation}}: 设计失败",
     "reasonLabel": "原因:",
+    "strictOfftargetHint": "此位点仅因严格 off-target 检查而被剔除。在 Parameters 中关闭「严格 off-target 检查」并重新设计即可恢复。",
     "retrySection": "使用参数重试",
     "labelTm": "Tm:",
     "labelF": "F",

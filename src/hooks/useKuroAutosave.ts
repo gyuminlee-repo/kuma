@@ -113,6 +113,7 @@ function kuroAutosaveSelector(s: AppState): readonly unknown[] {
     s.revLenMax,
     s.fillOnFailure,
     s.overlapMode,
+    s.strictOfftarget,
     s.tmTolerance,
     s.randomSeed,
     s.echoTransferVol,

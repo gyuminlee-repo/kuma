@@ -49,7 +49,9 @@ class OffTargetHit:
     # "full": full-length primer match
     # "5prime": only 5' end matched (3' trimmed)
     # "3prime": only 3' end matched (5' trimmed)
-    # "internal": neither end aligned (both sides trimmed), PrimerBench-only
+    # "internal": neither end aligned (both sides trimmed). Only the strict
+    #   exact-window check reports this one; a rule that anchors the primer's
+    #   3' end cannot produce it.
     truncation_type: str = "3prime_anchor"
     # Failure mode this hit belongs to. The two are physically different and a
     # candidate can be rejected by either, so the report has to say which.
@@ -93,7 +95,9 @@ class SdmPrimerResult:
     # pair, not a search over candidates) is the one path where these still
     # carry real information: there is no alternative candidate to fall
     # back to for a user's own primers, so it reports the hit instead of
-    # rejecting it.
+    # rejecting it. The strict off-target switch does not change this split:
+    # its hits join the same two lists, so the search still rejects on them
+    # and evaluate_custom_primer still only reports them.
     has_offtarget: bool = False
     offtarget_fwd: list[OffTargetHit] = field(default_factory=list)
     offtarget_rev: list[OffTargetHit] = field(default_factory=list)
@@ -1130,6 +1134,173 @@ def check_offtarget(
     return list(hits_by_site.values())
 
 
+# Shortest primer sub-sequence the strict check will look for. A tool setting,
+# not a number taken from the literature.
+STRICT_OFFTARGET_MIN_LENGTH = 15
+# Tag written on every hit the strict check reports, and the marker the
+# failure diagnostic puts at the front of its message. The frontend keys its
+# "turn the switch off" hint on this prefix, so it is a constant rather than a
+# literal spelled out at each site.
+STRICT_OFFTARGET_REASON = "exact_window_match"
+STRICT_OFFTARGET_FAILURE_MARKER = "strict off-target"
+
+
+def check_offtarget_strict(
+    primer_seq: str,
+    template: str,
+    intended_start: int,
+    intended_end: int,
+    min_length: int = STRICT_OFFTARGET_MIN_LENGTH,
+    antisense_cache: str | None = None,
+    topology: str = "linear",
+) -> list[OffTargetHit]:
+    """Exact-match off-target check over every primer sub-sequence.
+
+    Opt-in, off by default, and deliberately more conservative than
+    :func:`check_offtarget`: it asks only whether a contiguous stretch of the
+    primer of at least ``min_length`` bases occurs anywhere on either strand of
+    the template outside the intended binding site. It does **not** ask whether
+    the primer's 3' terminus is paired there, so it reports sites a polymerase
+    could not extend from, and it applies no Tm filter. A site it reports is
+    therefore a sequence coincidence that may or may not be a priming hazard,
+    which is why the default verdict does not use this rule and why turning the
+    switch on can reject candidates the default accepts.
+
+    ``min_length`` defaults to 15, a tool setting rather than a figure taken
+    from the literature.
+
+    Every maximal match is found by locating each ``min_length``-mer of the
+    primer on the template and extending the hit in both directions while the
+    bases keep matching, which reaches the same maximal windows as enumerating
+    every sub-sequence would, without the enumeration. Matches are reported one
+    per physical footprint: the longest window per template start, then
+    overlapping footprints merged.
+
+    ``topology="circular"`` searches through the origin on both strands, the
+    same way :func:`check_offtarget` does.
+
+    ``OffTargetHit.reason`` is :data:`STRICT_OFFTARGET_REASON` and
+    ``truncation_type`` says which part of the primer matched: ``full`` for the
+    whole primer, ``5prime`` when the match starts at the primer's 5' base,
+    ``3prime`` when it ends at the 3' base, ``internal`` otherwise. ``tm`` is
+    the perfect-complement Tm of the matched span, reported for display only;
+    nothing is filtered on it. ``extendable`` is recorded honestly, so a caller
+    can still tell apart a site that reaches the 3' terminus from one that does
+    not.
+    """
+    p_upper = primer_seq.upper()
+    t_upper = template.upper()
+    plen = len(p_upper)
+    tlen = len(t_upper)
+    if plen < min_length or tlen == 0:
+        return []
+
+    rc_template = antisense_cache if antisense_cache else reverse_complement(t_upper)
+    circular = topology == "circular"
+    pad = plen - 1 if circular else 0
+
+    hits: list[OffTargetHit] = []
+
+    for strand_label, strand_core in (
+        ("sense", t_upper),
+        ("antisense", rc_template),
+    ):
+        core_len = len(strand_core)
+        strand_seq = _wrap_pad(strand_core, pad) if circular else strand_core
+        slen = len(strand_seq)
+
+        # folded template start -> (length, primer window start, primer window end)
+        best: dict[int, tuple[int, int, int]] = {}
+
+        for off in range(plen - min_length + 1):
+            seed = p_upper[off:off + min_length]
+            for pos in _find_all(strand_seq, seed):
+                if circular and not (pad <= pos < pad + core_len):
+                    # One period of starts only. Every maximal match has its
+                    # own leftmost seed at its start, and that start has a
+                    # representative in this range, so nothing is lost.
+                    continue
+                left = 0
+                while (
+                    off - left - 1 >= 0
+                    and pos - left - 1 >= 0
+                    and p_upper[off - left - 1] == strand_seq[pos - left - 1]
+                ):
+                    left += 1
+                right = 0
+                while (
+                    off + min_length + right < plen
+                    and pos + min_length + right < slen
+                    and p_upper[off + min_length + right]
+                    == strand_seq[pos + min_length + right]
+                ):
+                    right += 1
+
+                w_start = off - left
+                w_end = off + min_length + right
+                m_start = pos - left
+                m_len = w_end - w_start
+
+                if strand_label == "sense":
+                    tpos = (m_start - pad) % core_len if circular else m_start
+                else:
+                    rc_start = m_start - pad
+                    tpos = (
+                        (core_len - (rc_start + m_len)) % core_len
+                        if circular
+                        else core_len - (m_start + m_len)
+                    )
+
+                if _overlaps_intended(
+                    tpos, m_len, intended_start, intended_end, tlen, circular
+                ):
+                    continue
+
+                prev = best.get(tpos)
+                if prev is None or m_len > prev[0]:
+                    best[tpos] = (m_len, w_start, w_end)
+
+        # One hit per physical footprint: merge overlapping spans, keeping the
+        # longest window of the group.
+        merged: list[tuple[int, int, int, int]] = []
+        for tpos in sorted(best):
+            m_len, w_start, w_end = best[tpos]
+            if merged and tpos < merged[-1][0] + merged[-1][1]:
+                prev_pos, prev_len, prev_ws, prev_we = merged[-1]
+                if m_len > prev_len:
+                    merged[-1] = (prev_pos, max(prev_len, tpos + m_len - prev_pos),
+                                  w_start, w_end)
+                else:
+                    merged[-1] = (prev_pos, max(prev_len, tpos + m_len - prev_pos),
+                                  prev_ws, prev_we)
+                continue
+            merged.append((tpos, m_len, w_start, w_end))
+
+        for tpos, m_len, w_start, w_end in merged:
+            match_seq = p_upper[w_start:w_end]
+            if w_start == 0 and w_end == plen:
+                truncation = "full"
+            elif w_start == 0:
+                truncation = "5prime"
+            elif w_end == plen:
+                truncation = "3prime"
+            else:
+                truncation = "internal"
+            hits.append(OffTargetHit(
+                position=tpos,
+                strand=strand_label,
+                match_seq=match_seq,
+                tm=round(_calc_sdm_tm(match_seq), 1),
+                match_length=w_end - w_start,
+                truncation_type=truncation,
+                extendable=w_end == plen,
+                in_overlap_arm=False,
+                reason=STRICT_OFFTARGET_REASON,
+            ))
+
+    return hits
+
+
 def _search_candidates(
     seq: str,
     mutated_seq: str,
@@ -1341,6 +1512,7 @@ def design_single_sdm(
     tol_max: float = 4.0,
     overlap_mode: OverlapMode = "partial",
     topology: str = "linear",
+    strict_offtarget: bool = False,
 ) -> list[SdmPrimerResult]:
     """Design SDM primers for a single mutation.
 
@@ -1358,6 +1530,15 @@ def design_single_sdm(
       "partial" (default) — standard Gibson-style: overlap upstream + downstream extension.
       "full"              — NEB Q5 SDM style: forward and reverse cover the same region
                             (rev = rc(fwd)), mutation centered with symmetric expansion.
+
+    strict_offtarget adds check_offtarget_strict to the rejection test. Off by
+    default, and while it is off nothing about this function changes: the extra
+    check is not called and no result differs. On, it is a conservative
+    sequence-identity rule that ignores whether the primer's 3' end could be
+    extended, so it is stricter than the default verdict and can reject
+    candidates the default accepts. Its hits land in the same
+    offtarget_fwd/offtarget_rev lists, so the existing rejection path carries
+    them with no change of its own.
     """
     if overlap_len is None:
         overlap_len = profile.overlap_len if profile.overlap_len is not None else DEFAULT_OVERLAP_LEN
@@ -1526,6 +1707,19 @@ def design_single_sdm(
                         profile=profile,
                         topology=topology,
                     )
+                    if strict_offtarget:
+                        c.offtarget_fwd += check_offtarget_strict(
+                            c.forward_seq, seq,
+                            c.overlap_window.start, c.overlap_window.end,
+                            antisense_cache=rc_template,
+                            topology=topology,
+                        )
+                        c.offtarget_rev += check_offtarget_strict(
+                            c.reverse_seq, seq,
+                            c.overlap_window.start, c.overlap_window.end,
+                            antisense_cache=rc_template,
+                            topology=topology,
+                        )
                     if c.offtarget_fwd or c.offtarget_rev:
                         # Off-target hit: reject the candidate outright rather
                         # than penalize it (a penalty still lets it win if no
@@ -1591,6 +1785,17 @@ def design_single_sdm(
                     overlap_arm_len=c.rev_len - len(c.reverse_binding),
                     topology=topology,
                 )
+                if strict_offtarget:
+                    c.offtarget_fwd += check_offtarget_strict(
+                        c.forward_seq, seq, fwd_start, fwd_end,
+                        antisense_cache=rc_template,
+                        topology=topology,
+                    )
+                    c.offtarget_rev += check_offtarget_strict(
+                        c.reverse_seq, seq, rev_start, rev_end,
+                        antisense_cache=rc_template,
+                        topology=topology,
+                    )
                 if c.offtarget_fwd or c.offtarget_rev:
                     # Off-target hit: reject the candidate outright rather
                     # than penalize it.
@@ -1628,6 +1833,7 @@ def diagnose_sdm_failure(
     tol_max: float = 4.0,
     overlap_mode: OverlapMode = "partial",
     topology: str = "linear",
+    strict_offtarget: bool = False,
 ) -> str:
     """Explain why design_single_sdm returned no candidate for this mutation.
 
@@ -1678,6 +1884,7 @@ def diagnose_sdm_failure(
         best: tuple[float, int] | None = None
         valid_pairs = 0
         rejected_pairs = 0
+        strict_only_pairs = 0
         rc_template = reverse_complement(seq.upper())
         for variant in variants:
             mutated_seq = mutate_sequence(seq, variant)
@@ -1711,11 +1918,33 @@ def diagnose_sdm_failure(
                     _rev, seq, start, end, antisense_cache=rc_template, profile=profile,
                     topology=topology,
                 )
-                rejected_pairs += bool(hits_fwd or hits_rev)
+                strict_fwd: list[OffTargetHit] = []
+                strict_rev: list[OffTargetHit] = []
+                if strict_offtarget:
+                    strict_fwd = check_offtarget_strict(
+                        _fwd, seq, start, end,
+                        antisense_cache=rc_template, topology=topology,
+                    )
+                    strict_rev = check_offtarget_strict(
+                        _rev, seq, start, end,
+                        antisense_cache=rc_template, topology=topology,
+                    )
+                if hits_fwd or hits_rev or strict_fwd or strict_rev:
+                    rejected_pairs += 1
+                    if not (hits_fwd or hits_rev):
+                        strict_only_pairs += 1
         if best is None:
             return prefix + f"full overlap: no candidate satisfies length {l_min}-{l_max} bp"
         if valid_pairs:
             if rejected_pairs == valid_pairs:
+                if strict_only_pairs == valid_pairs:
+                    return prefix + (
+                        f"{STRICT_OFFTARGET_FAILURE_MARKER}: all {valid_pairs} "
+                        "Tm/length-valid candidate(s) in full overlap rejected by "
+                        "exact-window match; the default off-target rules accept "
+                        "them, so turning the strict check off recovers this "
+                        "position"
+                    )
                 return prefix + (
                     f"full overlap off-target: all {valid_pairs} Tm/length-valid "
                     "candidate(s) rejected for off-target binding"
@@ -1749,6 +1978,9 @@ def diagnose_sdm_failure(
     # Tm/length-caused, and fwd_passed/rev_passed alone cannot see that.
     offtarget_total_pairs = 0
     offtarget_reject_count = 0
+    # Pairs the strict check alone rejected. Counted separately so the message
+    # can tell the user the switch is what dropped this position.
+    offtarget_strict_only_count = 0
     offtarget_examples: list[str] = []
     rc_template = reverse_complement(seq.upper())
 
@@ -1843,6 +2075,20 @@ def diagnose_sdm_failure(
                         overlap_arm_len=len(rev_full) - len(rev_at_tol[1]),
                         topology=topology,
                     )
+                    if strict_offtarget:
+                        strict_hits_fwd = check_offtarget_strict(
+                            fwd_full, seq, fwd_start, fwd_end,
+                            antisense_cache=rc_template, topology=topology,
+                        )
+                        strict_hits_rev = check_offtarget_strict(
+                            rev_full, seq, rev_start, rev_end,
+                            antisense_cache=rc_template, topology=topology,
+                        )
+                        if strict_hits_fwd or strict_hits_rev:
+                            if not (ot_fwd or ot_rev):
+                                offtarget_strict_only_count += 1
+                            ot_fwd = ot_fwd + strict_hits_fwd
+                            ot_rev = ot_rev + strict_hits_rev
                     if ot_fwd or ot_rev:
                         offtarget_reject_count += 1
                         if len(offtarget_examples) < 3:
@@ -1917,6 +2163,13 @@ def diagnose_sdm_failure(
 
     if not clauses and offtarget_total_pairs > 0 and offtarget_reject_count == offtarget_total_pairs:
         sites = "; ".join(offtarget_examples) if offtarget_examples else "site details unavailable"
+        if offtarget_strict_only_count == offtarget_total_pairs:
+            return prefix + (
+                f"{STRICT_OFFTARGET_FAILURE_MARKER}: all {offtarget_total_pairs} "
+                "Tm/length-valid candidate(s) rejected by exact-window match; the "
+                "default off-target rules accept them, so turning the strict check "
+                f"off recovers this position - {sites}"
+            )
         return prefix + (
             f"off-target: all {offtarget_total_pairs} Tm/length-valid candidate(s) "
             f"rejected for off-target binding - {sites}"
@@ -1961,6 +2214,7 @@ def evaluate_custom_primer(
     overlap_len: int = 18,
     profile: PolymeraseProfile | None = None,
     topology: str = "linear",
+    strict_offtarget: bool = False,
 ) -> SdmPrimerResult:
     """Evaluate a user-provided primer pair and return metrics."""
     from .overlap import OverlapWindow, reverse_complement
@@ -2029,6 +2283,17 @@ def evaluate_custom_primer(
 
     result.offtarget_fwd = check_offtarget(fwd_seq, template, fwd_start, fwd_end, antisense_cache=rc_template, profile=profile, topology=topology)
     result.offtarget_rev = check_offtarget(rev_seq, template, rev_start, rev_end, antisense_cache=rc_template, profile=profile, topology=topology)
+    if strict_offtarget:
+        # Reported, not rejected: this path evaluates the primers the user
+        # supplied, and there is no alternative candidate to fall back to.
+        result.offtarget_fwd += check_offtarget_strict(
+            fwd_seq, template, fwd_start, fwd_end,
+            antisense_cache=rc_template, topology=topology,
+        )
+        result.offtarget_rev += check_offtarget_strict(
+            rev_seq, template, rev_start, rev_end,
+            antisense_cache=rc_template, topology=topology,
+        )
     if result.offtarget_fwd or result.offtarget_rev:
         result.has_offtarget = True
 
@@ -2270,6 +2535,7 @@ def design_sdm_primers(
     organism: str = "ecoli",
     tol_max: float = 4.0,
     overlap_mode: OverlapMode = "partial",
+    strict_offtarget: bool = False,
 ) -> tuple[list[SdmPrimerResult], dict[str, list[SdmPrimerResult]], dict[str, str]]:
     """Design SDM primers for a batch of mutations.
 
@@ -2354,7 +2620,7 @@ def design_sdm_primers(
         if on_progress:
             on_progress(i, total_muts, mut.raw)
         logger.info("Designing primers for %s ...", mut.raw)
-        candidates = design_single_sdm(sequence, mut, profile, overlap_len, codon_strategy=codon_strategy, gc_min=gc_min, gc_max=gc_max, fwd_len_min=fwd_len_min, fwd_len_max=fwd_len_max, rev_len_min=rev_len_min, rev_len_max=rev_len_max, organism=organism, tol_max=tol_max, overlap_mode=overlap_mode, topology=topology)
+        candidates = design_single_sdm(sequence, mut, profile, overlap_len, codon_strategy=codon_strategy, gc_min=gc_min, gc_max=gc_max, fwd_len_min=fwd_len_min, fwd_len_max=fwd_len_max, rev_len_min=rev_len_min, rev_len_max=rev_len_max, organism=organism, tol_max=tol_max, overlap_mode=overlap_mode, topology=topology, strict_offtarget=strict_offtarget)
         if not candidates:
             failed_reasons[mut.raw] = diagnose_sdm_failure(
                 sequence, mut, profile, overlap_len,
@@ -2362,7 +2628,7 @@ def design_sdm_primers(
                 fwd_len_min=fwd_len_min, fwd_len_max=fwd_len_max,
                 rev_len_min=rev_len_min, rev_len_max=rev_len_max,
                 organism=organism, tol_max=tol_max, overlap_mode=overlap_mode,
-                topology=topology,
+                topology=topology, strict_offtarget=strict_offtarget,
             )
             logger.warning("FAILED: %s - no valid primer pair found", mut.raw)
             continue

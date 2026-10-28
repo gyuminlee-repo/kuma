@@ -56,6 +56,7 @@ const baseState: KuroSnapshotState = {
   revLenMax: 28,
   fillOnFailure: true,
   overlapMode: "full",
+  strictOfftarget: false,
   tmTolerance: 4.0,
   randomSeed: null,
   echoTransferVol: 100,

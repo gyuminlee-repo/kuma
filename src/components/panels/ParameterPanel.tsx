@@ -62,6 +62,8 @@ export function ParameterPanel() {
   const setFillOnFailure = useAppStore((s) => s.setFillOnFailure);
   const overlapMode = useAppStore((s) => s.overlapMode);
   const setOverlapMode = useAppStore((s) => s.setOverlapMode);
+  const strictOfftarget = useAppStore((s) => s.strictOfftarget);
+  const setStrictOfftarget = useAppStore((s) => s.setStrictOfftarget);
   const randomSeed = useAppStore((s) => s.randomSeed);
   const setRandomSeed = useAppStore((s) => s.setRandomSeed);
   const setStatus = useAppStore((s) => s.setStatus);
@@ -376,6 +378,20 @@ export function ParameterPanel() {
             />
             <span className="text-muted-foreground">{t("parameterPanel.autoRescueLabel")}</span>
             <InlineHelp text={t("parameterPanel.autoRescueHelp")} />
+          </label>
+
+          <label
+            className="flex items-center gap-1 text-caption cursor-pointer"
+            title={t("parameterPanel.strictOfftargetTitle")}
+          >
+            <input
+              type="checkbox"
+              className="h-3 w-3 accent-primary"
+              checked={strictOfftarget}
+              onChange={(e) => setStrictOfftarget(e.target.checked)}
+            />
+            <span className="text-muted-foreground">{t("parameterPanel.strictOfftargetLabel")}</span>
+            <InlineHelp text={t("parameterPanel.strictOfftargetHelp")} />
           </label>
 
           {/* §12 Random seed */}

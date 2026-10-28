@@ -1786,6 +1786,9 @@
     "primerLenFwdHelp": "forward primer 길이 범위(nt). 기본 17-39이 대부분 SDM 케이스 포괄.",
     "primerLenRevHelp": "reverse primer 길이 범위(nt). 기본 19-27.",
     "autoRescueHelp": "sidecar의 완화된 제약 구제 단계와 4단계(top-N) / 6단계(pipeline) 프런트엔드 연쇄를 제어합니다.",
+    "strictOfftargetLabel": "엄격 off-target 검사",
+    "strictOfftargetTitle": "템플릿의 다른 위치에 15 bases 이상 정확히 일치하는 구간이 있으면 후보를 탈락시킵니다.",
+    "strictOfftargetHelp": "후보의 연속 구간 15 bases 이상이 의도한 결합 자리 밖에서 템플릿 양쪽 가닥 중 하나와 정확히 일치하면 그 후보를 탈락시킵니다. primer 3' 말단이 그 자리에서 연장될 수 있는지는 보지 않는 보수적 서열 일치 검사이므로 기본 off-target 판정보다 엄격하고 기본 판정이 받아들이는 후보도 탈락시킬 수 있습니다. 기본값은 꺼짐입니다.",
     "seedHelp": "provenance 메타데이터만 기록하며 primer 순위에는 영향을 주지 않습니다. 비우면 시드를 기록하지 않습니다.",
     "tmSectionHelp": "Tm 목표값은 engine이 primer 안정성과 선택성을 균형 잡는 기준."
   },
@@ -2009,6 +2012,7 @@
     "recoveryHeading": "실패 복구",
     "designFailed": "{{mutation}}: 설계 실패",
     "reasonLabel": "원인:",
+    "strictOfftargetHint": "이 위치는 엄격 off-target 검사 때문에만 탈락했습니다. Parameters 에서 \"엄격 off-target 검사\" 를 끄고 다시 설계하면 복구됩니다.",
     "retrySection": "파라미터로 재시도",
     "labelTm": "Tm:",
     "labelF": "F",

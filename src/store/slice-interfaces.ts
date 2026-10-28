@@ -363,6 +363,13 @@ export interface DesignSlice {
   fillOnFailure: boolean;
   tmTolerance: number;
   overlapMode: OverlapMode;
+  /**
+   * Opt-in strict off-target check. Off by default, and off reproduces the
+   * verdict the engine reached before the check existed. On, a candidate is
+   * dropped when any contiguous stretch of 15 bases or more of it matches the
+   * template exactly outside its intended site, on either strand.
+   */
+  strictOfftarget: boolean;
   /** §12 Optional RNG seed. null = non-deterministic (backend default). */
   randomSeed: number | null;
   manuallySwapped: Record<string, "fwd" | "rev" | "both">;
@@ -424,6 +431,7 @@ export interface DesignSlice {
   setFillOnFailure: (enabled: boolean) => void;
   setTmTolerance: (value: number) => void;
   setOverlapMode: (mode: OverlapMode) => void;
+  setStrictOfftarget: (enabled: boolean) => void;
   setRandomSeed: (seed: number | null) => void;
 }
 

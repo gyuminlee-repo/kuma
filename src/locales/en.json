@@ -1786,6 +1786,9 @@
     "primerLenFwdHelp": "Forward primer length range (nt). Default 17-39 covers most SDM cases.",
     "primerLenRevHelp": "Reverse primer length range (nt). Default 19-27.",
     "autoRescueHelp": "Gates the sidecar relaxed-constraint rescue pass and 4-stage (top-N) / 6-stage (pipeline) frontend cascade.",
+    "strictOfftargetLabel": "Strict off-target check",
+    "strictOfftargetTitle": "Rejects a candidate on any exact match of 15 bases or more elsewhere on the template.",
+    "strictOfftargetHelp": "Drops a candidate when any contiguous stretch of 15 bases or more of it matches the template exactly outside its intended site, on either strand. It does not ask whether the primer 3' end could be extended there, so it is a conservative sequence-identity test, stricter than the default off-target rules, and it can reject candidates those rules accept. Off by default.",
     "seedHelp": "Records provenance metadata only; it does not affect primer ranking. Empty leaves no seed recorded.",
     "tmSectionHelp": "Melting temperature targets define how the engine balances primer stability and selectivity."
   },
@@ -2009,6 +2012,7 @@
     "recoveryHeading": "Failure Recovery",
     "designFailed": "{{mutation}}: Design Failed",
     "reasonLabel": "Reason:",
+    "strictOfftargetHint": "Only the strict off-target check dropped this position. Turn off \"Strict off-target check\" in Parameters and design again to recover it.",
     "retrySection": "Retry with parameters",
     "labelTm": "Tm:",
     "labelF": "F",
