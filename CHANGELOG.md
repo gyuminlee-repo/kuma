@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.16.79 (Off-target search across the plasmid origin, optional strict check)
+
+KURO off-target search now looks at binding sites that a primer could reach across the origin of a circular template and at partial sites where a primer would run past the end of a linear sequence. Before, a site was only examined when the whole primer length fitted inside the sequence as written, so both kinds were never scored. The rejection rule itself is unchanged: a site still counts when the primer 3' end can extend there or when the Gibson overlap arm carries it, and its duplex Tm clears 45 °C. The circular search applies when the sequence file declares a circular topology, as GenBank and SnapGene files do; a plain FASTA is read as linear. On two test plasmids with a 46-mutation set these changes moved no result.
+
+A new Strict off-target check under Advanced options in Primer Parameters is off by default. When on, a candidate is also rejected when any stretch of 15 bases or more of either primer matches the template exactly outside its intended site, on either strand, without asking whether the 3' end could extend there. It is stricter than the default rules and can reject candidates they accept. When this check alone leaves a mutation without primers, the failure reason says so, so turning it off recovers that design. The switch applies to custom primer evaluation as well, is saved with the workspace and the autosave, and is recorded in the hidden metadata sheet of the exported workbook. An older workspace opens with it off.
+
+### Highlights
+
+- Off-target search now covers sites across the origin of a circular plasmid and past the end of a linear sequence.
+- A new opt-in strict check rejects a candidate with an exact match of 15 bases or more elsewhere on the template.
+- When the strict check alone leaves a mutation without primers, the failure says so, and turning it off recovers it.
+- The strict check setting is saved with the workspace and recorded in the exported workbook.
+
 ## v0.16.78 (Shared GC runs accepted in step 4.1)
 
 MAME step 4.1 no longer refuses a GC report because a shared run put other material between this run's injections. A blank, a separately injected standard or a calibration point used to stop the whole build at the first such row, on the raw Agilent report and on the flat Sample Name and Area sheet alike. Each row is now judged by whether it belongs to this run, using the wells and variants the run already declares. A row with no evidence of belonging is set aside and reported with its name, block and sheet row, in the warnings and in the export manifest. A file is still refused when no row belongs, or when a row of this run is written in another notation, which keeps the earlier protection against a mislabelled file. A numeric ID report still refuses an ID past the plate order. Relative values of files that already parsed are unchanged.

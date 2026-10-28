@@ -2740,13 +2740,19 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Ein GC-Bericht mit Blanks, Standards oder Kalibrierpunkten im selben Lauf wird nicht mehr abgelehnt; diese Zeilen werden ausgesondert.",
-      "Jede ausgesonderte Zeile wird mit ihrer Tabellenzeile in den Warnungen und im Export-Manifest gemeldet, nichts fällt stillschweigend weg.",
-      "Ein Raw-Bericht mit wenigen Kalibrierpunkten neben vielen Wells, höchstens einer je zehn, wird automatisch erkannt.",
-      "Das Export-Manifest listet die zur Normalisierung verwendeten WT-Zeilen, und eine doppelte WT-Replikatnummer wird markiert."
+      "Die Off-Target-Suche erfasst jetzt Stellen über den Ursprung eines zirkulären Plasmids und über das Ende einer linearen Sequenz hinaus.",
+      "Eine neue optionale strenge Prüfung verwirft Kandidaten mit einer exakten Übereinstimmung ab 15 Basen an anderer Stelle der Vorlage.",
+      "Fehlen einer Mutation nur wegen der strengen Prüfung Primer, nennt der Fehlergrund das; abgeschaltet wird das Design wiederhergestellt.",
+      "Die Einstellung der strengen Prüfung wird im Workspace gespeichert und in der exportierten Arbeitsmappe vermerkt."
     ],
-    "highlightsStamp": "0.16.78+7847cb43",
+    "highlightsStamp": "0.16.79+07f90f60",
     "releases": {
+      "0.16.79": [
+        "Die Off-Target-Suche erfasst jetzt Stellen über den Ursprung eines zirkulären Plasmids und über das Ende einer linearen Sequenz hinaus.",
+        "Eine neue optionale strenge Prüfung verwirft Kandidaten mit einer exakten Übereinstimmung ab 15 Basen an anderer Stelle der Vorlage.",
+        "Fehlen einer Mutation nur wegen der strengen Prüfung Primer, nennt der Fehlergrund das; abgeschaltet wird das Design wiederhergestellt.",
+        "Die Einstellung der strengen Prüfung wird im Workspace gespeichert und in der exportierten Arbeitsmappe vermerkt."
+      ],
       "0.16.78": [
         "Ein GC-Bericht mit Blanks, Standards oder Kalibrierpunkten im selben Lauf wird nicht mehr abgelehnt; diese Zeilen werden ausgesondert.",
         "Jede ausgesonderte Zeile wird mit ihrer Tabellenzeile in den Warnungen und im Export-Manifest gemeldet, nichts fällt stillschweigend weg.",
@@ -3291,6 +3297,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.79": "07f90f60",
       "0.16.78": "7847cb43",
       "0.16.77": "53eff3f8",
       "0.16.76": "d0c839c4",
