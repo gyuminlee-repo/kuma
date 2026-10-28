@@ -2738,15 +2738,15 @@
     "highlights": [
       "Um relatório de GC com brancos, padrões ou pontos de calibração na mesma corrida não é mais recusado; essas linhas são separadas.",
       "Cada linha separada é informada com sua linha da planilha nos avisos e no manifesto de exportação, nada some em silêncio.",
-      "Um relatório raw com um ponto de calibração agora é reconhecido automaticamente, sem perguntar o formato.",
+      "Um relatório raw com poucos pontos de calibração entre muitos poços, no máximo um a cada dez, é reconhecido automaticamente.",
       "O manifesto de exportação lista as linhas WT usadas na normalização, e um número de réplica WT repetido é sinalizado."
     ],
-    "highlightsStamp": "0.16.78+92779b65",
+    "highlightsStamp": "0.16.78+7847cb43",
     "releases": {
       "0.16.78": [
         "Um relatório de GC com brancos, padrões ou pontos de calibração na mesma corrida não é mais recusado; essas linhas são separadas.",
         "Cada linha separada é informada com sua linha da planilha nos avisos e no manifesto de exportação, nada some em silêncio.",
-        "Um relatório raw com um ponto de calibração agora é reconhecido automaticamente, sem perguntar o formato.",
+        "Um relatório raw com poucos pontos de calibração entre muitos poços, no máximo um a cada dez, é reconhecido automaticamente.",
         "O manifesto de exportação lista as linhas WT usadas na normalização, e um número de réplica WT repetido é sinalizado."
       ],
       "0.16.77": [
@@ -3287,7 +3287,7 @@
       ]
     },
     "releaseStamps": {
-      "0.16.78": "92779b65",
+      "0.16.78": "7847cb43",
       "0.16.77": "53eff3f8",
       "0.16.76": "d0c839c4",
       "0.16.75": "7a304882",

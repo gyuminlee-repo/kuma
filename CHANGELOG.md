@@ -4,13 +4,13 @@
 
 MAME step 4.1 no longer refuses a GC report because a shared run put other material between this run's injections. A blank, a separately injected standard or a calibration point used to stop the whole build at the first such row, on the raw Agilent report and on the flat Sample Name and Area sheet alike. Each row is now judged by whether it belongs to this run, using the wells and variants the run already declares. A row with no evidence of belonging is set aside and reported with its name, block and sheet row, in the warnings and in the export manifest. A file is still refused when no row belongs, or when a row of this run is written in another notation, which keeps the earlier protection against a mislabelled file. A numeric ID report still refuses an ID past the plate order. Relative values of files that already parsed are unchanged.
 
-Sample-name judgement now has one owner shared by every reader and by the format detection. A raw report whose only pure number is a calibration point is recognised as a raw report without asking which format it is. The export manifest lists the WT rows used for normalisation with their positions, and a repeated WT replicate number is flagged in the warnings.
+Sample-name judgement now has one owner shared by every reader and by the format detection. A raw report whose pure numbers are a few calibration points beside its wells, at most one for every ten wells, is recognised as a raw report without asking which format it is. The export manifest lists the WT rows used for normalisation with their block and row numbers, and a repeated WT replicate number is flagged in the warnings.
 
 ### Highlights
 
 - A GC report with blanks, standards or calibration points in the same run is no longer refused, and those rows are set aside.
 - Every set-aside row is reported with its sheet row in the warnings and the export manifest, so nothing drops silently.
-- A raw report carrying a calibration point is now recognised automatically instead of asking which format it is.
+- A raw report with a few calibration points beside many wells, at most one per ten, is recognised automatically.
 - The export manifest lists the WT rows used for normalisation, and a repeated WT replicate number is flagged.
 
 ## v0.16.77 (Disabled domains honoured in strict selection, English table headers, exports that are never read half written)

@@ -2738,15 +2738,15 @@
     "highlights": [
       "Un informe de GC con blancos, estándares o puntos de calibración en la misma serie ya no se rechaza; esas filas se apartan.",
       "Cada fila apartada se informa con su fila de hoja en las advertencias y en el manifiesto de exportación, nada se pierde en silencio.",
-      "Un informe raw con un punto de calibración ahora se reconoce automáticamente sin preguntar su formato.",
+      "Un informe raw con pocos puntos de calibración entre muchos pocillos, como mucho uno por cada diez, se reconoce automáticamente.",
       "El manifiesto de exportación lista las filas WT usadas para normalizar, y se marca un número de réplica WT repetido."
     ],
-    "highlightsStamp": "0.16.78+92779b65",
+    "highlightsStamp": "0.16.78+7847cb43",
     "releases": {
       "0.16.78": [
         "Un informe de GC con blancos, estándares o puntos de calibración en la misma serie ya no se rechaza; esas filas se apartan.",
         "Cada fila apartada se informa con su fila de hoja en las advertencias y en el manifiesto de exportación, nada se pierde en silencio.",
-        "Un informe raw con un punto de calibración ahora se reconoce automáticamente sin preguntar su formato.",
+        "Un informe raw con pocos puntos de calibración entre muchos pocillos, como mucho uno por cada diez, se reconoce automáticamente.",
         "El manifiesto de exportación lista las filas WT usadas para normalizar, y se marca un número de réplica WT repetido."
       ],
       "0.16.77": [
@@ -3287,7 +3287,7 @@
       ]
     },
     "releaseStamps": {
-      "0.16.78": "92779b65",
+      "0.16.78": "7847cb43",
       "0.16.77": "53eff3f8",
       "0.16.76": "d0c839c4",
       "0.16.75": "7a304882",
