@@ -2736,14 +2736,19 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "KURO ya no selecciona variantes dentro de un dominio desactivado, y cambiar los dominios desactivados invalida una selección anterior.",
-      "Un libro esperado con una hoja de placa vacía ahora se informa como un problema de entrada en lugar de un fallo interno.",
-      "Una corrida de resecuenciación que falla ya no deja una carpeta vacía junto a la salida elegida, y la salida parcial se conserva.",
-      "Los encabezados de columna de las tablas se muestran en inglés en todos los idiomas, así una fila de encabezado nunca mezcla idiomas.",
-      "Una exportación interrumpida a medias deja intacto el archivo anterior, así una lista de trabajo del robot nunca se lee a medio escribir."
+      "Un informe de GC con blancos, estándares o puntos de calibración en la misma serie ya no se rechaza; esas filas se apartan.",
+      "Cada fila apartada se informa con su fila de hoja en las advertencias y en el manifiesto de exportación, nada se pierde en silencio.",
+      "Un informe raw con un punto de calibración ahora se reconoce automáticamente sin preguntar su formato.",
+      "El manifiesto de exportación lista las filas WT usadas para normalizar, y se marca un número de réplica WT repetido."
     ],
-    "highlightsStamp": "0.16.77+53eff3f8",
+    "highlightsStamp": "0.16.78+92779b65",
     "releases": {
+      "0.16.78": [
+        "Un informe de GC con blancos, estándares o puntos de calibración en la misma serie ya no se rechaza; esas filas se apartan.",
+        "Cada fila apartada se informa con su fila de hoja en las advertencias y en el manifiesto de exportación, nada se pierde en silencio.",
+        "Un informe raw con un punto de calibración ahora se reconoce automáticamente sin preguntar su formato.",
+        "El manifiesto de exportación lista las filas WT usadas para normalizar, y se marca un número de réplica WT repetido."
+      ],
       "0.16.77": [
         "KURO ya no selecciona variantes dentro de un dominio desactivado, y cambiar los dominios desactivados invalida una selección anterior.",
         "Un libro esperado con una hoja de placa vacía ahora se informa como un problema de entrada en lugar de un fallo interno.",
@@ -3282,6 +3287,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.78": "92779b65",
       "0.16.77": "53eff3f8",
       "0.16.76": "d0c839c4",
       "0.16.75": "7a304882",

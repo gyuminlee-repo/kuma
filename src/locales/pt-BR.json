@@ -2736,14 +2736,19 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "O KURO não seleciona mais variantes dentro de um domínio desativado, e alterar os domínios desativados invalida uma seleção anterior.",
-      "Uma pasta de trabalho esperada com uma planilha de placa vazia agora é relatada como problema de entrada, não como falha interna.",
-      "Uma corrida de ressequenciamento que falha não deixa mais uma pasta vazia ao lado da saída escolhida, e a saída parcial é mantida.",
-      "Os cabeçalhos de coluna das tabelas aparecem em inglês em todos os idiomas, então uma linha de cabeçalho nunca mistura idiomas.",
-      "Uma exportação interrompida no meio mantém o arquivo anterior, então uma lista de trabalho do robô nunca é lida pela metade."
+      "Um relatório de GC com brancos, padrões ou pontos de calibração na mesma corrida não é mais recusado; essas linhas são separadas.",
+      "Cada linha separada é informada com sua linha da planilha nos avisos e no manifesto de exportação, nada some em silêncio.",
+      "Um relatório raw com um ponto de calibração agora é reconhecido automaticamente, sem perguntar o formato.",
+      "O manifesto de exportação lista as linhas WT usadas na normalização, e um número de réplica WT repetido é sinalizado."
     ],
-    "highlightsStamp": "0.16.77+53eff3f8",
+    "highlightsStamp": "0.16.78+92779b65",
     "releases": {
+      "0.16.78": [
+        "Um relatório de GC com brancos, padrões ou pontos de calibração na mesma corrida não é mais recusado; essas linhas são separadas.",
+        "Cada linha separada é informada com sua linha da planilha nos avisos e no manifesto de exportação, nada some em silêncio.",
+        "Um relatório raw com um ponto de calibração agora é reconhecido automaticamente, sem perguntar o formato.",
+        "O manifesto de exportação lista as linhas WT usadas na normalização, e um número de réplica WT repetido é sinalizado."
+      ],
       "0.16.77": [
         "O KURO não seleciona mais variantes dentro de um domínio desativado, e alterar os domínios desativados invalida uma seleção anterior.",
         "Uma pasta de trabalho esperada com uma planilha de placa vazia agora é relatada como problema de entrada, não como falha interna.",
@@ -3282,6 +3287,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.78": "92779b65",
       "0.16.77": "53eff3f8",
       "0.16.76": "d0c839c4",
       "0.16.75": "7a304882",

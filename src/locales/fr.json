@@ -2736,14 +2736,19 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "KURO ne sélectionne plus de variants dans un domaine désactivé, et modifier les domaines désactivés invalide une sélection antérieure.",
-      "Un classeur attendu avec une feuille de plaque vide est désormais signalé comme une erreur de saisie et non comme une défaillance interne.",
-      "Un run de reséquençage en échec ne laisse plus de dossier vide à côté de la sortie choisie, et une sortie partielle est conservée.",
-      "Les en-têtes de colonne des tableaux restent en anglais dans toutes les langues, une ligne d'en-tête ne mélange donc jamais les langues.",
-      "Un export interrompu en cours laisse le fichier précédent en place, une liste de travail robot n'est donc jamais lue à moitié écrite."
+      "Un rapport GC contenant des blancs, des étalons ou des points d'étalonnage dans la même série n'est plus refusé ; ces lignes sont mises de côté.",
+      "Chaque ligne mise de côté est signalée avec sa ligne de feuille dans les avertissements et le manifeste d'export, rien ne disparaît en silence.",
+      "Un rapport brut contenant un point d'étalonnage est désormais reconnu automatiquement, sans demander son format.",
+      "Le manifeste d'export liste les lignes WT utilisées pour la normalisation, et un numéro de réplicat WT répété est signalé."
     ],
-    "highlightsStamp": "0.16.77+53eff3f8",
+    "highlightsStamp": "0.16.78+92779b65",
     "releases": {
+      "0.16.78": [
+        "Un rapport GC contenant des blancs, des étalons ou des points d'étalonnage dans la même série n'est plus refusé ; ces lignes sont mises de côté.",
+        "Chaque ligne mise de côté est signalée avec sa ligne de feuille dans les avertissements et le manifeste d'export, rien ne disparaît en silence.",
+        "Un rapport brut contenant un point d'étalonnage est désormais reconnu automatiquement, sans demander son format.",
+        "Le manifeste d'export liste les lignes WT utilisées pour la normalisation, et un numéro de réplicat WT répété est signalé."
+      ],
       "0.16.77": [
         "KURO ne sélectionne plus de variants dans un domaine désactivé, et modifier les domaines désactivés invalide une sélection antérieure.",
         "Un classeur attendu avec une feuille de plaque vide est désormais signalé comme une erreur de saisie et non comme une défaillance interne.",
@@ -3282,6 +3287,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.78": "92779b65",
       "0.16.77": "53eff3f8",
       "0.16.76": "d0c839c4",
       "0.16.75": "7a304882",
