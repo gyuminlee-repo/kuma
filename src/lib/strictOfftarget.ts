@@ -1,9 +1,10 @@
 /**
- * Marker the design engine puts at the front of a failure reason that the
- * strict off-target check alone caused.
+ * Fixed string the design engine puts inside a failure reason that the strict
+ * off-target check alone caused.
  *
- * The reason string is engine prose shown verbatim, so this prefix is the only
- * machine-readable part of it. It must stay equal to
+ * The reason is engine prose shown verbatim and the string does not sit at a
+ * fixed offset in it, so it is found by substring search (`includes`) rather
+ * than by a prefix test. It must stay equal to
  * `STRICT_OFFTARGET_FAILURE_MARKER` in `kuma_core/kuro/sdm_engine.py`; the
  * `kuro-strict-offtarget-marker` group in `.cross-layer-sync.json` is what
  * notices if one side moves.

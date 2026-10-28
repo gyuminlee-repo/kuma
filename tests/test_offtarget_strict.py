@@ -224,3 +224,62 @@ class TestFailureReason:
         assert design_single_sdm(
             template_seq, mut, profile, strict_offtarget=False
         )
+
+
+class TestFootprintMerge:
+    def test_a_merged_footprint_reports_one_window(self) -> None:
+        """Position, sequence and length come from the same window.
+
+        Two overlapping footprints on one strand: a 15 nt window of the
+        primer's 5' end at template 100, and a longer 20 nt window from the
+        primer's middle at template 110. They overlap, so they collapse onto
+        the longer one, and the hit has to describe that one window rather
+        than take its position from the shorter and its sequence from the
+        longer.
+        """
+        import random
+
+        rng = random.Random(5)
+        # The two plants overlap on the template, which is what makes them one
+        # footprint, so the primer carries a repeated 5-mer and the shared span
+        # reads the same from either window.
+        repeat = "GTCAG"
+        primer = "ACTTG" + repeat + repeat + "GATCCTTAGCCATTA"
+        assert len(primer) == 30
+        template = list("".join(rng.choice("ACGT") for _ in range(400)))
+        template[100:115] = list(primer[0:15])
+        template[110:130] = list(primer[5:25])
+        seq = "".join(template)
+        assert seq[100:115] == primer[0:15]
+        assert seq[110:130] == primer[5:25]
+
+        hits = [
+            h for h in check_offtarget_strict(primer, seq, 300, 340)
+            if h.strand == "sense"
+        ]
+        assert len(hits) == 1, [(h.position, h.match_length) for h in hits]
+        hit = hits[0]
+        assert hit.match_length == len(hit.match_seq)
+        assert seq[hit.position:hit.position + hit.match_length] == hit.match_seq
+
+
+class TestWholePeriodIntendedSite:
+    def test_an_intended_span_covering_the_template_leaves_nothing(self) -> None:
+        """A primer that wraps the whole plasmid has no site but its own.
+
+        The intended span is then at least one full period long, so every
+        candidate site overlaps it on the circle and both checks report
+        nothing. That is the answer the circle gives, not a gap: there is no
+        position on the template that is outside the intended site.
+        """
+        template = "ACGTACGTACGTACGTACGTAC"
+        primer = (template * 2)[:30]
+        assert len(primer) > len(template)
+
+        assert engine.check_offtarget(
+            primer, template, 0, len(primer), topology="circular"
+        ) == []
+        assert check_offtarget_strict(
+            primer, template, 0, len(primer), topology="circular"
+        ) == []
+        assert engine._overlaps_intended(5, 10, 0, len(template), len(template), True)

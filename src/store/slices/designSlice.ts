@@ -705,7 +705,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
 
   evaluateCustomPrimer: async (mutation: string, fwdSeq: string, revSeq: string, overlapLen?: number) => {
     try {
-      const { fastaPath, selectedGene } = get();
+      const { fastaPath, selectedGene, strictOfftarget } = get();
       const targetStart = selectedGene ? parseInt(selectedGene, 10) : 0;
       const result = await sendRequest("evaluate_primer", {
         mutation,
@@ -714,6 +714,10 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         forward_seq: fwdSeq,
         reverse_seq: revSeq,
         overlap_len: overlapLen ?? 18,
+        // This path reports hits instead of rejecting, so the switch decides
+        // what the user is told about a primer pair they supplied. Leaving it
+        // out would evaluate under a rule the panel says is on.
+        strict_offtarget: strictOfftarget,
       });
       return result;
     } catch (err) {

@@ -784,8 +784,17 @@ def _wrap_pad(seq: str, pad: int) -> str:
     running through the origin becomes an ordinary contiguous match inside the
     padded string. ``pad`` is the primer length minus one, so every alignment
     that crosses the origin fits entirely inside the padding. A template
-    shorter than ``pad`` is tiled first, so the helper also holds for a
-    plasmid shorter than the primer.
+    shorter than ``pad`` is tiled first, so this helper returns a usable
+    string there too.
+
+    That does not mean the whole check reports anything for a template shorter
+    than the primer. The intended span is then at least one full period long,
+    so :func:`_overlaps_intended` finds every candidate site overlapping it and
+    the caller reports nothing. On a circle that is the right answer rather
+    than a gap: a primer that wraps the entire plasmid has no binding site
+    that is not its own. Measured on a 22 nt template with a 30 nt primer,
+    both ``check_offtarget`` and ``check_offtarget_strict`` return an empty
+    list, pinned by tests/test_offtarget_strict.py.
     """
     if pad <= 0 or not seq:
         return seq
@@ -1137,11 +1146,13 @@ def check_offtarget(
 # Shortest primer sub-sequence the strict check will look for. A tool setting,
 # not a number taken from the literature.
 STRICT_OFFTARGET_MIN_LENGTH = 15
-# Tag written on every hit the strict check reports, and the marker the
-# failure diagnostic puts at the front of its message. The frontend keys its
-# "turn the switch off" hint on this prefix, so it is a constant rather than a
-# literal spelled out at each site.
+# Tag written on every hit the strict check reports.
 STRICT_OFFTARGET_REASON = "exact_window_match"
+# Fixed string the failure diagnostic puts inside its message when the strict
+# check alone dropped a position. The message is engine prose shown verbatim
+# and the string is not at a fixed offset in it, so the frontend finds it by
+# substring search rather than by a prefix test; both sides therefore hold it
+# as a constant instead of spelling it out.
 STRICT_OFFTARGET_FAILURE_MARKER = "strict off-target"
 
 
@@ -1260,23 +1271,25 @@ def check_offtarget_strict(
                 if prev is None or m_len > prev[0]:
                     best[tpos] = (m_len, w_start, w_end)
 
-        # One hit per physical footprint: merge overlapping spans, keeping the
-        # longest window of the group.
+        # One hit per physical footprint: overlapping spans collapse onto the
+        # longest window of the group, which is what the hit then describes.
+        # The group's own extent is tracked separately and only decides which
+        # later spans still belong to it, so the reported position, sequence
+        # and length all come from the same window. Carrying a merged extent as
+        # the length instead would pair one window's start with another
+        # window's sequence.
         merged: list[tuple[int, int, int, int]] = []
         for tpos in sorted(best):
             m_len, w_start, w_end = best[tpos]
-            if merged and tpos < merged[-1][0] + merged[-1][1]:
-                prev_pos, prev_len, prev_ws, prev_we = merged[-1]
-                if m_len > prev_len:
-                    merged[-1] = (prev_pos, max(prev_len, tpos + m_len - prev_pos),
-                                  w_start, w_end)
-                else:
-                    merged[-1] = (prev_pos, max(prev_len, tpos + m_len - prev_pos),
-                                  prev_ws, prev_we)
+            if merged and tpos < merged[-1][3]:
+                rep_tpos, rep_ws, rep_we, group_end = merged[-1]
+                if m_len > rep_we - rep_ws:
+                    rep_tpos, rep_ws, rep_we = tpos, w_start, w_end
+                merged[-1] = (rep_tpos, rep_ws, rep_we, max(group_end, tpos + m_len))
                 continue
-            merged.append((tpos, m_len, w_start, w_end))
+            merged.append((tpos, w_start, w_end, tpos + m_len))
 
-        for tpos, m_len, w_start, w_end in merged:
+        for tpos, w_start, w_end, _group_end in merged:
             match_seq = p_upper[w_start:w_end]
             if w_start == 0 and w_end == plen:
                 truncation = "full"
@@ -1531,9 +1544,12 @@ def design_single_sdm(
       "full"              — NEB Q5 SDM style: forward and reverse cover the same region
                             (rev = rc(fwd)), mutation centered with symmetric expansion.
 
-    strict_offtarget adds check_offtarget_strict to the rejection test. Off by
-    default, and while it is off nothing about this function changes: the extra
-    check is not called and no result differs. On, it is a conservative
+    strict_offtarget turns the exact-match check (check_offtarget_strict) on
+    and off, and that is the only thing it controls. Off by default, and while
+    it is off that check is not called. The circular-origin and sequence-end
+    evaluation inside check_offtarget is not part of this switch: it always
+    applies, so the default verdict can differ from the one this engine
+    reached before that evaluation existed. On, the switch adds a conservative
     sequence-identity rule that ignores whether the primer's 3' end could be
     extended, so it is stricter than the default verdict and can reject
     candidates the default accepts. Its hits land in the same

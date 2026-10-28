@@ -77,8 +77,9 @@ class DesignSdmPrimersParams(BaseModel):
 
     # Opt-in strict off-target check: rejects a candidate when any contiguous
     # stretch of 15 bases or more of it matches the template exactly outside
-    # the intended site, on either strand. Off by default, and off means the
-    # engine behaves exactly as it did before the check existed.
+    # the intended site, on either strand. Off by default, and this field is
+    # the only thing the switch controls: the circular-origin and sequence-end
+    # evaluation in check_offtarget always applies, whatever this is set to.
     strict_offtarget: bool = False
 
     # Position rescue

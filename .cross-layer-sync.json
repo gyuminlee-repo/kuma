@@ -219,7 +219,7 @@
       "symbols": [
         "STRICT_OFFTARGET_FAILURE_MARKER"
       ],
-      "note": "엄격 off-target 검사만으로 실패한 사유 문자열의 접두사. 엔진이 쓰고 FailedMutationPopover 가 그 접두사로 복구 안내를 띄운다.",
+      "note": "엄격 off-target 검사만으로 실패한 사유 메시지 안의 고정 문자열. 엔진이 쓰고 FailedMutationPopover 가 includes 로 찾아 복구 안내를 띄운다.",
       "severity": "blocking"
     },
     {

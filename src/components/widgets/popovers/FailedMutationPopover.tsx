@@ -196,9 +196,11 @@ export function FailedMutationPopover({
         </div>
 
         {/* The engine marks a failure caused by the strict off-target check
-            alone with this prefix (STRICT_OFFTARGET_FAILURE_MARKER in
-            kuma_core/kuro/sdm_engine.py). It is the one failure a user can
-            undo from a switch, so the way out is named here. */}
+            alone with this fixed string (STRICT_OFFTARGET_FAILURE_MARKER in
+            kuma_core/kuro/sdm_engine.py), which sits inside the message rather
+            than at a fixed offset, so it is found by substring search. It is
+            the one failure a user can undo from a switch, so the way out is
+            named here. */}
         {failed.reason?.includes(STRICT_OFFTARGET_FAILURE_MARKER) && (
           <div className="mb-4 rounded-2xl border border-warning/40 bg-warning/10 px-3 py-3 text-xs text-foreground">
             {t("failedMutationPopover.strictOfftargetHint")}

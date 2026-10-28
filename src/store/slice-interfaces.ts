@@ -364,10 +364,11 @@ export interface DesignSlice {
   tmTolerance: number;
   overlapMode: OverlapMode;
   /**
-   * Opt-in strict off-target check. Off by default, and off reproduces the
-   * verdict the engine reached before the check existed. On, a candidate is
+   * Opt-in strict off-target check, off by default. On, a candidate is
    * dropped when any contiguous stretch of 15 bases or more of it matches the
-   * template exactly outside its intended site, on either strand.
+   * template exactly outside its intended site, on either strand. The switch
+   * controls only that check; the engine's circular-origin and sequence-end
+   * evaluation applies either way.
    */
   strictOfftarget: boolean;
   /** §12 Optional RNG seed. null = non-deterministic (backend default). */
