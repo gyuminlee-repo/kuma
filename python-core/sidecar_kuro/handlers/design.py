@@ -16,6 +16,7 @@ from kuma_core.kuro.sdm_engine import (
     SdmPrimerResult,
     design_single_sdm,
     design_sdm_primers,
+    detect_topology,
     evaluate_custom_primer,
     load_sequence,
     secondary_structure_warn_flags,
@@ -314,6 +315,10 @@ class _DesignKw(TypedDict):
     rev_len_max: int | None
     organism: str
     overlap_mode: OverlapMode
+    # Read from the template once per request. A rescue pass that left it at
+    # the default would search a plasmid as if it were linear and so reach a
+    # different verdict than the main pass did.
+    topology: str
 
 
 class _RelaxKw(_DesignKw):
@@ -619,6 +624,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
             _progress(82, f"Rescuing {len(engine_failures)} failed position(s)...")
             _header_r, sequence_r, _genes_r = load_sequence(resolved_fasta)
             profile = _build_profile(p)
+            topology_r = detect_topology(resolved_fasta)
 
             rescue_by_pos: dict[int, list[str]] = {}
             for v in p.rescue_pool:
@@ -633,6 +639,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
                 "rev_len_min": p.rev_len_min, "rev_len_max": p.rev_len_max,
                 "organism": p.organism,
                 "overlap_mode": p.overlap_mode,
+                "topology": topology_r,
             }
 
             still_failed: dict[str, str] = {}
@@ -796,6 +803,7 @@ def handle_retry_failed(params: dict) -> dict:
         rev_len_min=p.rev_len_min, rev_len_max=p.rev_len_max,
         organism=p.organism, tol_max=p.tol_max,
         overlap_mode=p.overlap_mode,
+        topology=detect_topology(resolved_fasta),
     )
 
     retry_params = p.model_dump()
@@ -955,6 +963,7 @@ def handle_evaluate_primer(params: dict) -> dict:
         template=template,
         mutation_raw=p.mutation,
         overlap_len=p.overlap_len,
+        topology=detect_topology(resolved),
     )
     return _serialize_result(result).to_rpc_dict()
 
