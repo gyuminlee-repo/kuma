@@ -5,6 +5,7 @@ import { useFocusTrap } from "../../../hooks/useFocusTrap";
 import type { SdmPrimerResult, FailedMutation } from "../../../types/models";
 import { validateSeq } from "../../../lib/validation";
 import { suggestRetryParams } from "../../../lib/primerSuggestion";
+import { STRICT_OFFTARGET_FAILURE_MARKER } from "../../../lib/strictOfftarget";
 
 export function FailedMutationPopover({
   failed,
@@ -193,6 +194,18 @@ export function FailedMutationPopover({
         <div className="mb-4 rounded-2xl border border-destructive/20 bg-destructive/10 px-3 py-3 text-xs text-destructive">
           <span className="font-semibold">{t("failedMutationPopover.reasonLabel")}</span> {failed.reason}
         </div>
+
+        {/* The engine marks a failure caused by the strict off-target check
+            alone with this fixed string (STRICT_OFFTARGET_FAILURE_MARKER in
+            kuma_core/kuro/sdm_engine.py), which sits inside the message rather
+            than at a fixed offset, so it is found by substring search. It is
+            the one failure a user can undo from a switch, so the way out is
+            named here. */}
+        {failed.reason?.includes(STRICT_OFFTARGET_FAILURE_MARKER) && (
+          <div className="mb-4 rounded-2xl border border-warning/40 bg-warning/10 px-3 py-3 text-xs text-foreground">
+            {t("failedMutationPopover.strictOfftargetHint")}
+          </div>
+        )}
 
         {/* Retry with parameters */}
         <div className="mb-1 text-caption font-semibold uppercase tracking-widest text-muted-foreground">{t("failedMutationPopover.retrySection")}</div>

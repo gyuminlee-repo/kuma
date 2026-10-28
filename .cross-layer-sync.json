@@ -211,6 +211,18 @@
       "severity": "blocking"
     },
     {
+      "id": "kuro-strict-offtarget-marker",
+      "files": [
+        "kuma_core/kuro/sdm_engine.py",
+        "src/lib/strictOfftarget.ts"
+      ],
+      "symbols": [
+        "STRICT_OFFTARGET_FAILURE_MARKER"
+      ],
+      "note": "엄격 off-target 검사만으로 실패한 사유 메시지 안의 고정 문자열. 엔진이 쓰고 FailedMutationPopover 가 includes 로 찾아 복구 안내를 띄운다.",
+      "severity": "blocking"
+    },
+    {
       "id": "kuro-sequence-domain-rpc",
       "files": [
         "kuma_core/kuro/domains.py",

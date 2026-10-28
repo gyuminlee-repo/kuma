@@ -542,6 +542,9 @@ export async function applyKuroSnapshot(
   if (isOverlapMode(params?.overlap_mode)) {
     patch.overlapMode = params.overlap_mode;
   }
+  if (typeof params?.strict_offtarget === "boolean") {
+    patch.strictOfftarget = params.strict_offtarget;
+  }
 
   // diversity
   if (Array.isArray(diversity?.domains) && Array.isArray(diversity?.disabled_domains)) {

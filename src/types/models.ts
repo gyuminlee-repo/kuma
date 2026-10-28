@@ -915,6 +915,11 @@ export interface WorkspaceSettings {
   evolveproRound?: number;
   roundSize?: number;
   overlapMode?: OverlapMode;
+  /**
+   * Opt-in strict off-target check. Absent in a workspace saved before it
+   * existed, which is read as off.
+   */
+  strictOfftarget?: boolean;
   /** §12 Optional RNG seed for reproducible design runs. */
   randomSeed?: number | null;
   echoTransferVol?: number;

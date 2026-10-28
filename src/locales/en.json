@@ -1786,6 +1786,9 @@
     "primerLenFwdHelp": "Forward primer length range (nt). Default 17-39 covers most SDM cases.",
     "primerLenRevHelp": "Reverse primer length range (nt). Default 19-27.",
     "autoRescueHelp": "Gates the sidecar relaxed-constraint rescue pass and 4-stage (top-N) / 6-stage (pipeline) frontend cascade.",
+    "strictOfftargetLabel": "Strict off-target check",
+    "strictOfftargetTitle": "Rejects a candidate on any exact match of 15 bases or more elsewhere on the template.",
+    "strictOfftargetHelp": "Drops a candidate when any contiguous stretch of 15 bases or more of it matches the template exactly outside its intended site, on either strand. It does not ask whether the primer 3' end could be extended there, so it is a conservative sequence-identity test, stricter than the default off-target rules, and it can reject candidates those rules accept. Off by default.",
     "seedHelp": "Records provenance metadata only; it does not affect primer ranking. Empty leaves no seed recorded.",
     "tmSectionHelp": "Melting temperature targets define how the engine balances primer stability and selectivity."
   },
@@ -2009,6 +2012,7 @@
     "recoveryHeading": "Failure Recovery",
     "designFailed": "{{mutation}}: Design Failed",
     "reasonLabel": "Reason:",
+    "strictOfftargetHint": "Only the strict off-target check dropped this position. Turn off \"Strict off-target check\" in Parameters and design again to recover it.",
     "retrySection": "Retry with parameters",
     "labelTm": "Tm:",
     "labelF": "F",
@@ -2790,13 +2794,19 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "A GC report with blanks, standards or calibration points in the same run is no longer refused, and those rows are set aside.",
-      "Every set-aside row is reported with its sheet row in the warnings and the export manifest, so nothing drops silently.",
-      "A raw report with a few calibration points beside many wells, at most one per ten, is recognised automatically.",
-      "The export manifest lists the WT rows used for normalisation, and a repeated WT replicate number is flagged."
+      "Off-target search now covers sites across the origin of a circular plasmid and past the end of a linear sequence.",
+      "A new opt-in strict check rejects a candidate with an exact match of 15 bases or more elsewhere on the template.",
+      "When the strict check alone leaves a mutation without primers, the failure says so, and turning it off recovers it.",
+      "The strict check setting is saved with the workspace and recorded in the exported workbook."
     ],
-    "highlightsStamp": "0.16.78+7847cb43",
+    "highlightsStamp": "0.16.79+07f90f60",
     "releases": {
+      "0.16.79": [
+        "Off-target search now covers sites across the origin of a circular plasmid and past the end of a linear sequence.",
+        "A new opt-in strict check rejects a candidate with an exact match of 15 bases or more elsewhere on the template.",
+        "When the strict check alone leaves a mutation without primers, the failure says so, and turning it off recovers it.",
+        "The strict check setting is saved with the workspace and recorded in the exported workbook."
+      ],
       "0.16.78": [
         "A GC report with blanks, standards or calibration points in the same run is no longer refused, and those rows are set aside.",
         "Every set-aside row is reported with its sheet row in the warnings and the export manifest, so nothing drops silently.",
@@ -3341,6 +3351,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.79": "07f90f60",
       "0.16.78": "7847cb43",
       "0.16.77": "53eff3f8",
       "0.16.76": "d0c839c4",

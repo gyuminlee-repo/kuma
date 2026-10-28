@@ -1744,6 +1744,9 @@
     "primerLenFwdHelp": "Forward primer length range (nt). Default 17-39 covers most SDM cases.",
     "primerLenRevHelp": "Reverse primer length range (nt). Default 19-27.",
     "autoRescueHelp": "Controla o resgate do sidecar com restrições relaxadas e a cascata do frontend de 4 estágios (top-N) / 6 (pipeline).",
+    "strictOfftargetLabel": "Verificação off-target estrita",
+    "strictOfftargetTitle": "Descarta um candidato diante de qualquer correspondência exata de 15 bases ou mais em outra parte do template.",
+    "strictOfftargetHelp": "Descarta um candidato quando qualquer trecho contínuo de 15 bases ou mais corresponde exatamente ao template, em qualquer das fitas, fora do sítio de ligação pretendido. A verificação não pergunta se a extremidade 3' do primer poderia ser estendida ali, sendo um teste conservador de identidade de sequência, mais estrito que as regras off-target padrão, e pode descartar candidatos que elas aceitam. Desligada por padrão.",
     "seedHelp": "Registra somente metadados de procedência e não afeta a classificação dos primers. Vazio não registra seed.",
     "tmSectionHelp": "Melting temperature targets define how the engine balances primer stability and selectivity."
   },
@@ -1967,6 +1970,7 @@
     "recoveryHeading": "Recuperação de falha",
     "designFailed": "{{mutation}}: Design falhou",
     "reasonLabel": "Motivo:",
+    "strictOfftargetHint": "Apenas a verificação off-target estrita descartou esta posição. Desligue \"Verificação off-target estrita\" em Parameters e projete novamente para recuperá-la.",
     "retrySection": "Tentar novamente com parâmetros",
     "labelTm": "Tm:",
     "labelF": "F",
@@ -2736,13 +2740,19 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Um relatório de GC com brancos, padrões ou pontos de calibração na mesma corrida não é mais recusado; essas linhas são separadas.",
-      "Cada linha separada é informada com sua linha da planilha nos avisos e no manifesto de exportação, nada some em silêncio.",
-      "Um relatório raw com poucos pontos de calibração entre muitos poços, no máximo um a cada dez, é reconhecido automaticamente.",
-      "O manifesto de exportação lista as linhas WT usadas na normalização, e um número de réplica WT repetido é sinalizado."
+      "A busca off-target agora cobre sítios que cruzam a origem de um plasmídeo circular e que passam do fim de uma sequência linear.",
+      "Uma nova verificação estrita opcional rejeita um candidato com correspondência exata de 15 bases ou mais em outro ponto do molde.",
+      "Se só a verificação estrita deixar uma mutação sem primers, o motivo da falha diz isso, e desligá-la recupera o desenho.",
+      "A configuração da verificação estrita é salva no workspace e registrada na pasta de trabalho exportada."
     ],
-    "highlightsStamp": "0.16.78+7847cb43",
+    "highlightsStamp": "0.16.79+07f90f60",
     "releases": {
+      "0.16.79": [
+        "A busca off-target agora cobre sítios que cruzam a origem de um plasmídeo circular e que passam do fim de uma sequência linear.",
+        "Uma nova verificação estrita opcional rejeita um candidato com correspondência exata de 15 bases ou mais em outro ponto do molde.",
+        "Se só a verificação estrita deixar uma mutação sem primers, o motivo da falha diz isso, e desligá-la recupera o desenho.",
+        "A configuração da verificação estrita é salva no workspace e registrada na pasta de trabalho exportada."
+      ],
       "0.16.78": [
         "Um relatório de GC com brancos, padrões ou pontos de calibração na mesma corrida não é mais recusado; essas linhas são separadas.",
         "Cada linha separada é informada com sua linha da planilha nos avisos e no manifesto de exportação, nada some em silêncio.",
@@ -3287,6 +3297,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.79": "07f90f60",
       "0.16.78": "7847cb43",
       "0.16.77": "53eff3f8",
       "0.16.76": "d0c839c4",

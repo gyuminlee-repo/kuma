@@ -79,6 +79,9 @@ export const MIGRATIONS: Record<string, MigrationFn> = {
         evolveproRound: ws.evolveproRound,
         roundSize: ws.roundSize,
         overlapMode: ws.overlapMode,
+        // A workspace written before the switch existed carries no value, and
+        // the design it holds was made with the check off.
+        strictOfftarget: false,
       },
       results: {
         designResults: ws.designResults ?? [],

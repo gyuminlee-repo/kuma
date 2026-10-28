@@ -1744,6 +1744,9 @@
     "primerLenFwdHelp": "Forward primer length range (nt). Default 17-39 covers most SDM cases.",
     "primerLenRevHelp": "Reverse primer length range (nt). Default 19-27.",
     "autoRescueHelp": "控制 sidecar 的放宽约束补救步骤及 4 阶段 (top-N) / 6 阶段 (pipeline) 前端级联。",
+    "strictOfftargetLabel": "严格 off-target 检查",
+    "strictOfftargetTitle": "若 template 其他位置存在 15 bases 以上的精确匹配，则剔除该候选。",
+    "strictOfftargetHelp": "当候选中任意连续 15 bases 以上的片段在预期结合位点之外与 template 任一条链精确匹配时，剔除该候选。该检查不判断 primer 3' 末端能否在该处延伸，属于保守的序列一致性检查，比默认 off-target 判定更严格，可能剔除默认判定接受的候选。默认关闭。",
     "seedHelp": "仅记录溯源元数据，不影响 primer 排名。留空则不记录 seed。",
     "tmSectionHelp": "Melting temperature targets define how the engine balances primer stability and selectivity."
   },
@@ -1967,6 +1970,7 @@
     "recoveryHeading": "失败恢复",
     "designFailed": "{{mutation}}: 设计失败",
     "reasonLabel": "原因:",
+    "strictOfftargetHint": "此位点仅因严格 off-target 检查而被剔除。在 Parameters 中关闭「严格 off-target 检查」并重新设计即可恢复。",
     "retrySection": "使用参数重试",
     "labelTm": "Tm:",
     "labelF": "F",
@@ -2736,13 +2740,19 @@
     "descriptionRange": "自 v{{from}} 以来每次更新的主要变化。",
     "gotItBtn": "知道了",
     "highlights": [
-      "同一 run 中夹有 blank、标准品或校准点的 GC report 不再被拒绝，这些行会被单独排除。",
-      "每个被排除的行都会连同工作表行号记录在警告和导出 manifest 中，不会悄悄丢失。",
-      "在大量 well 中只夹有少数校准点（每十个 well 不超过一个）的 raw report 会被自动识别。",
-      "导出 manifest 会列出用于归一化的 WT 行，WT 重复编号相同时会被标记。"
+      "off-target 搜索现在会检查跨越环状质粒起点的位点，以及超出线性序列末端的位点。",
+      "新增的可选严格检查会剔除在模板其他位置有 15 个碱基以上完全匹配的候选。",
+      "若仅因严格检查导致某突变找不到引物，失败原因会注明这一点，关闭该检查即可恢复设计。",
+      "严格检查的设置会随 workspace 保存，并记录在导出的工作簿中。"
     ],
-    "highlightsStamp": "0.16.78+7847cb43",
+    "highlightsStamp": "0.16.79+07f90f60",
     "releases": {
+      "0.16.79": [
+        "off-target 搜索现在会检查跨越环状质粒起点的位点，以及超出线性序列末端的位点。",
+        "新增的可选严格检查会剔除在模板其他位置有 15 个碱基以上完全匹配的候选。",
+        "若仅因严格检查导致某突变找不到引物，失败原因会注明这一点，关闭该检查即可恢复设计。",
+        "严格检查的设置会随 workspace 保存，并记录在导出的工作簿中。"
+      ],
       "0.16.78": [
         "同一 run 中夹有 blank、标准品或校准点的 GC report 不再被拒绝，这些行会被单独排除。",
         "每个被排除的行都会连同工作表行号记录在警告和导出 manifest 中，不会悄悄丢失。",
@@ -3287,6 +3297,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.79": "07f90f60",
       "0.16.78": "7847cb43",
       "0.16.77": "53eff3f8",
       "0.16.76": "d0c839c4",

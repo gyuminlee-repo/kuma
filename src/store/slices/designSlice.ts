@@ -83,6 +83,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   fillOnFailure: true,
   tmTolerance: 4.0,
   overlapMode: "partial",
+  strictOfftarget: false,
   randomSeed: null,
   manuallySwapped: {},
   customCandidates: {},
@@ -196,6 +197,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       revLenMax,
       fillOnFailure: requestedFillOnFailure,
       overlapMode,
+      strictOfftarget,
       mutationInputMode,
       selectedPolymerase,
       randomSeed,
@@ -338,6 +340,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         revLenMin,
         revLenMax,
         overlapMode,
+        strictOfftarget,
         rescuePool: prepared.rescuePool,
         tolMax: state.tmTolerance,
         randomSeed,
@@ -688,6 +691,13 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
     set(buildKuroDesignInputPatch(state, { overlapMode: mode }));
   },
 
+  setStrictOfftarget: (enabled: boolean) => {
+    // A design input: it changes which candidates survive, so results
+    // computed under the previous value must not stay on screen.
+    const state = get();
+    set(buildKuroDesignInputPatch(state, { strictOfftarget: enabled }));
+  },
+
   setRandomSeed: (seed: number | null) => {
     const state = get();
     set(buildKuroDesignInputPatch(state, { randomSeed: seed }));
@@ -695,7 +705,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
 
   evaluateCustomPrimer: async (mutation: string, fwdSeq: string, revSeq: string, overlapLen?: number) => {
     try {
-      const { fastaPath, selectedGene } = get();
+      const { fastaPath, selectedGene, strictOfftarget } = get();
       const targetStart = selectedGene ? parseInt(selectedGene, 10) : 0;
       const result = await sendRequest("evaluate_primer", {
         mutation,
@@ -704,6 +714,10 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         forward_seq: fwdSeq,
         reverse_seq: revSeq,
         overlap_len: overlapLen ?? 18,
+        // This path reports hits instead of rejecting, so the switch decides
+        // what the user is told about a primer pair they supplied. Leaving it
+        // out would evaluate under a rule the panel says is on.
+        strict_offtarget: strictOfftarget,
       });
       return result;
     } catch (err) {
@@ -961,6 +975,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         organism,
         primerLenEnabled,
         overlapMode,
+        strictOfftarget,
         fwdLenMin,
         fwdLenMax,
         revLenMin,
@@ -985,6 +1000,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
           // RetryFailedParams requires overlap_mode; every retry must carry
           // the originating geometry or request validation fails.
           overlap_mode: overlapMode,
+          strict_offtarget: strictOfftarget,
           ...retryParams,
           ...buildPrimerLengthBounds(primerLenEnabled, overlapMode, {
             fwdLenMin: requireNumericRetryBound(fwd_len_min, "fwd_len_min"),

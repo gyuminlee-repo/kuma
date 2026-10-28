@@ -1744,6 +1744,9 @@
     "primerLenFwdHelp": "Forward primer length range (nt). Default 17-39 covers most SDM cases.",
     "primerLenRevHelp": "Reverse primer length range (nt). Default 19-27.",
     "autoRescueHelp": "Steuert den Sidecar-Rettungsdurchlauf mit gelockerten Grenzen und die 4-stufige (top-N) / 6-stufige (pipeline) Frontend-Kaskade.",
+    "strictOfftargetLabel": "Strenge Off-target-Prüfung",
+    "strictOfftargetTitle": "Verwirft einen Kandidaten bei jeder exakten Übereinstimmung von 15 Basen oder mehr an anderer Stelle des Templates.",
+    "strictOfftargetHelp": "Verwirft einen Kandidaten, sobald ein zusammenhängender Abschnitt von 15 Basen oder mehr außerhalb der vorgesehenen Bindungsstelle exakt mit einem der beiden Stränge des Templates übereinstimmt. Die Prüfung fragt nicht, ob das 3'-Ende des Primers dort verlängert werden könnte, ist also ein konservativer Sequenzidentitätstest, strenger als die Standardregeln und kann Kandidaten verwerfen, die diese akzeptieren. Standardmäßig aus.",
     "seedHelp": "Speichert nur Provenienz-Metadaten und beeinflusst das Primer-Ranking nicht. Leer lässt keinen Seed speichern.",
     "tmSectionHelp": "Melting temperature targets define how the engine balances primer stability and selectivity."
   },
@@ -1967,6 +1970,7 @@
     "recoveryHeading": "Fehler-Recovery",
     "designFailed": "{{mutation}}: Design Fehlgeschlagen",
     "reasonLabel": "Grund:",
+    "strictOfftargetHint": "Diese Position fiel allein durch die strenge Off-target-Prüfung aus. Schalten Sie \"Strenge Off-target-Prüfung\" in Parameters ab und entwerfen Sie erneut, um sie zurückzugewinnen.",
     "retrySection": "Wiederholen mit parameters",
     "labelTm": "Tm:",
     "labelF": "F",
@@ -2736,13 +2740,19 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Ein GC-Bericht mit Blanks, Standards oder Kalibrierpunkten im selben Lauf wird nicht mehr abgelehnt; diese Zeilen werden ausgesondert.",
-      "Jede ausgesonderte Zeile wird mit ihrer Tabellenzeile in den Warnungen und im Export-Manifest gemeldet, nichts fällt stillschweigend weg.",
-      "Ein Raw-Bericht mit wenigen Kalibrierpunkten neben vielen Wells, höchstens einer je zehn, wird automatisch erkannt.",
-      "Das Export-Manifest listet die zur Normalisierung verwendeten WT-Zeilen, und eine doppelte WT-Replikatnummer wird markiert."
+      "Die Off-Target-Suche erfasst jetzt Stellen über den Ursprung eines zirkulären Plasmids und über das Ende einer linearen Sequenz hinaus.",
+      "Eine neue optionale strenge Prüfung verwirft Kandidaten mit einer exakten Übereinstimmung ab 15 Basen an anderer Stelle der Vorlage.",
+      "Fehlen einer Mutation nur wegen der strengen Prüfung Primer, nennt der Fehlergrund das; abgeschaltet wird das Design wiederhergestellt.",
+      "Die Einstellung der strengen Prüfung wird im Workspace gespeichert und in der exportierten Arbeitsmappe vermerkt."
     ],
-    "highlightsStamp": "0.16.78+7847cb43",
+    "highlightsStamp": "0.16.79+07f90f60",
     "releases": {
+      "0.16.79": [
+        "Die Off-Target-Suche erfasst jetzt Stellen über den Ursprung eines zirkulären Plasmids und über das Ende einer linearen Sequenz hinaus.",
+        "Eine neue optionale strenge Prüfung verwirft Kandidaten mit einer exakten Übereinstimmung ab 15 Basen an anderer Stelle der Vorlage.",
+        "Fehlen einer Mutation nur wegen der strengen Prüfung Primer, nennt der Fehlergrund das; abgeschaltet wird das Design wiederhergestellt.",
+        "Die Einstellung der strengen Prüfung wird im Workspace gespeichert und in der exportierten Arbeitsmappe vermerkt."
+      ],
       "0.16.78": [
         "Ein GC-Bericht mit Blanks, Standards oder Kalibrierpunkten im selben Lauf wird nicht mehr abgelehnt; diese Zeilen werden ausgesondert.",
         "Jede ausgesonderte Zeile wird mit ihrer Tabellenzeile in den Warnungen und im Export-Manifest gemeldet, nichts fällt stillschweigend weg.",
@@ -3287,6 +3297,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.79": "07f90f60",
       "0.16.78": "7847cb43",
       "0.16.77": "53eff3f8",
       "0.16.76": "d0c839c4",

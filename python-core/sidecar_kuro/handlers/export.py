@@ -389,6 +389,15 @@ def handle_export_excel(params: dict) -> dict:
             meta.append(["kuro_module_version", KURO_MODULE_VERSION])
             meta.append(["exported_at", datetime.now(timezone.utc).isoformat()])
             meta.append(["overlap_mode", run_overlap_mode])
+            # The strict off-target switch is not a field on a result row, so
+            # it is read from the design record rather than derived from the
+            # rows. A workbook exported with no design in state says "false",
+            # which is also what the engine default is.
+            _design_params = (_core._state.design_provenance or {}).get("params", {})
+            meta.append([
+                "strict_offtarget",
+                "true" if _design_params.get("strict_offtarget") else "false",
+            ])
             wb.save(staged)
 
     finished_at = datetime.now(timezone.utc)

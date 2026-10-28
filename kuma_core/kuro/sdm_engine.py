@@ -49,7 +49,9 @@ class OffTargetHit:
     # "full": full-length primer match
     # "5prime": only 5' end matched (3' trimmed)
     # "3prime": only 3' end matched (5' trimmed)
-    # "internal": neither end aligned (both sides trimmed), PrimerBench-only
+    # "internal": neither end aligned (both sides trimmed). Only the strict
+    #   exact-window check reports this one; a rule that anchors the primer's
+    #   3' end cannot produce it.
     truncation_type: str = "3prime_anchor"
     # Failure mode this hit belongs to. The two are physically different and a
     # candidate can be rejected by either, so the report has to say which.
@@ -93,7 +95,9 @@ class SdmPrimerResult:
     # pair, not a search over candidates) is the one path where these still
     # carry real information: there is no alternative candidate to fall
     # back to for a user's own primers, so it reports the hit instead of
-    # rejecting it.
+    # rejecting it. The strict off-target switch does not change this split:
+    # its hits join the same two lists, so the search still rejects on them
+    # and evaluate_custom_primer still only reports them.
     has_offtarget: bool = False
     offtarget_fwd: list[OffTargetHit] = field(default_factory=list)
     offtarget_rev: list[OffTargetHit] = field(default_factory=list)
@@ -773,6 +777,56 @@ def _binding_in_overlap_arm(
     return best_len >= min_run and best_end <= arm_len
 
 
+def _wrap_pad(seq: str, pad: int) -> str:
+    """Return ``seq`` with ``pad`` bases of its own tail and head glued on.
+
+    Makes a circular template searchable with ordinary string search: a site
+    running through the origin becomes an ordinary contiguous match inside the
+    padded string. ``pad`` is the primer length minus one, so every alignment
+    that crosses the origin fits entirely inside the padding. A template
+    shorter than ``pad`` is tiled first, so this helper returns a usable
+    string there too.
+
+    That does not mean the whole check reports anything for a template shorter
+    than the primer. The intended span is then at least one full period long,
+    so :func:`_overlaps_intended` finds every candidate site overlapping it and
+    the caller reports nothing. On a circle that is the right answer rather
+    than a gap: a primer that wraps the entire plasmid has no binding site
+    that is not its own. Measured on a 22 nt template with a 30 nt primer,
+    both ``check_offtarget`` and ``check_offtarget_strict`` return an empty
+    list, pinned by tests/test_offtarget_strict.py.
+    """
+    if pad <= 0 or not seq:
+        return seq
+    reps = -(-pad // len(seq))
+    tiled = seq * reps
+    return tiled[-pad:] + seq + tiled[:pad]
+
+
+def _overlaps_intended(
+    tpos: int,
+    length: int,
+    intended_start: int,
+    intended_end: int,
+    tlen: int,
+    circular: bool,
+) -> bool:
+    """True when a site of ``length`` at ``tpos`` touches the intended site.
+
+    A linear template keeps the original interval test. On a circular template
+    either interval may run through the origin, so the comparison is done on
+    the circle: rotate so the site starts at 0, then ask whether the intended
+    interval starts inside it or wraps back into it.
+    """
+    if not circular:
+        return not (tpos + length <= intended_start or tpos >= intended_end)
+    intended_len = intended_end - intended_start
+    if length <= 0 or intended_len <= 0 or tlen <= 0:
+        return False
+    offset = (intended_start - tpos) % tlen
+    return offset < length or (tlen - offset) < intended_len
+
+
 def check_offtarget(
     primer_seq: str,
     template: str,
@@ -786,6 +840,7 @@ def check_offtarget(
     profile: PolymeraseProfile | None = None,
     seed_len: int = 8,
     overlap_arm_len: int = 0,
+    topology: str = "linear",
 ) -> list[OffTargetHit]:
     """Check for off-target binding sites on the template.
 
@@ -856,9 +911,35 @@ def check_offtarget(
     temperature cutoff established by the extendability literature above.
     It filters duplex Tm independently of the sequence-anchor criteria.
 
+    Two coverage gaps closed after the rules above were written, both
+    independent of any user setting:
+
+    * A circular template (``topology="circular"``, from
+      :func:`detect_topology`) is searched through its origin. Both strands are
+      padded with ``plen - 1`` bases of their own tail and head
+      (:func:`_wrap_pad`), candidate positions are taken over exactly one
+      period so no site is reported twice, and every coordinate is folded back
+      into ``[0, tlen)``. The intended-site exclusion runs on the circle
+      (:func:`_overlaps_intended`), so an intended site that itself crosses the
+      origin still masks its own primer. A plasmid is the normal KURO input and
+      before this a site spanning the origin was invisible.
+    * On a linear template rule 2 now also scores a window that runs off an
+      end. It used to require the whole primer length to fit
+      (``0 <= site_start <= slen - plen``), so a partial duplex at the very
+      start or end of the sequence was never submitted to the Tm test. The
+      window is clipped to the template, the primer is clipped to the same
+      span, and the clipped pair is what ``calc_heterodimer`` scores; at least
+      ``min_match`` bases must remain. A window clipped at the template end
+      leaves the primer's 3' terminus with no base under it, so it cannot be
+      extendable and only the assembly-arm mode can qualify it; a window
+      clipped at the template start has an unpaired 5' arm and so cannot claim
+      the arm mode either.
+
     Args:
         antisense_cache: Pre-computed rc(template.upper()) to avoid
             recomputing for every primer in a batch.
+        topology: "circular" to search through the origin, anything else
+            (default) for the original linear behaviour.
     """
     hits_by_site: dict[tuple[str, int], OffTargetHit] = {}
     p_upper = primer_seq.upper()
@@ -866,6 +947,8 @@ def check_offtarget(
     plen = len(p_upper)
     tlen = len(t_upper)
     rc_template = antisense_cache if antisense_cache else reverse_complement(t_upper)
+    circular = topology == "circular" and tlen > 0
+    pad = plen - 1 if circular else 0
 
     def _record(
         strand_label: str,
@@ -894,12 +977,21 @@ def check_offtarget(
     # ── Rule 1: legacy full-anchor, zero mismatches over min_match ──────────
     if plen >= min_match:
         primer_3end = p_upper[-(min_match):]
-        for strand_label, strand_seq in [
+        for strand_label, strand_core in [
             ("sense", t_upper),
             ("antisense", rc_template),
         ]:
+            core_len = len(strand_core)
+            strand_seq = _wrap_pad(strand_core, pad) if circular else strand_core
             slen = len(strand_seq)
-            for pos in range(slen - min_match + 1):
+            # One full period of candidate anchors on a circular template, so
+            # the same physical site is not reached twice through the padding.
+            pos_range = (
+                range(pad, pad + core_len)
+                if circular
+                else range(slen - min_match + 1)
+            )
+            for pos in pos_range:
                 if strand_seq[pos:pos + min_match] != primer_3end:
                     continue
 
@@ -916,21 +1008,28 @@ def check_offtarget(
 
                 match_start = pos - ext
                 match_end = pos + min_match
+                match_len = match_end - match_start
 
                 if strand_label == "sense":
-                    tpos, tpos_end = match_start, match_end
+                    tpos = (match_start - pad) % core_len if circular else match_start
                 else:
-                    tpos = tlen - match_end
-                    tpos_end = tlen - match_start
+                    rc_start = match_start - pad
+                    tpos = (
+                        (core_len - (rc_start + match_len)) % core_len
+                        if circular
+                        else tlen - match_end
+                    )
 
-                if not (tpos_end <= intended_start or tpos >= intended_end):
+                if _overlaps_intended(
+                    tpos, match_len, intended_start, intended_end, tlen, circular
+                ):
                     continue
 
                 match_seq = strand_seq[match_start:match_end]
                 tm = _calc_sdm_tm(match_seq)
 
                 if tm >= tm_threshold:
-                    _record(strand_label, tpos, match_seq, tm, min_match + ext)
+                    _record(strand_label, tpos, match_seq, tm, match_len)
 
     # ── Rule 2: seeded alignment windows + heterodimer Tm ───────────────────
     if plen >= end_nt:
@@ -943,18 +1042,34 @@ def check_offtarget(
             for off in range(plen - seed_len + 1):
                 seed_offsets.setdefault(p_upper[off:off + seed_len], []).append(off)
 
-        for strand_label, strand_seq in [
+        for strand_label, strand_core in [
             ("sense", t_upper),
             ("antisense", rc_template),
         ]:
+            core_len = len(strand_core)
+            strand_seq = _wrap_pad(strand_core, pad) if circular else strand_core
             slen = len(strand_seq)
             site_starts: set[int] = set()
+
+            def _keep(site_start: int, slen: int = slen, core_len: int = core_len) -> bool:
+                """Is this window worth scoring on this strand?
+
+                Circular: exactly one period of starts, the padding makes every
+                origin-crossing window contiguous, so no window is clipped.
+                Linear: a window may run off either end, and what survives is
+                the clipped overlap as long as ``min_match`` bases remain.
+                """
+                if circular:
+                    return pad <= site_start < pad + core_len
+                lo = max(site_start, 0)
+                hi = min(site_start + plen, slen)
+                return hi - lo >= min_match
 
             # (a) legacy 3'-anchor prefilter, kept so no previously caught
             #     site can be lost to the seed requirement.
             for pos in _find_all(strand_seq, anchor):
                 site_start = pos + end_nt - plen
-                if 0 <= site_start <= slen - plen:
+                if _keep(site_start):
                     site_starts.add(site_start)
 
             # (b) position-agnostic seeds, expanded to full-primer windows.
@@ -962,40 +1077,60 @@ def check_offtarget(
                 for pos in _find_all(strand_seq, seed):
                     for off in offsets:
                         site_start = pos - off
-                        if 0 <= site_start <= slen - plen:
+                        if _keep(site_start):
                             site_starts.add(site_start)
 
             for site_start in sorted(site_starts):
                 site_end = site_start + plen
+                # Clip the window to the strand, and the primer to the same
+                # span. Identity on a window that fits, which is every window
+                # on a circular template and every interior one on a linear.
+                lo = max(site_start, 0)
+                hi = min(site_end, slen)
+                p_lo = lo - site_start
+                p_hi = p_lo + (hi - lo)
+                site = strand_seq[lo:hi]
+                p_sub = p_upper[p_lo:p_hi]
+                site_len = len(site)
 
                 if strand_label == "sense":
-                    tpos, tpos_end = site_start, site_end
+                    tpos = (lo - pad) % core_len if circular else lo
                 else:
-                    tpos = tlen - site_end
-                    tpos_end = tlen - site_start
+                    rc_start = lo - pad
+                    tpos = (
+                        (core_len - (rc_start + site_len)) % core_len
+                        if circular
+                        else core_len - hi
+                    )
 
-                if not (tpos_end <= intended_start or tpos >= intended_end):
+                if _overlaps_intended(
+                    tpos, site_len, intended_start, intended_end, tlen, circular
+                ):
                     continue
-
-                site = strand_seq[site_start:site_end]
 
                 # Classify before scoring: a window that is neither
                 # extendable nor arm-borne has no failure mode to report,
                 # and skipping it also saves the calc_heterodimer call.
-                extendable = p_upper[-1] == site[-1]
-                in_arm = _binding_in_overlap_arm(
-                    p_upper, site, overlap_arm_len, seed_len
+                # A window clipped at the 3' side leaves the primer's terminal
+                # base with no template base under it, so it cannot prime; one
+                # clipped at the 5' side has an unpaired overlap arm, so it
+                # cannot carry the assembly mode either.
+                extendable = p_hi == plen and p_upper[-1] == site[-1]
+                in_arm = (
+                    _binding_in_overlap_arm(p_upper, site, overlap_arm_len, seed_len)
+                    if p_lo == 0
+                    else False
                 )
                 if not (extendable or in_arm):
                     continue
 
                 rc_site = reverse_complement(site)
-                result = thermo.calc_heterodimer(p_upper, rc_site, **concs)
+                result = thermo.calc_heterodimer(p_sub, rc_site, **concs)
                 tm = result.tm if result.structure_found else 0.0
 
                 if tm >= mismatch_tm_threshold:
                     _record(
-                        strand_label, tpos, site, tm, plen,
+                        strand_label, tpos, site, tm, site_len,
                         truncation_type="3prime_anchor" if extendable else "5prime",
                         extendable=extendable,
                         in_overlap_arm=in_arm,
@@ -1006,6 +1141,177 @@ def check_offtarget(
                     )
 
     return list(hits_by_site.values())
+
+
+# Shortest primer sub-sequence the strict check will look for. A tool setting,
+# not a number taken from the literature.
+STRICT_OFFTARGET_MIN_LENGTH = 15
+# Tag written on every hit the strict check reports.
+STRICT_OFFTARGET_REASON = "exact_window_match"
+# Fixed string the failure diagnostic puts inside its message when the strict
+# check alone dropped a position. The message is engine prose shown verbatim
+# and the string is not at a fixed offset in it, so the frontend finds it by
+# substring search rather than by a prefix test; both sides therefore hold it
+# as a constant instead of spelling it out.
+STRICT_OFFTARGET_FAILURE_MARKER = "strict off-target"
+
+
+def check_offtarget_strict(
+    primer_seq: str,
+    template: str,
+    intended_start: int,
+    intended_end: int,
+    min_length: int = STRICT_OFFTARGET_MIN_LENGTH,
+    antisense_cache: str | None = None,
+    topology: str = "linear",
+) -> list[OffTargetHit]:
+    """Exact-match off-target check over every primer sub-sequence.
+
+    Opt-in, off by default, and deliberately more conservative than
+    :func:`check_offtarget`: it asks only whether a contiguous stretch of the
+    primer of at least ``min_length`` bases occurs anywhere on either strand of
+    the template outside the intended binding site. It does **not** ask whether
+    the primer's 3' terminus is paired there, so it reports sites a polymerase
+    could not extend from, and it applies no Tm filter. A site it reports is
+    therefore a sequence coincidence that may or may not be a priming hazard,
+    which is why the default verdict does not use this rule and why turning the
+    switch on can reject candidates the default accepts.
+
+    ``min_length`` defaults to 15, a tool setting rather than a figure taken
+    from the literature.
+
+    Every maximal match is found by locating each ``min_length``-mer of the
+    primer on the template and extending the hit in both directions while the
+    bases keep matching, which reaches the same maximal windows as enumerating
+    every sub-sequence would, without the enumeration. Matches are reported one
+    per physical footprint: the longest window per template start, then
+    overlapping footprints merged.
+
+    ``topology="circular"`` searches through the origin on both strands, the
+    same way :func:`check_offtarget` does.
+
+    ``OffTargetHit.reason`` is :data:`STRICT_OFFTARGET_REASON` and
+    ``truncation_type`` says which part of the primer matched: ``full`` for the
+    whole primer, ``5prime`` when the match starts at the primer's 5' base,
+    ``3prime`` when it ends at the 3' base, ``internal`` otherwise. ``tm`` is
+    the perfect-complement Tm of the matched span, reported for display only;
+    nothing is filtered on it. ``extendable`` is recorded honestly, so a caller
+    can still tell apart a site that reaches the 3' terminus from one that does
+    not.
+    """
+    p_upper = primer_seq.upper()
+    t_upper = template.upper()
+    plen = len(p_upper)
+    tlen = len(t_upper)
+    if plen < min_length or tlen == 0:
+        return []
+
+    rc_template = antisense_cache if antisense_cache else reverse_complement(t_upper)
+    circular = topology == "circular"
+    pad = plen - 1 if circular else 0
+
+    hits: list[OffTargetHit] = []
+
+    for strand_label, strand_core in (
+        ("sense", t_upper),
+        ("antisense", rc_template),
+    ):
+        core_len = len(strand_core)
+        strand_seq = _wrap_pad(strand_core, pad) if circular else strand_core
+        slen = len(strand_seq)
+
+        # folded template start -> (length, primer window start, primer window end)
+        best: dict[int, tuple[int, int, int]] = {}
+
+        for off in range(plen - min_length + 1):
+            seed = p_upper[off:off + min_length]
+            for pos in _find_all(strand_seq, seed):
+                if circular and not (pad <= pos < pad + core_len):
+                    # One period of starts only. Every maximal match has its
+                    # own leftmost seed at its start, and that start has a
+                    # representative in this range, so nothing is lost.
+                    continue
+                left = 0
+                while (
+                    off - left - 1 >= 0
+                    and pos - left - 1 >= 0
+                    and p_upper[off - left - 1] == strand_seq[pos - left - 1]
+                ):
+                    left += 1
+                right = 0
+                while (
+                    off + min_length + right < plen
+                    and pos + min_length + right < slen
+                    and p_upper[off + min_length + right]
+                    == strand_seq[pos + min_length + right]
+                ):
+                    right += 1
+
+                w_start = off - left
+                w_end = off + min_length + right
+                m_start = pos - left
+                m_len = w_end - w_start
+
+                if strand_label == "sense":
+                    tpos = (m_start - pad) % core_len if circular else m_start
+                else:
+                    rc_start = m_start - pad
+                    tpos = (
+                        (core_len - (rc_start + m_len)) % core_len
+                        if circular
+                        else core_len - (m_start + m_len)
+                    )
+
+                if _overlaps_intended(
+                    tpos, m_len, intended_start, intended_end, tlen, circular
+                ):
+                    continue
+
+                prev = best.get(tpos)
+                if prev is None or m_len > prev[0]:
+                    best[tpos] = (m_len, w_start, w_end)
+
+        # One hit per physical footprint: overlapping spans collapse onto the
+        # longest window of the group, which is what the hit then describes.
+        # The group's own extent is tracked separately and only decides which
+        # later spans still belong to it, so the reported position, sequence
+        # and length all come from the same window. Carrying a merged extent as
+        # the length instead would pair one window's start with another
+        # window's sequence.
+        merged: list[tuple[int, int, int, int]] = []
+        for tpos in sorted(best):
+            m_len, w_start, w_end = best[tpos]
+            if merged and tpos < merged[-1][3]:
+                rep_tpos, rep_ws, rep_we, group_end = merged[-1]
+                if m_len > rep_we - rep_ws:
+                    rep_tpos, rep_ws, rep_we = tpos, w_start, w_end
+                merged[-1] = (rep_tpos, rep_ws, rep_we, max(group_end, tpos + m_len))
+                continue
+            merged.append((tpos, w_start, w_end, tpos + m_len))
+
+        for tpos, w_start, w_end, _group_end in merged:
+            match_seq = p_upper[w_start:w_end]
+            if w_start == 0 and w_end == plen:
+                truncation = "full"
+            elif w_start == 0:
+                truncation = "5prime"
+            elif w_end == plen:
+                truncation = "3prime"
+            else:
+                truncation = "internal"
+            hits.append(OffTargetHit(
+                position=tpos,
+                strand=strand_label,
+                match_seq=match_seq,
+                tm=round(_calc_sdm_tm(match_seq), 1),
+                match_length=w_end - w_start,
+                truncation_type=truncation,
+                extendable=w_end == plen,
+                in_overlap_arm=False,
+                reason=STRICT_OFFTARGET_REASON,
+            ))
+
+    return hits
 
 
 def _search_candidates(
@@ -1218,6 +1524,8 @@ def design_single_sdm(
     organism: str = "ecoli",
     tol_max: float = 4.0,
     overlap_mode: OverlapMode = "partial",
+    topology: str = "linear",
+    strict_offtarget: bool = False,
 ) -> list[SdmPrimerResult]:
     """Design SDM primers for a single mutation.
 
@@ -1235,6 +1543,18 @@ def design_single_sdm(
       "partial" (default) — standard Gibson-style: overlap upstream + downstream extension.
       "full"              — NEB Q5 SDM style: forward and reverse cover the same region
                             (rev = rc(fwd)), mutation centered with symmetric expansion.
+
+    strict_offtarget turns the exact-match check (check_offtarget_strict) on
+    and off, and that is the only thing it controls. Off by default, and while
+    it is off that check is not called. The circular-origin and sequence-end
+    evaluation inside check_offtarget is not part of this switch: it always
+    applies, so the default verdict can differ from the one this engine
+    reached before that evaluation existed. On, the switch adds a conservative
+    sequence-identity rule that ignores whether the primer's 3' end could be
+    extended, so it is stricter than the default verdict and can reject
+    candidates the default accepts. Its hits land in the same
+    offtarget_fwd/offtarget_rev lists, so the existing rejection path carries
+    them with no change of its own.
     """
     if overlap_len is None:
         overlap_len = profile.overlap_len if profile.overlap_len is not None else DEFAULT_OVERLAP_LEN
@@ -1394,13 +1714,28 @@ def design_single_sdm(
                         c.overlap_window.start, c.overlap_window.end,
                         antisense_cache=rc_template,
                         profile=profile,
+                        topology=topology,
                     )
                     c.offtarget_rev = check_offtarget(
                         c.reverse_seq, seq,
                         c.overlap_window.start, c.overlap_window.end,
                         antisense_cache=rc_template,
                         profile=profile,
+                        topology=topology,
                     )
+                    if strict_offtarget:
+                        c.offtarget_fwd += check_offtarget_strict(
+                            c.forward_seq, seq,
+                            c.overlap_window.start, c.overlap_window.end,
+                            antisense_cache=rc_template,
+                            topology=topology,
+                        )
+                        c.offtarget_rev += check_offtarget_strict(
+                            c.reverse_seq, seq,
+                            c.overlap_window.start, c.overlap_window.end,
+                            antisense_cache=rc_template,
+                            topology=topology,
+                        )
                     if c.offtarget_fwd or c.offtarget_rev:
                         # Off-target hit: reject the candidate outright rather
                         # than penalize it (a penalty still lets it win if no
@@ -1455,6 +1790,7 @@ def design_single_sdm(
                     antisense_cache=rc_template,
                     profile=profile,
                     overlap_arm_len=c.fwd_len - len(c.forward_binding),
+                    topology=topology,
                 )
                 rev_start = c.overlap_window.start - len(c.reverse_binding)
                 rev_end = c.overlap_window.end
@@ -1463,7 +1799,19 @@ def design_single_sdm(
                     antisense_cache=rc_template,
                     profile=profile,
                     overlap_arm_len=c.rev_len - len(c.reverse_binding),
+                    topology=topology,
                 )
+                if strict_offtarget:
+                    c.offtarget_fwd += check_offtarget_strict(
+                        c.forward_seq, seq, fwd_start, fwd_end,
+                        antisense_cache=rc_template,
+                        topology=topology,
+                    )
+                    c.offtarget_rev += check_offtarget_strict(
+                        c.reverse_seq, seq, rev_start, rev_end,
+                        antisense_cache=rc_template,
+                        topology=topology,
+                    )
                 if c.offtarget_fwd or c.offtarget_rev:
                     # Off-target hit: reject the candidate outright rather
                     # than penalize it.
@@ -1500,6 +1848,8 @@ def diagnose_sdm_failure(
     organism: str = "ecoli",
     tol_max: float = 4.0,
     overlap_mode: OverlapMode = "partial",
+    topology: str = "linear",
+    strict_offtarget: bool = False,
 ) -> str:
     """Explain why design_single_sdm returned no candidate for this mutation.
 
@@ -1550,6 +1900,7 @@ def diagnose_sdm_failure(
         best: tuple[float, int] | None = None
         valid_pairs = 0
         rejected_pairs = 0
+        strict_only_pairs = 0
         rc_template = reverse_complement(seq.upper())
         for variant in variants:
             mutated_seq = mutate_sequence(seq, variant)
@@ -1577,15 +1928,39 @@ def diagnose_sdm_failure(
                 end = start + len(_fwd)
                 hits_fwd = check_offtarget(
                     _fwd, seq, start, end, antisense_cache=rc_template, profile=profile,
+                    topology=topology,
                 )
                 hits_rev = check_offtarget(
                     _rev, seq, start, end, antisense_cache=rc_template, profile=profile,
+                    topology=topology,
                 )
-                rejected_pairs += bool(hits_fwd or hits_rev)
+                strict_fwd: list[OffTargetHit] = []
+                strict_rev: list[OffTargetHit] = []
+                if strict_offtarget:
+                    strict_fwd = check_offtarget_strict(
+                        _fwd, seq, start, end,
+                        antisense_cache=rc_template, topology=topology,
+                    )
+                    strict_rev = check_offtarget_strict(
+                        _rev, seq, start, end,
+                        antisense_cache=rc_template, topology=topology,
+                    )
+                if hits_fwd or hits_rev or strict_fwd or strict_rev:
+                    rejected_pairs += 1
+                    if not (hits_fwd or hits_rev):
+                        strict_only_pairs += 1
         if best is None:
             return prefix + f"full overlap: no candidate satisfies length {l_min}-{l_max} bp"
         if valid_pairs:
             if rejected_pairs == valid_pairs:
+                if strict_only_pairs == valid_pairs:
+                    return prefix + (
+                        f"{STRICT_OFFTARGET_FAILURE_MARKER}: all {valid_pairs} "
+                        "Tm/length-valid candidate(s) in full overlap rejected by "
+                        "exact-window match; the default off-target rules accept "
+                        "them, so turning the strict check off recovers this "
+                        "position"
+                    )
                 return prefix + (
                     f"full overlap off-target: all {valid_pairs} Tm/length-valid "
                     "candidate(s) rejected for off-target binding"
@@ -1619,6 +1994,9 @@ def diagnose_sdm_failure(
     # Tm/length-caused, and fwd_passed/rev_passed alone cannot see that.
     offtarget_total_pairs = 0
     offtarget_reject_count = 0
+    # Pairs the strict check alone rejected. Counted separately so the message
+    # can tell the user the switch is what dropped this position.
+    offtarget_strict_only_count = 0
     offtarget_examples: list[str] = []
     rc_template = reverse_complement(seq.upper())
 
@@ -1705,12 +2083,28 @@ def diagnose_sdm_failure(
                         fwd_full, seq, fwd_start, fwd_end,
                         antisense_cache=rc_template, profile=profile,
                         overlap_arm_len=len(overlap_seq),
+                        topology=topology,
                     )
                     ot_rev = check_offtarget(
                         rev_full, seq, rev_start, rev_end,
                         antisense_cache=rc_template, profile=profile,
                         overlap_arm_len=len(rev_full) - len(rev_at_tol[1]),
+                        topology=topology,
                     )
+                    if strict_offtarget:
+                        strict_hits_fwd = check_offtarget_strict(
+                            fwd_full, seq, fwd_start, fwd_end,
+                            antisense_cache=rc_template, topology=topology,
+                        )
+                        strict_hits_rev = check_offtarget_strict(
+                            rev_full, seq, rev_start, rev_end,
+                            antisense_cache=rc_template, topology=topology,
+                        )
+                        if strict_hits_fwd or strict_hits_rev:
+                            if not (ot_fwd or ot_rev):
+                                offtarget_strict_only_count += 1
+                            ot_fwd = ot_fwd + strict_hits_fwd
+                            ot_rev = ot_rev + strict_hits_rev
                     if ot_fwd or ot_rev:
                         offtarget_reject_count += 1
                         if len(offtarget_examples) < 3:
@@ -1785,6 +2179,13 @@ def diagnose_sdm_failure(
 
     if not clauses and offtarget_total_pairs > 0 and offtarget_reject_count == offtarget_total_pairs:
         sites = "; ".join(offtarget_examples) if offtarget_examples else "site details unavailable"
+        if offtarget_strict_only_count == offtarget_total_pairs:
+            return prefix + (
+                f"{STRICT_OFFTARGET_FAILURE_MARKER}: all {offtarget_total_pairs} "
+                "Tm/length-valid candidate(s) rejected by exact-window match; the "
+                "default off-target rules accept them, so turning the strict check "
+                f"off recovers this position - {sites}"
+            )
         return prefix + (
             f"off-target: all {offtarget_total_pairs} Tm/length-valid candidate(s) "
             f"rejected for off-target binding - {sites}"
@@ -1828,6 +2229,8 @@ def evaluate_custom_primer(
     mutation_raw: str = "custom",
     overlap_len: int = 18,
     profile: PolymeraseProfile | None = None,
+    topology: str = "linear",
+    strict_offtarget: bool = False,
 ) -> SdmPrimerResult:
     """Evaluate a user-provided primer pair and return metrics."""
     from .overlap import OverlapWindow, reverse_complement
@@ -1894,8 +2297,19 @@ def evaluate_custom_primer(
         else:
             rev_start, rev_end = 0, len(rev_seq)
 
-    result.offtarget_fwd = check_offtarget(fwd_seq, template, fwd_start, fwd_end, antisense_cache=rc_template, profile=profile)
-    result.offtarget_rev = check_offtarget(rev_seq, template, rev_start, rev_end, antisense_cache=rc_template, profile=profile)
+    result.offtarget_fwd = check_offtarget(fwd_seq, template, fwd_start, fwd_end, antisense_cache=rc_template, profile=profile, topology=topology)
+    result.offtarget_rev = check_offtarget(rev_seq, template, rev_start, rev_end, antisense_cache=rc_template, profile=profile, topology=topology)
+    if strict_offtarget:
+        # Reported, not rejected: this path evaluates the primers the user
+        # supplied, and there is no alternative candidate to fall back to.
+        result.offtarget_fwd += check_offtarget_strict(
+            fwd_seq, template, fwd_start, fwd_end,
+            antisense_cache=rc_template, topology=topology,
+        )
+        result.offtarget_rev += check_offtarget_strict(
+            rev_seq, template, rev_start, rev_end,
+            antisense_cache=rc_template, topology=topology,
+        )
     if result.offtarget_fwd or result.offtarget_rev:
         result.has_offtarget = True
 
@@ -2137,6 +2551,7 @@ def design_sdm_primers(
     organism: str = "ecoli",
     tol_max: float = 4.0,
     overlap_mode: OverlapMode = "partial",
+    strict_offtarget: bool = False,
 ) -> tuple[list[SdmPrimerResult], dict[str, list[SdmPrimerResult]], dict[str, str]]:
     """Design SDM primers for a batch of mutations.
 
@@ -2146,7 +2561,13 @@ def design_sdm_primers(
     Returns (results, all_candidates, failed_reasons).
     """
     header, sequence, _genes = load_sequence(fasta_path)
-    logger.info("Loaded template: %s (%d bp)", header, len(sequence))
+    # A plasmid is the normal input here, and an off-target site may span its
+    # origin. The annotation is read once per batch and handed to every
+    # off-target call below, search and diagnostic alike.
+    topology = detect_topology(Path(fasta_path))
+    logger.info(
+        "Loaded template: %s (%d bp, %s)", header, len(sequence), topology,
+    )
 
 
     atg = sequence[target_start:target_start + 3]
@@ -2215,7 +2636,7 @@ def design_sdm_primers(
         if on_progress:
             on_progress(i, total_muts, mut.raw)
         logger.info("Designing primers for %s ...", mut.raw)
-        candidates = design_single_sdm(sequence, mut, profile, overlap_len, codon_strategy=codon_strategy, gc_min=gc_min, gc_max=gc_max, fwd_len_min=fwd_len_min, fwd_len_max=fwd_len_max, rev_len_min=rev_len_min, rev_len_max=rev_len_max, organism=organism, tol_max=tol_max, overlap_mode=overlap_mode)
+        candidates = design_single_sdm(sequence, mut, profile, overlap_len, codon_strategy=codon_strategy, gc_min=gc_min, gc_max=gc_max, fwd_len_min=fwd_len_min, fwd_len_max=fwd_len_max, rev_len_min=rev_len_min, rev_len_max=rev_len_max, organism=organism, tol_max=tol_max, overlap_mode=overlap_mode, topology=topology, strict_offtarget=strict_offtarget)
         if not candidates:
             failed_reasons[mut.raw] = diagnose_sdm_failure(
                 sequence, mut, profile, overlap_len,
@@ -2223,6 +2644,7 @@ def design_sdm_primers(
                 fwd_len_min=fwd_len_min, fwd_len_max=fwd_len_max,
                 rev_len_min=rev_len_min, rev_len_max=rev_len_max,
                 organism=organism, tol_max=tol_max, overlap_mode=overlap_mode,
+                topology=topology, strict_offtarget=strict_offtarget,
             )
             logger.warning("FAILED: %s - no valid primer pair found", mut.raw)
             continue

@@ -75,6 +75,13 @@ class DesignSdmPrimersParams(BaseModel):
     # Overlap mode: "partial" = Gibson-style (default), "full" = NEB Q5 SDM style
     overlap_mode: Literal["partial", "full"] = "partial"
 
+    # Opt-in strict off-target check: rejects a candidate when any contiguous
+    # stretch of 15 bases or more of it matches the template exactly outside
+    # the intended site, on either strand. Off by default, and this field is
+    # the only thing the switch controls: the circular-origin and sequence-end
+    # evaluation in check_offtarget always applies, whatever this is set to.
+    strict_offtarget: bool = False
+
     # Position rescue
     rescue_pool: list[str] = Field(default_factory=list)
     auto_relax: bool = Field(default=True)
@@ -108,6 +115,9 @@ class RetryFailedParams(BaseModel):
     # intersects the forward/reverse length bounds, so defaulting to partial
     # would silently produce different primer geometry.
     overlap_mode: Literal["partial", "full"]
+    # A retry runs the same verdict as the design it retries, so this travels
+    # with it rather than falling back to off.
+    strict_offtarget: bool = False
 
 
 class SwapPrimerParams(BaseModel):
@@ -127,6 +137,9 @@ class EvaluatePrimerParams(BaseModel):
     reverse_seq: str = ""
     # evaluates user-provided primers (including legacy designs), so no le=18 cap
     overlap_len: int = Field(default=18, ge=8, le=40)
+    # Reported on the evaluated pair, never a rejection: this path has no
+    # alternative candidate to fall back to.
+    strict_offtarget: bool = False
 
 
 class GetAlternativesParams(BaseModel):
@@ -420,6 +433,9 @@ class WorkspaceSettingsModel(WorkspaceModel):
     saveCache: Optional[bool] = None
     organism: Optional[str] = None
     overlapMode: Optional[Literal["partial", "full"]] = None
+    #: Absent in a workspace saved before the strict off-target check existed,
+    #: which the frontend reads as off.
+    strictOfftarget: Optional[bool] = None
     pipelineMode: Optional[bool] = None
     # Tri-state EVOLVEpro mode. Takes priority over pipelineMode on restore.
     evolveproMode: Optional[Literal["topN", "pipeline", "others"]] = None

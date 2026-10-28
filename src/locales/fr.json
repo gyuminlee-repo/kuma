@@ -1744,6 +1744,9 @@
     "primerLenFwdHelp": "Forward primer length range (nt). Default 17-39 covers most SDM cases.",
     "primerLenRevHelp": "Reverse primer length range (nt). Default 19-27.",
     "autoRescueHelp": "Contrôle le sauvetage sidecar à contraintes relâchées et la cascade frontend de 4 étapes (top-N) / 6 (pipeline).",
+    "strictOfftargetLabel": "Contrôle off-target strict",
+    "strictOfftargetTitle": "Rejette un candidat dès qu'une correspondance exacte de 15 bases ou plus existe ailleurs sur le template.",
+    "strictOfftargetHelp": "Rejette un candidat lorsqu'un segment continu de 15 bases ou plus correspond exactement au template, sur l'un ou l'autre brin, hors du site de liaison prévu. Le contrôle ne demande pas si l'extrémité 3' de l'amorce pourrait y être étendue : c'est un test d'identité de séquence conservateur, plus strict que les règles off-target par défaut, et il peut rejeter des candidats que celles-ci acceptent. Désactivé par défaut.",
     "seedHelp": "Enregistre seulement les métadonnées de provenance et n'affecte pas le classement des primers. Vide n'enregistre pas de seed.",
     "tmSectionHelp": "Melting temperature targets define how the engine balances primer stability and selectivity."
   },
@@ -1967,6 +1970,7 @@
     "recoveryHeading": "Récupération d'échec",
     "designFailed": "{{mutation}} : Design échoué",
     "reasonLabel": "Raison :",
+    "strictOfftargetHint": "Seul le contrôle off-target strict a écarté cette position. Désactivez \"Contrôle off-target strict\" dans Parameters et relancez la conception pour la récupérer.",
     "retrySection": "Réessayer avec des paramètres",
     "labelTm": "Tm :",
     "labelF": "F",
@@ -2736,13 +2740,19 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Un rapport GC contenant des blancs, des étalons ou des points d'étalonnage dans la même série n'est plus refusé ; ces lignes sont mises de côté.",
-      "Chaque ligne mise de côté est signalée avec sa ligne de feuille dans les avertissements et le manifeste d'export, rien ne disparaît en silence.",
-      "Un rapport brut avec quelques points d'étalonnage parmi de nombreux puits, au plus un pour dix, est reconnu automatiquement.",
-      "Le manifeste d'export liste les lignes WT utilisées pour la normalisation, et un numéro de réplicat WT répété est signalé."
+      "La recherche off-target couvre désormais les sites qui traversent l'origine d'un plasmide circulaire et ceux qui dépassent la fin d'une séquence linéaire.",
+      "Une nouvelle vérification stricte facultative rejette un candidat ayant une correspondance exacte d'au moins 15 bases ailleurs sur la matrice.",
+      "Si la vérification stricte seule laisse une mutation sans amorces, le motif d'échec l'indique et la désactiver rétablit le design.",
+      "Le réglage de la vérification stricte est enregistré dans le workspace et consigné dans le classeur exporté."
     ],
-    "highlightsStamp": "0.16.78+7847cb43",
+    "highlightsStamp": "0.16.79+07f90f60",
     "releases": {
+      "0.16.79": [
+        "La recherche off-target couvre désormais les sites qui traversent l'origine d'un plasmide circulaire et ceux qui dépassent la fin d'une séquence linéaire.",
+        "Une nouvelle vérification stricte facultative rejette un candidat ayant une correspondance exacte d'au moins 15 bases ailleurs sur la matrice.",
+        "Si la vérification stricte seule laisse une mutation sans amorces, le motif d'échec l'indique et la désactiver rétablit le design.",
+        "Le réglage de la vérification stricte est enregistré dans le workspace et consigné dans le classeur exporté."
+      ],
       "0.16.78": [
         "Un rapport GC contenant des blancs, des étalons ou des points d'étalonnage dans la même série n'est plus refusé ; ces lignes sont mises de côté.",
         "Chaque ligne mise de côté est signalée avec sa ligne de feuille dans les avertissements et le manifeste d'export, rien ne disparaît en silence.",
@@ -3287,6 +3297,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.79": "07f90f60",
       "0.16.78": "7847cb43",
       "0.16.77": "53eff3f8",
       "0.16.76": "d0c839c4",

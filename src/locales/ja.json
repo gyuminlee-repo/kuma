@@ -1744,6 +1744,9 @@
     "primerLenFwdHelp": "Forward primer length range (nt). Default 17-39 covers most SDM cases.",
     "primerLenRevHelp": "Reverse primer length range (nt). Default 19-27.",
     "autoRescueHelp": "sidecar の制約緩和リカバリと、4 段階 (top-N) / 6 段階 (pipeline) のフロントエンドカスケードを制御します。",
+    "strictOfftargetLabel": "厳格 off-target 検査",
+    "strictOfftargetTitle": "template の他の位置に 15 bases 以上の完全一致があれば候補を除外します。",
+    "strictOfftargetHelp": "候補の連続する 15 bases 以上が、意図した結合部位の外で template のいずれかの鎖と完全一致した場合、その候補を除外します。primer の 3' 末端がそこで伸長できるかは問わない保守的な配列一致検査であり、既定の off-target 判定より厳しく、既定では通る候補も除外されることがあります。既定はオフです。",
     "seedHelp": "来歴メタデータのみを記録し、primer の順位には影響しません。空欄では seed を記録しません。",
     "tmSectionHelp": "Melting temperature targets define how the engine balances primer stability and selectivity."
   },
@@ -1967,6 +1970,7 @@
     "recoveryHeading": "失敗リカバリ",
     "designFailed": "{{mutation}}: 設計失敗",
     "reasonLabel": "理由:",
+    "strictOfftargetHint": "この位置は厳格 off-target 検査だけが原因で除外されました。Parameters の「厳格 off-target 検査」をオフにして再設計すると復帰します。",
     "retrySection": "パラメータを変えて再試行",
     "labelTm": "Tm:",
     "labelF": "F",
@@ -2736,13 +2740,19 @@
     "descriptionRange": "v{{from}} 以降のすべてのアップデートの主な変更点です。",
     "gotItBtn": "了解",
     "highlights": [
-      "同じ run に blank、標準、校正試料が混ざった GC report が拒否されなくなり、それらの行は除外される。",
-      "除外された行はすべてシートの行番号とともに警告とエクスポートの manifest に記録され、黙って落ちる行はない。",
-      "well 10 個あたり校正試料が 1 個以下の raw report は、形式を尋ねずに自動で認識する。",
-      "エクスポートの manifest に正規化に使った WT 行が記録され、WT の反復番号が重複すると警告が出る。"
+      "off-target 検索が、環状 plasmid の原点をまたぐ部位と線状配列の端を越える部位も調べるようになった。",
+      "新しい任意の厳格チェックは、template の別の位置と 15 塩基以上完全一致する候補を除外する。",
+      "厳格チェックだけが原因で primer が見つからない変異は失敗理由にそう示され、チェックを切ると再び設計できる。",
+      "厳格チェックの設定は workspace に保存され、エクスポートしたワークブックに記録される。"
     ],
-    "highlightsStamp": "0.16.78+7847cb43",
+    "highlightsStamp": "0.16.79+07f90f60",
     "releases": {
+      "0.16.79": [
+        "off-target 検索が、環状 plasmid の原点をまたぐ部位と線状配列の端を越える部位も調べるようになった。",
+        "新しい任意の厳格チェックは、template の別の位置と 15 塩基以上完全一致する候補を除外する。",
+        "厳格チェックだけが原因で primer が見つからない変異は失敗理由にそう示され、チェックを切ると再び設計できる。",
+        "厳格チェックの設定は workspace に保存され、エクスポートしたワークブックに記録される。"
+      ],
       "0.16.78": [
         "同じ run に blank、標準、校正試料が混ざった GC report が拒否されなくなり、それらの行は除外される。",
         "除外された行はすべてシートの行番号とともに警告とエクスポートの manifest に記録され、黙って落ちる行はない。",
@@ -3287,6 +3297,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.79": "07f90f60",
       "0.16.78": "7847cb43",
       "0.16.77": "53eff3f8",
       "0.16.76": "d0c839c4",

@@ -42,6 +42,7 @@ interface DesignRequestPayload extends Record<string, unknown> {
   rev_len_min?: number;
   rev_len_max?: number;
   overlap_mode: OverlapMode;
+  strict_offtarget: boolean;
   rescue_pool?: string[];
   auto_relax: boolean;
   seed?: number;
@@ -257,6 +258,7 @@ export function buildDesignRequestPayload(params: {
   revLenMin: number;
   revLenMax: number;
   overlapMode: OverlapMode;
+  strictOfftarget: boolean;
   rescuePool: string[];
   tolMax: number;
   randomSeed: number | null;
@@ -286,6 +288,7 @@ export function buildDesignRequestPayload(params: {
     revLenMin,
     revLenMax,
     overlapMode,
+    strictOfftarget,
     rescuePool,
     tolMax,
     randomSeed,
@@ -311,6 +314,7 @@ export function buildDesignRequestPayload(params: {
       revLenMax,
     }),
     overlap_mode: overlapMode,
+    strict_offtarget: strictOfftarget,
     ...(fillOnFailure && rescuePool.length > 0 && { rescue_pool: rescuePool }),
     tol_max: tolMax,
     auto_relax: fillOnFailure,
