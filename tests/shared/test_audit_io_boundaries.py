@@ -928,6 +928,7 @@ def _mame_export_writers():
         export_mame_janus_xlsx,
         write_excel,
     )
+    from kuma_core.mame.export.positive_janus import export_positive_janus_csv
     from kuma_core.mame.ingest import barcode_package
     from kuma_core.mame.io.variant_template import write_variant_template
 
@@ -942,6 +943,7 @@ def _mame_export_writers():
     return [
         ("janus_csv", lambda path: export_mame_janus_csv([], path), ".csv"),
         ("janus_xlsx", lambda path: export_mame_janus_xlsx([], path), ".xlsx"),
+        ("positive_janus_csv", lambda path: export_positive_janus_csv([], path), ".csv"),
         ("result_workbook", lambda path: write_excel([], [], path), ".xlsx"),
         ("evolvepro_xlsx", lambda path: export_evolvepro_xlsx([], path), ".xlsx"),
         (
@@ -1081,6 +1083,7 @@ _ATOMIC_WRITERS = {
     "write_excel": ("kuma_core/mame/export/excel_writer.py", "atomic_output_path"),
     "export_mame_janus_csv": ("kuma_core/mame/export/janus_mapping.py", "atomic_output_path"),
     "export_mame_janus_xlsx": ("kuma_core/mame/export/janus_mapping.py", "atomic_output_path"),
+    "export_positive_janus_csv": ("kuma_core/mame/export/positive_janus.py", "atomic_output_path"),
     "export_evolvepro_xlsx": ("kuma_core/mame/activity/export_evolvepro.py", "atomic_output_path"),
     "export_pdf": ("kuma_core/mame/report/pdf_export.py", "atomic_output_path"),
     "write_barcode_worklist_csv": ("kuma_core/mame/barcode_worklist.py", "atomic_output_path"),
@@ -1413,6 +1416,9 @@ _OUTPUT_PATH_HANDLERS = {
     ("sidecar_mame/handlers/activity.py", "handle_merge_for_evolvepro"): ("no-write", None),
     ("sidecar_mame/handlers/activity.py", "handle_build_evolvepro_input"): ("callee", "build_evolvepro_input"),
     ("sidecar_mame/handlers/activity.py", "handle_detect_measurement_source"): ("no-write", None),
+    ("sidecar_mame/handlers/activity.py", "handle_positive_janus_candidates"): ("no-write", None),
+    ("sidecar_mame/handlers/activity.py", "handle_export_positive_janus"): ("callee",
+        "export_positive_janus_csv"),
     ("sidecar_mame/handlers/analyze.py", "_acceptance_findings"): ("validate-only", None),
     ("sidecar_mame/handlers/analyze.py", "_write_reference_fasta"): ("exempt-write", None),
     ("sidecar_mame/handlers/analyze.py", "handle_validate_inputs"): ("no-write", None),

@@ -672,6 +672,100 @@ def handle_detect_measurement_source(params: dict) -> dict:
     ).model_dump()
 
 
+
+# ---------------------------------------------------------------------------
+# Step 4.1 positive clone JANUS mapping
+# ---------------------------------------------------------------------------
+
+_ALLOWED_POSITIVE_JANUS_EXTENSIONS = {".csv"}
+_ALLOWED_EXPECTED_EXTENSIONS = {".xlsx", ".xls", ".csv", ".tsv", ".txt"}
+
+
+def _positive_janus_sources(p: Any) -> dict[str, Any]:
+    """The screen and mapping paths of *p*, each checked to exist."""
+    sources: dict[str, Any] = {}
+    for key in ("gc_data_xlsx", "round1_report_xlsx", "numeric_report_xlsx", "verdict_xlsx", "layout_xlsx"):
+        value = getattr(p, key)
+        if value:
+            sources[key] = _validate_filepath(value, allowed_extensions={".xlsx"})
+    if p.expected_xlsx:
+        sources["expected_xlsx"] = _validate_filepath(
+            p.expected_xlsx, allowed_extensions=_ALLOWED_EXPECTED_EXTENSIONS
+        )
+    return sources
+
+
+def handle_positive_janus_candidates(params: dict) -> dict:
+    """Every measured non-WT well of the round-1 screen, flagged above-WT or not.
+
+    Nothing is written. The step 4.1 panel lists these as checkboxes with the
+    above-WT ones checked, and states the defaults below for the deck fields.
+    """
+    from kuma_core.mame.export.janus_mapping import DEFAULT_SAMPLE_TYPE, DEFAULT_VOLUME_UL
+    from kuma_core.mame.export.positive_janus import (
+        DEFAULT_DEST_PLATE_NAME,
+        DEFAULT_SOURCE_PLATE_NAME,
+        positive_candidates,
+    )
+    from sidecar_mame.models import PositiveJanusCandidatesParams
+
+    p = PositiveJanusCandidatesParams.model_validate(params)
+    candidates, warnings = positive_candidates(**_positive_janus_sources(p))
+    return {
+        "candidates": [
+            {
+                "well": c.well,
+                "name": c.name,
+                "relative": c.relative,
+                "n_replicates": c.n_replicates,
+                "above_wt": c.above_wt,
+            }
+            for c in candidates
+        ],
+        "n_above_wt": sum(1 for c in candidates if c.above_wt),
+        "warnings": warnings,
+        "defaults": {
+            "volume": DEFAULT_VOLUME_UL,
+            "source_rack": DEFAULT_SOURCE_PLATE_NAME,
+            "dest_rack": DEFAULT_DEST_PLATE_NAME,
+            "sample_type": DEFAULT_SAMPLE_TYPE,
+        },
+    }
+
+
+def handle_export_positive_janus(params: dict) -> dict:
+    """Write the positive clone worklist for the wells the operator selected.
+
+    The screen is read again rather than trusting a list the panel holds, so
+    every name and well in the file comes from the measurement file itself.
+    """
+    from kuma_core.mame.export.positive_janus import (
+        export_positive_janus_csv,
+        positive_candidates,
+        positive_janus_rows,
+    )
+    from kuma_core.shared.janus_deck import JANUS_DEVICE_HEADER
+    from sidecar_mame.models import PositiveJanusExportParams
+
+    p = PositiveJanusExportParams.model_validate(params)
+    output = _validate_output_path(
+        p.output_csv, allowed_extensions=_ALLOWED_POSITIVE_JANUS_EXTENSIONS
+    )
+    candidates, _warnings = positive_candidates(**_positive_janus_sources(p))
+    rows = positive_janus_rows(
+        candidates,
+        p.selected_wells,
+        volume=p.volume,
+        source_rack=p.source_rack,
+        dest_rack=p.dest_rack,
+    )
+    export_positive_janus_csv(rows, output)
+    return {
+        "output_path": str(output),
+        "row_count": len(rows),
+        "rows": [dict(zip(JANUS_DEVICE_HEADER, row)) for row in rows],
+    }
+
 __all__ = [
     "handle_activity_upload",
     "handle_activity_set_plate_meta",
@@ -680,6 +774,8 @@ __all__ = [
     "handle_merge_for_evolvepro",
     "handle_build_evolvepro_input",
     "handle_detect_measurement_source",
+    "handle_positive_janus_candidates",
+    "handle_export_positive_janus",
     "ExportBlockedError",
     "_rounds",
 ]
