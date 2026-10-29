@@ -1618,7 +1618,8 @@
       "chooseOutput": "Save positive clone JANUS mapping",
       "exported": "Wrote {{count}} transfers to {{path}}",
       "error": "Positive clone JANUS mapping failed",
-      "staleSelection": "The screen now reads differently from when the clones were chosen (the file changed). The selection starts again from the clones above wild-type; review it and export again."
+      "staleSelection": "The screen now reads differently from when the clones were chosen (the file changed). The selection starts again from the clones above wild-type; review it and export again.",
+      "volumeInvalid": "Enter a positive number of µL."
     }
   },
   "home": {

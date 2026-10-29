@@ -1618,7 +1618,8 @@
       "chooseOutput": "保存阳性克隆 JANUS 映射",
       "exported": "已将 {{count}} 次转移写入 {{path}}",
       "error": "阳性克隆 JANUS 映射失败",
-      "staleSelection": "筛选内容与选择克隆时不同(文件已更改)。已从高于野生型的克隆重新开始选择,请检查后重新导出。"
+      "staleSelection": "筛选内容与选择克隆时不同(文件已更改)。已从高于野生型的克隆重新开始选择,请检查后重新导出。",
+      "volumeInvalid": "请输入大于 0 的 µL 数值。"
     }
   },
   "home": {

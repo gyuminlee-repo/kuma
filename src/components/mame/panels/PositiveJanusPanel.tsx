@@ -67,6 +67,17 @@ export function positiveJanusCandidatesDigest(result: PositiveJanusCandidatesRes
   return result.candidates.map((c) => `${c.well}:${c.above_wt ? 1 : 0}`).join(",");
 }
 
+/**
+ * The volume a field text states, or null when it states none an export can
+ * use (blank, zero, negative, not a number). The export sends this value, so
+ * the field and the file can never disagree.
+ */
+export function parseTransferVolume(text: string): number | null {
+  if (text.trim() === "") return null;
+  const value = Number(text);
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
 function joinPath(folder: string, filename: string): string {
   const sep = folder.includes("\\") ? "\\" : "/";
   return `${folder.replace(/[\\/]+$/, "")}${sep}${filename}`;
@@ -115,6 +126,7 @@ export function PositiveJanusPanel({
   useEffect(() => {
     setWritten(null);
     setStaleNotice(false);
+    setVolumeText(null);
   }, [signature]);
 
   /** Drop a stored selection the screen no longer reads the same way. */
@@ -126,6 +138,7 @@ export function PositiveJanusPanel({
       return false;
     }
     useRoundStore.getState().updateRoundField(roundId, "positive_janus", null);
+    setVolumeText(null);
     setStaleNotice(true);
     return true;
   }
@@ -138,7 +151,10 @@ export function PositiveJanusPanel({
     () => new Set(record ? record.selected_wells : aboveWells),
     [record, aboveWells],
   );
-  const volume = record?.volume ?? defaults?.volume ?? null;
+  const storedVolume = record?.volume ?? defaults?.volume ?? null;
+  // The text on screen is the value; nothing reverts it on blur.
+  const volumeShown = volumeText ?? (storedVolume === null ? "" : String(storedVolume));
+  const volume = parseTransferVolume(volumeShown);
   const sourceRack = record?.source_rack ?? defaults?.source_rack ?? "";
   const destRack = record?.dest_rack ?? defaults?.dest_rack ?? "";
 
@@ -183,7 +199,7 @@ export function PositiveJanusPanel({
     }
   }
 
-  const volumeValid = volume !== null && Number.isFinite(volume) && volume > 0;
+  const volumeValid = volume !== null;
   const canExport =
     result !== null && selected.size > 0 && volumeValid &&
     sourceRack.trim() !== "" && destRack.trim() !== "" && !isExporting;
@@ -333,16 +349,20 @@ export function PositiveJanusPanel({
                 type="number"
                 min={0}
                 step="any"
-                value={volumeText ?? (volume === null ? "" : String(volume))}
+                value={volumeShown}
+                aria-invalid={!volumeValid}
+                aria-describedby={volumeValid ? undefined : "bep-positive-volume-error"}
                 onChange={(event) => {
                   setVolumeText(event.target.value);
-                  const parsed = Number(event.target.value);
-                  if (event.target.value.trim() !== "" && Number.isFinite(parsed) && parsed > 0) {
-                    writeRecord({ volume: parsed });
-                  }
+                  const parsed = parseTransferVolume(event.target.value);
+                  if (parsed !== null) writeRecord({ volume: parsed });
                 }}
-                onBlur={() => setVolumeText(null)}
               />
+              {!volumeValid && (
+                <p id="bep-positive-volume-error" role="alert" className="text-xs text-destructive">
+                  {t("mame.positiveJanus.volumeInvalid")}
+                </p>
+              )}
             </div>
             <div className="min-w-0 space-y-1">
               <Label htmlFor="bep-positive-source" className="text-xs">

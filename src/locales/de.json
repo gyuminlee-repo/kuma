@@ -1618,7 +1618,8 @@
       "chooseOutput": "JANUS-Zuordnung positiver Klone speichern",
       "exported": "{{count}} Transfers nach {{path}} geschrieben",
       "error": "JANUS-Zuordnung positiver Klone fehlgeschlagen",
-      "staleSelection": "Das Screening liest sich anders als bei der Auswahl der Klone (die Datei hat sich geändert). Die Auswahl beginnt erneut mit den Klonen über dem Wildtyp; bitte prüfen und erneut exportieren."
+      "staleSelection": "Das Screening liest sich anders als bei der Auswahl der Klone (die Datei hat sich geändert). Die Auswahl beginnt erneut mit den Klonen über dem Wildtyp; bitte prüfen und erneut exportieren.",
+      "volumeInvalid": "Geben Sie eine positive Zahl in µL ein."
     }
   },
   "home": {

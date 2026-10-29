@@ -1618,7 +1618,8 @@
       "chooseOutput": "Enregistrer le mappage JANUS des clones positifs",
       "exported": "{{count}} transferts écrits dans {{path}}",
       "error": "Échec du mappage JANUS des clones positifs",
-      "staleSelection": "Le criblage ne correspond plus à celui utilisé pour choisir les clones (le fichier a changé). La sélection repart des clones au-dessus du type sauvage ; vérifiez-la puis exportez à nouveau."
+      "staleSelection": "Le criblage ne correspond plus à celui utilisé pour choisir les clones (le fichier a changé). La sélection repart des clones au-dessus du type sauvage ; vérifiez-la puis exportez à nouveau.",
+      "volumeInvalid": "Saisissez un nombre positif de µL."
     }
   },
   "home": {

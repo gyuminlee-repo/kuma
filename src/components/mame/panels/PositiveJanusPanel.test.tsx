@@ -251,4 +251,44 @@ describe("PositiveJanusPanel", () => {
     );
     expect(screen.queryByText(/Wrote 2 transfers/)).toBeNull();
   });
+
+  it.each(["0", "", "-5", "abc"])(
+    "disables export and says why when the volume reads %j, even after blur",
+    async (typed) => {
+      renderPanel();
+      fireEvent.click(screen.getByRole("button", { name: "Find positive clones" }));
+      await waitFor(() => expect(screen.getByLabelText(/F1/)).toBeTruthy());
+      const field = screen.getByLabelText("Volume (µL)") as HTMLInputElement;
+      fireEvent.change(field, { target: { value: "55" } });
+      fireEvent.change(field, { target: { value: typed } });
+      fireEvent.blur(field);
+      // What the field shows is what an export would send, so it is not reverted.
+      expect(field.value).toBe(typed === "abc" ? "" : typed);
+      expect(
+        (screen.getByRole("button", { name: "Export JANUS mapping" }) as HTMLButtonElement).disabled,
+      ).toBe(true);
+      expect(screen.getByRole("alert").textContent).toMatch(/positive number/);
+      expect(field.getAttribute("aria-invalid")).toBe("true");
+    },
+  );
+
+  it("sends the volume the field shows", async () => {
+    vi.mocked(save).mockResolvedValue("/p/activity/positive.csv");
+    vi.mocked(exportPositiveJanus).mockResolvedValue({
+      output_path: "/p/activity/positive.csv", row_count: 2, rows: [{}, {}],
+    });
+    renderPanel();
+    fireEvent.click(screen.getByRole("button", { name: "Find positive clones" }));
+    await waitFor(() => expect(screen.getByLabelText(/F1/)).toBeTruthy());
+    const field = screen.getByLabelText("Volume (µL)") as HTMLInputElement;
+    fireEvent.change(field, { target: { value: "0" } });
+    fireEvent.change(field, { target: { value: "42.5" } });
+    fireEvent.blur(field);
+    expect(field.value).toBe("42.5");
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Export JANUS mapping" }));
+    });
+    await waitFor(() => expect(exportPositiveJanus).toHaveBeenCalled());
+    expect(vi.mocked(exportPositiveJanus).mock.calls[0]?.[0].volume).toBe(42.5);
+  });
 });
