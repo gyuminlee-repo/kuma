@@ -303,8 +303,9 @@ def test_rows_tied_to_no_well_are_reported_with_their_position(tmp_path: Path):
     assert reported["12"].reason == "numeric_calibration"
     # One block per injection, after the WT block, in file order.
     blocks = [reported[name].block_index for name, _ in UNTIED_ROWS]
-    assert all(block is not None for block in blocks)
-    assert blocks == sorted(blocks) and len(set(blocks)) == 3
+    present = [block for block in blocks if block is not None]
+    assert len(present) == 3
+    assert present == sorted(present) and len(set(present)) == 3
     for name, _ in UNTIED_ROWS:
         assert any(repr(name) in warning and reported[name].location in warning for warning in screen.warnings)
     # Reporting them changes nothing about which clones move where.
