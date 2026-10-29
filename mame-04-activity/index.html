@@ -958,6 +958,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#positive-clone-janus-mapping-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Positive clone JANUS mapping (optional)
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1119,6 +1130,9 @@
 <p>The build result reports variants written, confirmation overrides, primary values and NGS-excluded counts. The output file carries exactly the two columns <code>Variant</code> and <code>activity</code>.</p>
 <p>A confirmation mean that differs notably from the primary value is marked as a mismatch and blocks the export. Check the layout and the verdict labels, then release it with <strong>Allow reviewed label mismatch</strong>. Choosing an output path that another round already recorded as its output raises a notice that building here overwrites it.</p>
 <p>When the measurement input, the verdict evidence or the output path changes, the previous completion mark becomes invalid and the file has to be built again.</p>
+<h3 id="positive-clone-janus-mapping-optional">Positive clone JANUS mapping (optional)<a class="headerlink" href="#positive-clone-janus-mapping-optional" title="Permanent link">&para;</a></h3>
+<p>This step below the 4.1 screen writes a JANUS worklist that moves the round-1 clones above wild-type from the final cell stock (96 PCR plate) to a 96 deep well plate (LB + Km). <strong>Find positive clones</strong> lists every measured clone, with the clones above wild-type ticked to start with. A value exactly equal to wild-type is left out. You can untick a clone or add one below wild-type, and the selection is kept with the project. The selected clones are placed from A1 of the target plate in the column order of their source wells (A1, B1 ... H1, A2). The file has the same eight columns as the step 3 sheet, and the volume (70 µL to start with) and both plate names are edited on screen. A long-format file has no source wells and cannot be used. This does not affect the EVOLVEpro input build.</p>
+<p>Rows of the round-1 file that were set aside as not belonging to this run (blanks, calibration numbers, wells the mapping does not name, wild-type well readings not used as the reference) appear in the warning box above the checkboxes with their name, block and row, in the same sentences as the 4.1 build warnings. An empty, zero, negative or non-numeric volume disables the export and says why below the field.</p>
 <h2 id="42-signals-and-handoff">4.2 Signals and handoff<a class="headerlink" href="#42-signals-and-handoff" title="Permanent link">&para;</a></h2>
 <p>Collect the per-round EVOLVEpro result xlsx files and run the advisory classification. The list is prefilled with the outputs 4.1 produced, and entries can be added or removed. <strong>Run classification</strong> answers with one of continue single-mutant walking, switch to combinatorial, stop, or defer, together with its reasons. The advice is read-only and confirms or saves nothing.</p>
 <p>→ <a href="../faq/">FAQ</a> answers the label mismatch and missing variant questions.</p>
