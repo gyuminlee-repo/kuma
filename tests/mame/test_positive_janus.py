@@ -245,3 +245,36 @@ def test_csv_is_the_eight_column_device_sheet(tmp_path: Path):
 def test_long_format_is_refused(tmp_path: Path):
     with pytest.raises(ValueError, match="exactly one"):
         positive_candidates(layout_xlsx=_layout(tmp_path / "layout.xlsx"))
+
+
+def test_numeric_report_with_both_order_sources_follows_the_design_list(tmp_path: Path):
+    """The build decodes a numeric-ID screen against expected_xlsx when both are
+    given (``_numeric_primary`` drops the layout), so the export must number and
+    place the clones the same way instead of refusing the pair."""
+    layout = _layout(tmp_path / "layout.xlsx")
+    # Design list without a Well column: the run is placed compactly from A1,
+    # which differs from the slide wells the layout states.
+    expected = tmp_path / "expected.csv"
+    expected.write_text(
+        "variant\n" + "\n".join(MUTANT[well] for well in PLATE_ORDER) + "\n",
+        encoding="utf-8",
+    )
+    report = _blocks(
+        tmp_path / "numeric.xlsx",
+        [("WT_1", SLIDE_12_WT)]
+        + [(str(index), SLIDE_12[well]) for index, well in enumerate(PLATE_ORDER, start=1)],
+    )
+    candidates, _ = positive_candidates(
+        numeric_report_xlsx=report, expected_xlsx=expected, layout_xlsx=layout
+    )
+
+    # The build's decode of the same screen: expected first, layout ignored.
+    build_decode = decode_primary_screen(report, None, expected_xlsx=expected)
+    assert [(c.well, c.name) for c in candidates] == [
+        (f"{slot.well[0]}{int(slot.well[1:])}", slot.mutant) for slot in build_decode.slots
+    ]
+    assert _selected(candidates) == [
+        f"{well[0]}{int(well[1:])}" for _, _, well in above_wt_subset(build_decode)
+    ]
+    # And that is not the layout reading.
+    assert [c.well for c in candidates] != PLATE_ORDER

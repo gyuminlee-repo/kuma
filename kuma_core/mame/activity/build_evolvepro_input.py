@@ -791,7 +791,11 @@ def read_primary_screen(*, gc_data_xlsx: str | Path | None = None, round1_report
         _values, _wells, _wt, decode_warnings = _numeric_primary(
             source, expected_xlsx, layout_xlsx, well_values
         )
-        order, _order_warnings = _decode_order(expected_xlsx, layout_xlsx)
+        # Same order source ``_numeric_primary`` decoded against: the design
+        # list wins and a layout beside it is not consulted, as in the build.
+        order, _order_warnings = _decode_order(
+            expected_xlsx, layout_xlsx if expected_xlsx is None else None
+        )
         warnings.extend(decode_warnings)
         return PrimaryScreen(order, well_values, name, warnings)
     if layout_xlsx is not None:
