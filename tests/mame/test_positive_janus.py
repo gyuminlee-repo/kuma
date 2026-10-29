@@ -114,7 +114,7 @@ def test_slide_12_raw_report_places_the_twenty_positives_column_major(tmp_path: 
 
     assert [(row[6], row[4]) for row in rows] == EXPECTED_PLACEMENT
     assert [row[2] for row in rows] == list(range(1, 21))
-    assert all(row[0] == MUTANT[row[4]] for row in rows)
+    assert all(row[0] == MUTANT[str(row[4])] for row in rows)
     assert {row[1] for row in rows} == {DEFAULT_SAMPLE_TYPE}
     assert {row[3] for row in rows} == {DEFAULT_SOURCE_PLATE_NAME}
     assert {row[5] for row in rows} == {DEFAULT_DEST_PLATE_NAME}
