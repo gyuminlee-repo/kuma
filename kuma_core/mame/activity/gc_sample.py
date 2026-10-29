@@ -208,6 +208,11 @@ UNMAPPED_VARIANT = "unmapped_variant"
 OPERATOR_EXCLUDED = "operator_excluded"
 DUPLICATE_REPLICATE = "duplicate_replicate"
 DUPLICATE_WELL = "duplicate_well"
+# A measurement on the plate WT well in a source whose reference is not that
+# well (the named WT rows of a block report, the upstream scale of a
+# pre-normalised sheet). It is neither a variant nor the reference, so it is
+# not used.
+WT_WELL_NOT_REFERENCE = "wt_well_not_reference"
 
 # Suspicions: the row is still used.
 KEPT_REASONS = frozenset({DUPLICATE_REPLICATE, DUPLICATE_WELL})
@@ -288,6 +293,7 @@ __all__ = [
     "UNMAPPED_WELL",
     "UNRECOGNIZED",
     "UNRECOGNIZED_SAMPLE",
+    "WT_WELL_NOT_REFERENCE",
     "VARIANT",
     "WELL",
     "WT",

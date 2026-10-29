@@ -345,3 +345,41 @@ def test_unmapped_wells_are_reported_once(tmp_path: Path):
     screen = read_positive_screen(round1_report_xlsx=report, layout_xlsx=_layout(tmp_path / "layout.xlsx"))
     assert [(row.sample_name, row.reason) for row in screen.excluded_rows] == [("A12", "unmapped_well")]
     assert sum("A12" in warning for warning in screen.warnings) == 1
+
+
+def test_a_wt_well_measurement_is_reported_and_the_placement_holds(tmp_path: Path):
+    # H12 is the layout's WT well. The raw report's reference is its WT_1 row,
+    # so the H12 measurement is not used; it is named with its position.
+    report = _blocks(
+        tmp_path / "round1.xlsx", [("WT_1", SLIDE_12_WT), *SLIDE_12.items(), ("H12", 0.95)]
+    )
+    screen = read_positive_screen(round1_report_xlsx=report, layout_xlsx=_layout(tmp_path / "layout.xlsx"))
+    assert [(row.sample_name, row.reason, row.block_index) for row in screen.excluded_rows] == [
+        ("H12", "wt_well_not_reference", len(SLIDE_12) + 2),
+    ]
+    assert any("(wt_well_not_reference): 'H12'" in warning for warning in screen.warnings)
+    plain, _ = positive_candidates(
+        round1_report_xlsx=_raw_report(tmp_path / "plain.xlsx"),
+        layout_xlsx=_layout(tmp_path / "layout2.xlsx"),
+    )
+    assert [(c.well, c.relative) for c in screen.candidates] == [(c.well, c.relative) for c in plain]
+    rows = positive_janus_rows(screen.candidates, _selected(screen.candidates))
+    assert [(row[6], row[4]) for row in rows] == EXPECTED_PLACEMENT
+
+
+def test_a_wt_well_row_in_a_flat_sheet_is_reported(tmp_path: Path):
+    sheet = tmp_path / "gc.xlsx"
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    assert ws is not None
+    ws.append(["Sample Name", "Area"])
+    for well, area in SLIDE_12.items():
+        ws.append([well, area / SLIDE_12_WT])
+    ws.append(["H12", 1.0])
+    wb.save(sheet)
+    screen = read_positive_screen(gc_data_xlsx=sheet, layout_xlsx=_layout(tmp_path / "layout.xlsx"))
+    assert [(row.sample_name, row.reason, row.row_index) for row in screen.excluded_rows] == [
+        ("H12", "wt_well_not_reference", len(SLIDE_12) + 2),
+    ]
+    rows = positive_janus_rows(screen.candidates, _selected(screen.candidates))
+    assert [(row[6], row[4]) for row in rows] == EXPECTED_PLACEMENT

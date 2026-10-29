@@ -26,6 +26,7 @@ from .gc_sample import (
     OPERATOR_EXCLUDED,
     UNMAPPED_VARIANT,
     UNMAPPED_WELL,
+    WT_WELL_NOT_REFERENCE,
     UNRECOGNIZED,
     UNRECOGNIZED_SAMPLE,
     VARIANT,
@@ -581,6 +582,7 @@ def _raw_report_primary(path: str | Path, well_to_variant: dict[str, str], varia
     export_rows: list[tuple[str, float]] = []
     for row, well, area, _replicate in wells:
         if well in wt_wells:
+            ledger.set_aside(source, row, WT_WELL_NOT_REFERENCE, area)
             continue
         well_values.setdefault(well, []).append(area / mean_wt)
         variant = well_to_variant.get(well)
@@ -611,6 +613,7 @@ def _gc_primary(path: str | Path, well_to_variant: dict[str, str], variant_to_we
     values: dict[str, list[float]] = {}
     for row, well, area, _replicate in wells:
         if well in wt_wells:
+            ledger.set_aside(source, row, WT_WELL_NOT_REFERENCE, area)
             continue
         well_values.setdefault(well, []).append(area)
         variant = well_to_variant.get(well)
