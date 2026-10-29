@@ -97,7 +97,9 @@ pnpm sync:check                     # cross-layer + groups + What's New drift
 
 `tsc` 는 순수 JS 라 위 pre-commit 명령대로 `node` 로 직접 돌아가고, worktree 에 `node_modules` 가 없으면 main checkout 것으로 폴백한다. **vitest 는 그렇지 않다.** 네이티브 esbuild 바이너리가 필요한데 공유 폴더의 `node_modules` 는 Windows 설치본이라 WSL 에서 실행되지 않는다.
 
-그래서 vitest 는 Windows 쪽에서 돌린다. `wsl-pnpm-guard.sh` 가 이 경로만 예외로 통과시킨다.
+어느 명령을 쓸지는 체크아웃이 어디 있는지로 갈린다. `pwd` 로 먼저 확인한다.
+
+**체크아웃이 Windows 드라이브(`/mnt/<drive>/...`)에 있을 때.** vitest 는 Windows 쪽에서 돌린다. `wsl-pnpm-guard.sh` 가 이 경로만 예외로 통과시킨다.
 
 ```bash
 W=$HOME/.claude/skills/win-build/scripts/win-build.sh
@@ -109,6 +111,15 @@ bash $W pnpm exec vitest run --cwd <워크트리 절대경로>
 # 정작 마지막 Test Files / Tests 요약이 사라진다.
 bash $W pnpm exec vitest run --silent --reporter=dot --cwd <워크트리 절대경로>
 ```
+
+**체크아웃이 WSL ext4(`/home/...`)에 있을 때.** 위 래퍼는 쓸 수 없다. `win-build.sh` 는 `--cwd` 가 `/mnt/<drive>` 아래가 아니면 `[win-build] cwd: not under /mnt/<drive>` 를 내고 exit 1 한다(`win-build.sh` 의 cwd 검사). 이 경우 main checkout 의 `node_modules` 는 WSL 에서 설치한 것이라 esbuild 가 그대로 돈다. worktree 에서는 설치 없이 main checkout 의 vitest 를 `--root` 로 worktree 에 겨눈다.
+
+```bash
+# <main> 은 main checkout 절대경로, <워크트리> 는 검사할 worktree 절대경로
+node <main>/node_modules/vitest/vitest.mjs run --root <워크트리> --silent --reporter=dot
+```
+
+이 형태로 PR #53 과 #55 의 전량 vitest 가 통과했다. 리포터 규칙은 두 경우에 똑같이 적용된다.
 
 `--reporter=basic` 은 vitest 4 에 없다. 지정하면 실행 전에 `Failed to load custom Reporter from basic` 으로 죽으므로 `dot` 을 쓴다.
 
