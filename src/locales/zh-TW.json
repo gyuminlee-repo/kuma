@@ -1617,7 +1617,8 @@
       "exporting": "正在匯出...",
       "chooseOutput": "儲存陽性克隆 JANUS 對應",
       "exported": "已將 {{count}} 次轉移寫入 {{path}}",
-      "error": "陽性克隆 JANUS 對應失敗"
+      "error": "陽性克隆 JANUS 對應失敗",
+      "staleSelection": "篩選內容與選擇克隆時不同(檔案已變更)。已從高於野生型的克隆重新開始選擇,請檢查後重新匯出。"
     }
   },
   "home": {

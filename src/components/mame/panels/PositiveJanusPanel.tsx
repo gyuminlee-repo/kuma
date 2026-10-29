@@ -14,7 +14,7 @@
  * project carry them.
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { save } from "@tauri-apps/plugin-dialog";
 import { mkdir } from "@tauri-apps/plugin-fs";
@@ -53,6 +53,20 @@ export function positiveJanusSignature(sources: PositiveJanusSourceParams): stri
   ]);
 }
 
+/**
+ * What the screen read as: every measured well and whether it was above WT.
+ *
+ * The signature above names files by path only, which is how this app treats
+ * a file it did not write (`roundFilesSignature` in lib/round/roundArtifacts.ts
+ * matches such entries on path alone and does not read size or mtime). A
+ * report overwritten under the same path would therefore still match, so a
+ * stored selection also records what the sidecar read, and a reading that
+ * differs means the file is not the one the operator chose clones from.
+ */
+export function positiveJanusCandidatesDigest(result: PositiveJanusCandidatesResult): string {
+  return result.candidates.map((c) => `${c.well}:${c.above_wt ? 1 : 0}`).join(",");
+}
+
 function joinPath(folder: string, filename: string): string {
   const sep = folder.includes("\\") ? "\\" : "/";
   return `${folder.replace(/[\\/]+$/, "")}${sep}${filename}`;
@@ -75,8 +89,6 @@ export function PositiveJanusPanel({
     const round = s.rounds.find((candidate) => candidate.id === roundId);
     return round?.positive_janus ?? null;
   });
-  // A record made against other files describes another plate.
-  const record = stored && stored.input_signature === signature ? stored : null;
   const [listing, setListing] = useState<{
     signature: string;
     result: PositiveJanusCandidatesResult;
@@ -86,8 +98,37 @@ export function PositiveJanusPanel({
   const [error, setError] = useState<string | null>(null);
   const [written, setWritten] = useState<{ path: string; count: number } | null>(null);
   const [volumeText, setVolumeText] = useState<string | null>(null);
+  const [staleNotice, setStaleNotice] = useState(false);
 
   const result = listing && listing.signature === signature ? listing.result : null;
+  const digest = result ? positiveJanusCandidatesDigest(result) : null;
+  // A record made against other files, or against a file that now reads
+  // differently, describes another plate.
+  const record =
+    stored && stored.input_signature === signature &&
+    (digest === null || stored.candidates_digest === digest)
+      ? stored
+      : null;
+
+  // A finished export describes the files it was made from; once the inputs
+  // change, the line saying it was written no longer describes this screen.
+  useEffect(() => {
+    setWritten(null);
+    setStaleNotice(false);
+  }, [signature]);
+
+  /** Drop a stored selection the screen no longer reads the same way. */
+  function retireStale(fresh: PositiveJanusCandidatesResult): boolean {
+    if (
+      !roundId || !stored || stored.input_signature !== signature ||
+      stored.candidates_digest === positiveJanusCandidatesDigest(fresh)
+    ) {
+      return false;
+    }
+    useRoundStore.getState().updateRoundField(roundId, "positive_janus", null);
+    setStaleNotice(true);
+    return true;
+  }
   const defaults = result?.defaults ?? null;
   const aboveWells = useMemo(
     () => (result ? result.candidates.filter((c) => c.above_wt).map((c) => c.well) : []),
@@ -102,9 +143,10 @@ export function PositiveJanusPanel({
   const destRack = record?.dest_rack ?? defaults?.dest_rack ?? "";
 
   function writeRecord(patch: Partial<PositiveJanusRecord>) {
-    if (!roundId || !defaults || !sources) return;
+    if (!roundId || !defaults || !sources || digest === null) return;
     const next: PositiveJanusRecord = {
       input_signature: signature,
+      candidates_digest: digest,
       selected_wells: record ? record.selected_wells : aboveWells,
       volume: record?.volume ?? defaults.volume,
       source_rack: record?.source_rack ?? defaults.source_rack,
@@ -113,6 +155,7 @@ export function PositiveJanusPanel({
     };
     useRoundStore.getState().updateRoundField(roundId, "positive_janus", next);
     setWritten(null);
+    setStaleNotice(false);
   }
 
   function toggle(well: string, checked: boolean) {
@@ -131,6 +174,7 @@ export function PositiveJanusPanel({
     setWritten(null);
     try {
       const res = await positiveJanusCandidates(sources);
+      retireStale(res);
       setListing({ signature: requested, result: res });
     } catch (err) {
       setError(describeRpcError(err, "mame"));
@@ -145,7 +189,7 @@ export function PositiveJanusPanel({
     sourceRack.trim() !== "" && destRack.trim() !== "" && !isExporting;
 
   async function handleExport() {
-    if (!sources || !canExport || volume === null) return;
+    if (!sources || !canExport || volume === null || digest === null) return;
     const filename = `positive_janus_r${roundNumber}.csv`;
     const target = await save({
       defaultPath: defaultFolder ? joinPath(defaultFolder, filename) : filename,
@@ -157,6 +201,16 @@ export function PositiveJanusPanel({
     setError(null);
     try {
       const parent = parentDir(target);
+      // Read the screen again first: the file may have been overwritten under
+      // the same path since the clones were chosen. A different reading stops
+      // the export and starts the selection again from the above-WT set.
+      const fresh = await positiveJanusCandidates(sources);
+      if (positiveJanusCandidatesDigest(fresh) !== digest) {
+        retireStale(fresh);
+        setStaleNotice(true);
+        setListing({ signature, result: fresh });
+        return;
+      }
       if (parent) await mkdir(parent, { recursive: true });
       const res = await exportPositiveJanus({
         ...sources,
@@ -323,6 +377,11 @@ export function PositiveJanusPanel({
         </>
       )}
 
+      {staleNotice && (
+        <p role="alert" className="text-xs text-foreground">
+          {t("mame.positiveJanus.staleSelection")}
+        </p>
+      )}
       {written !== null && (
         <p role="status" className="break-all text-xs text-foreground">
           {t("mame.positiveJanus.exported", { count: written.count, path: written.path })}

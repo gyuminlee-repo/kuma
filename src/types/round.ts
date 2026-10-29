@@ -107,6 +107,12 @@ export interface RoundAdvisoryRecord {
  */
 export interface PositiveJanusRecord {
   input_signature: string
+  /**
+   * What the screen read as when the selection was made (every measured well
+   * and its above-WT flag). Paths alone cannot tell a report overwritten in
+   * place, so a different reading retires the record too.
+   */
+  candidates_digest: string
   selected_wells: string[]
   volume: number
   source_rack: string

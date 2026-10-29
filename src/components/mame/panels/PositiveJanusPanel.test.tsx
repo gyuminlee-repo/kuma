@@ -15,7 +15,11 @@ import { save } from "@tauri-apps/plugin-dialog";
 import { exportPositiveJanus, positiveJanusCandidates } from "@/lib/ipc-mame";
 import type { PositiveJanusCandidatesResult } from "@/types/mame/positive_janus";
 import type { Round } from "@/types/round";
-import { PositiveJanusPanel, positiveJanusSignature } from "./PositiveJanusPanel";
+import {
+  PositiveJanusPanel,
+  positiveJanusCandidatesDigest,
+  positiveJanusSignature,
+} from "./PositiveJanusPanel";
 
 const SOURCES = { round1_report_xlsx: "/p/round1.xlsx", layout_xlsx: "/p/layout.xlsx" };
 
@@ -112,6 +116,7 @@ describe("PositiveJanusPanel", () => {
 
     expect(record()).toEqual({
       input_signature: positiveJanusSignature(SOURCES),
+      candidates_digest: positiveJanusCandidatesDigest(CANDIDATES),
       selected_wells: ["F1", "E3"],
       volume: 50,
       source_rack: "final cell stock",
@@ -137,6 +142,7 @@ describe("PositiveJanusPanel", () => {
     seedRound({
       positive_janus: {
         input_signature: positiveJanusSignature(SOURCES),
+        candidates_digest: positiveJanusCandidatesDigest(CANDIDATES),
         selected_wells: ["E3"],
         volume: 60,
         source_rack: "stock",
@@ -168,5 +174,81 @@ describe("PositiveJanusPanel", () => {
     expect(
       (screen.getByRole("button", { name: "Export JANUS mapping" }) as HTMLButtonElement).disabled,
     ).toBe(true);
+  });
+
+  it("retires a stored selection when the same path now reads differently", async () => {
+    seedRound({
+      positive_janus: {
+        input_signature: positiveJanusSignature(SOURCES),
+        // Made when E3 was the only clone above WT, before the file was overwritten.
+        candidates_digest: "F1:0,D2:0,E3:1",
+        selected_wells: ["E3"],
+        volume: 60,
+        source_rack: "stock",
+        dest_rack: "dw",
+      },
+    });
+    renderPanel();
+    fireEvent.click(screen.getByRole("button", { name: "Find positive clones" }));
+    await waitFor(() => expect(screen.getByLabelText(/F1/)).toBeTruthy());
+    expect((screen.getByLabelText(/F1/) as HTMLInputElement).checked).toBe(true);
+    expect((screen.getByLabelText(/E3/) as HTMLInputElement).checked).toBe(false);
+    expect((screen.getByLabelText("Volume (µL)") as HTMLInputElement).value).toBe("70");
+    expect(record()).toBeNull();
+    expect(screen.getByRole("alert").textContent).toMatch(/reads differently/);
+  });
+
+  it("reads the screen again before exporting and stops when it changed", async () => {
+    vi.mocked(save).mockResolvedValue("/p/activity/positive.csv");
+    renderPanel();
+    fireEvent.click(screen.getByRole("button", { name: "Find positive clones" }));
+    await waitFor(() => expect(screen.getByLabelText(/E3/)).toBeTruthy());
+    fireEvent.click(screen.getByLabelText(/E3/));
+    expect(record()?.selected_wells).toEqual(["F1", "D2", "E3"]);
+
+    // Overwritten in place: D2 is no longer above WT.
+    const changed: PositiveJanusCandidatesResult = {
+      ...CANDIDATES,
+      candidates: CANDIDATES.candidates.map((c) =>
+        c.well === "D2" ? { ...c, relative: 0.9, above_wt: false } : c,
+      ),
+      n_above_wt: 1,
+    };
+    vi.mocked(positiveJanusCandidates).mockResolvedValue(changed);
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Export JANUS mapping" }));
+    });
+    await waitFor(() => expect(screen.getByRole("alert")).toBeTruthy());
+    expect(exportPositiveJanus).not.toHaveBeenCalled();
+    expect(record()).toBeNull();
+    expect((screen.getByLabelText(/D2/) as HTMLInputElement).checked).toBe(false);
+    expect((screen.getByLabelText(/E3/) as HTMLInputElement).checked).toBe(false);
+    expect((screen.getByLabelText(/F1/) as HTMLInputElement).checked).toBe(true);
+  });
+
+  it("clears the written notice when the inputs change", async () => {
+    vi.mocked(save).mockResolvedValue("/p/activity/positive.csv");
+    vi.mocked(exportPositiveJanus).mockResolvedValue({
+      output_path: "/p/activity/positive.csv",
+      row_count: 2,
+      rows: [{}, {}],
+    });
+    const { rerender } = renderPanel();
+    fireEvent.click(screen.getByRole("button", { name: "Find positive clones" }));
+    await waitFor(() => expect(screen.getByLabelText(/F1/)).toBeTruthy());
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Export JANUS mapping" }));
+    });
+    await waitFor(() => expect(screen.getByText(/Wrote 2 transfers/)).toBeTruthy());
+
+    rerender(
+      <PositiveJanusPanel
+        sources={{ ...SOURCES, layout_xlsx: "/p/layout2.xlsx" }}
+        roundId="r1"
+        roundNumber={1}
+        defaultFolder="/p/activity"
+      />,
+    );
+    expect(screen.queryByText(/Wrote 2 transfers/)).toBeNull();
   });
 });

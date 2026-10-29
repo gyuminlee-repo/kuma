@@ -1617,7 +1617,8 @@
       "exporting": "Exportando...",
       "chooseOutput": "Guardar mapeo JANUS de clones positivos",
       "exported": "Se escribieron {{count}} transferencias en {{path}}",
-      "error": "Falló el mapeo JANUS de clones positivos"
+      "error": "Falló el mapeo JANUS de clones positivos",
+      "staleSelection": "El cribado ya no coincide con el que se usó al elegir los clones (el archivo cambió). La selección vuelve a empezar con los clones por encima del tipo silvestre; revísela y exporte de nuevo."
     }
   },
   "home": {

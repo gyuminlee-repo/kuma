@@ -1617,7 +1617,8 @@
       "exporting": "Exportando...",
       "chooseOutput": "Salvar mapeamento JANUS de clones positivos",
       "exported": "{{count}} transferências gravadas em {{path}}",
-      "error": "Falha no mapeamento JANUS de clones positivos"
+      "error": "Falha no mapeamento JANUS de clones positivos",
+      "staleSelection": "A triagem não corresponde mais à usada ao escolher os clones (o arquivo mudou). A seleção recomeça pelos clones acima do tipo selvagem; revise e exporte novamente."
     }
   },
   "home": {

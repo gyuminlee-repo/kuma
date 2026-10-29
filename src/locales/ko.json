@@ -1617,7 +1617,8 @@
       "exporting": "내보내는 중...",
       "chooseOutput": "Positive clone JANUS mapping 저장",
       "exported": "{{count}}건을 {{path}} 에 썼다",
-      "error": "Positive clone JANUS mapping 실패"
+      "error": "Positive clone JANUS mapping 실패",
+      "staleSelection": "clone 을 고를 때와 측정 파일 내용이 달라졌다(파일이 바뀌었다). 선택을 WT 초과 clone 부터 다시 시작했으니 확인한 뒤 다시 내보낸다."
     }
   },
   "home": {

@@ -1617,7 +1617,8 @@
       "exporting": "Export en cours...",
       "chooseOutput": "Enregistrer le mappage JANUS des clones positifs",
       "exported": "{{count}} transferts écrits dans {{path}}",
-      "error": "Échec du mappage JANUS des clones positifs"
+      "error": "Échec du mappage JANUS des clones positifs",
+      "staleSelection": "Le criblage ne correspond plus à celui utilisé pour choisir les clones (le fichier a changé). La sélection repart des clones au-dessus du type sauvage ; vérifiez-la puis exportez à nouveau."
     }
   },
   "home": {

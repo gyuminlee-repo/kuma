@@ -1617,7 +1617,8 @@
       "exporting": "正在导出...",
       "chooseOutput": "保存阳性克隆 JANUS 映射",
       "exported": "已将 {{count}} 次转移写入 {{path}}",
-      "error": "阳性克隆 JANUS 映射失败"
+      "error": "阳性克隆 JANUS 映射失败",
+      "staleSelection": "筛选内容与选择克隆时不同(文件已更改)。已从高于野生型的克隆重新开始选择,请检查后重新导出。"
     }
   },
   "home": {
