@@ -26,6 +26,11 @@ Expand `Advanced options` for the values below.
 | Primer Length `Limit` | On, with F at 18 to 39 bp and R at 19 to 27 bp. Turning it off uses the length bounds of the selected polymerase preset. |
 | `Auto-rescue failed mutations` | On. Runs a retry pass with relaxed constraints. |
 | `Seed:` | Empty. A value is recorded with the design only and does not change primer ranking. |
+| `Strict off-target check` | Off. When on, a candidate is also dropped when any stretch of 15 bases or more of either primer matches the template exactly outside its intended site, on either strand, whether or not the 3' end could extend there. It is stricter than the default rules. A mutation that loses every candidate only to this check says so in its failure reason, and turning the check off recovers it. |
+
+The default off-target rules also look at sites that cross the origin of a circular template and at partial sites past the end of a linear sequence. A template counts as circular when its file declares it, as GenBank and SnapGene files do; a plain FASTA is read as linear.
+
+After you leave a number field, it shows the value that was actually stored. An empty or non-numeric entry returns to the default, and a field that limits its range (for example `Tm tol ±`, capped at 10) shows the limited value.
 
 ## Messages you may see
 
