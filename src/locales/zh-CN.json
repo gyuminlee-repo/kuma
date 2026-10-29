@@ -1597,6 +1597,27 @@
       "error": "无法应用确认：{{message}}",
       "workbookFailed": "确认已应用，但无法重写结果工作簿：{{message}}",
       "resultFileFailed": "确认已应用，但项目的结果文件未更新，重新打开项目时可能丢失：{{message}}"
+    },
+    "positiveJanus": {
+      "title": "阳性克隆 JANUS 映射",
+      "description": "将第 1 轮高于野生型的克隆从最终细胞库(96 PCR 板)转移到 96 深孔板(LB + Km),每个克隆一个孔,从 A1 按列填充。可选步骤,不影响 EVOLVEpro 构建。",
+      "needsPlateScreen": "需要注明板孔位的第 1 轮筛选文件:GC 表、原始报告或数字 ID 报告。",
+      "find": "查找阳性克隆",
+      "finding": "正在读取筛选...",
+      "savedSelection": "之前已选择 {{count}} 个克隆。查找阳性克隆以重新检查。",
+      "summary": "已选择 {{selected}}/{{total}} 个克隆(高于野生型 {{above}} 个)",
+      "resetSelection": "恢复为高于野生型",
+      "listLabel": "已测定的克隆",
+      "relative": "WT 的 {{value}} 倍",
+      "aboveWt": "高于 WT",
+      "volume": "体积 (µL)",
+      "sourceRack": "源板名称",
+      "destRack": "目标板名称",
+      "export": "导出 JANUS 映射",
+      "exporting": "正在导出...",
+      "chooseOutput": "保存阳性克隆 JANUS 映射",
+      "exported": "已将 {{count}} 次转移写入 {{path}}",
+      "error": "阳性克隆 JANUS 映射失败"
     }
   },
   "home": {

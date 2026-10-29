@@ -13,6 +13,12 @@ import type {
   DetectMeasurementSourceParams,
   DetectMeasurementSourceResult,
 } from "@/types/mame/detect_measurement_source";
+import type {
+  PositiveJanusCandidatesResult,
+  PositiveJanusExportParams,
+  PositiveJanusExportResult,
+  PositiveJanusSourceParams,
+} from "@/types/mame/positive_janus";
 import { getMameRpcResultValidator } from "@/types/mame/validators";
 
 type ProgressEventPayload = {
@@ -203,6 +209,32 @@ export async function detectMeasurementSource(
 ): Promise<DetectMeasurementSourceResult> {
   return sendRequest<DetectMeasurementSourceResult>(
     "mame.activity.detect_measurement_source",
+    params as unknown as Record<string, unknown>,
+  );
+}
+
+/**
+ * Step 4.1: every measured non-WT well of the round-1 screen, flagged above
+ * wild-type or not. Reads the file, writes nothing.
+ */
+export async function positiveJanusCandidates(
+  params: PositiveJanusSourceParams,
+): Promise<PositiveJanusCandidatesResult> {
+  return sendRequest<PositiveJanusCandidatesResult>(
+    "mame.activity.positive_janus_candidates",
+    params as unknown as Record<string, unknown>,
+  );
+}
+
+/**
+ * Step 4.1: write the positive clone JANUS worklist for the selected wells.
+ * Manual export only; a build never writes it.
+ */
+export async function exportPositiveJanus(
+  params: PositiveJanusExportParams,
+): Promise<PositiveJanusExportResult> {
+  return sendRequest<PositiveJanusExportResult>(
+    "mame.activity.export_positive_janus",
     params as unknown as Record<string, unknown>,
   );
 }

@@ -94,6 +94,25 @@ export interface RoundAdvisoryRecord {
   input_signature: string
 }
 
+/**
+ * The operator's step 4.1 positive clone JANUS selection, kept with the screen
+ * it was made against.
+ *
+ * `selected_wells` is the operator's own list once anything was changed: the
+ * above-WT clones start checked, and a clone may be dropped or a clone below
+ * wild-type added. `input_signature` names the screen and mapping files; when
+ * the files in front of the operator are different, the record no longer
+ * applies and the panel starts again from the above-WT set rather than carry a
+ * selection over to another plate.
+ */
+export interface PositiveJanusRecord {
+  input_signature: string
+  selected_wells: string[]
+  volume: number
+  source_rack: string
+  dest_rack: string
+}
+
 export interface Round {
   id: string
   n: number
@@ -123,4 +142,10 @@ export interface Round {
    * which is what those projects report today.
    */
   advisory?: RoundAdvisoryRecord | null
+  /**
+   * Step 4.1 positive clone JANUS selection. Optional for the same reason as
+   * `evolvepro_input`: absent on older snapshots, and absent means no clone
+   * was ever adjusted, so the panel offers the above-WT set.
+   */
+  positive_janus?: PositiveJanusRecord | null
 }

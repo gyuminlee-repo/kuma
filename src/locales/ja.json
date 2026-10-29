@@ -1597,6 +1597,27 @@
       "error": "確認を適用できませんでした：{{message}}",
       "workbookFailed": "確認は適用されましたが、結果ブックを書き直せませんでした：{{message}}",
       "resultFileFailed": "確認は適用されましたが、プロジェクトの結果ファイルは更新されなかったため、プロジェクトを開き直すと反映されない可能性があります：{{message}}"
+    },
+    "positiveJanus": {
+      "title": "陽性クローンの JANUS マッピング",
+      "description": "ラウンド1で野生型を上回ったクローンを最終細胞ストック(96 PCR プレート)から 96 ディープウェルプレート(LB + Km)へ移します。1クローン1ウェルで A1 から列方向に詰めます。任意の手順で、EVOLVEpro の作成には影響しません。",
+      "needsPlateScreen": "プレートのウェルを記したラウンド1のスクリーニングが必要です(GC シート、生レポート、数値 ID レポート)。",
+      "find": "陽性クローンを探す",
+      "finding": "スクリーニングを読み込み中...",
+      "savedSelection": "以前に {{count}} 個のクローンを選択しました。陽性クローンを探して確認してください。",
+      "summary": "{{total}} 個中 {{selected}} 個を選択(野生型超え {{above}} 個)",
+      "resetSelection": "野生型超えに戻す",
+      "listLabel": "測定されたクローン",
+      "relative": "WT の {{value}} 倍",
+      "aboveWt": "WT 超え",
+      "volume": "容量 (µL)",
+      "sourceRack": "移動元プレート名",
+      "destRack": "移動先プレート名",
+      "export": "JANUS マッピングを書き出す",
+      "exporting": "書き出し中...",
+      "chooseOutput": "陽性クローンの JANUS マッピングを保存",
+      "exported": "{{count}} 件の移送を {{path}} に書き込みました",
+      "error": "陽性クローンの JANUS マッピングに失敗しました"
     }
   },
   "home": {

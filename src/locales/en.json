@@ -1597,6 +1597,27 @@
       "error": "Could not apply the confirmation: {{message}}",
       "workbookFailed": "The confirmation was applied, but the result workbook could not be rewritten: {{message}}",
       "resultFileFailed": "The confirmation was applied, but the project's result file was not updated, so it may be missing when the project is reopened: {{message}}"
+    },
+    "positiveJanus": {
+      "title": "Positive clone JANUS mapping",
+      "description": "Moves the round-1 clones above wild-type from the final cell stock (96 PCR plate) to a 96 deep well plate (LB + Km), one well per clone, filled from A1 down each column. Optional: it does not affect the EVOLVEpro build.",
+      "needsPlateScreen": "Needs a round-1 screen that names plate wells: a GC sheet, a raw report or a numeric-ID report.",
+      "find": "Find positive clones",
+      "finding": "Reading the screen...",
+      "savedSelection": "{{count}} clones were selected earlier. Find positive clones to review them.",
+      "summary": "{{selected}} of {{total}} clones selected ({{above}} above wild-type)",
+      "resetSelection": "Reset to above wild-type",
+      "listLabel": "Measured clones",
+      "relative": "{{value}}x WT",
+      "aboveWt": "above WT",
+      "volume": "Volume (µL)",
+      "sourceRack": "Source plate name",
+      "destRack": "Destination plate name",
+      "export": "Export JANUS mapping",
+      "exporting": "Exporting...",
+      "chooseOutput": "Save positive clone JANUS mapping",
+      "exported": "Wrote {{count}} transfers to {{path}}",
+      "error": "Positive clone JANUS mapping failed"
     }
   },
   "home": {

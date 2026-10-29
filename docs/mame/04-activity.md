@@ -74,3 +74,14 @@ variant가 export되려면 해당 evidence가 모두 만족되어야 한다.
 성공 출력은 엄격한 두 열 `Variant`, `activity`를 가진다. raw Agilent 형식의 선택적 GC review export를 포함한 산출물 묶음은 임시 파일에 모두 작성된 뒤 함께 publish되므로, 중간 실패가 기존 출력 일부만 덮어쓰지 않는다.
 
 Step 4 폼 상태는 프로젝트 경로별로 버전 관리해 저장한다. Analyze 완료 시 확보한 `verdict_xlsx`와 evidence signature는 실행을 시작한 round에 기록되고 Step 4에 연결된다. 측정 입력, verdict evidence 또는 출력 경로가 바뀌면 이전 완료 서명은 무효가 되어 다시 build해야 한다.
+
+## 4.6 Positive clone JANUS mapping (선택)
+
+1반복 GC 결과에서 WT 보다 높은 clone 을 final cell stock(96 PCR plate)에서 96 deep well plate(LB + Km)로 옮기는 JANUS 워크리스트를 4.1 화면에서 따로 내보낸다. EVOLVEpro build 와 Step 4 완료 판정에는 관여하지 않는다.
+
+- 입력은 4.1 이 받은 1반복 측정 파일이다. plate well 을 적는 형식(GC sheet, raw report, 숫자 ID report)만 쓰며 long-format 은 원본 well 이 없어 대상이 아니다. well 이름은 build 와 같은 매핑(`layout_xlsx`, 없으면 verdict 의 `mutant_id`)으로 붙이고 숫자 ID report 는 build 의 order source 로 디코드한다.
+- 선별 규칙은 build 가 숫자 ID 확인 측정의 부분집합을 고를 때 쓰는 규칙 그대로다(`above_wt_slots`). 상대값 평균이 1.0 보다 커야 하고 정확히 1.0 이면 빠진다. WT well 은 목록에 나오지 않는다. NGS verdict 로 거르지 않는다.
+- 측정된 clone 이 모두 체크박스로 나오고 WT 초과 clone 이 처음에 체크된다. 운영자가 빼거나 WT 이하 clone 을 더한 선택은 round 에 기록되어 autosave 와 프로젝트에 남는다. 측정 파일이나 매핑 파일이 바뀌면 그 기록은 적용하지 않고 WT 초과 집합에서 다시 시작한다.
+- 선택된 clone 은 원본 well 의 열 우선 순서(A1, B1 ... H1, A2)로 정렬되어 대상 plate 의 A1 부터 열 우선으로 한 칸씩 채워진다.
+- 파일은 3단계와 같은 8열 `device` 스키마(`name | type | no | Asp. Rack | Asp. Posi | Dsp. Rack | Dsp. Posi | volume`)다. rack 두 열에는 plate 이름을 쓰며 기본값은 `final cell stock` 과 `deep well plate` 이다. 부피 기본값은 3단계와 같은 70 µL 이고 화면에서 바꿀 수 있다.
+- 분석이나 build 가 자동으로 쓰지 않는다. 내보내기 버튼을 누를 때 저장 대화상자로 고른 경로에 임시 파일로 쓴 뒤 이름을 바꾼다.

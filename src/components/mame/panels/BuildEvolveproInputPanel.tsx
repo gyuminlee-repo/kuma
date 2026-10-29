@@ -30,6 +30,8 @@ import {
 } from "@/lib/round/roundArtifacts";
 import { Button } from "@/components/ui/button";
 import { ResequenceEvidencePanel } from "./ResequenceEvidencePanel";
+import { PositiveJanusPanel } from "./PositiveJanusPanel";
+import type { PositiveJanusSourceParams } from "@/types/mame/positive_janus";
 import { Input } from "@/components/ui/input";
 import { InlineHelp } from "@/components/ui/InlineHelp";
 import {
@@ -652,6 +654,27 @@ export function BuildEvolveproInputPanel() {
   if (form.migrationNotice) missing.push({ label: "Unsupported saved mode", fieldId: "bep-input-files" });
 
   const canBuild = missing.length === 0 && !isBuilding && !unresolved && !additionalUnresolved;
+
+  // The step 4.1 positive clone JANUS mapping reads the same round-1 screen.
+  // Only the plate-addressed formats name a source well, so the long format
+  // has none, and a file whose format is not settled yet is not offered.
+  const positiveJanusSources = useMemo((): PositiveJanusSourceParams | null => {
+    if (unresolved || form.primarySource === "longFormat") return null;
+    const path = primaryPathOf(form);
+    if (!path) return null;
+    const screen =
+      form.primarySource === "gcSheet"
+        ? { gc_data_xlsx: path }
+        : form.primarySource === "rawReport"
+          ? { round1_report_xlsx: path }
+          : { numeric_report_xlsx: path };
+    return {
+      ...screen,
+      verdict_xlsx: form.verdictXlsx || undefined,
+      layout_xlsx: form.layoutXlsx || undefined,
+      expected_xlsx: form.expectedXlsx || undefined,
+    };
+  }, [form, unresolved]);
 
   function buildParams(): BuildEvolveproInputParams {
     const layout = form.layoutXlsx || undefined;
@@ -1395,6 +1418,15 @@ export function BuildEvolveproInputPanel() {
       ) : (
         <BuildResult result={result} />
       )}
+
+      <PositiveJanusPanel
+        sources={positiveJanusSources}
+        roundId={activeRoundId}
+        roundNumber={activeRoundNumber}
+        defaultFolder={
+          project?.path ? parentDir(projectFile(project.path, EVOLVEPRO_INPUT_FOLDER, "_")) : null
+        }
+      />
     </section>
   );
 }

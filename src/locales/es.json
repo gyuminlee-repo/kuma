@@ -1597,6 +1597,27 @@
       "error": "No se pudo aplicar la confirmación: {{message}}",
       "workbookFailed": "La confirmación se aplicó, pero no se pudo reescribir el libro de resultados: {{message}}",
       "resultFileFailed": "La confirmación se aplicó, pero el archivo de resultados del proyecto no se actualizó, por lo que puede faltar al reabrir el proyecto: {{message}}"
+    },
+    "positiveJanus": {
+      "title": "Mapeo JANUS de clones positivos",
+      "description": "Transfiere los clones de la ronda 1 por encima del tipo silvestre desde el stock celular final (placa PCR de 96) a una placa de pozo profundo de 96 (LB + Km), un pozo por clon, desde A1 por columnas. Opcional: no afecta a la generación de EVOLVEpro.",
+      "needsPlateScreen": "Requiere un cribado de la ronda 1 con pozos de placa: hoja GC, informe sin procesar o informe con ID numéricos.",
+      "find": "Buscar clones positivos",
+      "finding": "Leyendo el cribado...",
+      "savedSelection": "Se seleccionaron {{count}} clones antes. Busque clones positivos para revisarlos.",
+      "summary": "{{selected}} de {{total}} clones seleccionados ({{above}} por encima del tipo silvestre)",
+      "resetSelection": "Restablecer a los superiores al tipo silvestre",
+      "listLabel": "Clones medidos",
+      "relative": "{{value}} veces el WT",
+      "aboveWt": "sobre WT",
+      "volume": "Volumen (µL)",
+      "sourceRack": "Nombre de la placa de origen",
+      "destRack": "Nombre de la placa de destino",
+      "export": "Exportar mapeo JANUS",
+      "exporting": "Exportando...",
+      "chooseOutput": "Guardar mapeo JANUS de clones positivos",
+      "exported": "Se escribieron {{count}} transferencias en {{path}}",
+      "error": "Falló el mapeo JANUS de clones positivos"
     }
   },
   "home": {

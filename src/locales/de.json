@@ -1597,6 +1597,27 @@
       "error": "Die Bestätigung konnte nicht angewendet werden: {{message}}",
       "workbookFailed": "Die Bestätigung wurde angewendet, aber die Ergebnis-Arbeitsmappe konnte nicht neu geschrieben werden: {{message}}",
       "resultFileFailed": "Die Bestätigung wurde angewendet, aber die Ergebnisdatei des Projekts wurde nicht aktualisiert; sie fehlt möglicherweise beim erneuten Öffnen des Projekts: {{message}}"
+    },
+    "positiveJanus": {
+      "title": "JANUS-Zuordnung positiver Klone",
+      "description": "Überträgt die Klone der Runde 1 über dem Wildtyp vom finalen Zellstock (96-PCR-Platte) in eine 96-Deep-Well-Platte (LB + Km), ein Well pro Klon, ab A1 spaltenweise. Optional: beeinflusst den EVOLVEpro-Build nicht.",
+      "needsPlateScreen": "Benötigt ein Screening der Runde 1 mit Plattenwells: GC-Tabelle, Rohbericht oder Bericht mit numerischen IDs.",
+      "find": "Positive Klone suchen",
+      "finding": "Screening wird gelesen...",
+      "savedSelection": "Zuvor wurden {{count}} Klone ausgewählt. Positive Klone suchen, um sie zu prüfen.",
+      "summary": "{{selected}} von {{total}} Klonen ausgewählt ({{above}} über Wildtyp)",
+      "resetSelection": "Auf über Wildtyp zurücksetzen",
+      "listLabel": "Gemessene Klone",
+      "relative": "{{value}}-fach WT",
+      "aboveWt": "über WT",
+      "volume": "Volumen (µL)",
+      "sourceRack": "Name der Quellplatte",
+      "destRack": "Name der Zielplatte",
+      "export": "JANUS-Zuordnung exportieren",
+      "exporting": "Export läuft...",
+      "chooseOutput": "JANUS-Zuordnung positiver Klone speichern",
+      "exported": "{{count}} Transfers nach {{path}} geschrieben",
+      "error": "JANUS-Zuordnung positiver Klone fehlgeschlagen"
     }
   },
   "home": {

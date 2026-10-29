@@ -1597,6 +1597,27 @@
       "error": "Impossible d'appliquer la confirmation : {{message}}",
       "workbookFailed": "La confirmation a été appliquée, mais le classeur de résultats n'a pas pu être réécrit : {{message}}",
       "resultFileFailed": "La confirmation a été appliquée, mais le fichier de résultats du projet n'a pas été mis à jour ; elle peut manquer à la réouverture du projet : {{message}}"
+    },
+    "positiveJanus": {
+      "title": "Mappage JANUS des clones positifs",
+      "description": "Transfère les clones du tour 1 au-dessus du type sauvage du stock cellulaire final (plaque PCR 96) vers une plaque 96 puits profonds (LB + Km), un puits par clone, à partir de A1 colonne par colonne. Facultatif : sans effet sur la génération EVOLVEpro.",
+      "needsPlateScreen": "Nécessite un criblage du tour 1 indiquant les puits : feuille GC, rapport brut ou rapport à identifiants numériques.",
+      "find": "Rechercher les clones positifs",
+      "finding": "Lecture du criblage...",
+      "savedSelection": "{{count}} clones ont été sélectionnés auparavant. Recherchez les clones positifs pour les vérifier.",
+      "summary": "{{selected}} clones sélectionnés sur {{total}} ({{above}} au-dessus du type sauvage)",
+      "resetSelection": "Revenir aux clones au-dessus du type sauvage",
+      "listLabel": "Clones mesurés",
+      "relative": "{{value}} fois le WT",
+      "aboveWt": "au-dessus du WT",
+      "volume": "Volume à transférer (µL)",
+      "sourceRack": "Nom de la plaque source",
+      "destRack": "Nom de la plaque de destination",
+      "export": "Exporter le mappage JANUS",
+      "exporting": "Export en cours...",
+      "chooseOutput": "Enregistrer le mappage JANUS des clones positifs",
+      "exported": "{{count}} transferts écrits dans {{path}}",
+      "error": "Échec du mappage JANUS des clones positifs"
     }
   },
   "home": {
