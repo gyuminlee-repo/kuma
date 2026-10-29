@@ -1,4 +1,4 @@
-import type { ChangeEvent, KeyboardEvent } from "react";
+import type { NumberField } from "../../../hooks/useNumberField";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { InlineHelp } from "../../ui/InlineHelp";
@@ -323,10 +323,7 @@ export function RoundSettingsSection(props: {
 export function AdvancedSettingsSection(props: {
   showAdvanced: boolean;
   setShowAdvanced: (v: boolean | ((p: boolean) => boolean)) => void;
-  maxPerPosStr: string;
-  setMaxPerPosStr: (v: string) => void;
-  commitMaxPerPos: () => void;
-  onEnterBlur: (e: KeyboardEvent<HTMLInputElement>) => void;
+  maxPerPosInput: NumberField<number>["inputProps"];
   domainStrategy: "proportional" | "equal";
   setDomainStrategy: (v: "proportional" | "equal") => void;
   domainOverlapPolicy: "first" | "largest";
@@ -347,10 +344,7 @@ export function AdvancedSettingsSection(props: {
   const {
     showAdvanced,
     setShowAdvanced,
-    maxPerPosStr,
-    setMaxPerPosStr,
-    commitMaxPerPos,
-    onEnterBlur,
+    maxPerPosInput,
     domainStrategy,
     setDomainStrategy,
     domainOverlapPolicy,
@@ -390,10 +384,7 @@ export function AdvancedSettingsSection(props: {
                 min={1}
                 max={20}
                 className="h-6 w-10 rounded-control border border-border bg-background px-1 text-center text-caption"
-                value={maxPerPosStr}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setMaxPerPosStr(e.target.value)}
-                onBlur={commitMaxPerPos}
-                onKeyDown={onEnterBlur}
+                {...maxPerPosInput}
               />
               <span>{t("diversitySections.positionCapUnit")}</span>
               <HelpTip>{t("diversitySections.positionCapHelp")}</HelpTip>

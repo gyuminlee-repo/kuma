@@ -1,5 +1,5 @@
 import { isStrictSpatialMode } from "@/lib/strictSpatial";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "../../../store/appStore";
 import { useRoundStore } from "@/store/round/roundSlice";
@@ -13,6 +13,13 @@ import { FormatPreviewHelp } from "@/components/ui/FormatPreviewHelp";
 import { ArtifactBadge } from "../../widgets/ArtifactBadge";
 import { SourceColumnPanel } from "./SourceColumnPanel";
 import { EvolveproSelectTable } from "../../widgets/EvolveproSelectTable";
+import { useNumberField } from "../../../hooks/useNumberField";
+
+/** An integer the text starts with, or nothing for text that states none. */
+function parseIntOrNothing(text: string): number | undefined {
+  const n = Number.parseInt(text, 10);
+  return Number.isNaN(n) ? undefined : n;
+}
 
 export function MutationInput() {
   const { t } = useTranslation();
@@ -73,53 +80,31 @@ export function MutationInput() {
     [mutationText],
   );
 
-  const [extraExposedStr, setExtraExposedStr] = useState(String(evolveproExtraExposed));
-  const commitExtraExposed = () => {
-    const n = parseInt(extraExposedStr, 10);
-    if (isFinite(n) && n >= 0) setEvolveproExtraExposed(n);
-  };
-
-  // Resync from the store (project restore, Clear All), guarded like the
-  // campaign round fields below so a draft being typed is not clobbered.
-  useEffect(() => {
-    const parsed = Number.parseInt(extraExposedStr, 10);
-    if (Number.isNaN(parsed) || parsed === evolveproExtraExposed) return;
-    setExtraExposedStr(String(evolveproExtraExposed));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [evolveproExtraExposed]);
+  // Each draft commits on blur and the field then shows the stored value, so
+  // an entry the setter floors or rounds (0, 2.7) or refuses (blank, -1) does
+  // not stay on screen beside a different stored number.
+  const extraExposedInput = useNumberField({
+    value: evolveproExtraExposed,
+    parse: (text) => {
+      const n = parseInt(text, 10);
+      return Number.isFinite(n) && n >= 0 ? n : undefined;
+    },
+    commit: setEvolveproExtraExposed,
+  }).inputProps;
 
   // evolveproRound===0 renders as an empty field (unset), not the literal "0".
-  const [campaignRoundStr, setCampaignRoundStr] = useState(
-    evolveproRound === 0 ? "" : String(evolveproRound),
-  );
-  const commitCampaignRound = () => {
-    const n = Number.parseInt(campaignRoundStr, 10);
-    if (!Number.isNaN(n)) setEvolveproRound(n);
-  };
+  const campaignRoundInput = useNumberField({
+    value: evolveproRound,
+    parse: parseIntOrNothing,
+    commit: setEvolveproRound,
+    format: (round) => (round === 0 ? "" : String(round)),
+  }).inputProps;
 
-  // Resync from the store when it changes externally (round-prompt dialog,
-  // project hydration). Guarded so mid-edit typing is not clobbered: only
-  // resync when the committed store value differs from the parsed local value.
-  useEffect(() => {
-    const parsed = Number.parseInt(campaignRoundStr, 10);
-    const committedLocal = campaignRoundStr === "" ? 0 : parsed;
-    if (Number.isNaN(committedLocal) || committedLocal === evolveproRound) return;
-    setCampaignRoundStr(evolveproRound === 0 ? "" : String(evolveproRound));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [evolveproRound]);
-
-  const [campaignRoundSizeStr, setCampaignRoundSizeStr] = useState(String(roundSize));
-  const commitCampaignRoundSize = () => {
-    const n = Number.parseInt(campaignRoundSizeStr, 10);
-    if (!Number.isNaN(n)) setRoundSize(n);
-  };
-
-  useEffect(() => {
-    const parsed = Number.parseInt(campaignRoundSizeStr, 10);
-    if (Number.isNaN(parsed) || parsed === roundSize) return;
-    setCampaignRoundSizeStr(String(roundSize));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roundSize]);
+  const campaignRoundSizeInput = useNumberField({
+    value: roundSize,
+    parse: parseIntOrNothing,
+    commit: setRoundSize,
+  }).inputProps;
 
   const { pickerRows, bufferCap } = useMemo(() => {
     const selectedSet = new Set(evolveproSelectedVariants);
@@ -239,10 +224,7 @@ export function MutationInput() {
                 id="campaign-round-input"
                 type="number"
                 min={1}
-                value={campaignRoundStr}
-                onChange={(e) => setCampaignRoundStr(e.target.value)}
-                onBlur={commitCampaignRound}
-                onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                {...campaignRoundInput}
                 className="w-16 rounded border border-border bg-card px-1.5 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 aria-label={t("mutationInput.roundNumberAriaLabel")}
               />
@@ -254,10 +236,7 @@ export function MutationInput() {
                 type="number"
                 min={1}
                 max={960}
-                value={campaignRoundSizeStr}
-                onChange={(e) => setCampaignRoundSizeStr(e.target.value)}
-                onBlur={commitCampaignRoundSize}
-                onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                {...campaignRoundSizeInput}
                 className="w-16 rounded border border-border bg-card px-1.5 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 aria-label={t("mutationInput.roundSizeAriaLabel")}
               />
@@ -319,8 +298,7 @@ export function MutationInput() {
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <label htmlFor="extra-exposed-input" className="shrink-0">{t("mutationInput.extraExposedLabel")}</label>
                   <input id="extra-exposed-input" type="number" min={0} max={evolveproRankedCandidates.length}
-                    value={extraExposedStr} onChange={(e) => setExtraExposedStr(e.target.value)}
-                    onBlur={commitExtraExposed} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                    {...extraExposedInput}
                     className="w-16 rounded border border-border bg-card px-1.5 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                     aria-label={t("mutationInput.extraExposedAriaLabel")} />
                   <span className="text-caption">{t("mutationInput.extraExposedHint")}</span>
