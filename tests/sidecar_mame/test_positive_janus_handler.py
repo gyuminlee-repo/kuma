@@ -97,3 +97,31 @@ def test_export_refuses_and_writes_nothing(tmp_path: Path, patch):
 def test_unknown_parameter_is_refused(tmp_path: Path):
     with pytest.raises(ValueError):
         handle_positive_janus_candidates({**_sources(tmp_path), "activity_path": "x.csv"})
+
+
+def test_candidates_response_lists_rows_tied_to_no_well(tmp_path: Path):
+    from tests.mame.test_positive_janus import _report_with_untied_rows
+
+    response = handle_positive_janus_candidates({
+        "round1_report_xlsx": str(_report_with_untied_rows(tmp_path / "round1.xlsx")),
+        "layout_xlsx": str(_layout(tmp_path / "layout.xlsx")),
+    })
+    rows = response["excluded_rows"]
+    assert [row["sample_name"] for row in rows] == ["BLANK", "BLANK2", "12"]
+    assert {row["reason"] for row in rows} == {"non_well_sample", "numeric_calibration"}
+    assert set(rows[0]) == {"source", "sample_name", "reason", "row_index", "block_index", "area", "kept"}
+    assert all(row["source"] == "round1_report_xlsx" and row["block_index"] is not None for row in rows)
+    assert any("'BLANK'" in warning for warning in response["warnings"])
+    assert response["n_above_wt"] == 20
+
+
+def test_export_rows_ignore_the_untied_rows(tmp_path: Path):
+    from tests.mame.test_positive_janus import _report_with_untied_rows
+
+    plain = _sources(tmp_path)
+    noisy = {**plain, "round1_report_xlsx": str(_report_with_untied_rows(tmp_path / "noisy.xlsx"))}
+    wells = [c["well"] for c in handle_positive_janus_candidates(plain)["candidates"] if c["above_wt"]]
+    common = {"selected_wells": wells, "volume": 70.0, "source_rack": "final cell stock", "dest_rack": "deep well plate"}
+    a = handle_export_positive_janus({**plain, **common, "output_csv": str(tmp_path / "a.csv")})
+    b = handle_export_positive_janus({**noisy, **common, "output_csv": str(tmp_path / "b.csv")})
+    assert a["rows"] == b["rows"]

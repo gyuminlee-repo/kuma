@@ -9,6 +9,8 @@
  * `python-core/sidecar_mame/handlers/activity.py`.
  */
 
+import type { ReportedGcRow } from "./build_evolvepro_input";
+
 /** The round-1 screen and the mapping that names its wells. */
 export interface PositiveJanusSourceParams {
   gc_data_xlsx?: string;
@@ -43,7 +45,14 @@ export interface PositiveJanusDefaults {
 export interface PositiveJanusCandidatesResult {
   candidates: PositiveJanusCandidate[];
   n_above_wt: number;
+  /** Includes one line per reason naming every row in `excluded_rows`. */
   warnings: string[];
+  /**
+   * Every row the screen holds that no candidate came from (BLANK, a
+   * calibration number, a well the mapping does not name), with its position,
+   * as the step 4.1 build lists them in its manifest.
+   */
+  excluded_rows: ReportedGcRow[];
   defaults: PositiveJanusDefaults;
 }
 

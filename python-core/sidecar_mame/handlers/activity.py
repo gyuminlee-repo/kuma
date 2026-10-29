@@ -700,17 +700,20 @@ def handle_positive_janus_candidates(params: dict) -> dict:
 
     Nothing is written. The step 4.1 panel lists these as checkboxes with the
     above-WT ones checked, and states the defaults below for the deck fields.
+    Rows the screen set aside are returned with their position in
+    ``excluded_rows`` and named in ``warnings``, so none drops out silently.
     """
     from kuma_core.mame.export.janus_mapping import DEFAULT_SAMPLE_TYPE, DEFAULT_VOLUME_UL
     from kuma_core.mame.export.positive_janus import (
         DEFAULT_DEST_PLATE_NAME,
         DEFAULT_SOURCE_PLATE_NAME,
-        positive_candidates,
+        read_positive_screen,
     )
     from sidecar_mame.models import PositiveJanusCandidatesParams
 
     p = PositiveJanusCandidatesParams.model_validate(params)
-    candidates, warnings = positive_candidates(**_positive_janus_sources(p))
+    screen = read_positive_screen(**_positive_janus_sources(p))
+    candidates = screen.candidates
     return {
         "candidates": [
             {
@@ -723,7 +726,10 @@ def handle_positive_janus_candidates(params: dict) -> dict:
             for c in candidates
         ],
         "n_above_wt": sum(1 for c in candidates if c.above_wt),
-        "warnings": warnings,
+        "warnings": screen.warnings,
+        # Every row the screen holds that no candidate came from, by name,
+        # position and reason, as the build's manifest lists them.
+        "excluded_rows": [row.as_dict() for row in screen.excluded_rows],
         "defaults": {
             "volume": DEFAULT_VOLUME_UL,
             "source_rack": DEFAULT_SOURCE_PLATE_NAME,

@@ -38,13 +38,14 @@ from __future__ import annotations
 import csv
 import math
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from kuma_core.mame.activity.build_evolvepro_input import (
     above_wt_slots,
     read_primary_screen,
 )
+from kuma_core.mame.activity.gc_sample import ReportedRow
 from kuma_core.mame.export.janus_mapping import (
     DEFAULT_SAMPLE_TYPE,
     DEFAULT_VOLUME_UL,
@@ -68,9 +69,11 @@ __all__ = [
     "DEFAULT_DEST_PLATE_NAME",
     "DEFAULT_SOURCE_PLATE_NAME",
     "PositiveCandidate",
+    "PositiveScreen",
     "export_positive_janus_csv",
     "positive_candidates",
     "positive_janus_rows",
+    "read_positive_screen",
 ]
 
 
@@ -90,7 +93,22 @@ class PositiveCandidate:
     above_wt: bool
 
 
-def positive_candidates(
+@dataclass(frozen=True)
+class PositiveScreen:
+    """The candidates of a round-1 screen and every row its readers set aside.
+
+    ``excluded_rows`` carries the name, position and reason of each row the
+    screen holds but no candidate came from (``BLANK``, a calibration number,
+    a well the mapping does not name), the same records the step 4.1 build
+    writes to its manifest. ``warnings`` names them as the build's do.
+    """
+
+    candidates: list[PositiveCandidate]
+    warnings: list[str]
+    excluded_rows: list[ReportedRow] = field(default_factory=list)
+
+
+def read_positive_screen(
     *,
     gc_data_xlsx: str | Path | None = None,
     round1_report_xlsx: str | Path | None = None,
@@ -98,7 +116,7 @@ def positive_candidates(
     verdict_xlsx: str | Path | None = None,
     layout_xlsx: str | Path | None = None,
     expected_xlsx: str | Path | None = None,
-) -> tuple[list[PositiveCandidate], list[str]]:
+) -> PositiveScreen:
     """Every measured non-WT well, in column-major order, flagged above-WT or not."""
     screen = read_primary_screen(
         gc_data_xlsx=gc_data_xlsx,
@@ -124,7 +142,28 @@ def positive_candidates(
             )
         )
     candidates.sort(key=lambda candidate: well_to_seq(candidate.well))
-    return candidates, list(screen.warnings)
+    return PositiveScreen(candidates, list(screen.warnings), list(screen.excluded_rows))
+
+
+def positive_candidates(
+    *,
+    gc_data_xlsx: str | Path | None = None,
+    round1_report_xlsx: str | Path | None = None,
+    numeric_report_xlsx: str | Path | None = None,
+    verdict_xlsx: str | Path | None = None,
+    layout_xlsx: str | Path | None = None,
+    expected_xlsx: str | Path | None = None,
+) -> tuple[list[PositiveCandidate], list[str]]:
+    """:func:`read_positive_screen` without the excluded row records."""
+    screen = read_positive_screen(
+        gc_data_xlsx=gc_data_xlsx,
+        round1_report_xlsx=round1_report_xlsx,
+        numeric_report_xlsx=numeric_report_xlsx,
+        verdict_xlsx=verdict_xlsx,
+        layout_xlsx=layout_xlsx,
+        expected_xlsx=expected_xlsx,
+    )
+    return screen.candidates, screen.warnings
 
 
 def positive_janus_rows(

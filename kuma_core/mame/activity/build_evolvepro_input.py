@@ -730,12 +730,17 @@ class PrimaryScreen:
     the relative replicates of every non-WT well the screen measured, under the
     same spelling. Both are what :func:`build_evolvepro_input` itself builds for
     the numeric-ID confirmation, read by the same readers.
+
+    ``excluded_rows`` is every row those readers set aside or flagged, with its
+    position and reason, as the build records it in its manifest; ``warnings``
+    names each of them the way the build's warnings do.
     """
 
     order: DecodeOrder
     well_values: dict[str, list[float]]
     primary_format: str
     warnings: list[str]
+    excluded_rows: list[ReportedRow] = field(default_factory=list)
 
 
 def _verdict_order(verdict_xlsx: str | Path) -> DecodeOrder:
@@ -787,9 +792,17 @@ def read_primary_screen(*, gc_data_xlsx: str | Path | None = None, round1_report
     name, source = selected[0]
     well_values: dict[str, list[float]] = {}
     warnings: list[str] = []
+    # One ledger, as in the build, so no row the readers set aside goes
+    # unreported. Unmapped wells already have their own line below and in the
+    # numeric decoder's warnings, so ``describe_rows`` leaves them out.
+    ledger = _RowLedger()
+
+    def reported_rows() -> list[str]:
+        return describe_rows([row for row in ledger.rows if row.reason != UNMAPPED_WELL])
+
     if name == "numeric_report_xlsx":
         _values, _wells, _wt, decode_warnings = _numeric_primary(
-            source, expected_xlsx, layout_xlsx, well_values
+            source, expected_xlsx, layout_xlsx, well_values, ledger
         )
         # Same order source ``_numeric_primary`` decoded against: the design
         # list wins and a layout beside it is not consulted, as in the build.
@@ -797,7 +810,8 @@ def read_primary_screen(*, gc_data_xlsx: str | Path | None = None, round1_report
             expected_xlsx, layout_xlsx if expected_xlsx is None else None
         )
         warnings.extend(decode_warnings)
-        return PrimaryScreen(order, well_values, name, warnings)
+        warnings.extend(reported_rows())
+        return PrimaryScreen(order, well_values, name, warnings, list(ledger.rows))
     if layout_xlsx is not None:
         well_to_variant, variant_to_well = _layout_maps(layout_xlsx)
         wt_wells = {entry.well_id for entry in parse_plate_layout_xlsx(layout_xlsx) if entry.is_wt}
@@ -814,16 +828,17 @@ def read_primary_screen(*, gc_data_xlsx: str | Path | None = None, round1_report
         )
     unmapped: list[str] = []
     if name == "gc_data_xlsx":
-        _gc_primary(source, well_to_variant, variant_to_well, unmapped, well_values, wt_wells)
+        _gc_primary(source, well_to_variant, variant_to_well, unmapped, well_values, wt_wells, ledger)
     else:
-        _raw_report_primary(source, well_to_variant, variant_to_well, unmapped, well_values, wt_wells)
+        _raw_report_primary(source, well_to_variant, variant_to_well, unmapped, well_values, wt_wells, ledger)
     if unmapped:
         distinct = sorted(set(unmapped))
         warnings.append(
             f"{len(distinct)} measured well(s) absent from the mapping, not offered: "
             + ", ".join(distinct)
         )
-    return PrimaryScreen(order, well_values, name, warnings)
+    warnings.extend(reported_rows())
+    return PrimaryScreen(order, well_values, name, warnings, list(ledger.rows))
 
 
 def _label_slot_rows(source: str, path: str | Path, ledger: _RowLedger) -> tuple[list[tuple[GcRow, float]], list[tuple[GcRow, SampleClass, float]]]:

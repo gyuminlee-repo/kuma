@@ -25,6 +25,7 @@ from kuma_core.mame.export.positive_janus import (
     export_positive_janus_csv,
     positive_candidates,
     positive_janus_rows,
+    read_positive_screen,
 )
 from kuma_core.shared.janus_deck import JANUS_DEVICE_HEADER
 
@@ -278,3 +279,68 @@ def test_numeric_report_with_both_order_sources_follows_the_design_list(tmp_path
     ]
     # And that is not the layout reading.
     assert [c.well for c in candidates] != PLATE_ORDER
+
+
+# Rows a well-labelled screen carries that belong to no well: blanks and a
+# bare number (a calibration standard under the well grammar). The build
+# reports each one by name, block and row; the candidates read must too.
+UNTIED_ROWS = [("BLANK", 0.01), ("BLANK2", 0.02), ("12", 0.5)]
+
+
+def _report_with_untied_rows(path: Path) -> Path:
+    return _blocks(path, [("WT_1", SLIDE_12_WT), *UNTIED_ROWS, *SLIDE_12.items()])
+
+
+def test_rows_tied_to_no_well_are_reported_with_their_position(tmp_path: Path):
+    screen = read_positive_screen(
+        round1_report_xlsx=_report_with_untied_rows(tmp_path / "round1.xlsx"),
+        layout_xlsx=_layout(tmp_path / "layout.xlsx"),
+    )
+    reported = {row.sample_name: row for row in screen.excluded_rows}
+    assert set(reported) == {name for name, _ in UNTIED_ROWS}
+    assert reported["BLANK"].reason == "non_well_sample"
+    assert reported["BLANK2"].reason == "non_well_sample"
+    assert reported["12"].reason == "numeric_calibration"
+    # One block per injection, after the WT block, in file order.
+    blocks = [reported[name].block_index for name, _ in UNTIED_ROWS]
+    assert all(block is not None for block in blocks)
+    assert blocks == sorted(blocks) and len(set(blocks)) == 3
+    for name, _ in UNTIED_ROWS:
+        assert any(repr(name) in warning and reported[name].location in warning for warning in screen.warnings)
+    # Reporting them changes nothing about which clones move where.
+    rows = positive_janus_rows(screen.candidates, _selected(screen.candidates))
+    assert [(row[6], row[4]) for row in rows] == EXPECTED_PLACEMENT
+
+
+def test_positive_candidates_warnings_name_the_untied_rows(tmp_path: Path):
+    candidates, warnings = positive_candidates(
+        round1_report_xlsx=_report_with_untied_rows(tmp_path / "round1.xlsx"),
+        layout_xlsx=_layout(tmp_path / "layout.xlsx"),
+    )
+    assert any("'BLANK'" in warning for warning in warnings)
+    assert [c.well for c in candidates] == PLATE_ORDER
+
+
+def test_numeric_report_reports_a_blank_row(tmp_path: Path):
+    layout = _layout(tmp_path / "layout.xlsx")
+    report = _blocks(
+        tmp_path / "numeric.xlsx",
+        [("WT_1", SLIDE_12_WT), ("BLANK", 0.01)]
+        + [(str(index), SLIDE_12[well]) for index, well in enumerate(PLATE_ORDER, start=1)],
+    )
+    screen = read_positive_screen(numeric_report_xlsx=report, layout_xlsx=layout)
+    assert [row.sample_name for row in screen.excluded_rows] == ["BLANK"]
+    assert screen.excluded_rows[0].block_index is not None
+    rows = positive_janus_rows(screen.candidates, _selected(screen.candidates))
+    assert [(row[6], row[4]) for row in rows] == EXPECTED_PLACEMENT
+
+
+def test_unmapped_wells_are_reported_once(tmp_path: Path):
+    # A measured well the mapping does not name keeps its own one-line warning,
+    # and is listed among the rows like the build manifest lists it.
+    report = _blocks(
+        tmp_path / "round1.xlsx", [("WT_1", SLIDE_12_WT), *SLIDE_12.items(), ("A12", 0.9)]
+    )
+    screen = read_positive_screen(round1_report_xlsx=report, layout_xlsx=_layout(tmp_path / "layout.xlsx"))
+    assert [(row.sample_name, row.reason) for row in screen.excluded_rows] == [("A12", "unmapped_well")]
+    assert sum("A12" in warning for warning in screen.warnings) == 1

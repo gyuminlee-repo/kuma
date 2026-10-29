@@ -414,6 +414,8 @@ const isPositiveJanusCandidatesResult: MameResultValidator = (value) =>
   ) &&
   isFiniteNumber(value.n_above_wt) &&
   Array.isArray(value.warnings) && value.warnings.every(isString) &&
+  Array.isArray(value.excluded_rows) &&
+  value.excluded_rows.every(isReportedGcRow) &&
   isRecord(value.defaults) &&
   isFiniteNumber(value.defaults.volume) &&
   isString(value.defaults.source_rack) &&
