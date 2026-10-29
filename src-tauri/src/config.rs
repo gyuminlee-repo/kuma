@@ -41,6 +41,11 @@ fn prod_config_root() -> PathBuf {
         .join(".kuma")
 }
 
+/// `~/.kuma`, the directory the host keeps its own state in.
+pub fn config_root() -> PathBuf {
+    prod_config_root()
+}
+
 fn expand_home_with(path: &Path, home: Option<PathBuf>) -> PathBuf {
     let Some(raw) = path.to_str() else {
         return path.to_path_buf();
