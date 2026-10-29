@@ -228,6 +228,10 @@ class ReportedRow:
     row_index: int
     block_index: int | None = None
     area: float | None = None
+    # The plate well an ``unmapped_well`` row was read for. Not serialised: the
+    # manifest keeps the sample name and position, and only the unmapped well
+    # summary needs the well spelled the way the reader resolved it.
+    well: str | None = None
 
     @property
     def location(self) -> str:
@@ -269,6 +273,19 @@ def describe_rows(rows: list[ReportedRow]) -> list[str]:
     return warnings
 
 
+def describe_unmapped_wells(rows: list[ReportedRow]) -> tuple[int, str]:
+    """Distinct unmapped wells and a listing of each with every position read.
+
+    ``A12 (block 25, row 123), D01 (block 8, row 38; block 9, row 43)``: one
+    entry per well, in well order, so the count still means distinct wells.
+    """
+    by_well: dict[str, list[str]] = {}
+    for row in rows:
+        by_well.setdefault(row.well or row.sample_name, []).append(row.location)
+    listed = ", ".join(f"{well} ({'; '.join(places)})" for well, places in sorted(by_well.items()))
+    return len(by_well), listed
+
+
 def count_reasons(rows: list[ReportedRow]) -> dict[str, int]:
     counts: dict[str, int] = {}
     for row in rows:
@@ -293,6 +310,7 @@ __all__ = [
     "UNMAPPED_WELL",
     "UNRECOGNIZED",
     "UNRECOGNIZED_SAMPLE",
+    "describe_unmapped_wells",
     "WT_WELL_NOT_REFERENCE",
     "VARIANT",
     "WELL",

@@ -409,3 +409,12 @@ def test_a_wt_well_row_in_a_flat_sheet_is_reported_not_used(tmp_path: Path, plat
     assert [(row["sample_name"], row["reason"], row["row_index"], row["block_index"]) for row in _manifest(result)["excluded_rows"]] == [
         ("H12", "wt_well_not_reference", 3, None),
     ]
+
+
+def test_a_well_the_mapping_does_not_name_is_listed_with_its_position(tmp_path: Path, plate) -> None:
+    run = [*SHARED_RUN, ("D1", 7.0), ("D1", 7.5)]
+    result = _build(tmp_path, plate, round1_report_xlsx=_blocks(tmp_path / "r.xlsx", run))
+    assert dict(read_evolvepro_rows(tmp_path / "out.xlsx")) == pytest.approx({"5F": 2.0, "10L": 0.5, "11I": 1.2})
+    # One well, counted once, every read of it located.
+    assert "1 measured well(s) absent from layout_xlsx: D01 (block 8, row 38; block 9, row 43)" in result.warnings
+    assert result.exclusion_reason_counts["unmapped_well"] == 1

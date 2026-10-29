@@ -345,6 +345,8 @@ def test_unmapped_wells_are_reported_once(tmp_path: Path):
     screen = read_positive_screen(round1_report_xlsx=report, layout_xlsx=_layout(tmp_path / "layout.xlsx"))
     assert [(row.sample_name, row.reason) for row in screen.excluded_rows] == [("A12", "unmapped_well")]
     assert sum("A12" in warning for warning in screen.warnings) == 1
+    # The same sentence the build writes, with the block and row of each read.
+    assert "1 measured well(s) absent from layout_xlsx: A12 (block 25, row 123)" in screen.warnings
 
 
 def test_a_wt_well_measurement_is_reported_and_the_placement_holds(tmp_path: Path):

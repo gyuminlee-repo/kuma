@@ -164,7 +164,7 @@ def test_unrelated_samples_and_unmapped_wells_are_skipped_with_a_warning(tmp_pat
         for row in manifest["excluded_rows"]
     } >= {("Other-A-1", 4, 18, "non_well_sample"), ("C5-1", 3, 13, "unmapped_well")}
     assert (
-        "remeasure_well_xlsx has 1 well(s) absent from verdict_xlsx: C05"
+        "remeasure_well_xlsx has 1 well(s) absent from verdict_xlsx: C05 (block 3, row 13)"
     ) in result.warnings
 
 

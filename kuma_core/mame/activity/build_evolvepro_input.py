@@ -40,6 +40,7 @@ from .gc_sample import (
     classify_sample,
     count_reasons,
     describe_rows,
+    describe_unmapped_wells,
     is_wt_name,
 )
 from .label_audit import LabelAudit, audit_labels
@@ -243,7 +244,7 @@ class _RowLedger:
                 raise ValueError(f"excluded_rows names {exclusion.source} {_where(exclusion.block_index, exclusion.row_index)} twice")
             self._pending[key] = exclusion
 
-    def set_aside(self, source: str, row: GcRow, reason: str, area: float | None = None) -> None:
+    def set_aside(self, source: str, row: GcRow, reason: str, area: float | None = None, well: str | None = None) -> None:
         self.rows.append(ReportedRow(
             source=source,
             sample_name=row.sample_name,
@@ -251,7 +252,14 @@ class _RowLedger:
             row_index=row.row_index,
             block_index=row.block_index,
             area=area,
+            well=well,
         ))
+
+    def unmapped_wells(self, source: str) -> tuple[int, str]:
+        """``describe_unmapped_wells`` over the unmapped rows of *source*."""
+        return describe_unmapped_wells(
+            [row for row in self.rows if row.source == source and row.reason == UNMAPPED_WELL]
+        )
 
     def operator_skips(self, source: str, row: GcRow, area: float | None) -> bool:
         """True when the operator excluded this row; refuses a row that changed."""
@@ -300,6 +308,12 @@ class _RowLedger:
                 f"excluded_rows names row(s) no input of this build holds: {listed}. "
                 "The file changed after its rows were reviewed, or the row belongs to another field."
             )
+
+
+def _unmapped_primary_warning(ledger: _RowLedger, source: str, mapping_source: str) -> str:
+    """The primary screen's unmapped well line, shared by the build and step 4.1."""
+    count, listed = ledger.unmapped_wells(source)
+    return f"{count} measured well(s) absent from {mapping_source}: {listed}"
 
 
 def _where(block_index: int | None, row_index: int) -> str:
@@ -480,7 +494,7 @@ def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str,
         else:
             for position, well, value, _cohort in well_rows:
                 unmapped.append(well)
-                ledger.set_aside(source_name, position, UNMAPPED_WELL, value)
+                ledger.set_aside(source_name, position, UNMAPPED_WELL, value, well)
             well_rows = []
     rows: list[tuple[str, float, str]] = []
     namespaces: set[str] = set()
@@ -489,7 +503,7 @@ def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str,
         variant = well_to_variant.get(well)
         if variant is None:
             unmapped.append(well)
-            ledger.set_aside(source_name, position, UNMAPPED_WELL, value)
+            ledger.set_aside(source_name, position, UNMAPPED_WELL, value, well)
             continue
         rows.append((variant, value, cohort))
     for _position, short, value, cohort in variant_rows:
@@ -588,7 +602,7 @@ def _raw_report_primary(path: str | Path, well_to_variant: dict[str, str], varia
         variant = well_to_variant.get(well)
         if variant is None:
             unmapped.append(well)
-            ledger.set_aside(source, row, UNMAPPED_WELL, area)
+            ledger.set_aside(source, row, UNMAPPED_WELL, area, well)
             continue
         relative = area / mean_wt
         values.setdefault(variant, []).append(relative)
@@ -619,7 +633,7 @@ def _gc_primary(path: str | Path, well_to_variant: dict[str, str], variant_to_we
         variant = well_to_variant.get(well)
         if variant is None:
             unmapped.append(well)
-            ledger.set_aside(source, row, UNMAPPED_WELL, area)
+            ledger.set_aside(source, row, UNMAPPED_WELL, area, well)
             continue
         values.setdefault(variant, []).append(area)
     return values, variant_to_well
@@ -816,11 +830,13 @@ def read_primary_screen(*, gc_data_xlsx: str | Path | None = None, round1_report
         warnings.extend(reported_rows())
         return PrimaryScreen(order, well_values, name, warnings, list(ledger.rows))
     if layout_xlsx is not None:
+        mapping_source = "layout_xlsx"
         well_to_variant, variant_to_well = _layout_maps(layout_xlsx)
         wt_wells = {entry.well_id for entry in parse_plate_layout_xlsx(layout_xlsx) if entry.is_wt}
         order, order_warnings = layout_variant_order(layout_xlsx)
         warnings.extend(order_warnings)
     elif verdict_xlsx is not None:
+        mapping_source = "verdict_xlsx"
         well_to_variant, variant_to_well = _verdict_maps(verdict_xlsx)
         wt_wells = _wt_wells(None, verdict_xlsx)
         order = _verdict_order(verdict_xlsx)
@@ -835,11 +851,7 @@ def read_primary_screen(*, gc_data_xlsx: str | Path | None = None, round1_report
     else:
         _raw_report_primary(source, well_to_variant, variant_to_well, unmapped, well_values, wt_wells, ledger)
     if unmapped:
-        distinct = sorted(set(unmapped))
-        warnings.append(
-            f"{len(distinct)} measured well(s) absent from the mapping, not offered: "
-            + ", ".join(distinct)
-        )
+        warnings.append(_unmapped_primary_warning(ledger, name, mapping_source))
     warnings.extend(reported_rows())
     return PrimaryScreen(order, well_values, name, warnings, list(ledger.rows))
 
@@ -905,7 +917,7 @@ def _confirmation(path: str | Path, well_to_variant: dict[str, str] | None = Non
             variant = mapping.get(sample.well)
             if variant is None or variant_members:
                 unmapped.append(sample.well)
-                ledger.set_aside(source, row, UNMAPPED_WELL, area)
+                ledger.set_aside(source, row, UNMAPPED_WELL, area, sample.well)
                 continue
         else:
             assert sample.variant is not None
@@ -920,10 +932,8 @@ def _confirmation(path: str | Path, well_to_variant: dict[str, str] | None = Non
         values.setdefault(variant, []).append(area / mean_wt)
     ledger.flag_repeats(source, replicate_keys, DUPLICATE_REPLICATE)
     if unmapped and warnings is not None:
-        warnings.append(
-            f"remeasure_report_xlsx has {len(set(unmapped))} well(s) the mapping does not name: "
-            + ", ".join(sorted(set(unmapped)))
-        )
+        count, listed = ledger.unmapped_wells(source)
+        warnings.append(f"remeasure_report_xlsx has {count} well(s) the mapping does not name: {listed}")
     if not values:
         raise ValueError("remeasure_report_xlsx has no measurement rows outside WT records")
     return values
@@ -965,14 +975,12 @@ def _well_confirmation(path: str | Path, well_to_variant: dict[str, str], wt_wel
         variant = well_to_variant.get(well)
         if variant is None:
             unmapped.add(well)
-            ledger.set_aside(source, row, UNMAPPED_WELL, area)
+            ledger.set_aside(source, row, UNMAPPED_WELL, area, well)
             continue
         values.setdefault(variant, []).append(area / mean_wt)
     if unmapped:
-        warnings.append(
-            f"remeasure_well_xlsx has {len(unmapped)} well(s) absent from "
-            f"{mapping_source}: " + ", ".join(sorted(unmapped))
-        )
+        count, listed = ledger.unmapped_wells(source)
+        warnings.append(f"remeasure_well_xlsx has {count} well(s) absent from {mapping_source}: {listed}")
     if not values:
         # Same rule as every other reader: a file with no row of this run is
         # refused, not merged as an empty confirmation.
@@ -1323,10 +1331,7 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
     if unmapped:
         distinct = sorted(set(unmapped))
         reason_counts["unmapped_well"] = len(distinct)
-        warnings.append(
-            f"{len(distinct)} measured well(s) absent from {mapping_source}: "
-            + ", ".join(distinct)
-        )
+        warnings.append(_unmapped_primary_warning(ledger, name, mapping_source))
     # Every other GC row a reader set aside or flagged, by name and position.
     # Unmapped wells of the primary are counted above as distinct wells, which
     # is what manifest readers already know that key to mean; a confirmation's

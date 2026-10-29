@@ -96,6 +96,23 @@ describe("PositiveJanusPanel", () => {
     expect(screen.getByText("Warnings")).toBeTruthy();
   });
 
+  it("shows where each well the mapping does not name was read", async () => {
+    // The sentence the sidecar writes (build_evolvepro_input._unmapped_primary_warning).
+    const unmapped = "1 measured well(s) absent from layout_xlsx: A12 (block 25, row 123)";
+    vi.mocked(positiveJanusCandidates).mockResolvedValue({
+      ...CANDIDATES,
+      warnings: [unmapped],
+      excluded_rows: [{
+        source: "round1_report_xlsx", sample_name: "A12", reason: "unmapped_well",
+        row_index: 123, block_index: 25, area: 0.9, kept: false,
+      }],
+    });
+    renderPanel();
+    fireEvent.click(screen.getByRole("button", { name: "Find positive clones" }));
+    await waitFor(() => expect(screen.getByText(unmapped)).toBeTruthy());
+    expect(screen.getByText(/A12 \(block 25, row 123\)/)).toBeTruthy();
+  });
+
   it("validates the excluded rows of the candidates response", () => {
     const validate = getMameRpcResultValidator("mame.activity.positive_janus_candidates");
     expect(validate).toBeTruthy();
