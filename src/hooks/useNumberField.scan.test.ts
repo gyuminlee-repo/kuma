@@ -12,6 +12,11 @@
  * A number input with no `onBlur` is outside the rule: it is either bound to
  * the store directly (`value={store}`, React restores the stored value after
  * each change) or a draft read by a separate button (add-a-domain, add-a-site).
+ *
+ * Limit: only an `onBlur=` written on the tag is seen. A handler arriving
+ * through a spread (`{...props}`) is out of reach of a text scan, so a custom
+ * hook with the old resync bug spread onto a number input would pass here;
+ * `useNumberField.test.tsx` pins the hook itself.
  */
 
 import { readdirSync, readFileSync } from "node:fs";
@@ -58,10 +63,13 @@ function openingTags(source: string): string[] {
   return tags;
 }
 
+/** `type="number"`, `type='number'`, or the same string in braces. */
+const NUMBER_TYPE = /\btype\s*=\s*(?:"number"|'number'|\{\s*(?:"number"|'number'|`number`)\s*\})/;
+
 /** A number input that writes its own blur handler. */
 function handWrittenBlurCommits(source: string): string[] {
   return openingTags(source).filter(
-    (tag) => /\btype\s*=\s*(?:"number"|\{\s*"number"\s*\})/.test(tag) && /\bonBlur\s*=/.test(tag),
+    (tag) => NUMBER_TYPE.test(tag) && /\bonBlur\s*=/.test(tag),
   );
 }
 
@@ -74,6 +82,13 @@ describe("number inputs commit through useNumberField", () => {
     expect(handWrittenBlurCommits(old)).toHaveLength(1);
     expect(handWrittenBlurCommits(viaHook)).toEqual([]);
     expect(handWrittenBlurCommits(notNumber)).toEqual([]);
+    // Every spelling of the type attribute is caught.
+    for (const spelling of [`type='number'`, `type={"number"}`, `type={'number'}`, "type={`number`}"]) {
+      expect(handWrittenBlurCommits(`<Input ${spelling} value={s} onBlur={commit} />`)).toHaveLength(1);
+      expect(handWrittenBlurCommits(`<Input ${spelling} {...field.inputProps} />`)).toEqual([]);
+    }
+    // The documented limit: a blur handler inside a spread is not seen.
+    expect(handWrittenBlurCommits(`<input type="number" {...{ onBlur: commit }} />`)).toEqual([]);
   });
 
   it("finds none in src", () => {

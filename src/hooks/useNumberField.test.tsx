@@ -31,7 +31,6 @@ function Harness({
     <>
       <input type="number" aria-label="field" {...field.inputProps} />
       <output data-testid="stored">{stored}</output>
-      <output data-testid="valid">{String(field.valid)}</output>
     </>
   );
 }
@@ -50,8 +49,7 @@ function setup(initial: number, parse: (text: string) => number | undefined) {
   const view = render(<Harness initial={initial} parse={parse} onCommit={onCommit} />);
   const input = view.getByLabelText("field") as HTMLInputElement;
   const stored = () => view.getByTestId("stored").textContent;
-  const valid = () => view.getByTestId("valid").textContent;
-  return { input, stored, valid, onCommit };
+  return { input, stored, onCommit };
 }
 
 function type(input: HTMLInputElement, text: string) {
@@ -60,9 +58,8 @@ function type(input: HTMLInputElement, text: string) {
 
 describe("useNumberField", () => {
   it("blank commits nothing and shows the stored value again", () => {
-    const { input, stored, valid, onCommit } = setup(7, strictInt);
+    const { input, stored, onCommit } = setup(7, strictInt);
     type(input, "");
-    expect(valid()).toBe("false");
     fireEvent.blur(input);
     expect(onCommit).not.toHaveBeenCalled();
     expect(stored()).toBe("7");

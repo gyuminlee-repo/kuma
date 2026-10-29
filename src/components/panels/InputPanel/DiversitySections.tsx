@@ -323,7 +323,7 @@ export function RoundSettingsSection(props: {
 export function AdvancedSettingsSection(props: {
   showAdvanced: boolean;
   setShowAdvanced: (v: boolean | ((p: boolean) => boolean)) => void;
-  maxPerPosInput: NumberField<number>["inputProps"];
+  maxPerPosInput: NumberField["inputProps"];
   domainStrategy: "proportional" | "equal";
   setDomainStrategy: (v: "proportional" | "equal") => void;
   domainOverlapPolicy: "first" | "largest";

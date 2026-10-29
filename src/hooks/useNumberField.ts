@@ -27,13 +27,9 @@ export interface NumberFieldOptions<T> {
   format?: (value: T) => string;
 }
 
-export interface NumberField<T> {
+export interface NumberField {
   /** What the field shows: the draft while typing, else the stored value. */
   text: string;
-  /** What `text` would commit. */
-  parsed: T | undefined;
-  /** Whether committing `text` would write anything. */
-  valid: boolean;
   /** Spread onto the `<input type="number">`. */
   inputProps: {
     value: string;
@@ -48,23 +44,21 @@ export function useNumberField<T>({
   parse,
   commit,
   format = String,
-}: NumberFieldOptions<T>): NumberField<T> {
+}: NumberFieldOptions<T>): NumberField {
   const [draft, setDraft] = useState<string | null>(null);
   // A store change from elsewhere (project restore, Clear All) replaces a
   // draft, as every one of these fields did before.
   useEffect(() => setDraft(null), [value]);
 
   const text = draft ?? format(value);
-  const parsed = parse(text);
   const onBlur = () => {
     if (draft === null) return;
+    const parsed = parse(draft);
     if (parsed !== undefined) commit(parsed);
     setDraft(null);
   };
   return {
     text,
-    parsed,
-    valid: parsed !== undefined,
     inputProps: {
       value: text,
       onChange: (event) => setDraft(event.target.value),
