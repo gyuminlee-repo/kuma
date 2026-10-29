@@ -2763,10 +2763,19 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Das App-Symbol zeigt jetzt Kuro und Mame, deren Schwänze eine Doppelhelix bilden."
+      "Schritt 4.1 kann eine JANUS-Arbeitsliste exportieren, die Runde-1-Positive vom Final-Cell-Stock in eine Deep-Well-Platte überträgt.",
+      "Klone über dem Wildtyp sind anfangs angehakt; vor dem Export lässt sich jeder Klon abwählen oder hinzufügen.",
+      "Positive werden ab A1 spaltenweise je Well abgelegt, im gleichen Achtspaltenblatt wie in Schritt 3.",
+      "Transfervolumen und Plattennamen sind änderbar; ein unbrauchbares Volumen sperrt den Export mit einem Hinweis."
     ],
-    "highlightsStamp": "0.16.80+149d815c",
+    "highlightsStamp": "0.16.81+aa434309",
     "releases": {
+      "0.16.81": [
+        "Schritt 4.1 kann eine JANUS-Arbeitsliste exportieren, die Runde-1-Positive vom Final-Cell-Stock in eine Deep-Well-Platte überträgt.",
+        "Klone über dem Wildtyp sind anfangs angehakt; vor dem Export lässt sich jeder Klon abwählen oder hinzufügen.",
+        "Positive werden ab A1 spaltenweise je Well abgelegt, im gleichen Achtspaltenblatt wie in Schritt 3.",
+        "Transfervolumen und Plattennamen sind änderbar; ein unbrauchbares Volumen sperrt den Export mit einem Hinweis."
+      ],
       "0.16.80": [
         "Das App-Symbol zeigt jetzt Kuro und Mame, deren Schwänze eine Doppelhelix bilden."
       ],
@@ -3320,6 +3329,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.81": "aa434309",
       "0.16.80": "149d815c",
       "0.16.79": "07f90f60",
       "0.16.78": "7847cb43",

@@ -2763,10 +2763,19 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "El icono de la aplicación ahora muestra a Kuro y Mame con sus colas formando una doble hélice."
+      "El paso 4.1 puede exportar una lista de trabajo JANUS que traslada los positivos de la ronda 1 del final cell stock a una placa deep well.",
+      "Los clones por encima del tipo silvestre empiezan marcados, y cualquier clon se puede desmarcar o añadir antes de exportar.",
+      "Los positivos se colocan uno por pocillo desde A1 en orden de columnas, en la misma hoja de ocho columnas que el paso 3.",
+      "El volumen de transferencia y los nombres de placa se pueden editar, y un volumen no válido bloquea la exportación con un aviso."
     ],
-    "highlightsStamp": "0.16.80+149d815c",
+    "highlightsStamp": "0.16.81+aa434309",
     "releases": {
+      "0.16.81": [
+        "El paso 4.1 puede exportar una lista de trabajo JANUS que traslada los positivos de la ronda 1 del final cell stock a una placa deep well.",
+        "Los clones por encima del tipo silvestre empiezan marcados, y cualquier clon se puede desmarcar o añadir antes de exportar.",
+        "Los positivos se colocan uno por pocillo desde A1 en orden de columnas, en la misma hoja de ocho columnas que el paso 3.",
+        "El volumen de transferencia y los nombres de placa se pueden editar, y un volumen no válido bloquea la exportación con un aviso."
+      ],
       "0.16.80": [
         "El icono de la aplicación ahora muestra a Kuro y Mame con sus colas formando una doble hélice."
       ],
@@ -3320,6 +3329,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.81": "aa434309",
       "0.16.80": "149d815c",
       "0.16.79": "07f90f60",
       "0.16.78": "7847cb43",

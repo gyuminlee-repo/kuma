@@ -2817,10 +2817,19 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The app icon is now Kuro and Mame with their tails forming a double helix."
+      "Step 4.1 can export a JANUS worklist that moves round-1 positives from the final cell stock to a deep well plate.",
+      "Clones above wild-type are ticked to start with, and any clone can be unticked or added before export.",
+      "Positives are placed one per well from A1 in column order, in the same eight-column sheet as step 3.",
+      "Transfer volume and plate names are editable, and an unusable volume blocks the export with a message."
     ],
-    "highlightsStamp": "0.16.80+149d815c",
+    "highlightsStamp": "0.16.81+aa434309",
     "releases": {
+      "0.16.81": [
+        "Step 4.1 can export a JANUS worklist that moves round-1 positives from the final cell stock to a deep well plate.",
+        "Clones above wild-type are ticked to start with, and any clone can be unticked or added before export.",
+        "Positives are placed one per well from A1 in column order, in the same eight-column sheet as step 3.",
+        "Transfer volume and plate names are editable, and an unusable volume blocks the export with a message."
+      ],
       "0.16.80": [
         "The app icon is now Kuro and Mame with their tails forming a double helix."
       ],
@@ -3374,6 +3383,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.81": "aa434309",
       "0.16.80": "149d815c",
       "0.16.79": "07f90f60",
       "0.16.78": "7847cb43",
