@@ -6,6 +6,8 @@ MAME step 4.1 can now write the JANUS worklist that moves the round-1 positives 
 
 The worklist is written only when the operator exports it, through a save dialog. The selection is kept with the round. If the screen reads differently later, for example after the same file was replaced, the stored selection is dropped with a notice, and the export checks the screen once more before it writes. An empty, zero, negative or non-numeric volume disables the export and says so beside the field.
 
+Three follow-up fixes ship under the same version. Find positive clones now reports every row of the screen that belongs to no clone, such as BLANK injections, calibration numbers and wells the mapping does not name, by name, block and row under the same Warnings heading the EVOLVEpro build uses; the worklist itself is unchanged. KURO numeric fields (Tm targets, Tm tolerance, GC range, primer lengths, seed, design count, campaign round, round size, exposed candidates and the per-position cap) now show the stored value after an entry is committed, where an entry the app corrected to the value it already held, such as a blank, 12 for the Tm tolerance or 1.5 for the seed, used to stay on screen beside a different stored number. The contributor guide also explains how to run the frontend tests from a checkout on the WSL Linux disk.
+
 ### Highlights
 
 - Step 4.1 can export a JANUS worklist that moves round-1 positives from the final cell stock to a deep well plate.
