@@ -165,9 +165,13 @@ fn refresh() -> String {
         return "no integrated icons for this AppImage".into();
     }
     let replaced = targets.iter().filter(|(src, dst)| replace_file(src, dst).is_ok()).count();
+    // The Icon Theme Spec (Implementation Notes) has caching readers watch the
+    // mtime of the toplevel theme directory, not of the size subdirectory the
+    // rename touched, so bump it explicitly.
+    let hicolor = icons.join("hicolor");
+    let _ = Command::new("touch").arg(&hicolor).stdout(Stdio::null()).stderr(Stdio::null()).status();
     // Only rebuild a cache that already exists; creating one would make a
     // directory that nothing else keeps current go stale later.
-    let hicolor = icons.join("hicolor");
     let cache = if hicolor.join("icon-theme.cache").is_file() {
         Command::new("gtk-update-icon-cache")
             .args(["-f", "-t", "-q"])
@@ -189,7 +193,7 @@ fn refresh() -> String {
 }
 
 /// Copy beside the destination and rename over it, so a reader never sees a
-/// half-written icon and the directory mtime changes for icon theme watchers.
+/// half-written icon.
 #[cfg(target_os = "linux")]
 fn replace_file(src: &Path, dst: &Path) -> io::Result<()> {
     let tmp = dst.with_extension("png.kuma-tmp");
