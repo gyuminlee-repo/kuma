@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.16.80 (New app icon)
+
+The app icon is now the Kuro and Mame tails forming a double helix. Every icon size the installers and the window use is rendered from one vector source, so the taskbar, the dock and the installer show the same artwork. Nothing else changes from v0.16.79, which this release includes: off-target search across the plasmid origin and past the end of a linear sequence, and the opt-in strict off-target check.
+
+### Highlights
+
+- The app icon is now Kuro and Mame with their tails forming a double helix.
+
 ## v0.16.79 (Off-target search across the plasmid origin, optional strict check)
 
 KURO off-target search now looks at binding sites that a primer could reach across the origin of a circular template and at partial sites where a primer would run past the end of a linear sequence. Before, a site was only examined when the whole primer length fitted inside the sequence as written, so both kinds were never scored. The rejection rule itself is unchanged: a site still counts when the primer 3' end can extend there or when the Gibson overlap arm carries it, and its duplex Tm clears 45 °C. The circular search applies when the sequence file declares a circular topology, as GenBank and SnapGene files do; a plain FASTA is read as linear. On two test plasmids with a 46-mutation set these changes moved no result.

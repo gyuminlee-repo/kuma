@@ -2740,13 +2740,13 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "La búsqueda off-target ahora cubre sitios que cruzan el origen de un plásmido circular y que rebasan el final de una secuencia lineal.",
-      "Una nueva comprobación estricta opcional rechaza un candidato con una coincidencia exacta de 15 bases o más en otra parte de la plantilla.",
-      "Si solo la comprobación estricta deja una mutación sin cebadores, el motivo del fallo lo indica y desactivarla recupera el diseño.",
-      "El ajuste de la comprobación estricta se guarda con el workspace y queda registrado en el libro exportado."
+      "El icono de la aplicación ahora muestra a Kuro y Mame con sus colas formando una doble hélice."
     ],
-    "highlightsStamp": "0.16.79+07f90f60",
+    "highlightsStamp": "0.16.80+149d815c",
     "releases": {
+      "0.16.80": [
+        "El icono de la aplicación ahora muestra a Kuro y Mame con sus colas formando una doble hélice."
+      ],
       "0.16.79": [
         "La búsqueda off-target ahora cubre sitios que cruzan el origen de un plásmido circular y que rebasan el final de una secuencia lineal.",
         "Una nueva comprobación estricta opcional rechaza un candidato con una coincidencia exacta de 15 bases o más en otra parte de la plantilla.",
@@ -3297,6 +3297,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.80": "149d815c",
       "0.16.79": "07f90f60",
       "0.16.78": "7847cb43",
       "0.16.77": "53eff3f8",

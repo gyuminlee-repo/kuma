@@ -2794,13 +2794,13 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Off-target search now covers sites across the origin of a circular plasmid and past the end of a linear sequence.",
-      "A new opt-in strict check rejects a candidate with an exact match of 15 bases or more elsewhere on the template.",
-      "When the strict check alone leaves a mutation without primers, the failure says so, and turning it off recovers it.",
-      "The strict check setting is saved with the workspace and recorded in the exported workbook."
+      "The app icon is now Kuro and Mame with their tails forming a double helix."
     ],
-    "highlightsStamp": "0.16.79+07f90f60",
+    "highlightsStamp": "0.16.80+149d815c",
     "releases": {
+      "0.16.80": [
+        "The app icon is now Kuro and Mame with their tails forming a double helix."
+      ],
       "0.16.79": [
         "Off-target search now covers sites across the origin of a circular plasmid and past the end of a linear sequence.",
         "A new opt-in strict check rejects a candidate with an exact match of 15 bases or more elsewhere on the template.",
@@ -3351,6 +3351,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.80": "149d815c",
       "0.16.79": "07f90f60",
       "0.16.78": "7847cb43",
       "0.16.77": "53eff3f8",
