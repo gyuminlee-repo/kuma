@@ -79,7 +79,7 @@ Kuro 탭에서 프라이머를 설계하고 실험·시퀀싱 후 Mame 탭으로
 
 - **Hairpin / Homodimer 검증**: primer3 calc_hairpin/calc_homodimer. Tm, dG(kcal/mol) 표시
 - **합성 품질 점수**: IDT/Twist 가이드라인 기반 올리고 합성 난이도 평가(0-100). Homopolymer, GC-rich 연속, 디뉴클레오타이드 반복, 극단 GC% 감점
-- **Off-target 검증**: template sense/antisense에서 비특이적 결합 자동 검출
+- **Off-target 검증**: template sense/antisense에서 비특이적 결합 자동 검출. 원형 template 의 원점을 가로지르는 자리까지 보고 15 bases 이상 정확 일치를 탈락시키는 선택형 엄격 검사를 켤 수 있다
 
 #### 실패 복구
 

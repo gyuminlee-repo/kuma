@@ -79,7 +79,7 @@ Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenB
 
 - **Hairpin / Homodimer check**: Secondary structure check via primer3 calc_hairpin/calc_homodimer. Displays Tm and dG (kcal/mol)
 - **Synthesis quality score**: Oligo synthesis difficulty assessment (0-100) based on IDT/Twist guidelines. Penalizes homopolymer runs, GC-rich stretches, dinucleotide repeats, and extreme GC content
-- **Off-target detection**: Automatic detection of non-specific binding on the template sense/antisense strand
+- **Off-target detection**: Automatic detection of non-specific binding on the template sense/antisense strand, including sites across the origin of a circular template, with an optional strict check that also rejects any exact match of 15 bases or more
 
 #### Failure rescue
 

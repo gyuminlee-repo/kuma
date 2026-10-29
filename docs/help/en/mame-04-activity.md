@@ -59,6 +59,12 @@ A confirmation mean that differs notably from the primary value is marked as a m
 
 When the measurement input, the verdict evidence or the output path changes, the previous completion mark becomes invalid and the file has to be built again.
 
+### Positive clone JANUS mapping (optional)
+
+This step below the 4.1 screen writes a JANUS worklist that moves the round-1 clones above wild-type from the final cell stock (96 PCR plate) to a 96 deep well plate (LB + Km). **Find positive clones** lists every measured clone, with the clones above wild-type ticked to start with. A value exactly equal to wild-type is left out. You can untick a clone or add one below wild-type, and the selection is kept with the project. The selected clones are placed from A1 of the target plate in the column order of their source wells (A1, B1 ... H1, A2). The file has the same eight columns as the step 3 sheet, and the volume (70 µL to start with) and both plate names are edited on screen. A long-format file has no source wells and cannot be used. This does not affect the EVOLVEpro input build.
+
+Rows of the round-1 file that were set aside as not belonging to this run (blanks, calibration numbers, wells the mapping does not name, wild-type well readings not used as the reference) appear in the warning box above the checkboxes with their name, block and row, in the same sentences as the 4.1 build warnings. An empty, zero, negative or non-numeric volume disables the export and says why below the field.
+
 ## 4.2 Signals and handoff
 
 Collect the per-round EVOLVEpro result xlsx files and run the advisory classification. The list is prefilled with the outputs 4.1 produced, and entries can be added or removed. **Run classification** answers with one of continue single-mutant walking, switch to combinatorial, stop, or defer, together with its reasons. The advice is read-only and confirms or saves nothing.
