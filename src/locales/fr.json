@@ -2740,13 +2740,13 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "La recherche off-target couvre désormais les sites qui traversent l'origine d'un plasmide circulaire et ceux qui dépassent la fin d'une séquence linéaire.",
-      "Une nouvelle vérification stricte facultative rejette un candidat ayant une correspondance exacte d'au moins 15 bases ailleurs sur la matrice.",
-      "Si la vérification stricte seule laisse une mutation sans amorces, le motif d'échec l'indique et la désactiver rétablit le design.",
-      "Le réglage de la vérification stricte est enregistré dans le workspace et consigné dans le classeur exporté."
+      "L'icône de l'application montre désormais Kuro et Mame, dont les queues forment une double hélice."
     ],
-    "highlightsStamp": "0.16.79+07f90f60",
+    "highlightsStamp": "0.16.80+149d815c",
     "releases": {
+      "0.16.80": [
+        "L'icône de l'application montre désormais Kuro et Mame, dont les queues forment une double hélice."
+      ],
       "0.16.79": [
         "La recherche off-target couvre désormais les sites qui traversent l'origine d'un plasmide circulaire et ceux qui dépassent la fin d'une séquence linéaire.",
         "Une nouvelle vérification stricte facultative rejette un candidat ayant une correspondance exacte d'au moins 15 bases ailleurs sur la matrice.",
@@ -3297,6 +3297,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.80": "149d815c",
       "0.16.79": "07f90f60",
       "0.16.78": "7847cb43",
       "0.16.77": "53eff3f8",

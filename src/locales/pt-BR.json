@@ -2740,13 +2740,13 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "A busca off-target agora cobre sítios que cruzam a origem de um plasmídeo circular e que passam do fim de uma sequência linear.",
-      "Uma nova verificação estrita opcional rejeita um candidato com correspondência exata de 15 bases ou mais em outro ponto do molde.",
-      "Se só a verificação estrita deixar uma mutação sem primers, o motivo da falha diz isso, e desligá-la recupera o desenho.",
-      "A configuração da verificação estrita é salva no workspace e registrada na pasta de trabalho exportada."
+      "O ícone do aplicativo agora mostra Kuro e Mame com as caudas formando uma dupla hélice."
     ],
-    "highlightsStamp": "0.16.79+07f90f60",
+    "highlightsStamp": "0.16.80+149d815c",
     "releases": {
+      "0.16.80": [
+        "O ícone do aplicativo agora mostra Kuro e Mame com as caudas formando uma dupla hélice."
+      ],
       "0.16.79": [
         "A busca off-target agora cobre sítios que cruzam a origem de um plasmídeo circular e que passam do fim de uma sequência linear.",
         "Uma nova verificação estrita opcional rejeita um candidato com correspondência exata de 15 bases ou mais em outro ponto do molde.",
@@ -3297,6 +3297,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.80": "149d815c",
       "0.16.79": "07f90f60",
       "0.16.78": "7847cb43",
       "0.16.77": "53eff3f8",
