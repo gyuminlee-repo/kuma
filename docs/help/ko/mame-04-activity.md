@@ -59,6 +59,10 @@ GC run 은 여러 실험이 함께 쓰므로 report 에 이 run 의 것이 아�
 
 측정 입력, 판정 근거, 출력 경로 중 하나가 바뀌면 이전 완료 표시가 무효가 되어 다시 만들어야 한다.
 
+### Positive clone JANUS mapping (선택)
+
+4.1 화면 아래의 이 단계는 1반복 측정 파일에서 WT 보다 높은 clone 을 final cell stock(96 PCR plate)에서 96 deep well plate(LB + Km)로 옮기는 JANUS 워크리스트를 만든다. **Positive clone 찾기** 를 누르면 측정된 clone 이 모두 나오고 WT 초과 clone 이 체크된 채로 시작한다. 정확히 WT 와 같은 값은 빠진다. 체크를 빼거나 WT 이하 clone 을 더할 수 있고 그 선택은 프로젝트에 남는다. 선택된 clone 은 원본 well 의 열 순서(A1, B1 ... H1, A2)로 대상 plate 의 A1 부터 채워진다. 파일은 3단계와 같은 8열 형식이며 부피(기본 70 µL)와 두 plate 이름은 화면에서 바꾼다. long-format 파일은 원본 well 이 없어 쓸 수 없다. EVOLVEpro 입력 build 와는 무관하다.
+
 ## 4.2 신호 및 핸드오프
 
 라운드별 EVOLVEpro 결과 xlsx 를 모아 자문 분류를 돌린다. 4.1 이 만든 산출물로 목록이 자동으로 채워지며 항목을 더하거나 뺄 수 있다. **분류 실행** 을 누르면 단일 변이 계속, Combinatorial 전환, 중단, 보류 중 하나를 근거와 함께 답한다. 읽기 전용 자문이라 아무것도 확정하거나 저장하지 않는다.

@@ -1597,6 +1597,29 @@
       "error": "No se pudo aplicar la confirmación: {{message}}",
       "workbookFailed": "La confirmación se aplicó, pero no se pudo reescribir el libro de resultados: {{message}}",
       "resultFileFailed": "La confirmación se aplicó, pero el archivo de resultados del proyecto no se actualizó, por lo que puede faltar al reabrir el proyecto: {{message}}"
+    },
+    "positiveJanus": {
+      "title": "Mapeo JANUS de clones positivos",
+      "description": "Transfiere los clones de la ronda 1 por encima del tipo silvestre desde el stock celular final (placa PCR de 96) a una placa de pozo profundo de 96 (LB + Km), un pozo por clon, desde A1 por columnas. Opcional: no afecta a la generación de EVOLVEpro.",
+      "needsPlateScreen": "Requiere un cribado de la ronda 1 con pozos de placa: hoja GC, informe sin procesar o informe con ID numéricos.",
+      "find": "Buscar clones positivos",
+      "finding": "Leyendo el cribado...",
+      "savedSelection": "Se seleccionaron {{count}} clones antes. Busque clones positivos para revisarlos.",
+      "summary": "{{selected}} de {{total}} clones seleccionados ({{above}} por encima del tipo silvestre)",
+      "resetSelection": "Restablecer a los superiores al tipo silvestre",
+      "listLabel": "Clones medidos",
+      "relative": "{{value}} veces el WT",
+      "aboveWt": "sobre WT",
+      "volume": "Volumen (µL)",
+      "sourceRack": "Nombre de la placa de origen",
+      "destRack": "Nombre de la placa de destino",
+      "export": "Exportar mapeo JANUS",
+      "exporting": "Exportando...",
+      "chooseOutput": "Guardar mapeo JANUS de clones positivos",
+      "exported": "Se escribieron {{count}} transferencias en {{path}}",
+      "error": "Falló el mapeo JANUS de clones positivos",
+      "staleSelection": "El cribado ya no coincide con el que se usó al elegir los clones (el archivo cambió). La selección vuelve a empezar con los clones por encima del tipo silvestre; revísela y exporte de nuevo.",
+      "volumeInvalid": "Introduzca un número positivo de µL."
     }
   },
   "home": {
@@ -2740,10 +2763,19 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "El icono de la aplicación ahora muestra a Kuro y Mame con sus colas formando una doble hélice."
+      "El paso 4.1 puede exportar una lista de trabajo JANUS que traslada los positivos de la ronda 1 del final cell stock a una placa deep well.",
+      "Los clones por encima del tipo silvestre empiezan marcados, y cualquier clon se puede desmarcar o añadir antes de exportar.",
+      "Los positivos se colocan uno por pocillo desde A1 en orden de columnas, en la misma hoja de ocho columnas que el paso 3.",
+      "El volumen de transferencia y los nombres de placa se pueden editar, y un volumen no válido bloquea la exportación con un aviso."
     ],
-    "highlightsStamp": "0.16.80+149d815c",
+    "highlightsStamp": "0.16.81+aa434309",
     "releases": {
+      "0.16.81": [
+        "El paso 4.1 puede exportar una lista de trabajo JANUS que traslada los positivos de la ronda 1 del final cell stock a una placa deep well.",
+        "Los clones por encima del tipo silvestre empiezan marcados, y cualquier clon se puede desmarcar o añadir antes de exportar.",
+        "Los positivos se colocan uno por pocillo desde A1 en orden de columnas, en la misma hoja de ocho columnas que el paso 3.",
+        "El volumen de transferencia y los nombres de placa se pueden editar, y un volumen no válido bloquea la exportación con un aviso."
+      ],
       "0.16.80": [
         "El icono de la aplicación ahora muestra a Kuro y Mame con sus colas formando una doble hélice."
       ],
@@ -3297,6 +3329,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.81": "aa434309",
       "0.16.80": "149d815c",
       "0.16.79": "07f90f60",
       "0.16.78": "7847cb43",

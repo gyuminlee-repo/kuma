@@ -397,6 +397,37 @@ const isDetectMeasurementSourceResult: MameResultValidator = (value) =>
   isRecord(value.evidence) &&
   isString(value.reason);
 
+/**
+ * `mame.activity.positive_janus_candidates`
+ * (`python-core/sidecar_mame/handlers/activity.py`). The panel renders one
+ * checkbox per candidate and checks the `above_wt` ones, so each member is
+ * checked for the fields the list reads.
+ */
+const isPositiveJanusCandidatesResult: MameResultValidator = (value) =>
+  isRecord(value) &&
+  Array.isArray(value.candidates) &&
+  value.candidates.every(
+    (c) =>
+      isRecord(c) && isString(c.well) && isString(c.name) &&
+      isFiniteNumber(c.relative) && isFiniteNumber(c.n_replicates) &&
+      typeof c.above_wt === "boolean",
+  ) &&
+  isFiniteNumber(value.n_above_wt) &&
+  Array.isArray(value.warnings) && value.warnings.every(isString) &&
+  isRecord(value.defaults) &&
+  isFiniteNumber(value.defaults.volume) &&
+  isString(value.defaults.source_rack) &&
+  isString(value.defaults.dest_rack) &&
+  isString(value.defaults.sample_type);
+
+/** `mame.activity.export_positive_janus`: the written path and row count. */
+const isPositiveJanusExportResult: MameResultValidator = (value) =>
+  isRecord(value) &&
+  isString(value.output_path) &&
+  isFiniteNumber(value.row_count) &&
+  Array.isArray(value.rows) &&
+  value.rows.length === value.row_count;
+
 const VALIDATORS: Record<string, MameResultValidator> = {
   // Partial contract: run_quality is recursively checked; other analyze fields
   // remain outside this guard's scope.
@@ -405,6 +436,8 @@ const VALIDATORS: Record<string, MameResultValidator> = {
     isFiniteNumber(value.verdict_count) && isFiniteNumber(value.replicate_count),
   "mame.activity.build_evolvepro_input": isBuildEvolveproInputResult,
   "mame.activity.detect_measurement_source": isDetectMeasurementSourceResult,
+  "mame.activity.positive_janus_candidates": isPositiveJanusCandidatesResult,
+  "mame.activity.export_positive_janus": isPositiveJanusExportResult,
   "strategy.classify_round": isClassifyRoundResult,
   "mame.build_well_layout": isBuildWellLayoutResult,
   health_info: isHealthInfoResult,

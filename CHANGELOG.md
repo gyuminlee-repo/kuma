@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.16.81 (Positive clone JANUS worklist in step 4.1)
+
+MAME step 4.1 can now write the JANUS worklist that moves the round-1 positives from the final cell stock plate to a deep well plate for the replicated round. After the round-1 screen is chosen, Find positive clones lists every measured clone with its value against wild-type. The clones above wild-type are ticked to start with, using the same rule the EVOLVEpro build uses, and the operator can untick any or add one below wild-type. Wild-type itself is not moved. The selected clones are taken in column order of their stock wells and placed one per well from A1 of the deep well plate, also in column order. The file is the eight-column instrument sheet that step 3 writes, with the transfer volume (70 µL to start with) and both plate names editable before export.
+
+The worklist is written only when the operator exports it, through a save dialog. The selection is kept with the round. If the screen reads differently later, for example after the same file was replaced, the stored selection is dropped with a notice, and the export checks the screen once more before it writes. An empty, zero, negative or non-numeric volume disables the export and says so beside the field.
+
+### Highlights
+
+- Step 4.1 can export a JANUS worklist that moves round-1 positives from the final cell stock to a deep well plate.
+- Clones above wild-type are ticked to start with, and any clone can be unticked or added before export.
+- Positives are placed one per well from A1 in column order, in the same eight-column sheet as step 3.
+- Transfer volume and plate names are editable, and an unusable volume blocks the export with a message.
+
 ## v0.16.80 (New app icon)
 
 The app icon is now the Kuro and Mame tails forming a double helix. Every icon size the installers and the window use is rendered from one vector source, so the taskbar, the dock and the installer show the same artwork. Nothing else changes from v0.16.79, which this release includes: off-target search across the plasmid origin and past the end of a linear sequence, and the opt-in strict off-target check.

@@ -1597,6 +1597,29 @@
       "error": "Could not apply the confirmation: {{message}}",
       "workbookFailed": "The confirmation was applied, but the result workbook could not be rewritten: {{message}}",
       "resultFileFailed": "The confirmation was applied, but the project's result file was not updated, so it may be missing when the project is reopened: {{message}}"
+    },
+    "positiveJanus": {
+      "title": "Positive clone JANUS mapping",
+      "description": "Moves the round-1 clones above wild-type from the final cell stock (96 PCR plate) to a 96 deep well plate (LB + Km), one well per clone, filled from A1 down each column. Optional: it does not affect the EVOLVEpro build.",
+      "needsPlateScreen": "Needs a round-1 screen that names plate wells: a GC sheet, a raw report or a numeric-ID report.",
+      "find": "Find positive clones",
+      "finding": "Reading the screen...",
+      "savedSelection": "{{count}} clones were selected earlier. Find positive clones to review them.",
+      "summary": "{{selected}} of {{total}} clones selected ({{above}} above wild-type)",
+      "resetSelection": "Reset to above wild-type",
+      "listLabel": "Measured clones",
+      "relative": "{{value}}x WT",
+      "aboveWt": "above WT",
+      "volume": "Volume (µL)",
+      "sourceRack": "Source plate name",
+      "destRack": "Destination plate name",
+      "export": "Export JANUS mapping",
+      "exporting": "Exporting...",
+      "chooseOutput": "Save positive clone JANUS mapping",
+      "exported": "Wrote {{count}} transfers to {{path}}",
+      "error": "Positive clone JANUS mapping failed",
+      "staleSelection": "The screen now reads differently from when the clones were chosen (the file changed). The selection starts again from the clones above wild-type; review it and export again.",
+      "volumeInvalid": "Enter a positive number of µL."
     }
   },
   "home": {
@@ -2794,10 +2817,19 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The app icon is now Kuro and Mame with their tails forming a double helix."
+      "Step 4.1 can export a JANUS worklist that moves round-1 positives from the final cell stock to a deep well plate.",
+      "Clones above wild-type are ticked to start with, and any clone can be unticked or added before export.",
+      "Positives are placed one per well from A1 in column order, in the same eight-column sheet as step 3.",
+      "Transfer volume and plate names are editable, and an unusable volume blocks the export with a message."
     ],
-    "highlightsStamp": "0.16.80+149d815c",
+    "highlightsStamp": "0.16.81+aa434309",
     "releases": {
+      "0.16.81": [
+        "Step 4.1 can export a JANUS worklist that moves round-1 positives from the final cell stock to a deep well plate.",
+        "Clones above wild-type are ticked to start with, and any clone can be unticked or added before export.",
+        "Positives are placed one per well from A1 in column order, in the same eight-column sheet as step 3.",
+        "Transfer volume and plate names are editable, and an unusable volume blocks the export with a message."
+      ],
       "0.16.80": [
         "The app icon is now Kuro and Mame with their tails forming a double helix."
       ],
@@ -3351,6 +3383,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.81": "aa434309",
       "0.16.80": "149d815c",
       "0.16.79": "07f90f60",
       "0.16.78": "7847cb43",

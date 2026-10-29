@@ -1597,6 +1597,29 @@
       "error": "확인을 적용하지 못했습니다: {{message}}",
       "workbookFailed": "확인은 적용되었지만 결과 워크북을 다시 쓰지 못했습니다: {{message}}",
       "resultFileFailed": "확인은 적용되었지만 프로젝트의 결과 파일은 갱신되지 않았으므로 프로젝트를 다시 열면 반영되지 않을 수 있습니다: {{message}}"
+    },
+    "positiveJanus": {
+      "title": "양성 clone JANUS mapping",
+      "description": "1반복 WT 초과 clone 을 final cell stock(96 PCR plate)에서 96 deep well plate(LB + Km)로 옮긴다. clone 하나에 한 칸이고 A1 부터 열 방향으로 채운다. 선택 단계이며 EVOLVEpro 빌드에는 영향이 없다.",
+      "needsPlateScreen": "plate well 을 적은 1반복 측정 파일이 필요하다(GC sheet, raw report, 숫자 ID report).",
+      "find": "Positive clone 찾기",
+      "finding": "측정 파일을 읽는 중...",
+      "savedSelection": "이전에 clone {{count}}개를 선택했다. Positive clone 찾기로 다시 확인한다.",
+      "summary": "clone {{total}}개 중 {{selected}}개 선택(WT 초과 {{above}}개)",
+      "resetSelection": "WT 초과로 되돌리기",
+      "listLabel": "측정된 clone",
+      "relative": "WT 대비 {{value}}배",
+      "aboveWt": "WT 초과",
+      "volume": "부피(µL)",
+      "sourceRack": "원본 plate 이름",
+      "destRack": "대상 plate 이름",
+      "export": "JANUS mapping 내보내기",
+      "exporting": "내보내는 중...",
+      "chooseOutput": "Positive clone JANUS mapping 저장",
+      "exported": "{{count}}건을 {{path}} 에 썼다",
+      "error": "Positive clone JANUS mapping 실패",
+      "staleSelection": "clone 을 고를 때와 측정 파일 내용이 달라졌다(파일이 바뀌었다). 선택을 WT 초과 clone 부터 다시 시작했으니 확인한 뒤 다시 내보낸다.",
+      "volumeInvalid": "0 보다 큰 µL 값을 넣는다."
     }
   },
   "home": {
@@ -2794,10 +2817,19 @@
     "descriptionRange": "v{{from}} 이후 모든 업데이트의 주요 변경 사항입니다.",
     "gotItBtn": "확인",
     "highlights": [
-      "앱 아이콘이 Kuro와 Mame의 꼬리가 이중나선을 이루는 그림으로 바뀌었다."
+      "4.1 단계에서 1반복 positive를 final cell stock에서 deep well plate로 옮기는 JANUS 워크리스트를 내보낼 수 있다.",
+      "WT보다 높은 clone이 처음에 체크되며 내보내기 전에 어느 clone이든 해제하거나 더할 수 있다.",
+      "positive는 A1부터 열 순서로 한 칸에 하나씩 놓이고 3단계와 같은 8열 시트로 저장된다.",
+      "옮기는 부피와 plate 이름을 고칠 수 있고 쓸 수 없는 부피면 안내와 함께 내보내기가 막힌다."
     ],
-    "highlightsStamp": "0.16.80+149d815c",
+    "highlightsStamp": "0.16.81+aa434309",
     "releases": {
+      "0.16.81": [
+        "4.1 단계에서 1반복 positive를 final cell stock에서 deep well plate로 옮기는 JANUS 워크리스트를 내보낼 수 있다.",
+        "WT보다 높은 clone이 처음에 체크되며 내보내기 전에 어느 clone이든 해제하거나 더할 수 있다.",
+        "positive는 A1부터 열 순서로 한 칸에 하나씩 놓이고 3단계와 같은 8열 시트로 저장된다.",
+        "옮기는 부피와 plate 이름을 고칠 수 있고 쓸 수 없는 부피면 안내와 함께 내보내기가 막힌다."
+      ],
       "0.16.80": [
         "앱 아이콘이 Kuro와 Mame의 꼬리가 이중나선을 이루는 그림으로 바뀌었다."
       ],
@@ -3351,6 +3383,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.81": "aa434309",
       "0.16.80": "149d815c",
       "0.16.79": "07f90f60",
       "0.16.78": "7847cb43",

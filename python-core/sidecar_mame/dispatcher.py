@@ -43,6 +43,8 @@ from sidecar_mame.handlers.activity import (
     handle_activity_upload,
     handle_build_evolvepro_input,
     handle_detect_measurement_source,
+    handle_export_positive_janus,
+    handle_positive_janus_candidates,
     handle_merge_for_evolvepro,
     reset_activity_state,
 )
@@ -123,6 +125,9 @@ _METHODS = {
     "mame.activity.build_evolvepro_input": handle_build_evolvepro_input,
     # Step 4.1: read the measurement file rather than asking which format it is
     "mame.activity.detect_measurement_source": handle_detect_measurement_source,
+    # Step 4.1: round-1 clones above WT -> JANUS worklist (manual export only)
+    "mame.activity.positive_janus_candidates": handle_positive_janus_candidates,
+    "mame.activity.export_positive_janus": handle_export_positive_janus,
     # Feature B: MAME Barcode Setup
     "generate_mame_package": handle_generate_mame_package,
     "check_plate_order": handle_check_plate_order,

@@ -1597,6 +1597,29 @@
       "error": "無法套用確認：{{message}}",
       "workbookFailed": "確認已套用，但無法重寫結果活頁簿：{{message}}",
       "resultFileFailed": "確認已套用，但專案的結果檔案未更新，重新開啟專案時可能遺失：{{message}}"
+    },
+    "positiveJanus": {
+      "title": "陽性克隆 JANUS 對應",
+      "description": "將第 1 輪高於野生型的克隆從最終細胞庫(96 PCR 盤)轉移到 96 深孔盤(LB + Km),每個克隆一個孔,從 A1 依欄填入。選用步驟,不影響 EVOLVEpro 建置。",
+      "needsPlateScreen": "需要註明盤孔位的第 1 輪篩選檔案:GC 表、原始報告或數字 ID 報告。",
+      "find": "尋找陽性克隆",
+      "finding": "正在讀取篩選...",
+      "savedSelection": "先前已選擇 {{count}} 個克隆。尋找陽性克隆以重新檢查。",
+      "summary": "已選擇 {{selected}}/{{total}} 個克隆(高於野生型 {{above}} 個)",
+      "resetSelection": "恢復為高於野生型",
+      "listLabel": "已測定的克隆",
+      "relative": "WT 的 {{value}} 倍",
+      "aboveWt": "高於 WT",
+      "volume": "體積 (µL)",
+      "sourceRack": "來源盤名稱",
+      "destRack": "目標盤名稱",
+      "export": "匯出 JANUS 對應",
+      "exporting": "正在匯出...",
+      "chooseOutput": "儲存陽性克隆 JANUS 對應",
+      "exported": "已將 {{count}} 次轉移寫入 {{path}}",
+      "error": "陽性克隆 JANUS 對應失敗",
+      "staleSelection": "篩選內容與選擇克隆時不同(檔案已變更)。已從高於野生型的克隆重新開始選擇,請檢查後重新匯出。",
+      "volumeInvalid": "請輸入大於 0 的 µL 數值。"
     }
   },
   "home": {
@@ -2740,10 +2763,19 @@
     "descriptionRange": "自 v{{from}} 以來每次更新的主要變更。",
     "gotItBtn": "知道了",
     "highlights": [
-      "應用程式圖示現在是 Kuro 和 Mame 的尾巴組成雙螺旋的圖案。"
+      "步驟 4.1 可以匯出 JANUS 工作清單，把第 1 輪的陽性克隆從 final cell stock 轉移到 deep well 盤。",
+      "高於野生型的克隆一開始就被勾選，匯出前可以取消或加入任何克隆。",
+      "陽性克隆從 A1 起按欄順序每孔放一個，儲存為與步驟 3 相同的八欄表格。",
+      "轉移體積和盤名可以修改，體積無效時會提示並阻止匯出。"
     ],
-    "highlightsStamp": "0.16.80+149d815c",
+    "highlightsStamp": "0.16.81+aa434309",
     "releases": {
+      "0.16.81": [
+        "步驟 4.1 可以匯出 JANUS 工作清單，把第 1 輪的陽性克隆從 final cell stock 轉移到 deep well 盤。",
+        "高於野生型的克隆一開始就被勾選，匯出前可以取消或加入任何克隆。",
+        "陽性克隆從 A1 起按欄順序每孔放一個，儲存為與步驟 3 相同的八欄表格。",
+        "轉移體積和盤名可以修改，體積無效時會提示並阻止匯出。"
+      ],
       "0.16.80": [
         "應用程式圖示現在是 Kuro 和 Mame 的尾巴組成雙螺旋的圖案。"
       ],
@@ -3297,6 +3329,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.81": "aa434309",
       "0.16.80": "149d815c",
       "0.16.79": "07f90f60",
       "0.16.78": "7847cb43",

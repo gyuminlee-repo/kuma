@@ -622,6 +622,35 @@ class DetectNativeBarcodesParams(BaseModel):
         return v
 
 
+class PositiveJanusCandidatesParams(BaseModel):
+    """Step 4.1 positive clone JANUS mapping: the round-1 screen to read.
+
+    Exactly one plate-addressed screen (``gc_data_xlsx``, ``round1_report_xlsx``
+    or ``numeric_report_xlsx``), named by the mapping the step 4.1 build uses.
+    Paths are checked by the handler with the sidecar input validator.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    gc_data_xlsx: str | None = None
+    round1_report_xlsx: str | None = None
+    numeric_report_xlsx: str | None = None
+    verdict_xlsx: str | None = None
+    layout_xlsx: str | None = None
+    expected_xlsx: str | None = None
+
+
+class PositiveJanusExportParams(PositiveJanusCandidatesParams):
+    """The screen, the clones the operator kept, and the deck to state."""
+
+    selected_wells: list[str]
+    # allow_inf_nan=False for the reason BuildEvolveproInputParams gives:
+    # ``gt=0.0`` alone lets infinity through.
+    volume: float = Field(gt=0.0, allow_inf_nan=False)
+    source_rack: str
+    dest_rack: str
+    output_csv: str
+
 class DetectMeasurementSourceParams(BaseModel):
     """Parameters for the ``mame.activity.detect_measurement_source`` RPC method.
 

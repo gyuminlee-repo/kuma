@@ -714,6 +714,118 @@ def _numeric_confirmation(path: str | Path, order: DecodeOrder, well_values: dic
     return result.by_variant()
 
 
+# The one above-WT rule, shared under a public name. The numeric-ID
+# confirmation indexes this subset, and the step 4.1 positive clone JANUS
+# mapping (``kuma_core.mame.export.positive_janus``) transfers it, so the clones
+# the bench re-measures and the clones the robot moves are the same set.
+above_wt_slots = _above_wt_subset
+
+
+@dataclass(frozen=True)
+class PrimaryScreen:
+    """One relative value list per plate well of a round-1 screen.
+
+    ``order`` is the plate order the wells are named in, as
+    ``(short, mutant, well)`` with zero-padded wells, and ``well_values`` holds
+    the relative replicates of every non-WT well the screen measured, under the
+    same spelling. Both are what :func:`build_evolvepro_input` itself builds for
+    the numeric-ID confirmation, read by the same readers.
+    """
+
+    order: DecodeOrder
+    well_values: dict[str, list[float]]
+    primary_format: str
+    warnings: list[str]
+
+
+def _verdict_order(verdict_xlsx: str | Path) -> DecodeOrder:
+    """Non-WT verdict rows in column-major plate order, as a decode order.
+
+    A row whose mutant has no EVOLVEpro short form is still a tube on the
+    plate, so it keeps its slot with ``None`` for the short form, the way
+    ``layout_variant_order`` keeps it.
+    """
+    from kuma_core.mame.plate_geometry import well_to_seq
+
+    order: DecodeOrder = []
+    for well, row in parse_verdict_rows(verdict_xlsx).items():
+        if is_wt_name(row.mutant_id):
+            continue
+        order.append((_short_variant(row.mutant_id), str(row.mutant_id), well))
+    order.sort(key=lambda entry: well_to_seq(entry[2]))
+    return order
+
+
+def read_primary_screen(*, gc_data_xlsx: str | Path | None = None, round1_report_xlsx: str | Path | None = None, numeric_report_xlsx: str | Path | None = None, verdict_xlsx: str | Path | None = None, layout_xlsx: str | Path | None = None, expected_xlsx: str | Path | None = None) -> PrimaryScreen:
+    """Read a round-1 whole-plate screen the way the step 4.1 build reads it.
+
+    Exactly one of the three plate-addressed sources: the pre-normalised flat
+    sheet, the raw block report labelled by well, or the numeric-ID block
+    report. The long-format activity file carries no plate position of its
+    own, so it has no place here.
+
+    A well-labelled screen is named by the mapping the build uses (the layout
+    sheet when given, else the verdict workbook) and ordered by that same
+    mapping. A numeric-ID screen is decoded against the build order source
+    (``expected_xlsx`` or ``layout_xlsx``), so its wells are the ones the
+    numeric-ID confirmation would index.
+    """
+    selected = [
+        (name, source)
+        for name, source in (
+            ("gc_data_xlsx", gc_data_xlsx),
+            ("round1_report_xlsx", round1_report_xlsx),
+            ("numeric_report_xlsx", numeric_report_xlsx),
+        )
+        if source is not None
+    ]
+    if len(selected) != 1:
+        raise ValueError(
+            "provide exactly one plate-addressed round-1 screen: gc_data_xlsx, "
+            "round1_report_xlsx, or numeric_report_xlsx"
+        )
+    name, source = selected[0]
+    well_values: dict[str, list[float]] = {}
+    warnings: list[str] = []
+    if name == "numeric_report_xlsx":
+        _values, _wells, _wt, decode_warnings = _numeric_primary(
+            source, expected_xlsx, layout_xlsx, well_values
+        )
+        # Same order source ``_numeric_primary`` decoded against: the design
+        # list wins and a layout beside it is not consulted, as in the build.
+        order, _order_warnings = _decode_order(
+            expected_xlsx, layout_xlsx if expected_xlsx is None else None
+        )
+        warnings.extend(decode_warnings)
+        return PrimaryScreen(order, well_values, name, warnings)
+    if layout_xlsx is not None:
+        well_to_variant, variant_to_well = _layout_maps(layout_xlsx)
+        wt_wells = {entry.well_id for entry in parse_plate_layout_xlsx(layout_xlsx) if entry.is_wt}
+        order, order_warnings = layout_variant_order(layout_xlsx)
+        warnings.extend(order_warnings)
+    elif verdict_xlsx is not None:
+        well_to_variant, variant_to_well = _verdict_maps(verdict_xlsx)
+        wt_wells = _wt_wells(None, verdict_xlsx)
+        order = _verdict_order(verdict_xlsx)
+    else:
+        raise ValueError(
+            f"{name} is well-labeled and needs a well->variant mapping: supply "
+            "layout_xlsx or verdict_xlsx"
+        )
+    unmapped: list[str] = []
+    if name == "gc_data_xlsx":
+        _gc_primary(source, well_to_variant, variant_to_well, unmapped, well_values, wt_wells)
+    else:
+        _raw_report_primary(source, well_to_variant, variant_to_well, unmapped, well_values, wt_wells)
+    if unmapped:
+        distinct = sorted(set(unmapped))
+        warnings.append(
+            f"{len(distinct)} measured well(s) absent from the mapping, not offered: "
+            + ", ".join(distinct)
+        )
+    return PrimaryScreen(order, well_values, name, warnings)
+
+
 def _label_slot_rows(source: str, path: str | Path, ledger: _RowLedger) -> tuple[list[tuple[GcRow, float]], list[tuple[GcRow, SampleClass, float]]]:
     """WT rows and label rows (well or variant) of a replicated label report."""
     wt: list[tuple[GcRow, float]] = []

@@ -1421,6 +1421,39 @@
       "severity": "warning"
     },
     {
+      "id": "mame-positive-janus",
+      "files": [
+        "kuma_core/mame/export/positive_janus.py",
+        "kuma_core/mame/activity/build_evolvepro_input.py",
+        "kuma_core/mame/activity/numeric_id_decode.py",
+        "kuma_core/mame/export/janus_mapping.py",
+        "kuma_core/shared/janus_deck.py",
+        "python-core/sidecar_mame/models.py",
+        "python-core/sidecar_mame/dispatcher.py",
+        "python-core/sidecar_mame/handlers/activity.py",
+        "src/types/mame/positive_janus.ts",
+        "src/types/mame/validators.ts",
+        "src/types/round.ts",
+        "src/lib/ipc-mame/index.ts",
+        "src/components/mame/panels/PositiveJanusPanel.tsx",
+        "src/components/mame/panels/BuildEvolveproInputPanel.tsx"
+      ],
+      "symbols": [
+        "positive_candidates",
+        "positive_janus_rows",
+        "export_positive_janus_csv",
+        "read_primary_screen",
+        "above_wt_slots",
+        "PositiveJanusCandidatesParams",
+        "PositiveJanusExportParams",
+        "positiveJanusCandidates",
+        "exportPositiveJanus",
+        "PositiveJanusRecord"
+      ],
+      "note": "Step 4.1 positive clone JANUS mapping. The positives are above_wt_slots (the same function as _above_wt_subset, which the numeric-ID confirmation indexes) over read_primary_screen, which reads the round-1 screen with the build's own readers and mapping; never re-derive the WT rule here. The sheet is the step 3 device schema (JANUS_DEVICE_HEADER) and its volume and type defaults are janus_mapping DEFAULT_VOLUME_UL and DEFAULT_SAMPLE_TYPE. The candidates RPC states every default the panel shows, so the TS side holds no deck literal. Written only by the manual export RPC; nothing in it gates the build or step 4 completion.",
+      "severity": "warning"
+    },
+    {
       "id": "mame-measurement-identity-messages",
       "files": [
         "kuma_core/mame/activity/build_evolvepro_input.py",
