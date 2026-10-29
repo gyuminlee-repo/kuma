@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import { useMemo, useState } from "react";
 import { StrictSpatialSection } from "./StrictSpatialSection";
+import { useNumberField } from "../../../hooks/useNumberField";
 import { useAppStore } from "../../../store/appStore";
 import { combinatorialFraction } from "../../../store/slices/diversitySlice.helpers";
 import {
@@ -96,24 +97,16 @@ export function DiversityOptions() {
   const [newDomainName, setNewDomainName] = useState("");
   const [newDomainStart, setNewDomainStart] = useState("");
   const [newDomainEnd, setNewDomainEnd] = useState("");
-  const [maxPerPosStr, setMaxPerPosStr] = useState(String(maxPerPosition));
-  const commitMaxPerPos = () => {
-    const n = parseInt(maxPerPosStr, 10);
-    if (isFinite(n) && n >= 1) setMaxPerPosition(n);
-  };
-
-  // Resync from the store (project restore, Clear All) without clobbering a
-  // draft being typed, the same guard MutationInput uses for its round fields.
-  useEffect(() => {
-    const parsed = Number.parseInt(maxPerPosStr, 10);
-    if (Number.isNaN(parsed) || parsed === maxPerPosition) return;
-    setMaxPerPosStr(String(maxPerPosition));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [maxPerPosition]);
-
-  const onEnterBlur = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") e.currentTarget.blur();
-  };
+  // Commits on blur; the field then shows the stored cap, so an entry below 1
+  // or a fraction does not stay on screen beside a different stored cap.
+  const maxPerPosInput = useNumberField({
+    value: maxPerPosition,
+    parse: (text) => {
+      const n = parseInt(text, 10);
+      return Number.isFinite(n) && n >= 1 ? n : undefined;
+    },
+    commit: setMaxPerPosition,
+  }).inputProps;
 
   const autoParams = computeSigmaParams(evolveproRound, roundSize);
 
@@ -225,10 +218,7 @@ export function DiversityOptions() {
       <AdvancedSettingsSection
         showAdvanced={showAdvanced}
         setShowAdvanced={setShowAdvanced}
-        maxPerPosStr={maxPerPosStr}
-        setMaxPerPosStr={setMaxPerPosStr}
-        commitMaxPerPos={commitMaxPerPos}
-        onEnterBlur={onEnterBlur}
+        maxPerPosInput={maxPerPosInput}
         domainStrategy={domainStrategy}
         setDomainStrategy={setDomainStrategy}
         domainOverlapPolicy={domainOverlapPolicy}

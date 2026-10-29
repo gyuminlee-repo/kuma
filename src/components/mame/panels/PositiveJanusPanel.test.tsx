@@ -14,6 +14,7 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 import { save } from "@tauri-apps/plugin-dialog";
 import { exportPositiveJanus, positiveJanusCandidates } from "@/lib/ipc-mame";
 import type { PositiveJanusCandidatesResult } from "@/types/mame/positive_janus";
+import { getMameRpcResultValidator } from "@/types/mame/validators";
 import type { Round } from "@/types/round";
 import {
   PositiveJanusPanel,
@@ -31,6 +32,7 @@ const CANDIDATES: PositiveJanusCandidatesResult = {
   ],
   n_above_wt: 2,
   warnings: [],
+  excluded_rows: [],
   defaults: {
     volume: 70,
     source_rack: "final cell stock",
@@ -78,6 +80,52 @@ beforeEach(() => {
 });
 
 describe("PositiveJanusPanel", () => {
+  it("names the rows the screen set aside under the build's warnings heading", async () => {
+    const blank = "round1_report_xlsx excluded 1 row(s) (non_well_sample): 'BLANK' (block 1, row 3)";
+    vi.mocked(positiveJanusCandidates).mockResolvedValue({
+      ...CANDIDATES,
+      warnings: [blank],
+      excluded_rows: [{
+        source: "round1_report_xlsx", sample_name: "BLANK", reason: "non_well_sample",
+        row_index: 3, block_index: 1, area: 0.33, kept: false,
+      }],
+    });
+    renderPanel();
+    fireEvent.click(screen.getByRole("button", { name: "Find positive clones" }));
+    await waitFor(() => expect(screen.getByText(blank)).toBeTruthy());
+    expect(screen.getByText("Warnings")).toBeTruthy();
+  });
+
+  it("shows where each well the mapping does not name was read", async () => {
+    // The sentence the sidecar writes (build_evolvepro_input._unmapped_primary_warning).
+    const unmapped = "1 measured well(s) absent from layout_xlsx: A12 (block 25, row 123)";
+    vi.mocked(positiveJanusCandidates).mockResolvedValue({
+      ...CANDIDATES,
+      warnings: [unmapped],
+      excluded_rows: [{
+        source: "round1_report_xlsx", sample_name: "A12", reason: "unmapped_well",
+        row_index: 123, block_index: 25, area: 0.9, kept: false,
+      }],
+    });
+    renderPanel();
+    fireEvent.click(screen.getByRole("button", { name: "Find positive clones" }));
+    await waitFor(() => expect(screen.getByText(unmapped)).toBeTruthy());
+    expect(screen.getByText(/A12 \(block 25, row 123\)/)).toBeTruthy();
+  });
+
+  it("validates the excluded rows of the candidates response", () => {
+    const validate = getMameRpcResultValidator("mame.activity.positive_janus_candidates");
+    expect(validate).toBeTruthy();
+    const row = {
+      source: "round1_report_xlsx", sample_name: "BLANK", reason: "non_well_sample",
+      row_index: 3, block_index: 1, area: null, kept: false,
+    };
+    expect(validate?.({ ...CANDIDATES, excluded_rows: [row] })).toBe(true);
+    const { excluded_rows: _dropped, ...withoutRows } = CANDIDATES;
+    expect(validate?.(withoutRows)).toBe(false);
+    expect(validate?.({ ...CANDIDATES, excluded_rows: [{ ...row, reason: 1 }] })).toBe(false);
+  });
+
   it("asks for a plate-addressed screen when the form holds none", () => {
     renderPanel(null);
     expect(screen.queryByRole("button", { name: "Find positive clones" })).toBeNull();

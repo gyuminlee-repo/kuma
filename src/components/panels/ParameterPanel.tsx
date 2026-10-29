@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { sendRequest } from "../../lib/ipc-kuro";
 import { formatError } from "../../lib/utils";
@@ -11,15 +11,26 @@ import { AdvancedSection } from "../ui/AdvancedSection";
 import { clampMaxPrimers } from "../../lib/inputThresholds";
 import { PLATE_WELL_COUNT } from "../../lib/plate-utils";
 import { useAppStore } from "../../store/appStore";
+import { useNumberField } from "../../hooks/useNumberField";
 
-/** Local string state synced with a numeric store value. Commits on blur/Enter. */
+/** A numeric store value edited as text; unreadable text commits `fallback`. */
 function useLocalNum(storeVal: number, fallback: number, commit: (v: number) => void) {
-  const [str, setStr] = useState(String(storeVal));
-  useEffect(() => setStr(String(storeVal)), [storeVal]);
-  const onChange = (e: ChangeEvent<HTMLInputElement>) => setStr(e.target.value);
-  const onBlur = () => { const n = parseFloat(str); commit(!isFinite(n) ? fallback : n); };
-  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => { if (e.key === "Enter") e.currentTarget.blur(); };
-  return { value: str, onChange, onBlur, onKeyDown };
+  return useNumberField({
+    value: storeVal,
+    parse: (text) => {
+      const n = parseFloat(text);
+      return Number.isFinite(n) ? n : fallback;
+    },
+    commit,
+  }).inputProps;
+}
+
+/** Blank is auto (null); a non-negative integer fixes the seed; anything else commits nothing. */
+function parseSeed(text: string): number | null | undefined {
+  const trimmed = text.trim();
+  if (trimmed === "") return null;
+  const parsed = parseInt(trimmed, 10);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : undefined;
 }
 
 function isOverlapMode(value: string): value is OverlapMode {
@@ -71,17 +82,12 @@ export function ParameterPanel() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [polymeraseEditorOpen, setPolymeraseEditorOpen] = useState(false);
   const [editingPolymerase, setEditingPolymerase] = useState<PolymeraseProfile | null>(null);
-  const [seedStr, setSeedStr] = useState(() =>
-    useAppStore.getState().randomSeed !== null
-      ? String(useAppStore.getState().randomSeed)
-      : "",
-  );
-  const seedStrRef = useRef(seedStr);
-  seedStrRef.current = seedStr;
-  // sync external reset (e.g. workspace load)
-  useEffect(() => {
-    setSeedStr(randomSeed !== null ? String(randomSeed) : "");
-  }, [randomSeed]);
+  const seedInput = useNumberField<number | null>({
+    value: randomSeed,
+    parse: parseSeed,
+    commit: setRandomSeed,
+    format: (seed) => (seed !== null ? String(seed) : ""),
+  }).inputProps;
 
   const isFullOverlap = overlapMode === "full";
 
@@ -100,20 +106,16 @@ export function ParameterPanel() {
   // Full mode: single length range mirrors to both fwd and rev (engine intersects fwd/rev limits).
   const fullLenMinInput = useLocalNum(fwdLenMin, 17, (v) => setPrimerLenRange(v, fwdLenMax, v, fwdLenMax));
   const fullLenMaxInput = useLocalNum(fwdLenMax, 39, (v) => setPrimerLenRange(fwdLenMin, v, fwdLenMin, v));
-  // The design count is not a `useLocalNum` input. That hook only pushes the
-  // store value back into the field when the store changes, and a normalized
-  // entry (0, 95.7) can leave the store unchanged, which would leave the
-  // entered text sitting in the field.
-  const [maxPrimersStr, setMaxPrimersStr] = useState(String(maxPrimers));
-  useEffect(() => setMaxPrimersStr(String(maxPrimers)), [maxPrimers]);
-
-  const commitMaxPrimers = () => {
-    const parsed = parseFloat(maxPrimersStr);
-    const requested = Number.isFinite(parsed) ? parsed : 95;
-    const clamped = clampMaxPrimers(requested);
-    setMaxPrimers(clamped);
-    setMaxPrimersStr(String(clamped));
-  };
+  // A normalized entry (0, 95.7) can leave the store unchanged; the field
+  // still shows the stored count after the commit.
+  const maxPrimersInput = useNumberField({
+    value: maxPrimers,
+    parse: (text) => {
+      const parsed = parseFloat(text);
+      return clampMaxPrimers(Number.isFinite(parsed) ? parsed : 95);
+    },
+    commit: setMaxPrimers,
+  }).inputProps;
 
   const gcInvalid = gcMin >= gcMax;
 
@@ -222,10 +224,7 @@ export function ParameterPanel() {
           className={`h-control w-20 rounded-control border px-2 text-center text-caption focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
             overLimit ? "border-warning focus:ring-warning" : "border-border"
           }`}
-          value={maxPrimersStr}
-          onChange={(e) => setMaxPrimersStr(e.target.value)}
-          onBlur={commitMaxPrimers}
-          onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+          {...maxPrimersInput}
         />
         <span className="text-caption text-muted-foreground">
           {t("parameterPanel.plates", { count: Math.ceil(maxPrimers / PLATE_WELL_COUNT) })}
@@ -414,22 +413,7 @@ export function ParameterPanel() {
               aria-label={t("parameterPanel.seedAriaLabel")}
               aria-describedby="random-seed-hint"
               className={`${numInput} w-20`}
-              value={seedStr}
-              onChange={(e) => setSeedStr(e.target.value)}
-              onBlur={() => {
-                const trimmed = seedStrRef.current.trim();
-                if (trimmed === "") {
-                  setRandomSeed(null);
-                } else {
-                  const parsed = parseInt(trimmed, 10);
-                  if (Number.isInteger(parsed) && parsed >= 0) {
-                    setRandomSeed(parsed);
-                  } else {
-                    setSeedStr(randomSeed !== null ? String(randomSeed) : "");
-                  }
-                }
-              }}
-              onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+              {...seedInput}
             />
             <span id="random-seed-hint" className="text-caption text-muted-foreground">
               {randomSeed !== null ? t("parameterPanel.seedFixed", { seed: randomSeed }) : t("parameterPanel.seedAuto")}
