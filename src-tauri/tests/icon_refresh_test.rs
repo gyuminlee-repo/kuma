@@ -138,3 +138,25 @@ fn an_integrated_size_the_bundle_lacks_is_skipped() {
     assert_eq!(targets.len(), 1);
     assert!(targets[0].1.ends_with(format!("hicolor/32x32/apps/appimagekit_{ID}_kuma.png")));
 }
+
+#[test]
+fn an_appimage_whose_path_extends_this_one_is_not_targeted() {
+    let l = layout();
+    // `kuma.AppImage.old` has the running path as a prefix, so a substring
+    // match on the desktop file would wrongly claim its icons.
+    let other_id = "fedcba9876543210fedcba9876543210";
+    integrate(&l, other_id, &l.appimage.with_file_name("kuma.AppImage.old"));
+    assert!(appimage_icon_targets(&l.applications, &l.icons, &l.appimage, &l.appdir, "kuma").is_empty());
+}
+
+#[test]
+fn a_quoted_exec_path_matches() {
+    let l = layout();
+    integrate(&l, ID, &l.appimage);
+    fs::write(
+        l.applications.join(format!("appimagekit_{ID}-kuma.desktop")),
+        format!("[Desktop Entry]\nName=kuma\nExec=\"{}\" %U\nIcon=appimagekit_{ID}_kuma\n", l.appimage.display()),
+    )
+    .unwrap();
+    assert_eq!(appimage_icon_targets(&l.applications, &l.icons, &l.appimage, &l.appdir, "kuma").len(), 2);
+}

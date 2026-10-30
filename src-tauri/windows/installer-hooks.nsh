@@ -5,6 +5,9 @@
 ; shell to drop its icon cache once files and shortcuts are in place. Microsoft
 ; documents SHCNE_ASSOCCHANGED as the call that "instruct[s] the Shell to
 ; invalidate the icon and thumbnail cache" (SHChangeNotify, Remarks).
+; Measured on Windows (v0.16.81 -> this build) was only the taskbar, which the
+; window ICON_BIG below fixes; the effect of this call on Explorer and
+; shortcut icons is taken from that documentation and was not measured.
 ;
 ; The call form is copied from tauri's own FileAssociation.nsh, which is
 ; included before this file and already defines these names, hence !ifndef.

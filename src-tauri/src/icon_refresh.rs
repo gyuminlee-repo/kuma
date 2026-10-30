@@ -56,6 +56,10 @@ pub fn app_bundle_from_exe(exe: &Path) -> Option<PathBuf> {
 /// desktop file `appimagekit_<id>-<name>.desktop` whose contents name the
 /// running AppImage. Only files that already exist are returned, so nothing is
 /// created for a user who never integrated the AppImage.
+///
+/// Assumption: the AppImage path is the first argument of the `Exec=` line,
+/// optionally double-quoted (the test fixture uses `Exec=<path> %U`). The path
+/// is compared whole, so `kuma.AppImage.old` does not match `kuma.AppImage`.
 pub fn appimage_icon_targets(
     applications_dir: &Path,
     icons_dir: &Path,
@@ -76,7 +80,7 @@ pub fn appimage_icon_targets(
             let id = name.strip_prefix("appimagekit_")?.strip_suffix(".desktop")?;
             let (id, _) = id.split_once('-')?;
             let text = fs::read_to_string(entry.path()).ok()?;
-            text.contains(appimage).then(|| id.to_string())
+            (exec_program(&text)? == appimage).then(|| id.to_string())
         })
         .collect();
 
@@ -103,6 +107,26 @@ pub fn appimage_icon_targets(
         }
     }
     targets
+}
+
+/// First argument of the first `Exec=` line, with surrounding double quotes
+/// removed and `\"`, `\\` unescaped as the Desktop Entry Spec quotes them.
+fn exec_program(desktop: &str) -> Option<String> {
+    let value = desktop.lines().find_map(|line| line.strip_prefix("Exec="))?.trim_start();
+    if let Some(rest) = value.strip_prefix('"') {
+        let mut out = String::new();
+        let mut chars = rest.chars();
+        while let Some(c) = chars.next() {
+            match c {
+                '"' => return Some(out),
+                '\\' => out.push(chars.next()?),
+                _ => out.push(c),
+            }
+        }
+        None
+    } else {
+        value.split_whitespace().next().map(str::to_string)
+    }
 }
 
 /// Start the once-per-version refresh on a background thread. No-op on
@@ -196,11 +220,14 @@ fn refresh() -> String {
 /// half-written icon.
 #[cfg(target_os = "linux")]
 fn replace_file(src: &Path, dst: &Path) -> io::Result<()> {
-    let tmp = dst.with_extension("png.kuma-tmp");
-    fs::copy(src, &tmp)?;
-    fs::rename(&tmp, dst).inspect_err(|_| {
+    // The pid keeps two processes refreshing the same icon off each other's
+    // temp file. Staying in dst's directory keeps the rename atomic.
+    let tmp = dst.with_extension(format!("png.kuma-tmp-{}", std::process::id()));
+    let cleanup = |_: &io::Error| {
         let _ = fs::remove_file(&tmp);
-    })
+    };
+    fs::copy(src, &tmp).inspect_err(cleanup)?;
+    fs::rename(&tmp, dst).inspect_err(cleanup)
 }
 
 /// Give the window the exe icon (resource 32512, the one tauri-build embeds)
