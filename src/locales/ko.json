@@ -2817,13 +2817,19 @@
     "descriptionRange": "v{{from}} 이후 모든 업데이트의 주요 변경 사항입니다.",
     "gotItBtn": "확인",
     "highlights": [
-      "4.1 단계에서 1반복 positive를 final cell stock에서 deep well plate로 옮기는 JANUS 워크리스트를 내보낼 수 있다.",
-      "WT보다 높은 clone이 처음에 체크되며 내보내기 전에 어느 clone이든 해제하거나 더할 수 있다.",
-      "positive는 A1부터 열 순서로 한 칸에 하나씩 놓이고 3단계와 같은 8열 시트로 저장된다.",
-      "옮기는 부피와 plate 이름을 고칠 수 있고 쓸 수 없는 부피면 안내와 함께 내보내기가 막힌다."
+      "업데이트 뒤 Windows 작업 표시줄에 Windows가 캐시해 둔 옛 아이콘 대신 새 앱 아이콘이 나온다.",
+      "Windows 설치 프로그램이 설치를 마칠 때 Windows에 아이콘 캐시를 새로 고치도록 요청한다.",
+      "macOS에서는 새 버전을 처음 실행할 때 Dock과 Finder가 새 아이콘을 읽는다.",
+      "데스크톱에 통합된 AppImage는 새 버전을 처음 실행할 때 설치해 둔 아이콘을 교체한다."
     ],
-    "highlightsStamp": "0.16.81+aa434309",
+    "highlightsStamp": "0.16.82+cc1555f9",
     "releases": {
+      "0.16.82": [
+        "업데이트 뒤 Windows 작업 표시줄에 Windows가 캐시해 둔 옛 아이콘 대신 새 앱 아이콘이 나온다.",
+        "Windows 설치 프로그램이 설치를 마칠 때 Windows에 아이콘 캐시를 새로 고치도록 요청한다.",
+        "macOS에서는 새 버전을 처음 실행할 때 Dock과 Finder가 새 아이콘을 읽는다.",
+        "데스크톱에 통합된 AppImage는 새 버전을 처음 실행할 때 설치해 둔 아이콘을 교체한다."
+      ],
       "0.16.81": [
         "4.1 단계에서 1반복 positive를 final cell stock에서 deep well plate로 옮기는 JANUS 워크리스트를 내보낼 수 있다.",
         "WT보다 높은 clone이 처음에 체크되며 내보내기 전에 어느 clone이든 해제하거나 더할 수 있다.",
@@ -3383,6 +3389,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.82": "cc1555f9",
       "0.16.81": "aa434309",
       "0.16.80": "149d815c",
       "0.16.79": "07f90f60",

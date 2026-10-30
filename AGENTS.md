@@ -298,6 +298,9 @@ cross-layer 의존은 **`.cross-layer-sync.json` `groups[]`** 로 관리. 단일
 - No `--target` flag with `npx tauri build` — breaks resource path resolution
 - Bundle files must live under `src-tauri/`
 
+### 앱 아이콘과 업데이트 뒤 갱신
+Tauri 2.11 은 창에 작은 아이콘(`ICON_SMALL`)만 지정한다(tauri-runtime-wry 가 tao `set_window_icon` 만 부른다). 큰 아이콘(`ICON_BIG`)이 비면 Windows 작업 표시줄은 exe 경로로 캐시된 아이콘을 쓰므로 같은 경로에 덮어쓰는 업데이트 뒤에도 옛 그림이 남는다. 2026-10-29 v0.16.80 아이콘 교체 뒤 실측했다. 그래서 `src-tauri/src/icon_refresh.rs` 가 setup 에서 모든 창에 exe 내장 아이콘 리소스 32512 를 `ICON_BIG` 으로 지정한다. 보조로 `src-tauri/windows/installer-hooks.nsh` 의 `NSIS_HOOK_POSTINSTALL` 이 설치와 업데이트 끝에 셸 아이콘 캐시 무효화(`SHChangeNotify`)를 알린다. macOS 와 AppImage 는 설치 후크가 없어 같은 모듈이 버전이 바뀐 첫 실행에서 한 번만 LaunchServices 재등록과 통합 아이콘 교체를 한다. deb 는 hicolor-icon-theme 의 dpkg trigger 가 캐시를 갱신하므로 따로 하지 않는다. 아이콘 원본은 `src-tauri/icons/kuma-icon.svg` 하나이고 `bundle.icon` 의 래스터는 모두 이것에서 렌더한다.
+
 ### Version sync
 Three files must have matching version on release:
 - `package.json` → `"version"`

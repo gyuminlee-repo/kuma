@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.16.82 (App icon refreshes after an update)
+
+After an update the Windows taskbar could keep showing the previous app icon. The window only declared its small icon, so Windows took the taskbar picture from the icon it had cached for the program path, and an update replaces the program at the same path. The window now also declares its large icon, read from the program's own resources, and the installer asks Windows to drop its icon cache when it finishes, for fresh installs and updates alike. On Windows this was checked by installing the build over v0.16.81: the taskbar showed the new icon.
+
+macOS and Linux AppImage builds have no installer step, so the app refreshes once on the first start of a new version. On macOS it asks Launch Services to register the app again so the Dock and Finder read the new icon. An AppImage that was integrated into the desktop replaces the icons it installed with the bundled ones. The Debian package already rebuilds the icon cache on install, so nothing changes there. Both refresh paths are built and covered by tests but were not checked on a macOS or Linux desktop. Every step is best effort: a failure is logged and the app starts normally.
+
+### Highlights
+
+- After an update the Windows taskbar now shows the new app icon instead of the one Windows had cached.
+- The Windows installer asks Windows to refresh its icon cache when it finishes.
+- On macOS the Dock and Finder pick up the new icon on the first start of a new version.
+- A desktop-integrated AppImage replaces its installed icons on the first start of a new version.
+
 ## v0.16.81 (Positive clone JANUS worklist in step 4.1)
 
 MAME step 4.1 can now write the JANUS worklist that moves the round-1 positives from the final cell stock plate to a deep well plate for the replicated round. After the round-1 screen is chosen, Find positive clones lists every measured clone with its value against wild-type. The clones above wild-type are ticked to start with, using the same rule the EVOLVEpro build uses, and the operator can untick any or add one below wild-type. Wild-type itself is not moved. The selected clones are taken in column order of their stock wells and placed one per well from A1 of the deep well plate, also in column order. The file is the eight-column instrument sheet that step 3 writes, with the transfer volume (70 µL to start with) and both plate names editable before export.

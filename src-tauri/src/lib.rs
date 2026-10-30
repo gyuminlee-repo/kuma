@@ -1,4 +1,5 @@
 pub mod config;
+pub mod icon_refresh;
 pub mod keep_awake;
 pub mod project;
 pub mod project_archive;
@@ -277,6 +278,14 @@ pub fn run() {
                 .resource_dir()
                 .unwrap_or_else(|_| PathBuf::from("src-tauri/binaries"));
             app.manage(sidecar::SidecarManager::new(app.handle().clone(), binaries_dir));
+            #[cfg(windows)]
+            for window in app.webview_windows().values() {
+                icon_refresh::set_taskbar_icon(window);
+            }
+            icon_refresh::spawn_refresh_if_updated(
+                config::config_root(),
+                app.package_info().version.to_string(),
+            );
             Ok(())
         })
         // CloseRequested is handled entirely in MainShell.tsx (JS side):
