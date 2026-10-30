@@ -2763,13 +2763,19 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "L'étape 4.1 peut exporter une liste de travail JANUS qui transfère les positifs du tour 1 du final cell stock vers une plaque deep well.",
-      "Les clones au-dessus du type sauvage sont cochés au départ, et tout clone peut être décoché ou ajouté avant l'export.",
-      "Les positifs sont placés un par puits à partir de A1 par colonne, dans la même feuille à huit colonnes que l'étape 3.",
-      "Le volume de transfert et les noms de plaque sont modifiables, et un volume inutilisable bloque l'export avec un message."
+      "Après une mise à jour, la barre des tâches Windows affiche la nouvelle icône au lieu de celle mise en cache par Windows.",
+      "Le programme d'installation Windows demande à Windows d'actualiser son cache d'icônes à la fin.",
+      "Sous macOS, le Dock et le Finder prennent la nouvelle icône au premier lancement d'une nouvelle version.",
+      "Un AppImage intégré au bureau remplace ses icônes installées au premier lancement d'une nouvelle version."
     ],
-    "highlightsStamp": "0.16.81+aa434309",
+    "highlightsStamp": "0.16.82+cc1555f9",
     "releases": {
+      "0.16.82": [
+        "Après une mise à jour, la barre des tâches Windows affiche la nouvelle icône au lieu de celle mise en cache par Windows.",
+        "Le programme d'installation Windows demande à Windows d'actualiser son cache d'icônes à la fin.",
+        "Sous macOS, le Dock et le Finder prennent la nouvelle icône au premier lancement d'une nouvelle version.",
+        "Un AppImage intégré au bureau remplace ses icônes installées au premier lancement d'une nouvelle version."
+      ],
       "0.16.81": [
         "L'étape 4.1 peut exporter une liste de travail JANUS qui transfère les positifs du tour 1 du final cell stock vers une plaque deep well.",
         "Les clones au-dessus du type sauvage sont cochés au départ, et tout clone peut être décoché ou ajouté avant l'export.",
@@ -3329,6 +3335,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.82": "cc1555f9",
       "0.16.81": "aa434309",
       "0.16.80": "149d815c",
       "0.16.79": "07f90f60",
