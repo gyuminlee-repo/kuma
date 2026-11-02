@@ -24,6 +24,7 @@
  */
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -105,17 +106,106 @@ function tsDefaults() {
   return new Function(`return (${literal});`)();
 }
 
-/** Assert `toRpcParams` still maps every field the way this check assumes. */
+/**
+ * The TypeScript compiler, from this checkout or, in a worktree that carries no
+ * dependencies, from the main checkout. Same order as `.githooks/pre-push`
+ * uses for `tsc`. Pure JS, so it loads under WSL node as well.
+ */
+function loadTypeScript() {
+  const candidates = [ROOT];
+  const common = spawnSync("git", ["rev-parse", "--git-common-dir"], {
+    cwd: ROOT,
+    encoding: "utf-8",
+  });
+  if (common.status === 0 && common.stdout.trim()) {
+    const dir = path.resolve(ROOT, common.stdout.trim());
+    candidates.push(path.dirname(dir));
+  }
+  for (const candidate of candidates) {
+    const pkg = path.join(candidate, "node_modules", "typescript", "package.json");
+    if (fs.existsSync(pkg)) return createRequire(pkg)("typescript");
+  }
+  throw new Error(
+    "typescript is not installed; looked for node_modules/typescript under " +
+      candidates.join(" and "),
+  );
+}
+
+/**
+ * Assert `toRpcParams` maps every field the way this check assumes.
+ *
+ * Read from the syntax tree, not with a regex: a regex also matched text in a
+ * comment, so `volume: settings.volume * 1000, // volume: settings.volume,`
+ * passed. The function must be one `return` of an object literal whose every
+ * property is `<rpc key>: <param>.<field>` exactly. Spread, shorthand, computed
+ * keys, any other initializer, or any statement besides the return is refused,
+ * because each can change what reaches the wire without the table seeing it.
+ */
 function checkRpcMapping() {
+  const ts = loadTypeScript();
   const src = fs.readFileSync(path.join(ROOT, TS_FILE), "utf-8");
-  const start = src.indexOf("export function toRpcParams");
-  const close = src.indexOf("\n}", start);
-  const body = start === -1 ? "" : src.slice(start, close === -1 ? undefined : close + 2);
+  const file = ts.createSourceFile(TS_FILE, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+
+  let fn;
+  for (const stmt of file.statements) {
+    if (ts.isFunctionDeclaration(stmt) && stmt.name?.text === "toRpcParams") fn = stmt;
+  }
+  if (!fn || !fn.body) {
+    problems.push(`toRpcParams not found as a function declaration (${TS_FILE})`);
+    return;
+  }
+  const param = fn.parameters[0];
+  if (fn.parameters.length !== 1 || !param || !ts.isIdentifier(param.name)) {
+    problems.push(`toRpcParams must take exactly one named parameter (${TS_FILE})`);
+    return;
+  }
+  const paramName = param.name.text;
+  const stmts = fn.body.statements;
+  const ret = stmts[0];
+  if (stmts.length !== 1 || !ts.isReturnStatement(ret) || !ret.expression) {
+    problems.push(`toRpcParams must be a single return of an object literal (${TS_FILE})`);
+    return;
+  }
+  let expr = ret.expression;
+  while (ts.isParenthesizedExpression(expr)) expr = expr.expression;
+  if (!ts.isObjectLiteralExpression(expr)) {
+    problems.push(`toRpcParams must return an object literal (${TS_FILE})`);
+    return;
+  }
+
+  const seen = new Map();
+  for (const prop of expr.properties) {
+    const where = `toRpcParams: ${prop.getText(file)}`;
+    if (!ts.isPropertyAssignment(prop)) {
+      problems.push(`${where} is not a plain key: value mapping (${TS_FILE})`);
+      continue;
+    }
+    const key = ts.isIdentifier(prop.name) || ts.isStringLiteral(prop.name) ? prop.name.text : null;
+    if (key === null) {
+      problems.push(`${where} has a computed key (${TS_FILE})`);
+      continue;
+    }
+    const init = prop.initializer;
+    const field =
+      ts.isPropertyAccessExpression(init) &&
+      ts.isIdentifier(init.expression) &&
+      init.expression.text === paramName &&
+      ts.isIdentifier(init.name)
+        ? init.name.text
+        : null;
+    if (seen.has(key)) problems.push(`toRpcParams sets ${key} twice (${TS_FILE})`);
+    seen.set(key, field);
+  }
+
+  const expectedKeys = new Set(Object.values(FIELD_TO_RPC_KEY));
   for (const [field, key] of Object.entries(FIELD_TO_RPC_KEY)) {
-    // Closed at the value's end: `settings.volume * 1000` or `?? 0` changes
-    // the wire value and must not read as the plain field.
-    if (!new RegExp(`\\b${key}:\\s*settings\\.${field}\\s*[,}]`).test(body)) {
-      problems.push(`toRpcParams does not map ${field} -> ${key} (${TS_FILE})`);
+    if (seen.get(key) !== field) {
+      problems.push(`toRpcParams does not map ${field} -> ${key} as ${paramName}.${field} (${TS_FILE})`);
+    }
+  }
+  for (const key of seen.keys()) {
+    if (!expectedKeys.has(key)) {
+      problems.push(`toRpcParams sends ${key}, which FIELD_TO_RPC_KEY does not know (${TS_FILE})`);
     }
   }
 }
