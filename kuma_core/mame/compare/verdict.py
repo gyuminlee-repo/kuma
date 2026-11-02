@@ -306,6 +306,25 @@ def _assert_expected_origin(
         )
 
 
+#: Stated on a reproduced verdict whose CDS window ends before the stop codon.
+TERMINAL_STOP_UNCHECKED_NOTE = (
+    "terminal stop codon outside the coding window (cds_end excludes it); "
+    "stop loss not checked"
+)
+
+
+def _reproduced_notes(notes: list[str], terminal_stop_compared: bool | None) -> list[str]:
+    """*notes* plus the unchecked-stop caveat when the window cannot see a stop.
+
+    Only PASS and AMBIGUOUS carry it: those are the verdicts counted as
+    reproduced, and a lost stop the comparison could not see would otherwise
+    hide behind them silently.
+    """
+    if terminal_stop_compared is False:
+        return [*notes, TERMINAL_STOP_UNCHECKED_NOTE]
+    return notes
+
+
 def _positions(labels: list[str]) -> set[int]:
     out: set[int] = set()
     for label in labels:
@@ -334,8 +353,18 @@ def classify_verdict(
     translated: TranslatedRecord,
     expected_mutations: list[str],
     params: CompareParams,
+    *,
+    terminal_stop_compared: bool | None = None,
 ) -> VerdictRecord:
-    """Return a VerdictRecord for the given translated record and expected list."""
+    """Return a VerdictRecord for the given translated record and expected list.
+
+    ``terminal_stop_compared`` is
+    :func:`kuma_core.mame.translate.aa_translator.terminal_stop_in_window` for
+    the run's reference window. ``False`` adds
+    :data:`TERMINAL_STOP_UNCHECKED_NOTE` to a reproduced verdict; ``None``
+    (a caller that did not ask) says nothing. It is a run property rather
+    than a record field, so no serialized model carries it.
+    """
 
     notes: list[str] = []
 
@@ -459,7 +488,9 @@ def classify_verdict(
                 translated=translated,
                 expected_mutations=list(expected_mutations),
                 verdict=VerdictClass.AMBIGUOUS,
-                verdict_notes=indel_note,
+                verdict_notes="; ".join(
+                    _reproduced_notes([indel_note], terminal_stop_compared)
+                ),
             )
         notes.append(indel_note)
 
@@ -705,7 +736,9 @@ def classify_verdict(
             translated=translated,
             expected_mutations=list(expected_mutations),
             verdict=VerdictClass.AMBIGUOUS,
-            verdict_notes=_join(notes, "; ".join(window_hits)),
+            verdict_notes=_join(
+                _reproduced_notes(notes, terminal_stop_compared), "; ".join(window_hits)
+            ),
         )
 
     # Any remaining extras outside the window disqualify a clean PASS.
@@ -729,5 +762,5 @@ def classify_verdict(
         verdict=VerdictClass.PASS,
         # Accumulated notes must survive a PASS: a skipped-gate advisory is only
         # actionable if it reaches the well it applies to.
-        verdict_notes="; ".join(notes),
+        verdict_notes="; ".join(_reproduced_notes(notes, terminal_stop_compared)),
     )

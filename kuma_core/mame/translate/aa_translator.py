@@ -34,20 +34,52 @@ def _codon_aa(codon: str, table: str) -> str:
 # Bounded so a sidecar process analysing several references cannot grow this
 # without limit; in practice one entry serves a whole run.
 @lru_cache(maxsize=8)
-def _translate_cds(cds: str, table: int = 11) -> str:
-    """Translate in-frame CDS. Gap characters ('-') are removed beforehand.
+def _translate_cds_for_compare(cds: str, table: int = 11) -> str:
+    """Translate in-frame CDS, KEEPING the terminal stop.
 
-    If the sequence length is not a multiple of three, the trailing partial
-    codon is dropped. Stop codons ('*') are trimmed from the tail, but internal
-    stops are preserved so downstream comparisons can flag them.
+    This is the form every mutation comparison reads. Gap characters ('-') are
+    removed beforehand and a trailing partial codon is dropped. The terminal
+    stop stays because it is a residue the clone can lose: trimming it before
+    the comparison left no reference position for the query's stop codon to be
+    compared against, so a clone whose stop became a sense codon (TAA -> CAA)
+    produced no change at all and a well carrying its designed substitution
+    plus a lost stop was scored PASS.
     """
 
     cleaned = _strip_gaps(cds)
     trim = len(cleaned) - (len(cleaned) % 3)
     if trim <= 0:
         return ""
-    aa = str(Seq(cleaned[:trim]).translate(table=str(table)))
-    return aa.rstrip("*")
+    return str(Seq(cleaned[:trim]).translate(table=str(table)))
+
+
+def _translate_cds(cds: str, table: int = 11) -> str:
+    """Display form of :func:`_translate_cds_for_compare`: terminal stops trimmed.
+
+    Internal stops are preserved. Never compare against this form; see
+    :func:`_translate_cds_for_compare` for why.
+    """
+
+    return _translate_cds_for_compare(cds, table=table).rstrip("*")
+
+
+def terminal_stop_in_window(
+    reference_seq: str, cds_start: int, cds_end: int, table: int = 11
+) -> bool:
+    """Whether the last whole codon of the compared CDS window is a stop.
+
+    The window is ``reference_seq[cds_start:cds_end]``, the slice
+    :func:`translate_and_diff` compares. When it ends short of the stop codon
+    (a hand-entered ``cds_end`` that excludes it, or an annotation that runs
+    past the sequence it ships with), a lost stop is outside the comparison and
+    cannot be seen, which a PASS on that run has to say.
+    """
+
+    cleaned = _strip_gaps(reference_seq[cds_start:cds_end])
+    usable = len(cleaned) - (len(cleaned) % 3)
+    if usable < 3:
+        return False
+    return _codon_aa(cleaned[usable - 3 : usable], str(table)) == "*"
 
 
 def extract_aa_changes(query_aa: str, ref_aa: str) -> list[str]:
@@ -106,7 +138,9 @@ def _aa_ungapped_diffs(
     reported using `{WT}{pos}del`.
     """
 
-    ref_aa = _translate_cds(ref_cds, table=table)
+    # The comparison reference keeps its terminal stop so a stop -> sense
+    # change is reported as ``*{pos}{AA}`` (see ``_translate_cds_for_compare``).
+    ref_aa = _translate_cds_for_compare(ref_cds, table=table)
     # Codon-walk the query to map gapped codons to AA deletions while keeping
     # index alignment with the reference.
     aa_chars: list[str] = []

@@ -29,6 +29,7 @@ from kuma_core.mame.models import (
 )
 from kuma_core.mame.select import pick_best_replicate, prefer_within_plate
 from kuma_core.mame.translate import translate_and_diff
+from kuma_core.mame.translate.aa_translator import terminal_stop_in_window
 
 
 class _Discover:
@@ -290,6 +291,9 @@ def run_analyze(
     # per record and no lock traffic inside it.
     _t_translate = 0.0
     _t_verdict = 0.0
+    # A cds_end that stops short of the stop codon leaves a lost stop outside
+    # the comparison; every reproduced verdict of such a run says so.
+    _stop_compared = terminal_stop_in_window(reference_seq, cds_start, cds_end)
     for i, rec in enumerate(records, 1):
         # A well the campaign declared empty is not judged. Reads still arrive
         # from it (barcode leakage puts a few on combinations nobody pipetted),
@@ -337,7 +341,9 @@ def run_analyze(
                 if scoped is not None:
                     scoped_labels = scoped
         _t2 = time.perf_counter()
-        verdict = classify_verdict(translated, scoped_labels, params)
+        verdict = classify_verdict(
+            translated, scoped_labels, params, terminal_stop_compared=_stop_compared
+        )
         verdicts.append(verdict)
         _t_verdict += time.perf_counter() - _t2
         # Live per-record sub-progress. Unthrottled and I/O-free here; the
