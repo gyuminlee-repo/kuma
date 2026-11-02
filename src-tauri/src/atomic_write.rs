@@ -64,7 +64,13 @@ where
         path: tmp.clone(),
         armed: true,
     };
-    let mut file = OpenOptions::new().write(true).create_new(true).open(&tmp)?;
+    // No live process shares this name, so a file already there is debris of a
+    // crashed process that had the same pid. Clobber it rather than fail the save.
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(&tmp)?;
     let value = fill(&mut file)?;
     file.flush()?;
     file.sync_all()?;
