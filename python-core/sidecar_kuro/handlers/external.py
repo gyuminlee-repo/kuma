@@ -820,9 +820,19 @@ def handle_fetch_active_site(params: dict) -> dict:
 
 
 def handle_compute_dispersion(params: dict) -> dict:
-    """Compute 3-D spatial dispersion for a set of positions."""
+    """Compute 3-D spatial dispersion for a set of positions.
+
+    A reference-frame request (an ESMFold prediction, for one) is already
+    1-based on ref_seq and carries its coordinates as PDB text, so it has no
+    accession to require. The accession path keeps its own requirement.
+    """
     p = ComputeDispersionParams(**params)
-    if not p.accession.strip():
+    if p.coordinate_frame == "reference":
+        if not (p.pdb_text or "").strip():
+            raise ValueError(
+                "pdb_text is required when coordinate_frame is 'reference'"
+            )
+    elif not p.accession.strip():
         raise ValueError("accession is required")
     if not p.ref_seq.strip():
         raise ValueError("ref_seq is required")
