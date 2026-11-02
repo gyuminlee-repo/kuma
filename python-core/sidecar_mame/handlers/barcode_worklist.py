@@ -90,6 +90,15 @@ def handle_export_barcode_worklist(params: dict) -> dict:
     if p.custom_barcodes_xlsx is not None:
         from kuma_core.mame.ingest.combinatorial_demux import load_barcode_prefixes
 
+        from .analyze import _barcode_layout_error
+
+        # The reader sorts by index and keeps position, so F1, F3 hands F3 to
+        # column 2. The run refuses such a file through this check; the
+        # worklist is reachable before any run, so it has to ask too.
+        layout_error = _barcode_layout_error(Path(p.custom_barcodes_xlsx))
+        if layout_error is not None:
+            raise ValueError(layout_error)
+
         reverse_seeds, forward_seeds = load_barcode_prefixes(
             Path(p.custom_barcodes_xlsx)
         )

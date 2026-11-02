@@ -130,3 +130,36 @@ def test_a_campaign_that_does_not_fit_one_plate_is_refused(tmp_path: Path) -> No
             "expected_mutations_xlsx": str(expected),
             "output_path": str(tmp_path / "worklist.csv"),
         })
+
+
+def test_a_gapped_forward_set_is_refused_rather_than_renumbered(
+    tmp_path: Path,
+) -> None:
+    """F1 and F3 without F2 must not hand F3 to column 2.
+
+    The reader keeps position after sorting by index, so a gap shifts every
+    later seed down one place. The run refuses such a file through
+    ``_barcode_layout_error``; the worklist is reachable before a run and used
+    to write ``f_3`` against well A2 with ``missing_seeds`` empty.
+    """
+    expected = _expected(tmp_path / "expected.xlsx", 2)
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    assert ws is not None
+    ws.append(["name", "sequence"])
+    tail = "GGGGGGGGGGGGGGGGGGGG"
+    for i in (1, 3):
+        ws.append([f"ispS_f_{i}", f"ACGTACGTAC{i:02d}{tail}"])
+    for i in range(1, 9):
+        ws.append([f"ispS_r_{i}", f"TGCATGCATG{i:02d}{tail}"])
+    barcodes = tmp_path / "gapped.xlsx"
+    wb.save(barcodes)
+    output = tmp_path / "out" / "worklist.csv"
+
+    with pytest.raises(ValueError, match="missing F2"):
+        handle_export_barcode_worklist({
+            "expected_mutations_xlsx": str(expected),
+            "custom_barcodes_xlsx": str(barcodes),
+            "output_path": str(output),
+        })
+    assert not output.exists()
