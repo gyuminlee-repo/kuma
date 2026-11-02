@@ -9,12 +9,14 @@ length, so the off-target check reported the primer's own binding site.
 from __future__ import annotations
 
 import random
+from typing import cast
 
 import pytest
 
 from kuma_core.kuro.mutation import Mutation
 from kuma_core.kuro.polymerase import PolymeraseRegistry
 from kuma_core.kuro.sdm_engine import (
+    OverlapMode,
     check_offtarget,
     design_single_sdm,
     diagnose_sdm_failure,
@@ -49,7 +51,8 @@ def test_candidates_are_rotation_invariant(mode: str) -> None:
     for shift in _SHIFTS:
         seq, mutation = _rotation(shift)
         results = design_single_sdm(
-            seq, mutation, profile, overlap_mode=mode, topology="circular",
+            seq, mutation, profile,
+            overlap_mode=cast(OverlapMode, mode), topology="circular",
         )
         pairs[shift] = {(c.forward_seq, c.reverse_seq) for c in results}
         for candidate in results:

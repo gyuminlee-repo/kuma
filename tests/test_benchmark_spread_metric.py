@@ -31,9 +31,10 @@ def test_spread_is_the_same_metric_for_every_strategy() -> None:
         strategies=_STRATEGIES,
         ca_coords=_COORDS,
     )
-    selections = {s: bench[s]["n_selected"] for s in _STRATEGIES}
+    metrics = {s: dict(bench[s]) for s in _STRATEGIES}
+    selections = {s: metrics[s]["n_selected"] for s in _STRATEGIES}
     assert set(selections.values()) == {2}, selections
-    spreads = {s: bench[s]["structural_spread"] for s in _STRATEGIES}
+    spreads = {s: metrics[s]["structural_spread"] for s in _STRATEGIES}
     assert len(set(spreads.values())) == 1, spreads
 
 
@@ -42,5 +43,5 @@ def test_spread_falls_back_to_sequence_distance_without_coordinates() -> None:
     bench = run_benchmark(
         _LANDSCAPE, _TRUTH, n_select=2, strategies=_STRATEGIES, ca_coords=None,
     )
-    spreads = {s: bench[s]["structural_spread"] for s in _STRATEGIES}
+    spreads = {s: dict(bench[s])["structural_spread"] for s in _STRATEGIES}
     assert len(set(spreads.values())) == 1, spreads

@@ -9,13 +9,18 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+from typing import cast
 
 import pytest
 
 from kuma_core.kuro.cli import cmd_plate_map
 from kuma_core.kuro.mutation import Mutation
 from kuma_core.kuro.overlap import OverlapWindow
-from kuma_core.kuro.sdm_engine import SdmPrimerResult, export_results_tsv
+from kuma_core.kuro.sdm_engine import (
+    OverlapMode,
+    SdmPrimerResult,
+    export_results_tsv,
+)
 
 
 def _result(raw: str, fwd: str, rev: str) -> SdmPrimerResult:
@@ -47,7 +52,7 @@ _RESULTS = [
 @pytest.mark.parametrize("mode", ["partial", "full"])
 def test_plate_map_reads_exported_design_tsv(tmp_path: Path, mode: str) -> None:
     tsv = tmp_path / "design.tsv"
-    export_results_tsv(_RESULTS, tsv, overlap_mode=mode)
+    export_results_tsv(_RESULTS, tsv, overlap_mode=cast(OverlapMode, mode))
     assert tsv.read_text(encoding="utf-8").splitlines()[0].startswith("# overlap_mode=")
 
     out = tmp_path / "plate_mapping.xlsx"
