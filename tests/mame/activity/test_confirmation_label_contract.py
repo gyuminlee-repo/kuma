@@ -178,3 +178,29 @@ def test_confirmation_full_identity_cannot_conflict_with_declared_reference(samp
         confirmation = report(tmp_path / "confirmation.xlsx", ["WT", valid])
         result = build_evolvepro_input(output, activity_path=primary, activity_scale="relative_to_wt", remeasure_report_xlsx=confirmation, verdict_xlsx=verdict)
         assert result.variant_replicates == {"11I": [1.0]}
+
+
+@pytest.mark.parametrize("scale, wt_row", [("raw", "WT_1,10\n"), ("relative_to_wt", "")])
+def test_long_primary_full_identity_cannot_conflict_with_declared_reference(scale: str, wt_row: str, tmp_path: Path):
+    """The primary long-format reader keeps the reference residue a full label
+    states, the same check the confirmation reader makes. A89W from another
+    reference must not attach to this run's F89W through the short form 89W."""
+    from kuma_core.mame.activity.build_evolvepro_input import build_evolvepro_input
+    book = Workbook()
+    sheet = book.active
+    assert sheet is not None
+    sheet.append(["well_id", "mutant_id", "verdict"])
+    sheet.append(["A1", "F89W", "PASS"])
+    verdict = tmp_path / "verdict.xlsx"
+    book.save(verdict)
+    output = tmp_path / "out.xlsx"
+    value = "20" if scale == "raw" else "2"
+    primary = tmp_path / "primary.csv"
+    primary.write_text(f"variant,value\n{wt_row}A89W,{value}\n")
+    with pytest.raises(ValueError, match="conflicts with declared identity"):
+        build_evolvepro_input(output, activity_path=primary, activity_scale=scale, verdict_xlsx=verdict)
+    assert not output.exists()
+    for valid in ["F89W", "89W"]:
+        primary.write_text(f"variant,value\n{wt_row}{valid},{value}\n")
+        result = build_evolvepro_input(output, activity_path=primary, activity_scale=scale, verdict_xlsx=verdict)
+        assert result.variant_replicates == {"89W": [2.0]}

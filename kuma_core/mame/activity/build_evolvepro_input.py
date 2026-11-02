@@ -392,7 +392,44 @@ def _well_slot_rows(source: str, path: str | Path, rows: list[GcRow], run_varian
     return wt, wells
 
 
-def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str, str], variant_to_well: dict[str, str], unmapped: list[str], wt_wells: set[str] | None = None, measured_variants: frozenset[str] = frozenset(), ledger: _RowLedger | None = None) -> tuple[dict[str, list[float]], dict[str, str], list[str], list[float]]:
+def _declared_identities(verdict_xlsx: str | Path, layout_xlsx: str | Path | None) -> dict[str, str]:
+    """Short notation -> the full identity this run declared for it.
+
+    Short notation (``89W``) intentionally omits the reference residue and a
+    full label (``F89W``) does not, so a reader that turns a label into its
+    short form first has to keep the residue until this check has run. Labels
+    without a canonical full form are skipped.
+    """
+    declared = [row.mutant_id for row in parse_verdict_rows(verdict_xlsx).values()]
+    if layout_xlsx is not None:
+        declared.extend(entry.mutant for entry in parse_plate_layout_xlsx(layout_xlsx))
+    identities: dict[str, str] = {}
+    for label in declared:
+        if not is_canonical_internal(label):
+            continue
+        short = to_evolvepro(label)
+        existing = identities.get(short)
+        if existing is not None and existing != label:
+            raise ValueError(f"declared mapping (verdict_xlsx and layout_xlsx) has conflicting full identities for {short!r}")
+        identities[short] = label
+    return identities
+
+
+def _check_declared_identity(source: str, sample: SampleClass, identities: dict[str, str] | None) -> None:
+    """Refuse a full label whose reference residue contradicts the declaration.
+
+    ``A89W`` and ``F89W`` share the short form ``89W``; only the residue tells
+    a measurement of another reference from this run's. A short label carries
+    no residue (``sample.internal`` is ``None``) and passes.
+    """
+    if sample.internal is None or sample.variant is None:
+        return
+    expected_identity = (identities or {}).get(sample.variant)
+    if expected_identity and sample.internal != expected_identity:
+        raise ValueError(f"{source} sample {sample.internal!r} conflicts with declared identity {expected_identity!r}")
+
+
+def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str, str], variant_to_well: dict[str, str], unmapped: list[str], wt_wells: set[str] | None = None, measured_variants: frozenset[str] = frozenset(), ledger: _RowLedger | None = None, internal_identities: dict[str, str] | None = None) -> tuple[dict[str, list[float]], dict[str, str], list[str], list[float]]:
     source_name = "activity_path"
     ledger = _RowLedger() if ledger is None else ledger
     source = Path(path)
@@ -472,6 +509,7 @@ def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str,
             continue
         assert kind.variant is not None
         short = kind.variant
+        _check_declared_identity(source_name, kind, internal_identities)
         if short in measured_variants and (
             paired_well_column is None
             or classify_sample(str(row[paired_well_column]).strip(), "well").well != variant_to_well.get(short)
@@ -923,9 +961,7 @@ def _confirmation(path: str | Path, well_to_variant: dict[str, str] | None = Non
             if well_members or run_variants is not None and variant not in run_variants:
                 ledger.set_aside(source, row, UNMAPPED_VARIANT, area)
                 continue
-            expected_identity = (internal_identities or {}).get(variant)
-            if sample.internal and expected_identity and sample.internal != expected_identity:
-                raise ValueError(f"remeasure_report_xlsx sample {sample.internal!r} conflicts with declared identity {expected_identity!r}")
+            _check_declared_identity(source, sample, internal_identities)
         replicate_keys.append(((variant, sample.replicate), row, area))
         values.setdefault(variant, []).append(area / mean_wt)
     ledger.flag_repeats(source, replicate_keys, DUPLICATE_REPLICATE)
@@ -1216,7 +1252,12 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
             "layout_xlsx, or a verdict_xlsx that names mutant_id per well"
         )
     if name == "activity_path":
-        fallback, well_by_variant, source_warnings, wt_values = _read_long(source, activity_scale, well_to_variant, variant_to_well, unmapped, wt_wells, frozenset(measured), ledger)
+        # Variant labels here may be full (F89W) or short (89W); the residue a
+        # full one states is checked before it is shortened. The well-labelled
+        # readers (gc_data_xlsx, round1_report_xlsx) have no such check because
+        # ``_well_slot_rows`` never turns a variant label into a value: one of
+        # this run is refused as the other notation, any other is set aside.
+        fallback, well_by_variant, source_warnings, wt_values = _read_long(source, activity_scale, well_to_variant, variant_to_well, unmapped, wt_wells, frozenset(measured), ledger, _declared_identities(verdict_xlsx, layout_xlsx))
         warnings.extend(source_warnings)
     elif name == "gc_data_xlsx":
         fallback, well_by_variant = _gc_primary(source, well_to_variant, variant_to_well, unmapped, well_values, wt_wells, ledger)
@@ -1249,21 +1290,7 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
         warnings.extend(order_warnings)
         authoritative = _numeric_confirmation(remeasure_numeric_xlsx, order, well_values, ledger)
     elif remeasure_report_xlsx is not None:
-        # Retain any declared reference amino acid until after contradiction
-        # checks. Short notation intentionally omits it; a full label does not.
-        declared = [row.mutant_id for row in parse_verdict_rows(verdict_xlsx).values()]
-        if layout_xlsx is not None:
-            declared.extend(entry.mutant for entry in parse_plate_layout_xlsx(layout_xlsx))
-        internal_identities: dict[str, str] = {}
-        for label in declared:
-            if not is_canonical_internal(label):
-                continue
-            short = to_evolvepro(label)
-            existing = internal_identities.get(short)
-            if existing is not None and existing != label:
-                raise ValueError(f"confirmation mapping has conflicting full identities for {short!r}")
-            internal_identities[short] = label
-        authoritative = _confirmation(remeasure_report_xlsx, well_to_variant, internal_identities, set(variant_to_well), ledger, warnings)
+        authoritative = _confirmation(remeasure_report_xlsx, well_to_variant, _declared_identities(verdict_xlsx, layout_xlsx), set(variant_to_well), ledger, warnings)
     elif remeasure_well_xlsx is not None:
         authoritative = _well_confirmation(remeasure_well_xlsx, well_to_variant, wt_wells, mapping_source, warnings, ledger)
     else:
