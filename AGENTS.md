@@ -256,6 +256,7 @@ cross-layer 의존은 **`.cross-layer-sync.json` `groups[]`** 로 관리. 단일
 - No `as any` or `@ts-ignore` — currently at 0 occurrences, keep it that way
 - Avoid module-level `let` + async reassignment — TS narrows incorrectly. Use local `const` with explicit types
 - Minimize `!` non-null assertions — prefer null guards or early returns
+- An async action that writes the store after an `await` takes a generation number before the first `await` and compares it right before every write, success and error paths alike. `resetAll`, Clear All, a project or workspace switch and a new input path raise the generation, so a reply that lands after them is dropped instead of restoring old state. The 2026-11-02 full review found seven places without this guard (sequence load, sample load, barcode generation, layout draft, validation, progress timestamp, sidecar health), all of them a late reply undoing a reset.
 
 ### UI — Flex overflow
 - `flex-1` on `<select>` or text-heavy children **must** include `min-w-0` — without it the element expands past the flex parent (fixed-width sidebars, panels)
