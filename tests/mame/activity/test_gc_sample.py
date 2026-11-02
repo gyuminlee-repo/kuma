@@ -76,3 +76,26 @@ def test_namespaces_for_the_detector() -> None:
     assert namespaces_of("S11I") == {VARIANT}
     assert namespaces_of("BLANK") == set()
     assert namespaces_of("WT1") == set()
+
+
+@pytest.mark.parametrize(
+    ("name", "replicate"),
+    [("WT-1", 1), ("wt-2", 2), ("WT 3", 3), ("WT_4", 4), ("WT5", 5), ("WT", 0)],
+)
+def test_wild_type_replicate_separator_is_underscore_hyphen_or_space(name: str, replicate: int) -> None:
+    """A report that writes every sample as ``<id>-<rep>`` writes WT the same way."""
+    for slot in ("well", "variant", "numeric_id"):
+        sample = classify_sample(name, slot)
+        assert (sample.kind, sample.replicate) == (WT, replicate)
+    assert is_wt_name(name)
+
+
+@pytest.mark.parametrize("name", ["WTX", "WT-", "WT_", "WT ", "WT--1", "WT-_1", "WT  1", "WT1-2", "SWT1", "WT-1a"])
+def test_near_wild_type_names_are_not_wild_type(name: str) -> None:
+    # "WT " strips to "WT" in classify_sample, so only the pattern itself is checked for it.
+    if name.strip() != "WT":
+        assert not is_wt_name(name)
+        for slot in ("well", "variant", "numeric_id"):
+            assert classify_sample(name, slot).kind != WT
+    from kuma_core.mame.activity.constants import WT_PATTERN
+    assert WT_PATTERN.fullmatch(name) is None

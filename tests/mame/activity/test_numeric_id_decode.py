@@ -452,3 +452,29 @@ def test_both_order_sources_spell_a_well_the_same_way(tmp_path: Path):
 
     assert [entry[2] for entry in from_layout] == ["A01", "B01", "C01"]
     assert from_design == from_layout
+
+
+def test_hyphenated_wt_replicates_in_an_id_rep_report_are_the_wt_blocks(tmp_path):
+    """Every sample written ``<id>-<rep>``, WT included (``WT-1``..``WT-3``).
+
+    Before the WT pattern took a hyphen, this report was refused outright with
+    "has no WT block areas" although it carries three WT blocks.
+    """
+    primary = decode_primary_screen(_primary(tmp_path), _layout(tmp_path))
+    wb, ws = _new_sheet()
+    confirm_areas = {1: [1.4, 1.5, 1.6], 2: [1.1, 1.2, 1.3], 3: [0.9, 1.0, 1.1]}
+    wt_areas = [0.8, 1.0, 1.2]
+    for rep in range(3):
+        for base_id, areas in confirm_areas.items():
+            _append_block(ws, f"{base_id}-{rep + 1}", areas[rep])
+        _append_block(ws, f"WT-{rep + 1}", wt_areas[rep])
+    report = tmp_path / "confirm_hyphen_wt.xlsx"
+    wb.save(report)
+
+    result = decode_confirmation(report, primary)
+
+    assert sorted(result.wt_areas) == pytest.approx(sorted(wt_areas))
+    assert result.wt_mean == pytest.approx(1.0)
+    assert [(r.id, r.variant) for r in result.rows] == [(1, "5F"), (2, "53S"), (3, "87P")]
+    assert [len(r.relative) for r in result.rows] == [3, 3, 3]
+    assert result.rows[0].mean == pytest.approx(1.5)
