@@ -46,12 +46,15 @@ fn export_skips_temporary_debris_inside_the_project() {
     fs::create_dir_all(&project).unwrap();
     fs::write(project.join("kuma.project.json"), "{}").unwrap();
     // What a crash during an earlier export into the folder leaves behind.
-    fs::write(project.join(".backup.zip.kuma-tmp-1-0"), "partial").unwrap();
+    fs::write(project.join(".kuma-tmp-1-0"), "partial").unwrap();
+    // A project file that only contains the marker is content, not debris.
+    fs::write(project.join("sample.kuma-tmp-notes.csv"), "a,b\n").unwrap();
     let output = project.join("backup.zip");
 
     let summary = export_project(&project, &output).unwrap();
-    assert_eq!(summary.file_count, 1);
+    assert_eq!(summary.file_count, 2);
     let mut archive = ZipArchive::new(File::open(&output).unwrap()).unwrap();
-    assert_eq!(archive.len(), 1);
+    assert_eq!(archive.len(), 2);
     assert!(archive.by_name("kuma.project.json").is_ok());
+    assert!(archive.by_name("sample.kuma-tmp-notes.csv").is_ok());
 }

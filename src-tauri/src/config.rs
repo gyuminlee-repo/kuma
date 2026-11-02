@@ -72,8 +72,10 @@ fn expand_home(path: &Path) -> PathBuf {
 /// error reading it is still an error.
 fn read_config_file_checked(config_root: &Path) -> Result<Option<Config>, String> {
     let path = config_file(config_root);
-    let text = fs::read_to_string(&path).map_err(|e| e.to_string())?;
-    match serde_json::from_str(&text) {
+    // Bytes, not a string: a write cut short inside a multibyte character
+    // leaves invalid UTF-8, which is damage to recover from, not an I/O error.
+    let bytes = fs::read(&path).map_err(|e| e.to_string())?;
+    match serde_json::from_slice(&bytes) {
         Ok(cfg) => Ok(Some(cfg)),
         Err(err) => {
             eprintln!("[config] {} is not a valid config: {err}", path.display());
