@@ -141,6 +141,26 @@ mod host {
             "health probe respawned a stopped sidecar"
         );
 
+        // A17: a sidecar that exits while its health probe is in flight is
+        // stopped, not alive and unresponsive, and is not replaced.
+        let dying = manager.ensure_spawned("kuro").await.expect("third launch");
+        dying
+            .protocol
+            .wait_ready(Duration::from_secs(3))
+            .await
+            .expect("third ready");
+        let probe = manager
+            .request_existing("kuro", "exit", json!({}), Duration::from_secs(3))
+            .await
+            .unwrap();
+        assert!(probe.is_none(), "an instance that exited mid-probe must probe as stopped");
+        assert!(dying.is_terminated());
+        assert!(
+            manager.current_process("kuro").await.unwrap().is_none(),
+            "health probe respawned an exited sidecar"
+        );
+        manager.kill("kuro").await.unwrap();
+
         eprintln!(
             "RS03: Wry launch, ready, exact pong, invalid survival, shutdown, stalled-stdin kill, no-spawn health verified; pid={pid}"
         );

@@ -690,9 +690,10 @@ impl SidecarManager {
 
     /// Send a request to the sidecar instance running now, never spawning one.
     ///
-    /// `Ok(None)` when none is running. The process is captured once, so the
-    /// uptime and the answer describe the same instance; if it exits meanwhile
-    /// the request fails instead of reaching a replacement.
+    /// `Ok(None)` when none is running, including when the captured instance
+    /// exits while the request is in flight: that is a stopped sidecar, not an
+    /// unresponsive one. The process is captured once, so the uptime and the
+    /// answer describe the same instance and nothing reaches a replacement.
     pub async fn request_existing(
         &self,
         kind: &str,
@@ -704,6 +705,9 @@ impl SidecarManager {
             return Ok(None);
         };
         let result = self.request_on(&process, method, params, timeout).await;
+        if result.is_err() && process.is_terminated() {
+            return Ok(None);
+        }
         Ok(Some(ExistingResponse {
             uptime_secs: process.started_at.elapsed().as_secs(),
             result,

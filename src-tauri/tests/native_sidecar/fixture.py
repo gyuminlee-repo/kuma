@@ -24,6 +24,9 @@ def main() -> None:
         match request["method"]:
             case "ping":
                 response["result"] = "broken" if mutation == "wrong-pong" else "pong"
+            case "exit":
+                # Exit without answering, like a crash mid-request.
+                return
             case "stall":
                 # Stop reading stdin, like a handler that hangs. The host must
                 # still meet its deadlines and be able to kill this process.
