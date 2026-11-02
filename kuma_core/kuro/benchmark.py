@@ -292,7 +292,12 @@ def run_benchmark(
             ground_truth,
             top_percentile=top_percentile,
             domains=domains,
-            ca_coords=ca_coords if strategy != "pareto_1d" else None,
+            # One metric for every strategy. pareto_1d selects without
+            # coordinates on purpose (distance_mode="1d" above), yet scoring it
+            # without them turned its structural_spread into a normalized
+            # sequence distance while every other row held a normalized Ca
+            # distance, and the dialog compares those rows in one column.
+            ca_coords=ca_coords,
         )
 
     return result_map

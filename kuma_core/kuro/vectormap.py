@@ -106,16 +106,24 @@ def _fix_translations(record, mutation: Mutation) -> None:
     residue has that residue replaced, after checking it was the wild type.
     Any other CDS overlapping the codon loses its translation qualifier: a
     viewer recomputes it, and a stale one would state the wrong protein.
+
+    Overlap is an intersection with the positions the location actually covers,
+    not a containment test on its outer bounds. A CDS sharing one or two of the
+    three bases encodes a different protein after the substitution just as a
+    containing one does, and a joined location's gap is not part of the CDS at
+    all, so its outer bounds say nothing about overlap in either direction.
     """
     cs = mutation.codon_start
+    codon_positions = {cs, cs + 1, cs + 2}
     for feat in record.features:
         if feat.type != "CDS" or "translation" not in feat.qualifiers:
             continue
         loc = feat.location
-        if loc is None or not (loc.start <= cs and cs + 3 <= loc.end):
+        if loc is None or codon_positions.isdisjoint(set(loc)):
             continue
         simple = len(getattr(loc, "parts", [loc])) == 1
-        if simple and loc.strand in (1, None):
+        contains_codon = int(loc.start) <= cs and cs + 3 <= int(loc.end)
+        if simple and contains_codon and loc.strand in (1, None):
             frame = int(feat.qualifiers.get("codon_start", ["1"])[0]) - 1
             offset = cs - int(loc.start) - frame
             translation = feat.qualifiers["translation"][0]
