@@ -2763,13 +2763,15 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Après une mise à jour, la barre des tâches Windows affiche la nouvelle icône au lieu de celle mise en cache par Windows.",
-      "Le programme d'installation Windows demande à Windows d'actualiser son cache d'icônes à la fin.",
-      "Sous macOS, le Dock et le Finder prennent la nouvelle icône au premier lancement d'une nouvelle version.",
-      "Un AppImage intégré au bureau remplace ses icônes installées au premier lancement d'une nouvelle version."
+      "L'étape 4.1 lit désormais WT-1 et WT 1 comme des réplicats de type sauvage, comme WT1 et WT_1.",
+      "Un rapport GC qui nomme ses blocs de type sauvage WT-1, WT-2 et WT-3 n'est plus refusé."
     ],
-    "highlightsStamp": "0.16.82+cc1555f9",
+    "highlightsStamp": "0.16.83+83d212a4",
     "releases": {
+      "0.16.83": [
+        "L'étape 4.1 lit désormais WT-1 et WT 1 comme des réplicats de type sauvage, comme WT1 et WT_1.",
+        "Un rapport GC qui nomme ses blocs de type sauvage WT-1, WT-2 et WT-3 n'est plus refusé."
+      ],
       "0.16.82": [
         "Après une mise à jour, la barre des tâches Windows affiche la nouvelle icône au lieu de celle mise en cache par Windows.",
         "Le programme d'installation Windows demande à Windows d'actualiser son cache d'icônes à la fin.",
@@ -3335,6 +3337,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.83": "83d212a4",
       "0.16.82": "cc1555f9",
       "0.16.81": "aa434309",
       "0.16.80": "149d815c",

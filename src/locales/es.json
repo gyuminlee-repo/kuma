@@ -2763,13 +2763,15 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Tras una actualización, la barra de tareas de Windows muestra el nuevo icono en lugar del que Windows tenía en caché.",
-      "El instalador de Windows pide a Windows que actualice su caché de iconos al terminar.",
-      "En macOS, el Dock y el Finder toman el nuevo icono en el primer inicio de una nueva versión.",
-      "Un AppImage integrado en el escritorio reemplaza sus iconos instalados en el primer inicio de una nueva versión."
+      "El paso 4.1 ahora lee WT-1 y WT 1 como réplicas de tipo silvestre, igual que WT1 y WT_1.",
+      "Un informe de GC que nombra sus bloques de tipo silvestre WT-1, WT-2 y WT-3 ya no se rechaza."
     ],
-    "highlightsStamp": "0.16.82+cc1555f9",
+    "highlightsStamp": "0.16.83+83d212a4",
     "releases": {
+      "0.16.83": [
+        "El paso 4.1 ahora lee WT-1 y WT 1 como réplicas de tipo silvestre, igual que WT1 y WT_1.",
+        "Un informe de GC que nombra sus bloques de tipo silvestre WT-1, WT-2 y WT-3 ya no se rechaza."
+      ],
       "0.16.82": [
         "Tras una actualización, la barra de tareas de Windows muestra el nuevo icono en lugar del que Windows tenía en caché.",
         "El instalador de Windows pide a Windows que actualice su caché de iconos al terminar.",
@@ -3335,6 +3337,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.83": "83d212a4",
       "0.16.82": "cc1555f9",
       "0.16.81": "aa434309",
       "0.16.80": "149d815c",

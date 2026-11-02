@@ -2817,13 +2817,15 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "After an update the Windows taskbar now shows the new app icon instead of the one Windows had cached.",
-      "The Windows installer asks Windows to refresh its icon cache when it finishes.",
-      "On macOS the Dock and Finder pick up the new icon on the first start of a new version.",
-      "A desktop-integrated AppImage replaces its installed icons on the first start of a new version."
+      "Step 4.1 now reads WT-1 and WT 1 as wild-type replicates, as it already read WT1 and WT_1.",
+      "A GC report that wrote its wild-type blocks as WT-1, WT-2 and WT-3 is no longer refused."
     ],
-    "highlightsStamp": "0.16.82+cc1555f9",
+    "highlightsStamp": "0.16.83+83d212a4",
     "releases": {
+      "0.16.83": [
+        "Step 4.1 now reads WT-1 and WT 1 as wild-type replicates, as it already read WT1 and WT_1.",
+        "A GC report that wrote its wild-type blocks as WT-1, WT-2 and WT-3 is no longer refused."
+      ],
       "0.16.82": [
         "After an update the Windows taskbar now shows the new app icon instead of the one Windows had cached.",
         "The Windows installer asks Windows to refresh its icon cache when it finishes.",
@@ -3389,6 +3391,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.83": "83d212a4",
       "0.16.82": "cc1555f9",
       "0.16.81": "aa434309",
       "0.16.80": "149d815c",
