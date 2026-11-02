@@ -322,6 +322,15 @@ def _where(block_index: int | None, row_index: int) -> str:
     return f"row {row_index}" if block_index is None else f"block {block_index}, row {row_index}"
 
 
+def _adopt(source: str, row: GcRow, area: float) -> float:
+    """:func:`require_measurement` for a row this build is about to use.
+
+    Called only after the operator exclusion and the membership decision, so a
+    negative area on a row that is set aside or excluded never refuses a file.
+    """
+    return require_measurement(area, f"{source} {row.location}: sample {row.sample_name!r}")
+
+
 def _lenient_area(row: GcRow) -> float | None:
     """The area of a row that will not be used, for the report only."""
     try:
@@ -495,7 +504,6 @@ def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str,
             value = float(cast(float | str, raw_value))
         except (TypeError, ValueError):
             raise ValueError(f"activity_path has a non-numeric value for {label!r}") from None
-        require_measurement(value, f"activity_path value for {label!r}")
         if ledger.operator_skips(source_name, position, value):
             continue
         cohort = str(row["plate_id"]).strip() if "plate_id" in frame.columns else "file"
@@ -544,10 +552,10 @@ def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str,
             unmapped.append(well)
             ledger.set_aside(source_name, position, UNMAPPED_WELL, value, well)
             continue
-        rows.append((variant, value, cohort))
-    for _position, short, value, cohort in variant_rows:
+        rows.append((variant, _adopt(source_name, position, value), cohort))
+    for position, short, value, cohort in variant_rows:
         namespaces.add("variant")
-        rows.append((short, value, cohort))
+        rows.append((short, _adopt(source_name, position, value), cohort))
     if not rows:
         raise ValueError("activity_path has no measurement rows outside WT records")
     cohorts = {cohort for _, _, cohort in rows}
@@ -647,7 +655,7 @@ def _raw_report_primary(path: str | Path, well_to_variant: dict[str, str], varia
             unmapped.append(well)
             ledger.set_aside(source, row, UNMAPPED_WELL, area, well)
             continue
-        relative = area / mean_wt
+        relative = _adopt(source, row, area) / mean_wt
         values.setdefault(variant, []).append(relative)
         export_rows.append((well, relative))
     return values, variant_to_well, export_rows, [area / mean_wt for _, area in wt]
@@ -678,7 +686,7 @@ def _gc_primary(path: str | Path, well_to_variant: dict[str, str], variant_to_we
             unmapped.append(well)
             ledger.set_aside(source, row, UNMAPPED_WELL, area, well)
             continue
-        values.setdefault(variant, []).append(area)
+        values.setdefault(variant, []).append(_adopt(source, row, area))
     return values, variant_to_well
 
 
@@ -967,7 +975,7 @@ def _confirmation(path: str | Path, well_to_variant: dict[str, str] | None = Non
                 continue
             _check_declared_identity(source, sample, internal_identities)
         replicate_keys.append(((variant, sample.replicate), row, area))
-        values.setdefault(variant, []).append(area / mean_wt)
+        values.setdefault(variant, []).append(_adopt(source, row, area) / mean_wt)
     ledger.flag_repeats(source, replicate_keys, DUPLICATE_REPLICATE)
     if unmapped and warnings is not None:
         count, listed = ledger.unmapped_wells(source)
@@ -1015,7 +1023,7 @@ def _well_confirmation(path: str | Path, well_to_variant: dict[str, str], wt_wel
             unmapped.add(well)
             ledger.set_aside(source, row, UNMAPPED_WELL, area, well)
             continue
-        values.setdefault(variant, []).append(area / mean_wt)
+        values.setdefault(variant, []).append(_adopt(source, row, area) / mean_wt)
     if unmapped:
         count, listed = ledger.unmapped_wells(source)
         warnings.append(f"remeasure_well_xlsx has {count} well(s) absent from {mapping_source}: {listed}")

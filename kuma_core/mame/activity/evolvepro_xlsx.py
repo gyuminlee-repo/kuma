@@ -156,11 +156,14 @@ class GcRow:
         """The area as a number, ``None`` when the cell is empty.
 
         A cell that holds something other than a finite number is a malformed
-        file rather than a row to set aside, so it raises.
+        file rather than a row to set aside, so it raises. The sign is not
+        checked here: a negative area is still a number the operator can see and
+        exclude. Each reader applies :func:`require_measurement` to the rows it
+        adopts, after its exclusion and membership decisions.
         """
         if self.area_raw == "":
             return None
-        return require_measurement(_float_or_raise(self.area_raw, context), context)
+        return _float_or_raise(self.area_raw, context)
 
 
 def _area_for_report(row: GcRow) -> float | None:
@@ -365,9 +368,11 @@ def parse_agilent_standard(
             stats.n_calibration_skipped += 1
             continue
 
-        area = row.area(f"Sample Name={sample_name!r} row {row.row_index} in {resolved}")
+        context = f"Sample Name={sample_name!r} row {row.row_index} in {resolved}"
+        area = row.area(context)
         if area is None:
             continue
+        require_measurement(area, context)
 
         is_wt = sample.kind == WT
         rep_n = sample.replicate if is_wt else 0
@@ -482,13 +487,18 @@ def parse_agilent_block_rep_batch(
             excluded = skip is not None and skip(row, area)
             others.append((row, sample, area, "operator" if excluded else None))
             continue
-        area = row.area(f"Sample Name={sample_name!r} in {resolved}")
+        context = f"Sample Name={sample_name!r} in {resolved}"
+        area = row.area(context)
         if skip is not None and skip(row, area):
             others.append((row, sample, area, "operator"))
             continue
         if area is None:
             others.append((row, sample, None, "no_area"))
             continue
+        # Every WT and ID row that reaches here is decoded (the decoder refuses
+        # an ID set that does not line up with the order), so this is the
+        # adoption point; an operator-excluded row above is never checked.
+        require_measurement(area, context)
         if sample.kind == WT:
             wt_areas.append(area)
             wt_rows.append(row)

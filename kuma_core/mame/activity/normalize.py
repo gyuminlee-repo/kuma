@@ -41,10 +41,12 @@ def wt_denominator(areas: Sequence[float], source: str) -> float:
     values = list(areas)
     if not values:
         raise ValueError(f"{source} has no WT areas to divide by")
+    # Finite values can still overflow the sum, so the mean itself is checked
+    # for finiteness as well as sign.
     mean = sum(values) / len(values)
-    if not mean > 0 and math.isfinite(mean):
+    if not (math.isfinite(mean) and mean > 0):
         raise ValueError(
-            f"{source} WT mean area must be > 0 (computed {mean:.6g} from {values})"
+            f"{source} WT mean area must be > 0 and finite (computed {mean:.6g} from {values})"
         )
     for value in values:
         require_measurement(value, f"{source} WT area")
@@ -81,7 +83,7 @@ def compute_relative_activity(
             f"wt_areas is empty (got {len(wt_areas)} entries); "
             "at least one WT replicate area is required"
         )
-    return area / wt_denominator(wt_areas, "wt_areas")
+    return require_measurement(area, "area") / wt_denominator(wt_areas, "wt_areas")
 
 
 def compute_fold_change(
