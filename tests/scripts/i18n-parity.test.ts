@@ -250,7 +250,7 @@ function interpEn(): Record<string, unknown> {
       designed: "{{success}}/{{total}} primers designed",
       daysAgo: "{{count}} day(s) ago",
       minutesAgo: "{{n}} min ago",
-      // Plural family, CLDR suffixes. i18next supplies `count` itself here.
+      // Plural family, CLDR suffixes. The caller passes `count`; i18next does not supply one.
       plates_one: "{{count}} plate",
       plates_other: "{{count}} plates",
       // Plural family whose base key carries no suffix, the shape

@@ -30,6 +30,9 @@ def _load():
 def _run(module, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, out_root: Path) -> int:
     fake_mm2 = tmp_path / "minimap2"
     fake_mm2.write_text("", encoding="utf-8")
+    # main() writes KURO_MINIMAP2 into os.environ; registering it here makes
+    # monkeypatch restore it, so the fake binary never reaches later tests.
+    monkeypatch.setenv("KURO_MINIMAP2", str(fake_mm2))
     monkeypatch.setattr(
         sys, "argv",
         ["verify_demux_and_filter.py", "--minimap2", str(fake_mm2),
