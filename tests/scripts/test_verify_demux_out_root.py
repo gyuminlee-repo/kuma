@@ -22,6 +22,7 @@ def _load():
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    assert module.__file__ is not None
     assert Path(module.__file__).resolve() == _SCRIPT
     return module
 

@@ -24,6 +24,7 @@ def test_the_error_reply_is_sent_when_the_log_directory_is_unwritable(
     package: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     dispatcher = importlib.import_module(f"{package}.dispatcher")
+    assert dispatcher.__file__ is not None
     assert str(Path(dispatcher.__file__).resolve()).startswith(
         str(Path(__file__).resolve().parents[2])
     ), "dispatcher imported from outside this checkout"
