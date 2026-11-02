@@ -246,6 +246,95 @@ mod stdin_writer {
         pipe.wait_until("the writer to exit", |p| p.handle_killed.load(Ordering::SeqCst));
     }
 
+    /// The exit handler closes without force; a later `kill` closes with
+    /// force. The second call must not reach the pid fallback, because the
+    /// exited child's pid may already belong to another process.
+    #[test]
+    fn close_after_exit_ignores_a_later_forced_close() {
+        let pipe = Pipe::new(true, false);
+        let protocol = Arc::new(LineProtocol::new());
+        let stdin = writer(&pipe, &protocol);
+        stdin.try_send(None, b"stuck\n".to_vec()).unwrap();
+        pipe.wait_until("the first write", |p| p.started.load(Ordering::SeqCst) == 1);
+        stdin.close(false);
+        stdin.close(true);
+        assert_eq!(pipe.force_kills.load(Ordering::SeqCst), 0);
+        pipe.release();
+        pipe.wait_until("the writer to exit", |p| p.handle_killed.load(Ordering::SeqCst));
+    }
+
+    /// B queues behind a stuck write and times out. Once the pipe drains, B
+    /// must not be written: its caller was already told it failed.
+    #[tokio::test]
+    async fn a_request_past_its_deadline_is_never_written() {
+        let pipe = Pipe::new(true, false);
+        let protocol = Arc::new(LineProtocol::new());
+        let stdin = writer(&pipe, &protocol);
+        stdin.try_send(None, b"A\n".to_vec()).unwrap();
+        pipe.wait_until("the first write", |p| p.started.load(Ordering::SeqCst) == 1);
+        let result = request_with_deadline(
+            &stdin,
+            &protocol,
+            4,
+            "B",
+            json!({}),
+            Duration::from_millis(100),
+        )
+        .await;
+        assert_eq!(result, Err("RPC timeout: B after 100ms".to_string()));
+        pipe.release();
+        // The writer is FIFO: once the sentinel C is written, B has been
+        // dequeued, so the count shows whether B was written.
+        stdin.try_send(None, b"C\n".to_vec()).unwrap();
+        pipe.wait_until("the sentinel", |p| p.started.load(Ordering::SeqCst) >= 2);
+        std::thread::sleep(Duration::from_millis(20));
+        assert_eq!(pipe.started.load(Ordering::SeqCst), 2, "B was written after its deadline");
+        stdin.close(true);
+    }
+
+    /// A request that cannot be enqueued leaves no pending entry behind.
+    #[tokio::test]
+    async fn failed_enqueue_leaves_no_pending_entry() {
+        let pipe = Pipe::new(false, false);
+        let protocol = Arc::new(LineProtocol::new());
+        let stdin = writer(&pipe, &protocol);
+        stdin.close(true);
+        let result = request_with_deadline(
+            &stdin,
+            &protocol,
+            5,
+            "ping",
+            json!({}),
+            Duration::from_secs(5),
+        )
+        .await;
+        assert_eq!(result, Err("Sidecar not running".to_string()));
+        assert_eq!(protocol.pending_len(), 0);
+    }
+
+    /// Cancelling the caller while it waits for queue space also cleans up.
+    #[tokio::test]
+    async fn cancelled_enqueue_leaves_no_pending_entry() {
+        let pipe = Pipe::new(true, false);
+        let protocol = Arc::new(LineProtocol::new());
+        let stdin = writer(&pipe, &protocol);
+        stdin.try_send(None, b"stuck\n".to_vec()).unwrap();
+        pipe.wait_until("the first write", |p| p.started.load(Ordering::SeqCst) == 1);
+        while stdin.try_send(None, b"queued\n".to_vec()).is_ok() {}
+        let request = request_with_deadline(
+            &stdin,
+            &protocol,
+            6,
+            "ping",
+            json!({}),
+            Duration::from_secs(30),
+        );
+        let cancelled = tokio::time::timeout(Duration::from_millis(50), request).await;
+        assert!(cancelled.is_err(), "the request should still be waiting for space");
+        assert_eq!(protocol.pending_len(), 0);
+        stdin.close(true);
+    }
+
     #[tokio::test]
     async fn write_error_fails_the_request_at_once() {
         let pipe = Pipe::new(false, true);

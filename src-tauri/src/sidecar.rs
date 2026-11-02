@@ -220,6 +220,11 @@ impl LineProtocol {
         self.fail_pending_now(id, reason);
     }
 
+    /// Number of requests still waiting for a response.
+    pub fn pending_len(&self) -> usize {
+        self.pending().len()
+    }
+
     /// `fail_pending` for callers outside the async runtime (the stdin writer thread).
     pub fn fail_pending_now(&self, id: i64, reason: String) {
         if let Some(tx) = self.pending().remove(&id) {
@@ -398,6 +403,9 @@ struct StdinJob {
     /// Request whose pending entry fails if the write fails.
     id: Option<i64>,
     line: Vec<u8>,
+    /// The caller has given up after this instant (it already reported a
+    /// timeout), so the line must not reach the child any more.
+    deadline: Option<Instant>,
 }
 
 /// Owns a child's stdin on a dedicated thread.
@@ -443,6 +451,13 @@ impl StdinWriter {
                         thread_in_write.store(false, Ordering::SeqCst);
                         break;
                     }
+                    if job.deadline.is_some_and(|deadline| Instant::now() >= deadline) {
+                        // Queued behind a stuck write past its caller's
+                        // deadline: writing it now would run a request the
+                        // caller was already told had failed.
+                        thread_in_write.store(false, Ordering::SeqCst);
+                        continue;
+                    }
                     let result = sink.write_line(&job.line);
                     thread_in_write.store(false, Ordering::SeqCst);
                     if let (Err(err), Some(id)) = (result, job.id) {
@@ -471,10 +486,16 @@ impl StdinWriter {
     }
 
     /// Enqueue one line, waiting while the queue is full. Callers bound the
-    /// wait with their own deadline.
-    pub async fn send(&self, id: Option<i64>, line: Vec<u8>) -> Result<(), String> {
+    /// wait with their own deadline and pass it on, so a line still queued
+    /// when that deadline passes is dropped instead of written late.
+    pub async fn send(
+        &self,
+        id: Option<i64>,
+        line: Vec<u8>,
+        deadline: Option<Instant>,
+    ) -> Result<(), String> {
         let tx = self.sender().ok_or_else(|| "Sidecar not running".to_string())?;
-        tx.send(StdinJob { id, line })
+        tx.send(StdinJob { id, line, deadline })
             .await
             .map_err(|_| "Sidecar not running".to_string())
     }
@@ -482,7 +503,11 @@ impl StdinWriter {
     /// Enqueue without waiting. Fails if the queue is full or closed.
     pub fn try_send(&self, id: Option<i64>, line: Vec<u8>) -> Result<(), String> {
         let tx = self.sender().ok_or_else(|| "Sidecar not running".to_string())?;
-        tx.try_send(StdinJob { id, line })
+        tx.try_send(StdinJob {
+            id,
+            line,
+            deadline: None,
+        })
             .map_err(|err| format!("Sidecar stdin unavailable: {err}"))
     }
 
@@ -491,8 +516,13 @@ impl StdinWriter {
     /// `force` kills by pid when a write is in flight. Pass false once the
     /// child is known to have exited: its pid may already belong to another
     /// process, and a write to a dead child fails on its own.
+    ///
+    /// Only the first call acts. Once the exit handler has closed with
+    /// `force == false`, a later `kill` must not reach the pid fallback.
     pub fn close(&self, force: bool) {
-        self.closed.store(true, Ordering::SeqCst);
+        if self.closed.swap(true, Ordering::SeqCst) {
+            return;
+        }
         self.queue
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
@@ -549,8 +579,9 @@ pub async fn request_with_deadline(
         "params": params,
     });
     let line = format!("{payload}\n").into_bytes();
+    let deadline = Instant::now() + timeout;
     let exchange = async {
-        stdin.send(Some(id), line).await?;
+        stdin.send(Some(id), line, Some(deadline)).await?;
         match rx.await {
             Ok(Ok(value)) => Ok(value),
             Ok(Err(err)) => Err(format!("{method}: {err}")),
