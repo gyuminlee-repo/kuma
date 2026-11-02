@@ -24,10 +24,12 @@ The sheet is the eight column ``device`` schema of the step 3 export
 both rack columns. The two default names are the plates as the lab describes
 this transfer (source "final cell stock", destination "deep well plate"); they
 are lab wording stated for this export, not values read from the seeding
-workbook, and the operator can rename either. Volume and the ``type`` cell
-default to the step 3 values (:data:`DEFAULT_VOLUME_UL`,
-:data:`DEFAULT_SAMPLE_TYPE`); the volume is editable because the transfer
-volume for this step has not been confirmed by the bench.
+workbook, and the operator can rename either. The volume defaults to
+:data:`POSITIVE_DEFAULT_VOLUME_UL`, 2 µL, the transfer the bench confirmed for
+this step on 2026-11-02. It is this export's own value and not the step 3
+70 µL, because the two sheets describe different transfers; the operator can
+still edit it. The ``type`` cell defaults to the step 3 value
+(:data:`DEFAULT_SAMPLE_TYPE`).
 
 Written only on an explicit export, never by a build, for the reason step 3
 gives: a worklist states the deck at export time.
@@ -48,7 +50,6 @@ from kuma_core.mame.activity.build_evolvepro_input import (
 from kuma_core.mame.activity.gc_sample import ReportedRow
 from kuma_core.mame.export.janus_mapping import (
     DEFAULT_SAMPLE_TYPE,
-    DEFAULT_VOLUME_UL,
     _require_plate_name,
 )
 from kuma_core.mame.plate_geometry import (
@@ -64,10 +65,15 @@ from kuma_core.shared.janus_deck import JANUS_DEVICE_HEADER
 DEFAULT_SOURCE_PLATE_NAME = "final cell stock"
 #: ``Dsp. Rack``: the 96 deep well plate (LB + Km) the positives grow in.
 DEFAULT_DEST_PLATE_NAME = "deep well plate"
+#: ``volume``: µL moved per clone from the final cell stock to the deep well
+#: plate, 2 µL as the bench confirmed on 2026-11-02. Independent of the step 3
+#: default (``janus_mapping.DEFAULT_VOLUME_UL``, 70 µL), a different transfer.
+POSITIVE_DEFAULT_VOLUME_UL = 2.0
 
 __all__ = [
     "DEFAULT_DEST_PLATE_NAME",
     "DEFAULT_SOURCE_PLATE_NAME",
+    "POSITIVE_DEFAULT_VOLUME_UL",
     "PositiveCandidate",
     "PositiveScreen",
     "export_positive_janus_csv",
@@ -170,7 +176,7 @@ def positive_janus_rows(
     candidates: Iterable[PositiveCandidate],
     selected_wells: Iterable[str],
     *,
-    volume: float = DEFAULT_VOLUME_UL,
+    volume: float = POSITIVE_DEFAULT_VOLUME_UL,
     source_rack: str = DEFAULT_SOURCE_PLATE_NAME,
     dest_rack: str = DEFAULT_DEST_PLATE_NAME,
     sample_type: str = DEFAULT_SAMPLE_TYPE,

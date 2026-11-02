@@ -18,10 +18,11 @@ from kuma_core.mame.activity.numeric_id_decode import (
     above_wt_subset,
     decode_primary_screen,
 )
-from kuma_core.mame.export.janus_mapping import DEFAULT_SAMPLE_TYPE, DEFAULT_VOLUME_UL
+from kuma_core.mame.export.janus_mapping import DEFAULT_SAMPLE_TYPE
 from kuma_core.mame.export.positive_janus import (
     DEFAULT_DEST_PLATE_NAME,
     DEFAULT_SOURCE_PLATE_NAME,
+    POSITIVE_DEFAULT_VOLUME_UL,
     export_positive_janus_csv,
     positive_candidates,
     positive_janus_rows,
@@ -119,7 +120,7 @@ def test_slide_12_raw_report_places_the_twenty_positives_column_major(tmp_path: 
     assert {row[1] for row in rows} == {DEFAULT_SAMPLE_TYPE}
     assert {row[3] for row in rows} == {DEFAULT_SOURCE_PLATE_NAME}
     assert {row[5] for row in rows} == {DEFAULT_DEST_PLATE_NAME}
-    assert {row[7] for row in rows} == {DEFAULT_VOLUME_UL}
+    assert {row[7] for row in rows} == {POSITIVE_DEFAULT_VOLUME_UL}
 
 
 def test_every_measured_well_is_listed_and_wild_type_is_not(tmp_path: Path):
@@ -239,7 +240,7 @@ def test_csv_is_the_eight_column_device_sheet(tmp_path: Path):
     assert len(table) == 21
     assert table[1] == [
         MUTANT["F1"], DEFAULT_SAMPLE_TYPE, "1", DEFAULT_SOURCE_PLATE_NAME, "F1",
-        DEFAULT_DEST_PLATE_NAME, "A1", str(DEFAULT_VOLUME_UL),
+        DEFAULT_DEST_PLATE_NAME, "A1", str(POSITIVE_DEFAULT_VOLUME_UL),
     ]
 
 
@@ -385,3 +386,26 @@ def test_a_wt_well_row_in_a_flat_sheet_is_reported(tmp_path: Path):
     ]
     rows = positive_janus_rows(screen.candidates, _selected(screen.candidates))
     assert [(row[6], row[4]) for row in rows] == EXPECTED_PLACEMENT
+
+
+def test_positive_default_volume_is_2_ul_and_independent_of_step_3(tmp_path: Path):
+    # The bench confirmed this transfer at 2 µL (2026-11-02). Step 3 keeps its
+    # own 70 µL: the two worklists are different transfers and share no default.
+    import kuma_core.mame.export.janus_mapping as step3
+    from sidecar_mame.handlers.activity import handle_positive_janus_candidates
+
+    candidates, _warnings = positive_candidates(
+        round1_report_xlsx=_raw_report(tmp_path / "round1.xlsx"),
+        layout_xlsx=_layout(tmp_path / "layout.xlsx"),
+    )
+    rows = positive_janus_rows(candidates, _selected(candidates))
+    assert {row[7] for row in rows} == {2.0}
+
+    response = handle_positive_janus_candidates({
+        "round1_report_xlsx": str(tmp_path / "round1.xlsx"),
+        "layout_xlsx": str(tmp_path / "layout.xlsx"),
+    })
+    assert response["defaults"]["volume"] == 2.0
+
+    assert step3.DEFAULT_VOLUME_UL == 70.0
+    assert step3.JanusSettings().volume == 70.0

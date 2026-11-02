@@ -703,10 +703,11 @@ def handle_positive_janus_candidates(params: dict) -> dict:
     Rows the screen set aside are returned with their position in
     ``excluded_rows`` and named in ``warnings``, so none drops out silently.
     """
-    from kuma_core.mame.export.janus_mapping import DEFAULT_SAMPLE_TYPE, DEFAULT_VOLUME_UL
+    from kuma_core.mame.export.janus_mapping import DEFAULT_SAMPLE_TYPE
     from kuma_core.mame.export.positive_janus import (
         DEFAULT_DEST_PLATE_NAME,
         DEFAULT_SOURCE_PLATE_NAME,
+        POSITIVE_DEFAULT_VOLUME_UL,
         read_positive_screen,
     )
     from sidecar_mame.models import PositiveJanusCandidatesParams
@@ -731,7 +732,7 @@ def handle_positive_janus_candidates(params: dict) -> dict:
         # position and reason, as the build's manifest lists them.
         "excluded_rows": [row.as_dict() for row in screen.excluded_rows],
         "defaults": {
-            "volume": DEFAULT_VOLUME_UL,
+            "volume": POSITIVE_DEFAULT_VOLUME_UL,
             "source_rack": DEFAULT_SOURCE_PLATE_NAME,
             "dest_rack": DEFAULT_DEST_PLATE_NAME,
             "sample_type": DEFAULT_SAMPLE_TYPE,
