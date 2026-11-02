@@ -1,3 +1,4 @@
+pub mod atomic_write;
 pub mod config;
 pub mod icon_refresh;
 pub mod keep_awake;

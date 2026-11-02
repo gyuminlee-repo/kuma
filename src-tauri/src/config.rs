@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use chrono::Local;
 use serde::{Deserialize, Serialize};
 
+use crate::atomic_write::write_atomic;
 use crate::project::{create_project, load_project, Project};
 
 const CONFIG_FILENAME: &str = "config.json";
@@ -66,15 +67,41 @@ fn expand_home(path: &Path) -> PathBuf {
     expand_home_with(path, dirs::home_dir())
 }
 
+/// `Ok(None)` when the file exists but does not hold a valid config, which is
+/// what a write cut short by a crash or a full disk leaves behind. An I/O
+/// error reading it is still an error.
+fn read_config_file_checked(config_root: &Path) -> Result<Option<Config>, String> {
+    let path = config_file(config_root);
+    let text = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    match serde_json::from_str(&text) {
+        Ok(cfg) => Ok(Some(cfg)),
+        Err(err) => {
+            eprintln!("[config] {} is not a valid config: {err}", path.display());
+            Ok(None)
+        }
+    }
+}
+
+/// A damaged config reads as `NeedsReconfigure`, the same answer as a missing
+/// projects root, so the app sends the user to onboarding to pick a folder.
 fn read_config_file(config_root: &Path) -> Result<Config, String> {
-    let text = fs::read_to_string(config_file(config_root)).map_err(|e| e.to_string())?;
-    serde_json::from_str(&text).map_err(|e| e.to_string())
+    read_config_file_checked(config_root)?.ok_or_else(|| "NeedsReconfigure".to_string())
+}
+
+/// Move a damaged config aside instead of overwriting it, so whatever it still
+/// holds (the recent projects list) can be recovered by hand.
+fn preserve_corrupt_config(config_root: &Path) -> Result<PathBuf, String> {
+    let stamp = Local::now().format("%Y%m%dT%H%M%S%.3f");
+    let kept = config_root.join(format!("{CONFIG_FILENAME}.corrupt-{stamp}"));
+    fs::rename(config_file(config_root), &kept).map_err(|e| e.to_string())?;
+    eprintln!("[config] damaged config kept as {}", kept.display());
+    Ok(kept)
 }
 
 pub fn save_config(config_root: &Path, cfg: &Config) -> Result<(), String> {
     fs::create_dir_all(config_root).map_err(|e| e.to_string())?;
     let json = serde_json::to_string_pretty(cfg).map_err(|e| e.to_string())?;
-    fs::write(config_file(config_root), json).map_err(|e| e.to_string())
+    write_atomic(&config_file(config_root), json.as_bytes()).map_err(|e| e.to_string())
 }
 
 pub fn load_or_init_config(config_root: &Path) -> Result<Config, String> {
@@ -102,7 +129,16 @@ pub fn set_projects_root(config_root: &Path, new_root: &Path) -> Result<Config, 
     fs::create_dir_all(&expanded_root).map_err(|e| e.to_string())?;
     let mut cfg = match load_or_init_config(config_root) {
         Ok(c) => c,
-        Err(e) if e == "NeedsReconfigure" => read_config_file(config_root)?,
+        Err(e) if e == "NeedsReconfigure" => match read_config_file_checked(config_root)? {
+            Some(cfg) => cfg,
+            None => {
+                preserve_corrupt_config(config_root)?;
+                Config {
+                    projects_root: expanded_root.clone(),
+                    recent_projects: Vec::new(),
+                }
+            }
+        },
         Err(e) => return Err(e),
     };
     cfg.projects_root = expanded_root;
