@@ -1287,7 +1287,7 @@ def _legacy_sample_map_finding(
     differences = [
         {
             "well": well,
-            "file": from_file[well],
+            "file": from_file.get(well, ""),
             "draft": from_draft.get(well, ""),
         }
         for well in sorted(set(from_file) | set(from_draft))
