@@ -63,12 +63,12 @@ def _payload(*raws: str) -> list[dict]:
 def _expected_ids(path) -> list[str]:
     wb = openpyxl.load_workbook(path)
     ws = wb["expected_mutations"]
-    return [row[0] for row in ws.iter_rows(min_row=2, values_only=True)]
+    return [str(row[0]) for row in ws.iter_rows(min_row=2, values_only=True)]
 
 
 def _list_header(path) -> list[str]:
     wb = openpyxl.load_workbook(path)
-    return [c for c in next(wb["Fwd List"].iter_rows(max_row=1, values_only=True))]
+    return [str(c) for c in next(wb["Fwd List"].iter_rows(max_row=1, values_only=True))]
 
 
 def test_export_excel_rows_equal_wells_when_plate_drops_a_result(tmp_path, two_results_state):
