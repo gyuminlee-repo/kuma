@@ -119,10 +119,12 @@ def _fix_translations(record, mutation: Mutation) -> None:
         if feat.type != "CDS" or "translation" not in feat.qualifiers:
             continue
         loc = feat.location
-        if loc is None or codon_positions.isdisjoint(set(loc)):
+        # Membership through the location's own ``__contains__`` asks about the
+        # three codon bases only; ``set(loc)`` built every base the CDS covers.
+        if loc is None or not any(p in loc for p in codon_positions):
             continue
         simple = len(getattr(loc, "parts", [loc])) == 1
-        contains_codon = int(loc.start) <= cs and cs + 3 <= int(loc.end)
+        contains_codon = all(p in loc for p in codon_positions)
         if simple and contains_codon and loc.strand in (1, None):
             frame = int(feat.qualifiers.get("codon_start", ["1"])[0]) - 1
             offset = cs - int(loc.start) - frame
