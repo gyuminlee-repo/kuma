@@ -52,6 +52,7 @@ from .numeric_id_decode import (
     decode_primary_screen,
     expected_variant_order,
     layout_variant_order,
+    plate_ordered,
 )
 from .models import MergeReplicatesStats, Variant
 from .plate_layout_xlsx import _normalise_well, parse_plate_layout_xlsx
@@ -767,15 +768,12 @@ def _verdict_order(verdict_xlsx: str | Path) -> DecodeOrder:
     plate, so it keeps its slot with ``None`` for the short form, the way
     ``layout_variant_order`` keeps it.
     """
-    from kuma_core.mame.plate_geometry import well_to_seq
-
     order: DecodeOrder = []
     for well, row in parse_verdict_rows(verdict_xlsx).items():
         if is_wt_name(row.mutant_id):
             continue
         order.append((_short_variant(row.mutant_id), str(row.mutant_id), well))
-    order.sort(key=lambda entry: well_to_seq(entry[2]))
-    return order
+    return plate_ordered(order)
 
 
 def read_primary_screen(*, gc_data_xlsx: str | Path | None = None, round1_report_xlsx: str | Path | None = None, numeric_report_xlsx: str | Path | None = None, verdict_xlsx: str | Path | None = None, layout_xlsx: str | Path | None = None, expected_xlsx: str | Path | None = None) -> PrimaryScreen:
