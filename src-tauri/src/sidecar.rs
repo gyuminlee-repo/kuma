@@ -217,6 +217,16 @@ impl LineProtocol {
     }
 
     pub async fn fail_pending(&self, id: i64, reason: String) {
+        self.fail_pending_now(id, reason);
+    }
+
+    /// Number of requests still waiting for a response.
+    pub fn pending_len(&self) -> usize {
+        self.pending().len()
+    }
+
+    /// `fail_pending` for callers outside the async runtime (the stdin writer thread).
+    pub fn fail_pending_now(&self, id: i64, reason: String) {
         if let Some(tx) = self.pending().remove(&id) {
             let _ = tx.send(Err(reason));
         }
@@ -364,21 +374,257 @@ impl Default for LineProtocol {
     }
 }
 
+/// Bound on requests waiting for the stdin writer. A sender that finds it full
+/// waits, and that wait counts against its own deadline.
+const STDIN_QUEUE_DEPTH: usize = 32;
+
+/// What the stdin writer thread needs from a child process.
+pub trait StdinSink: Send + 'static {
+    /// Blocking write of one whole request line.
+    fn write_line(&mut self, bytes: &[u8]) -> Result<(), String>;
+    /// Kill through the child handle. Must be safe after the child exited.
+    fn kill(self: Box<Self>) -> Result<(), String>;
+}
+
+impl StdinSink for CommandChild {
+    fn write_line(&mut self, bytes: &[u8]) -> Result<(), String> {
+        // tauri-plugin-shell 2.3.5: `write_all` on the pipe, blocking.
+        self.write(bytes).map_err(|err| err.to_string())
+    }
+
+    fn kill(self: Box<Self>) -> Result<(), String> {
+        // shared_child reaps under the same lock, so this is a no-op once the
+        // child is gone and cannot hit a reused pid.
+        CommandChild::kill(*self).map_err(|err| err.to_string())
+    }
+}
+
+struct StdinJob {
+    /// Request whose pending entry fails if the write fails.
+    id: Option<i64>,
+    line: Vec<u8>,
+    /// The caller has given up after this instant (it already reported a
+    /// timeout), so the line must not reach the child any more.
+    deadline: Option<Instant>,
+}
+
+/// Owns a child's stdin on a dedicated thread.
+///
+/// `CommandChild::write` blocks until the whole line is in the pipe, and a
+/// sidecar busy in a long handler does not read stdin, so a request larger
+/// than the pipe buffer can block indefinitely. `CommandChild::kill` consumes
+/// the same handle and the plugin exposes no second one. Writing under a lock
+/// that kill also needed (the previous design) therefore let one stuck write
+/// hold off both the RPC deadline and termination.
+///
+/// Here requests only enqueue (bounded, inside the caller's deadline) and
+/// `close` never waits for the thread. If the thread is inside a write when it
+/// is closed, the child is killed by pid, which breaks the pipe and returns
+/// the write; otherwise the thread kills it through the handle on its way out.
+pub struct StdinWriter {
+    queue: std::sync::Mutex<Option<tokio::sync::mpsc::Sender<StdinJob>>>,
+    closed: Arc<AtomicBool>,
+    in_write: Arc<AtomicBool>,
+    force_kill: Box<dyn Fn() + Send + Sync>,
+}
+
+impl StdinWriter {
+    pub fn spawn<S: StdinSink>(
+        sink: S,
+        protocol: Arc<LineProtocol>,
+        force_kill: Box<dyn Fn() + Send + Sync>,
+    ) -> Result<Self, String> {
+        let (tx, mut rx) = tokio::sync::mpsc::channel::<StdinJob>(STDIN_QUEUE_DEPTH);
+        let closed = Arc::new(AtomicBool::new(false));
+        let in_write = Arc::new(AtomicBool::new(false));
+        let (thread_closed, thread_in_write) = (closed.clone(), in_write.clone());
+        std::thread::Builder::new()
+            .name("sidecar-stdin".into())
+            .spawn(move || {
+                let mut sink = Box::new(sink);
+                while let Some(job) = rx.blocking_recv() {
+                    // Announce the write before checking `closed`; `close` sets
+                    // `closed` before reading `in_write`. With SeqCst at least
+                    // one side sees the other, so no write starts unseen.
+                    thread_in_write.store(true, Ordering::SeqCst);
+                    if thread_closed.load(Ordering::SeqCst) {
+                        thread_in_write.store(false, Ordering::SeqCst);
+                        break;
+                    }
+                    if job.deadline.is_some_and(|deadline| Instant::now() >= deadline) {
+                        // Queued behind a stuck write past its caller's
+                        // deadline: writing it now would run a request the
+                        // caller was already told had failed.
+                        thread_in_write.store(false, Ordering::SeqCst);
+                        continue;
+                    }
+                    let result = sink.write_line(&job.line);
+                    thread_in_write.store(false, Ordering::SeqCst);
+                    if let (Err(err), Some(id)) = (result, job.id) {
+                        protocol.fail_pending_now(id, format!("Sidecar stdin write failed: {err}"));
+                    }
+                }
+                drop(rx);
+                if let Err(err) = sink.kill() {
+                    eprintln!("[sidecar] kill after stdin close failed: {err}");
+                }
+            })
+            .map_err(|err| format!("could not start the sidecar stdin writer: {err}"))?;
+        Ok(Self {
+            queue: std::sync::Mutex::new(Some(tx)),
+            closed,
+            in_write,
+            force_kill,
+        })
+    }
+
+    fn sender(&self) -> Option<tokio::sync::mpsc::Sender<StdinJob>> {
+        self.queue
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clone()
+    }
+
+    /// Enqueue one line, waiting while the queue is full. Callers bound the
+    /// wait with their own deadline and pass it on, so a line still queued
+    /// when that deadline passes is dropped instead of written late.
+    pub async fn send(
+        &self,
+        id: Option<i64>,
+        line: Vec<u8>,
+        deadline: Option<Instant>,
+    ) -> Result<(), String> {
+        let tx = self.sender().ok_or_else(|| "Sidecar not running".to_string())?;
+        tx.send(StdinJob { id, line, deadline })
+            .await
+            .map_err(|_| "Sidecar not running".to_string())
+    }
+
+    /// Enqueue without waiting. Fails if the queue is full or closed.
+    pub fn try_send(&self, id: Option<i64>, line: Vec<u8>) -> Result<(), String> {
+        let tx = self.sender().ok_or_else(|| "Sidecar not running".to_string())?;
+        tx.try_send(StdinJob {
+            id,
+            line,
+            deadline: None,
+        })
+            .map_err(|err| format!("Sidecar stdin unavailable: {err}"))
+    }
+
+    /// Stop accepting lines and make the thread kill the child. Never blocks.
+    ///
+    /// `force` kills by pid when a write is in flight. Pass false once the
+    /// child is known to have exited: its pid may already belong to another
+    /// process, and a write to a dead child fails on its own.
+    ///
+    /// Only the first call acts. Once the exit handler has closed with
+    /// `force == false`, a later `kill` must not reach the pid fallback.
+    pub fn close(&self, force: bool) {
+        if self.closed.swap(true, Ordering::SeqCst) {
+            return;
+        }
+        self.queue
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .take();
+        if force && self.in_write.load(Ordering::SeqCst) {
+            (self.force_kill)();
+        }
+    }
+
+    pub fn is_closed(&self) -> bool {
+        self.closed.load(Ordering::SeqCst)
+    }
+}
+
+/// Kill a process by pid without going through its (busy) stdin handle.
+fn kill_pid(pid: u32) {
+    #[cfg(unix)]
+    let result = std::process::Command::new("kill")
+        .args(["-KILL", &pid.to_string()])
+        .status();
+    #[cfg(windows)]
+    let result = {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        std::process::Command::new("taskkill")
+            .args(["/F", "/T", "/PID", &pid.to_string()])
+            .creation_flags(CREATE_NO_WINDOW)
+            .status()
+    };
+    match result {
+        Ok(status) if status.success() => {}
+        Ok(status) => eprintln!("[sidecar] kill of pid {pid} exited with {status}"),
+        Err(err) => eprintln!("[sidecar] kill of pid {pid} failed: {err}"),
+    }
+}
+
+/// Send one request on `stdin` and wait for its response, all inside `timeout`.
+///
+/// The deadline covers waiting for queue space as well as the response, so
+/// neither a full queue nor a stuck pipe can outlast it.
+pub async fn request_with_deadline(
+    stdin: &StdinWriter,
+    protocol: &LineProtocol,
+    id: i64,
+    method: &str,
+    params: Value,
+    timeout: Duration,
+) -> Result<Value, String> {
+    let rx = protocol.insert_pending(id).await;
+    let payload = json!({
+        "jsonrpc": "2.0",
+        "id": id,
+        "method": method,
+        "params": params,
+    });
+    let line = format!("{payload}\n").into_bytes();
+    let deadline = Instant::now() + timeout;
+    let exchange = async {
+        stdin.send(Some(id), line, Some(deadline)).await?;
+        match rx.await {
+            Ok(Ok(value)) => Ok(value),
+            Ok(Err(err)) => Err(format!("{method}: {err}")),
+            Err(_) => Err("Sidecar response channel closed".to_string()),
+        }
+    };
+    match tokio::time::timeout(timeout, exchange).await {
+        Ok(result) => result,
+        Err(_) => {
+            let message = format!("RPC timeout: {method} after {}ms", timeout.as_millis());
+            protocol.fail_pending_now(id, message.clone());
+            Err(message)
+        }
+    }
+}
+
 pub struct SidecarProcess {
-    child: Mutex<Option<CommandChild>>,
+    stdin: StdinWriter,
     protocol: Arc<LineProtocol>,
     terminated: AtomicBool,
+    pub pid: u32,
     pub started_at: Instant,
 }
 
+/// Answer from a request sent only to an already running sidecar.
+pub struct ExistingResponse {
+    /// Uptime of the same process instance that answered.
+    pub uptime_secs: u64,
+    pub result: Result<Value, String>,
+}
+
 impl SidecarProcess {
-    fn new(child: CommandChild) -> Self {
-        Self {
-            child: Mutex::new(Some(child)),
-            protocol: Arc::new(LineProtocol::new()),
+    fn new(child: CommandChild) -> Result<Self, String> {
+        let pid = child.pid();
+        let protocol = Arc::new(LineProtocol::new());
+        let stdin = StdinWriter::spawn(child, protocol.clone(), Box::new(move || kill_pid(pid)))?;
+        Ok(Self {
+            stdin,
+            protocol,
             terminated: AtomicBool::new(false),
+            pid,
             started_at: Instant::now(),
-        }
+        })
     }
 
     fn is_terminated(&self) -> bool {
@@ -428,53 +674,59 @@ impl SidecarManager {
     ) -> Result<Value, String> {
         let timeout = timeout_override.unwrap_or(RPC_TIMEOUT);
         let process = self.ensure_spawned(kind).await?;
+        self.request_on(&process, method, params, timeout).await
+    }
+
+    async fn request_on(
+        &self,
+        process: &SidecarProcess,
+        method: &str,
+        params: Value,
+        timeout: Duration,
+    ) -> Result<Value, String> {
         let id = self.next_id.fetch_add(1, Ordering::SeqCst);
-        let rx = process.protocol.insert_pending(id).await;
-        let payload = json!({
-            "jsonrpc": "2.0",
-            "id": id,
-            "method": method,
-            "params": params,
-        });
+        request_with_deadline(&process.stdin, &process.protocol, id, method, params, timeout).await
+    }
 
-        let write_result = {
-            let mut child = process.child.lock().await;
-            let Some(child) = child.as_mut() else {
-                process.protocol.fail_pending(id, "Sidecar not running".to_string()).await;
-                return Err("Sidecar not running".to_string());
-            };
-            child.write(format!("{payload}\n").as_bytes())
+    /// Send a request to the sidecar instance running now, never spawning one.
+    ///
+    /// `Ok(None)` when none is running, including when the captured instance
+    /// exits while the request is in flight: that is a stopped sidecar, not an
+    /// unresponsive one. The process is captured once, so the uptime and the
+    /// answer describe the same instance and nothing reaches a replacement.
+    pub async fn request_existing(
+        &self,
+        kind: &str,
+        method: &str,
+        params: Value,
+        timeout: Duration,
+    ) -> Result<Option<ExistingResponse>, String> {
+        let Some(process) = self.current_process(kind).await? else {
+            return Ok(None);
         };
-
-        if let Err(err) = write_result {
-            let message = err.to_string();
-            process.protocol.fail_pending(id, message.clone()).await;
-            return Err(message);
+        let result = self.request_on(&process, method, params, timeout).await;
+        if result.is_err() && process.is_terminated() {
+            return Ok(None);
         }
+        Ok(Some(ExistingResponse {
+            uptime_secs: process.started_at.elapsed().as_secs(),
+            result,
+        }))
+    }
 
-        match tokio::time::timeout(timeout, rx).await {
-            Ok(Ok(Ok(value))) => Ok(value),
-            Ok(Ok(Err(err))) => Err(format!("{method}: {err}")),
-            Ok(Err(_)) => Err("Sidecar response channel closed".to_string()),
-            Err(_) => {
-                process
-                    .protocol
-                    .fail_pending(id, format!("RPC timeout: {method} after {}ms", timeout.as_millis()))
-                    .await;
-                Err(format!("RPC timeout: {method} after {}ms", timeout.as_millis()))
-            }
-        }
+    /// Mark the process gone, fail its requests, and kill it without waiting
+    /// on its stdin.
+    async fn terminate(process: &SidecarProcess, reason: &str) {
+        process.mark_terminated();
+        process.protocol.reject_all(reason).await;
+        process.stdin.close(true);
     }
 
     pub async fn kill(&self, kind: &str) -> Result<(), String> {
         let slot = self.slot(kind)?;
         let process = slot.lock().await.take();
         if let Some(process) = process {
-            process.mark_terminated();
-            process.protocol.reject_all("Sidecar killed").await;
-            if let Some(child) = process.child.lock().await.take() {
-                child.kill().map_err(|err| err.to_string())?;
-            }
+            Self::terminate(&process, "Sidecar killed").await;
         }
         Ok(())
     }
@@ -510,14 +762,14 @@ impl SidecarManager {
             "method": "shutdown",
             "params": {},
         });
+        // Never wait on stdin here: a sidecar that stopped reading would hold
+        // shutdown before its own fallback timer started.
+        if let Err(err) = process
+            .stdin
+            .try_send(None, format!("{payload}\n").into_bytes())
         {
-            let mut child = process.child.lock().await;
-            if let Some(child) = child.as_mut() {
-                if let Err(err) = child.write(format!("{payload}\n").as_bytes()) {
-                    // Write failure means the process is already exiting — log and proceed to poll.
-                    eprintln!("[sidecar:{kind}] shutdown write failed: {err}");
-                }
-            }
+            // The process is exiting or not reading; proceed to poll and kill.
+            eprintln!("[sidecar:{kind}] shutdown write failed: {err}");
         }
 
         // Poll for clean exit.
@@ -541,11 +793,7 @@ impl SidecarManager {
         // Clear the slot and force-kill if still running.
         let remaining = slot.lock().await.take();
         if let Some(proc) = remaining {
-            proc.mark_terminated();
-            proc.protocol.reject_all("Sidecar shutdown").await;
-            if let Some(child) = proc.child.lock().await.take() {
-                let _ = child.kill();
-            }
+            Self::terminate(&proc, "Sidecar shutdown").await;
         }
         Ok(())
     }
@@ -554,20 +802,6 @@ impl SidecarManager {
         let slot = self.slot(kind)?;
         let process = slot.lock().await.clone();
         Ok(process.is_some_and(|proc| !proc.is_terminated()))
-    }
-
-    /// Return a snapshot of the running process state without spawning.
-    /// Returns `None` if the sidecar is not running (slot empty or terminated).
-    /// Returns `Some((pid, uptime_secs))` if alive.
-    pub async fn health_snapshot(&self, kind: &str) -> Result<Option<(u32, u64)>, String> {
-        let slot = self.slot(kind)?;
-        let process = slot.lock().await.clone();
-        let Some(proc) = process else { return Ok(None); };
-        if proc.is_terminated() { return Ok(None); }
-        let uptime_secs = proc.started_at.elapsed().as_secs();
-        // PID comes from the `health_info` RPC; snapshot it cheaply without an RPC
-        // by returning 0 as a sentinel — callers use the RPC pid field instead.
-        Ok(Some((0, uptime_secs)))
     }
 
     async fn ensure_spawned(&self, kind: &str) -> Result<Arc<SidecarProcess>, String> {
@@ -620,7 +854,7 @@ impl SidecarManager {
             .spawn()
             .map_err(|err| err.to_string())?;
 
-        let process = Arc::new(SidecarProcess::new(child));
+        let process = Arc::new(SidecarProcess::new(child)?);
         let process_for_task = process.clone();
         let app_handle = self.app_handle.clone();
         let kind_owned = kind.to_string();
@@ -666,8 +900,8 @@ impl SidecarManager {
                             .protocol
                             .reject_all("Sidecar process exited")
                             .await;
-                        let mut child = process_for_task.child.lock().await;
-                        *child = None;
+                        // Exited on its own: the pid may be reused already.
+                        process_for_task.stdin.close(false);
                         break;
                     }
                     _ => {}

@@ -362,6 +362,7 @@ def build_minimap2_index(reference_fasta: Path, mmi_path: Path) -> Path:
     cmd = [binary, "-x", "map-ont", "-d", str(mmi_path), str(reference_fasta)]
     proc = subprocess.run(
         cmd,
+        stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
@@ -410,6 +411,7 @@ def _run_minimap2(
     cmd += [str(reference), str(reads_fasta)]
     with subprocess.Popen(
         cmd,
+        stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,

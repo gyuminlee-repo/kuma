@@ -18,6 +18,11 @@ sidecar fixture; there is no simulated app GUI or frozen-sidecar claim.
 
 Assertions cover ready, exact pong, invalid-method survival without respawn,
 graceful shutdown receipt, cleared host state, and OS process disappearance.
+After shutdown a second fixture is launched and sent `stall`, which stops it
+reading stdin; a 4 MiB request must then end at its 1 s deadline and `kill`
+must return within 2 s and remove the process, even though the write is still
+blocked in the pipe. A health probe of the stopped sidecar must report it
+stopped and leave the slot empty instead of launching a replacement.
 `ps` first proves the fixture PID exists, then proves it is absent after
 shutdown and runner exit. Linux retains its hidden-parent APPDATA regression;
 macOS checks its native APPDATA resolver and allowed paths.

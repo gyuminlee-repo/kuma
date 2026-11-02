@@ -6,6 +6,8 @@ use chrono::Local;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::atomic_write::write_atomic;
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Project {
     pub schema: u32,
@@ -42,7 +44,7 @@ pub fn create_project(root: &Path, name: &str) -> Result<PathBuf, String> {
     };
 
     let json = serde_json::to_string_pretty(&project).map_err(|e| e.to_string())?;
-    fs::write(path.join("kuma.project.json"), json).map_err(|e| e.to_string())?;
+    write_atomic(&path.join("kuma.project.json"), json.as_bytes()).map_err(|e| e.to_string())?;
 
     Ok(path)
 }
