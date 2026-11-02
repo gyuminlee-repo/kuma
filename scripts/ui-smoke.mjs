@@ -1,8 +1,7 @@
-import { setTimeout as delay } from "node:timers/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
-import { assertStillRunning, startOwnedServer } from "./ui-smoke-server.mjs";
+import { assertStillRunning, startOwnedServer, stopServer } from "./ui-smoke-server.mjs";
 
 const HOST = "127.0.0.1";
 const PORT = 4173;
@@ -54,9 +53,8 @@ try {
     await browser.close();
   }
 } finally {
-  server.kill("SIGTERM");
-  await delay(500);
-  if (!server.killed) {
-    server.kill("SIGKILL");
+  if (!(await stopServer(server))) {
+    console.error(`preview server (pid ${server.pid}) did not exit after SIGKILL`);
+    process.exitCode = 1;
   }
 }

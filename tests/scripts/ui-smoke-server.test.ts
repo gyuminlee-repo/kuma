@@ -9,11 +9,12 @@
  * @vitest-environment node
  */
 import { createServer, type Server } from "node:http";
+import { createServer as createTcpServer } from "node:net";
 import type { AddressInfo } from "node:net";
-import type { ChildProcess } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 
 import { afterEach, describe, expect, it } from "vitest";
-import { assertStillRunning, startOwnedServer } from "../../scripts/ui-smoke-server.mjs";
+import { assertStillRunning, startOwnedServer, stopServer } from "../../scripts/ui-smoke-server.mjs";
 
 const cleanups: Array<() => void> = [];
 afterEach(() => {
@@ -78,5 +79,65 @@ describe("startOwnedServer", () => {
     child.kill("SIGKILL");
     await new Promise((done) => child.once("exit", done));
     expect(() => assertStillRunning(child)).toThrow(/exited during the smoke/);
+  });
+
+  it("counts a listener that accepts and never answers as taken", async () => {
+    const port = await freePort();
+    const silent = createTcpServer(() => {});
+    await new Promise<void>((done) => silent.listen(port, "127.0.0.1", done));
+    cleanups.push(() => silent.close());
+
+    await expect(
+      startOwnedServer({
+        command: process.execPath,
+        args: ["-e", serveScript(port)],
+        url: `http://127.0.0.1:${port}`,
+        timeoutMs: 5000,
+      }),
+    ).rejects.toThrow(/already served by another process/);
+  });
+
+  it("rejects within the deadline when its child accepts but never answers", async () => {
+    const port = await freePort();
+    const stall = `require("node:net").createServer(() => {}).listen(${port}, "127.0.0.1")`;
+    const timeoutMs = 1500;
+    const started = Date.now();
+
+    await expect(
+      startOwnedServer({
+        command: process.execPath,
+        args: ["-e", stall],
+        url: `http://127.0.0.1:${port}`,
+        timeoutMs,
+      }),
+    ).rejects.toThrow(/Timed out waiting for preview server/);
+    // A fetch without an abort signal waits on the silent socket for minutes.
+    expect(Date.now() - started).toBeLessThan(timeoutMs + 1000);
+  });
+});
+
+describe("stopServer", () => {
+  it("escalates to SIGKILL when the child ignores SIGTERM", async () => {
+    const child: ChildProcess = spawn(
+      process.execPath,
+      ["-e", 'process.on("SIGTERM", () => {}); console.log("armed"); setInterval(() => {}, 1000);'],
+      { stdio: ["ignore", "pipe", "inherit"] },
+    );
+    cleanups.push(() => child.kill("SIGKILL"));
+    await new Promise<void>((done) => child.stdout?.once("data", () => done()));
+
+    const started = Date.now();
+    await expect(stopServer(child, { graceMs: 300 })).resolves.toBe(true);
+
+    expect(child.exitCode !== null || child.signalCode !== null).toBe(true);
+    if (process.platform !== "win32") expect(child.signalCode).toBe("SIGKILL");
+    expect(Date.now() - started).toBeLessThan(3000);
+  });
+
+  it("returns at once for a child that has already exited", async () => {
+    const child: ChildProcess = spawn(process.execPath, ["-e", "process.exit(0)"]);
+    await new Promise((done) => child.once("exit", done));
+
+    await expect(stopServer(child, { graceMs: 300 })).resolves.toBe(true);
   });
 });
