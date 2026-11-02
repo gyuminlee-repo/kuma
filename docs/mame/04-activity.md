@@ -40,7 +40,7 @@ CSV 또는 XLSX에서 다음을 요구한다.
 - 값 열은 정확히 하나: `value`, `area`, `activity`
 - well 라벨과 variant 라벨을 한 파일에서 섞지 않는다.
 - raw 값은 음수, NaN, 무한대를 허용하지 않는다.
-- `activity_scale=raw`이면 각 `plate_id`별 `WT_1`, `WT1` 형태의 WT 행 평균을 분모로 사용한다. `plate_id`가 없으면 파일 전체가 한 cohort다.
+- `activity_scale=raw`이면 각 `plate_id`별 `WT_1`, `WT-1`, `WT 1`, `WT1` 형태의 WT 행 평균을 분모로 사용한다. `plate_id`가 없으면 파일 전체가 한 cohort다.
 - `activity_scale=relative_to_wt`이면 다시 정규화하지 않는다.
 
 ## 4.3 확인 측정(반복 재측정)

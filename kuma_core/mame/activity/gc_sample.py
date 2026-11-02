@@ -55,7 +55,7 @@ _BLOCK_REP_ID_RE = re.compile(r"^(\d+)(?:-(\d+))?$")
 # An explicit positive replicate suffix on a label: 'A1-2', 'S11I-3'.
 _CONFIRMATION_REP_SUFFIX = re.compile(r"^(?P<label>.+)-[1-9]\d*$")
 
-_WT_REPLICATE_RE = re.compile(r"^WT_?(\d+)$", re.IGNORECASE)
+_WT_REPLICATE_RE = re.compile(r"^WT[ _-]?(\d+)$", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -83,12 +83,12 @@ class SampleClass:
 
 
 def is_wt_name(name: str) -> bool:
-    """``WT``, ``WT1``, ``WT_1`` in any case."""
+    """``WT``, ``WT1``, ``WT_1``, ``WT-1``, ``WT 1`` in any case."""
     return WT_PATTERN.fullmatch(name.strip()) is not None
 
 
 def wt_replicate(name: str) -> int:
-    """Replicate number of a WT name: ``WT_2`` is 2, a bare ``WT`` is 0."""
+    """Replicate number of a WT name: ``WT_2`` and ``WT-2`` are 2, a bare ``WT`` is 0."""
     match = _WT_REPLICATE_RE.match(name.strip())
     return int(match.group(1)) if match else 0
 

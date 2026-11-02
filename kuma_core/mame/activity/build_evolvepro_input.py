@@ -520,7 +520,7 @@ def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str,
     if activity_scale == "raw":
         missing = sorted({cohort for _, _, cohort in rows if not wt_values.get(cohort)})
         if missing:
-            raise ValueError(f"activity_path raw data has no WT/WT_1/WT1 rows for cohort(s): {', '.join(missing)}")
+            raise ValueError(f"activity_path raw data has no WT/WT1/WT_1/WT-1 rows for cohort(s): {', '.join(missing)}")
     for cohort in sorted({cohort for cohort, _, _ in wt_seen}):
         members = [(position, value) for c, position, value in wt_seen if c == cohort]
         if cohort in cohorts:
@@ -962,7 +962,7 @@ def _well_confirmation(path: str | Path, well_to_variant: dict[str, str], wt_wel
     if not wt:
         raise ValueError(
             "remeasure_well_xlsx has no WT areas: declare the WT well in "
-            f"{mapping_source} or include WT1/WT_1 rows in the report"
+            f"{mapping_source} or include WT1/WT_1/WT-1 rows in the report"
         )
     ledger.flag_repeats(source, [(classify_sample(row.sample_name, "well").replicate, row, area) for row, area in wt_named if classify_sample(row.sample_name, "well").replicate > 0], DUPLICATE_REPLICATE)
     for row, area in wt:

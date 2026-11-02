@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.16.83 (WT-1 wild-type names in GC reports)
+
+A GC report that names every sample with a hyphenated replicate, such as 1-1, 1-2 and 1-3, also names its wild-type blocks WT-1, WT-2 and WT-3. Step 4.1 read only WT1 or WT_1 as wild-type, so such a report had no wild-type areas and was refused as a whole, although every measurement in it was usable. Wild-type names now take an underscore, a hyphen or a single space before the replicate number, and the replicate number is read the same way. Names such as WT--1 or SWT1 are still not wild-type. Error messages that list the accepted names include the new form.
+
+### Highlights
+
+- Step 4.1 now reads WT-1 and WT 1 as wild-type replicates, as it already read WT1 and WT_1.
+- A GC report that wrote its wild-type blocks as WT-1, WT-2 and WT-3 is no longer refused.
+
 ## v0.16.82 (App icon refreshes after an update)
 
 After an update the Windows taskbar could keep showing the previous app icon. The window only declared its small icon, so Windows took the taskbar picture from the icon it had cached for the program path, and an update replaces the program at the same path. The window now also declares its large icon, read from the program's own resources, and the installer asks Windows to drop its icon cache when it finishes, for fresh installs and updates alike. On Windows this was checked by installing the build over v0.16.81: the taskbar showed the new icon.

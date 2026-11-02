@@ -288,7 +288,7 @@ The activity loader expects a **long format** CSV (or Excel) file with one measu
 | `value` | float | Raw measurement value |
 | `replicate_idx` | int | Replicate index (1-based); same well × same replicate_idx = one measurement |
 
-The denominator comes from whichever WT source the plate has. Instrument exports ship their own WT replicate blocks, so rows labelled `WT_1`, `WT_2`, `WT_3` are collected as dedicated WT replicates and their mean is the plate denominator. The numeric suffix is the replicate index. These rows never join the variant well space and never reach the EVOLVEpro output.
+The denominator comes from whichever WT source the plate has. Instrument exports ship their own WT replicate blocks, so rows labelled `WT_1`, `WT_2`, `WT_3` (or `WT-1`, `WT 1`, `WT1`) are collected as dedicated WT replicates and their mean is the plate denominator. The numeric suffix is the replicate index. These rows never join the variant well space and never reach the EVOLVEpro output.
 
 Plates carrying no such rows fall back to WT wells declared in `plate_meta.json`:
 

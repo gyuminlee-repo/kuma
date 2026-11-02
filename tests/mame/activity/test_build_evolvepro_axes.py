@@ -98,7 +98,7 @@ def test_raw_generic_data_requires_wt_in_every_plate_cohort(tmp_path: Path):
     ]).to_csv(activity, index=False)
     verdict = _verdict(tmp_path / "verdict.xlsx", [("A1", "V5F", "PASS")])
 
-    with pytest.raises(ValueError, match="no WT/WT_1/WT1 rows for cohort.*P2"):
+    with pytest.raises(ValueError, match="no WT/WT1/WT_1/WT-1 rows for cohort.*P2"):
         build_evolvepro_input(tmp_path / "out.xlsx", activity_path=activity, verdict_xlsx=verdict)
 
 

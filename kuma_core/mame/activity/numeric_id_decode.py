@@ -131,7 +131,7 @@ def _wt_mean(block: BlockRepBatchResult, source: str) -> float:
     if not block.wt_areas:
         raise ValueError(
             f"{source} has no WT block areas; relative activity needs the "
-            "WT blocks (sample names 'WT1'/'WT_1'/...) to divide by."
+            "WT blocks (sample names 'WT1'/'WT_1'/'WT-1'/...) to divide by."
         )
     m = sum(block.wt_areas) / len(block.wt_areas)
     if m <= 0:
