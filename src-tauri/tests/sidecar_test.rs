@@ -74,3 +74,198 @@ async fn pending_rpc_resolves_before_timeout() {
     let value = result.expect("should not time out").unwrap().unwrap();
     assert_eq!(value, json!("ok"));
 }
+
+// ---- A3: stdin writer is separate from termination and inside the deadline ----
+
+mod stdin_writer {
+    use kuma_lib::sidecar::{request_with_deadline, LineProtocol, StdinSink, StdinWriter};
+    use serde_json::json;
+    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+    use std::sync::{Arc, Condvar, Mutex};
+    use std::time::{Duration, Instant};
+
+    /// A child whose stdin pipe is full: writes block until it is killed.
+    #[derive(Default)]
+    struct Pipe {
+        released: Mutex<bool>,
+        cv: Condvar,
+        block: bool,
+        fail: bool,
+        started: AtomicUsize,
+        force_kills: AtomicUsize,
+        handle_killed: AtomicBool,
+    }
+
+    impl Pipe {
+        fn new(block: bool, fail: bool) -> Arc<Self> {
+            Arc::new(Self {
+                block,
+                fail,
+                ..Self::default()
+            })
+        }
+
+        fn release(&self) {
+            *self.released.lock().unwrap() = true;
+            self.cv.notify_all();
+        }
+
+        fn wait_until(&self, what: &str, done: impl Fn(&Self) -> bool) {
+            let start = Instant::now();
+            while !done(self) {
+                assert!(start.elapsed() < Duration::from_secs(2), "timed out waiting for {what}");
+                std::thread::sleep(Duration::from_millis(5));
+            }
+        }
+    }
+
+    struct Sink(Arc<Pipe>);
+
+    impl StdinSink for Sink {
+        fn write_line(&mut self, _bytes: &[u8]) -> Result<(), String> {
+            self.0.started.fetch_add(1, Ordering::SeqCst);
+            if self.0.fail {
+                return Err("Broken pipe".into());
+            }
+            if self.0.block {
+                let mut released = self.0.released.lock().unwrap();
+                while !*released {
+                    released = self.0.cv.wait(released).unwrap();
+                }
+                return Err("Broken pipe".into());
+            }
+            Ok(())
+        }
+
+        fn kill(self: Box<Self>) -> Result<(), String> {
+            self.0.handle_killed.store(true, Ordering::SeqCst);
+            Ok(())
+        }
+    }
+
+    fn writer(pipe: &Arc<Pipe>, protocol: &Arc<LineProtocol>) -> StdinWriter {
+        let for_kill = pipe.clone();
+        StdinWriter::spawn(
+            Sink(pipe.clone()),
+            protocol.clone(),
+            Box::new(move || {
+                for_kill.force_kills.fetch_add(1, Ordering::SeqCst);
+                for_kill.release();
+            }),
+        )
+        .unwrap()
+    }
+
+    #[tokio::test]
+    async fn deadline_covers_a_write_that_never_returns() {
+        let pipe = Pipe::new(true, false);
+        let protocol = Arc::new(LineProtocol::new());
+        let stdin = writer(&pipe, &protocol);
+        let started = Instant::now();
+        let result = request_with_deadline(
+            &stdin,
+            &protocol,
+            1,
+            "ping",
+            json!({}),
+            Duration::from_millis(200),
+        )
+        .await;
+        assert_eq!(result, Err("RPC timeout: ping after 200ms".to_string()));
+        assert!(started.elapsed() < Duration::from_secs(1));
+        assert_eq!(pipe.started.load(Ordering::SeqCst), 1);
+        stdin.close(true);
+    }
+
+    #[tokio::test]
+    async fn full_queue_counts_against_the_deadline() {
+        let pipe = Pipe::new(true, false);
+        let protocol = Arc::new(LineProtocol::new());
+        let stdin = writer(&pipe, &protocol);
+        // One line stuck in the pipe, then fill the queue behind it.
+        stdin.try_send(None, b"stuck\n".to_vec()).unwrap();
+        pipe.wait_until("the first write", |p| p.started.load(Ordering::SeqCst) == 1);
+        while stdin.try_send(None, b"queued\n".to_vec()).is_ok() {}
+        let started = Instant::now();
+        let result = request_with_deadline(
+            &stdin,
+            &protocol,
+            2,
+            "ping",
+            json!({}),
+            Duration::from_millis(200),
+        )
+        .await;
+        assert_eq!(result, Err("RPC timeout: ping after 200ms".to_string()));
+        assert!(started.elapsed() < Duration::from_secs(1));
+        stdin.close(true);
+    }
+
+    #[test]
+    fn close_during_a_blocked_write_kills_by_pid_without_waiting() {
+        let pipe = Pipe::new(true, false);
+        let protocol = Arc::new(LineProtocol::new());
+        let stdin = writer(&pipe, &protocol);
+        stdin.try_send(None, b"stuck\n".to_vec()).unwrap();
+        stdin.try_send(None, b"behind\n".to_vec()).unwrap();
+        pipe.wait_until("the first write", |p| p.started.load(Ordering::SeqCst) == 1);
+
+        let started = Instant::now();
+        stdin.close(true);
+        assert!(started.elapsed() < Duration::from_millis(100), "close waited on the writer");
+        assert_eq!(pipe.force_kills.load(Ordering::SeqCst), 1);
+        pipe.wait_until("the writer to exit", |p| p.handle_killed.load(Ordering::SeqCst));
+        assert_eq!(
+            pipe.started.load(Ordering::SeqCst),
+            1,
+            "a line queued behind close was written"
+        );
+        assert!(stdin.try_send(None, b"late\n".to_vec()).is_err());
+    }
+
+    #[test]
+    fn close_when_idle_kills_through_the_handle_only() {
+        let pipe = Pipe::new(false, false);
+        let protocol = Arc::new(LineProtocol::new());
+        let stdin = writer(&pipe, &protocol);
+        stdin.close(true);
+        pipe.wait_until("the writer to exit", |p| p.handle_killed.load(Ordering::SeqCst));
+        assert_eq!(pipe.force_kills.load(Ordering::SeqCst), 0);
+    }
+
+    #[test]
+    fn close_after_exit_never_kills_by_pid() {
+        let pipe = Pipe::new(true, false);
+        let protocol = Arc::new(LineProtocol::new());
+        let stdin = writer(&pipe, &protocol);
+        stdin.try_send(None, b"stuck\n".to_vec()).unwrap();
+        pipe.wait_until("the first write", |p| p.started.load(Ordering::SeqCst) == 1);
+        stdin.close(false);
+        assert_eq!(pipe.force_kills.load(Ordering::SeqCst), 0);
+        pipe.release();
+        pipe.wait_until("the writer to exit", |p| p.handle_killed.load(Ordering::SeqCst));
+    }
+
+    #[tokio::test]
+    async fn write_error_fails_the_request_at_once() {
+        let pipe = Pipe::new(false, true);
+        let protocol = Arc::new(LineProtocol::new());
+        let stdin = writer(&pipe, &protocol);
+        let started = Instant::now();
+        let result = request_with_deadline(
+            &stdin,
+            &protocol,
+            3,
+            "ping",
+            json!({}),
+            Duration::from_secs(5),
+        )
+        .await;
+        assert_eq!(
+            result,
+            Err("ping: Sidecar stdin write failed: Broken pipe".to_string())
+        );
+        assert!(started.elapsed() < Duration::from_secs(1));
+        stdin.close(true);
+    }
+}

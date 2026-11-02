@@ -12,7 +12,7 @@ mod host {
         // Given a real Wry host and an executable JSON-RPC fixture.
         assert!(!manager.is_running("kuro").await.unwrap());
         let process = manager.ensure_spawned("kuro").await.expect("native launch");
-        let pid = process.child.lock().await.as_ref().unwrap().pid();
+        let pid = process.pid;
         let root = std::env::current_exe()
             .unwrap()
             .parent()
@@ -62,7 +62,7 @@ mod host {
             Arc::ptr_eq(&process, &current),
             "invalid request must not respawn the child"
         );
-        assert_eq!(current.child.lock().await.as_ref().unwrap().pid(), pid);
+        assert_eq!(current.pid, pid);
 
         // Then shutdown reaches the fixture and the OS process and host slot disappear.
         manager.graceful_kill("kuro", 2).await.unwrap();
@@ -78,13 +78,71 @@ mod host {
         assert!(!process.protocol.is_ready());
         assert!(!manager.is_running("kuro").await.unwrap());
         assert!(manager.kuro.lock().await.is_none());
-        assert!(manager.health_snapshot("kuro").await.unwrap().is_none());
+        assert!(manager.current_process("kuro").await.unwrap().is_none());
         assert!(
             !super::runner::process_exists(pid),
             "child still exists after shutdown"
         );
+        // A3: a sidecar that stops reading stdin must not stall the host.
+        // A request larger than the pipe buffer blocks in the write; the
+        // deadline still applies and kill still reaches the child.
+        let stalled = manager.ensure_spawned("kuro").await.expect("second launch");
+        let stalled_pid = stalled.pid;
+        stalled
+            .protocol
+            .wait_ready(Duration::from_secs(3))
+            .await
+            .expect("second ready");
+        let started = std::time::Instant::now();
+        let stall = manager
+            .rpc_with_timeout("kuro", "stall", json!({}), Some(Duration::from_millis(500)))
+            .await;
+        assert!(stall.is_err(), "stall must time out: {stall:?}");
+        let big = "x".repeat(4 * 1024 * 1024);
+        let blocked = manager
+            .rpc_with_timeout(
+                "kuro",
+                "ping",
+                json!({ "pad": big }),
+                Some(Duration::from_secs(1)),
+            )
+            .await;
+        assert!(
+            matches!(&blocked, Err(err) if err.contains("RPC timeout")),
+            "blocked write must end at the deadline: {blocked:?}"
+        );
+        assert!(
+            started.elapsed() < Duration::from_secs(4),
+            "deadline overran: {:?}",
+            started.elapsed()
+        );
+        tokio::time::timeout(Duration::from_secs(2), manager.kill("kuro"))
+            .await
+            .expect("kill must not wait on a blocked stdin write")
+            .expect("kill");
+        let gone = std::time::Instant::now();
+        while super::runner::process_exists(stalled_pid) {
+            assert!(
+                gone.elapsed() < Duration::from_secs(3),
+                "stalled child survived kill"
+            );
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+        assert!(manager.kuro.lock().await.is_none());
+
+        // A17: probing health of a stopped sidecar must not start a new one.
+        let probe = manager
+            .request_existing("kuro", "health_info", json!({}), Duration::from_secs(1))
+            .await
+            .unwrap();
+        assert!(probe.is_none(), "a stopped sidecar must probe as stopped");
+        assert!(
+            manager.kuro.lock().await.is_none(),
+            "health probe respawned a stopped sidecar"
+        );
+
         eprintln!(
-            "RS03: Wry launch, ready, exact pong, invalid survival, shutdown verified; pid={pid}"
+            "RS03: Wry launch, ready, exact pong, invalid survival, shutdown, stalled-stdin kill, no-spawn health verified; pid={pid}"
         );
     }
 

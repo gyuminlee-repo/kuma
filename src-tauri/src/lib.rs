@@ -69,9 +69,18 @@ async fn check_sidecar_health(
         return Err(format!("invalid sidecar kind: {kind}"));
     }
 
-    // 1. Spawn 없이 alive 여부만 확인
-    let is_alive = state.is_running(&kind).await?;
-    if !is_alive {
+    // 1. 지금 실행 중인 인스턴스를 한 번만 잡아 그 인스턴스에만 health_info 를 보낸다.
+    //    spawn 하지 않으므로 폴링이 멈춘 사이드카를 새로 띄우지 않고, uptime 과 응답이
+    //    서로 다른 인스턴스에서 오지 않는다. 2초 마감은 stdin 쓰기까지 포함한다.
+    let probe = state
+        .request_existing(
+            &kind,
+            "health_info",
+            serde_json::json!({}),
+            Duration::from_secs(2),
+        )
+        .await?;
+    let Some(probe) = probe else {
         return Ok(SidecarHealth {
             alive: false,
             responsive: false,
@@ -81,22 +90,16 @@ async fn check_sidecar_health(
             uptime_secs: None,
             message: format!("{kind} 사이드카가 실행 중이 아닙니다."),
         });
-    }
-
-    // 2. Rust 측에서 uptime 스냅샷 (RPC 없이)
-    let snapshot = state.health_snapshot(&kind).await?;
-    let uptime_secs = snapshot.map(|(_, uptime)| uptime);
-
-    // 3. 이미 실행 중인 프로세스에 health_info RPC 전송 (spawn 없음, 2초 타임아웃)
-    let rpc_result = match tokio::time::timeout(
-        Duration::from_secs(2),
-        state.rpc(&kind, "health_info", serde_json::json!({})),
-    )
-    .await
-    {
-        Ok(inner) => inner,
-        Err(_) => Err(format!("{kind} health_info 응답 타임아웃(2초)")),
     };
+
+    let uptime_secs = Some(probe.uptime_secs);
+    let rpc_result = probe.result.map_err(|err| {
+        if err.starts_with("RPC timeout") {
+            format!("{kind} health_info 응답 타임아웃(2초)")
+        } else {
+            err
+        }
+    });
 
     match rpc_result {
         Ok(info) => {
