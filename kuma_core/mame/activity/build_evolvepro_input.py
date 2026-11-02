@@ -45,6 +45,7 @@ from .gc_sample import (
 )
 from .label_audit import LabelAudit, audit_labels
 from .merge import merge_replicates_priority
+from .normalize import require_measurement, wt_denominator
 from .numeric_id_decode import (
     WT_RELATIVE,
     DecodeOrder,
@@ -52,6 +53,7 @@ from .numeric_id_decode import (
     decode_primary_screen,
     expected_variant_order,
     layout_variant_order,
+    plate_ordered,
 )
 from .models import MergeReplicatesStats, Variant
 from .plate_layout_xlsx import _normalise_well, parse_plate_layout_xlsx
@@ -320,6 +322,15 @@ def _where(block_index: int | None, row_index: int) -> str:
     return f"row {row_index}" if block_index is None else f"block {block_index}, row {row_index}"
 
 
+def _adopt(source: str, row: GcRow, area: float) -> float:
+    """:func:`require_measurement` for a row this build is about to use.
+
+    Called only after the operator exclusion and the membership decision, so a
+    negative area on a row that is set aside or excluded never refuses a file.
+    """
+    return require_measurement(area, f"{source} {row.location}: sample {row.sample_name!r}")
+
+
 def _lenient_area(row: GcRow) -> float | None:
     """The area of a row that will not be used, for the report only."""
     try:
@@ -337,7 +348,7 @@ def _wt_mean_of(source: str, wt: list[tuple[GcRow, float]], ledger: _RowLedger) 
     )
     for row, area in wt:
         ledger.used_wt(source, row, area)
-    return sum(area for _, area in wt) / len(wt)
+    return wt_denominator([area for _, area in wt], source)
 
 
 def _refuse_other_notation(source: str, row: GcRow, sample: SampleClass, unit: str) -> None:
@@ -391,7 +402,44 @@ def _well_slot_rows(source: str, path: str | Path, rows: list[GcRow], run_varian
     return wt, wells
 
 
-def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str, str], variant_to_well: dict[str, str], unmapped: list[str], wt_wells: set[str] | None = None, measured_variants: frozenset[str] = frozenset(), ledger: _RowLedger | None = None) -> tuple[dict[str, list[float]], dict[str, str], list[str], list[float]]:
+def _declared_identities(verdict_xlsx: str | Path, layout_xlsx: str | Path | None) -> dict[str, str]:
+    """Short notation -> the full identity this run declared for it.
+
+    Short notation (``89W``) intentionally omits the reference residue and a
+    full label (``F89W``) does not, so a reader that turns a label into its
+    short form first has to keep the residue until this check has run. Labels
+    without a canonical full form are skipped.
+    """
+    declared = [row.mutant_id for row in parse_verdict_rows(verdict_xlsx).values()]
+    if layout_xlsx is not None:
+        declared.extend(entry.mutant for entry in parse_plate_layout_xlsx(layout_xlsx))
+    identities: dict[str, str] = {}
+    for label in declared:
+        if not is_canonical_internal(label):
+            continue
+        short = to_evolvepro(label)
+        existing = identities.get(short)
+        if existing is not None and existing != label:
+            raise ValueError(f"declared mapping (verdict_xlsx and layout_xlsx) has conflicting full identities for {short!r}")
+        identities[short] = label
+    return identities
+
+
+def _check_declared_identity(source: str, sample: SampleClass, identities: dict[str, str] | None) -> None:
+    """Refuse a full label whose reference residue contradicts the declaration.
+
+    ``A89W`` and ``F89W`` share the short form ``89W``; only the residue tells
+    a measurement of another reference from this run's. A short label carries
+    no residue (``sample.internal`` is ``None``) and passes.
+    """
+    if sample.internal is None or sample.variant is None:
+        return
+    expected_identity = (identities or {}).get(sample.variant)
+    if expected_identity and sample.internal != expected_identity:
+        raise ValueError(f"{source} sample {sample.internal!r} conflicts with declared identity {expected_identity!r}")
+
+
+def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str, str], variant_to_well: dict[str, str], unmapped: list[str], wt_wells: set[str] | None = None, measured_variants: frozenset[str] = frozenset(), ledger: _RowLedger | None = None, internal_identities: dict[str, str] | None = None) -> tuple[dict[str, list[float]], dict[str, str], list[str], list[float]]:
     source_name = "activity_path"
     ledger = _RowLedger() if ledger is None else ledger
     source = Path(path)
@@ -456,8 +504,6 @@ def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str,
             value = float(cast(float | str, raw_value))
         except (TypeError, ValueError):
             raise ValueError(f"activity_path has a non-numeric value for {label!r}") from None
-        if not math.isfinite(value) or value < 0:
-            raise ValueError(f"activity_path has an invalid value for {label!r}")
         if ledger.operator_skips(source_name, position, value):
             continue
         cohort = str(row["plate_id"]).strip() if "plate_id" in frame.columns else "file"
@@ -471,6 +517,7 @@ def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str,
             continue
         assert kind.variant is not None
         short = kind.variant
+        _check_declared_identity(source_name, kind, internal_identities)
         if short in measured_variants and (
             paired_well_column is None
             or classify_sample(str(row[paired_well_column]).strip(), "well").well != variant_to_well.get(short)
@@ -505,10 +552,10 @@ def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str,
             unmapped.append(well)
             ledger.set_aside(source_name, position, UNMAPPED_WELL, value, well)
             continue
-        rows.append((variant, value, cohort))
-    for _position, short, value, cohort in variant_rows:
+        rows.append((variant, _adopt(source_name, position, value), cohort))
+    for position, short, value, cohort in variant_rows:
         namespaces.add("variant")
-        rows.append((short, value, cohort))
+        rows.append((short, _adopt(source_name, position, value), cohort))
     if not rows:
         raise ValueError("activity_path has no measurement rows outside WT records")
     cohorts = {cohort for _, _, cohort in rows}
@@ -527,8 +574,12 @@ def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str,
             _wt_mean_of(source_name, members, ledger)
     values: dict[str, list[float]] = {}
     well_by_variant = dict(variant_to_well)
+    denominators = (
+        {} if activity_scale == "relative_to_wt"
+        else {cohort: wt_denominator(wt_values[cohort], source_name if cohort == "file" else f"{source_name} plate {cohort}") for cohort in cohorts}
+    )
     for variant, value, cohort in rows:
-        relative = value if activity_scale == "relative_to_wt" else value / (sum(wt_values[cohort]) / len(wt_values[cohort]))
+        relative = value if activity_scale == "relative_to_wt" else value / denominators[cohort]
         values.setdefault(variant, []).append(relative)
     # The WT rows put through the division the variant rows just went through,
     # so the spread reported here is the spread of the exported column.  Only
@@ -548,7 +599,7 @@ def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str,
         if activity_scale == "relative_to_wt":
             wt_relative.extend(replicates)
         else:
-            mean_wt = sum(replicates) / len(replicates)
+            mean_wt = denominators[cohort]
             wt_relative.extend(replicate / mean_wt for replicate in replicates)
     warnings = ["errors.mame.measurementWellsUnchecked|" + ", ".join(sorted(set(unchecked)))] if unchecked else []
     return values, well_by_variant, warnings, wt_relative
@@ -604,7 +655,7 @@ def _raw_report_primary(path: str | Path, well_to_variant: dict[str, str], varia
             unmapped.append(well)
             ledger.set_aside(source, row, UNMAPPED_WELL, area, well)
             continue
-        relative = area / mean_wt
+        relative = _adopt(source, row, area) / mean_wt
         values.setdefault(variant, []).append(relative)
         export_rows.append((well, relative))
     return values, variant_to_well, export_rows, [area / mean_wt for _, area in wt]
@@ -635,7 +686,7 @@ def _gc_primary(path: str | Path, well_to_variant: dict[str, str], variant_to_we
             unmapped.append(well)
             ledger.set_aside(source, row, UNMAPPED_WELL, area, well)
             continue
-        values.setdefault(variant, []).append(area)
+        values.setdefault(variant, []).append(_adopt(source, row, area))
     return values, variant_to_well
 
 
@@ -767,15 +818,12 @@ def _verdict_order(verdict_xlsx: str | Path) -> DecodeOrder:
     plate, so it keeps its slot with ``None`` for the short form, the way
     ``layout_variant_order`` keeps it.
     """
-    from kuma_core.mame.plate_geometry import well_to_seq
-
     order: DecodeOrder = []
     for well, row in parse_verdict_rows(verdict_xlsx).items():
         if is_wt_name(row.mutant_id):
             continue
         order.append((_short_variant(row.mutant_id), str(row.mutant_id), well))
-    order.sort(key=lambda entry: well_to_seq(entry[2]))
-    return order
+    return plate_ordered(order)
 
 
 def read_primary_screen(*, gc_data_xlsx: str | Path | None = None, round1_report_xlsx: str | Path | None = None, numeric_report_xlsx: str | Path | None = None, verdict_xlsx: str | Path | None = None, layout_xlsx: str | Path | None = None, expected_xlsx: str | Path | None = None) -> PrimaryScreen:
@@ -925,11 +973,9 @@ def _confirmation(path: str | Path, well_to_variant: dict[str, str] | None = Non
             if well_members or run_variants is not None and variant not in run_variants:
                 ledger.set_aside(source, row, UNMAPPED_VARIANT, area)
                 continue
-            expected_identity = (internal_identities or {}).get(variant)
-            if sample.internal and expected_identity and sample.internal != expected_identity:
-                raise ValueError(f"remeasure_report_xlsx sample {sample.internal!r} conflicts with declared identity {expected_identity!r}")
+            _check_declared_identity(source, sample, internal_identities)
         replicate_keys.append(((variant, sample.replicate), row, area))
-        values.setdefault(variant, []).append(area / mean_wt)
+        values.setdefault(variant, []).append(_adopt(source, row, area) / mean_wt)
     ledger.flag_repeats(source, replicate_keys, DUPLICATE_REPLICATE)
     if unmapped and warnings is not None:
         count, listed = ledger.unmapped_wells(source)
@@ -967,7 +1013,7 @@ def _well_confirmation(path: str | Path, well_to_variant: dict[str, str], wt_wel
     ledger.flag_repeats(source, [(classify_sample(row.sample_name, "well").replicate, row, area) for row, area in wt_named if classify_sample(row.sample_name, "well").replicate > 0], DUPLICATE_REPLICATE)
     for row, area in wt:
         ledger.used_wt(source, row, area)
-    mean_wt = sum(area for _, area in wt) / len(wt)
+    mean_wt = wt_denominator([area for _, area in wt], source)
     ledger.flag_repeats(source, [((well, replicate), row, area) for row, well, area, replicate in areas], DUPLICATE_REPLICATE)
     values: dict[str, list[float]] = {}
     unmapped: set[str] = set()
@@ -977,7 +1023,7 @@ def _well_confirmation(path: str | Path, well_to_variant: dict[str, str], wt_wel
             unmapped.add(well)
             ledger.set_aside(source, row, UNMAPPED_WELL, area, well)
             continue
-        values.setdefault(variant, []).append(area / mean_wt)
+        values.setdefault(variant, []).append(_adopt(source, row, area) / mean_wt)
     if unmapped:
         count, listed = ledger.unmapped_wells(source)
         warnings.append(f"remeasure_well_xlsx has {count} well(s) absent from {mapping_source}: {listed}")
@@ -1183,6 +1229,11 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
     if measured and any((remeasure_report_xlsx, remeasure_numeric_xlsx, remeasure_well_xlsx)):
         raise ValueError("Measured resequencing clones require one final activity source, not unscoped confirmation measurements")
     name, source = selected[0]
+    # The declaration (verdict and layout) is validated once, before any
+    # reader runs, so every primary format refuses a run that names two
+    # references for one short identity. The well-labelled readers and the NGS
+    # gate compare short identities only and cannot see that conflict.
+    declared_identities = _declared_identities(verdict_xlsx, layout_xlsx)
     warnings: list[str] = []
     ledger = _RowLedger(excluded_rows)
     gc_export_rows: list[tuple[str, float]] = []
@@ -1218,7 +1269,12 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
             "layout_xlsx, or a verdict_xlsx that names mutant_id per well"
         )
     if name == "activity_path":
-        fallback, well_by_variant, source_warnings, wt_values = _read_long(source, activity_scale, well_to_variant, variant_to_well, unmapped, wt_wells, frozenset(measured), ledger)
+        # Variant labels here may be full (F89W) or short (89W); the residue a
+        # full one states is checked before it is shortened. The well-labelled
+        # readers (gc_data_xlsx, round1_report_xlsx) need no per-row check
+        # because ``_well_slot_rows`` never turns a variant label into a value;
+        # the declaration they rely on was validated above.
+        fallback, well_by_variant, source_warnings, wt_values = _read_long(source, activity_scale, well_to_variant, variant_to_well, unmapped, wt_wells, frozenset(measured), ledger, declared_identities)
         warnings.extend(source_warnings)
     elif name == "gc_data_xlsx":
         fallback, well_by_variant = _gc_primary(source, well_to_variant, variant_to_well, unmapped, well_values, wt_wells, ledger)
@@ -1251,21 +1307,7 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
         warnings.extend(order_warnings)
         authoritative = _numeric_confirmation(remeasure_numeric_xlsx, order, well_values, ledger)
     elif remeasure_report_xlsx is not None:
-        # Retain any declared reference amino acid until after contradiction
-        # checks. Short notation intentionally omits it; a full label does not.
-        declared = [row.mutant_id for row in parse_verdict_rows(verdict_xlsx).values()]
-        if layout_xlsx is not None:
-            declared.extend(entry.mutant for entry in parse_plate_layout_xlsx(layout_xlsx))
-        internal_identities: dict[str, str] = {}
-        for label in declared:
-            if not is_canonical_internal(label):
-                continue
-            short = to_evolvepro(label)
-            existing = internal_identities.get(short)
-            if existing is not None and existing != label:
-                raise ValueError(f"confirmation mapping has conflicting full identities for {short!r}")
-            internal_identities[short] = label
-        authoritative = _confirmation(remeasure_report_xlsx, well_to_variant, internal_identities, set(variant_to_well), ledger, warnings)
+        authoritative = _confirmation(remeasure_report_xlsx, well_to_variant, declared_identities, set(variant_to_well), ledger, warnings)
     elif remeasure_well_xlsx is not None:
         authoritative = _well_confirmation(remeasure_well_xlsx, well_to_variant, wt_wells, mapping_source, warnings, ledger)
     else:

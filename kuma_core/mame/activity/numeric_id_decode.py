@@ -28,6 +28,7 @@ from collections.abc import Callable, Sequence
 from typing import TypeAlias
 
 from .evolvepro_xlsx import BlockRepBatchResult, GcRow, parse_agilent_block_rep_batch
+from .normalize import wt_denominator
 from .gc_sample import (
     DUPLICATE_REPLICATE,
     NO_AREA,
@@ -133,13 +134,21 @@ def _wt_mean(block: BlockRepBatchResult, source: str) -> float:
             f"{source} has no WT block areas; relative activity needs the "
             "WT blocks (sample names 'WT1'/'WT_1'/'WT-1'/...) to divide by."
         )
-    m = sum(block.wt_areas) / len(block.wt_areas)
-    if m <= 0:
-        raise ValueError(
-            f"{source} WT block mean must be > 0 (computed {m:.6g} from "
-            f"{block.wt_areas})."
-        )
-    return m
+    return wt_denominator(block.wt_areas, source)
+
+
+def plate_ordered(order: DecodeOrder) -> DecodeOrder:
+    """*order* sorted into column-major plate order by its well.
+
+    The one sort every decode-order source shares (stated design wells, the
+    plate layout file, the verdict workbook). A numeric ID counts tubes in the
+    order the bench fills them, so wherever a source states each entry's well
+    its file row order is not consulted. Stable, so entries naming the same
+    well keep their relative order.
+    """
+    from kuma_core.mame.plate_geometry import well_to_seq
+
+    return sorted(order, key=lambda entry: well_to_seq(entry[2]))
 
 
 def layout_variant_order(
@@ -150,6 +159,10 @@ def layout_variant_order(
     Rows whose mutant has no EVOLVEpro short form (several substitutions) are
     kept as unlabelled slots. Numeric IDs index physical non-WT rows; dropping
     an unconvertible row would shift every later ID and rename the whole plate.
+
+    Every row states its well, so the rows are put in plate order through
+    :func:`plate_ordered` and the file row order is not consulted, the same
+    rule :func:`expected_variant_order` applies to stated wells.
     """
     warnings: list[str] = []
     order: DecodeOrder = []
@@ -166,7 +179,7 @@ def layout_variant_order(
             )
             short = None
         order.append((short, entry.mutant, entry.well_id))
-    return order, warnings
+    return plate_ordered(order), warnings
 
 
 def expected_variant_order(
@@ -212,7 +225,7 @@ def expected_variant_order(
     ``is_wt`` entries, and a stated ``wells`` list is aligned with the mutants
     that survive that drop.
     """
-    from kuma_core.mame.export.well_mapper import seq_to_well, well_to_seq
+    from kuma_core.mame.export.well_mapper import seq_to_well
     from kuma_core.mame.io.variant_list import read_variant_source
     from kuma_core.mame.layout import canonical_plate_order
 
@@ -225,10 +238,7 @@ def expected_variant_order(
             for seq, mutation in enumerate(canonical_plate_order(source.expected), 1)
         ]
     else:
-        placed = sorted(
-            zip(source.expected, source.wells),
-            key=lambda pair: well_to_seq(pair[1]),
-        )
+        placed = list(zip(source.expected, source.wells))
     for mutation, well in placed:
         mutant = mutation.mutant_id
         try:
@@ -241,7 +251,9 @@ def expected_variant_order(
             )
             short = None
         order.append((short, mutant, _normalise_well(well)))
-    return order, warnings
+    # Column-major arithmetic is already plate order; stated wells are sorted
+    # by the same helper the layout path uses.
+    return plate_ordered(order), warnings
 
 
 def _decode_against(

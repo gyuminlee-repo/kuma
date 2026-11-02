@@ -7,9 +7,50 @@ v0.3 Phase B-3 addition:
 """
 
 import math
+from collections.abc import Sequence
 from typing import Optional
 
 from .constants import WT_PATTERN
+
+
+def require_measurement(value: float, context: str) -> float:
+    """A measured activity or GC area: finite and not negative. Zero is a value.
+
+    The one rule every activity reader applies to a number it is about to use.
+    An infinite area is the largest value on the plate and a negative one has
+    no physical reading; either would rank or flip every relative activity
+    derived from it. A mutant with no activity measures zero, which is data.
+    """
+    if not math.isfinite(value):
+        raise ValueError(f"{context}: value {value!r} is not finite")
+    if value < 0:
+        raise ValueError(f"{context}: value {value!r} is negative")
+    return value
+
+
+def wt_denominator(areas: Sequence[float], source: str) -> float:
+    """The WT mean every relative activity of *source* is divided by.
+
+    Shared by every reader that normalises by a WT block or WT well, so the
+    rule cannot drift between them again: at least one area, a mean above zero
+    (an all-zero baseline used to raise ZeroDivisionError on some paths and a
+    negative one silently flipped every sign), and each area a valid
+    measurement (:func:`require_measurement`). Callers that have a more
+    specific message for a missing WT state it before calling.
+    """
+    values = list(areas)
+    if not values:
+        raise ValueError(f"{source} has no WT areas to divide by")
+    # Finite values can still overflow the sum, so the mean itself is checked
+    # for finiteness as well as sign.
+    mean = sum(values) / len(values)
+    if not (math.isfinite(mean) and mean > 0):
+        raise ValueError(
+            f"{source} WT mean area must be > 0 and finite (computed {mean:.6g} from {values})"
+        )
+    for value in values:
+        require_measurement(value, f"{source} WT area")
+    return mean
 
 
 def compute_relative_activity(
@@ -42,13 +83,7 @@ def compute_relative_activity(
             f"wt_areas is empty (got {len(wt_areas)} entries); "
             "at least one WT replicate area is required"
         )
-    wt_mean = sum(wt_areas) / len(wt_areas)
-    if wt_mean <= 0:
-        raise ValueError(
-            f"WT mean area must be > 0 (computed {wt_mean:.6g} "
-            f"from wt_areas={wt_areas})"
-        )
-    return area / wt_mean
+    return require_measurement(area, "area") / wt_denominator(wt_areas, "wt_areas")
 
 
 def compute_fold_change(

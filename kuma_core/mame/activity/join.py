@@ -4,6 +4,7 @@ Spec: notes/specs/2026-05-04-mame-activity-integration.md §2.4, §3.4
 """
 
 from collections import defaultdict
+import math
 import re
 
 from kuma_core.mame.activity.aggregate import aggregate_replicates
@@ -33,6 +34,19 @@ def _canonical_well(well: str) -> str:
     if not m:
         return well
     return f"{m.group(1).upper()}{int(m.group(2)):02d}"
+
+
+def _usable_wt_mean(values: list[float]) -> float | None:
+    """A plate WT mean, or ``None`` when it is not a usable denominator.
+
+    One rule for both WT sources (dedicated rows and plate WT wells): no
+    values, a zero mean, a negative mean or a non-finite mean is "no usable
+    WT" (None) rather than a bogus or sign-flipped ratio.
+    """
+    if not values:
+        return None
+    m = sum(values) / len(values)
+    return m if math.isfinite(m) and m > 0 else None
 
 
 def merge_activity_with_genotype(
@@ -111,10 +125,7 @@ def merge_activity_with_genotype(
     for plate_id in set(wt_lookup) | set(dedicated_wt):
         dedicated = dedicated_wt.get(plate_id, [])
         if dedicated:
-            m = sum(dedicated) / len(dedicated)
-            # Non-positive denominator is physically invalid; keep the existing
-            # "no usable WT" contract (None) rather than emit a bogus ratio.
-            wt_means[plate_id] = m if m > 0 else None
+            wt_means[plate_id] = _usable_wt_mean(dedicated)
             n_wt_replicate_rows += len(dedicated)
             n_plates_wt_from_replicates += 1
             continue
@@ -125,7 +136,7 @@ def merge_activity_with_genotype(
             for r in recs
             if p == plate_id and w in wt_wells
         ]
-        wt_means[plate_id] = sum(wt_values) / len(wt_values) if wt_values else None
+        wt_means[plate_id] = _usable_wt_mean(wt_values)
 
     # Union of all (plate_id, well_id) keys across all three tables
     all_keys = (

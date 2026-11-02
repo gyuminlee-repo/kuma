@@ -478,3 +478,38 @@ def test_hyphenated_wt_replicates_in_an_id_rep_report_are_the_wt_blocks(tmp_path
     assert [(r.id, r.variant) for r in result.rows] == [(1, "5F"), (2, "53S"), (3, "87P")]
     assert [len(r.relative) for r in result.rows] == [3, 3, 3]
     assert result.rows[0].mean == pytest.approx(1.5)
+
+
+def test_layout_order_ignores_file_row_order(tmp_path: Path):
+    """A layout states each well, so its file row order is not the decode order.
+
+    The design-list path already sorted stated wells into plate order; the
+    layout path took rows as listed, so a layout written B1 before A1 swapped
+    the activities of the two variants. Both now share one plate-order sort.
+    """
+    rows = [("V5F", "A1"), ("K53R", "B1"), ("K53S", "C1"), ("R87P", "A2")]
+    shuffled = [rows[3], rows[1], rows[0], rows[2]]
+    sorted_dir = tmp_path / "sorted"
+    shuffled_dir = tmp_path / "shuffled"
+    sorted_dir.mkdir()
+    shuffled_dir.mkdir()
+    from_sorted, _ = layout_variant_order(_layout(sorted_dir, rows))
+    from_shuffled, _ = layout_variant_order(_layout(shuffled_dir, shuffled))
+    assert from_shuffled == from_sorted
+    assert [entry[2] for entry in from_sorted] == ["A01", "B01", "C01", "A02"]
+    from_design, _ = expected_variant_order(
+        _expected_list(tmp_path, shuffled, with_wells=True)
+    )
+    assert from_design == from_shuffled
+
+
+def test_shuffled_layout_decodes_like_the_sorted_one(tmp_path: Path):
+    rows = [("V5F", "A1"), ("K53R", "B1")]
+    report = _report(tmp_path, {1: [20.0], 2: [50.0]}, [10.0])
+    sorted_dir = tmp_path / "sorted"
+    shuffled_dir = tmp_path / "shuffled"
+    sorted_dir.mkdir()
+    shuffled_dir.mkdir()
+    a = decode_primary_screen(report, _layout(sorted_dir, rows))
+    b = decode_primary_screen(report, _layout(shuffled_dir, rows[::-1]))
+    assert b.by_variant() == a.by_variant() == {"5F": [2.0], "53R": [5.0]}
