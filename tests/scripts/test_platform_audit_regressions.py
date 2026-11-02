@@ -18,7 +18,15 @@ def artifacts(tmp_path):
     return folder
 
 
-@pytest.mark.parametrize("tag,version", [("v0.16.73.1", "0.16.73"), ("v0.16.73", "0.16.73")])
+# gen-latest-json.mjs refuses a tag whose first three parts are not the app
+# manifests' version, so the tags here follow package.json.
+_APP_VERSION = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))["version"]
+
+
+@pytest.mark.parametrize(
+    "tag,version",
+    [(f"v{_APP_VERSION}.1", _APP_VERSION), (f"v{_APP_VERSION}", _APP_VERSION)],
+)
 def test_updater_uses_three_part_app_version_and_retains_tag(tmp_path, tag, version):
     output = tmp_path / "latest.json"
     result = subprocess.run(["node", str(ROOT / "scripts/gen-latest-json.mjs"), tag,
