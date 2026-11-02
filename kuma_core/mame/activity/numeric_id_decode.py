@@ -28,6 +28,7 @@ from collections.abc import Callable, Sequence
 from typing import TypeAlias
 
 from .evolvepro_xlsx import BlockRepBatchResult, GcRow, parse_agilent_block_rep_batch
+from .normalize import wt_denominator
 from .gc_sample import (
     DUPLICATE_REPLICATE,
     NO_AREA,
@@ -133,13 +134,7 @@ def _wt_mean(block: BlockRepBatchResult, source: str) -> float:
             f"{source} has no WT block areas; relative activity needs the "
             "WT blocks (sample names 'WT1'/'WT_1'/'WT-1'/...) to divide by."
         )
-    m = sum(block.wt_areas) / len(block.wt_areas)
-    if m <= 0:
-        raise ValueError(
-            f"{source} WT block mean must be > 0 (computed {m:.6g} from "
-            f"{block.wt_areas})."
-        )
-    return m
+    return wt_denominator(block.wt_areas, source)
 
 
 def plate_ordered(order: DecodeOrder) -> DecodeOrder:

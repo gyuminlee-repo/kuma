@@ -45,6 +45,7 @@ from .gc_sample import (
 )
 from .label_audit import LabelAudit, audit_labels
 from .merge import merge_replicates_priority
+from .normalize import require_measurement, wt_denominator
 from .numeric_id_decode import (
     WT_RELATIVE,
     DecodeOrder,
@@ -338,7 +339,7 @@ def _wt_mean_of(source: str, wt: list[tuple[GcRow, float]], ledger: _RowLedger) 
     )
     for row, area in wt:
         ledger.used_wt(source, row, area)
-    return sum(area for _, area in wt) / len(wt)
+    return wt_denominator([area for _, area in wt], source)
 
 
 def _refuse_other_notation(source: str, row: GcRow, sample: SampleClass, unit: str) -> None:
@@ -494,8 +495,7 @@ def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str,
             value = float(cast(float | str, raw_value))
         except (TypeError, ValueError):
             raise ValueError(f"activity_path has a non-numeric value for {label!r}") from None
-        if not math.isfinite(value) or value < 0:
-            raise ValueError(f"activity_path has an invalid value for {label!r}")
+        require_measurement(value, f"activity_path value for {label!r}")
         if ledger.operator_skips(source_name, position, value):
             continue
         cohort = str(row["plate_id"]).strip() if "plate_id" in frame.columns else "file"
@@ -566,8 +566,12 @@ def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str,
             _wt_mean_of(source_name, members, ledger)
     values: dict[str, list[float]] = {}
     well_by_variant = dict(variant_to_well)
+    denominators = (
+        {} if activity_scale == "relative_to_wt"
+        else {cohort: wt_denominator(wt_values[cohort], source_name if cohort == "file" else f"{source_name} plate {cohort}") for cohort in cohorts}
+    )
     for variant, value, cohort in rows:
-        relative = value if activity_scale == "relative_to_wt" else value / (sum(wt_values[cohort]) / len(wt_values[cohort]))
+        relative = value if activity_scale == "relative_to_wt" else value / denominators[cohort]
         values.setdefault(variant, []).append(relative)
     # The WT rows put through the division the variant rows just went through,
     # so the spread reported here is the spread of the exported column.  Only
@@ -587,7 +591,7 @@ def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str,
         if activity_scale == "relative_to_wt":
             wt_relative.extend(replicates)
         else:
-            mean_wt = sum(replicates) / len(replicates)
+            mean_wt = denominators[cohort]
             wt_relative.extend(replicate / mean_wt for replicate in replicates)
     warnings = ["errors.mame.measurementWellsUnchecked|" + ", ".join(sorted(set(unchecked)))] if unchecked else []
     return values, well_by_variant, warnings, wt_relative
@@ -1001,7 +1005,7 @@ def _well_confirmation(path: str | Path, well_to_variant: dict[str, str], wt_wel
     ledger.flag_repeats(source, [(classify_sample(row.sample_name, "well").replicate, row, area) for row, area in wt_named if classify_sample(row.sample_name, "well").replicate > 0], DUPLICATE_REPLICATE)
     for row, area in wt:
         ledger.used_wt(source, row, area)
-    mean_wt = sum(area for _, area in wt) / len(wt)
+    mean_wt = wt_denominator([area for _, area in wt], source)
     ledger.flag_repeats(source, [((well, replicate), row, area) for row, well, area, replicate in areas], DUPLICATE_REPLICATE)
     values: dict[str, list[float]] = {}
     unmapped: set[str] = set()

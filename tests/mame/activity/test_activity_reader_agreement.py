@@ -127,8 +127,12 @@ def test_every_activity_reader_checks_finiteness() -> None:
         )
     }
 
+    # ``require_measurement`` (normalize.py) is the shared rule: finite and
+    # not negative. A reader states it either by calling it or inline.
     for name, source in readers.items():
-        assert "math.isfinite" in source, (
+        assert "math.isfinite" in source or "require_measurement(" in source, (
             f"{name} reads an activity value without a finiteness rule; "
             "isnan alone lets the infinities through"
         )
+    shared = inspect.getsource(importlib.import_module("kuma_core.mame.activity.normalize"))
+    assert "def require_measurement" in shared and "math.isfinite" in shared

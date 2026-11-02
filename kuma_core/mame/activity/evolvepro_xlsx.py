@@ -27,6 +27,7 @@ import python_calamine
 from collections.abc import Callable
 
 from .gc_sample import NUMERIC_CALIBRATION, NUMERIC_ID, WT, SampleClass, classify_sample
+from .normalize import require_measurement
 from .variant_notation import to_evolvepro  # noqa: F401 (re-exported for callers)
 
 logger = logging.getLogger(__name__)
@@ -159,7 +160,7 @@ class GcRow:
         """
         if self.area_raw == "":
             return None
-        return _float_or_raise(self.area_raw, context)
+        return require_measurement(_float_or_raise(self.area_raw, context), context)
 
 
 def _area_for_report(row: GcRow) -> float | None:
@@ -548,10 +549,8 @@ def parse_relative_only(
     resolved = Path(path)
     records: list[RelativeActivityRecord] = []
     for row in read_flat_sheet(resolved, sheet_index=sheet_index, reader="parse_relative_only"):
-        area = _float_or_raise(
-            row.area_raw,
-            f"Sample Name={row.sample_name!r} row {row.row_index} in {resolved}",
-        )
+        context = f"Sample Name={row.sample_name!r} row {row.row_index} in {resolved}"
+        area = require_measurement(_float_or_raise(row.area_raw, context), context)
         records.append(
             RelativeActivityRecord(sample_name=row.sample_name, area=area, row_index=row.row_index)
         )
