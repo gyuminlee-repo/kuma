@@ -4,16 +4,19 @@
 number alone. A homodimer whose chain A lacks residue 2 had that gap filled by
 chain B, and the hybrid sequence still passed the frame guard while distances
 were measured across chains. ``structure_file._parse_cif_ca`` already keeps the
-first model and the first chain; the PDB path now follows the same rule, refuses
-insertion codes (``52A`` is not residue 52) and reads MSE HETATM records as Met.
+first model and the first chain; the PDB path now follows the same rule, skips
+insertion-code residues with a logged warning (``52A`` is not residue 52 and has
+no slot in a 1-based list) and reads MSE HETATM records as Met.
 """
 
 from __future__ import annotations
 
+import logging
+
 import pytest
 
 from kuma_core.kuro.alphafold import _parse_pdb_ca, _parse_pdb_seq
-from kuma_core.kuro.structure_file import StructureFileError, load_structure_file
+from kuma_core.kuro.structure_file import load_structure_file
 
 
 def _rec(name: str, resn: str, chain: str, resi: int, x: float,
@@ -57,19 +60,36 @@ def test_pdb_reads_the_first_model_only() -> None:
     assert _parse_pdb_seq(text) == "A"
 
 
-def test_pdb_insertion_code_is_refused() -> None:
-    text = _rec("CA", "ALA", "A", 52, 0.0) + _rec("CA", "GLY", "A", 52, 4.0, icode="A")
-    with pytest.raises(ValueError, match="insertion code"):
-        _parse_pdb_ca(text)
-    with pytest.raises(ValueError, match="insertion code"):
-        _parse_pdb_seq(text)
+def _with_insertion() -> str:
+    # 52A comes before 52 so a reader that keyed by number alone would let it win.
+    return (
+        _rec("CA", "ALA", "A", 51, 0.0)
+        + _rec("CA", "TRP", "A", 52, 50.0, icode="A")
+        + _rec("CA", "GLY", "A", 52, 4.0)
+        + _rec("CA", "SER", "A", 53, 8.0)
+    )
 
 
-def test_pdb_insertion_code_file_is_a_structure_file_error(tmp_path) -> None:
+def test_pdb_insertion_code_residue_is_skipped_and_logged(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    with caplog.at_level(logging.WARNING, logger="kuma_core.kuro.alphafold"):
+        ca = _parse_pdb_ca(_with_insertion())
+        seq = _parse_pdb_seq(_with_insertion())
+    assert ca[51] == (0.0, 0.0, 0.0)
+    assert ca[52] == (4.0, 0.0, 0.0)
+    assert ca[53] == (8.0, 0.0, 0.0)
+    assert len(ca) == 54
+    assert seq.endswith("AGS") and len(seq) == 53 and "W" not in seq
+    assert "52A" in caplog.text and "insertion code" in caplog.text
+
+
+def test_pdb_insertion_code_file_loads(tmp_path) -> None:
     path = tmp_path / "ins.pdb"
     path.write_text(_rec("CA", "ALA", "A", 1, 0.0) + _rec("CA", "GLY", "A", 1, 4.0, icode="B"))
-    with pytest.raises(StructureFileError, match="insertion code"):
-        load_structure_file(path)
+    loaded = load_structure_file(path)
+    assert loaded.sequence == "A"
+    assert loaded.ca_coords == [None, (0.0, 0.0, 0.0)]
 
 
 def test_pdb_mse_hetatm_reads_as_met() -> None:

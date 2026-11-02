@@ -108,14 +108,17 @@ def _pdb_ca_residues(pdb_text: str) -> dict[int, tuple[str, tuple[float, float, 
     that carries a Ca. Keying by residue number alone let a second chain fill a
     gap in the first, so a homodimer produced a hybrid sequence that still
     passed the frame guard. An insertion code (``52A``) names a residue that is
-    not residue 52, and a 1-based position list cannot hold both, so the file is
-    refused rather than having one of them overwrite or shadow the other.
+    not residue 52, and a 1-based position list has no slot for it, so such a
+    residue is skipped (never written over residue 52) and the skipped residue
+    ids are logged as a warning. Antibody structures in Kabat or Chothia
+    numbering carry these routinely, so refusing the file failed whole requests.
     HETATM records count only for amino-acid residue names (MSE selenomethionine
     is Met); a calcium ion is also an atom named ``CA``. The first Ca per residue
     wins, which keeps the first alternate location. Residue numbers below 1 have
     no place in a 1-based list and are skipped.
     """
     residues: dict[int, tuple[str, tuple[float, float, float]]] = {}
+    skipped_insertions: list[str] = []
     chain: str | None = None
     for line in pdb_text.splitlines():
         if line.startswith("ENDMDL"):
@@ -142,13 +145,18 @@ def _pdb_ca_residues(pdb_text: str) -> dict[int, tuple[str, tuple[float, float, 
             continue
         icode = line[26] if len(line) > 26 else " "
         if icode.strip():
-            raise ValueError(
-                f"PDB residue {res_seq}{icode} in chain {chain_id!r} has an insertion "
-                "code; residue numbers must identify residues one to one"
-            )
+            skipped_insertions.append(f"{res_seq}{icode}")
+            continue
         if res_seq < 1 or res_seq in residues:
             continue
         residues[res_seq] = (resn, (x, y, z))
+    if skipped_insertions:
+        logger.warning(
+            "PDB: skipped %d Ca record(s) with an insertion code in chain %r "
+            "(no slot in a 1-based residue list): %s",
+            len(skipped_insertions), chain, ", ".join(skipped_insertions[:20])
+            + (" ..." if len(skipped_insertions) > 20 else ""),
+        )
     return residues
 
 

@@ -430,13 +430,8 @@ def load_structure_file(path: str | Path) -> LoadedStructure:
     if suffix in CIF_SUFFIXES:
         ca, sequence, mean_plddt = _parse_cif_ca(text)
     else:
-        try:
-            ca = _drop_nonfinite_ca(_parse_pdb_ca(text))
-            sequence = _parse_pdb_seq(text)
-        except StructureFileError:
-            raise
-        except ValueError as exc:
-            raise StructureFileError(str(exc)) from exc
+        ca = _drop_nonfinite_ca(_parse_pdb_ca(text))
+        sequence = _parse_pdb_seq(text)
         mean_plddt = None
         if not any(c is not None for c in ca):
             raise StructureFileError("no Ca atoms found in the PDB file")
