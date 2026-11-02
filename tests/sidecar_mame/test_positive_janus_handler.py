@@ -39,7 +39,7 @@ def test_candidates_report_every_measured_well_and_the_backend_defaults(tmp_path
     first = response["candidates"][0]
     assert set(first) == {"well", "name", "relative", "n_replicates", "above_wt"}
     assert response["defaults"] == {
-        "volume": 70.0,
+        "volume": 2.0,
         "source_rack": "final cell stock",
         "dest_rack": "deep well plate",
         "sample_type": "cell stock",

@@ -34,7 +34,7 @@ const CANDIDATES: PositiveJanusCandidatesResult = {
   warnings: [],
   excluded_rows: [],
   defaults: {
-    volume: 70,
+    volume: 2,
     source_rack: "final cell stock",
     dest_rack: "deep well plate",
     sample_type: "cell stock",
@@ -140,7 +140,7 @@ describe("PositiveJanusPanel", () => {
     expect((screen.getByLabelText(/F1/) as HTMLInputElement).checked).toBe(true);
     expect((screen.getByLabelText(/D2/) as HTMLInputElement).checked).toBe(true);
     expect((screen.getByLabelText(/E3/) as HTMLInputElement).checked).toBe(false);
-    expect((screen.getByLabelText("Volume (µL)") as HTMLInputElement).value).toBe("70");
+    expect((screen.getByLabelText("Volume (µL)") as HTMLInputElement).value).toBe("2");
     expect((screen.getByLabelText("Source plate name") as HTMLInputElement).value).toBe("final cell stock");
     expect((screen.getByLabelText("Destination plate name") as HTMLInputElement).value).toBe("deep well plate");
     // Nothing is stored until the operator changes something.
@@ -241,7 +241,7 @@ describe("PositiveJanusPanel", () => {
     await waitFor(() => expect(screen.getByLabelText(/F1/)).toBeTruthy());
     expect((screen.getByLabelText(/F1/) as HTMLInputElement).checked).toBe(true);
     expect((screen.getByLabelText(/E3/) as HTMLInputElement).checked).toBe(false);
-    expect((screen.getByLabelText("Volume (µL)") as HTMLInputElement).value).toBe("70");
+    expect((screen.getByLabelText("Volume (µL)") as HTMLInputElement).value).toBe("2");
     expect(record()).toBeNull();
     expect(screen.getByRole("alert").textContent).toMatch(/reads differently/);
   });

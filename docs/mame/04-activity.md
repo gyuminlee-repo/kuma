@@ -83,7 +83,7 @@ Step 4 폼 상태는 프로젝트 경로별로 버전 관리해 저장한다. An
 - 선별 규칙은 build 가 숫자 ID 확인 측정의 부분집합을 고를 때 쓰는 규칙 그대로다(`above_wt_slots`). 상대값 평균이 1.0 보다 커야 하고 정확히 1.0 이면 빠진다. WT well 은 목록에 나오지 않는다. NGS verdict 로 거르지 않는다.
 - 측정된 clone 이 모두 체크박스로 나오고 WT 초과 clone 이 처음에 체크된다. 운영자가 빼거나 WT 이하 clone 을 더한 선택은 round 에 기록되어 autosave 와 프로젝트에 남는다. 측정 파일이나 매핑 파일이 바뀌면 그 기록은 적용하지 않고 WT 초과 집합에서 다시 시작한다.
 - 선택된 clone 은 원본 well 의 열 우선 순서(A1, B1 ... H1, A2)로 정렬되어 대상 plate 의 A1 부터 열 우선으로 한 칸씩 채워진다.
-- 파일은 3단계와 같은 8열 `device` 스키마(`name | type | no | Asp. Rack | Asp. Posi | Dsp. Rack | Dsp. Posi | volume`)다. rack 두 열에는 plate 이름을 쓰며 기본값은 `final cell stock` 과 `deep well plate` 이다. 부피 기본값은 3단계와 같은 70 µL 이고 화면에서 바꿀 수 있다.
+- 파일은 3단계와 같은 8열 `device` 스키마(`name | type | no | Asp. Rack | Asp. Posi | Dsp. Rack | Dsp. Posi | volume`)다. rack 두 열에는 plate 이름을 쓰며 기본값은 `final cell stock` 과 `deep well plate` 이다. 부피 기본값은 2 µL 이고(2026-11-02 bench 확인) 화면에서 바꿀 수 있다. 3단계 매핑의 70 µL 과는 다른 이동이라 기본값을 공유하지 않는다.
 - 분석이나 build 가 자동으로 쓰지 않는다. 내보내기 버튼을 누를 때 저장 대화상자로 고른 경로에 임시 파일로 쓴 뒤 이름을 바꾼다.
 - 1반복 측정 파일에서 이 run 의 것이 아니라고 보고 뺀 행(BLANK, 보정 숫자, 매핑에 없는 well, 기준으로 쓰지 않은 WT well 측정)은 체크박스 위 경고 상자에 이름과 블록·행 위치로 나온다. 4.1 build 경고와 같은 문장이다. 응답의 `excluded_rows` 에도 같은 행이 사유와 함께 실린다.
 - 부피 칸이 비었거나 0, 음수, 숫자가 아니면 내보내기가 비활성되고 칸 아래에 이유가 나온다. 내보내기 직전에 후보를 다시 읽어 저장된 선택과 결과가 다르면 내보내기를 멈춘다.
