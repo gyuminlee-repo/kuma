@@ -1229,6 +1229,11 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
     if measured and any((remeasure_report_xlsx, remeasure_numeric_xlsx, remeasure_well_xlsx)):
         raise ValueError("Measured resequencing clones require one final activity source, not unscoped confirmation measurements")
     name, source = selected[0]
+    # The declaration (verdict and layout) is validated once, before any
+    # reader runs, so every primary format refuses a run that names two
+    # references for one short identity. The well-labelled readers and the NGS
+    # gate compare short identities only and cannot see that conflict.
+    declared_identities = _declared_identities(verdict_xlsx, layout_xlsx)
     warnings: list[str] = []
     ledger = _RowLedger(excluded_rows)
     gc_export_rows: list[tuple[str, float]] = []
@@ -1266,10 +1271,10 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
     if name == "activity_path":
         # Variant labels here may be full (F89W) or short (89W); the residue a
         # full one states is checked before it is shortened. The well-labelled
-        # readers (gc_data_xlsx, round1_report_xlsx) have no such check because
-        # ``_well_slot_rows`` never turns a variant label into a value: one of
-        # this run is refused as the other notation, any other is set aside.
-        fallback, well_by_variant, source_warnings, wt_values = _read_long(source, activity_scale, well_to_variant, variant_to_well, unmapped, wt_wells, frozenset(measured), ledger, _declared_identities(verdict_xlsx, layout_xlsx))
+        # readers (gc_data_xlsx, round1_report_xlsx) need no per-row check
+        # because ``_well_slot_rows`` never turns a variant label into a value;
+        # the declaration they rely on was validated above.
+        fallback, well_by_variant, source_warnings, wt_values = _read_long(source, activity_scale, well_to_variant, variant_to_well, unmapped, wt_wells, frozenset(measured), ledger, declared_identities)
         warnings.extend(source_warnings)
     elif name == "gc_data_xlsx":
         fallback, well_by_variant = _gc_primary(source, well_to_variant, variant_to_well, unmapped, well_values, wt_wells, ledger)
@@ -1302,7 +1307,7 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
         warnings.extend(order_warnings)
         authoritative = _numeric_confirmation(remeasure_numeric_xlsx, order, well_values, ledger)
     elif remeasure_report_xlsx is not None:
-        authoritative = _confirmation(remeasure_report_xlsx, well_to_variant, _declared_identities(verdict_xlsx, layout_xlsx), set(variant_to_well), ledger, warnings)
+        authoritative = _confirmation(remeasure_report_xlsx, well_to_variant, declared_identities, set(variant_to_well), ledger, warnings)
     elif remeasure_well_xlsx is not None:
         authoritative = _well_confirmation(remeasure_well_xlsx, well_to_variant, wt_wells, mapping_source, warnings, ledger)
     else:

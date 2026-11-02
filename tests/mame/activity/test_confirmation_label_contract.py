@@ -204,3 +204,72 @@ def test_long_primary_full_identity_cannot_conflict_with_declared_reference(scal
         primary.write_text(f"variant,value\n{wt_row}{valid},{value}\n")
         result = build_evolvepro_input(output, activity_path=primary, activity_scale=scale, verdict_xlsx=verdict)
         assert result.variant_replicates == {"89W": [2.0]}
+
+
+def _declared_inputs(tmp_path: Path, layout_mutant: str) -> tuple[Path, Path]:
+    book = Workbook()
+    sheet = book.active
+    assert sheet is not None
+    sheet.append(["well_id", "mutant_id", "verdict"])
+    sheet.append(["A1", "F89W", "PASS"])
+    verdict = tmp_path / "verdict.xlsx"
+    book.save(verdict)
+    book = Workbook()
+    sheet = book.active
+    assert sheet is not None
+    sheet.append(["Mutant", "Well Pos."])
+    sheet.append([layout_mutant, "A1"])
+    sheet.append(["WT", "H12"])
+    layout = tmp_path / f"layout_{layout_mutant}.xlsx"
+    book.save(layout)
+    return verdict, layout
+
+
+def _block_report(path: Path, rows: list[tuple[str, float]]) -> Path:
+    book = Workbook()
+    sheet = book.active
+    assert sheet is not None
+    for label, area in rows:
+        sheet.append(["Signal:", "FID1B"])
+        sheet.append(["Area", "Sample Name"])
+        sheet.append([area, label])
+        sheet.append(["Sum", area])
+        sheet.append([])
+    book.save(path)
+    return path
+
+
+def _primary_input(fmt: str, tmp_path: Path) -> dict[str, object]:
+    if fmt == "gc_data_xlsx":
+        book = Workbook()
+        sheet = book.active
+        assert sheet is not None
+        sheet.append(["Sample Name", "Area"])
+        sheet.append(["A1", 2.0])
+        path = tmp_path / "gc.xlsx"
+        book.save(path)
+        return {"gc_data_xlsx": path}
+    if fmt == "round1_report_xlsx":
+        return {"round1_report_xlsx": _block_report(tmp_path / "raw.xlsx", [("WT_1", 10), ("A1", 20)])}
+    if fmt == "numeric_report_xlsx":
+        return {"numeric_report_xlsx": _block_report(tmp_path / "num.xlsx", [("WT1", 10), ("1", 20)])}
+    path = tmp_path / "long.csv"
+    path.write_text("well,value\nWT_1,10\nA1,20\n")
+    return {"activity_path": path}
+
+
+@pytest.mark.parametrize("fmt", ["gc_data_xlsx", "round1_report_xlsx", "numeric_report_xlsx", "activity_path"])
+def test_conflicting_declared_identities_refuse_every_primary_format(fmt: str, tmp_path: Path):
+    """Layout A1=A89W and verdict A1=F89W declare two references for 89W. The
+    declaration is checked once before any primary reader runs, so the
+    well-labelled readers (which compare short identities only) cannot pass it."""
+    from kuma_core.mame.activity.build_evolvepro_input import build_evolvepro_input
+
+    verdict, conflicting = _declared_inputs(tmp_path, "A89W")
+    output = tmp_path / "out.xlsx"
+    with pytest.raises(ValueError, match="conflicting full identities"):
+        build_evolvepro_input(output, verdict_xlsx=verdict, layout_xlsx=conflicting, **_primary_input(fmt, tmp_path))  # pyright: ignore[reportArgumentType]
+    assert not output.exists()
+    _, agreeing = _declared_inputs(tmp_path, "F89W")
+    result = build_evolvepro_input(output, verdict_xlsx=verdict, layout_xlsx=agreeing, **_primary_input(fmt, tmp_path))  # pyright: ignore[reportArgumentType]
+    assert list(result.variant_replicates) == ["89W"]
