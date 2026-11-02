@@ -89,16 +89,54 @@ def test_designed_substitution_with_lost_stop_far_away_is_wrong_aa():
     assert f"*{_STOP_POS}Q" in vr.verdict_notes
 
 
-def test_designed_substitution_with_lost_stop_nearby_is_ambiguous():
-    """Pinned: an undesigned *NX inside the +-5 codon window is AMBIGUOUS.
+_LOST_STOP_CASES = [
+    # (query, reference, expected, lost-stop tag). A deletion is rendered
+    # ``*N-`` in the note, so only the stop position is asserted for it.
+    pytest.param("ATGGTTCAA", "ATGGCTTAA", ["A2V"], "*3Q", id="substitution-nearby"),
+    pytest.param("ATGGTT---", "ATGGCTTAA", ["A2V"], "*3", id="deletion-nearby"),
+    pytest.param(
+        _LONG_REF[:3] + "GTT" + _LONG_REF[6:-3] + "CAA", _LONG_REF, ["A2V"],
+        f"*{_STOP_POS}Q", id="substitution-far",
+    ),
+    pytest.param(
+        _LONG_REF[:3] + "GTT" + _LONG_REF[6:-3] + "---", _LONG_REF, ["A2V"],
+        f"*{_STOP_POS}", id="deletion-far",
+    ),
+]
 
-    Same rule an undesigned premature stop ({WT}{pos}*) already follows. It is
-    not PASS; whether a stop loss beside the design should fail outright is a
-    separate decision about the window rule.
-    """
-    vr = _verdict("ATGGTTCAA", "ATGGCTTAA", ["A2V"])
-    assert vr.verdict == VerdictClass.AMBIGUOUS
-    assert "*3Q" in vr.verdict_notes
+
+@pytest.mark.parametrize("query, reference, expected, tag", _LOST_STOP_CASES)
+def test_unintended_stop_loss_is_never_reproduced(query, reference, expected, tag):
+    """An observed, undesigned stop loss (``*NX`` or ``*Ndel``) is not a
+    reproduced variant at any distance from the design. The +-window rule that
+    makes a nearby extra change AMBIGUOUS does not establish that termination
+    was preserved, and AMBIGUOUS counts toward recovery."""
+    from kuma_core.mame.detected import is_detected
+
+    vr = _verdict(query, reference, expected)
+    assert vr.verdict == VerdictClass.WRONG_AA
+    assert not is_detected(vr.verdict)
+    assert tag in vr.verdict_notes
+
+
+def test_indel_event_gate_does_not_credit_a_lost_stop():
+    """The indel-event gate returns AMBIGUOUS when the design is confirmed; a
+    lost stop beside that confirmed design must still not be reproduced."""
+    from kuma_core.mame.detected import is_detected
+
+    query = _LONG_REF[:3] + "GTT" + _LONG_REF[6:-3] + "---"
+    translated = translate_and_diff(_record(query), _LONG_REF, 0, len(_LONG_REF))
+    translated.barcode.max_indel_event_fraction = 0.9
+    translated.barcode.n_indel_event_positions = 3
+    translated.barcode.max_del_run_length = 3
+    vr = classify_verdict(translated, ["A2V"], CompareParams())
+    assert not is_detected(vr.verdict)
+    assert f"*{_STOP_POS}" in vr.verdict_notes
+    # Same well without the lost stop keeps the gate's AMBIGUOUS.
+    intact = _LONG_REF[:3] + "GTT" + _LONG_REF[6:]
+    t2 = translate_and_diff(_record(intact), _LONG_REF, 0, len(_LONG_REF))
+    t2.barcode.max_indel_event_fraction = 0.9
+    assert classify_verdict(t2, ["A2V"], CompareParams()).verdict == VerdictClass.AMBIGUOUS
 
 
 def test_window_without_terminal_stop_is_named():

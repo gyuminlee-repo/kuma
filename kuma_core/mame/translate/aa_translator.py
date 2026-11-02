@@ -53,16 +53,6 @@ def _translate_cds_for_compare(cds: str, table: int = 11) -> str:
     return str(Seq(cleaned[:trim]).translate(table=str(table)))
 
 
-def _translate_cds(cds: str, table: int = 11) -> str:
-    """Display form of :func:`_translate_cds_for_compare`: terminal stops trimmed.
-
-    Internal stops are preserved. Never compare against this form; see
-    :func:`_translate_cds_for_compare` for why.
-    """
-
-    return _translate_cds_for_compare(cds, table=table).rstrip("*")
-
-
 def terminal_stop_in_window(
     reference_seq: str, cds_start: int, cds_end: int, table: int = 11
 ) -> bool:
