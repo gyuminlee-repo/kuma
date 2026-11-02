@@ -830,7 +830,7 @@ def _summarize(verdicts: list) -> dict:
     }
 
 
-def _barcode_layout_error(barcodes_path: Path) -> str | None:
+def _barcode_layout_error(barcodes_path: Path, *, gaps_only: bool = False) -> str | None:
     """Does this barcode file describe wells on the plate MAME can name?
 
     The combinatorial custom barcode is ``{R}_{F}`` with R the plate row and F
@@ -850,6 +850,12 @@ def _barcode_layout_error(barcodes_path: Path) -> str | None:
     file fits. A file that cannot be opened is not this check's business; the
     caller has already validated the path, and a read failure here would only
     duplicate whatever the run reports.
+
+    ``gaps_only`` is for the worklist export, which only needs the in-plate
+    positions to be right. There a seed past the plate is never asked for and a
+    workbook with no barcode rows is reported through ``missing_seeds``, so only
+    a gap below the plate edge, the one thing that shifts a seed onto the wrong
+    well, is refused.
     """
     try:
         from kuma_core.mame.ingest.combinatorial_demux import read_barcode_indices
@@ -864,6 +870,8 @@ def _barcode_layout_error(barcodes_path: Path) -> str | None:
         return None
 
     if not r_idx and not f_idx:
+        if gaps_only:
+            return None
         return (
             f"custom_barcodes_xlsx: {barcodes_path.name} carries no barcode rows. "
             "Rows are named <prefix>_f_<n> and <prefix>_r_<n>, for example "
@@ -872,15 +880,19 @@ def _barcode_layout_error(barcodes_path: Path) -> str | None:
 
     report = check_barcode_layout(r_idx, f_idx)
     problems: list[str] = []
-    if report.out_of_range:
+    gaps = report.gaps
+    if gaps_only:
+        limit = {"R": PLATE_ROWS, "F": PLATE_COLS}
+        gaps = tuple((axis, n) for axis, n in gaps if n <= limit[axis])
+    if report.out_of_range and not gaps_only:
         listed = ", ".join(f"{axis}{n}" for axis, n in report.out_of_range)
         problems.append(
             f"numbered past the plate ({listed}); a well is named {{R}}_{{F}} with "
             f"R the row 1..{PLATE_ROWS} and F the column 1..{PLATE_COLS}, so those "
             "wells would come out of the run with no coordinate"
         )
-    if report.gaps:
-        listed = ", ".join(f"{axis}{n}" for axis, n in report.gaps)
+    if gaps:
+        listed = ", ".join(f"{axis}{n}" for axis, n in gaps)
         problems.append(
             f"missing {listed}; a gap shifts every later barcode down one place, "
             "so reads land in the wrong plate column or row without saying so"

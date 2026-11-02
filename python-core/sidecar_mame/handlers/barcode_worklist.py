@@ -94,8 +94,12 @@ def handle_export_barcode_worklist(params: dict) -> dict:
 
         # The reader sorts by index and keeps position, so F1, F3 hands F3 to
         # column 2. The run refuses such a file through this check; the
-        # worklist is reachable before any run, so it has to ask too.
-        layout_error = _barcode_layout_error(Path(p.custom_barcodes_xlsx))
+        # worklist is reachable before any run, so it has to ask too. Only the
+        # gap: seeds past the plate are never asked for here and an empty
+        # workbook is reported through ``missing_seeds``, as before the check.
+        layout_error = _barcode_layout_error(
+            Path(p.custom_barcodes_xlsx), gaps_only=True
+        )
         if layout_error is not None:
             raise ValueError(layout_error)
 
