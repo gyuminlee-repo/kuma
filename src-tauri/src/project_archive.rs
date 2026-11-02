@@ -14,10 +14,12 @@
 //! receiving machine can read results, export, and report without them.
 
 use std::fs::{self, File};
-use std::io::{Read, Write};
+use std::io;
 use std::path::{Component, Path, PathBuf};
 
 use serde::Serialize;
+
+use crate::atomic_write::{is_temp_name, write_atomic_with};
 use zip::write::SimpleFileOptions;
 use zip::{ZipArchive, ZipWriter};
 
@@ -44,7 +46,9 @@ fn collect_files(root: &Path) -> Result<Vec<PathBuf>, String> {
             let meta = entry.metadata().map_err(|e| e.to_string())?;
             if meta.is_dir() {
                 stack.push(path);
-            } else if meta.is_file() {
+            } else if meta.is_file() && !is_temp_name(&entry.file_name().to_string_lossy()) {
+                // Temporary files are debris of an interrupted atomic write,
+                // such as an export into this folder, not project content.
                 let rel = path
                     .strip_prefix(root)
                     .map_err(|e| e.to_string())?
@@ -84,24 +88,28 @@ pub fn export_project(project_path: &Path, output_path: &Path) -> Result<Archive
         let root = fs::canonicalize(project_path).map_err(|e| e.to_string())?;
         files.retain(|rel| root.join(rel) != output);
     }
-    let file = File::create(output_path).map_err(|e| e.to_string())?;
-    let mut zip = ZipWriter::new(file);
-    // Deflate: these are JSON, xlsx and fasta files, so it pays for itself.
-    let options = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
-
-    let mut total_bytes = 0u64;
-    let mut buf = Vec::new();
-    for rel in &files {
-        let abs = project_path.join(rel);
-        let mut src = File::open(&abs).map_err(|e| format!("{}: {e}", abs.display()))?;
-        buf.clear();
-        src.read_to_end(&mut buf).map_err(|e| e.to_string())?;
-        zip.start_file(to_archive_name(rel), options)
-            .map_err(|e| e.to_string())?;
-        zip.write_all(&buf).map_err(|e| e.to_string())?;
-        total_bytes += buf.len() as u64;
-    }
-    zip.finish().map_err(|e| e.to_string())?;
+    // Built beside the destination and renamed over it only once finished, so
+    // a failure part way (an unreadable input, a full disk) leaves the previous
+    // backup at that path intact. Each input is streamed, so memory does not
+    // grow with the largest file in the project.
+    let total_bytes = write_atomic_with(output_path, |file| {
+        let mut zip = ZipWriter::new(file);
+        // Deflate: these are JSON, xlsx and fasta files, so it pays for itself.
+        let options =
+            SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+        let mut total_bytes = 0u64;
+        for rel in &files {
+            let abs = project_path.join(rel);
+            let mut src = File::open(&abs)
+                .map_err(|e| io::Error::new(e.kind(), format!("{}: {e}", abs.display())))?;
+            zip.start_file(to_archive_name(rel), options)
+                .map_err(io::Error::other)?;
+            total_bytes += io::copy(&mut src, &mut zip)?;
+        }
+        zip.finish().map_err(io::Error::other)?;
+        Ok(total_bytes)
+    })
+    .map_err(|e| e.to_string())?;
 
     Ok(ArchiveSummary {
         path: output_path.to_string_lossy().to_string(),
