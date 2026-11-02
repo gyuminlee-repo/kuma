@@ -278,6 +278,24 @@ def append_crash_log(
         pass
 
 
+def append_app_crash_log(app: str, method: str, params_summary: str, tb: str) -> None:
+    """Append to ``kuma_home()/<app>/crash.log``. Never raises.
+
+    The path is resolved inside the guard. Both sidecars log a handler failure
+    before sending its error reply, so a config directory that cannot be read
+    or created must cost the log entry and nothing else: raising here would
+    escape the dispatcher's ``except`` branch and the client would get no
+    response at all.
+    """
+    try:
+        from kuma_core.shared.config_paths import kuma_home
+
+        log_path = kuma_home() / app / "crash.log"
+    except Exception:
+        return
+    append_crash_log(log_path, method, params_summary, tb)
+
+
 class JsonRpcWriter:
     """Thread-safe stdout writer for JSON-RPC sidecar messages."""
 

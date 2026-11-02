@@ -130,3 +130,152 @@ def test_a_campaign_that_does_not_fit_one_plate_is_refused(tmp_path: Path) -> No
             "expected_mutations_xlsx": str(expected),
             "output_path": str(tmp_path / "worklist.csv"),
         })
+
+
+def test_a_gapped_forward_set_is_refused_rather_than_renumbered(
+    tmp_path: Path,
+) -> None:
+    """F1 and F3 without F2 must not hand F3 to column 2.
+
+    The reader keeps position after sorting by index, so a gap shifts every
+    later seed down one place. The run refuses such a file through
+    ``_barcode_layout_error``; the worklist is reachable before a run and used
+    to write ``f_3`` against well A2 with ``missing_seeds`` empty.
+    """
+    expected = _expected(tmp_path / "expected.xlsx", 2)
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    assert ws is not None
+    ws.append(["name", "sequence"])
+    tail = "GGGGGGGGGGGGGGGGGGGG"
+    for i in (1, 3):
+        ws.append([f"ispS_f_{i}", f"ACGTACGTAC{i:02d}{tail}"])
+    for i in range(1, 9):
+        ws.append([f"ispS_r_{i}", f"TGCATGCATG{i:02d}{tail}"])
+    barcodes = tmp_path / "gapped.xlsx"
+    wb.save(barcodes)
+    output = tmp_path / "out" / "worklist.csv"
+
+    with pytest.raises(ValueError, match="missing F2"):
+        handle_export_barcode_worklist({
+            "expected_mutations_xlsx": str(expected),
+            "custom_barcodes_xlsx": str(barcodes),
+            "output_path": str(output),
+        })
+    assert not output.exists()
+
+
+def _named_barcodes(dest: Path, forward: list[int], reverse: list[int]) -> Path:
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    assert ws is not None
+    ws.append(["name", "sequence"])
+    tail = "GGGGGGGGGGGGGGGGGGGG"
+    for i in forward:
+        ws.append([f"ispS_f_{i}", f"ACGTACGTAC{i:02d}{tail}"])
+    for i in reverse:
+        ws.append([f"ispS_r_{i}", f"TGCATGCATG{i:02d}{tail}"])
+    wb.save(dest)
+    return dest
+
+
+def test_a_gapped_reverse_set_is_refused_too(tmp_path: Path) -> None:
+    """R1 and R3 without R2 hands R3 to plate row B, same defect on the other axis."""
+    expected = _expected(tmp_path / "expected.xlsx", 2)
+    barcodes = _named_barcodes(tmp_path / "gapped.xlsx", list(range(1, 13)), [1, 3])
+    output = tmp_path / "worklist.csv"
+
+    with pytest.raises(ValueError, match="missing R2"):
+        handle_export_barcode_worklist({
+            "expected_mutations_xlsx": str(expected),
+            "custom_barcodes_xlsx": str(barcodes),
+            "output_path": str(output),
+        })
+    assert not output.exists()
+
+
+@pytest.mark.parametrize(
+    ("forward", "reverse"),
+    [
+        # Seeds past the plate are never asked for by a well.
+        (list(range(1, 17)), list(range(1, 11))),
+        # A gap past the plate edge shifts nothing a well uses.
+        ([*range(1, 13), 14], list(range(1, 9))),
+    ],
+    ids=["past-the-plate", "gap-past-the-plate"],
+)
+def test_seeds_past_the_plate_do_not_block_the_worklist(
+    tmp_path: Path, forward: list[int], reverse: list[int]
+) -> None:
+    expected = _expected(tmp_path / "expected.xlsx", 1)
+    barcodes = _named_barcodes(tmp_path / "wide.xlsx", forward, reverse)
+    output = tmp_path / "worklist.csv"
+
+    result = handle_export_barcode_worklist({
+        "expected_mutations_xlsx": str(expected),
+        "custom_barcodes_xlsx": str(barcodes),
+        "output_path": str(output),
+    })
+
+    lines = output.read_text(encoding="utf-8").splitlines()
+    assert lines[1] == "A1,G2A,1_1,1,isps_r_1,1,isps_f_1"
+    assert lines[2] == "H12,WT,8_12,8,isps_r_8,12,isps_f_12"
+    assert result["missing_seeds"] == []
+
+
+def test_a_short_contiguous_set_writes_the_sheet_and_names_the_missing_seeds(
+    tmp_path: Path,
+) -> None:
+    """F1..F3 is not a gap: the sheet is written and F12 is named as missing."""
+    expected = _expected(tmp_path / "expected.xlsx", 1)
+    barcodes = _named_barcodes(tmp_path / "short.xlsx", [1, 2, 3], list(range(1, 9)))
+    output = tmp_path / "worklist.csv"
+
+    result = handle_export_barcode_worklist({
+        "expected_mutations_xlsx": str(expected),
+        "custom_barcodes_xlsx": str(barcodes),
+        "output_path": str(output),
+    })
+
+    lines = output.read_text(encoding="utf-8").splitlines()
+    assert lines[1] == "A1,G2A,1_1,1,isps_r_1,1,isps_f_1"
+    assert lines[2] == "H12,WT,8_12,8,isps_r_8,12,"
+    assert result["missing_seeds"] == ["F12"]
+
+
+def test_a_workbook_without_barcode_rows_keeps_the_reader_refusal(
+    tmp_path: Path,
+) -> None:
+    """Before the layout check the reader refused this file, and still does.
+
+    The layout check must not answer first with its own run-time wording; the
+    worklist reaches the same ``load_barcode_prefixes`` refusal it always did.
+    """
+    expected = _expected(tmp_path / "expected.xlsx", 1)
+    barcodes = _named_barcodes(tmp_path / "empty.xlsx", [], [])
+    output = tmp_path / "worklist.csv"
+
+    with pytest.raises(ValueError, match="carries no forward barcode rows at all"):
+        handle_export_barcode_worklist({
+            "expected_mutations_xlsx": str(expected),
+            "custom_barcodes_xlsx": str(barcodes),
+            "output_path": str(output),
+        })
+    assert not output.exists()
+
+
+def test_the_run_check_still_refuses_what_the_worklist_lets_through(
+    tmp_path: Path,
+) -> None:
+    """The narrowing is the worklist's alone; a run still refuses both shapes."""
+    from sidecar_mame.handlers.analyze import _barcode_layout_error
+
+    wide = _named_barcodes(tmp_path / "wide.xlsx", list(range(1, 17)), list(range(1, 9)))
+    empty = _named_barcodes(tmp_path / "empty.xlsx", [], [])
+
+    wide_error = _barcode_layout_error(wide)
+    assert wide_error is not None and "numbered past the plate" in wide_error
+    empty_error = _barcode_layout_error(empty)
+    assert empty_error is not None and "carries no barcode rows" in empty_error
+    assert _barcode_layout_error(wide, gaps_only=True) is None
+    assert _barcode_layout_error(empty, gaps_only=True) is None

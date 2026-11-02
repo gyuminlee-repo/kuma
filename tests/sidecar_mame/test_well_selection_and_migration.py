@@ -459,3 +459,35 @@ def test_the_narrowing_reads_the_layout_not_the_sheet() -> None:
     # intersection, and a layout that named nothing leaves nothing designed.
     assert declared_designed_ids(designed, {"A1": "WT"}) == frozenset()
     assert declared_designed_ids(designed, None) == frozenset()
+
+
+def test_a_map_missing_a_draft_well_is_named_on_validation(tmp_path: Path) -> None:
+    """A well only the draft names is a difference, not a KeyError.
+
+    The comparison walks the union of both sides and used to index the file
+    side directly, so a map without H12 surfaced as "failed to open xlsx".
+    """
+    expected = _variant_list(tmp_path / "variants.xlsx", ["G2A", "F3W"])
+    params = _validate_params(tmp_path, expected)
+    params["legacy_sample_map_xlsx"] = str(
+        _legacy_sample_map(tmp_path / "map.xlsx", [("G2A", "A1"), ("F3W", "B1")])
+    )
+
+    result = handle_validate_inputs(params)
+
+    finding = result["legacy_sample_map"]
+    assert finding["status"] == "differs"
+    assert finding["differences"] == [{"well": "H12", "file": "", "draft": "WT"}]
+    assert not any("failed to open" in message for message in result["errors"])
+
+
+def test_the_run_names_a_draft_well_the_map_lacks(tmp_path: Path) -> None:
+    """Same comparison on the run path: refused with the sample map message."""
+    expected = _variant_list(tmp_path / "variants.xlsx", ["G2A", "F3W"])
+    params = _params(tmp_path, expected)
+    params["legacy_sample_map_xlsx"] = str(
+        _legacy_sample_map(tmp_path / "map.xlsx", [("G2A", "A1"), ("F3W", "B1")])
+    )
+
+    with pytest.raises(ValueError, match="sample map"):
+        handle_analyze(params)

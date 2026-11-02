@@ -84,8 +84,11 @@ for (const g of groups) {
 
   // (1) Partial-stage check.
   const stagedInGroup = files.filter((f) => stagedFiles.has(f));
+  // A sibling with unstaged edits counts even when part of it is staged: the
+  // commit then carries an older version of that file than the work tree.
+  // Only a file staged alone, with no other group file staged, is exempt.
   const unstagedSiblings = files.filter(
-    (f) => !stagedFiles.has(f) && unstagedFiles.has(f),
+    (f) => unstagedFiles.has(f) && stagedInGroup.some((s) => s !== f),
   );
   if (stagedInGroup.length > 0 && unstagedSiblings.length > 0) {
     const msg = `${id} partial-stage: staged=[${stagedInGroup.join(", ")}] but sibling has unstaged edits=[${unstagedSiblings.join(", ")}]`;

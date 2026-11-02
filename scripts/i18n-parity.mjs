@@ -74,7 +74,21 @@ function flatten(obj, prefix = "") {
   return out;
 }
 
+// flatten() cannot tell ["a"] from {"0": "a"}: both become `<key>.0`. i18next
+// keeps the object as an object and WhatsNewDialog drops anything that fails
+// Array.isArray, so the container kind is compared separately, path by path.
+function containerKinds(obj, prefix = "", out = {}) {
+  for (const [k, v] of Object.entries(obj)) {
+    if (v === null || typeof v !== "object") continue;
+    const key = prefix ? `${prefix}.${k}` : k;
+    out[key] = Array.isArray(v) ? "array" : "object";
+    containerKinds(v, key, out);
+  }
+  return out;
+}
+
 const fe = flatten(en);
+const kindsE = containerKinds(en);
 const keysE = new Set(Object.keys(fe));
 console.log(`en keys: ${keysE.size}`);
 
@@ -111,8 +125,21 @@ for (const file of localeFiles) {
     staleStamps.push({ lang, stamp });
   }
 
+  const kindsL = containerKinds(data);
+  for (const [path, kind] of Object.entries(kindsE)) {
+    if (path in kindsL && kindsL[path] !== kind) {
+      ok = false;
+      console.error(`  ${lang} ${path}: en has an ${kind}, ${lang} has an ${kindsL[path]}`);
+    }
+  }
+
   const checkBullets = (arr, where) => {
-    if (!Array.isArray(arr)) return;
+    if (arr === undefined) return;
+    if (!Array.isArray(arr)) {
+      ok = false;
+      console.error(`  ${lang} ${where}: must be an array of strings, got ${JSON.stringify(arr)}`);
+      return;
+    }
     arr.forEach((text, index) => {
       if (typeof text !== "string") return;
       if (text.includes("`")) {
@@ -330,10 +357,10 @@ if (placeholderDiffs.length) {
 // or fail. A gap that is not in the output is a gap nobody knows about, which is
 // the same defect class this check exists to catch.
 const PLURAL_SUFFIXES = ["_zero", "_one", "_two", "_few", "_many", "_other"];
-// Options i18next consumes itself. They are never interpolation variables, and
-// `count` is special: i18next supplies it to the interpolator implicitly for a
-// plural family, so `{{count}}` in a plural value is correct and must not be
-// flagged.
+// Options i18next consumes itself, left out of the "call passes" line of the
+// report. `count` is one of them because i18next reads it to pick a plural
+// form; it is still required from the caller of a plural family (see below),
+// since i18next interpolates the caller's value and never supplies its own.
 const RESERVED_OPTIONS = new Set([
   "count",
   "context",
@@ -477,8 +504,10 @@ for (const file of walkSrc(SRC_DIR)) {
 
     const required = new Set();
     for (const k of members) for (const p of placeholders(fe[k])) required.add(p);
-    // i18next passes `count` to the interpolator itself for a plural family.
-    if (isPluralFamily) required.delete("count");
+    // A plural family needs `count` from the caller even when no form prints
+    // it: i18next picks the form from it and does not supply one itself, so a
+    // call without it renders "{{count}} plate" and never pluralises.
+    if (isPluralFamily) required.add("count");
     if (required.size === 0) continue;
 
     // Second argument, if any.

@@ -156,6 +156,32 @@ describe("i18n-parity", () => {
     expect(run.output).toContain("backtick");
   });
 
+  it("fails highlights written as an object instead of an array", () => {
+    // {"0": "..."} flattens to the same key set as ["..."], so parity used to
+    // pass while WhatsNewDialog's Array.isArray check dropped the notes.
+    const ko = korean() as unknown as { whatsNewDialog: Record<string, unknown> };
+    ko.whatsNewDialog.highlights = { "0": "지정한 플레이트가 실행 대상이 된다." };
+    const fx = fixture(english(), ko as unknown as Locale);
+
+    const run = fx.run("i18n-parity.mjs");
+
+    expect(run.status).toBe(1);
+    expect(run.output).toContain("whatsNewDialog.highlights");
+    expect(run.output).toContain("array");
+  });
+
+  it("fails an archived release written as an object instead of an array", () => {
+    const ko = korean() as unknown as { whatsNewDialog: { releases: Record<string, unknown> } };
+    ko.whatsNewDialog.releases["9.9.8"] = { "0": "직전 릴리스 항목." };
+    const fx = fixture(english(), ko as unknown as Locale);
+
+    const run = fx.run("i18n-parity.mjs");
+
+    expect(run.status).toBe(1);
+    expect(run.output).toContain("whatsNewDialog.releases.9.9.8");
+    expect(run.output).toContain("array");
+  });
+
   it("fails when en.json has no archive stamps at all", () => {
     const en = english();
     const ko = korean();
@@ -224,7 +250,7 @@ function interpEn(): Record<string, unknown> {
       designed: "{{success}}/{{total}} primers designed",
       daysAgo: "{{count}} day(s) ago",
       minutesAgo: "{{n}} min ago",
-      // Plural family, CLDR suffixes. i18next supplies `count` itself here.
+      // Plural family, CLDR suffixes. The caller passes `count`; i18next does not supply one.
       plates_one: "{{count}} plate",
       plates_other: "{{count}} plates",
       // Plural family whose base key carries no suffix, the shape
@@ -287,8 +313,8 @@ describe("i18n-parity interpolation checks", () => {
         'const b = t("job.designed", { success: 12, total: 96 });',
         'const c = t("job.daysAgo", { count: 3 });',
         'const d = t("job.minutesAgo", { n: 5 });',
-        // Plural families: `count` is i18next's own option, not an
-        // interpolation variable the caller has to be credited for.
+        // Plural families: the caller passes `count`, which i18next uses both
+        // to pick the form and to fill {{count}}.
         'const e = t("job.plates", { count: 2 });',
         'const f = t("job.plateCount", { count: 2 });',
         "",
@@ -348,10 +374,9 @@ describe("i18n-parity interpolation checks", () => {
   });
 
   it("class C: does not flag {{count}} in a plural family, in either key shape", () => {
-    // i18next passes `count` to the interpolator itself for a plural family, so
-    // a rule that demanded it in the options object would fail every plural key
-    // in the bundle. Both shapes present in this repo are covered: `_one`/
-    // `_other`, and a bare base key with an `_other` sibling.
+    // A plural call that passes `count` is complete. Both shapes present in this
+    // repo are covered: `_one`/`_other`, and a bare base key with an `_other`
+    // sibling.
     const fx = interpFixture(interpEn(), interpXx(), {
       path: "src/screens/Shell.tsx",
       contents: [
@@ -365,6 +390,26 @@ describe("i18n-parity interpolation checks", () => {
 
     expect(run.status).toBe(0);
     expect(run.output).not.toContain("call site does not supply a placeholder");
+  });
+
+  it("class C: fails a plural call that does not pass count, in either key shape", () => {
+    // i18next does not invent a count: without one it renders "{{count}} plate"
+    // and never selects a plural form, so the caller must pass it.
+    const fx = interpFixture(interpEn(), interpXx(), {
+      path: "src/screens/Shell.tsx",
+      contents: [
+        'const e = t("job.plates");',
+        'const f = t("job.plateCount", { n: 2 });',
+        "",
+      ].join("\n"),
+    });
+
+    const run = fx.run("i18n-parity.mjs");
+
+    expect(run.status).toBe(1);
+    expect(run.output).toContain("src/screens/Shell.tsx:1  job.plates");
+    expect(run.output).toContain("src/screens/Shell.tsx:2  job.plateCount");
+    expect(run.output).toContain("needs {{count}}");
   });
 
   it("class C: reports the call shapes it cannot resolve instead of omitting them", () => {
