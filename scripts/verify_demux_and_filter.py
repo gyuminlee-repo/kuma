@@ -265,7 +265,11 @@ def main() -> int:
     ap.add_argument("--files-per-nb", type=int, default=8)
     ap.add_argument("--reads-per-well", type=int, default=7)
     ap.add_argument("--minimap2", default=None)
-    ap.add_argument("--out-root", default=None, help="where the fixture is built")
+    ap.add_argument(
+        "--out-root",
+        default=None,
+        help="where the fixture is built; must be new or empty, never deleted",
+    )
     ap.add_argument("--json", default=None, help="write the fingerprint here")
     ap.add_argument("--keep", action="store_true")
     args = ap.parse_args()
@@ -284,8 +288,15 @@ def main() -> int:
         args.out_root
         or tempfile.mkdtemp(prefix="kuma-demux-verify-", dir=os.environ.get("TMPDIR", "/tmp"))
     )
-    if root.exists() and args.out_root:
-        shutil.rmtree(root)
+    # A given --out-root is never deleted: it may be a project or data folder.
+    # An empty or absent one is used as-is; anything else is refused.
+    if args.out_root and root.exists() and (not root.is_dir() or any(root.iterdir())):
+        print(
+            f"ERROR: --out-root {root} exists and is not an empty directory; "
+            "pass a new or empty path.",
+            file=sys.stderr,
+        )
+        return 2
     root.mkdir(parents=True, exist_ok=True)
 
     try:
