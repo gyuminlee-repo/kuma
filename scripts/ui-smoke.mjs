@@ -1,8 +1,8 @@
-import { spawn } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
+import { assertStillRunning, startOwnedServer } from "./ui-smoke-server.mjs";
 
 const HOST = "127.0.0.1";
 const PORT = 4173;
@@ -16,32 +16,19 @@ const VITE_BIN = resolve(
 );
 const URL = `http://${HOST}:${PORT}`;
 
-async function waitForServer(url, timeoutMs = 30000) {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    try {
-      const response = await fetch(url);
-      if (response.ok) return;
-    } catch {
-      // Server not ready yet.
-    }
-    await delay(500);
-  }
-  throw new Error(`Timed out waiting for preview server at ${url}`);
-}
-
-const server = spawn(
-  VITE_BIN,
-  ["preview", "--host", HOST, "--port", String(PORT), "--strictPort"],
-  {
+// Refuses a port someone else already serves, and rejects as soon as the
+// child exits, so the page tested below is the one this checkout built.
+const server = await startOwnedServer({
+  command: VITE_BIN,
+  args: ["preview", "--host", HOST, "--port", String(PORT), "--strictPort"],
+  url: URL,
+  spawnOptions: {
     stdio: "inherit",
     shell: process.platform === "win32",
   },
-);
+});
 
 try {
-  await waitForServer(URL);
-
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage();
@@ -62,6 +49,7 @@ try {
     if (pageErrors.length > 0) {
       throw pageErrors[0];
     }
+    assertStillRunning(server);
   } finally {
     await browser.close();
   }
