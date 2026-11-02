@@ -108,9 +108,13 @@ function tsDefaults() {
 /** Assert `toRpcParams` still maps every field the way this check assumes. */
 function checkRpcMapping() {
   const src = fs.readFileSync(path.join(ROOT, TS_FILE), "utf-8");
-  const body = src.slice(src.indexOf("export function toRpcParams"));
+  const start = src.indexOf("export function toRpcParams");
+  const close = src.indexOf("\n}", start);
+  const body = start === -1 ? "" : src.slice(start, close === -1 ? undefined : close + 2);
   for (const [field, key] of Object.entries(FIELD_TO_RPC_KEY)) {
-    if (!new RegExp(`\\b${key}:\\s*settings\\.${field}\\b`).test(body)) {
+    // Closed at the value's end: `settings.volume * 1000` or `?? 0` changes
+    // the wire value and must not read as the plain field.
+    if (!new RegExp(`\\b${key}:\\s*settings\\.${field}\\s*[,}]`).test(body)) {
       problems.push(`toRpcParams does not map ${field} -> ${key} (${TS_FILE})`);
     }
   }
