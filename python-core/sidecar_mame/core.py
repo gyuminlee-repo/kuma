@@ -37,12 +37,10 @@ for _p in (_PROJECT_ROOT, _SRC_DIR):
     if _p.exists() and str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
-from kuma_core.shared.config_paths import kuma_home  # noqa: E402
 from kuma_core.shared.logging import get_logger  # noqa: E402
 from kuma_core.shared.sidecar import (  # noqa: E402
     JsonRpcWriter,
-    append_crash_log,
-    ensure_private_dir,
+    append_app_crash_log,
     validate_dirpath,
     validate_filepath,
     validate_output_path,
@@ -54,13 +52,9 @@ logger = get_logger("sidecar_mame")
 # ---------------------------------------------------------------------------
 # Crash log (FIFO, capped at 50 entries). Stored under kuma_home()/mame.
 # ---------------------------------------------------------------------------
-def _get_crash_log_path() -> Path:
-    return ensure_private_dir(kuma_home() / "mame") / "crash.log"
-
-
 def _append_crash_log(method: str, params_summary: str, tb: str) -> None:
-    """Append an error entry to the crash log. Never raises."""
-    append_crash_log(_get_crash_log_path(), method, params_summary, tb)
+    """Append an error entry to the crash log (FIFO, max 50 entries). Never raises."""
+    append_app_crash_log("mame", method, params_summary, tb)
 
 
 # ---------------------------------------------------------------------------
