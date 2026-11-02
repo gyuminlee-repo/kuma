@@ -89,40 +89,6 @@ def fetch_pdb_text(accession: str) -> str | None:
     return pdb_text
 
 
-def _parse_pdb_ca(pdb_text: str) -> list[tuple[float, float, float] | None]:
-    """Parse ATOM CA records from PDB text.
-
-    Returns a 1-based list where index 0 is None (unused).
-    Missing residues are stored as None.
-    """
-    coords: dict[int, tuple[float, float, float]] = {}
-    for line in pdb_text.splitlines():
-        if not line.startswith("ATOM"):
-            continue
-        atom_name = line[12:16].strip()
-        if atom_name != "CA":
-            continue
-        try:
-            res_seq = int(line[22:26].strip())
-            x = float(line[30:38].strip())
-            y = float(line[38:46].strip())
-            z = float(line[46:54].strip())
-        except ValueError:
-            continue
-        # Keep first CA per residue (in case of alternates)
-        if res_seq not in coords:
-            coords[res_seq] = (x, y, z)
-
-    if not coords:
-        return []
-    max_res = max(coords)
-    # 1-based list: index 0 = None, index i = residue i
-    result: list[tuple[float, float, float] | None] = [None] * (max_res + 1)
-    for res_seq, xyz in coords.items():
-        result[res_seq] = xyz
-    return result
-
-
 _THREE_TO_ONE = {
     "ALA": "A", "ARG": "R", "ASN": "N", "ASP": "D", "CYS": "C",
     "GLN": "Q", "GLU": "E", "GLY": "G", "HIS": "H", "ILE": "I",
@@ -132,30 +98,92 @@ _THREE_TO_ONE = {
 }
 
 
+
+
+def _pdb_ca_residues(pdb_text: str) -> dict[int, tuple[str, tuple[float, float, float]]]:
+    """Ca records of one chain of one model, keyed by residue number.
+
+    The same rule ``structure_file._parse_cif_ca`` applies to mmCIF: the first
+    model (records after the first ``ENDMDL`` are ignored) and the first chain
+    that carries a Ca. Keying by residue number alone let a second chain fill a
+    gap in the first, so a homodimer produced a hybrid sequence that still
+    passed the frame guard. An insertion code (``52A``) names a residue that is
+    not residue 52, and a 1-based position list cannot hold both, so the file is
+    refused rather than having one of them overwrite or shadow the other.
+    HETATM records count only for amino-acid residue names (MSE selenomethionine
+    is Met); a calcium ion is also an atom named ``CA``. The first Ca per residue
+    wins, which keeps the first alternate location. Residue numbers below 1 have
+    no place in a 1-based list and are skipped.
+    """
+    residues: dict[int, tuple[str, tuple[float, float, float]]] = {}
+    chain: str | None = None
+    for line in pdb_text.splitlines():
+        if line.startswith("ENDMDL"):
+            break
+        is_het = line.startswith("HETATM")
+        if not (is_het or line.startswith("ATOM")):
+            continue
+        if line[12:16].strip() != "CA":
+            continue
+        resn = line[17:20].strip().upper()
+        if is_het and resn not in _THREE_TO_ONE:
+            continue
+        try:
+            res_seq = int(line[22:26].strip())
+            x = float(line[30:38].strip())
+            y = float(line[38:46].strip())
+            z = float(line[46:54].strip())
+        except ValueError:
+            continue
+        chain_id = line[21] if len(line) > 21 else " "
+        if chain is None:
+            chain = chain_id
+        elif chain_id != chain:
+            continue
+        icode = line[26] if len(line) > 26 else " "
+        if icode.strip():
+            raise ValueError(
+                f"PDB residue {res_seq}{icode} in chain {chain_id!r} has an insertion "
+                "code; residue numbers must identify residues one to one"
+            )
+        if res_seq < 1 or res_seq in residues:
+            continue
+        residues[res_seq] = (resn, (x, y, z))
+    return residues
+
+
+def _parse_pdb_ca(pdb_text: str) -> list[tuple[float, float, float] | None]:
+    """Parse Ca records of one chain of one model from PDB text.
+
+    Returns a 1-based list where index 0 is None (unused).
+    Missing residues are stored as None. See :func:`_pdb_ca_residues`.
+    """
+    residues = _pdb_ca_residues(pdb_text)
+    if not residues:
+        return []
+    max_res = max(residues)
+    # 1-based list: index 0 = None, index i = residue i
+    result: list[tuple[float, float, float] | None] = [None] * (max_res + 1)
+    for res_seq, (_, xyz) in residues.items():
+        result[res_seq] = xyz
+    return result
+
+
 def _parse_pdb_seq(pdb_text: str) -> str:
-    """One-letter sequence from CA ATOM records.
+    """One-letter sequence from the Ca records :func:`_parse_pdb_ca` reads.
 
     Returns a string whose 1-based index equals the PDB residue number
     (``seq[i - 1]`` is residue ``i``); missing residues are filled with ``X``.
     Unknown three-letter codes also map to ``X``. Empty string when no CA atoms.
     """
-    res: dict[int, str] = {}
-    for line in pdb_text.splitlines():
-        if not line.startswith("ATOM"):
-            continue
-        if line[12:16].strip() != "CA":
-            continue
-        resn = line[17:20].strip()
-        try:
-            res_seq = int(line[22:26].strip())
-        except ValueError:
-            continue
-        if res_seq >= 1 and res_seq not in res:
-            res[res_seq] = _THREE_TO_ONE.get(resn, "X")
-    if not res:
+    residues = _pdb_ca_residues(pdb_text)
+    if not residues:
         return ""
-    max_res = max(res)
-    return "".join(res.get(i, "X") for i in range(1, max_res + 1))
+    max_res = max(residues)
+    return "".join(
+        _THREE_TO_ONE.get(residues[i][0], "X") if i in residues else "X"
+        for i in range(1, max_res + 1)
+    )
 
 
 def fetch_ca_seq(accession: str) -> str:
