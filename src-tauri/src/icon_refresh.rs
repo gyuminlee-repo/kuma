@@ -12,6 +12,8 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
+use crate::atomic_write::write_atomic;
+
 const MARKER_FILENAME: &str = "last_run_version";
 
 /// True when the version that last ran differs from this one, including the
@@ -32,7 +34,7 @@ pub fn write_marker(path: &Path, version: &str) -> io::Result<()> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
-    fs::write(path, version)
+    write_atomic(path, version.as_bytes())
 }
 
 /// `<bundle>.app/Contents/MacOS/<exe>` -> `<bundle>.app`. None outside a bundle
@@ -220,14 +222,8 @@ fn refresh() -> String {
 /// half-written icon.
 #[cfg(target_os = "linux")]
 fn replace_file(src: &Path, dst: &Path) -> io::Result<()> {
-    // The pid keeps two processes refreshing the same icon off each other's
-    // temp file. Staying in dst's directory keeps the rename atomic.
-    let tmp = dst.with_extension(format!("png.kuma-tmp-{}", std::process::id()));
-    let cleanup = |_: &io::Error| {
-        let _ = fs::remove_file(&tmp);
-    };
-    fs::copy(src, &tmp).inspect_err(cleanup)?;
-    fs::rename(&tmp, dst).inspect_err(cleanup)
+    let mut input = fs::File::open(src)?;
+    crate::atomic_write::write_atomic_with(dst, |out| io::copy(&mut input, out)).map(|_| ())
 }
 
 /// Give the window the exe icon (resource 32512, the one tauri-build embeds)

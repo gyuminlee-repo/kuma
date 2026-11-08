@@ -112,6 +112,7 @@ def export_pdf(data: RunReportData, output: Path) -> dict:
                 result = subprocess.run(
                     [weasyprint_bin, str(tmp_html), str(staged_pdf)],
                     shell=False,
+                    stdin=subprocess.DEVNULL,
                     capture_output=True,
                     timeout=60,
                 )

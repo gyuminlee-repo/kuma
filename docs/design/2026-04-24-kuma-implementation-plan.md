@@ -335,6 +335,7 @@ mame도 동일 구조(`src/mame/` + `python-core/sidecar/`)이므로, kuro와 ma
 
 - [ ] **Step 3.4: projects_root 사라짐 감지**
   - 경로 없을 때 `load_or_init_config`가 `NeedsReconfigure` 반환
+  - `config.json` 이 손상돼 파싱되지 않을 때도 `NeedsReconfigure` 반환. 온보딩에서 폴더를 고르면 `set_projects_root` 가 손상 파일을 `config.json.corrupt-<시각>` 으로 옮겨 두고 새 설정을 쓴다(쓰기는 `atomic_write` 로 임시 파일 + rename)
   - 온보딩 재호출 플로우 구현
 
 - [ ] **Step 3.5: Tauri commands 노출**

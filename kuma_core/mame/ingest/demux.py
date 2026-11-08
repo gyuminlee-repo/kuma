@@ -729,6 +729,7 @@ def _demux_cutadapt(
         proc = subprocess.run(
             cmd,
             shell=False,
+            stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
             timeout=600,
