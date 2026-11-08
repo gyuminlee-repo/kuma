@@ -6,6 +6,7 @@ import csv
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
+from collections.abc import Sequence
 from typing import Optional
 
 from .codon_table import CODON_TO_AA, best_codon
@@ -144,7 +145,7 @@ MUTATION_COLUMNS: tuple[str, ...] = ("mutation", "variant")
 
 
 def select_mutation_column(
-    fieldnames: Optional[list[str]] | None, source_name: str
+    fieldnames: Sequence[str] | None, source_name: str
 ) -> str:
     """Pick the column holding the mutation notation, or reject the schema.
 
