@@ -6,6 +6,10 @@ import argparse
 import logging
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    from .sdm_engine import OverlapMode, SdmPrimerResult
 
 
 def _setup_logging(verbose: bool) -> None:
@@ -136,17 +140,42 @@ def cmd_design(args: argparse.Namespace) -> None:
         raise SystemExit(2)
 
 
-def cmd_plate_map(args: argparse.Namespace) -> None:
-    """Generate plate mapping from existing primer results."""
+def read_design_tsv(path: Path | str) -> tuple[str, list["SdmPrimerResult"]]:
+    """Read a design TSV written by ``export_results_tsv``.
+
+    The exporter puts ``# key=value`` metadata above the column header, so the
+    comment lines are consumed before ``csv.DictReader`` sees the file. The
+    only key written today is ``overlap_mode``; an unknown key is ignored
+    rather than treated as data so an older or newer exporter still loads.
+
+    Full-overlap mode renames the third Tm column to ``Tm_Primer`` (forward and
+    reverse cover the same region, so one number describes both), and the
+    recovered mode is carried on each result. Reading the partial-mode name
+    alone turned that temperature into 0.0.
+
+    Returns the overlap mode and the parsed results. Coordinates are not in the
+    TSV, so the window and binding fields stay empty: plate mapping needs the
+    primer sequences and the mutation name only.
+    """
     import csv
-    from .sdm_engine import SdmPrimerResult
+
     from .mutation import Mutation
     from .overlap import OverlapWindow
-    from .plate_mapper import deduplicate_reverse, export_plate_excel, generate_plate_map
+    from .sdm_engine import SdmPrimerResult
 
-    # Read primer TSV
+    overlap_mode = "partial"
     results: list[SdmPrimerResult] = []
-    with open(args.primers) as f:
+    with open(path, encoding="utf-8") as f:
+        header_pos = f.tell()
+        line = f.readline()
+        while line.startswith("#"):
+            key, _, value = line[1:].strip().partition("=")
+            if key.strip() == "overlap_mode" and value.strip() in ("partial", "full"):
+                overlap_mode = value.strip()
+            header_pos = f.tell()
+            line = f.readline()
+        f.seek(header_pos)
+
         reader = csv.DictReader(f, delimiter="\t")
         for row in reader:
             mut = Mutation(
@@ -164,6 +193,9 @@ def cmd_plate_map(args: argparse.Namespace) -> None:
                 end=0,
                 codon_offset=0,
             )
+            third_tm = (
+                row.get("Tm_Primer") if overlap_mode == "full" else row.get("Tm_Overlap")
+            )
             r = SdmPrimerResult(
                 mutation=mut,
                 forward_seq=row["Forward_Primer"],
@@ -173,10 +205,19 @@ def cmd_plate_map(args: argparse.Namespace) -> None:
                 overlap_window=window,
                 tm_fwd=float(row.get("Tm_Fwd", row.get("Tm_NonOverlap_Fwd", 0))),
                 tm_rev=float(row.get("Tm_Rev", row.get("Tm_NonOverlap_Rev", 0))),
-                tm_overlap=float(row.get("Tm_Overlap", 0)),
+                tm_overlap=float(third_tm or 0),
                 tm_condition_met=row.get("Tm_Condition_Met", "YES") == "YES",
+                overlap_mode=cast("OverlapMode", overlap_mode),
             )
             results.append(r)
+    return overlap_mode, results
+
+
+def cmd_plate_map(args: argparse.Namespace) -> None:
+    """Generate plate mapping from existing primer results."""
+    from .plate_mapper import deduplicate_reverse, export_plate_excel, generate_plate_map
+
+    _mode, results = read_design_tsv(args.primers)
 
     rev_groups = deduplicate_reverse(results)
     fwd_map, rev_map = generate_plate_map(results, deduplicate_rev=True)

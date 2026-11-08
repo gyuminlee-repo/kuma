@@ -309,6 +309,20 @@ def handle_get_plate_map(_params: dict) -> dict:  # noqa: ARG001
         }
 
 
+def _results_on_plate(results, mappings: list[PlateMapping]) -> list:
+    """Keep the design results whose mutation has a forward well in *mappings*.
+
+    A payload plate is the plate the operator exports. The design state can hold
+    more (a plate cap such as ``maxPrimers=95``, a well removed on screen), and
+    ``expected_mutations`` appends every result the plate does not carry, so an
+    unfiltered list turns each dropped mutation into a trailing ghost well. MAME
+    reads row *i* as well *i*, so the row count must equal the well count.
+    Shared by :func:`handle_export_excel` and :func:`handle_export_all`.
+    """
+    on_plate = {m.mutation for m in mappings if m.primer_type == "forward"}
+    return [r for r in results if r.mutation.raw in on_plate]
+
+
 def handle_export_excel(params: dict) -> dict:
     """Export plate map to Excel.
 
@@ -334,7 +348,7 @@ def handle_export_excel(params: dict) -> dict:
         mappings = _pydantic_to_plate_mappings(p.mappings)
         with _core._state_lock:
             state_dedup = _core._state.dedup_info
-            results_for_export = list(_core._state.results)
+            results_for_export = _results_on_plate(_core._state.results, mappings)
         rev_groups = _resolve_rev_groups(
             p.dedup_info, state_dedup, results_for_export, context="export_excel",
         )
@@ -349,7 +363,9 @@ def handle_export_excel(params: dict) -> dict:
                 context="export_excel",
             )
 
-    # Derive overlap_mode from the first result (all results in a run share the same mode).
+    # Derive overlap_mode from the first exported result (all results in a run
+    # share the same mode). Read after the plate filter so a result the plate
+    # does not carry cannot decide the header of the sheets that are written.
     run_overlap_mode = results_for_export[0].overlap_mode if results_for_export else "partial"
 
     rescued_info = (
@@ -1227,12 +1243,9 @@ def handle_export_all(params: dict) -> dict:
 
     if p.mappings is not None:
         mappings = _pydantic_to_plate_mappings(p.mappings)
-        # Filter backend results to only those present in frontend mappings
-        # so capped designs (e.g. maxPrimers=95) export the capped set.
-        mut_keys = {m.mutation for m in mappings}
         with _core._state_lock:
             state_dedup = _core._state.dedup_info
-            results = [r for r in _core._state.results if r.mutation.raw in mut_keys]
+            results = _results_on_plate(_core._state.results, mappings)
         rev_groups = _resolve_rev_groups(
             p.dedup_info, state_dedup, results, context="export_all",
         )

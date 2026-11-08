@@ -817,12 +817,20 @@ def _overlaps_intended(
     either interval may run through the origin, so the comparison is done on
     the circle: rotate so the site starts at 0, then ask whether the intended
     interval starts inside it or wraps back into it.
+
+    A caller that reduced its interval end modulo the template length hands in
+    ``273..0`` for a 27 nt site that runs through the origin. Subtracting those
+    two numbers gives a negative length and the primer stops matching its own
+    binding site, so on a circle the length is taken modulo the template and a
+    difference of zero means one full turn rather than an empty interval.
     """
     if not circular:
         return not (tpos + length <= intended_start or tpos >= intended_end)
-    intended_len = intended_end - intended_start
-    if length <= 0 or intended_len <= 0 or tlen <= 0:
+    if length <= 0 or tlen <= 0:
         return False
+    if intended_end == intended_start:
+        return False
+    intended_len = (intended_end - intended_start) % tlen or tlen
     offset = (intended_start - tpos) % tlen
     return offset < length or (tlen - offset) < intended_len
 
@@ -1508,6 +1516,61 @@ class _TolerancePool:
         return survivors[:num_return]
 
 
+def _rotate_for_design(
+    seq: str, mutation: Mutation, topology: str
+) -> tuple[str, Mutation, int]:
+    """Move the target codon away from the origin of a circular template.
+
+    Every search primitive downstream slices the template with ordinary Python
+    slices: the overlap window, the upstream extension and the downstream
+    extension all stop at index 0 and at the sequence end. On a plasmid those
+    two indices are the same point and carry no meaning, so a codon sitting
+    near them lost candidates that the identical template, rotated, kept.
+
+    Rotating the template so the codon lands in the middle gives both
+    extensions their full room without teaching every primitive about
+    topology. The rotation is sound because the off-target search is already
+    rotation invariant (it searches through the origin, see :func:`_wrap_pad`),
+    so the verdict for a candidate does not depend on where the origin is.
+
+    Returns the rotated template, the mutation in the rotated frame, and the
+    shift applied. A linear template, or a template too short to rotate
+    usefully, is returned untouched with shift 0.
+    """
+    tlen = len(seq)
+    if topology != "circular" or tlen < 9:
+        return seq, mutation, 0
+    shift = (mutation.codon_start - tlen // 2) % tlen
+    if shift == 0:
+        return seq, mutation, 0
+    rotated = seq[shift:] + seq[:shift]
+    moved = replace(mutation, codon_start=(mutation.codon_start - shift) % tlen)
+    return rotated, moved, shift
+
+
+def _restore_rotation(
+    results: list[SdmPrimerResult], shift: int, tlen: int, codon_start: int
+) -> list[SdmPrimerResult]:
+    """Put design coordinates back into the caller's frame after a rotation.
+
+    Only coordinates move: the primer sequences are the same strings the
+    rotated frame produced. ``overlap_window.start`` comes back inside
+    ``[0, tlen)`` and ``end`` keeps ``end - start == length``, so a window that
+    runs through the origin reports an end past the template length rather than
+    a reduced number that would read as a negative interval.
+    """
+    if shift == 0 or tlen <= 0:
+        return results
+    for candidate in results:
+        candidate.mutation = replace(candidate.mutation, codon_start=codon_start)
+        window = candidate.overlap_window
+        start = (window.start + shift) % tlen
+        candidate.overlap_window = replace(
+            window, start=start, end=start + (window.end - window.start)
+        )
+    return results
+
+
 def design_single_sdm(
     seq: str,
     mutation: Mutation,
@@ -1566,6 +1629,13 @@ def design_single_sdm(
         rev_len_min = profile.rev_len_min if profile.rev_len_min is not None else DEFAULT_REV_LEN_MIN
     if rev_len_max is None:
         rev_len_max = profile.rev_len_max if profile.rev_len_max is not None else DEFAULT_REV_LEN_MAX
+
+    # A circular template is searched with the codon moved to the middle, so
+    # the origin stops acting as a sequence end. Coordinates are put back in
+    # the caller's frame before returning; see _rotate_for_design.
+    caller_codon_start = mutation.codon_start
+    caller_len = len(seq)
+    seq, mutation, rotation_shift = _rotate_for_design(seq, mutation, topology)
 
     alt_codons = mt_codons_for_design(mutation.wt_codon, mutation.mt_aa, codon_strategy, organism=organism)
     # Each variant carries its own host usage fraction so the scoring sites,
@@ -1750,7 +1820,9 @@ def design_single_sdm(
 
             tol += tol_step
 
-        return pool.ranked(num_return)
+        return _restore_rotation(
+            pool.ranked(num_return), rotation_shift, caller_len, caller_codon_start
+        )
 
     # ── Partial overlap branch (original Gibson-style) ───────────────────────
     # adaptive overlap range: shorter allowed when low Tm target
@@ -1826,7 +1898,9 @@ def design_single_sdm(
 
         tol += tol_step
 
-    return pool.ranked(num_return)
+    return _restore_rotation(
+        pool.ranked(num_return), rotation_shift, caller_len, caller_codon_start
+    )
 
 
 # Tolerance used only by the failure diagnostic. Wide enough that the search
@@ -1875,6 +1949,11 @@ def diagnose_sdm_failure(
     tm_target_rev = profile.opt_tm_rev if profile.opt_tm_rev is not None else 58.0
     tm_target_overlap = profile.opt_tm_overlap if profile.opt_tm_overlap is not None else 42.0
     min_downstream = max(profile.min_3prime_dist, 1)
+
+    # The diagnostic has to observe the same template the search observed, so
+    # it applies the same circular rotation. Only a message leaves this
+    # function, so no coordinate needs putting back.
+    seq, mutation, _ = _rotate_for_design(seq, mutation, topology)
 
     alt_codons = mt_codons_for_design(
         mutation.wt_codon, mutation.mt_aa, codon_strategy, organism=organism

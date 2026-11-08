@@ -407,8 +407,11 @@ def _order_results_by_plate(results: list, mappings: list[PlateMapping]) -> list
     by this sheet, which scored 94 of 95 wells against the wrong design.
 
     Forward mappings carry the well order. Results with no forward mapping keep their
-    original relative order at the end rather than being dropped, since a missing
-    mapping is not a reason to lose a designed mutation from the sheet.
+    original relative order at the end. That tail is only for callers that pass no
+    plate of their own (the CLI, which builds the mappings from every result). A
+    caller exporting a plate it was handed filters the results to that plate first
+    (``_results_on_plate`` in the sidecar export handlers), because MAME reads every
+    row as a well and a tail row is a well the plate does not have.
 
     Ordering alone is not enough, which the same export also shows. `mappings` arrives
     from the UI and carries entries added while relaxing conditions on a failed
@@ -436,7 +439,9 @@ def _plate_ordered_row_sources(
     """Pair every plate well with the result describing it, in well order.
 
     Returns ``(result_or_None, mapping_or_None)``. One entry per forward mapping, in
-    mapping order, followed by any result the plate does not carry. A well whose
+    mapping order, followed by any result the plate does not carry. Row count equals
+    well count only when *results* holds nothing off the plate, so callers holding a
+    plate narrower than their design state filter *results* to it first. A well whose
     mutation has no result yields ``(None, mapping)``: the caller synthesises that row
     from the mapping, because MAME counts rows to find wells and a gap here silently
     renames every later well.
@@ -628,7 +633,9 @@ def export_plate_excel(
 
     # Phase 1: append expected_mutations sheet when results are provided, in the same
     # well order the plate sheets above use. MAME reads row i of that sheet as well i.
-    if results:
+    # ``results`` filtered to an empty list still owes a row per well: every well
+    # on a plate of rescue additions has a primer and no result.
+    if results or (results is not None and fwd_all):
         _write_expected_mutations_sheet(
             wb,
             _plate_ordered_row_sources(results, mappings),

@@ -699,7 +699,14 @@ def _check_counts(
     parsed: dict[str, list[tuple[str, int]]] = {}
     # Every codon name seen under counts, valid value or not. V26 asks whether
     # the two blocks describe the same codons; a bad value is V25's business.
+    #
+    # The names are kept per amino acid as well as globally. The recomputation
+    # below indexes each amino-acid group by codon name, so a count entry
+    # listed under the wrong amino acid, or listed twice, raised KeyError
+    # instead of being reported: the global set stays complete when two groups
+    # swap an entry.
     seen_codons: set[str] = set()
+    seen_by_aa: dict[str, list[str]] = {}
     bad_count = False
     for aa in sorted(counts):
         entries = counts[aa]
@@ -717,6 +724,7 @@ def _check_counts(
                 continue
             codon, value = str(entry[0]).strip().upper().replace("U", "T"), entry[1]
             seen_codons.add(codon)
+            seen_by_aa.setdefault(aa, []).append(codon)
             report.checks_performed += 1  # V25
             if isinstance(value, bool) or not isinstance(value, int) or value < 0:
                 report._err(
@@ -734,8 +742,23 @@ def _check_counts(
     report.checks_performed += 1  # V26
     count_codons = seen_codons
     table_codons = {c for pairs in normalised.values() for c, _ in pairs}
-    if count_codons != table_codons:
-        diff = sorted(count_codons ^ table_codons)
+    # Amino-acid membership, not just the global set: two groups that swap an
+    # entry keep every codon present, and the recomputation below would then
+    # look a codon up in a group that does not hold it. A codon listed twice
+    # under one amino acid is reported here for the same reason.
+    per_aa_diff: list[str] = []
+    for aa in sorted(set(seen_by_aa) | set(normalised)):
+        in_counts = seen_by_aa.get(aa, [])
+        in_table = [c for c, _ in normalised.get(aa, [])]
+        per_aa_diff.extend(
+            f"{aa}:{codon}" for codon in sorted(set(in_counts) ^ set(in_table))
+        )
+        per_aa_diff.extend(
+            f"{aa}:{codon} (listed {in_counts.count(codon)} times)"
+            for codon in sorted({c for c in in_counts if in_counts.count(c) > 1})
+        )
+    if count_codons != table_codons or per_aa_diff:
+        diff = sorted(count_codons ^ table_codons) or per_aa_diff
         report._err(
             "V26",
             f"counts and codons list different codons: {diff}.",

@@ -66,22 +66,33 @@ _CSV_FREQ_NAMES = {
 # The count is optional because kuma's own cusp export omits it for a table
 # that has no counts (writing 0 there would make N4 recompute every fraction
 # to zero and V24 would then reject a table that was never wrong).
+#
+# A fraction is read in exponent notation as well as in decimal notation: the
+# cusp writer renders it with ``repr``, which emits ``1e-05`` for a codon that
+# rare, so a decimal-only pattern rejected a file kuma itself had written.
+_NUMBER = r"[0-9]*\.?[0-9]+(?:[eE][+-]?[0-9]+)?"
 _CUSP_LINE = re.compile(
     r"^\s*([A-Za-z]{3})\s+([A-Za-z*])\s+"
-    r"([0-9]*\.?[0-9]+)\s+([0-9]*\.?[0-9]+)(?:\s+([0-9]+))?\s*$"
+    rf"({_NUMBER})\s+({_NUMBER})(?:\s+([0-9]+))?\s*$"
 )
 
 # Kazusa CUTG block: "UUU F 0.58 22.4 ( 10345)", several per line.
+#
+# The triplet carries a leading token boundary because this pattern is scanned
+# with finditer: without one the malformed token "NAAA" matched from its second
+# character and was read as a valid AAA row, so the invalid token never reached
+# validation.
+_TOKEN_START = r"(?<![A-Za-z0-9])"
 _KAZUSA_BLOCK = re.compile(
-    r"([ACGUTacgut]{3})\s+([A-Za-z*])\s+"
-    r"([0-9]*\.?[0-9]+)\s+([0-9]*\.?[0-9]+)\s*\(\s*([0-9]+)\s*\)"
+    rf"{_TOKEN_START}([ACGUTacgut]{{3}})\s+([A-Za-z*])\s+"
+    rf"({_NUMBER})\s+({_NUMBER})\s*\(\s*([0-9]+)\s*\)"
 )
 # A triplet followed by a number but no amino acid: the exact shape of a
 # Kazusa paste taken from the table that omits the AA column. It has to be
 # told apart from ordinary prose, or "no blocks found" would be the message
 # for a page that is in fact the right page missing one column.
 _KAZUSA_NO_AA = re.compile(
-    r"([ACGUacgu]{3})\s+([0-9]*\.?[0-9]+)\s+([0-9]*\.?[0-9]+)\s*\(\s*([0-9]+)\s*\)"
+    rf"{_TOKEN_START}([ACGUacgu]{{3}})\s+({_NUMBER})\s+({_NUMBER})\s*\(\s*([0-9]+)\s*\)"
 )
 
 
