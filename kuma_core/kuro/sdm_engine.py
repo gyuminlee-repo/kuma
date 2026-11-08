@@ -1642,15 +1642,10 @@ def design_single_sdm(
     # which are three and five frames down, never have to see the organism.
     mutations_to_try: list[tuple[Mutation, float]] = []
     for mt_codon in alt_codons:
-        m = Mutation(
-            raw=mutation.raw,
-            wt_aa=mutation.wt_aa,
-            position=mutation.position,
-            mt_aa=mutation.mt_aa,
-            codon_start=mutation.codon_start,
-            wt_codon=mutation.wt_codon,
-            mt_codon=mt_codon,
-        )
+        # Only the codon changes. Rebuilding the dataclass field by field
+        # dropped group_id, so a component of a multi-substitution row came out
+        # of design with no record of the row that requested it.
+        m = replace(mutation, mt_codon=mt_codon)
         mutations_to_try.append((m, codon_usage_fraction(mt_codon, organism)))
 
     # SDM Tm targets are method-level constants of the overlap-extension design,
@@ -1958,17 +1953,10 @@ def diagnose_sdm_failure(
     alt_codons = mt_codons_for_design(
         mutation.wt_codon, mutation.mt_aa, codon_strategy, organism=organism
     )
+    # Only the codon changes; see design_single_sdm. The diagnostic reports on
+    # the mutation it was handed, so the identity it carries has to survive.
     variants: list[Mutation] = [
-        Mutation(
-            raw=mutation.raw,
-            wt_aa=mutation.wt_aa,
-            position=mutation.position,
-            mt_aa=mutation.mt_aa,
-            codon_start=mutation.codon_start,
-            wt_codon=mutation.wt_codon,
-            mt_codon=mt_codon,
-        )
-        for mt_codon in alt_codons
+        replace(mutation, mt_codon=mt_codon) for mt_codon in alt_codons
     ]
 
     prefix = "No valid primer pair - "
