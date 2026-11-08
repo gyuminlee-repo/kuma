@@ -25,6 +25,7 @@
 
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { tagManifestMismatch } from "./tag-manifest-version.mjs";
 
 const REPO = "gyuminlee-repo/kuma";
 
@@ -50,6 +51,8 @@ if ([major, minor, patch].some((part) => BigInt(part) > 18_446_744_073_709_551_6
 // Four-part tags label rebuild filenames only; the binary still embeds A.B.C.
 // Equal-version rebuilds do not trigger an automatic upgrade, by design.
 const version = `${major}.${minor}.${patch}`;
+const mismatch = tagManifestMismatch(version);
+if (mismatch) fail(mismatch);
 
 function walk(dir, acc = []) {
   for (const entry of readdirSync(dir)) {

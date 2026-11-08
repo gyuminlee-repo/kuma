@@ -14,6 +14,7 @@
 
 import { readdirSync, renameSync, statSync } from "node:fs";
 import { join, dirname } from "node:path";
+import { tagManifestMismatch } from "./tag-manifest-version.mjs";
 
 const BUNDLE_ROOT = "src-tauri/target/release/bundle";
 
@@ -30,6 +31,11 @@ if (!tagMatch) fail(`tag '${tagArg}' is not v<A>.<B>.<C>[.<D>]`);
 const [, a, b, c, d] = tagMatch;
 const threePart = `${a}.${b}.${c}`;
 const fourPart = d !== undefined ? `${threePart}.${d}` : threePart;
+
+// Checked before the 3-part skip: this is the first release step a tag push
+// runs, and a tag the manifests do not carry must stop the build here.
+const mismatch = tagManifestMismatch(threePart);
+if (mismatch) fail(mismatch);
 
 if (threePart === fourPart) {
   console.log(`[rename-bundle-to-tag] tag has no 4th component, skip`);
