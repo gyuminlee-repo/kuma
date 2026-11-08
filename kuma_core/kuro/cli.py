@@ -186,6 +186,10 @@ def read_design_tsv(path: Path | str) -> tuple[str, list["SdmPrimerResult"]]:
                 codon_start=0,
                 wt_codon=row.get("WT_Codon", ""),
                 mt_codon=row.get("MT_Codon", ""),
+                # Optional column. A TSV written before it existed, and a
+                # single-substitution row in a current one, both read as None,
+                # which is exactly what "no source row to name" means.
+                group_id=row.get("Group") or None,
             )
             window = OverlapWindow(
                 sequence=row.get("Overlap_Seq", ""),
@@ -217,12 +221,22 @@ def cmd_plate_map(args: argparse.Namespace) -> None:
     """Generate plate mapping from existing primer results."""
     from .plate_mapper import deduplicate_reverse, export_plate_excel, generate_plate_map
 
-    _mode, results = read_design_tsv(args.primers)
+    mode, results = read_design_tsv(args.primers)
 
     rev_groups = deduplicate_reverse(results)
     fwd_map, rev_map = generate_plate_map(results, deduplicate_rev=True)
     output_path = Path(args.output)
-    export_plate_excel(fwd_map + rev_map, output_path, rev_groups=rev_groups)
+    # The results and the recovered overlap mode have to be passed on: without
+    # the results the workbook has no expected_mutations sheet at all, which is
+    # the sheet MAME reads, and without the mode its list sheets name the wrong
+    # Tm column.
+    export_plate_excel(
+        fwd_map + rev_map,
+        output_path,
+        rev_groups=rev_groups,
+        results=results,
+        overlap_mode=mode,
+    )
     logging.info("Plate mapping saved to %s", output_path)
 
 

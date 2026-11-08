@@ -14,8 +14,8 @@ from kuma_core.kuro.sdm_engine import (
     DEFAULT_REV_LEN_MIN,
     OverlapMode,
     SdmPrimerResult,
+    design_sdm_batch,
     design_single_sdm,
-    design_sdm_primers,
     detect_topology,
     evaluate_custom_primer,
     load_sequence,
@@ -582,6 +582,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
             # success path would make every one of those a stale-record path.
             _core._state.design_provenance = None
             _core._state.interventions = []
+            _core._state.design_had_groups = False
 
         def _on_progress(i: int, total: int, mutation_raw: str) -> None:
             pct = 10 + int(70 * i / max(total, 1))
@@ -590,7 +591,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
         mutation_count = len(lines) if lines else ""
         count_str = f" ({mutation_count} mutations)" if mutation_count else ""
         _progress(10, f"Designing SDM primers{count_str}...")
-        results, all_cands, engine_failures = design_sdm_primers(
+        batch = design_sdm_batch(
             fasta_path=resolved_fasta,
             target_start=p.target_start,
             mutations_csv=mutations_csv_path,
@@ -613,6 +614,20 @@ def handle_design_sdm_primers(params: dict) -> dict:
             overlap_mode=p.overlap_mode,
             strict_offtarget=p.strict_offtarget,
         )
+        results, all_cands = batch.results, batch.all_candidates
+        # A row that never parsed is not a design that can be answered by
+        # designing something else, so the two kinds of failure are separated
+        # before the rescue stages and put back together afterwards.
+        parse_failures = dict(batch.parse_failures)
+        engine_failures = {
+            raw: reason
+            for raw, reason in batch.failed_reasons.items()
+            if raw not in parse_failures
+        }
+        # The relax pass re-designs a mutation this batch already parsed.
+        # Keyed by notation, which is what a failure reports.
+        parsed_by_raw = {mut.raw: mut for mut in batch.mutations}
+        had_groups = any(mut.group_id for mut in batch.mutations)
         if cancel_event.is_set():
             return _cancelled_result(results, all_cands)
 
@@ -715,7 +730,15 @@ def handle_design_sdm_primers(params: dict) -> dict:
                     if cancel_event.is_set():
                         return _cancelled_result(results, all_cands)
                     try:
-                        mut_obj = _build_mutation(failed_mut, sequence_r, p.target_start, p.organism)
+                        # The same mutation this batch already parsed, not a
+                        # fresh parse of its notation: rebuilding it from the
+                        # string loses the source row it came from, and the
+                        # relax pass is designing that very request again.
+                        mut_obj = parsed_by_raw.get(failed_mut)
+                        if mut_obj is None:
+                            mut_obj = _build_mutation(
+                                failed_mut, sequence_r, p.target_start, p.organism,
+                            )
                         cands = design_single_sdm(
                             sequence_r, mut_obj, profile, p.overlap_len, **relax_kw,
                         )
@@ -736,6 +759,10 @@ def handle_design_sdm_primers(params: dict) -> dict:
 
             engine_failures = still_failed
 
+        # Rows that never parsed are reported alongside the design failures, as
+        # they always were, but they were kept out of the rescue stages above.
+        engine_failures = {**engine_failures, **parse_failures}
+
         if cancel_event.is_set():
             return _cancelled_result(results, all_cands)
 
@@ -749,6 +776,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
             # Set with the results it describes, in the same block, so no window
             # exists where an export could read one without the other.
             _core._state.design_provenance = provenance
+            _core._state.design_had_groups = had_groups
             _rebuild_plate_state(results)
         _progress(80, "Generating plate map...")
 
@@ -790,6 +818,22 @@ def handle_retry_failed(params: dict) -> dict:
     mutation_raw = p.mutation.strip()
     if not mutation_raw:
         raise ValueError("mutation is required")
+
+    # This handler receives a bare notation and parses it on its own, so it
+    # cannot tell which input row asked for it. Where the design held a
+    # multi-substitution row that is not a label it can leave blank: the
+    # retried result would replace the one that carries the row, and the
+    # frontend cascade commits whatever comes back. Refused before any state
+    # changes; re-run the whole batch with the adjusted parameters instead.
+    with _core._state_lock:
+        had_groups = _core._state.design_had_groups
+    if had_groups:
+        raise ValueError(
+            f"Cannot retry {mutation_raw} on its own: this design included "
+            "multi-substitution rows, and a single retry cannot tell which "
+            "row requested this substitution. Re-run the whole batch with the "
+            "adjusted parameters instead."
+        )
 
     resolved_fasta = _validate_filepath(p.fasta_path, allowed_extensions=_ALLOWED_FASTA_EXTENSIONS)
 

@@ -182,6 +182,12 @@ class SidecarState:
     # and reads as unreproducible. Cleared together at the start of every design.
     design_provenance: dict | None = None
     interventions: list[dict] = field(default_factory=list)
+    # True when the design holding `results` parsed at least one
+    # multi-substitution row. retry_failed re-parses a bare notation and cannot
+    # recover which row asked for it, so it refuses to touch such a design
+    # rather than commit a result that has quietly lost its group. Set with the
+    # results it describes and cleared at the start of every design.
+    design_had_groups: bool = False
 
 
 _state = SidecarState()

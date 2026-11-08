@@ -24,7 +24,12 @@ from .codon_table import (
     mt_codons_for_design,
     CODON_TO_AA,
 )
-from .mutation import Mutation, mutate_sequence, parse_mutations
+from .mutation import (
+    Mutation,
+    mutate_sequence,
+    read_mutation_rows,
+    resolve_mutation_row,
+)
 from .overlap import (
     OverlapWindow,
     generate_overlap_windows,
@@ -1642,15 +1647,10 @@ def design_single_sdm(
     # which are three and five frames down, never have to see the organism.
     mutations_to_try: list[tuple[Mutation, float]] = []
     for mt_codon in alt_codons:
-        m = Mutation(
-            raw=mutation.raw,
-            wt_aa=mutation.wt_aa,
-            position=mutation.position,
-            mt_aa=mutation.mt_aa,
-            codon_start=mutation.codon_start,
-            wt_codon=mutation.wt_codon,
-            mt_codon=mt_codon,
-        )
+        # Only the codon changes. Rebuilding the dataclass field by field
+        # dropped group_id, so a component of a multi-substitution row came out
+        # of design with no record of the row that requested it.
+        m = replace(mutation, mt_codon=mt_codon)
         mutations_to_try.append((m, codon_usage_fraction(mt_codon, organism)))
 
     # SDM Tm targets are method-level constants of the overlap-extension design,
@@ -1958,17 +1958,10 @@ def diagnose_sdm_failure(
     alt_codons = mt_codons_for_design(
         mutation.wt_codon, mutation.mt_aa, codon_strategy, organism=organism
     )
+    # Only the codon changes; see design_single_sdm. The diagnostic reports on
+    # the mutation it was handed, so the identity it carries has to survive.
     variants: list[Mutation] = [
-        Mutation(
-            raw=mutation.raw,
-            wt_aa=mutation.wt_aa,
-            position=mutation.position,
-            mt_aa=mutation.mt_aa,
-            codon_start=mutation.codon_start,
-            wt_codon=mutation.wt_codon,
-            mt_codon=mt_codon,
-        )
-        for mt_codon in alt_codons
+        replace(mutation, mt_codon=mt_codon) for mt_codon in alt_codons
     ]
 
     prefix = "No valid primer pair - "
@@ -2608,7 +2601,53 @@ def _load_snapgene(dna_path: Path) -> tuple[str, str]:
     return header, sequence
 
 
-def design_sdm_primers(
+@dataclass
+class SdmBatchResult:
+    """Everything one batch design produced, including what the public call drops.
+
+    ``design_sdm_primers`` returns the first three fields and has always done
+    so. ``mutations`` is what the batch actually parsed: a caller that wants to
+    design one of them again (the relax pass in the sidecar) reuses the parsed
+    object instead of rebuilding it from its notation, which is where the
+    source-row identity used to be lost. ``parse_failures`` separates a row
+    that never became a design request from a design that was attempted and
+    failed, because only the latter may be answered by substituting a
+    different variant from a rescue pool.
+    """
+
+    results: list[SdmPrimerResult]
+    all_candidates: dict[str, list[SdmPrimerResult]]
+    failed_reasons: dict[str, str]
+    mutations: list[Mutation]
+    parse_failures: dict[str, str]
+
+
+def _reject_conflicting_identities(mutations: list[Mutation]) -> None:
+    """Reject a batch where one notation is requested by two different rows.
+
+    Candidates, failures, the commit step and the plate mapping are all keyed
+    by the component notation, so within one run ``A2V`` can carry exactly one
+    identity. A file holding both a standalone ``A2V`` row and an ``A2V/A3G``
+    row asks for two, and whichever is written second would silently stand for
+    the other. Repeating the same substitution inside one row is not a
+    conflict: its components share that row's identity.
+
+    Raises:
+        ValueError: If one notation arrives with two different group ids.
+    """
+    identity: dict[str, Mutation] = {}
+    for mut in mutations:
+        prior = identity.setdefault(mut.raw, mut)
+        if prior.group_id != mut.group_id:
+            raise ValueError(
+                f"Mutation {mut.raw} is requested by two different rows "
+                f"('{prior.group_id or prior.raw}' and "
+                f"'{mut.group_id or mut.raw}'), so one design result cannot "
+                "stand for both. Split those rows into separate design runs."
+            )
+
+
+def design_sdm_batch(
     fasta_path: Path,
     target_start: int,
     mutations_csv: Path,
@@ -2631,13 +2670,15 @@ def design_sdm_primers(
     tol_max: float = 4.0,
     overlap_mode: OverlapMode = "partial",
     strict_offtarget: bool = False,
-) -> tuple[list[SdmPrimerResult], dict[str, list[SdmPrimerResult]], dict[str, str]]:
-    """Design SDM primers for a batch of mutations.
+) -> SdmBatchResult:
+    """Design SDM primers for a batch of mutations, reporting the full outcome.
 
     Length parameters default to the polymerase profile; fall back to overlap 18,
     fwd 18-39, rev 19-27. Explicit arguments override the profile.
 
-    Returns (results, all_candidates, failed_reasons).
+    ``design_sdm_primers`` is the three-value public form of this call and is
+    what external callers use. This one also reports the parsed mutations and
+    which rows failed to parse; see SdmBatchResult.
     """
     header, sequence, _genes = load_sequence(fasta_path)
     # A plasmid is the normal input here, and an off-target site may span its
@@ -2671,39 +2712,30 @@ def design_sdm_primers(
                 profile.opt_tm_overlap or 42.0)
 
     failed_reasons: dict[str, str] = {}
-    try:
-        mutations = parse_mutations(
-            mutations_csv, sequence, target_start, organism
+    parse_failures: dict[str, str] = {}
+    mutations: list[Mutation] = []
+    # The column is resolved once here, before any row is read, and a schema
+    # error propagates. Resolving it inside the per-row recovery below is what
+    # let a file with neither accepted column name read zero rows, fail zero
+    # rows and look like an empty success.
+    rows = read_mutation_rows(Path(mutations_csv))
+    for raw in rows:
+        # One row at a time, so a single malformed row cannot reject the valid
+        # rows around it, and atomically, so a half-resolved combination never
+        # becomes a design request the operator did not make.
+        try:
+            mutations.extend(
+                resolve_mutation_row(raw, sequence.upper(), target_start, organism)
+            )
+        except (ValueError, IndexError) as exc:
+            parse_failures[raw] = str(exc)
+            failed_reasons[raw] = str(exc)
+    if parse_failures:
+        logger.warning(
+            "%d of %d mutation rows failed to parse", len(parse_failures), len(rows),
         )
-    except ValueError as exc:
-        # line-by-line fallback when batch parse fails. Preserve the original
-        # error signature so a genuine parse failure is not silently masked.
-        logger.warning("Batch parse_mutations failed (%s); falling back to per-line CSV parse", exc)
-        mutations = []
-        import csv as _csv
-        with open(mutations_csv, encoding="utf-8") as _f:
-            _reader = _csv.DictReader(_f)
-            col = "mutation" if _reader.fieldnames and "mutation" in _reader.fieldnames else "variant"
-            for _row in _reader:
-                _raw = _row.get(col, "").strip()
-                if not _raw:
-                    continue
-                try:
-                    from .mutation import parse_mutation_notation as _pmn, Mutation as _Mut
-                    from .codon_table import CODON_TO_AA as _C2A, best_codon as _bc
-                    _wt, _pos, _mt = _pmn(_raw)
-                    _cs = target_start + (_pos - 1) * 3
-                    _wc = sequence[_cs:_cs+3]
-                    _actual = _C2A.get(_wc)
-                    if _actual != _wt:
-                        failed_reasons[_raw] = f"expected WT amino acid {_wt} at position {_pos}, but codon {_wc} encodes {_actual}"
-                        continue
-                    _mc = _bc(_mt, organism)
-                    mutations.append(_Mut(raw=_raw, wt_aa=_wt, position=_pos, mt_aa=_mt,
-                                          codon_start=_cs, wt_codon=_wc, mt_codon=_mc))
-                except (ValueError, IndexError) as e:
-                    failed_reasons[_raw] = str(e)
-    logger.info("Parsed %d mutations (%d parse failures)", len(mutations), len(failed_reasons))
+    _reject_conflicting_identities(mutations)
+    logger.info("Parsed %d mutations (%d parse failures)", len(mutations), len(parse_failures))
 
     results: list[SdmPrimerResult] = []
     all_candidates: dict[str, list[SdmPrimerResult]] = {}
@@ -2742,7 +2774,73 @@ def design_sdm_primers(
         "Design complete: %d/%d succeeded",
         len(results), len(mutations) + len(failed_reasons),
     )
-    return results, all_candidates, failed_reasons
+    return SdmBatchResult(
+        results=results,
+        all_candidates=all_candidates,
+        failed_reasons=failed_reasons,
+        mutations=mutations,
+        parse_failures=parse_failures,
+    )
+
+
+def design_sdm_primers(
+    fasta_path: Path,
+    target_start: int,
+    mutations_csv: Path,
+    polymerase: str = "Q5",
+    overlap_len: int | None = None,
+    custom_profiles: Path | None = None,
+    codon_strategy: str = "closest",
+    tm_fwd_target: float | None = None,
+    tm_rev_target: float | None = None,
+    tm_overlap_target: float | None = None,
+    gc_min: float = 40.0,
+    gc_max: float = 60.0,
+    fwd_len_min: int | None = None,
+    fwd_len_max: int | None = None,
+    rev_len_min: int | None = None,
+    rev_len_max: int | None = None,
+    on_progress: "Callable[[int, int, str], None] | None" = None,
+    cancel_check: "Callable[[], bool] | None" = None,
+    organism: str = "ecoli",
+    tol_max: float = 4.0,
+    overlap_mode: OverlapMode = "partial",
+    strict_offtarget: bool = False,
+) -> tuple[list[SdmPrimerResult], dict[str, list[SdmPrimerResult]], dict[str, str]]:
+    """Design SDM primers for a batch of mutations.
+
+    Length parameters default to the polymerase profile; fall back to overlap 18,
+    fwd 18-39, rev 19-27. Explicit arguments override the profile.
+
+    Returns (results, all_candidates, failed_reasons). ``design_sdm_batch`` is
+    the same call reporting the parsed mutations as well; this three-value
+    shape is kept because it is the published one.
+    """
+    batch = design_sdm_batch(
+        fasta_path=fasta_path,
+        target_start=target_start,
+        mutations_csv=mutations_csv,
+        polymerase=polymerase,
+        overlap_len=overlap_len,
+        custom_profiles=custom_profiles,
+        codon_strategy=codon_strategy,
+        tm_fwd_target=tm_fwd_target,
+        tm_rev_target=tm_rev_target,
+        tm_overlap_target=tm_overlap_target,
+        gc_min=gc_min,
+        gc_max=gc_max,
+        fwd_len_min=fwd_len_min,
+        fwd_len_max=fwd_len_max,
+        rev_len_min=rev_len_min,
+        rev_len_max=rev_len_max,
+        on_progress=on_progress,
+        cancel_check=cancel_check,
+        organism=organism,
+        tol_max=tol_max,
+        overlap_mode=overlap_mode,
+        strict_offtarget=strict_offtarget,
+    )
+    return batch.results, batch.all_candidates, batch.failed_reasons
 
 
 def export_results_tsv(
@@ -2775,6 +2873,11 @@ def export_results_tsv(
         "GC_Fwd", "GC_Rev",
         "WT_Codon", "MT_Codon", "Overlap_Seq",
         "Warnings",
+        # Last, and empty for a single-substitution row, so a reader that does
+        # not know the column keeps working. cli.read_design_tsv restores it;
+        # without it the CLI plate map cannot state which row a component came
+        # from, because the TSV is all it is given.
+        "Group",
     ]
 
     with open(output_path, "w", newline="", encoding="utf-8") as f:
@@ -2800,4 +2903,5 @@ def export_results_tsv(
                 "MT_Codon": r.mutation.mt_codon,
                 "Overlap_Seq": r.overlap_window.sequence,
                 "Warnings": "; ".join(r.warnings) if r.warnings else "",
+                "Group": r.mutation.group_id or "",
             })
