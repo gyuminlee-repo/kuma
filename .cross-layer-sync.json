@@ -1722,6 +1722,21 @@
       ],
       "note": "Longest manual-confirmation note: Python keeps the first MAX_NOTE_LENGTH characters (manual_override.py) and the step 2.3 note input caps itself at MAX_OVERRIDE_NOTE_LENGTH (selectionOverrides.ts). The two must stay equal, or the field accepts text the sidecar then cuts without telling the operator.",
       "severity": "warning"
+    },
+    {
+      "id": "kuro-design-tsv-group",
+      "files": [
+        "kuma_core/kuro/sdm_engine.py",
+        "kuma_core/kuro/cli.py"
+      ],
+      "symbols": [
+        "export_results_tsv",
+        "read_design_tsv",
+        "Group",
+        "group_id"
+      ],
+      "note": "The design TSV carries the source row of a multi-substitution request in a trailing optional Group column: export_results_tsv writes it and read_design_tsv restores it into Mutation.group_id. The column is last and empty for a single substitution, so a TSV written before it existed still loads. Adding a column anywhere but the end, or reading it as a required key, breaks the CLI plate map, which has nothing but this file to learn the group from.",
+      "severity": "blocking"
     }
   ]
 }

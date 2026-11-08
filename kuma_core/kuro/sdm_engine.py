@@ -2873,6 +2873,11 @@ def export_results_tsv(
         "GC_Fwd", "GC_Rev",
         "WT_Codon", "MT_Codon", "Overlap_Seq",
         "Warnings",
+        # Last, and empty for a single-substitution row, so a reader that does
+        # not know the column keeps working. cli.read_design_tsv restores it;
+        # without it the CLI plate map cannot state which row a component came
+        # from, because the TSV is all it is given.
+        "Group",
     ]
 
     with open(output_path, "w", newline="", encoding="utf-8") as f:
@@ -2898,4 +2903,5 @@ def export_results_tsv(
                 "MT_Codon": r.mutation.mt_codon,
                 "Overlap_Seq": r.overlap_window.sequence,
                 "Warnings": "; ".join(r.warnings) if r.warnings else "",
+                "Group": r.mutation.group_id or "",
             })
