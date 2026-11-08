@@ -140,6 +140,105 @@ def _resolve_single(
     )
 
 
+MUTATION_COLUMNS: tuple[str, ...] = ("mutation", "variant")
+
+
+def select_mutation_column(
+    fieldnames: Optional[list[str]] | None, source_name: str
+) -> str:
+    """Pick the column holding the mutation notation, or reject the schema.
+
+    `mutation` wins when present; `variant` is the accepted alternative name.
+    Neither one present is a schema error, including for a file with no header
+    at all: a reader that fell through to a column name the file does not have
+    would read every cell as empty and report a run with zero rows and zero
+    failures, which an operator cannot tell apart from an empty input.
+
+    Args:
+        fieldnames: ``csv.DictReader.fieldnames`` (None for an empty file).
+        source_name: File name quoted in the error message.
+
+    Returns:
+        The column name to read.
+
+    Raises:
+        ValueError: If neither accepted column name is present.
+    """
+    names = list(fieldnames or [])
+    for candidate in MUTATION_COLUMNS:
+        if candidate in names:
+            return candidate
+    raise ValueError(
+        f"CSV file '{source_name}' missing required 'mutation' column "
+        f"(or 'variant'). Found columns: {names or None}"
+    )
+
+
+def read_mutation_rows(csv_path: Path) -> list[str]:
+    """Read the mutation notation of every non-empty row, in file order.
+
+    The column is resolved once, before any row is read, so a schema error can
+    never be mistaken for an empty result. A missing or empty cell is skipped
+    rather than dereferenced: ``csv.DictReader`` yields None for a row shorter
+    than the header.
+
+    Args:
+        csv_path: Path to the CSV file.
+
+    Returns:
+        Raw notation strings, one per non-empty row.
+
+    Raises:
+        ValueError: If the file carries no mutation column.
+    """
+    rows: list[str] = []
+    with open(csv_path, encoding="utf-8", newline="") as f:
+        reader = csv.DictReader(f)
+        column = select_mutation_column(reader.fieldnames, Path(csv_path).name)
+        for row in reader:
+            raw = (row.get(column) or "").strip()
+            if raw:
+                rows.append(raw)
+    return rows
+
+
+def resolve_mutation_row(
+    raw: str,
+    sequence: str,
+    target_start: int,
+    organism: str,
+) -> list[Mutation]:
+    """Resolve one row's notation into its component Mutation objects.
+
+    A row is atomic. The components are collected locally and only returned
+    once every one of them resolved, so ``A2V/A999V`` yields nothing at all
+    rather than leaving A2V behind as a design request the operator never made.
+
+    Args:
+        raw: Raw notation from one CSV row, e.g. "A2V" or "A2V/A3G".
+        sequence: Full plasmid DNA sequence (uppercase).
+        target_start: 0-based position of the CDS start codon (ATG).
+        organism: Codon-table key the seed mutant codons are drawn from.
+
+    Returns:
+        One Mutation per substitution. A multi-substitution row gives every
+        component the raw row string as ``group_id``.
+
+    Raises:
+        ValueError: If any component is malformed, out of range, or disagrees
+            with the template's wild-type amino acid.
+    """
+    individual = split_multi_notation(raw)
+    # group_id is set only for multi-mutation entries
+    group_id: Optional[str] = raw if len(individual) > 1 else None
+    resolved: list[Mutation] = []
+    for notation in individual:
+        resolved.append(
+            _resolve_single(notation, sequence, target_start, group_id, organism)
+        )
+    return resolved
+
+
 def parse_mutations(
     csv_path: Path,
     sequence: str,
@@ -148,7 +247,7 @@ def parse_mutations(
 ) -> list[Mutation]:
     """Parse a CSV file of mutations and resolve codon positions.
 
-    The CSV must have a 'mutation' column with entries like 'Q232A'.
+    The CSV must have a 'mutation' column (or 'variant') with entries like 'Q232A'.
     Multi-mutation entries (e.g. 'A40P/E61Y' or 'A40P/E61Y:WT') are
     decomposed into individual Mutation objects; each carries a group_id
     equal to the original notation for traceability.
@@ -170,28 +269,10 @@ def parse_mutations(
     mutations: list[Mutation] = []
     sequence = sequence.upper()
 
-    with open(csv_path, encoding="utf-8", newline="") as f:
-        reader = csv.DictReader(f)
-        if reader.fieldnames and "mutation" not in reader.fieldnames:
-            raise ValueError(
-                f"CSV file '{csv_path.name}' missing required 'mutation' column. "
-                f"Found columns: {reader.fieldnames}"
-            )
-        for row in reader:
-            raw = row["mutation"].strip()
-            if not raw:
-                continue
-
-            individual = split_multi_notation(raw)
-            # group_id is set only for multi-mutation entries
-            group_id: Optional[str] = raw if len(individual) > 1 else None
-
-            for notation in individual:
-                mutations.append(
-                    _resolve_single(
-                        notation, sequence, target_start, group_id, organism
-                    )
-                )
+    for raw in read_mutation_rows(Path(csv_path)):
+        mutations.extend(
+            resolve_mutation_row(raw, sequence, target_start, organism)
+        )
 
     return mutations
 

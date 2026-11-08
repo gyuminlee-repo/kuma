@@ -31,6 +31,7 @@ from sidecar_kuro.handlers.external import (  # noqa: E402
     _organism_match_score,
     _sequence_identity,
 )
+from kuma_core.kuro.sdm_engine import SdmBatchResult  # noqa: E402
 import sidecar_kuro.handlers.design as _design_handlers  # noqa: E402
 import sidecar_kuro.core as _sidecar_core  # noqa: E402
 
@@ -291,13 +292,14 @@ class TestDesignSdmPrimers:
         assert "error" in resp
 
     def test_non_finite_diagnostics_are_sanitized(self, monkeypatch, loaded_fasta):
-        results, all_cands, failures = _design_handlers.design_sdm_primers(
+        batch = _design_handlers.design_sdm_batch(
             fasta_path=Path(FASTA_PATH),
             target_start=TARGET_START,
             mutations_csv=Path(MUTATIONS_CSV),
             polymerase="Q5",
             overlap_len=18,
         )
+        results, all_cands = batch.results, batch.all_candidates
         bad = dc_replace(
             results[0],
             hairpin_tm_fwd=float("nan"),
@@ -305,13 +307,16 @@ class TestDesignSdmPrimers:
             synthesis_score_fwd=float("nan"),
         )
 
-        def fake_design_sdm_primers(**kwargs):
-            patched_results = [bad, *results[1:]]
+        def fake_design_sdm_batch(**kwargs):
             patched_candidates = dict(all_cands)
             patched_candidates[bad.mutation.raw] = [bad]
-            return patched_results, patched_candidates, failures
+            return dc_replace(
+                batch,
+                results=[bad, *results[1:]],
+                all_candidates=patched_candidates,
+            )
 
-        monkeypatch.setattr(_design_handlers, "design_sdm_primers", fake_design_sdm_primers)
+        monkeypatch.setattr(_design_handlers, "design_sdm_batch", fake_design_sdm_batch)
 
         resp = _rpc(
             "design_sdm_primers",
@@ -502,15 +507,20 @@ class TestCancelDesign:
     def test_cancel_reaches_active_design(self, monkeypatch):
         started = threading.Event()
 
+        empty = SdmBatchResult(
+            results=[], all_candidates={}, failed_reasons={},
+            mutations=[], parse_failures={},
+        )
+
         def slow_design(*args, cancel_check=None, **kwargs):
             started.set()
             for _ in range(200):
                 if cancel_check and cancel_check():
-                    return [], {}, {}
+                    return empty
                 time.sleep(0.01)
-            return [], {}, {}
+            return empty
 
-        monkeypatch.setattr(_design_handlers, "design_sdm_primers", slow_design)
+        monkeypatch.setattr(_design_handlers, "design_sdm_batch", slow_design)
 
         buf = io.StringIO()
         old_stdout = sys.stdout
