@@ -90,29 +90,16 @@ def test_detector_flags_a_rebuild_and_accepts_the_alternatives() -> None:
     assert _offending_calls("def f():\n    return _Mut(raw='A2V')\n") == [(2, "f")]
 
 
-def test_detector_finds_the_pre_fix_sites() -> None:
-    """The three sites this guard exists for, as they were before the fix.
-
-    Checked against the real pre-fix text rather than a sketch of it, so the
-    guard is known to catch what it was written to catch.
-    """
-    import subprocess
-
-    for path, function in [
-        ("kuma_core/kuro/sdm_engine.py", "design_single_sdm"),
-        ("kuma_core/kuro/sdm_engine.py", "diagnose_sdm_failure"),
-        ("kuma_core/kuro/sdm_engine.py", "design_sdm_primers"),
-    ]:
-        proc = subprocess.run(
-            ["git", "show", f"origin/main:{path}"],
-            cwd=ROOT, capture_output=True, text=True, stdin=subprocess.DEVNULL,
-        )
-        if proc.returncode != 0:
-            import pytest
-
-            pytest.skip("origin/main is not available in this checkout")
-        offenders = {name for _line, name in _offending_calls(proc.stdout)}
-        assert function in offenders, f"{path}:{function} was expected to offend"
+# A third test used to read `git show origin/main:kuma_core/kuro/sdm_engine.py`
+# and assert that the detector named design_single_sdm, diagnose_sdm_failure and
+# design_sdm_primers. That held only while origin/main still carried the pre-fix
+# text: the moment the fix landed, the ref it read became the fixed file and the
+# assertion could never pass again. It also read as passing wherever the ref was
+# absent, because it skipped there, which is how CI stayed green while every
+# local run failed. The one-time check it performed is recorded in the pull
+# request that introduced this guard; what has to keep holding is that the
+# detector flags a field-by-field rebuild and leaves `replace()` and an explicit
+# `group_id=` alone, and the two tests above state that without reading git.
 
 
 def test_no_mutation_is_rebuilt_field_by_field() -> None:
