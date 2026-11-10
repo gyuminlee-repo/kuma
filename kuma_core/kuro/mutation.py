@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import csv
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from collections.abc import Sequence
 from typing import Optional
@@ -291,3 +291,136 @@ def mutate_sequence(seq: str, mutation: Mutation) -> str:
     seq = seq.upper()
     cs = mutation.codon_start
     return seq[:cs] + mutation.mt_codon + seq[cs + 3:]
+
+
+_CODON_RE = re.compile(r"^[ACGT]{3}$")
+
+
+def rebuild_template_sequence(
+    sequence: str,
+    target_start: int,
+    mutations: Sequence[Mutation],
+) -> str:
+    """Rebuild the DNA of a clone that already carries *mutations*.
+
+    An experiment that adds one substitution to a previous round's clone needs
+    the primers cut from that clone rather than from the wild type. Every
+    design path applies ``mutate_sequence`` before cutting, so handing the
+    engine this sequence is enough; what is missing is a way to produce it.
+
+    The codon each earlier round actually chose is taken from the caller's
+    ``Mutation.mt_codon`` (the design TSV's ``MT_Codon`` column) rather than
+    re-derived from the codon table. Re-choosing would give a sequence the
+    clone in the freezer does not have, and primers cut from it would mismatch.
+
+    ``codon_start`` on the incoming objects is ignored and recomputed from
+    *target_start*, because a Mutation restored from a TSV carries no
+    coordinate (the column does not exist).
+
+    Args:
+        sequence: Wild-type template DNA.
+        target_start: 0-based position of the CDS start codon, the same value
+            the design run was given. A wrong one is caught by the wild-type
+            codon check below in all but a coincidence.
+        mutations: Substitutions to apply, each with ``raw``, ``wt_codon`` and
+            ``mt_codon``. Order is irrelevant; positions may not repeat.
+
+    Returns:
+        The rebuilt sequence, the same length as *sequence* so that residue
+        numbering is unchanged.
+
+    Raises:
+        ValueError: If no substitution is given, a codon is malformed or
+            disagrees with its notation, two substitutions share a position, a
+            codon lies outside the sequence, the template does not carry the
+            recorded wild-type codon, or the applied codon does not translate
+            to the expected amino acid.
+    """
+    if not mutations:
+        raise ValueError(
+            "No substitution to apply: the result would be the wild-type sequence."
+        )
+
+    seq = sequence.upper()
+    claimed: dict[int, str] = {}
+    applied: list[Mutation] = []
+
+    for mutation in mutations:
+        wt_aa, position, mt_aa = parse_mutation_notation(mutation.raw)
+        if position in claimed:
+            raise ValueError(
+                f"Position {position} carries two substitutions "
+                f"({claimed[position]} and {mutation.raw}); a template cannot "
+                f"hold both."
+            )
+        claimed[position] = mutation.raw
+
+        codon_start = target_start + (position - 1) * 3
+        if codon_start < 0 or codon_start + 3 > len(seq):
+            raise ValueError(
+                f"Substitution {mutation.raw}: codon position {codon_start} "
+                f"exceeds sequence length {len(seq)}"
+            )
+
+        codons: dict[str, str] = {}
+        for label, raw_codon in (
+            ("WT_Codon", mutation.wt_codon),
+            ("MT_Codon", mutation.mt_codon),
+        ):
+            codon = (raw_codon or "").strip().upper()
+            if not _CODON_RE.match(codon):
+                raise ValueError(
+                    f"Substitution {mutation.raw}: {label} {raw_codon!r} is not "
+                    f"a DNA codon (three of A, C, G, T)."
+                )
+            codons[label] = codon
+        wt_codon = codons["WT_Codon"]
+        mt_codon = codons["MT_Codon"]
+
+        if CODON_TO_AA.get(wt_codon) != wt_aa:
+            raise ValueError(
+                f"Substitution {mutation.raw}: recorded WT_Codon {wt_codon} "
+                f"encodes {CODON_TO_AA.get(wt_codon)}, not {wt_aa}"
+            )
+        if CODON_TO_AA.get(mt_codon) != mt_aa:
+            raise ValueError(
+                f"Substitution {mutation.raw}: recorded MT_Codon {mt_codon} "
+                f"encodes {CODON_TO_AA.get(mt_codon)}, not {mt_aa}"
+            )
+
+        observed = seq[codon_start:codon_start + 3]
+        if observed != wt_codon:
+            raise ValueError(
+                f"Substitution {mutation.raw}: expected codon {wt_codon} at "
+                f"amino acid position {position} (nucleotide {codon_start + 1}), "
+                f"but the template carries {observed}"
+            )
+
+        resolved = replace(
+            mutation,
+            wt_aa=wt_aa,
+            position=position,
+            mt_aa=mt_aa,
+            codon_start=codon_start,
+            wt_codon=wt_codon,
+            mt_codon=mt_codon,
+        )
+        seq = mutate_sequence(seq, resolved)
+        applied.append(resolved)
+
+    if len(seq) != len(sequence):
+        raise ValueError(
+            f"Rebuilt template changed length from {len(sequence)} to {len(seq)}; "
+            f"residue numbering would no longer hold."
+        )
+
+    for mutation in applied:
+        codon = seq[mutation.codon_start:mutation.codon_start + 3]
+        actual_aa = CODON_TO_AA.get(codon)
+        if actual_aa != mutation.mt_aa:
+            raise ValueError(
+                f"Substitution {mutation.raw}: rebuilt codon {codon} translates "
+                f"to {actual_aa}, not {mutation.mt_aa}"
+            )
+
+    return seq
