@@ -595,14 +595,17 @@ class TestExpectedMutationsSheet:
         v5f_row = next(r for r in data_rows if r[0] == "V5F")
         assert v5f_row[6] == ""
 
-        # multi-mutation group_id 확인
-        a40p_row = next(r for r in data_rows if r[0] == "A40P")
-        e61y_row = next(r for r in data_rows if r[0] == "E61Y")
-        assert a40p_row[6] == "A40P/E61Y"
-        assert e61y_row[6] == "A40P/E61Y"
+        # 조합 변이의 두 행은 클론 하나다. mutant_id 는 WT 기준 전체 genotype 이고
+        # primer_set_ref 는 그 행이 주문하는 프라이머 쌍(구성 치환)이다.
+        combo_rows = [r for r in data_rows if r[6] == "A40P/E61Y"]
+        assert [r[0] for r in combo_rows] == ["A40P/E61Y", "A40P/E61Y"]
+        assert [r[7] for r in combo_rows] == ["A40P", "E61Y"]
+        assert [r[1] for r in combo_rows] == [40, 61]
 
-        # primer_set_ref == mutant_id
+        # 단일 변이는 group 이 없으므로 mutant_id == primer_set_ref == raw 이다.
         for row in data_rows:
+            if row[6]:
+                continue
             assert row[0] == row[7], f"primer_set_ref mismatch for {row[0]}"
 
     def test_write_expected_mutations_sheet_preserves_status_and_adds_rescue_metadata(self):
