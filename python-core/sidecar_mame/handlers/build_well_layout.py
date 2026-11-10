@@ -66,7 +66,10 @@ def handle_build_well_layout(params: dict) -> dict:
     p = BuildWellLayoutParams.model_validate(params)
 
     from kuma_core.mame.io.variant_list import read_variant_source
-    from kuma_core.mame.layout import build_draft_layout, resolve_wt_placement
+    from kuma_core.mame.layout import (
+        build_clone_plate_layout,
+        resolve_wt_placement,
+    )
 
     read = read_variant_source(
         Path(p.expected_mutations_xlsx),
@@ -77,7 +80,10 @@ def handle_build_well_layout(params: dict) -> dict:
     # are the placement when the file stated one, and ``wt_ordinal`` plus the
     # policy decide it when the file stated only an order. Passing a subset lets
     # a file that names its wells be placed by row number instead.
-    result = build_draft_layout(
+    # The clone-plate wrapper over ``build_draft_layout``, because this RPC
+    # draws the plate the bench fills: position ascending on the row-order
+    # branch, the file's own addresses when it states them.
+    result = build_clone_plate_layout(
         read.expected,
         wt_ordinal=read.wt_ordinal,
         wells=read.wells,

@@ -24,9 +24,12 @@ the file put it, and a plate with no control row has no control well. This is
 the shape that lets a partly filled plate be described honestly, because a row
 naming a well and no variant is a well this campaign did not use.
 
-Without a ``Well`` column, row order is plate order. ``build_draft_layout``
-assigns well *i* from occupant *i*, so a plain list needs no extra ordering
-rule, and the two consequences of that rule hold: a wild-type row occupies a
+Without a ``Well`` column the file states an order and nothing more, and the
+clone-plate path re-states it: ``layout.build_clone_plate_layout`` puts the
+occupants in residue-position order, which is how the bench fills the plate, and
+``build_draft_layout`` then assigns well *i* from occupant *i* of that ordered
+list. Row order is still what a dropped or duplicated row perturbs, so the two
+consequences of reading it hold: a wild-type row occupies a
 well (its ordinal travels with the read instead of being discarded), and a row
 that is read and not placed is refused by row number rather than absorbed,
 because absorbing it moves every later mutant one well up and leaves the result
@@ -126,6 +129,10 @@ class VariantListReadResult:
     #: row rather than discarding it is what keeps the wells after it in place:
     #: dropping it shifted every later mutant one well up and reported nothing.
     #: ``build_draft_layout`` appends WT after the last mutant for ``None``.
+    #: The ordinal counts occupants rather than sheet rows, and the clone-plate
+    #: path orders those occupants by residue position
+    #: (``layout.build_clone_plate_layout``), so a control row in the middle of
+    #: a sheet is placed against the ordered list.
     wt_ordinal: int | None
     #: Sheet the values were read from. ``None`` for CSV.
     sheet: str | None

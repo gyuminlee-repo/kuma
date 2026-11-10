@@ -573,10 +573,10 @@ def _expected_xlsx_in_order(dest: Path, mutant_ids: list[str]) -> Path:
     return dest
 
 
-def test_inferred_layout_follows_the_workbook_row_order_and_nothing_else(
+def test_inferred_layout_follows_residue_position_and_not_the_workbook_row_order(
     tmp_path: Path,
 ) -> None:
-    """Reorder the workbook's rows and the wells move with them.
+    """Reorder the workbook's rows and the wells stay where the bench put them.
 
     ``test_handle_analyze_auto_scopes_from_expected_when_layout_omitted``
     (tests/sidecar_mame/test_analyze_raw_run.py) already pins that a run given no
@@ -585,16 +585,24 @@ def test_inferred_layout_follows_the_workbook_row_order_and_nothing_else(
 
     This varies only the row order, holding the reads and the plate fixed. The
     designed rows are written F3W (position 3) before G2A (position 2), so sheet
-    order and position order now disagree and the wells must follow the sheet:
-    A01 declared F3W while its reads carry G2A, B01 the reverse, both failing.
-    Sorting by position instead -- ``canonical_plate_order`` is one import away
-    and its docstring offers "the plate the bench actually fills" -- would leave
-    every other test in the suite green while silently re-placing every well of
-    any workbook not already position-ordered.
+    order and position order disagree, and the wells follow the POSITION: A01
+    declares G2A, which is what its reads carry, and B01 declares F3W, which is
+    what its reads carry. Both pass. Following the sheet instead declares each
+    well the other mutant and fails both.
 
-    That is the 2026-08-06 shape exactly: a 95-well layout in design-ranking
-    order scored a plate filled in position order, agreed with it at 0 of 95
-    wells, and reported 0 PASS from sequencing that was in fact 262/285 correct.
+    This test asserted the opposite until 2026-11-10, and the reason it flipped
+    is in its own incident citation. The 2026-08-06 shape was a 95-well layout
+    in design-ranking order scoring a plate FILLED IN POSITION ORDER: it agreed
+    with that plate at 0 of 95 wells and reported 0 PASS from sequencing that
+    was in fact 262/285 correct. Sheet order was adopted as the fix on the
+    assumption that an operator writes the sheet in the order the plate was
+    filled. The bench does not; it fills by residue position ascending, which
+    ``canonical_plate_order`` had already measured against that same 95-well
+    plate at 95 of 95 wells. Sheet order therefore reproduced the incident for
+    every workbook not already position-ordered, which was ten of the twelve in
+    hand. ``layout.build_clone_plate_layout`` is the single place that order is
+    now decided, and ``tests/mame/test_clone_plate_order.py`` pins it against
+    the numeric-ID decode path, which had been sorting all along.
     """
     from sidecar_mame.handlers.analyze import handle_analyze
 
@@ -620,7 +628,7 @@ def test_inferred_layout_follows_the_workbook_row_order_and_nothing_else(
     assert result["layout_provenance"]["selected_wells"] is None
 
     by_custom = {v["custom_barcode"]: v for v in result["verdicts"]}
-    assert by_custom["1_1"]["expected_mutations"] == ["F3W"], by_custom["1_1"]
-    assert by_custom["2_1"]["expected_mutations"] == ["G2A"], by_custom["2_1"]
-    assert by_custom["1_1"]["verdict"] != "PASS", by_custom["1_1"]
-    assert by_custom["2_1"]["verdict"] != "PASS", by_custom["2_1"]
+    assert by_custom["1_1"]["expected_mutations"] == ["G2A"], by_custom["1_1"]
+    assert by_custom["2_1"]["expected_mutations"] == ["F3W"], by_custom["2_1"]
+    assert by_custom["1_1"]["verdict"] == "PASS", by_custom["1_1"]
+    assert by_custom["2_1"]["verdict"] == "PASS", by_custom["2_1"]

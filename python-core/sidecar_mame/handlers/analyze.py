@@ -1081,7 +1081,7 @@ def _plate_capacity_finding(
     from kuma_core.mame.io.variant_list import read_variant_source
     from kuma_core.mame.layout import (
         MUTANT_CAPACITY,
-        build_draft_layout,
+        build_clone_plate_layout,
         distinct_occupants,
         resolve_wt_placement,
     )
@@ -1107,7 +1107,10 @@ def _plate_capacity_finding(
     # The whole read, not a subset of it. ``wells``/``wt_well`` are the
     # placement for a file that states one, and dropping them here would grade
     # and then place that file by row order instead.
-    draft = build_draft_layout(
+    # The clone-plate wrapper over ``build_draft_layout``: the bench fills by
+    # residue position, and the capacity answer has to grade the plate the run
+    # will place.
+    draft = build_clone_plate_layout(
         read.expected,
         wt_ordinal=read.wt_ordinal,
         wells=read.wells,
@@ -2219,13 +2222,13 @@ def handle_analyze(params: dict) -> dict:
         # layout there behaves as it did before the gate existed.
         if drafted_layout is None:
             from kuma_core.mame.io.variant_list import read_variant_source
-            from kuma_core.mame.layout import build_draft_layout
+            from kuma_core.mame.layout import build_clone_plate_layout
 
             _inferred = read_variant_source(
                 expected, sheet=variant_sheet, variant_column=variant_column
             )
             drafted_layout = _place_on_selected_wells(
-                build_draft_layout(
+                build_clone_plate_layout(
                     _inferred.expected,
                     wt_ordinal=_inferred.wt_ordinal,
                     wells=_inferred.wells,
