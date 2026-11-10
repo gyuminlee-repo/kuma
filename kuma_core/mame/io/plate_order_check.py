@@ -244,6 +244,16 @@ def _expected_layout(
         read = read_variant_source(path)
     except (ValueError, FileNotFoundError, KeyError):
         return None
+    # The comparison assumes one primer pair per clone, which is what makes a
+    # primer-plate well and a clone-plate well the same address. A combination
+    # genotype breaks that assumption rather than disagreeing with the plate:
+    # it is one clone in one well carrying one primer pair per substitution, so
+    # the two sheets hold different numbers of entries and every address after
+    # the first combo is offset. There is nothing to compare, so this says so
+    # instead of reporting a mismatch at every later well.
+    ids = [m.mutant_id for m in read.expected]
+    if len(set(ids)) != len(ids):
+        return None
     # Every argument the run passes, and the same control-well default. This
     # check is only worth anything while it names the wells the run names, so it
     # follows ``build_draft_layout`` rather than pinning a policy of its own.
@@ -269,6 +279,10 @@ def check_plate_order(
     consistent, so a caller cannot read silence as agreement. So is a file the
     expected-variant reader refuses; see :func:`_expected_layout` for why that is
     lowered rather than raised. This function does not raise.
+
+    The comparison holds only while a clone has one primer pair. A file whose
+    expected sheet carries a combination genotype (several rows under one
+    ``mutant_id``) is reported as not comparable; see :func:`_expected_layout`.
 
     ``wt_placement`` is the control-well policy the run would use, forwarded so
     this check names the wells the run names. It has to travel: the check is a

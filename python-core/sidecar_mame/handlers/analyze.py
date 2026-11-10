@@ -1082,6 +1082,7 @@ def _plate_capacity_finding(
     from kuma_core.mame.layout import (
         MUTANT_CAPACITY,
         build_draft_layout,
+        distinct_occupants,
         resolve_wt_placement,
     )
     from kuma_core.mame.plate_geometry import PLATE_CAPACITY
@@ -1120,8 +1121,12 @@ def _plate_capacity_finding(
     listed = ", ".join(draft.dropped_mutant_ids[:5])
     if len(draft.dropped_mutant_ids) > 5:
         listed += f", and {len(draft.dropped_mutant_ids) - 5} more"
+    # Clones rather than rows, which is what takes a well: a combination
+    # genotype is several rows of one clone. Counting rows named a number the
+    # plate never had to hold.
+    clones = len(distinct_occupants(read.expected))
     return (
-        f"expected: {expected_path.name} lists {len(read.expected)} designed "
+        f"expected: {expected_path.name} lists {clones} designed "
         f"mutants. One plate has {PLATE_CAPACITY} wells and the WT control "
         f"takes one of them, so it can carry {MUTANT_CAPACITY} mutants, and "
         "this run was given no well layout to say which of them are on the "

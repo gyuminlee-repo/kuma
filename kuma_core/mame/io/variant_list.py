@@ -34,6 +34,11 @@ looking like a correct plate. An ordinal is not an address, though, so where the
 control lands is a decision rather than a reading: ``layout.WtPlacement`` names
 the choices and defaults to the last well of the plate.
 
+An occupant is a clone, which is not always a row. A combination genotype is one
+clone carrying several substitutions, written as one row per substitution under
+one ``mutant_id``, so those rows are one occupant at one ordinal; the control
+ordinal this reader reports counts occupants for that reason.
+
 The five fields MAME never reads (``wt_codon``, ``mt_codon``, ``group_id``,
 ``primer_set_ref``, ``notation_type``) are left empty rather than invented.
 """
@@ -733,10 +738,18 @@ def _read_kuro_export(path: Path) -> VariantListReadResult:
     expected: list[ExpectedMutation] = []
     wt_ordinal: int | None = None
     wt_row: int | None = None
+    # Occupants placed so far, WT included, because this is the plate ordinal
+    # the control is reported at. A combo spans one row per substitution under
+    # one id and is ONE occupant, so the counter moves on a new id rather than
+    # on every row. Counting rows put the control one place too far down for
+    # each extra substitution, which is where its gap was opened.
     placed = 0
+    counted_ids: set[str] = set()
     seen: dict[tuple[str, str], int] = {}
     for row_number, mutation in zip(read.row_numbers, read.expected):
-        placed += 1
+        if mutation.mutant_id not in counted_ids:
+            counted_ids.add(mutation.mutant_id)
+            placed += 1
         if mutation.mutant_id.strip().lower() in _WT_LABELS:
             if wt_row is not None:
                 raise _duplicate_wt_error(path, wt_row, row_number)

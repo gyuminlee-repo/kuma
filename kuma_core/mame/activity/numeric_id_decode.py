@@ -227,18 +227,30 @@ def expected_variant_order(
     """
     from kuma_core.mame.export.well_mapper import seq_to_well
     from kuma_core.mame.io.variant_list import read_variant_source
-    from kuma_core.mame.layout import canonical_plate_order
+    from kuma_core.mame.layout import canonical_plate_order, distinct_occupants
 
     warnings: list[str] = []
     order: DecodeOrder = []
     source = read_variant_source(Path(expected_xlsx))
+    # A numeric ID counts tubes, so it counts clones. Rows sharing a mutant_id
+    # are one clone in one well (``distinct_occupants``), the same count
+    # ``build_draft_layout`` places on; counting rows here would have given a
+    # combination genotype two IDs and renamed every later one.
     if source.wells is None:
         placed = [
             (mutation, seq_to_well(seq))
-            for seq, mutation in enumerate(canonical_plate_order(source.expected), 1)
+            for seq, mutation in enumerate(
+                distinct_occupants(canonical_plate_order(source.expected)), 1
+            )
         ]
     else:
-        placed = list(zip(source.expected, source.wells))
+        seen_ids: set[str] = set()
+        placed = []
+        for mutation, well in zip(source.expected, source.wells):
+            if mutation.mutant_id in seen_ids:
+                continue
+            seen_ids.add(mutation.mutant_id)
+            placed.append((mutation, well))
     for mutation, well in placed:
         mutant = mutation.mutant_id
         try:
