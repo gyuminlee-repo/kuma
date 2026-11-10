@@ -32,7 +32,7 @@ from kuma_core.mame.io.plate_order_check import (
 from kuma_core.mame.io.variant_list import read_variant_source
 from kuma_core.mame.layout import (
     MUTANT_CAPACITY,
-    build_draft_layout,
+    build_clone_plate_layout,
     distinct_occupants,
 )
 
@@ -143,9 +143,17 @@ class TestShippedVariantWorkbook:
         Over capacity ``build_draft_layout`` returns an empty layout rather than
         a truncated one, so the symptom is a plate with nothing on it, not a
         plate missing its tail.
+
+        Drafted through ``build_clone_plate_layout``, the call the app makes, so
+        a shipped workbook written in some order other than residue position is
+        asked the question the run asks it. The shipped template is one of
+        those: it is not sorted, and it is not sorted on purpose, so what this
+        proves is that an unsorted workbook still yields a full plate.
         """
         result = read_variant_source(path)
-        draft = build_draft_layout(result.expected, wt_ordinal=result.wt_ordinal)
+        draft = build_clone_plate_layout(
+            result.expected, wt_ordinal=result.wt_ordinal
+        )
         # Clones, not rows: rows sharing a mutant_id are one clone in one well.
         clones = len(distinct_occupants(result.expected))
 
@@ -163,9 +171,16 @@ class TestShippedVariantWorkbook:
         )
 
     def test_a_declared_wt_row_holds_the_well_its_row_number_names(self, path, sheets):
-        """A control row is an occupant. Dropping it pulls every later well up."""
+        """A control row is an occupant. Dropping it pulls every later well up.
+
+        Occupant ordinals, not sheet rows: the clone plate is ordered by residue
+        position before anything is placed, and the control of every shipped and
+        templated workbook is its last row, so it is also the last occupant.
+        """
         result = read_variant_source(path)
-        draft = build_draft_layout(result.expected, wt_ordinal=result.wt_ordinal)
+        draft = build_clone_plate_layout(
+            result.expected, wt_ordinal=result.wt_ordinal
+        )
         wells = list(draft.layout.values())
 
         assert wells.count("WT") == 1, (

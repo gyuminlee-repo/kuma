@@ -53,7 +53,7 @@ def handle_export_barcode_worklist(params: dict) -> dict:
     from kuma_core.mame.io.variant_list import read_variant_source
     from kuma_core.mame.layout import (
         apply_well_selection,
-        build_draft_layout,
+        build_clone_plate_layout,
         resolve_wt_placement,
     )
 
@@ -68,7 +68,7 @@ def handle_export_barcode_worklist(params: dict) -> dict:
     # worklist drawn for "no control" or "after the last variant" and a run
     # scored at the last well would send the bench to pipette a plate nobody
     # is actually scoring.
-    draft = build_draft_layout(
+    draft = build_clone_plate_layout(
         read.expected,
         wt_ordinal=read.wt_ordinal,
         wells=read.wells,

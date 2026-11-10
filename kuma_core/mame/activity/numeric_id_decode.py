@@ -206,8 +206,11 @@ def expected_variant_order(
 
     **Row order.** Without that column the list states an order and nothing
     more, so :func:`canonical_plate_order` fixes it and ``seq_to_well`` assigns
-    the column-major wells, which is the same arithmetic ``build_draft_layout``
-    does on that path.
+    the column-major wells, which is the same arithmetic
+    ``layout.build_clone_plate_layout`` does on that path. ``build_draft_layout``
+    itself does not order anything; it places the list as the caller hands it
+    over, which is why naming it here was wrong once a sheet arrived out of
+    position order.
 
     Prefer this over layout_variant_order when the design input supplies the
     intended placement rather than a separately maintained plate workbook.
@@ -236,7 +239,7 @@ def expected_variant_order(
     source = read_variant_source(Path(expected_xlsx))
     # A numeric ID counts tubes, so it counts clones. Rows sharing a mutant_id
     # are one clone in one well (``distinct_occupants``), the same count
-    # ``build_draft_layout`` places on; counting rows here would have given a
+    # ``build_clone_plate_layout`` places on; counting rows here would have given a
     # combination genotype two IDs and renamed every later one.
     if source.wells is None:
         placed = [

@@ -864,7 +864,7 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
     from kuma_core.mame.io.variant_list import read_variant_source
-    from kuma_core.mame.layout import build_draft_layout
+    from kuma_core.mame.layout import build_clone_plate_layout
 
     cds = read_reference_cds()
     variants = select_variants(cds)
@@ -878,7 +878,7 @@ def main() -> None:
     print(f"wrote {expected_path.relative_to(_REPO_ROOT)}")
 
     read = read_variant_source(expected_path)
-    draft = build_draft_layout(read.expected, wt_ordinal=read.wt_ordinal)
+    draft = build_clone_plate_layout(read.expected, wt_ordinal=read.wt_ordinal)
     if draft.dropped_mutant_ids:
         raise SystemExit(f"placement dropped {draft.dropped_mutant_ids}")
     layout = dict(draft.layout)

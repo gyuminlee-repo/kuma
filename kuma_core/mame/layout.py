@@ -301,6 +301,58 @@ def build_draft_layout(
     )
 
 
+def build_clone_plate_layout(
+    expected_mutations: list[ExpectedMutation],
+    wt_ordinal: int | None = None,
+    *,
+    wells: list[str] | None = None,
+    wt_well: str | None = None,
+    wt_placement: WtPlacement = DEFAULT_WT_PLACEMENT,
+) -> DraftLayout:
+    """Draft the clone plate the bench actually fills.
+
+    The bench fills the clone plate by residue position ascending, so a path
+    that models that plate has to order the mutants that way before placing
+    them. Ordering is the only thing this adds to :func:`build_draft_layout`,
+    which deliberately leaves the order to its caller: the row-order branch
+    there places occupant *j* on well *j* and has no business deciding what *j*
+    means. Keeping the ordering out here rather than inside is what lets one
+    caller model the plate and another compare a stated one.
+
+    Only the row-order branch is reordered. ``wells`` is one stated address per
+    ROW, paired with ``expected_mutations`` positionally, so sorting one and not
+    the other would re-seat the plate. A file that states its wells is passed
+    through untouched, because its order is a statement rather than a guess.
+
+    A clone spanning several rows (a combination genotype, one row per
+    substitution) sorts at its lowest position: :func:`canonical_plate_order`
+    sorts stably and :func:`distinct_occupants` keeps the first row it sees.
+    That is the same answer
+    ``activity.numeric_id_decode.expected_variant_order`` reaches, which is the
+    point of this function. The two paths place the same plate and used to
+    disagree on every sheet that was not already written in position order.
+
+    ``wt_ordinal`` is read against the ORDERED list, not against the sheet. It
+    is an occupant ordinal rather than a row number, and the occupants here are
+    the ordered ones, so a control row in the middle of a sheet lands after the
+    *n*th mutant OF THE PLATE. Only ``WtPlacement.AFTER_LAST_VARIANT`` consults
+    it at all, and a control listed last (what every shipped and templated
+    workbook does) reaches the same well either way.
+
+    ``io.plate_order_check`` is the one clone-plate reader that must NOT call
+    this; the comment at its call site says why.
+    """
+    if wells is None:
+        expected_mutations = canonical_plate_order(expected_mutations)
+    return build_draft_layout(
+        expected_mutations,
+        wt_ordinal,
+        wells=wells,
+        wt_well=wt_well,
+        wt_placement=wt_placement,
+    )
+
+
 def _place_on_stated_wells(
     expected_mutations: list[ExpectedMutation],
     wells: list[str],
@@ -430,6 +482,7 @@ __all__ = [
     "DraftLayout",
     "WtPlacement",
     "apply_well_selection",
+    "build_clone_plate_layout",
     "build_draft_layout",
     "canonical_plate_order",
     "distinct_occupants",

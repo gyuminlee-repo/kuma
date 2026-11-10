@@ -254,9 +254,15 @@ def _expected_layout(
     ids = [m.mutant_id for m in read.expected]
     if len(set(ids)) != len(ids):
         return None
-    # Every argument the run passes, and the same control-well default. This
-    # check is only worth anything while it names the wells the run names, so it
-    # follows ``build_draft_layout`` rather than pinning a policy of its own.
+    # ``build_draft_layout`` rather than ``build_clone_plate_layout``, which is
+    # what every other clone-plate path calls. The comparison here is against
+    # the KURO primer-plate sheets, and KURO assigns those wells by design-sheet
+    # index (``kuro.plate_mapper._assign_well``), so ordering this side by
+    # residue position would report a disagreement for every workbook written in
+    # design order, which is most of them. A disagreement blocks the run
+    # (``sidecar_mame.handlers.analyze``), so the check has to read the sheet the
+    # way the sheet was written. Everything else is the arguments the run passes,
+    # control-well default included.
     draft = build_draft_layout(
         read.expected,
         wt_ordinal=read.wt_ordinal,
