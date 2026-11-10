@@ -5,10 +5,12 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
+    from .mutation import Mutation
     from .sdm_engine import OverlapMode, SdmPrimerResult
 
 
@@ -240,6 +242,187 @@ def cmd_plate_map(args: argparse.Namespace) -> None:
     logging.info("Plate mapping saved to %s", output_path)
 
 
+FASTA_SUFFIXES: tuple[str, ...] = (".fa", ".fasta", ".fna")
+ANNOTATED_SUFFIXES: tuple[str, ...] = (".gb", ".gbff", ".gbk", ".dna")
+# .dna is readable but not writable, so it is not an output format.
+GENBANK_OUT_SUFFIXES: tuple[str, ...] = (".gb", ".gbff", ".gbk")
+
+
+def _load_wild_type(path: Path) -> tuple[str, str]:
+    """Read the wild-type template, choosing the reader the suffix requires.
+
+    An annotated file goes through ``load_sequence``, the same reader the
+    design command uses, so a file this command accepts is a file a design run
+    accepts. A raw FASTA has no CDS annotation and ``load_sequence`` rejects
+    it, so the raw reader is used for those suffixes.
+    """
+    from .sdm_engine import load_fasta, load_sequence
+
+    if path.suffix.lower() in ANNOTATED_SUFFIXES:
+        header, sequence, _genes = load_sequence(path)
+        return header, sequence
+    return load_fasta(path)
+
+
+def read_recorded_substitutions(
+    tsv_paths: Sequence[str | Path],
+) -> tuple[dict[str, "Mutation"], dict[str, str]]:
+    """Collect the codon each design round actually chose, keyed by notation.
+
+    Rounds accumulate: every file is read and the union is returned in first-seen
+    order. The same notation appearing twice with the same codons is one
+    recorded choice and is kept once. The same notation recorded with different
+    codons is refused rather than resolved by file order, because either file
+    could be the one that describes the clone on the bench.
+
+    Args:
+        tsv_paths: Design TSVs written by ``export_results_tsv``, oldest first.
+
+    Returns:
+        The substitutions by notation, and the file each one was first read from.
+
+    Raises:
+        ValueError: If one notation carries different codons in two files.
+    """
+    recorded: dict[str, Mutation] = {}
+    sources: dict[str, str] = {}
+    for raw_path in tsv_paths:
+        path = Path(raw_path)
+        _mode, results = read_design_tsv(path)
+        for result in results:
+            notation = result.mutation.raw.strip()
+            previous = recorded.get(notation)
+            if previous is None:
+                recorded[notation] = result.mutation
+                sources[notation] = str(path)
+                continue
+            if (previous.wt_codon, previous.mt_codon) != (
+                result.mutation.wt_codon, result.mutation.mt_codon
+            ):
+                raise ValueError(
+                    f"{notation} is recorded with codon {previous.mt_codon} in "
+                    f"{sources[notation]} and {result.mutation.mt_codon} in "
+                    f"{path}; the template cannot be rebuilt without knowing "
+                    f"which clone is meant."
+                )
+    return recorded, sources
+
+
+def _select_substitutions(
+    recorded: dict[str, "Mutation"], requested: Sequence[str] | None
+) -> list["Mutation"]:
+    """Pick the substitutions to apply, or refuse an unrecorded request.
+
+    No selection means the whole union of the given files. A selection is read
+    with the same splitter as a KURO mutation CSV, so a genotype token copied
+    from a candidate list (``S304C:V547I``) or written with slashes both work.
+    """
+    from .mutation import split_multi_notation
+
+    if not requested:
+        return list(recorded.values())
+
+    notations: list[str] = []
+    for token in requested:
+        notations.extend(split_multi_notation(token))
+    notations = list(dict.fromkeys(notations))
+    if not notations:
+        raise ValueError(
+            "The requested genotype carries no substitution; drop --genotype to "
+            "apply every recorded substitution."
+        )
+    missing = [n for n in notations if n not in recorded]
+    if missing:
+        raise ValueError(
+            f"Not recorded in the given design results: {', '.join(missing)}. "
+            f"Recorded: {', '.join(recorded) or 'none'}"
+        )
+    return [recorded[n] for n in notations]
+
+
+def _format_fasta(identifier: str, genotype: str, sequence: str) -> str:
+    """Write the rebuilt sequence with its genotype on the header line."""
+    width = 60
+    lines = [f">{identifier} genotype={genotype}"]
+    lines.extend(sequence[i:i + width] for i in range(0, len(sequence), width))
+    return "\n".join(lines) + "\n"
+
+
+def _format_genbank(source: Path, genotype: str, sequence: str) -> str:
+    """Rewrite the annotated source record with the rebuilt sequence.
+
+    The design command needs a CDS annotation and rejects a plain FASTA, so a
+    template meant to be designed against has to keep the record it came from.
+    The rebuild never changes length, so every feature coordinate still holds.
+    """
+    import io
+
+    from Bio import SeqIO
+    from Bio.Seq import Seq
+
+    fmt = "snapgene" if source.suffix.lower() == ".dna" else "genbank"
+    record = SeqIO.read(source, fmt)
+    if len(record.seq) != len(sequence):
+        raise ValueError(
+            f"Source record is {len(record.seq)} bp but the rebuilt sequence is "
+            f"{len(sequence)} bp; annotations would no longer line up."
+        )
+    record.seq = Seq(sequence)
+    record.description = f"{record.description} genotype={genotype}".strip()
+    record.annotations.setdefault("molecule_type", "DNA")
+    handle = io.StringIO()
+    SeqIO.write(record, handle, "genbank")
+    return handle.getvalue()
+
+
+def cmd_template(args: argparse.Namespace) -> None:
+    """Rebuild the DNA of a clone a previous round designed.
+
+    Nothing in the design engine changes: the product is an ordinary template
+    file, and designing the next substitution against it yields primers that
+    match the clone instead of the wild type.
+    """
+    from kuma_core.shared.atomic_write import atomic_write_text
+    from .mutation import rebuild_template_sequence
+
+    source = Path(args.fasta)
+    output_path = Path(args.output)
+    suffix = output_path.suffix.lower()
+    if suffix not in FASTA_SUFFIXES + GENBANK_OUT_SUFFIXES:
+        raise SystemExit(
+            f"Unsupported output suffix {output_path.suffix!r}; use one of "
+            f"{', '.join(FASTA_SUFFIXES + GENBANK_OUT_SUFFIXES)}"
+        )
+    if suffix not in FASTA_SUFFIXES and source.suffix.lower() not in ANNOTATED_SUFFIXES:
+        raise SystemExit(
+            f"An annotated output needs an annotated input; {source.name} carries "
+            f"no record to rewrite."
+        )
+
+    try:
+        recorded, _sources = read_recorded_substitutions(args.primers)
+        selected = _select_substitutions(recorded, args.genotype)
+        header, wild_type = _load_wild_type(source)
+        rebuilt = rebuild_template_sequence(wild_type, args.target_start, selected)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+
+    ordered = sorted(selected, key=lambda m: m.position)
+    genotype = "/".join(m.raw for m in ordered)
+    if suffix in FASTA_SUFFIXES:
+        identifier = (header.split() or [source.stem])[0]
+        text = _format_fasta(identifier, genotype, rebuilt)
+    else:
+        text = _format_genbank(source, genotype, rebuilt)
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    atomic_write_text(output_path, text)
+    logging.info(
+        "Template for %s (%d substitutions, %d bp) saved to %s",
+        genotype, len(ordered), len(rebuilt), output_path,
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the CLI parser without reading process arguments."""
     parser = argparse.ArgumentParser(
@@ -345,6 +528,34 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output Excel file (default: plate_mapping.xlsx)"
     )
 
+    # template subcommand
+    template_parser = subparsers.add_parser(
+        "template",
+        help="Rebuild the template sequence of a clone designed in earlier rounds",
+    )
+    template_parser.add_argument(
+        "--fasta", required=True,
+        help="Wild-type template the earlier rounds were designed against"
+    )
+    template_parser.add_argument(
+        "--target-start", type=int, required=True,
+        help="0-based position of CDS start codon (ATG); the value the design run was given"
+    )
+    template_parser.add_argument(
+        "--primers", required=True, nargs="+",
+        help="One or more primer TSV files from design steps, oldest first"
+    )
+    template_parser.add_argument(
+        "--genotype", action="append", default=None,
+        help="Substitutions to apply, e.g. 'S304C/V547I' or 'S304C:V547I'; "
+             "repeatable. Default: every substitution in the given TSVs"
+    )
+    template_parser.add_argument(
+        "--output", required=True,
+        help="Output template file; .fa/.fasta/.fna writes FASTA, .gb/.gbff/.gbk "
+             "rewrites the annotated input record (what the design command reads)"
+    )
+
     return parser
 
 
@@ -357,6 +568,8 @@ def main() -> None:
         cmd_design(args)
     elif args.command == "plate-map":
         cmd_plate_map(args)
+    elif args.command == "template":
+        cmd_template(args)
 
 
 if __name__ == "__main__":
