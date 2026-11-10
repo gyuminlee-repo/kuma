@@ -316,7 +316,8 @@ def _results_on_plate(results, mappings: list[PlateMapping]) -> list:
     more (a plate cap such as ``maxPrimers=95``, a well removed on screen), and
     ``expected_mutations`` appends every result the plate does not carry, so an
     unfiltered list turns each dropped mutation into a trailing ghost well. MAME
-    reads row *i* as well *i*, so the row count must equal the well count.
+    gives a well to each distinct ``mutant_id``, so the rows this leaves must name
+    exactly the clones the plate carries.
     Shared by :func:`handle_export_excel` and :func:`handle_export_all`.
     """
     on_plate = {m.mutation for m in mappings if m.primer_type == "forward"}
