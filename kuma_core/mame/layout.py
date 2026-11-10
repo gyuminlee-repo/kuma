@@ -181,6 +181,32 @@ def canonical_plate_order(
     return sorted(expected_mutations, key=lambda m: m.position)
 
 
+def distinct_occupants(
+    expected_mutations: list[ExpectedMutation],
+) -> list[ExpectedMutation]:
+    """One row per clone, in first-appearance order.
+
+    A well holds a clone, not a substitution. A combination genotype is one
+    clone carrying several substitutions and is written as one row per
+    substitution sharing a ``mutant_id`` (the shipped template
+    ``templates/03_mame_expected_mutations.xlsx`` does exactly that for
+    ``M006``), so counting rows counts that clone twice: it took two wells and
+    pushed every later clone and the control one place down.
+
+    ``mutant_id`` alone is the occupant key. The reader already refuses the same
+    id under two different groups (``io.variant_list._read_kuro_export``), so a
+    repeated id is one clone by construction, and ``DraftLayout.layout`` names
+    its occupant by that id, which could not mean two things at once anyway.
+
+    The row kept is the first one seen, so the caller's order decides the plate
+    exactly as it did when every clone was one row.
+    """
+    first: dict[str, ExpectedMutation] = {}
+    for mutation in expected_mutations:
+        first.setdefault(mutation.mutant_id, mutation)
+    return list(first.values())
+
+
 #: Wells one plate has left for mutants once the WT control takes its own.
 MUTANT_CAPACITY = _PLATE_CAPACITY - 1
 
@@ -217,6 +243,12 @@ def build_draft_layout(
     output to get the plate the bench actually fills; the list as given keeps
     KURO sheet order.
 
+    **Rows against clones.** An occupant is a clone, so several rows sharing a
+    ``mutant_id`` are one occupant taking one well, and ``N`` below counts
+    clones rather than rows (:func:`distinct_occupants`). Counting rows gave a
+    combination genotype a well per substitution and moved every later clone
+    and the control down by the difference.
+
     Capacity on the row-order branch is decided on total occupancy (``N + 1``)
     BEFORE anything is placed, because ``N`` alone is the wrong question: 96
     mutants plus a control is 97 wells, and placing first and clamping
@@ -238,13 +270,15 @@ def build_draft_layout(
     if wells is not None:
         return _place_on_stated_wells(expected_mutations, wells, wt_well)
 
-    n = len(expected_mutations)
+    # Clones, not rows: a combination genotype spans one row per substitution
+    # under one ``mutant_id`` and is one clone in one well. See
+    # :func:`distinct_occupants`.
+    occupants = distinct_occupants(expected_mutations)
+    n = len(occupants)
     if n > MUTANT_CAPACITY:
         return DraftLayout(
             layout={},
-            dropped_mutant_ids=[
-                m.mutant_id for m in expected_mutations[MUTANT_CAPACITY:]
-            ],
+            dropped_mutant_ids=[m.mutant_id for m in occupants[MUTANT_CAPACITY:]],
         )
 
     if wt_placement is WtPlacement.NONE:
@@ -259,7 +293,7 @@ def build_draft_layout(
     # AFTER_LAST_VARIANT opens a gap at its ordinal and pushes the rest down,
     # and NONE excludes nothing.
     mutant_seqs = [s for s in range(1, _PLATE_CAPACITY + 1) if s != wt_seq][:n]
-    placed = dict(zip(mutant_seqs, (m.mutant_id for m in expected_mutations)))
+    placed = dict(zip(mutant_seqs, (m.mutant_id for m in occupants)))
     if wt_seq is not None:
         placed[wt_seq] = WT_SAMPLE
     return DraftLayout(
@@ -280,6 +314,12 @@ def _place_on_stated_wells(
     thing this adds is the ordering, because ``DraftLayout.layout`` promises
     column-major insertion order and a file lists its rows in whatever order the
     operator typed them.
+
+    ``wells`` stays per ROW, which is how the reader produces it, so the length
+    check is unchanged. What a clone spanning several rows adds is one rule: all
+    of its rows have to state the same well, since one clone sits in one place.
+    Rows disagreeing about it is not something to resolve by picking one, so it
+    is refused.
     """
     if len(wells) != len(expected_mutations):
         raise ValueError(
@@ -288,6 +328,15 @@ def _place_on_stated_wells(
             "the reader as one list of pairs, so a mismatch means one of them "
             "was re-ordered or filtered on its own, which re-seats the plate."
         )
+    occupant_wells: dict[str, str] = {}
+    for well, mutation in zip(wells, expected_mutations):
+        seated = occupant_wells.setdefault(mutation.mutant_id, well)
+        if seated != well:
+            raise ValueError(
+                f"variant '{mutation.mutant_id}' states two wells ({seated} "
+                f"and {well}). Rows sharing a mutant_id are one clone, which "
+                "occupies one well."
+            )
     placed = {
         well: mutation.mutant_id
         for well, mutation in zip(wells, expected_mutations)
@@ -383,6 +432,7 @@ __all__ = [
     "apply_well_selection",
     "build_draft_layout",
     "canonical_plate_order",
+    "distinct_occupants",
     "normalise_selected_wells",
     "resolve_wt_placement",
 ]

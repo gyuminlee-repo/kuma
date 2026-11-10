@@ -110,8 +110,11 @@ def plate_order_payload(report) -> dict:
 def handle_check_plate_order(params: dict) -> dict:
     """Report whether an exported workbook describes one plate or two.
 
-    MAME reads row *i* of ``expected_mutations`` as well *i*, so that sheet and the
-    primer plate sheets in the same file are the same statement written twice. Exports
+    MAME gives a well to each distinct ``mutant_id`` of ``expected_mutations``, so
+    while a clone has one primer pair that sheet and the primer plate sheets in the
+    same file are the same statement written twice. A file carrying a combination
+    genotype (several rows under one id) holds one clone against several primer
+    wells, and the check answers ``comparable: false`` rather than comparing. Exports
     written before v0.14.3 could disagree, and the disagreement is invisible in the
     numbers: every well gets a variant and the verdicts come out scored against a plate
     nobody built. A caller asks this when loading a project so the mismatch is stated

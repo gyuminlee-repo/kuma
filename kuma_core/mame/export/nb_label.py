@@ -46,8 +46,9 @@ def well_sort_key(custom: str) -> tuple[int, int]:
     A1, B1, ... H1, A2, ...
 
     Placement references that fix this axis:
-      - ``kuma_core/mame/layout.py`` ``build_draft_layout`` (design sheet row i
-        -> ``seq_to_well(i)``)
+      - ``kuma_core/mame/layout.py`` ``build_draft_layout`` (design sheet
+        occupant i -> ``seq_to_well(i)``; rows sharing a ``mutant_id`` are one
+        occupant)
       - ``kuma_core/kuro/plate_mapper.py`` (``order="column"`` default)
       - ``kuma_core/mame/export/excel_writer.py`` Final (legacy grid)
 

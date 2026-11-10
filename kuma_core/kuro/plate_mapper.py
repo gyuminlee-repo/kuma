@@ -397,8 +397,9 @@ def _pair_rev_per_plate(
 def _order_results_by_plate(results: list, mappings: list[PlateMapping]) -> list:
     """Return *results* in the well order the plate sheets use.
 
-    MAME assigns well *i* from row *i* of this sheet (``build_draft_layout``), so the
-    row order here is a plate coordinate, not a presentation choice. The plate sheets
+    MAME assigns a well per distinct ``mutant_id`` of this sheet, in the order the
+    rows first name one (``build_draft_layout``), so the row order here is a plate
+    coordinate, not a presentation choice. The plate sheets
     are written from ``mappings`` while this sheet used to iterate ``results``, which
     arrives in design order (the ranking a diversity or EVOLVEpro run produced). One
     workbook then described two different plates, and reading the wrong one places
@@ -494,12 +495,21 @@ def _write_expected_mutations_sheet(
 ) -> None:
     """Append 'expected_mutations' sheet to workbook.
 
-    One row per plate well, in well order, because MAME reads row *i* of this sheet as
-    well *i*. Callers build the pairs with :func:`_plate_ordered_row_sources`; a well
-    whose mutation has no design result is written from its mapping rather than
-    skipped, since a skipped row renames every later well.
-    Multi-notation (A40P/E61Y) produces one row per sub-mutation;
-    they are linked via group_id.
+    One row per designed primer set, in plate order. MAME gives a well to each
+    distinct ``mutant_id``, in the order the rows first name one, so the row order
+    here is a plate coordinate. Callers build the pairs with
+    :func:`_plate_ordered_row_sources`; a well whose mutation has no design result
+    is written from its mapping rather than skipped, since a skipped row renames
+    every later well.
+
+    Multi-notation (A40P/E61Y) produces one row per sub-mutation. The two carry
+    that notation as their shared ``mutant_id``, because the row identifies the
+    CLONE and a combination genotype is one clone: both substitutions are expected
+    in its one well, and MAME scores the well against the union of the rows
+    sharing the id. ``primer_set_ref`` stays the component notation (``A40P``),
+    which is the primer pair that row actually orders and the name that pair
+    carries on the plate sheets. ``group_id`` is unchanged and still states the
+    source notation.
     FAILED mutations excluded in Phase 1.
 
     Sheet columns (in order):
@@ -547,7 +557,12 @@ def _write_expected_mutations_sheet(
         m = r.mutation
         rescue_meta = rescued_lookup.get(m.raw, {})
         ws.append([
-            m.raw,
+            # The CLONE this row belongs to. A combination row carries the whole
+            # genotype (``group_id``, e.g. "A40P/E61Y") so that its rows share
+            # one id and MAME seats them in one well expecting both
+            # substitutions; a single mutation has no group, so this is
+            # ``m.raw`` and the sheet is unchanged.
+            m.group_id or m.raw,
             m.position,
             m.wt_aa,
             m.mt_aa,
