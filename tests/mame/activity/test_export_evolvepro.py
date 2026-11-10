@@ -142,12 +142,24 @@ def test_export_evolvepro_xlsx_uses_fold_change_as_activity(tmp_path: Path) -> N
 
 
 def test_export_evolvepro_xlsx_skips_non_canonical(tmp_path: Path) -> None:
-    """Multi-substitution or malformed variant strings are excluded."""
+    """Malformed variant strings are excluded.
+
+    A multi-substitution label used to be excluded here too. It is a
+    combination genotype, one clone, so it is now written with its components'
+    short forms joined by ':'. What stays excluded is a label naming no
+    parseable substitution, and a combination naming one position twice, which
+    is not a genotype one clone can carry.
+    """
     rows = [
-        _row(),  # canonical F89W → kept
-        _row(well_id="C03", mutation="F89W/L70V"),  # multi-sub → excluded
+        _row(),  # canonical F89W, kept
+        _row(well_id="C03", mutation="F89W/L70V"),  # combination, kept
+        _row(well_id="C04", mutation="L70V;F89W"),  # unsupported separator
+        _row(well_id="C05", mutation="F89W/F89L"),  # one position twice
     ]
     out = tmp_path / "evolvepro_nc.xlsx"
     n_written, excluded = export_evolvepro_xlsx(rows, out)
-    assert n_written == 1
-    assert any(reason == "non_canonical_variant" for _label, reason in excluded)
+    assert n_written == 2
+    assert [label for label, reason in excluded if reason == "non_canonical_variant"] == [
+        "L70V;F89W",
+        "F89W/F89L",
+    ]

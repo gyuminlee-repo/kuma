@@ -380,7 +380,7 @@ def handle_merge_for_evolvepro(params: dict) -> dict:
         WtReplicateRecord,
     )
     from kuma_core.mame.activity.sanity_check import detect_label_swap
-    from kuma_core.mame.activity.variant_notation import from_evolvepro
+    from kuma_core.mame.activity.variant_notation import from_evolvepro_label
     round_id: str = params["round_id"]  # KeyError → -32602 via dispatcher
     prev_round_evolvepro: dict[str, float] = params.get("prev_round_evolvepro", {})
     authoritative_measurements: dict[str, list[float]] = params.get(
@@ -455,18 +455,21 @@ def handle_merge_for_evolvepro(params: dict) -> dict:
         # Phase B replicate merge (skipped when no replicate data provided).
         replicate_stats: MergeReplicatesStats | None = None
         if has_replicate_data:
-            # Convert short EVOLVEpro notation → internal notation.
-            # ValueError from from_evolvepro (bad notation) → -32602 via dispatcher.
+            # Convert short EVOLVEpro notation to internal notation. A short
+            # combination key ('304C:547I') converts component by component to
+            # the canonical full form; it used to be rejected outright.
+            # ValueError from from_evolvepro_label (bad notation) is -32602 via
+            # the dispatcher, and the request and response shapes are unchanged.
             # ref_seq is a validated, non-empty string here: the earlier
             # has_replicate_data block raised unless it was one, and neither it
             # nor has_replicate_data is reassigned in between.
             assert ref_seq is not None
             authoritative_internal: dict[Variant, list[float]] = {
-                Variant(from_evolvepro(k, ref_seq)): v
+                Variant(from_evolvepro_label(k, ref_seq)): v
                 for k, v in authoritative_measurements.items()
             }
             fallback_internal: dict[Variant, list[float]] = {
-                Variant(from_evolvepro(k, ref_seq)): v
+                Variant(from_evolvepro_label(k, ref_seq)): v
                 for k, v in fallback_measurements.items()
             }
 

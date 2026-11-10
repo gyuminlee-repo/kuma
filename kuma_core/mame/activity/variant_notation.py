@@ -241,12 +241,52 @@ def to_evolvepro_label(internal: str) -> str:
 def is_short_label(short: str) -> bool:
     """True iff *short* is EVOLVEpro short notation, a combination included.
 
-    '89W' and '304C:547I' are; 'F89W', 'WT' and '304C:F547I' are not.
+    '89W' and '304C:547I' are; 'F89W', 'WT', '304C:F547I' and a combination
+    naming one position twice are not.
     """
     if not is_combination_label(short):
         return _SHORT_RE.match(short) is not None
+    try:
+        canonical_short_label(short)
+    except ValueError:
+        return False
+    return True
+
+
+def canonical_short_label(short: str) -> str:
+    """The canonical spelling of a short label: components by position, ``:``-joined.
+
+    The short-form counterpart of :func:`canonical_label`, so a sheet naming a
+    sample '547I:304C' and a design naming it 'S304C:V547I' answer the same
+    key. A single short form is returned unchanged.
+
+    Raises:
+        ValueError: If a component is not short notation, or if two components
+            name the same position.
+    """
+    if not is_combination_label(short):
+        return short
     tokens = [token.strip() for token in _SEPARATOR_RE.split(short.strip())]
-    return all(_SHORT_RE.match(token) is not None for token in tokens)
+    by_position: dict[int, str] = {}
+    for token in tokens:
+        match = _SHORT_RE.match(token)
+        if match is None:
+            raise ValueError(
+                f"cannot parse short combination {short!r}: component "
+                f"{token!r} is not EVOLVEpro short notation (expected pattern "
+                "\\d+[A-Z], e.g. '89W')"
+            )
+        position = int(match.group(1))
+        if position in by_position:
+            raise ValueError(
+                f"short combination {short!r} names position {position} twice "
+                f"({by_position[position]!r} and {token!r}); one clone carries "
+                "one substitution per position"
+            )
+        by_position[position] = token
+    return _COMBINATION_SEPARATOR.join(
+        by_position[position] for position in sorted(by_position)
+    )
 
 
 def from_evolvepro_label(short: str, ref_seq: str) -> str:

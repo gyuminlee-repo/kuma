@@ -178,9 +178,13 @@ class TestNumericIdOrder:
             ("G2A/F3W", "A01"),
             ("K4R", "B01"),
         ]
-        # The combination has no EVOLVEpro short form, and the slot is kept.
-        assert order[0][0] is None
-        assert len(warnings) == 1
+        # The combination keeps its slot AND is labelled. It used to have no
+        # EVOLVEpro short form, so the slot was kept unlabelled and a warning
+        # said the clone was omitted from EVOLVEpro output. A combination is
+        # one clone with one identity, so its short form is its components'
+        # short forms joined by ':' and nothing is omitted or warned about.
+        assert order[0][0] == "2A:3W"
+        assert warnings == []
 
     def test_it_agrees_with_the_draft_layout(self, tmp_path):
         """The two placements are read by different code and must not diverge."""
