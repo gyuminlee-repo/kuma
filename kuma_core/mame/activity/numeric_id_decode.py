@@ -25,7 +25,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 from collections.abc import Callable, Sequence
-from typing import TypeAlias
+from typing import TYPE_CHECKING, TypeAlias
+
+if TYPE_CHECKING:
+    from kuma_core.mame.layout import WtPlacement
 
 from .evolvepro_xlsx import BlockRepBatchResult, GcRow, parse_agilent_block_rep_batch
 from .normalize import wt_denominator
@@ -186,6 +189,7 @@ def layout_variant_order(
 
 def expected_variant_order(
     expected_xlsx: str | Path,
+    wt_placement: WtPlacement | None = None,
 ) -> tuple[DecodeOrder, list[str]]:
     """Decode order straight from the expected-variant list.
 
@@ -205,19 +209,37 @@ def expected_variant_order(
     a stated-well file is free to list its rows in any order.
 
     **Row order.** Without that column the list states an order and nothing
-    more, so :func:`canonical_plate_order` fixes it and ``seq_to_well`` assigns
-    the column-major wells, which is the same arithmetic
-    ``layout.build_clone_plate_layout`` does on that path. ``build_draft_layout``
-    itself does not order anything; it places the list as the caller hands it
-    over, which is why naming it here was wrong once a sheet arrived out of
-    position order.
+    more, and the placement is delegated to
+    :func:`~kuma_core.mame.layout.build_clone_plate_layout`, the one function
+    that decides the clone-plate order. Deriving it here a second way is what
+    let this path and the plate name different wells for one clone: the sorting
+    was reproduced but the control well was not, so
+    ``WtPlacement.AFTER_LAST_VARIANT`` opened a gap on the plate that this path
+    did not open. Measured on a sheet of ``M001`` (position 233), ``WT``,
+    ``M002`` (150), ``M003`` (4): the plate read ``A01=M003, C01=M002,
+    D01=M001`` and this path read ``A01=M003, B01=M002, C01=M001``.
+
+    ``wt_placement`` is the control-well policy the run used, and ``None`` takes
+    :data:`~kuma_core.mame.layout.DEFAULT_WT_PLACEMENT` exactly as every RPC
+    that accepts the parameter does. It has to travel: the well a variant is
+    decoded into is joined against the per-well NGS verdicts
+    (``activity.build_evolvepro_input._strict_ngs_gate``), so answering under a
+    different placement than the run used mislabels that join. No activity RPC
+    carries the parameter yet, so the shipped decode is on the default; see the
+    note in :func:`decode_primary_screen`.
+
+    Over capacity the delegated call places nothing, so this raises rather than
+    returning a short order. A decode order missing its tail would bind every
+    numeric ID past the cut to the wrong clone, which is the failure this whole
+    module exists to prevent.
 
     Prefer this over layout_variant_order when the design input supplies the
     intended placement rather than a separately maintained plate workbook.
 
     Wells leave in the zero-padded spelling (``A01``) the activity path compares
-    on, the one ``layout_variant_order`` already produces. ``seq_to_well``
-    answers ``A1``, and the two spellings are the same well to a person and two
+    on, the one ``layout_variant_order`` already produces. The layout path
+    answers ``A1`` (``export.well_mapper.seq_to_well``), and the two spellings
+    are the same well to a person and two
     different strings to the strict NGS gate, which refused a build over the
     difference.
 
@@ -230,9 +252,12 @@ def expected_variant_order(
     ``is_wt`` entries, and a stated ``wells`` list is aligned with the mutants
     that survive that drop.
     """
-    from kuma_core.mame.export.well_mapper import seq_to_well
     from kuma_core.mame.io.variant_list import read_variant_source
-    from kuma_core.mame.layout import canonical_plate_order, distinct_occupants
+    from kuma_core.mame.layout import (
+        DEFAULT_WT_PLACEMENT,
+        WT_SAMPLE,
+        build_clone_plate_layout,
+    )
 
     warnings: list[str] = []
     order: DecodeOrder = []
@@ -242,11 +267,29 @@ def expected_variant_order(
     # ``build_clone_plate_layout`` places on; counting rows here would have given a
     # combination genotype two IDs and renamed every later one.
     if source.wells is None:
-        placed = [
-            (mutation, seq_to_well(seq))
-            for seq, mutation in enumerate(
-                distinct_occupants(canonical_plate_order(source.expected)), 1
+        draft = build_clone_plate_layout(
+            source.expected,
+            wt_ordinal=source.wt_ordinal,
+            wells=None,
+            wt_well=None,
+            wt_placement=(
+                DEFAULT_WT_PLACEMENT if wt_placement is None else wt_placement
+            ),
+        )
+        # The over-capacity refusal, not an empty layout: a list of no occupants
+        # under ``WtPlacement.NONE`` is also an empty layout and has nothing to
+        # name.
+        if draft.dropped_mutant_ids:
+            raise ValueError(
+                "the expected-variant list does not fit one plate: "
+                f"{', '.join(draft.dropped_mutant_ids)} would be left off, so "
+                "there is no decode order to count numeric IDs against"
             )
+        by_id = {m.mutant_id: m for m in source.expected}
+        placed = [
+            (by_id[occupant], well)
+            for well, occupant in draft.layout.items()
+            if occupant != WT_SAMPLE
         ]
     else:
         seen_ids: set[str] = set()
@@ -403,9 +446,18 @@ def decode_primary_screen(
     before that, and for the case where the bench deliberately departed from the
     design order.
 
+    The design order is read under the default control-well policy. No RPC in
+    front of this path carries ``wt_placement``, so a run analysed with
+    ``WtPlacement.AFTER_LAST_VARIANT`` from a sheet whose control row sits in
+    the middle is decoded against a plate whose later wells are one place up.
+    The parameter exists on :func:`expected_variant_order` for a caller that
+    knows the policy; wiring it through the activity RPC is not done here. A
+    campaign in that case passes ``layout_xlsx``, which states its wells.
+
     Raises:
-        ValueError: neither or both order sources given, WT blocks missing, or the
-            ID set does not line up with the order one to one.
+        ValueError: neither or both order sources given, WT blocks missing, the
+            ID set does not line up with the order one to one, or the design
+            list does not fit one plate.
     """
     if (layout_xlsx is None) == (expected_xlsx is None):
         raise ValueError(

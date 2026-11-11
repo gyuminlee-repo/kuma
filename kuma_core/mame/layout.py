@@ -327,10 +327,22 @@ def build_clone_plate_layout(
     A clone spanning several rows (a combination genotype, one row per
     substitution) sorts at its lowest position: :func:`canonical_plate_order`
     sorts stably and :func:`distinct_occupants` keeps the first row it sees.
-    That is the same answer
-    ``activity.numeric_id_decode.expected_variant_order`` reaches, which is the
-    point of this function. The two paths place the same plate and used to
-    disagree on every sheet that was not already written in position order.
+    ``activity.numeric_id_decode.expected_variant_order`` does not reproduce any
+    of this: it calls this function and reads the wells back off the layout,
+    which is the point of having one. Reproducing the sorting there carried the
+    sheet order but not the control well, so ``AFTER_LAST_VARIANT`` opened a gap
+    on the plate that the decode did not open, and before the sorting the two
+    disagreed on every sheet not already written in position order.
+
+    **Over capacity the dropped clones are the highest positions, not the sheet
+    tail.** Sorting happens here and the ceiling is applied inside
+    :func:`build_draft_layout`, which names ``occupants[MUTANT_CAPACITY:]`` of
+    the list it was handed, so a 96-clone sheet loses the clone with the largest
+    residue position whatever row it was written on. That is the plate the bench
+    would fill: it pipettes in position order and runs out of wells at the end.
+    The sheet-order caller still drops the sheet's own tail, so the two answers
+    differ for the same workbook and the names in ``dropped_mutant_ids`` are
+    only meaningful together with which function produced them.
 
     ``wt_ordinal`` is read against the ORDERED list, not against the sheet. It
     is an occupant ordinal rather than a row number, and the occupants here are
