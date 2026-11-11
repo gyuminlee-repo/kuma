@@ -90,6 +90,12 @@ several findings.
 | `6a952e1b` v0.16.34.02 | The shutdown tests budgeted for the clean exit they assert rather than for a fast one, with a real hang confirmed to still fail |
 | `03eb1594` v0.16.34.03 | Non-finite cells kept out of the run report figures, unknown fitness scores dropped rather than ranked as zero, an unreadable position refused, colliding wells counted, and the structure parsers given one finite-or-absent rule |
 | `e8924aca` v0.16.34.04 | Every reverse diagnostic carried through a primer swap on both propagation paths and in the store, an empty mapping payload told apart from an absent one, the entropy weight given the ceiling its twin already had (closes sidecar F16), and the quality gate actually run when there is no sequencing summary |
+| `54428e6e` v0.16.84 | mame: a terminal stop compared without losing an unintended one, numeric activity IDs decoded in plate order, a declared identity validated before every primary reader, and one measurement rule and one wild-type denominator rule across the GC readers |
+| `c6fb4df9` v0.16.84 | kuro: expected mutations scoped per plate, one chain and one model read from PDB C-alpha records with insertion codes skipped, a circular design giving the same primers whatever base the sequence starts at, dispersion reported in the reference frame without an accession, partial CDS translation repaired, scientific notation accepted in codon tables, and misgrouped codon counts reported |
+| `36edc0fa` v0.16.84 | host: a dedicated stdin writer with one deadline for queueing and waiting, requests past that deadline dropped, atomic host and archive writes through exclusively created temporary files, recovery from a config corrupted at the byte level, and a health probe that reports a stopped instance |
+| `72b858cb` v0.16.84 | tooling: a release tag checked against the app manifests, a nonempty output root refused instead of deleted, draft wells named instead of raising, an in-plate barcode gap refused in the worklist export, and plural count and container-kind checks in the translation parity gate |
+| `991bc654` v0.16.84 | kuro: codon enumeration keeping the identity of the source mutation, mutation rows read through one row-atomic parser with header validation outside the recovery loop, and conflicting notation identities refused before the notation-keyed dicts fill |
+| `a887c384` v0.16.84 | mame C24: one well per clone, with the capacity check, the control ordinal and the numeric activity order counted per `mutant_id` |
 
 `v0.16.30.02` added `docs/2026-08-19-mame-assay-noise-model.md`, which is not a
 fix: it records why the replicate counts recorded in `v0.16.30.01` are not the
@@ -130,10 +136,17 @@ measurement rather than a patch:
   `delta*` down in one direction only. It is inert while `sigma_assay` is None,
   since the quantity it distorts reaches nothing but `compute_T2`.
 
-One finding was reverted after being applied: collapsing duplicate ids in
-`build_draft_layout` would attach measurements to the wrong variant, because
-`numeric_id_decode.py` maps the sheet to wells by row index. Reproducing it
-needs the sheet that produced the empty layout.
+The one finding that had been reverted after being applied is now closed.
+Collapsing duplicate ids in `build_draft_layout` was taken back out because
+`numeric_id_decode.py` mapped the sheet to wells by row index, so a clone
+written as two rows would have held one well on the plate and answered to two
+numeric IDs in the activity reader. `a887c384` closes both sides in one change:
+`distinct_occupants` gives the layout, the capacity check, the control ordinal
+and the numeric activity order one occupant per `mutant_id`, and
+`plate_order_check` reports a sheet carrying a combination genotype as not
+comparable rather than naming a mismatch at every later well. The sheet KURO
+writes names the clone, so the rows of a combination genotype share one id
+(`plate_mapper.py`). This answers mame C24.
 
 ## Why the tests did not catch any of this
 
