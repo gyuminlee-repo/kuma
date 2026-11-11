@@ -104,7 +104,7 @@ const NOT_ASSESSABLE_REASONS = new Set([
 const PRIMARY_FORMATS = new Set<string>(BUILD_EVOLVEPRO_PRIMARY_FORMATS);
 
 /**
- * `kuma_core/mame/activity/label_audit.py:173,190-196,232`, every `category=`
+ * `kuma_core/mame/activity/label_audit.py:212,228-246,288`, every `category=`
  * a `LabelFinding` is constructed with.
  */
 const LABEL_FINDING_CATEGORIES = new Set([
@@ -116,7 +116,7 @@ const LABEL_FINDING_CATEGORIES = new Set([
 ]);
 
 /**
- * `kuma_core/mame/activity/label_audit.py:92-97`, the four returns of
+ * `kuma_core/mame/activity/label_audit.py:117-122`, the four returns of
  * `_classify_geometry`. `null` when no closed permutation was found.
  */
 const LABEL_AUDIT_GEOMETRIES = new Set([
