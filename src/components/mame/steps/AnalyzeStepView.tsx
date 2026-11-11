@@ -280,10 +280,20 @@ export function AnalyzeStepView({ independent = false, runHealth = null, onRunRe
             </div>
           )}
 
-          {/* Before the errors above in importance, after them in position: a
-              plate disagreement is not a validation error (the backend leaves
-              `valid` true) but it is the one finding that makes an otherwise
-              clean run answer the wrong question. */}
+          {/* Before the errors above in importance, after them in position.
+              A plate disagreement IS a validation error: `handle_validate_inputs`
+              appends `_plate_order_error` to `errors` and returns `valid` false,
+              and `handle_analyze` raises the same message on its own. It is
+              stated separately anyway, for two reasons. It is the one finding
+              that makes an otherwise clean run answer the wrong question, and
+              `selectCanRun` holds the run on `plateOrderFinding` alone: picking
+              the workbook stores it before any validation has run
+              (`inputSlice.checkExpectedPlateOrder`), so this notice stands
+              while `validationErrors` is still empty.
+
+              This comment read "not a validation error (the backend leaves
+              `valid` true)" until 2026-11-11. That was the v0.15.6 grading, and
+              2026-08-05 took it back. */}
           <PlateOrderNotice />
 
           {/* Which replicates the results on screen were scored on. Next to the

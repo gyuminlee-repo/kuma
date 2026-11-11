@@ -1178,8 +1178,12 @@ def _plate_order_finding(params: dict, expected_path: Path) -> dict | None:
 
     A workbook that writes one plate two ways is a workbook nobody can read back:
     which of the two sheets describes the tubes that were pipetted is not recorded
-    anywhere in the file. So this is graded ``blocking`` whenever it is found, and
-    :func:`handle_validate_inputs` turns it into a validation error.
+    anywhere in the file. So this is graded ``blocking`` whenever it is found,
+    :func:`handle_validate_inputs` turns it into a validation error, and
+    :func:`handle_analyze` raises the same message rather than trusting that a
+    validation ran first. Validation was the only caller until 2026-08-07, which
+    left every path that does not press the button (a CLI, a harness, a script)
+    going through unchecked.
 
     It used to be downgraded to ``info`` when ``well_layout``
     supplied the coordinates, on the grounds that the sheet order never reached a
