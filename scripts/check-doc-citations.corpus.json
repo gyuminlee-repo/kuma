@@ -219,7 +219,7 @@
   "lineCases": [
     {
       "id": "line-pos-full-path-comma-range",
-      "why": "positive, constructed: a full repository path with a comma list that mixes a single line and a range, which must come back as one citation rather than four. Constructed on purpose. The real citation this was copied from has since become a symbol name, and while it stood in the tree a comment added above it moved every number in it, which is the drift the ratchet exists to make visible",
+      "why": "positive, constructed: a full repository path with a comma list that mixes a single line and a range, which must come back as one citation rather than four. Constructed on purpose: the numbers here never stood in the tree. The real citation this was modeled on has since become a symbol name, and while it did stand in the tree a comment added above it moved every number in it, which is the drift the ratchet exists to make visible",
       "source": "constructed",
       "line": " * Mirrors kuma_core/mame/activity/label_audit.py:40,60-80,120",
       "expect": [
