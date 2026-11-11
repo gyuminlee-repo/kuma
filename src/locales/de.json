@@ -2763,14 +2763,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Ein Kombinationsgenotyp belegt ein Platten-Well; Kapazität, Kontroll-Well und Aktivitätsreihenfolge werden pro Klon gezählt.",
-      "Ein neuer template-Befehl baut den Klon einer früheren Runde aus den aufgezeichneten Codons nach, um die nächste Runde darauf zu entwerfen.",
-      "Erwartete Mutationen gelten pro Platte, und ein zirkuläres Design liefert dieselben Primer, egal an welcher Base die Sequenz beginnt.",
-      "GC-Leser teilen eine Messregel und eine Wildtyp-Nennerregel, und eine deklarierte Identität wird vor der Nutzung geprüft.",
-      "Host-Dateien und Archive werden atomar geschrieben, und eine Sidecar-Anfrage, die bei Ablauf ihrer Frist noch in der Warteschlange steht, wird verworfen statt verspätet geschrieben."
+      "Ein Klon mit mehreren Substitutionen behält eine Identität über die Aktivitätsleser, die EVOLVEpro-Eingabe und die Resequenzierungs-Verknüpfung.",
+      "Eine korrekt gebaute Doppelmutante wird nicht mehr als falsche Aminosäure gemeldet.",
+      "Die Klonplatte wird nach aufsteigender Residuenposition gefüllt, passend zur Reihenfolge, die der numerische Aktivitätsdecoder schon nutzte.",
+      "Die Neuanalyse eines früheren Laufs kann eine andere Platte ergeben, weil das Well eines Klons jetzt von der Residuenposition bestimmt wird.",
+      "Ein kurzer Kombinationsgenotyp, der zurück in KURO geladen wird, wird umgewandelt statt beim Parsen zu scheitern."
     ],
-    "highlightsStamp": "0.16.84+09ae6a21",
+    "highlightsStamp": "0.16.85+1a1fa1fa",
     "releases": {
+      "0.16.85": [
+        "Ein Klon mit mehreren Substitutionen behält eine Identität über die Aktivitätsleser, die EVOLVEpro-Eingabe und die Resequenzierungs-Verknüpfung.",
+        "Eine korrekt gebaute Doppelmutante wird nicht mehr als falsche Aminosäure gemeldet.",
+        "Die Klonplatte wird nach aufsteigender Residuenposition gefüllt, passend zur Reihenfolge, die der numerische Aktivitätsdecoder schon nutzte.",
+        "Die Neuanalyse eines früheren Laufs kann eine andere Platte ergeben, weil das Well eines Klons jetzt von der Residuenposition bestimmt wird.",
+        "Ein kurzer Kombinationsgenotyp, der zurück in KURO geladen wird, wird umgewandelt statt beim Parsen zu scheitern."
+      ],
       "0.16.84": [
         "Ein Kombinationsgenotyp belegt ein Platten-Well; Kapazität, Kontroll-Well und Aktivitätsreihenfolge werden pro Klon gezählt.",
         "Ein neuer template-Befehl baut den Klon einer früheren Runde aus den aufgezeichneten Codons nach, um die nächste Runde darauf zu entwerfen.",
@@ -3347,6 +3354,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.85": "1a1fa1fa",
       "0.16.84": "09ae6a21",
       "0.16.83": "83d212a4",
       "0.16.82": "cc1555f9",

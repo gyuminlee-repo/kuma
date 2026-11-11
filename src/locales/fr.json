@@ -2763,14 +2763,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Un génotype de combinaison occupe un seul puits de plaque, et la capacité, le puits témoin et l'ordre d'activité se comptent par clone.",
-      "Une nouvelle commande template reconstruit le clone obtenu à un tour précédent à partir des codons enregistrés, pour concevoir le tour suivant.",
-      "Les mutations attendues sont délimitées par plaque, et un design circulaire donne les mêmes amorces quelle que soit la base où commence la séquence.",
-      "Les lecteurs GC partagent une règle de mesure et une règle de dénominateur de type sauvage, et une identité déclarée est vérifiée avant usage.",
-      "Les fichiers et les archives de l'hôte sont écrits de façon atomique, et une requête sidecar encore en file à l'expiration de son délai est abandonnée plutôt qu'écrite en retard."
+      "Un clone portant plusieurs substitutions garde une seule identité dans les lecteurs d'activité, l'entrée EVOLVEpro et le lien de reséquençage.",
+      "Un double mutant correctement construit n'est plus signalé comme un acide aminé erroné.",
+      "La plaque de clones est remplie par position du résidu croissante, soit l'ordre que le décodeur d'activité numérique utilisait déjà.",
+      "Réanalyser un run passé peut donner une autre plaque, car le puits d'un clone est désormais décidé par la position du résidu.",
+      "Un génotype de combinaison court rechargé dans KURO est converti au lieu d'échouer à l'analyse."
     ],
-    "highlightsStamp": "0.16.84+09ae6a21",
+    "highlightsStamp": "0.16.85+1a1fa1fa",
     "releases": {
+      "0.16.85": [
+        "Un clone portant plusieurs substitutions garde une seule identité dans les lecteurs d'activité, l'entrée EVOLVEpro et le lien de reséquençage.",
+        "Un double mutant correctement construit n'est plus signalé comme un acide aminé erroné.",
+        "La plaque de clones est remplie par position du résidu croissante, soit l'ordre que le décodeur d'activité numérique utilisait déjà.",
+        "Réanalyser un run passé peut donner une autre plaque, car le puits d'un clone est désormais décidé par la position du résidu.",
+        "Un génotype de combinaison court rechargé dans KURO est converti au lieu d'échouer à l'analyse."
+      ],
       "0.16.84": [
         "Un génotype de combinaison occupe un seul puits de plaque, et la capacité, le puits témoin et l'ordre d'activité se comptent par clone.",
         "Une nouvelle commande template reconstruit le clone obtenu à un tour précédent à partir des codons enregistrés, pour concevoir le tour suivant.",
@@ -3347,6 +3354,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.85": "1a1fa1fa",
       "0.16.84": "09ae6a21",
       "0.16.83": "83d212a4",
       "0.16.82": "cc1555f9",

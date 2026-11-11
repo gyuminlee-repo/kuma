@@ -2763,14 +2763,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Um genótipo de combinação ocupa um único poço da placa, e a capacidade, o poço de controle e a ordem de atividade são contados por clone.",
-      "Um novo comando template reconstrói o clone que uma rodada anterior produziu a partir dos códons registrados, para desenhar a rodada seguinte.",
-      "As mutações esperadas são delimitadas por placa, e um desenho circular dá os mesmos primers qualquer que seja a base em que a sequência começa.",
-      "Os leitores de GC compartilham uma regra de medição e uma regra de denominador do tipo selvagem, e a identidade declarada é verificada antes do uso.",
-      "Os arquivos e os pacotes compactados do host são escritos de forma atômica, e uma requisição ao sidecar ainda na fila quando o prazo vence é descartada em vez de escrita com atraso."
+      "Um clone com várias substituições mantém uma única identidade nos leitores de atividade, na entrada do EVOLVEpro e no vínculo de ressequenciamento.",
+      "Um duplo mutante construído corretamente já não é relatado como aminoácido errado.",
+      "A placa de clones é preenchida por posição do resíduo ascendente, na mesma ordem que o decodificador numérico de atividade já usava.",
+      "Reanalisar uma execução antiga pode devolver outra placa, porque o poço de um clone agora é decidido pela posição do resíduo.",
+      "Um genótipo de combinação curto recarregado no KURO é convertido em vez de falhar na leitura."
     ],
-    "highlightsStamp": "0.16.84+09ae6a21",
+    "highlightsStamp": "0.16.85+1a1fa1fa",
     "releases": {
+      "0.16.85": [
+        "Um clone com várias substituições mantém uma única identidade nos leitores de atividade, na entrada do EVOLVEpro e no vínculo de ressequenciamento.",
+        "Um duplo mutante construído corretamente já não é relatado como aminoácido errado.",
+        "A placa de clones é preenchida por posição do resíduo ascendente, na mesma ordem que o decodificador numérico de atividade já usava.",
+        "Reanalisar uma execução antiga pode devolver outra placa, porque o poço de um clone agora é decidido pela posição do resíduo.",
+        "Um genótipo de combinação curto recarregado no KURO é convertido em vez de falhar na leitura."
+      ],
       "0.16.84": [
         "Um genótipo de combinação ocupa um único poço da placa, e a capacidade, o poço de controle e a ordem de atividade são contados por clone.",
         "Um novo comando template reconstrói o clone que uma rodada anterior produziu a partir dos códons registrados, para desenhar a rodada seguinte.",
@@ -3347,6 +3354,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.85": "1a1fa1fa",
       "0.16.84": "09ae6a21",
       "0.16.83": "83d212a4",
       "0.16.82": "cc1555f9",

@@ -96,6 +96,8 @@ several findings.
 | `72b858cb` v0.16.84 | tooling: a release tag checked against the app manifests, a nonempty output root refused instead of deleted, draft wells named instead of raising, an in-plate barcode gap refused in the worklist export, and plural count and container-kind checks in the translation parity gate |
 | `991bc654` v0.16.84 | kuro: codon enumeration keeping the identity of the source mutation, mutation rows read through one row-atomic parser with header validation outside the recovery loop, and conflicting notation identities refused before the notation-keyed dicts fill |
 | `a887c384` v0.16.84 | mame C24: one well per clone, with the capacity check, the control ordinal and the numeric activity order counted per `mutant_id` |
+| `0f6bffa1` v0.16.85 | mame and kuro: a combination genotype label carried through the activity and EVOLVEpro path instead of dropped by the single-substitution converters, a well audited against the set of substitutions its label names so that the cross-well gate can see a swap between two combination wells, a short combination genotype converted component by component on the way back into kuro, and the accepted separators named when a mutation row is refused |
+| `47af9514` v0.16.85 | mame: the clone plate placed in residue-position order, which is how the bench fills it, the numeric-report decode delegated to that one placement function with the control well carried so the two paths cannot name different wells for the same clone, and `io.plate_order_check` documented for the two design-sheet-ordered sheets it does compare |
 
 `v0.16.30.02` added `docs/2026-08-19-mame-assay-noise-model.md`, which is not a
 fix: it records why the replicate counts recorded in `v0.16.30.01` are not the
@@ -147,6 +149,15 @@ and the numeric activity order one occupant per `mutant_id`, and
 comparable rather than naming a mismatch at every later well. The sheet KURO
 writes names the clone, so the rows of a combination genotype share one id
 (`plate_mapper.py`). This answers mame C24.
+
+One row of `AUDIT-mame-core.md` is overtaken rather than open. That page reads
+`kuma_core/mame/activity/label_audit.py` as a closed-permutation label audit
+with no defect, a judgement made before a clone carrying several substitutions
+had a label of its own. `0f6bffa1` changed the comparison from one observed
+label against the whole expected string, which no combination genotype can
+satisfy, to the set of substitutions the label names, and widened the cross-well
+candidate test to match that set. A single substitution is a set of one, so the
+judgements that page describes stand.
 
 ## Why the tests did not catch any of this
 
