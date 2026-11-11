@@ -287,8 +287,10 @@ def test_parse_verdict_rows_reads_observed_aa_column(tmp_path):
 # A combination genotype is one clone carrying several substitutions, so its
 # well is audited against the SET of substitutions its label names. A partly
 # introduced combination is reported in the catch-all extra_mutation. The
-# label_audit module docstring records why a category of its own is deferred
-# and what adding one requires.
+# label_audit module docstring records why a category of its own is deferred:
+# no surface shows the category to an operator, while the two that read it are
+# a serialiser and a hand-copied TypeScript guard no checker compares against
+# this module. It also records what adding one requires.
 # ---------------------------------------------------------------------------
 
 
@@ -345,9 +347,12 @@ def test_partly_introduced_combination_is_reported_as_extra_mutation():
 
     extra_mutation is this audit's catch-all and therefore includes a
     combination whose components are only partly introduced. No category of
-    its own is invented for it here, because no surface reads
-    LabelFinding.category yet. The label_audit module docstring records the
-    trigger for adding partial_genotype.
+    its own is invented for it here, because no surface shows
+    LabelFinding.category to an operator. The two that do read it are a
+    serialiser and a hand-copied TypeScript guard, and that guard rejects a
+    whole response over one category name it does not know, so a new name is a
+    two-layer change rather than a free one. The label_audit module docstring
+    records the trigger for adding partial_genotype and what it requires.
     """
     layout = {"C03": "S304C:V547I"}
     rows = {"C03": VerdictRow(verdict="WRONG_AA", observed_aa=("S304C",))}

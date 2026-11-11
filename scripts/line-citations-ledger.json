@@ -7,10 +7,19 @@
     "its own would let a second file re-cite a frozen position and pass, and the line the comment",
     "sits on would move whenever anything above it changed.",
     "",
+    "That key is also the unit the ratchet counts. One file writing the same citation a second time",
+    "adds a line number to the entry it already has, so occurrences are not ratcheted and only",
+    "entries are. Keying on the comment's own line would ratchet occurrences and churn against every",
+    "edit above one, which is the worse trade.",
+    "",
+    "A regeneration recomputes frozen, ambiguous and unresolved, and keeps whatever reason the entry",
+    "already carried. An entry that changes bucket therefore keeps a sentence describing the old one,",
+    "and that sentence has to be rewritten by hand in the same change.",
+    "",
     "Nothing here is verified. The line number is checked against nothing, because a bare position",
     "carries no claim a machine can test. What this buys is the ratchet: an unlisted citation fails",
-    "the check, so the count only goes down. Existing entries are corrected opportunistically, when",
-    "their file is open for other work, and the entry then disappears on the next regeneration."
+    "the check, so the entry count only goes down. Existing entries are corrected opportunistically,",
+    "when their file is open for other work, and the entry then disappears on the next regeneration."
   ],
   "frozen": [
     {
@@ -339,13 +348,13 @@
     },
     {
       "source": "src/lib/mame/fileExtensions.ts",
-      "cite": "analyze.py:1045",
+      "cite": "analyze.py:1045, 1214",
       "category": "frozen",
       "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
     },
     {
       "source": "src/lib/mame/fileExtensions.ts",
-      "cite": "analyze.py:1055",
+      "cite": "analyze.py:1055, 1225",
       "category": "frozen",
       "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
     },
@@ -669,18 +678,6 @@
     },
     {
       "source": "src/types/mame/validators.ts",
-      "cite": "kuma_core/mame/activity/label_audit.py:117-122",
-      "category": "frozen",
-      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
-    },
-    {
-      "source": "src/types/mame/validators.ts",
-      "cite": "kuma_core/mame/activity/label_audit.py:212,228-246,288",
-      "category": "frozen",
-      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
-    },
-    {
-      "source": "src/types/mame/validators.ts",
       "cite": "kuma_core/mame/ingest/barcode_package.py:594",
       "category": "frozen",
       "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
@@ -688,8 +685,8 @@
     {
       "source": "src/types/mame/validators.ts",
       "cite": "kuma_core/mame/ingest/variant_list.py:164",
-      "category": "frozen",
-      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+      "category": "unresolved",
+      "reason": "The directory is wrong: the tracked file is kuma_core/mame/io/variant_list.py and nothing lives under ingest/. This read as frozen until classifyLineCitation stopped falling back to the final path segment for a citation that spells out directories, and it is kept here as the worked example of that bucket. Replace it with a symbol name rather than repairing the directory."
     },
     {
       "source": "src/types/mame/validators.ts",
@@ -766,12 +763,6 @@
     {
       "source": "src/types/mame/validators.unions.test.ts",
       "cite": "kuma_core/mame/activity/build_evolvepro_input.py:463-480",
-      "category": "frozen",
-      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
-    },
-    {
-      "source": "src/types/mame/validators.unions.test.ts",
-      "cite": "kuma_core/mame/activity/label_audit.py:295-300",
       "category": "frozen",
       "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
     },

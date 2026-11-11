@@ -116,9 +116,18 @@ const LINE_SCANNED_EXTENSIONS = [".py", ".ts", ".tsx", ".rs", ".mjs"];
  * either. The cited extension set is wider than the scanned one because a
  * comment can name a line inside a workbook of generated types, a workflow or
  * an audit note just as easily as one inside code.
+ *
+ * One optional space is allowed after each comma, because a prose comment
+ * writes a list that way and two in `src/lib/mame/fileExtensions.ts` do.
+ * Without it the match stopped at the first comma and froze a truncated
+ * string, which is the exact failure this ratchet exists to catch: a comment
+ * naming two positions in `analyze.py` entered the ledger carrying only the
+ * first, so the second was never recorded as debt at all. Only a single
+ * space, and never a tab or a newline, so a list running past the end of a
+ * line cannot be stitched into one citation.
  */
 const LINE_CITATION_PATTERN =
-  /((?:[\w.-]+\/)*[\w.-]+\.(?:py|ts|tsx|rs|mjs|json|md|toml|yml|yaml)):(\d+(?:-\d+)?(?:,\d+(?:-\d+)?)*)/g;
+  /((?:[\w.-]+\/)*[\w.-]+\.(?:py|ts|tsx|rs|mjs|json|md|toml|yml|yaml)):(\d+(?:-\d+)?(?:, ?\d+(?:-\d+)?)*)/g;
 
 /**
  * How a frozen line citation came to be allowed. The first three are decided by
@@ -212,6 +221,13 @@ export function classifyLineCitation(citedPath, index) {
   const suffixMatches = sameName.filter((t) => t === citedPath || t.endsWith(`/${citedPath}`));
   if (suffixMatches.length === 1) return "frozen";
   if (suffixMatches.length > 1) return "ambiguous";
+  // A citation that spells out directories claims a location, and a claim no
+  // tracked path satisfies is wrong rather than merely imprecise. Falling back
+  // to the final segment here would report it as resolved: that is how a
+  // citation of `kuma_core/mame/ingest/variant_list.py` read as frozen while
+  // the tracked file is `kuma_core/mame/io/variant_list.py`. A bare name keeps
+  // the fallback, because it never claimed a directory to be wrong about.
+  if (citedPath.includes("/")) return "unresolved";
   if (sameName.length === 1) return "frozen";
   if (sameName.length > 1) return "ambiguous";
   return "unresolved";
@@ -493,6 +509,8 @@ function runWriteLineLedger() {
   console.log("");
   console.log("  Running this accepts every citation above as permanent debt. Say in the pull");
   console.log("  request why a new line-number citation was preferred to a symbol name.");
+  console.log("  A kept entry keeps its reason even when this run moved it to another bucket, so");
+  console.log("  read the diff and rewrite by hand any reason that now describes the old bucket.");
 }
 
 const LEDGER_HEADER = [
@@ -503,10 +521,19 @@ const LEDGER_HEADER = [
   "its own would let a second file re-cite a frozen position and pass, and the line the comment",
   "sits on would move whenever anything above it changed.",
   "",
+  "That key is also the unit the ratchet counts. One file writing the same citation a second time",
+  "adds a line number to the entry it already has, so occurrences are not ratcheted and only",
+  "entries are. Keying on the comment's own line would ratchet occurrences and churn against every",
+  "edit above one, which is the worse trade.",
+  "",
+  "A regeneration recomputes frozen, ambiguous and unresolved, and keeps whatever reason the entry",
+  "already carried. An entry that changes bucket therefore keeps a sentence describing the old one,",
+  "and that sentence has to be rewritten by hand in the same change.",
+  "",
   "Nothing here is verified. The line number is checked against nothing, because a bare position",
   "carries no claim a machine can test. What this buys is the ratchet: an unlisted citation fails",
-  "the check, so the count only goes down. Existing entries are corrected opportunistically, when",
-  "their file is open for other work, and the entry then disappears on the next regeneration.",
+  "the check, so the entry count only goes down. Existing entries are corrected opportunistically,",
+  "when their file is open for other work, and the entry then disappears on the next regeneration.",
 ];
 
 // --------------------------------------------------------------------------

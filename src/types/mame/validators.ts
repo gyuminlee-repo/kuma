@@ -104,8 +104,9 @@ const NOT_ASSESSABLE_REASONS = new Set([
 const PRIMARY_FORMATS = new Set<string>(BUILD_EVOLVEPRO_PRIMARY_FORMATS);
 
 /**
- * `kuma_core/mame/activity/label_audit.py:212,228-246,288`, every `category=`
- * a `LabelFinding` is constructed with.
+ * Every `category=` a `LabelFinding` is constructed with in `audit_labels`
+ * (`kuma_core/mame/activity/label_audit.py`): the collapse branch, the
+ * classification branch below it, and the closed-permutation gate at the end.
  *
  * `extra_mutation` is the catch-all and covers a missing component as well as
  * an added one: a combination genotype with some components observed and
@@ -126,8 +127,9 @@ const LABEL_FINDING_CATEGORIES = new Set([
 ]);
 
 /**
- * `kuma_core/mame/activity/label_audit.py:117-122`, the four returns of
- * `_classify_geometry`. `null` when no closed permutation was found.
+ * The four buckets `_classify_geometry` returns in
+ * `kuma_core/mame/activity/label_audit.py`. `null` when no closed permutation
+ * was found.
  */
 const LABEL_AUDIT_GEOMETRIES = new Set([
   "two_swap",

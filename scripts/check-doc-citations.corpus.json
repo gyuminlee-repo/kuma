@@ -20,7 +20,12 @@
     "more carry the name, unresolved when none does. Negative cases state what must NOT read as a",
     "position, because a pattern that matched a clock time or a version label would fail every",
     "future branch for no reason. A negative `line` is constructed rather than copied, since the",
-    "point of it is a shape the repository must never start carrying."
+    "point of it is a shape the repository must never start carrying.",
+    "",
+    "A `lineCases` positive is copied verbatim where a real citation has that shape, and constructed",
+    "where none does, with the `why` saying which. Constructed is the better of the two and the one",
+    "to reach for when both are open: a case copied from the tree breaks when that line is corrected,",
+    "which is how the comma-list case came to carry a citation this very branch was fixing."
   ],
   "tracked": [
     "AGENTS.md",
@@ -194,6 +199,7 @@
     ".github/workflows/build.yml",
     "docs/2026-08-19-mame-assay-noise-model.md",
     "kuma_core/mame/activity/label_audit.py",
+    "kuma_core/mame/io/variant_list.py",
     "kuma_core/mame/models.py",
     "python-core/sidecar_mame/handlers/analyze.py",
     "python-core/sidecar_mame/models.py",
@@ -206,12 +212,48 @@
   "lineCases": [
     {
       "id": "line-pos-full-path-comma-range",
-      "why": "positive: a full repository path with a comma list that mixes a single line and a range, which must come back as one citation rather than four",
+      "why": "positive, constructed: a full repository path with a comma list that mixes a single line and a range, which must come back as one citation rather than four. Constructed on purpose. The real citation this was copied from has since become a symbol name, and while it stood in the tree a comment added above it moved every number in it, which is the drift the ratchet exists to make visible",
       "source": "src/types/mame/validators.ts",
-      "line": " * Mirrors kuma_core/mame/activity/label_audit.py:212,228-246,288",
+      "line": " * Mirrors kuma_core/mame/activity/label_audit.py:40,60-80,120",
       "expect": [
         {
-          "cite": "kuma_core/mame/activity/label_audit.py:212,228-246,288",
+          "cite": "kuma_core/mame/activity/label_audit.py:40,60-80,120",
+          "category": "frozen"
+        }
+      ]
+    },
+    {
+      "id": "line-pos-full-path-wrong-directory",
+      "why": "positive: a full path whose directory names no tracked file, copied from a comment that says ingest/ where the tracked file is io/. The final segment is unique, so a basename fallback would call this frozen and the wrong directory would never be reported. A citation that spells out directories claims a location, and a claim nothing satisfies is unresolved",
+      "source": "src/types/mame/validators.ts",
+      "line": " *    (`kuma_core/mame/ingest/variant_list.py:164`), so `[]` is a valid answer",
+      "expect": [
+        {
+          "cite": "kuma_core/mame/ingest/variant_list.py:164",
+          "category": "unresolved"
+        }
+      ]
+    },
+    {
+      "id": "line-pos-string-literal-outside-comment",
+      "why": "positive trap: an expected lint message inside a test assertion, not a comment and not a citation. Nothing in the extractor can tell the two apart, and the path is invented for the fixture, so this arrives as unresolved and the ledger's hand-written test-literal category is what absorbs it",
+      "source": "tests/scripts/i18n-parity.test.ts",
+      "line": "    expect(run.output).toContain(\"src/screens/Shell.tsx:1  job.plates\");",
+      "expect": [
+        {
+          "cite": "src/screens/Shell.tsx:1",
+          "category": "unresolved"
+        }
+      ]
+    },
+    {
+      "id": "line-pos-comma-list-with-space",
+      "why": "positive: a prose comment writing its comma list with a space after the comma, copied from src/lib/mame/fileExtensions.ts. The whole list must come back as one citation. Before the space was allowed the match stopped at the first comma and froze a truncated string, so the second position entered no ledger and nobody owed it anything",
+      "source": "src/lib/mame/fileExtensions.ts",
+      "line": " *   reference        -> SEQUENCE (analyze.py:1045, 1214)",
+      "expect": [
+        {
+          "cite": "analyze.py:1045, 1214",
           "category": "frozen"
         }
       ]
