@@ -6,6 +6,12 @@ column) are compared against the plate layout's expected mutation for that
 well. Discordant wells are classified into one of five categories; a special
 "closed permutation" gate distinguishes a genuine well<->well label swap from
 a coincidental match (see ``audit_labels`` docstring).
+
+A combination genotype is one clone carrying several substitutions, so its
+well is compared against the SET of substitutions its label names. The five
+categories are a closed union on the TypeScript side, so a partly introduced
+combination (some components observed, nothing else) is reported in the
+catch-all ``extra_mutation`` rather than in a category of its own.
 """
 
 from __future__ import annotations

@@ -138,9 +138,11 @@ def _short_variant(label: object) -> str | None:
 def _strip_confirmation_rep_suffix(label: str) -> str:
     """Accept only an explicit positive replicate suffix on a canonical label.
 
-    A name such as S11I-1 is a replicate of S11I. Arbitrary hyphenated names,
-    zero/negative indices, extra suffixes, and multi-mutant labels stay intact
-    and are rejected by the consumer. No fuzzy matching or mutation inference.
+    A name such as S11I-1 is a replicate of S11I, and so is a combination
+    genotype's, since ``S304C:V547I`` is one clone and one variant here.
+    Arbitrary hyphenated names, zero/negative indices, extra suffixes, and
+    labels that are not a genotype stay intact and are rejected by the
+    consumer. No fuzzy matching or mutation inference.
     """
     match = _CONFIRMATION_REP_SUFFIX.fullmatch(label)
     if match is None:
