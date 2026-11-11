@@ -7,7 +7,7 @@ import python_calamine
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .plate_layout_xlsx import _normalise_well
-from .variant_notation import is_canonical_internal, to_evolvepro
+from .variant_notation import canonical_label, is_canonical_label, to_evolvepro_label
 from .verdict_ngs import parse_verdict_rows
 from kuma_core.mame.export.nb_label import nb_label
 
@@ -63,6 +63,21 @@ def _copy_verdict(workbook: python_calamine.CalamineWorkbook, plate: str, well: 
     return matches.pop()
 
 
+def _same_identity(workbook_label: str, canonical: str) -> bool:
+    """True iff a workbook's ``mutant_id`` names the identity *canonical*.
+
+    *canonical* has already been through ``canonical_label``. The workbook side
+    has not, so a combination it spells in another component order is
+    canonicalised before the comparison; a label that does not parse answers
+    False rather than raising, which keeps the caller's own message.
+    """
+    if workbook_label == canonical:
+        return True
+    if not is_canonical_label(workbook_label):
+        return False
+    return canonical_label(workbook_label) == canonical
+
+
 def validate_resequence_links(evidence: ResequenceEvidence, original_path: str | Path) -> dict[str, str]:
     """Return variant -> activity well after validating every explicit link.
 
@@ -92,11 +107,16 @@ def validate_resequence_links(evidence: ResequenceEvidence, original_path: str |
         )
         repeat_well = _normalise_well(link.resequence_well)
         source, repeat = originals.get(source_well), repeats.get(repeat_well)
-        if not is_canonical_internal(link.mutant_id):
+        if not is_canonical_label(link.mutant_id):
             raise ValueError("Resequencing requires a full canonical mutant identity")
-        if repeat is None or repeat.mutant_id != link.mutant_id:
+        # A combination genotype is one clone, so it names one identity here.
+        # Both sides are compared canonically (components in position order):
+        # the workbook and the link may spell the same genotype in different
+        # component orders, and an order difference is not a different clone.
+        identity = canonical_label(link.mutant_id)
+        if repeat is None or not _same_identity(repeat.mutant_id, identity):
             raise ValueError(f"Incompatible resequencing mutant identity: {link.mutant_id}")
-        variant = to_evolvepro(link.mutant_id)
+        variant = to_evolvepro_label(identity)
         repeat_key = (nb_label(link.resequence_plate), repeat_well)
         if variant in mapped or repeat_key in used_sources or source_well in used_activity_wells:
             raise ValueError("Duplicate clone mapping across resequencing runs")
@@ -107,7 +127,7 @@ def validate_resequence_links(evidence: ResequenceEvidence, original_path: str |
         # the original assigned to a different variant is rejected one layer up,
         # in build_evolvepro_input against the active well->variant mapping.
         if link.relationship == "same_clone":
-            if source is None or source.mutant_id != link.mutant_id:
+            if source is None or not _same_identity(source.mutant_id, identity):
                 raise ValueError(f"Incompatible original clone identity: {link.mutant_id}")
             source_call = _copy_verdict(books[0], link.original_plate, source_well)
             if source.verdict == "CONFLICT" or source_call not in {"PASS", "LOWDEPTH", "NO_CALL", "AMBIGUOUS"}:

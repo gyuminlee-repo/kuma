@@ -11,6 +11,7 @@ from kuma_core.mame.activity.gc_sample import (
     VARIANT,
     WELL,
     WT,
+    _short_variant,
     classify_sample,
     is_wt_name,
     namespaces_of,
@@ -99,3 +100,70 @@ def test_near_wild_type_names_are_not_wild_type(name: str) -> None:
             assert classify_sample(name, slot).kind != WT
     from kuma_core.mame.activity.constants import WT_PATTERN
     assert WT_PATTERN.fullmatch(name) is None
+
+
+# ---------------------------------------------------------------------------
+# Combination genotypes: one clone is one variant sample
+# ---------------------------------------------------------------------------
+
+
+def test_full_form_combination_is_one_variant_in_short_form() -> None:
+    """A sheet naming 'S304C:V547I' is that clone, measured once."""
+    sample = classify_sample("S304C:V547I", "variant")
+    assert (sample.kind, sample.variant, sample.internal) == (VARIANT, "304C:547I", "S304C:V547I")
+    assert sample.replicate == 1
+
+
+def test_full_form_combination_written_out_of_order_answers_the_canonical_identity() -> None:
+    """Component order is spelling, not identity, so both answers are canonical."""
+    sample = classify_sample("V547I/S304C", "variant")
+    assert (sample.kind, sample.variant, sample.internal) == (VARIANT, "304C:547I", "S304C:V547I")
+
+
+def test_short_combination_already_in_the_sheet_returns_in_canonical_order() -> None:
+    """A sheet writing '547I:304C' names the same key as the design does.
+
+    The full identity stays ``None``: a short label does not carry the
+    reference residues, so there is nothing to check a declared identity
+    against.
+    """
+    sample = classify_sample("547I:304C", "variant")
+    assert (sample.kind, sample.variant, sample.internal) == (VARIANT, "304C:547I", None)
+
+
+def test_combination_replicate_suffix_is_read_as_a_replicate() -> None:
+    """'S304C:V547I-2' is the second measurement of that clone, not a new name."""
+    sample = classify_sample("S304C:V547I-2", "variant")
+    assert (sample.kind, sample.label, sample.variant, sample.replicate) == (
+        VARIANT, "S304C:V547I", "304C:547I", 2,
+    )
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "S304C:WT",      # a stray WT token: a clone is not partly wild-type
+        "S304C:S304A",   # one position twice
+        "304C:547",      # a component that is not short notation
+        "304C:F547I",    # short and full form mixed
+        "S304C:",        # an empty component
+    ],
+)
+def test_a_combination_that_is_not_a_genotype_is_unrecognized(name: str) -> None:
+    """A label this path cannot score is an answer, not an exception."""
+    sample = classify_sample(name, "variant")
+    assert sample.kind == UNRECOGNIZED
+    assert (sample.variant, sample.internal) == (None, None)
+
+
+def test_wild_type_is_not_a_variant_and_single_substitutions_are_unchanged() -> None:
+    """WT answers no short form, and a single substitution answers as it always did."""
+    assert _short_variant("WT") is None
+    assert _short_variant("S304C") == "304C"
+    assert _short_variant("304C") == "304C"
+    assert _short_variant("BLANK") is None
+    assert classify_sample("WT", "variant").kind == WT
+    single = classify_sample("S11I-3", "variant")
+    assert (single.kind, single.label, single.variant, single.replicate) == (
+        VARIANT, "S11I", "11I", 3,
+    )

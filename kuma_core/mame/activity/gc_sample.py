@@ -36,7 +36,16 @@ from typing import Literal
 
 from .constants import WT_PATTERN
 from .plate_layout_xlsx import _WELL_RE, _normalise_well
-from .variant_notation import _SHORT_RE, is_canonical_internal, to_evolvepro
+from .variant_notation import (
+    _SHORT_RE,
+    canonical_label,
+    canonical_short_label,
+    is_canonical_internal,
+    is_canonical_label,
+    is_short_label,
+    to_evolvepro,
+    to_evolvepro_label,
+)
 
 Slot = Literal["well", "variant", "numeric_id"]
 
@@ -108,19 +117,32 @@ def _sample_name_is_calibration(name: str) -> bool:
 
 
 def _short_variant(label: object) -> str | None:
-    """EVOLVEpro short notation of a canonical variant label, else ``None``."""
+    """EVOLVEpro short notation of a canonical variant label, else ``None``.
+
+    A combination genotype is one clone, so it is one variant here. Its short
+    form is the per-component short form joined by ``:`` in position order, and
+    a sheet already naming a sample in that short spelling is accepted as the
+    same identity. The two single-substitution lines come first and answer
+    unchanged, so nothing about a plate of single substitutions moves.
+    """
     text = str(label).strip()
     if is_canonical_internal(text):
         return to_evolvepro(text)
-    return text if _SHORT_RE.match(text) else None
+    if _SHORT_RE.match(text):
+        return text
+    if is_canonical_label(text):
+        return to_evolvepro_label(text)
+    return canonical_short_label(text) if is_short_label(text) else None
 
 
 def _strip_confirmation_rep_suffix(label: str) -> str:
     """Accept only an explicit positive replicate suffix on a canonical label.
 
-    A name such as S11I-1 is a replicate of S11I. Arbitrary hyphenated names,
-    zero/negative indices, extra suffixes, and multi-mutant labels stay intact
-    and are rejected by the consumer. No fuzzy matching or mutation inference.
+    A name such as S11I-1 is a replicate of S11I, and so is a combination
+    genotype's, since ``S304C:V547I`` is one clone and one variant here.
+    Arbitrary hyphenated names, zero/negative indices, extra suffixes, and
+    labels that are not a genotype stay intact and are rejected by the
+    consumer. No fuzzy matching or mutation inference.
     """
     match = _CONFIRMATION_REP_SUFFIX.fullmatch(label)
     if match is None:
@@ -168,7 +190,10 @@ def classify_sample(name: str, slot: Slot) -> SampleClass:
             name=text,
             label=label,
             variant=short,
-            internal=label if is_canonical_internal(label) else None,
+            # The full identity, canonically spelled: a single substitution as
+            # written, a combination with its components in position order so
+            # the declared-identity check compares one spelling of a genotype.
+            internal=canonical_label(label) if is_canonical_label(label) else None,
             replicate=replicate,
         )
     return SampleClass(kind=UNRECOGNIZED, name=text, label=label)

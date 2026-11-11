@@ -10,20 +10,24 @@ from __future__ import annotations
 import logging
 
 from .models import SwapWarning
-from .variant_notation import to_evolvepro
+from .variant_notation import to_evolvepro_label
 
 logger = logging.getLogger(__name__)
 
 
 def _internal_to_short(label: str) -> str:
-    """Convert internal 'F89W' → EVOLVEpro short '89W'.
+    """Convert internal 'F89W' to EVOLVEpro short '89W'.
 
-    Delegates to variant_notation.to_evolvepro. Non-matching labels
-    (e.g. 'WT') are returned unchanged so WT rows are preserved for the
-    caller exclusion logic.
+    Delegates to variant_notation.to_evolvepro_label, so a combination
+    genotype converts to its components' short forms joined by ``:`` instead of
+    being returned unchanged. Returning it unchanged left this detector keying
+    a combination by its full label while every other reader keyed it by the
+    short one, which is two keys for one clone. Non-matching labels (e.g. 'WT')
+    are still returned unchanged so WT rows are preserved for the caller
+    exclusion logic.
     """
     try:
-        return to_evolvepro(label)
+        return to_evolvepro_label(label)
     except ValueError:
         # label is not [A-Z]\\d+[A-Z] and is not 'WT' — return unchanged.
         # Caller's WT exclusion check (mutant_internal.upper() == "WT") runs

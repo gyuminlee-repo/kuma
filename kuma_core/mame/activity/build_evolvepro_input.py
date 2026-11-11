@@ -57,7 +57,7 @@ from .numeric_id_decode import (
 )
 from .models import MergeReplicatesStats, Variant
 from .plate_layout_xlsx import _normalise_well, parse_plate_layout_xlsx
-from .variant_notation import is_canonical_internal, to_evolvepro
+from .variant_notation import canonical_label, is_canonical_label, to_evolvepro_label
 from .verdict_ngs import _PASS, parse_verdict_rows
 from .resequence_evidence import ResequenceEvidence, validate_resequence_links
 
@@ -409,15 +409,21 @@ def _declared_identities(verdict_xlsx: str | Path, layout_xlsx: str | Path | Non
     full label (``F89W``) does not, so a reader that turns a label into its
     short form first has to keep the residue until this check has run. Labels
     without a canonical full form are skipped.
+
+    A combination genotype is one clone and declares one identity, so it is
+    kept here too, spelled canonically (components in position order). Skipping
+    it would have left the conflict check blind to exactly the labels the rest
+    of this module now carries.
     """
     declared = [row.mutant_id for row in parse_verdict_rows(verdict_xlsx).values()]
     if layout_xlsx is not None:
         declared.extend(entry.mutant for entry in parse_plate_layout_xlsx(layout_xlsx))
     identities: dict[str, str] = {}
-    for label in declared:
-        if not is_canonical_internal(label):
+    for raw_label in declared:
+        if not is_canonical_label(raw_label):
             continue
-        short = to_evolvepro(label)
+        label = canonical_label(raw_label)
+        short = to_evolvepro_label(label)
         existing = identities.get(short)
         if existing is not None and existing != label:
             raise ValueError(f"declared mapping (verdict_xlsx and layout_xlsx) has conflicting full identities for {short!r}")
@@ -1222,7 +1228,7 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
     }:
         raise ValueError("Activity output must not overwrite either NGS evidence workbook")
     measured = {
-        to_evolvepro(link.mutant_id): _normalise_well(link.activity_well)
+        to_evolvepro_label(link.mutant_id): _normalise_well(link.activity_well)
         for link in (resequence_evidence.links if resequence_evidence else [])
         if link.relationship == "measured_resequence_clone"
     }

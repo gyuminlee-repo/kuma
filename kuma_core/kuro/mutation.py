@@ -65,11 +65,22 @@ def split_multi_notation(notation: str) -> list[str]:
     token must be a valid, 1-based mutation; a malformed component rejects the
     whole row rather than silently changing the requested genotype.
 
+    ``_`` and ``;`` are NOT separators here, and a row using one is refused
+    rather than read as a different genotype. The refusal states which
+    separators are supported, because the lab writes one genotype three ways:
+    ``S304C:V547I`` as a candidate token, ``V547I_S304C`` in a FASTA header and
+    ``V547I;S304C`` in a components column. Only the first is accepted, and the
+    other two arrive here by being pasted.
+
     Args:
         notation: Raw mutation string from CSV.
 
     Returns:
         List of individual single-mutation strings (non-empty, validated format).
+
+    Raises:
+        ValueError: If a token is not a valid 1-based single mutation. The
+            message names the supported separators.
     """
     # Strip chain boundaries first (colon separates chains; collect all tokens)
     chain_parts = notation.strip().split(":")
@@ -82,7 +93,18 @@ def split_multi_notation(notation: str) -> list[str]:
         token = token.strip()
         if not token or token == "WT":
             continue
-        parse_mutation_notation(token)
+        try:
+            parse_mutation_notation(token)
+        except ValueError as exc:
+            # The base message names the single-mutation format only, so a row
+            # written with an unsupported separator reads as a malformed
+            # mutation and nothing says how to spell several of them. Stating
+            # the accepted separators does not accept any new one.
+            raise ValueError(
+                f"{exc} Separate several mutations with '/' or ':' "
+                f"(e.g. A40P/E61Y); '_' and ';' are not separators. "
+                f"Row: {notation.strip()!r}."
+            ) from exc
         result.append(token)
 
     return result

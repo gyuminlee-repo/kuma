@@ -9,6 +9,10 @@ Covers:
   3. verdict_ngs.parse_verdict_rows / parse_verdict_wells: the observed_aa
      column is read when present, and parse_verdict_wells's existing
      behaviour (no observed_aa column) is unchanged.
+  4. combination genotypes: a well is judged against the SET its label names,
+     a swap of two such wells closes the permutation gate, a partly
+     introduced combination is the catch-all extra_mutation, and
+     single-substitution judgement does not move.
 """
 
 from __future__ import annotations
@@ -277,3 +281,123 @@ def test_parse_verdict_rows_reads_observed_aa_column(tmp_path):
     }
 
 
+# ---------------------------------------------------------------------------
+# audit_labels: combination genotypes
+#
+# A combination genotype is one clone carrying several substitutions, so its
+# well is audited against the SET of substitutions its label names. The
+# categories stay the closed union src/types/mame/validators.ts declares, so a
+# partly introduced combination is reported in the catch-all extra_mutation.
+# ---------------------------------------------------------------------------
+
+
+def test_combination_well_is_concordant_when_the_whole_set_is_observed():
+    """Every component observed, in any order, is a correct clone and no finding."""
+    layout = {"A01": "S304C:V547I"}
+    rows = {"A01": VerdictRow(verdict="PASS", observed_aa=("V547I", "S304C"))}
+    audit = audit_labels(layout, rows)
+    assert audit.discordant == ()
+    assert audit.n_checked == 1
+
+
+def test_combination_spelled_with_a_slash_is_the_same_expectation():
+    """'/' and ':' spell one genotype, so both answer concordant on one set."""
+    layout = {"A01": "V547I/S304C"}
+    rows = {"A01": VerdictRow(verdict="PASS", observed_aa=("S304C", "V547I"))}
+    assert audit_labels(layout, rows).discordant == ()
+
+
+def test_two_swapped_combination_wells_are_cross_well_and_a_closed_permutation():
+    """Two combination wells holding each other's set is a label swap, not a residue error."""
+    layout = {"A01": "S304C:V547I", "B01": "K48D:M55T"}
+    rows = {
+        "A01": VerdictRow(verdict="WRONG_AA", observed_aa=("K48D", "M55T")),
+        "B01": VerdictRow(verdict="WRONG_AA", observed_aa=("V547I", "S304C")),
+    }
+    audit = audit_labels(layout, rows)
+    assert {f.well: f.category for f in audit.discordant} == {
+        "A01": "cross_well",
+        "B01": "cross_well",
+    }
+    assert audit.is_closed_permutation is True
+    assert audit.geometry == "two_swap"
+    assert {frozenset(cycle) for cycle in audit.cycles} == {frozenset({"A01", "B01"})}
+
+
+def test_a_combination_and_a_single_well_swap_closes_the_same_way():
+    """The swap gate keys on the expected SET, so a combination and a single pair up."""
+    layout = {"A01": "S304C:V547I", "B01": "K48D"}
+    rows = {
+        "A01": VerdictRow(verdict="WRONG_AA", observed_aa=("K48D",)),
+        "B01": VerdictRow(verdict="WRONG_AA", observed_aa=("S304C", "V547I")),
+    }
+    audit = audit_labels(layout, rows)
+    assert {f.well: f.category for f in audit.discordant} == {
+        "A01": "cross_well",
+        "B01": "cross_well",
+    }
+    assert audit.is_closed_permutation is True
+
+
+def test_partly_introduced_combination_is_reported_as_extra_mutation():
+    """One component missing and nothing else observed lands in the catch-all.
+
+    extra_mutation is this audit's catch-all and therefore includes a
+    combination whose components are only partly introduced. The five
+    categories are a closed union in src/types/mame/validators.ts, so no new
+    category is invented for it here.
+    """
+    layout = {"C03": "S304C:V547I"}
+    rows = {"C03": VerdictRow(verdict="WRONG_AA", observed_aa=("S304C",))}
+    audit = audit_labels(layout, rows)
+    assert [(f.well, f.category) for f in audit.discordant] == [("C03", "extra_mutation")]
+    assert audit.is_closed_permutation is False
+
+
+def test_combination_component_substituted_wrongly_is_wrong_residue():
+    """A missing component whose position carries something else is a residue error."""
+    layout = {"D04": "S304C:V547I"}
+    rows = {"D04": VerdictRow(verdict="WRONG_AA", observed_aa=("S304C", "V547Y"))}
+    audit = audit_labels(layout, rows)
+    assert [(f.well, f.category) for f in audit.discordant] == [("D04", "wrong_residue")]
+
+
+def test_combination_well_with_an_extra_substitution_is_extra_mutation():
+    """The whole expected set plus an unasked change is extra_mutation."""
+    layout = {"E05": "S304C:V547I"}
+    rows = {"E05": VerdictRow(verdict="WRONG_AA", observed_aa=("S304C", "V547I", "M55T"))}
+    audit = audit_labels(layout, rows)
+    assert [(f.well, f.category) for f in audit.discordant] == [("E05", "extra_mutation")]
+
+
+def test_single_substitution_judgement_is_unchanged_beside_a_combination_well():
+    """A combination on the plate moves nothing about the single-substitution wells."""
+    layout = {"A01": "S304C:V547I", "B02": "F89W", "C03": "K48D"}
+    rows = {
+        "A01": VerdictRow(verdict="PASS", observed_aa=("V547I", "S304C")),
+        "B02": VerdictRow(verdict="WRONG_AA", observed_aa=("F89Y",)),
+        "C03": VerdictRow(verdict="WRONG_AA", observed_aa=()),
+    }
+    audit = audit_labels(layout, rows)
+    assert {f.well: f.category for f in audit.discordant} == {
+        "B02": "wrong_residue",
+        "C03": "not_introduced",
+    }
+    assert audit.n_checked == 3
+    assert audit.is_closed_permutation is False
+
+
+def test_a_label_naming_one_position_twice_is_compared_as_written():
+    """An unparseable combination answers itself, the comparison it always got.
+
+    Two substitutions at one position are not a genotype one clone carries, so
+    the label does not split into components. It is compared as the single
+    string it is, which no observation matches: the well is reported rather
+    than silently accepted, and its position token puts it in wrong_residue.
+    """
+    layout = {"F06": "S304C:S304A"}
+    rows = {"F06": VerdictRow(verdict="WRONG_AA", observed_aa=("S304C", "S304A"))}
+    audit = audit_labels(layout, rows)
+    assert [(f.well, f.category, f.expected) for f in audit.discordant] == [
+        ("F06", "wrong_residue", "S304C:S304A")
+    ]

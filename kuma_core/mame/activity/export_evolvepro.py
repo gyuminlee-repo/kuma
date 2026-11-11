@@ -107,8 +107,14 @@ def export_evolvepro_xlsx(
     notation guard):
       - ``ngs_success`` is True
       - ``mutation`` is not ``"WT"`` and not ``None``
-      - ``mutation`` matches the canonical ``[A-Z]\\d+[A-Z]`` pattern
+      - ``mutation`` is a canonical label: one ``[A-Z]\\d+[A-Z]`` substitution,
+        or a combination genotype of them joined by ``:`` or ``/``
       - ``fold_change`` is not ``None``
+
+    The ``Variant`` column is short notation, so a combination leaves as its
+    components' short forms joined by ``:`` ('304C:547I'). The full form of the
+    same identity is what ``export_evolvepro_csv`` already writes in its
+    ``variant`` column.
 
     Args:
         rows: Full merged table.
@@ -121,8 +127,8 @@ def export_evolvepro_xlsx(
     """
     from kuma_core.mame.activity.evolvepro_xlsx import write_evolvepro_xlsx
     from kuma_core.mame.activity.variant_notation import (
-        is_canonical_internal,
-        to_evolvepro,
+        is_canonical_label,
+        to_evolvepro_label,
     )
 
     kept: list[tuple[str, float]] = []
@@ -136,7 +142,7 @@ def export_evolvepro_xlsx(
         if not r.mutation or r.mutation == "WT":
             excluded.append((label, "mutation=WT"))
             continue
-        if not is_canonical_internal(r.mutation):
+        if not is_canonical_label(r.mutation):
             excluded.append((label, "non_canonical_variant"))
             continue
         # ``fold_change`` IS the relative activity required here:
@@ -146,7 +152,7 @@ def export_evolvepro_xlsx(
         if r.fold_change is None:
             excluded.append((label, "fold_change=None"))
             continue
-        kept.append((to_evolvepro(r.mutation), r.fold_change))
+        kept.append((to_evolvepro_label(r.mutation), r.fold_change))
 
     # Staged and renamed so an interrupted export leaves the previous
     # workbook rather than a truncated one under the same name. Staged here

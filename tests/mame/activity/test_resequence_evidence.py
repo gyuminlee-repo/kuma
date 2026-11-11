@@ -11,6 +11,7 @@ from kuma_core.mame.activity.evolvepro_xlsx import read_evolvepro_rows
 from kuma_core.mame.activity.resequence_evidence import (
     CloneEvidenceLink,
     ResequenceEvidence,
+    _same_identity,
     validate_resequence_links,
 )
 
@@ -214,3 +215,71 @@ def test_empty_plate_sheet_is_a_user_facing_error_not_an_indexerror(tmp_path, in
     book.save(repeated)
     with pytest.raises(ValueError, match="no well/verdict evidence"):
         validate_resequence_links(evidence, original)
+
+
+# ---------------------------------------------------------------------------
+# Combination genotypes: one clone, one identity, spelled in any order
+# ---------------------------------------------------------------------------
+
+
+def test_combination_spelled_in_another_component_order_is_the_same_clone(tmp_path):
+    """A workbook writing 'K4R:G2A' and a link writing 'G2A:K4R' name one clone."""
+    original = _workbook(tmp_path / "orig.xlsx", identity="K4R:G2A")
+    repeated = _workbook(tmp_path / "rep.xlsx", repeated=True, identity="K4R:G2A")
+    link = CloneEvidenceLink(
+        relationship="same_clone", mutant_id="G2A:K4R",
+        original_well="A1", original_plate="NB01",
+        resequence_well="C1", resequence_plate="NB02",
+    )
+    evidence = ResequenceEvidence(
+        original_verdict_xlsx=str(original), verdict_xlsx=str(repeated), links=[link]
+    )
+    assert validate_resequence_links(evidence, original) == {"2A:4R": "A01"}
+
+
+def test_a_different_combination_is_still_refused(tmp_path):
+    """Order tolerance is not identity tolerance: another genotype is rejected."""
+    original = _workbook(tmp_path / "orig.xlsx", identity="K4R:G2A")
+    repeated = _workbook(tmp_path / "rep.xlsx", repeated=True, identity="K4R:G2V")
+    link = CloneEvidenceLink(
+        relationship="same_clone", mutant_id="G2A:K4R",
+        original_well="A1", original_plate="NB01",
+        resequence_well="C1", resequence_plate="NB02",
+    )
+    evidence = ResequenceEvidence(
+        original_verdict_xlsx=str(original), verdict_xlsx=str(repeated), links=[link]
+    )
+    with pytest.raises(ValueError, match="Incompatible resequencing mutant identity"):
+        validate_resequence_links(evidence, original)
+
+
+def test_a_combination_naming_one_position_twice_is_refused_with_a_reason(tmp_path):
+    """Two substitutions at one position are not a clone, so the link is refused.
+
+    The message is the generic canonical-identity refusal: the label never
+    reaches the comparison, because ``is_canonical_label`` already answers no.
+    """
+    original = _workbook(tmp_path / "orig.xlsx", identity="G2A:G2V")
+    repeated = _workbook(tmp_path / "rep.xlsx", repeated=True, identity="G2A:G2V")
+    link = CloneEvidenceLink(
+        relationship="same_clone", mutant_id="G2A:G2V",
+        original_well="A1", original_plate="NB01",
+        resequence_well="C1", resequence_plate="NB02",
+    )
+    evidence = ResequenceEvidence(
+        original_verdict_xlsx=str(original), verdict_xlsx=str(repeated), links=[link]
+    )
+    with pytest.raises(ValueError, match="full canonical mutant identity"):
+        validate_resequence_links(evidence, original)
+
+
+def test_an_unparseable_workbook_label_answers_false_instead_of_raising():
+    """The workbook side is data, so a label that does not parse is a mismatch."""
+    assert _same_identity("G2A:K4R", "G2A:K4R") is True
+    assert _same_identity("K4R:G2A", "G2A:K4R") is True
+    assert _same_identity("K4R/G2A", "G2A:K4R") is True
+    assert _same_identity("BLANK", "G2A:K4R") is False
+    assert _same_identity("G2A:G2V", "G2A:K4R") is False
+    # A single substitution answers exactly as it always did.
+    assert _same_identity("G2A", "G2A") is True
+    assert _same_identity("F3W", "G2A") is False

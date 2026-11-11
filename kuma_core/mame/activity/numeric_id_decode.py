@@ -43,7 +43,7 @@ from .gc_sample import (
     classify_sample,
 )
 from .plate_layout_xlsx import _normalise_well, parse_plate_layout_xlsx
-from .variant_notation import to_evolvepro
+from .variant_notation import to_evolvepro_label
 
 WRONG_RANK_ASSUMPTION_NOTE = (
     "numeric sample IDs index the plate layout in well order, not a "
@@ -156,9 +156,11 @@ def layout_variant_order(
 ) -> tuple[DecodeOrder, list[str]]:
     """Non-WT layout rows in well order as ``(short, mutant, well)``.
 
-    Rows whose mutant has no EVOLVEpro short form (several substitutions) are
-    kept as unlabelled slots. Numeric IDs index physical non-WT rows; dropping
-    an unconvertible row would shift every later ID and rename the whole plate.
+    Rows whose mutant has no EVOLVEpro short form are kept as unlabelled slots.
+    Numeric IDs index physical non-WT rows; dropping an unconvertible row would
+    shift every later ID and rename the whole plate. A combination genotype now
+    has a short form (its components joined by ``:``), so it keeps a labelled
+    slot and only a label that cannot be parsed at all stays unlabelled.
 
     Every row states its well, so the rows are put in plate order through
     :func:`plate_ordered` and the file row order is not consulted, the same
@@ -170,12 +172,12 @@ def layout_variant_order(
         if entry.is_wt:
             continue
         try:
-            short = to_evolvepro(entry.mutant)
+            short = to_evolvepro_label(entry.mutant)
         except ValueError:
             warnings.append(
                 f"Layout mutant {entry.mutant!r} (well {entry.well_id}) has no "
-                "EVOLVEpro short form (several substitutions); its numeric ID "
-                "slot is preserved but omitted from EVOLVEpro output."
+                "EVOLVEpro short form; its numeric ID slot is preserved but "
+                "omitted from EVOLVEpro output."
             )
             short = None
         order.append((short, entry.mutant, entry.well_id))
@@ -254,12 +256,12 @@ def expected_variant_order(
     for mutation, well in placed:
         mutant = mutation.mutant_id
         try:
-            short = to_evolvepro(mutant)
+            short = to_evolvepro_label(mutant)
         except ValueError:
             warnings.append(
-                f"Designed mutant {mutant!r} has no EVOLVEpro short form (several "
-                "substitutions); its numeric ID slot is preserved but omitted "
-                "from EVOLVEpro output."
+                f"Designed mutant {mutant!r} has no EVOLVEpro short form; its "
+                "numeric ID slot is preserved but omitted from EVOLVEpro "
+                "output."
             )
             short = None
         order.append((short, mutant, _normalise_well(well)))
