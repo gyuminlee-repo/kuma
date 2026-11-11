@@ -2,7 +2,9 @@
 
 MAME 는 변이 목록을 두 가지로 받는다. KURO export 워크북이거나, 변이만 나열한 평범한 목록이다.
 
-well 위치는 어느 쪽에도 적지 않는다. **행 순서가 곧 플레이트 순서**이고, 배치는 세로 채움(A1, B1, C1 ... H1, A2)이다. `kuma_core/mame/layout.py` 의 `build_draft_layout` 이 n번째 행을 n번째 well 에 넣는다.
+well 위치는 어느 쪽에도 적지 않는다. **잔기 position 오름차순이 곧 플레이트 순서**다. 배치는 세로 채움(A1, B1, C1 ... H1, A2)이다. 벤치가 클론 플레이트를 그 순서로 채우기 때문이다. `kuma_core/mame/layout.py` 의 `build_clone_plate_layout` 이 `canonical_plate_order` 로 그 순서를 세우고 `build_draft_layout` 이 n번째 점유자를 n번째 well 에 넣는다. 같은 position 에 치환이 여럿이면 시트에 적힌 순서로 안정 정렬한다. 조합 유전자형처럼 한 클론이 여러 행에 걸치면 그 클론의 가장 낮은 position 자리에 놓인다.
+
+`Well` 열을 가진 파일은 다르다. 그 주소는 파일이 적은 사실이므로 정렬하지 않고 그대로 쓴다.
 
 ## 갈래 1: KURO export 워크북
 

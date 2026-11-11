@@ -40,7 +40,7 @@ from kuma_core.mame.activity.resequence_evidence import (
 )
 from kuma_core.mame.activity.verdict_ngs import parse_verdict_rows
 from kuma_core.mame.io.variant_list import read_variant_source
-from kuma_core.mame.layout import build_draft_layout
+from kuma_core.mame.layout import build_clone_plate_layout
 from sidecar_mame.handlers.analyze import handle_analyze
 from sidecar_mame.handlers.export import handle_get_plate_data
 from sidecar_mame.handlers.health import handle_get_run_health
@@ -129,7 +129,7 @@ def main() -> None:
     ]
     assert {variant.mutant_id for variant in variants} == set(campaign.ACTIVITY)
     by_id = {variant.mutant_id: variant for variant in variants}
-    draft = build_draft_layout(read.expected, wt_ordinal=read.wt_ordinal)
+    draft = build_clone_plate_layout(read.expected, wt_ordinal=read.wt_ordinal)
     assert not draft.dropped_mutant_ids
     layout = dict(draft.layout)
     bundled_layout = {entry.well_id: entry.mutant for entry in parse_plate_layout_xlsx(campaign.SAMPLES / "06_mame_plate_layout.xlsx")}

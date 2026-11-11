@@ -9,7 +9,7 @@ from pathlib import Path
 import openpyxl
 
 from kuma_core.mame.io.variant_list import read_variant_source
-from kuma_core.mame.layout import build_draft_layout
+from kuma_core.mame.layout import build_clone_plate_layout
 
 
 def main() -> None:
@@ -24,7 +24,7 @@ def main() -> None:
     )
     expected_path = samples / "03_mame_expected_mutations.xlsx"
     source = read_variant_source(expected_path)
-    draft = build_draft_layout(
+    draft = build_clone_plate_layout(
         source.expected, wt_ordinal=source.wt_ordinal,
         wells=source.wells, wt_well=source.wt_well,
     )

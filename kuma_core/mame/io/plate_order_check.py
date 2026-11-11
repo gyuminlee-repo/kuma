@@ -28,10 +28,22 @@ reader drops on status was counted here as though it were placed.
 Keying on the well removes all three without a case for any of them, because it
 stops re-deriving what each side already states: the plate sheets carry a Well
 column and a labelled grid, and the expected side is placed by
-``io.variant_list.read_variant_source`` together with ``layout.build_draft_layout``,
-which are what the run itself uses. Reading the expected sheet a second way here
-was the whole defect: two readers of one sheet disagreeing about which well a
-mutant sits in is precisely what this check was written to detect.
+``io.variant_list.read_variant_source`` together with
+``layout.build_draft_layout``, which places the sheet in the order it was
+written. Reading the expected sheet a second way here was the whole defect: two
+readers of one sheet disagreeing about which well a mutant sits in is precisely
+what this check was written to detect.
+
+**What this does not check.** It compares two sheets of one KURO export
+against each other, both read in design-sheet order. It does NOT model the
+clone plate the run builds. That plate is drafted in residue-position order by
+``layout.build_clone_plate_layout``, which every clone-plate path except this
+one calls, and the two orders differ on any export not already written in
+position order. So an agreement here says the export is internally consistent
+and says nothing about the plate the run scores; no check currently compares
+that plate against the primer plate. Making them comparable means changing
+which well KURO orders each primer into, which is a decision about the physical
+ordering sheet and not one this module can take.
 
 The wild-type well is left out of the comparison. A plate sheet lists primers,
 the control has none, and its absence is not a disagreement.
@@ -226,12 +238,21 @@ def _expected_layout(
 ) -> dict[str, str] | None:
     """Where the expected sheet puts each mutant, or ``None`` if it cannot say.
 
-    This is the run's own placement, not a second reading of it:
+    The sheet is placed in the order it was written, through the library this
+    repository already has for it:
     :func:`~kuma_core.mame.io.variant_list.read_variant_source` decides which
     rows are occupants and at which ordinal the control sits, and
-    :func:`~kuma_core.mame.layout.build_draft_layout` turns that into wells.
-    Deriving it here again is what let this check and the run name different
-    wells for one mutant.
+    :func:`~kuma_core.mame.layout.build_draft_layout` turns that into wells
+    without reordering anything. Deriving the placement inside this module a
+    third way is what put ``WT`` in ``absent_from_plate`` and renumbered every
+    well after a gap.
+
+    This is deliberately NOT the run's clone plate.
+    :func:`~kuma_core.mame.layout.build_clone_plate_layout` sorts by residue
+    position first and is what every other clone-plate path calls; the comment
+    at the call below says why this one must not. The consequence is stated in
+    the module docstring: this check compares sheet against sheet and verifies
+    nothing about the plate the run builds.
 
     ``read_variant_source`` refuses a file for several reasons, all of them
     reported to the operator on the path that actually loads the workbook. This
@@ -254,9 +275,15 @@ def _expected_layout(
     ids = [m.mutant_id for m in read.expected]
     if len(set(ids)) != len(ids):
         return None
-    # Every argument the run passes, and the same control-well default. This
-    # check is only worth anything while it names the wells the run names, so it
-    # follows ``build_draft_layout`` rather than pinning a policy of its own.
+    # ``build_draft_layout`` rather than ``build_clone_plate_layout``, which is
+    # what every other clone-plate path calls. The comparison here is against
+    # the KURO primer-plate sheets, and KURO assigns those wells by design-sheet
+    # index (``kuro.plate_mapper._assign_well``), so ordering this side by
+    # residue position would report a disagreement for every workbook written in
+    # design order, which is most of them. A disagreement blocks the run
+    # (``sidecar_mame.handlers.analyze``), so the check has to read the sheet the
+    # way the sheet was written. Everything else is the arguments the run passes,
+    # control-well default included.
     draft = build_draft_layout(
         read.expected,
         wt_ordinal=read.wt_ordinal,
@@ -285,10 +312,13 @@ def check_plate_order(
     ``mutant_id``) is reported as not comparable; see :func:`_expected_layout`.
 
     ``wt_placement`` is the control-well policy the run would use, forwarded so
-    this check names the wells the run names. It has to travel: the check is a
-    comparison against a hand-written primer plate, and answering it under a
-    different placement than the run uses turns every agreement into a
-    disagreement and back again.
+    that the one well this check cannot judge is the same well the run leaves
+    to the control. It has to travel: the control takes a well out of the
+    comparison, and taking a different one out than the run does turns every
+    later agreement into a disagreement and back again. It does not make the
+    answer here a statement about the run's plate; the two sides of this
+    comparison are both read in design-sheet order, and the module docstring
+    says what that leaves unchecked.
     """
     path = Path(path)
     if path.suffix.lower() not in {".xlsx", ".xlsm"} or not path.exists():

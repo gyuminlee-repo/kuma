@@ -397,12 +397,15 @@ def test_declaring_wells_narrows_the_denominator_to_what_is_on_the_plate(
     tmp_path: Path,
 ) -> None:
     """The regression: the denominator is the declared plate, not the sheet."""
+    # Residue positions ascending, which is the order the clone plate is drafted
+    # in (``layout.build_clone_plate_layout``), so the list as written is the
+    # plate as placed and this fixture states one thing rather than two.
     expected = _variant_list(
-        tmp_path / "variants.xlsx", ["G2A", "F3W", "T5A", "M1L"]
+        tmp_path / "variants.xlsx", ["G2A", "F3W", "T5A", "K6R"]
     )
     params = _params(tmp_path, expected, with_reads=True)
-    # The draft places G2A/F3W/T5A/M1L in A1..D1 and WT in E1. Declaring A1 and
-    # C1 says the campaign filled two wells; F3W and M1L are not on this plate.
+    # The draft places G2A/F3W/T5A/K6R in A1..D1 and WT in E1. Declaring A1 and
+    # C1 says the campaign filled two wells; F3W and K6R are not on this plate.
     params["selected_wells"] = ["A1", "C1"]
 
     result = handle_analyze(params)
@@ -434,16 +437,17 @@ def test_declaring_nothing_still_counts_a_designed_mutant_that_produced_nothing(
     Only wells the operator declared ABSENT leave the denominator. A designed
     mutant that is on the plate and produced no reads stays in it, which is what
     stops a run from lifting its own rate by losing wells. Reads arrive for A1
-    and C1 only, so F3W and M1L are counted while contributing nothing.
+    and C1 only, so F3W and K6R are counted while contributing nothing.
     """
+    # Position order, same reason as the test above.
     expected = _variant_list(
-        tmp_path / "variants.xlsx", ["G2A", "F3W", "T5A", "M1L"]
+        tmp_path / "variants.xlsx", ["G2A", "F3W", "T5A", "K6R"]
     )
 
     result = handle_analyze(_params(tmp_path, expected, with_reads=True))
 
     assert result["layout_provenance"]["selected_wells"] is None
-    assert result["designed_mutant_ids"] == ["F3W", "G2A", "M1L", "T5A"]
+    assert result["designed_mutant_ids"] == ["F3W", "G2A", "K6R", "T5A"]
     health = handle_get_run_health({})
     assert health["total_mutants"] == 4
     assert health["recovered_mutants"] == 1
