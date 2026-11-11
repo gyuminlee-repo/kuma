@@ -282,26 +282,69 @@ EVOLVEPRO_RANKED_BUFFER = 50
 
 
 _SHORT_VARIANT_RE = re.compile(r"^(\d+)([A-Z])$")
+# Splits a combination label into tokens and KEEPS the separators, so a
+# converted label is spelled the way it arrived. The separator set is the one
+# ``mutation.split_multi_notation`` accepts.
+_COMBINATION_SPLIT_RE = re.compile(r"([/:])")
+
+
+def _expand_short_token(token: str, ref_seq: str) -> str | None:
+    """Internal form of one short token, or ``None`` when it is not one.
+
+    ``None`` means "leave this token alone": the token is not ``\\d+[A-Z]``,
+    or its position falls outside *ref_seq*.
+    """
+    m = _SHORT_VARIANT_RE.match(token)
+    if m is None:
+        return None
+    pos = int(m.group(1))
+    if pos < 1 or pos > len(ref_seq):
+        return None
+    return f"{ref_seq[pos - 1]}{pos}{m.group(2)}"
 
 
 def _normalize_variant_notation(variant: str, ref_seq: str) -> str:
     """Convert EVOLVEpro short notation (``89W``) to internal (``F89W``).
 
-    Pass-through for internal-form variants (``[A-Z]\\d+[A-Z]``), WT, and
-    multi-substitution strings. Conversion runs only when ``variant``
-    matches ``\\d+[A-Z]`` AND ``ref_seq`` is non-empty AND the position
-    fits ``ref_seq``. Otherwise ``variant`` is returned unchanged so
-    callers that still receive internal notation continue to work.
+    A combination genotype is one clone carrying several substitutions, and
+    MAME writes the short form of such a clone as its components joined by
+    ``:`` or ``/`` (``304C:547I``, from ``export_evolvepro_xlsx`` and
+    ``build_evolvepro_input``). That file is handed straight back to this
+    loader, so a combination is converted component by component
+    (``S304C:V547I``) rather than passed through: left short, every component
+    is refused by ``mutation.parse_mutation_notation`` and the row designs
+    nothing.
+
+    The written order and the separators are kept as they are. Position order
+    is MAME's identity concern and reordering here would move what
+    ``_extract_aa_position`` reads from a full-form combination that passes
+    through today.
+
+    Pass-through for internal-form variants (``[A-Z]\\d+[A-Z]``), WT, and any
+    combination that is not short in EVERY component: converting part of a
+    mixed string would leave a label spelled two ways at once. Conversion runs
+    only when a token matches ``\\d+[A-Z]`` AND ``ref_seq`` is non-empty AND
+    the position fits ``ref_seq``. Otherwise ``variant`` is returned unchanged
+    so callers that still receive internal notation continue to work.
     """
     if not ref_seq:
         return variant
-    m = _SHORT_VARIANT_RE.match(variant)
-    if m is None:
-        return variant
-    pos = int(m.group(1))
-    if pos < 1 or pos > len(ref_seq):
-        return variant
-    return f"{ref_seq[pos - 1]}{pos}{m.group(2)}"
+    single = _expand_short_token(variant, ref_seq)
+    if single is not None:
+        return single
+    parts = _COMBINATION_SPLIT_RE.split(variant)
+    if len(parts) == 1:
+        return variant  # no separator: nothing left to try
+    expanded: list[str] = []
+    for index, part in enumerate(parts):
+        if index % 2:  # the captured separator, kept as written
+            expanded.append(part)
+            continue
+        token = _expand_short_token(part.strip(), ref_seq)
+        if token is None:
+            return variant
+        expanded.append(token)
+    return "".join(expanded)
 
 
 def _read_table_rows(

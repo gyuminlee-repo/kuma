@@ -4,7 +4,13 @@ from __future__ import annotations
 
 import pytest
 
-from kuma_core.kuro.evolvepro import VARIANT_COLUMNS, domain_aware_select, load_evolvepro_csv
+from kuma_core.kuro.evolvepro import (
+    VARIANT_COLUMNS,
+    _normalize_variant_notation,
+    domain_aware_select,
+    load_evolvepro_csv,
+)
+from kuma_core.kuro.mutation import parse_mutation_notation, split_multi_notation
 
 
 class TestLoadEvolveproCsv:
@@ -569,6 +575,55 @@ class TestRefSeqConversion:
         result = load_evolvepro_csv(csv_file, top_n=10, ref_seq="MFLSI")
         assert result["variants"] == ["100W"]
 
+
+class TestRefSeqConversionCombination:
+    """A short combination genotype is converted component by component.
+
+    MAME writes the short form of one clone carrying several substitutions
+    ('304C:547I') and the app hands that file back to this loader, so leaving
+    it short refuses every component downstream.
+    """
+
+    def test_short_combination_converts_every_component(self):
+        """'2W:5K' answers the internal form of both components."""
+        assert _normalize_variant_notation("2W:5K", "MFLSI") == "F2W:I5K"
+
+    def test_written_separator_and_order_are_kept(self):
+        """A '/'-spelled combination keeps its separator and its written order."""
+        assert _normalize_variant_notation("5K/2W", "MFLSI") == "I5K/F2W"
+
+    def test_internal_combination_passes_through(self):
+        """A combination already in internal form is returned unchanged."""
+        assert _normalize_variant_notation("F2W:I5K", "MFLSI") == "F2W:I5K"
+
+    def test_mixed_notation_combination_passes_through(self):
+        """One short and one internal component leaves as written, not half-converted."""
+        assert _normalize_variant_notation("F2W:5K", "MFLSI") == "F2W:5K"
+
+    def test_out_of_range_component_leaves_the_whole_label(self):
+        """A component outside ref_seq refuses the whole label, not just itself."""
+        assert _normalize_variant_notation("2W:100K", "MFLSI") == "2W:100K"
+
+    def test_non_substitution_component_passes_through(self):
+        """A stray 'WT' token keeps the label as written."""
+        assert _normalize_variant_notation("2W:WT", "MFLSI") == "2W:WT"
+
+    def test_single_substitution_is_unaffected(self):
+        """Every single-substitution answer is the one this function always gave."""
+        assert _normalize_variant_notation("2W", "MFLSI") == "F2W"
+        assert _normalize_variant_notation("F89W", "M" * 100) == "F89W"
+        assert _normalize_variant_notation("100W", "MFLSI") == "100W"
+        assert _normalize_variant_notation("WT", "MFLSI") == "WT"
+        assert _normalize_variant_notation("2W", "") == "2W"
+
+    def test_loader_designs_from_a_short_combination_row(self, tmp_path):
+        """A file row spelled '2W:5K' reaches the caller as a designable label."""
+        csv_file = tmp_path / "ep_short_combo.csv"
+        csv_file.write_text("variant,y_pred\n2W:5K,1.5\n")
+        result = load_evolvepro_csv(csv_file, top_n=10, ref_seq="MFLSI")
+        assert result["variants"] == ["F2W:I5K"]
+        assert [parse_mutation_notation(token)[1]
+                for token in split_multi_notation(result["variants"][0])] == [2, 5]
 
 
 class TestStartCodonFilter:
