@@ -1088,6 +1088,13 @@
         "title": "{{file}} concorde avec la disposition calculée",
         "desc": "Les {{wells}} puits concordent tous, rien à corriger. La sample map n'est plus lue comme entrée et ce fichier peut être supprimé quand vous le souhaitez ; il reste en place jusque-là.",
         "dismiss": "Fermer cet avis"
+      },
+      "clonePlateCrosscheck": {
+        "title": "{{mismatched}} des {{wells}} puits contiennent un clone différent sur la plaque d'amorces et sur la plaque de clones",
+        "desc": "KURO a attribué à chaque amorce son puits selon l'ordre de la feuille de conception ({{sheet}}), et cette exécution remplit la plaque de clones par position de résidu. Les deux ordres diffèrent, donc le même puits désigne deux clones.",
+        "example": "{{well}} : {{primer}} sur la plaque d'amorces, {{clone}} sur la plaque de clones",
+        "decision": "Rien n'est bloqué et rien n'est modifié. Laquelle des deux décrit les tubes du portoir n'est écrite dans aucun fichier ici. Vérifiez la plaque que vous avez pipetée et décidez quel ordre conserver.",
+        "unnamedSheet": "la feuille de la plaque d'amorces"
       }
     },
     "runQuality": {

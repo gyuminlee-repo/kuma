@@ -352,7 +352,10 @@ def build_clone_plate_layout(
     workbook does) reaches the same well either way.
 
     ``io.plate_order_check`` is the one clone-plate reader that must NOT call
-    this; the comment at its call site says why.
+    this; the comment at its call site says why. Its sibling
+    ``io.clone_plate_crosscheck`` does call it, which is what makes that module
+    a statement about the plate the run fills rather than about whether an
+    export agrees with itself.
     """
     if wells is None:
         expected_mutations = canonical_plate_order(expected_mutations)

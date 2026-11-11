@@ -1088,6 +1088,13 @@
         "title": "{{file}} coincide con la disposición calculada",
         "desc": "Los {{wells}} pocillos coinciden, así que no hay nada que cambiar. El sample map ya no se lee como entrada y este archivo puede borrarse cuando quiera; hasta entonces se deja como está.",
         "dismiss": "Cerrar este aviso"
+      },
+      "clonePlateCrosscheck": {
+        "title": "{{mismatched}} de {{wells}} pocillos contienen un clon distinto en la placa de cebadores que en la placa de clones",
+        "desc": "KURO asignó a cada cebador su pocillo según el orden de la hoja de diseño ({{sheet}}), y esta ejecución llena la placa de clones por posición de residuo. Los dos órdenes difieren, así que el mismo pocillo nombra dos clones.",
+        "example": "{{well}}: {{primer}} en la placa de cebadores, {{clone}} en la placa de clones",
+        "decision": "Nada se bloquea y nada se cambia. Cuál de las dos describe los tubos del rack no está escrito en ningún archivo aquí. Revise la placa que pipeteó y decida qué orden conservar.",
+        "unnamedSheet": "la hoja de la placa de cebadores"
       }
     },
     "runQuality": {

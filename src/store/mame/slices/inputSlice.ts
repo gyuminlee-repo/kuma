@@ -24,6 +24,7 @@ import type {
   JanusAutosaveResult,
   JanusExportSettings,
   BarcodeAxisCounts,
+  ClonePlateCrosscheck,
   LegacySampleMapFinding,
   PlateOrderFinding,
   PlateOrderReport,
@@ -242,6 +243,7 @@ const mameInputInitialState = {
   wellLayout: null as WellLayout | null,
   plateOrderFinding: null as PlateOrderFinding | null,
   legacySampleMapFinding: null as LegacySampleMapFinding | null,
+  clonePlateCrosscheck: null as ClonePlateCrosscheck | null,
   barcodeAxisCounts: null as BarcodeAxisCounts | null,
   variantSourceInfo: null as VariantSourceInfo | null,
   variantSheet: null as string | null,
@@ -382,6 +384,9 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       expectedPath,
       validationErrors: [],
       plateOrderFinding: null,
+      // Cleared with the file it describes. The wells it names belong to one
+      // workbook and mean nothing about the next one.
+      clonePlateCrosscheck: null,
       variantSourceInfo: null,
       variantSheet: null,
       variantColumn: null,
@@ -662,6 +667,9 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         // Same absent-clears rule: a project whose sample map was deleted
         // between validations must not keep showing the old answer.
         legacySampleMapFinding: result.legacy_sample_map ?? null,
+        // Same absent-clears rule, and nothing else: this finding is not in
+        // `errors`, does not touch `valid`, and is not read by `selectCanRun`.
+        clonePlateCrosscheck: result.clone_plate_crosscheck ?? null,
         // Same rule: absent means no workbook was read this time, so a line
         // left over from a previous file would describe the wrong one.
         barcodeAxisCounts: result.barcode_axes ?? null,

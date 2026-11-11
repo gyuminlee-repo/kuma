@@ -1253,6 +1253,13 @@
         "title": "{{file}} agrees with the computed layout",
         "desc": "All {{wells}} wells match, so nothing needs changing. The sample map is no longer read as an input, and this file can be deleted whenever you like; it is left where it is until you do.",
         "dismiss": "Dismiss this notice"
+      },
+      "clonePlateCrosscheck": {
+        "title": "{{mismatched}} of {{wells}} wells hold a different clone on the primer plate than on the clone plate",
+        "desc": "KURO gave each primer its well by the order of the design sheet ({{sheet}}), and this run fills the clone plate by residue position. The two orders differ, so the same well names two clones.",
+        "example": "{{well}}: {{primer}} on the primer plate, {{clone}} on the clone plate",
+        "decision": "Nothing is blocked and nothing is changed. Which of the two describes the tubes in the rack is written in no file here, so check the plate you pipetted and decide which order to keep.",
+        "unnamedSheet": "the primer plate sheet"
       }
     },
     "runQuality": {

@@ -1088,6 +1088,13 @@
         "title": "{{file}} stimmt mit dem berechneten Layout überein",
         "desc": "Alle {{wells}} Wells stimmen überein, es ist also nichts zu ändern. Die Sample Map wird nicht mehr als Eingabe gelesen, und diese Datei kann jederzeit gelöscht werden; bis dahin bleibt sie unangetastet.",
         "dismiss": "Hinweis schließen"
+      },
+      "clonePlateCrosscheck": {
+        "title": "{{mismatched}} von {{wells}} Wells enthalten auf der Primerplatte einen anderen Klon als auf der Klonplatte",
+        "desc": "KURO hat jedem Primer sein Well nach der Reihenfolge des Designblatts ({{sheet}}) zugewiesen, und dieser Lauf füllt die Klonplatte nach Restposition. Die beiden Reihenfolgen unterscheiden sich, also benennt dasselbe Well zwei Klone.",
+        "example": "{{well}}: {{primer}} auf der Primerplatte, {{clone}} auf der Klonplatte",
+        "decision": "Nichts wird blockiert und nichts geändert. Welche der beiden die Röhrchen im Rack beschreibt, steht in keiner Datei hier. Prüfen Sie die pipettierte Platte und entscheiden Sie, welche Reihenfolge gilt.",
+        "unnamedSheet": "das Primerplatten-Blatt"
       }
     },
     "runQuality": {
