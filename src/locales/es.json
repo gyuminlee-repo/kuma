@@ -2763,14 +2763,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Un genotipo de combinación ocupa un solo pocillo de la placa, y la capacidad, el pocillo de control y el orden de actividad se cuentan por clon.",
-      "Un nuevo comando template reconstruye el clon que hizo una ronda anterior a partir de los codones registrados, para diseñar la ronda siguiente.",
-      "Las mutaciones esperadas se delimitan por placa, y un diseño circular da los mismos cebadores sea cual sea la base en que empieza la secuencia.",
-      "Los lectores de GC comparten una regla de medición y una regla de denominador de tipo silvestre, y la identidad declarada se comprueba antes de usarla.",
-      "Los archivos del host y sus archivos comprimidos se escriben de forma atómica, y una petición al sidecar que sigue en cola al vencer su plazo se descarta en vez de escribirse tarde."
+      "Un clon con varias sustituciones conserva una sola identidad en los lectores de actividad, la entrada de EVOLVEpro y el enlace de resecuenciación.",
+      "Un doble mutante bien construido ya no se informa como aminoácido incorrecto.",
+      "La placa de clones se llena por posición de residuo ascendente, igual al orden que ya usaba el descodificador numérico de actividad.",
+      "Volver a analizar una ejecución anterior puede devolver otra placa, porque el pocillo de un clon ahora lo decide la posición de residuo.",
+      "Un genotipo de combinación corto que se vuelve a cargar en KURO se convierte en lugar de fallar al interpretarse."
     ],
-    "highlightsStamp": "0.16.84+09ae6a21",
+    "highlightsStamp": "0.16.85+1a1fa1fa",
     "releases": {
+      "0.16.85": [
+        "Un clon con varias sustituciones conserva una sola identidad en los lectores de actividad, la entrada de EVOLVEpro y el enlace de resecuenciación.",
+        "Un doble mutante bien construido ya no se informa como aminoácido incorrecto.",
+        "La placa de clones se llena por posición de residuo ascendente, igual al orden que ya usaba el descodificador numérico de actividad.",
+        "Volver a analizar una ejecución anterior puede devolver otra placa, porque el pocillo de un clon ahora lo decide la posición de residuo.",
+        "Un genotipo de combinación corto que se vuelve a cargar en KURO se convierte en lugar de fallar al interpretarse."
+      ],
       "0.16.84": [
         "Un genotipo de combinación ocupa un solo pocillo de la placa, y la capacidad, el pocillo de control y el orden de actividad se cuentan por clon.",
         "Un nuevo comando template reconstruye el clon que hizo una ronda anterior a partir de los codones registrados, para diseñar la ronda siguiente.",
@@ -3347,6 +3354,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.85": "1a1fa1fa",
       "0.16.84": "09ae6a21",
       "0.16.83": "83d212a4",
       "0.16.82": "cc1555f9",

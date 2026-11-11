@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.16.85 (Combination genotype labels and a plate filled by residue position)
+
+MAME reads a combination genotype label through the activity and EVOLVEpro path. A clone carrying several substitutions, written S304C:V547I, had no short form and no identity, so the well was dropped from the EVOLVEpro input, the resequencing link was refused, the numeric activity slot stayed unlabelled, and a correctly built double mutant was reported as a wrong residue. One genotype is also written three ways across the lab files, so the identity is the full forms joined in ascending residue position, and all three spellings answer to it. A label naming one position twice is refused, because no clone can hold it.
+
+The clone plate is filled by residue position ascending, which is the order the bench fills it. Every caller handed the sheet as written while the numeric activity decoder sorted by position, so on any workbook not already position-ordered the two named different wells for the same clone and nothing compared them. Measured on a descending sheet, the plate and the decode order agreed at none of four wells before and at all four after. Of twelve real workbooks checked, ten are not position-ordered and none carries a well column. Re-analysing a past run can therefore return a different plate.
+
+The decoder no longer reproduces the ordering rule on its own. It asks for the plate and reads the wells from it, so the control well is placed once rather than twice. Under the control placement that seats the control between variants, the two paths named different wells for two of three clones before this change.
+
+KURO converts a short combination on the way back in. A short combination arriving from an exported EVOLVEpro workbook passed through unconverted and then failed to parse, so that row designed nothing.
+
+### Highlights
+
+- A clone carrying several substitutions keeps one identity through the activity readers, the EVOLVEpro input and the resequencing link.
+- A correctly built double mutant is no longer reported as a wrong residue.
+- The clone plate is filled by residue position ascending, matching the order the numeric activity decoder already used.
+- Re-analysing a past run can return a different plate, because the well a clone sits in is now decided by residue position.
+- A short combination genotype loaded back into KURO is converted instead of failing to parse.
+
 ## v0.16.84 (One well per combination genotype, template rebuild, audit fixes)
 
 A combination genotype is one clone in one sequencing well, and MAME now treats it that way. Wells, plate capacity, the control ordinal and the numeric activity order are counted per clone rather than per expected-mutation row. The shipped template carries a clone written on two rows. That clone used to occupy two wells and push the control one place down, and MAME now places it in one well. The template file itself is unchanged. Verdict logic is unchanged, and a sheet of single substitutions produces byte-identical output.
