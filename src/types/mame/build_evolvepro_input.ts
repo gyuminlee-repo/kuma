@@ -114,13 +114,15 @@ export interface LabelFinding {
    * components are only partly introduced, with nothing extra observed at all.
    * A screen must not word it as an added mutation. A name of its own for the
    * second case is deferred because no surface shows this field to an
-   * operator, so nobody can misread it today. It is read, though: the sidecar
-   * serialises it into every activity response, and `isLabelFinding` in
-   * `validators.ts` checks it there against a hand-copied set that no checker
-   * compares against Python. A name known on one side and not the other makes
-   * that guard reject the whole response, so adding one means widening this
-   * union, the guard set in `validators.ts` and the hand-copied mirror in
-   * `validators.unions.test.ts` in one change.
+   * operator, so nobody can misread it today. It is read, though, in two
+   * places in the product code: the sidecar serialises it into every activity
+   * response, and `isLabelFinding` in `validators.ts` checks it there against a
+   * hand-copied set that no checker compares against Python. The tests read it
+   * as well, which is why the next line is not the only list to widen. A name
+   * known on one side and not the other makes that guard reject the whole
+   * response, so adding one means widening this union, the guard set in
+   * `validators.ts` and the hand-copied mirror in `validators.unions.test.ts`
+   * in one change.
    */
   category: "not_introduced" | "wrong_residue" | "extra_mutation" | "sequence_collapse" | "cross_well"
   verdict: string

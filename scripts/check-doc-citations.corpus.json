@@ -1,7 +1,10 @@
 {
   "_comment": [
     "Labelled corpus for scripts/check-doc-citations.mjs (--selftest).",
-    "Every `line` is copied verbatim from a tracked file in this repo; `source` records where.",
+    "Every `cases` `line` is copied verbatim from a tracked file in this repo; `source` records",
+    "where. A `lineCases` `line` is sometimes copied and sometimes written for the fixture, so there",
+    "`source` names the file the cited position was taken from, and reads `constructed` when nothing",
+    "in the tree carried it.",
     "`tracked` is a synthetic tracked-file set, NOT live `git ls-files`, so an unrelated docs",
     "rename cannot silently break the selftest.",
     "`expect` lists the references the extractor must produce, in order, each with the",
@@ -17,15 +20,19 @@
     "`lineCases` covers the line-number ratchet. `lineTracked` is a second synthetic tracked-file",
     "set, holding source paths rather than documents, so a classification case says which bucket a",
     "cited path falls into: frozen when exactly one tracked file can be meant, ambiguous when two or",
-    "more carry the name, unresolved when none does. Negative cases state what must NOT read as a",
+    "more carry the name, unresolved when no tracked path ends in the cited one. Negative cases",
+    "state what must NOT read as a",
     "position, because a pattern that matched a clock time or a version label would fail every",
     "future branch for no reason. A negative `line` is constructed rather than copied, since the",
     "point of it is a shape the repository must never start carrying.",
     "",
-    "A `lineCases` positive is copied verbatim where a real citation has that shape, and constructed",
-    "where none does, with the `why` saying which. Constructed is the better of the two and the one",
-    "to reach for when both are open: a case copied from the tree breaks when that line is corrected,",
-    "which is how the comma-list case came to carry a citation this very branch was fixing."
+    "A `lineCases` positive takes its cited position from a real comment where one has that shape,",
+    "and is written for the fixture where none does, with `source` saying which. Neither kind can",
+    "fail the selftest when the tree changes: `lineTracked` is synthetic, so correcting the comment",
+    "a case was taken from breaks nothing here. What goes stale is the `source` record, which then",
+    "sends whoever next audits this corpus to a file that no longer carries the citation. `source`",
+    "is read only for `cases`, where it is the sibling path the relative rule resolves against; for",
+    "`lineCases` it is provenance and nothing in the selftest consumes it."
   ],
   "tracked": [
     "AGENTS.md",
@@ -213,7 +220,7 @@
     {
       "id": "line-pos-full-path-comma-range",
       "why": "positive, constructed: a full repository path with a comma list that mixes a single line and a range, which must come back as one citation rather than four. Constructed on purpose. The real citation this was copied from has since become a symbol name, and while it stood in the tree a comment added above it moved every number in it, which is the drift the ratchet exists to make visible",
-      "source": "src/types/mame/validators.ts",
+      "source": "constructed",
       "line": " * Mirrors kuma_core/mame/activity/label_audit.py:40,60-80,120",
       "expect": [
         {
@@ -261,7 +268,7 @@
     {
       "id": "line-pos-bare-filename-unique",
       "why": "positive: a bare filename only one tracked file carries, so a reader can still tell which file is meant",
-      "source": "src/store/mame/selectors.test.ts",
+      "source": "constructed",
       "line": "// selectors.ts:64 builds the same shape",
       "expect": [
         {
@@ -345,42 +352,42 @@
     {
       "id": "line-neg-url-with-port-and-path",
       "why": "negative: a URL carries a colon before a port and may end in a path that looks like a position. Scrubbing it first is what keeps a localhost example out of the ledger",
-      "source": "src/lib/ipc-mame/index.ts",
+      "source": "constructed",
       "line": "// mock server at http://localhost:8080/static/model.py:3 during development",
       "expect": []
     },
     {
       "id": "line-neg-version-label",
       "why": "negative: a release label is a colon after digits and dots. Matching it would fail every branch that writes a changelog heading",
-      "source": "scripts/gen-whatsnew.mjs",
+      "source": "constructed",
       "line": "// v0.16.85: combination genotype labels and a plate filled by residue position",
       "expect": []
     },
     {
       "id": "line-neg-clock-time",
       "why": "negative: a wall-clock time is digits around a colon with no path in front",
-      "source": "kuma_core/mame/ingest/run_meta.py",
+      "source": "constructed",
       "line": "# final_summary records 12:30 as the acquisition stop",
       "expect": []
     },
     {
       "id": "line-neg-colon-without-digits",
       "why": "negative: prose that names a file and then a colon, with no position after it",
-      "source": "src/types/mame/validators.ts",
+      "source": "constructed",
       "line": " * Open validators.ts: the guard is near the bottom",
       "expect": []
     },
     {
       "id": "line-neg-template-placeholder",
       "why": "negative: a template that formats a position at runtime cites nothing, so freezing it would pin a string that names no file",
-      "source": "scripts/i18n-lint.mjs",
+      "source": "constructed",
       "line": "  console.error(`${file}:${line} ${message}`);",
       "expect": []
     },
     {
       "id": "line-neg-symbol-citation",
       "why": "negative: the form the convention asks for. A symbol name must not read as a position, or the ratchet would fail the very fix it exists to encourage",
-      "source": "src/types/mame/validators.ts",
+      "source": "constructed",
       "line": " * Mirrors isLabelFinding in kuma_core/mame/activity/label_audit.py",
       "expect": []
     }

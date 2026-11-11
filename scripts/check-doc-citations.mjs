@@ -137,7 +137,10 @@ const LINE_CITATION_PATTERN =
  *   frozen        the cited path resolves to exactly one tracked file.
  *   ambiguous     two or more tracked files carry that name, so a reader cannot
  *                 tell which one the line number belongs to.
- *   unresolved    nothing tracked carries that name, and nobody has said why.
+ *   unresolved    no tracked path ends in the cited path, and nobody has said
+ *                 why. Either nothing tracked carries that name at all, or the
+ *                 directories the citation spells out are not where the file
+ *                 sits, which is not retried on the bare filename.
  *   external      the path belongs to a sibling repository, outside this one.
  *   stdlib        the path belongs to a language standard library.
  *   test-literal  the string is a fixture or an expected message, not a citation.
@@ -454,7 +457,7 @@ const MECHANICAL_REASONS = {
   ambiguous:
     "Frozen when the line-citation ratchet was added; two or more tracked files carry this name, so the citation does not say which one. Replace with a symbol name when this file is next edited.",
   unresolved:
-    "Frozen when the line-citation ratchet was added; nothing tracked carries this path. Give it a category and a reason, or replace the citation.",
+    "Frozen when the line-citation ratchet was added; no tracked path ends in this one, either because nothing carries the name or because the directories it spells out are not where the file sits. Give it a category and a reason, or replace the citation.",
 };
 
 /**
@@ -522,9 +525,10 @@ const LEDGER_HEADER = [
   "sits on would move whenever anything above it changed.",
   "",
   "That key is also the unit the ratchet counts. One file writing the same citation a second time",
-  "adds a line number to the entry it already has, so occurrences are not ratcheted and only",
-  "entries are. Keying on the comment's own line would ratchet occurrences and churn against every",
-  "edit above one, which is the worse trade.",
+  "adds an occurrence this ledger does not record, so occurrences are not ratcheted and only",
+  "entries are. No entry carries a line number: the scan collects the citing lines to print them,",
+  "and writes only source, cite, category and reason. Keying on the comment's own line would",
+  "ratchet occurrences and churn against every edit above one, which is the worse trade.",
   "",
   "A regeneration recomputes frozen, ambiguous and unresolved, and keeps whatever reason the entry",
   "already carried. An entry that changes bucket therefore keeps a sentence describing the old one,",

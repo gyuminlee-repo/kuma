@@ -13,7 +13,8 @@ introduced combination (some components observed, nothing else) is reported in
 the catch-all ``extra_mutation`` rather than in a category of its own.
 
 The reason is that no surface shows ``LabelFinding.category`` to anyone. Two
-read it, and counted across the repository that is the whole of it: zero
+places in the product code read it, and counted across the product code those
+two are the whole of it: zero
 components render it, one serialiser copies it (``_serialise_label_audit`` in
 ``python-core/sidecar_mame/handlers/activity.py``, which puts it in the
 ``label_audit`` member of the activity response), one TypeScript guard checks
@@ -23,6 +24,11 @@ hand-copied set of these five names), one field gates export and it is
 category, and zero documents and zero CLI paths ask for an audit at all. The
 manifest ``build_evolvepro_input`` writes does not carry the audit, and the
 saved completion record holds only an output path and a signature.
+
+The tests are outside that count and read it too: the category assertions in
+``tests/mame/activity/test_label_audit.py`` and the hand-copied mirror in
+``validators.unions.test.ts``. They are named here because whoever adds a
+sixth name has to find them, and no checker points at them.
 
 A sixth name would therefore change no verdict and reach no screen, yet it
 would still travel in the response payload, and that guard rejects a whole
@@ -185,9 +191,10 @@ def audit_labels(
         nothing extra) is reported in the catch-all ``extra_mutation``. A
         category of its own is deferred because no surface shows
         ``LabelFinding.category`` to an operator, so no one can misread it
-        today, while the two places that do read it are a serialiser and a
-        hand-copied TypeScript guard that rejects an unknown name outright; the
-        module docstring records what adding ``partial_genotype`` requires.
+        today, while the two places in the product code that do read it are a
+        serialiser and a hand-copied TypeScript guard that rejects an unknown
+        name outright. Two test files read it as well; the module docstring
+        names them and records what adding ``partial_genotype`` requires.
 
         Closed-permutation gate: a well is a *cross-well candidate* when its
         observed labels are exactly another well's own expected set (for a
@@ -267,6 +274,8 @@ def audit_labels(
             # travel in the activity response, and the hand-copied guard set in
             # validators.ts rejects the whole response over one name it does
             # not know, so Python and TypeScript have to move together.
+            # Those two readers are the whole of the product code; the tests
+            # read it too, and the module docstring names them.
             # The first component that renders category adds
             # partial_genotype as an elif above this else, scoped to
             # observed_set being a proper subset of components with no extra
