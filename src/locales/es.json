@@ -2767,16 +2767,16 @@
       "Un nuevo comando template reconstruye el clon que hizo una ronda anterior a partir de los codones registrados, para diseñar la ronda siguiente.",
       "Las mutaciones esperadas se delimitan por placa, y un diseño circular da los mismos cebadores sea cual sea la base en que empieza la secuencia.",
       "Los lectores de GC comparten una regla de medición y una regla de denominador de tipo silvestre, y la identidad declarada se comprueba antes de usarla.",
-      "Los archivos del host y sus archivos comprimidos se escriben de forma atómica, y las peticiones al sidecar fuera de plazo se descartan en vez de encolarse."
+      "Los archivos del host y sus archivos comprimidos se escriben de forma atómica, y una petición al sidecar que sigue en cola al vencer su plazo se descarta en vez de escribirse tarde."
     ],
-    "highlightsStamp": "0.16.84+62f240c7",
+    "highlightsStamp": "0.16.84+09ae6a21",
     "releases": {
       "0.16.84": [
         "Un genotipo de combinación ocupa un solo pocillo de la placa, y la capacidad, el pocillo de control y el orden de actividad se cuentan por clon.",
         "Un nuevo comando template reconstruye el clon que hizo una ronda anterior a partir de los codones registrados, para diseñar la ronda siguiente.",
         "Las mutaciones esperadas se delimitan por placa, y un diseño circular da los mismos cebadores sea cual sea la base en que empieza la secuencia.",
         "Los lectores de GC comparten una regla de medición y una regla de denominador de tipo silvestre, y la identidad declarada se comprueba antes de usarla.",
-        "Los archivos del host y sus archivos comprimidos se escriben de forma atómica, y las peticiones al sidecar fuera de plazo se descartan en vez de encolarse."
+        "Los archivos del host y sus archivos comprimidos se escriben de forma atómica, y una petición al sidecar que sigue en cola al vencer su plazo se descarta en vez de escribirse tarde."
       ],
       "0.16.83": [
         "El paso 4.1 ahora lee WT-1 y WT 1 como réplicas de tipo silvestre, igual que WT1 y WT_1.",
@@ -3347,7 +3347,7 @@
       ]
     },
     "releaseStamps": {
-      "0.16.84": "62f240c7",
+      "0.16.84": "09ae6a21",
       "0.16.83": "83d212a4",
       "0.16.82": "cc1555f9",
       "0.16.81": "aa434309",

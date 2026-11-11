@@ -2,15 +2,15 @@
 
 ## v0.16.84 (One well per combination genotype, template rebuild, audit fixes)
 
-A combination genotype is one clone in one sequencing well, and MAME now treats it that way. Wells, plate capacity, the control ordinal and the numeric activity order are counted per clone rather than per expected-mutation row. The shipped template carries a two-row clone that used to occupy two wells and push the control one place down, and it now holds a single well. Verdict logic is unchanged, and a sheet of single substitutions produces byte-identical output.
+A combination genotype is one clone in one sequencing well, and MAME now treats it that way. Wells, plate capacity, the control ordinal and the numeric activity order are counted per clone rather than per expected-mutation row. The shipped template carries a clone written on two rows. That clone used to occupy two wells and push the control one place down, and MAME now places it in one well. The template file itself is unchanged. Verdict logic is unchanged, and a sheet of single substitutions produces byte-identical output.
 
-KURO gains a template subcommand that applies the codons an earlier round recorded to the wild-type sequence, so the next round designs against the clone it will be used on. Output is GenBank, because design refuses a plain FASTA for lack of CDS annotation. Design and plate-map behaviour is otherwise unchanged.
+KURO gains a template subcommand that applies the codons an earlier round recorded to the wild-type sequence, so the next round designs against the clone it will be used on. Output is GenBank, because design refuses a plain FASTA for lack of CDS annotation. The template subcommand itself changes neither design nor plate-map behaviour. The circular-design change described below is a separate fix.
 
 The audit that preceded this release closed findings across every layer. In KURO, expected mutations are scoped per plate, a circular design gives the same primers whatever base the sequence starts at, PDB structures are read one chain and one model at a time with insertion codes skipped, dispersion is reported in the reference frame without an accession, partial CDS translation is repaired, and codon tables accept scientific notation while misgrouped counts are reported rather than hidden. Mutation rows go through one row-atomic parser, codon enumeration keeps the identity of the source mutation, and conflicting notations are refused before anything keyed by notation fills.
 
 In MAME, a terminal stop is compared without losing an unintended one, numeric activity IDs decode in plate order, a declared identity is validated before any primary reader uses it, and one measurement rule and one wild-type denominator rule hold across the GC readers.
 
-The desktop host writes its files and archives atomically through exclusively created temporary files, recovers a config corrupted at the byte level, bounds sidecar stdin with one deadline for queueing and waiting, drops requests past that deadline, and reports a stopped instance from the health probe. Release tooling checks a release tag against the app manifests, refuses a nonempty output root instead of deleting it, and names draft wells instead of raising.
+The desktop host writes its files and archives atomically through exclusively created temporary files, recovers a config corrupted at the byte level, bounds sidecar stdin with one deadline for queueing and waiting, drops a request still queued when that deadline passes, and reports a stopped instance from the health probe. Release tooling checks a release tag against the app manifests, refuses a nonempty output root instead of deleting it, and names draft wells instead of raising.
 
 ### Highlights
 
@@ -18,7 +18,7 @@ The desktop host writes its files and archives atomically through exclusively cr
 - A new template command rebuilds the clone an earlier round made from its recorded codons, for designing the next round.
 - Expected mutations are scoped per plate, and a circular design gives the same primers whatever base the sequence starts at.
 - GC readers share one measurement rule and one wild-type denominator rule, and a declared identity is checked before use.
-- Host files and archives are written atomically, and sidecar requests past their deadline are dropped rather than queued.
+- Host files and archives are written atomically, and a sidecar request queued past its deadline is dropped rather than written late.
 
 ## v0.16.83 (WT-1 wild-type names in GC reports)
 

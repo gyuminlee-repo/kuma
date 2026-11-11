@@ -2821,16 +2821,16 @@
       "A new template command rebuilds the clone an earlier round made from its recorded codons, for designing the next round.",
       "Expected mutations are scoped per plate, and a circular design gives the same primers whatever base the sequence starts at.",
       "GC readers share one measurement rule and one wild-type denominator rule, and a declared identity is checked before use.",
-      "Host files and archives are written atomically, and sidecar requests past their deadline are dropped rather than queued."
+      "Host files and archives are written atomically, and a sidecar request queued past its deadline is dropped rather than written late."
     ],
-    "highlightsStamp": "0.16.84+62f240c7",
+    "highlightsStamp": "0.16.84+09ae6a21",
     "releases": {
       "0.16.84": [
         "A combination genotype takes one plate well, with capacity, the control well and the activity order counted per clone.",
         "A new template command rebuilds the clone an earlier round made from its recorded codons, for designing the next round.",
         "Expected mutations are scoped per plate, and a circular design gives the same primers whatever base the sequence starts at.",
         "GC readers share one measurement rule and one wild-type denominator rule, and a declared identity is checked before use.",
-        "Host files and archives are written atomically, and sidecar requests past their deadline are dropped rather than queued."
+        "Host files and archives are written atomically, and a sidecar request queued past its deadline is dropped rather than written late."
       ],
       "0.16.83": [
         "Step 4.1 now reads WT-1 and WT 1 as wild-type replicates, as it already read WT1 and WT_1.",
@@ -3401,7 +3401,7 @@
       ]
     },
     "releaseStamps": {
-      "0.16.84": "62f240c7",
+      "0.16.84": "09ae6a21",
       "0.16.83": "83d212a4",
       "0.16.82": "cc1555f9",
       "0.16.81": "aa434309",
