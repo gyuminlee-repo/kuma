@@ -2763,11 +2763,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "L'étape 4.1 lit désormais WT-1 et WT 1 comme des réplicats de type sauvage, comme WT1 et WT_1.",
-      "Un rapport GC qui nomme ses blocs de type sauvage WT-1, WT-2 et WT-3 n'est plus refusé."
+      "Un génotype de combinaison occupe un seul puits de plaque, et la capacité, le puits témoin et l'ordre d'activité se comptent par clone.",
+      "Une nouvelle commande template reconstruit le clone obtenu à un tour précédent à partir des codons enregistrés, pour concevoir le tour suivant.",
+      "Les mutations attendues sont délimitées par plaque, et un design circulaire donne les mêmes amorces quelle que soit la base où commence la séquence.",
+      "Les lecteurs GC partagent une règle de mesure et une règle de dénominateur de type sauvage, et une identité déclarée est vérifiée avant usage.",
+      "Les fichiers et les archives de l'hôte sont écrits de façon atomique, et les requêtes sidecar hors délai sont abandonnées plutôt que mises en file."
     ],
-    "highlightsStamp": "0.16.83+83d212a4",
+    "highlightsStamp": "0.16.84+62f240c7",
     "releases": {
+      "0.16.84": [
+        "Un génotype de combinaison occupe un seul puits de plaque, et la capacité, le puits témoin et l'ordre d'activité se comptent par clone.",
+        "Une nouvelle commande template reconstruit le clone obtenu à un tour précédent à partir des codons enregistrés, pour concevoir le tour suivant.",
+        "Les mutations attendues sont délimitées par plaque, et un design circulaire donne les mêmes amorces quelle que soit la base où commence la séquence.",
+        "Les lecteurs GC partagent une règle de mesure et une règle de dénominateur de type sauvage, et une identité déclarée est vérifiée avant usage.",
+        "Les fichiers et les archives de l'hôte sont écrits de façon atomique, et les requêtes sidecar hors délai sont abandonnées plutôt que mises en file."
+      ],
       "0.16.83": [
         "L'étape 4.1 lit désormais WT-1 et WT 1 comme des réplicats de type sauvage, comme WT1 et WT_1.",
         "Un rapport GC qui nomme ses blocs de type sauvage WT-1, WT-2 et WT-3 n'est plus refusé."
@@ -3337,6 +3347,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.84": "62f240c7",
       "0.16.83": "83d212a4",
       "0.16.82": "cc1555f9",
       "0.16.81": "aa434309",

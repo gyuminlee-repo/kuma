@@ -2763,11 +2763,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "A etapa 4.1 agora lê WT-1 e WT 1 como réplicas do tipo selvagem, assim como WT1 e WT_1.",
-      "Um relatório de GC que nomeia seus blocos do tipo selvagem como WT-1, WT-2 e WT-3 não é mais recusado."
+      "Um genótipo de combinação ocupa um único poço da placa, e a capacidade, o poço de controle e a ordem de atividade são contados por clone.",
+      "Um novo comando template reconstrói o clone que uma rodada anterior produziu a partir dos códons registrados, para desenhar a rodada seguinte.",
+      "As mutações esperadas são delimitadas por placa, e um desenho circular dá os mesmos primers qualquer que seja a base em que a sequência começa.",
+      "Os leitores de GC compartilham uma regra de medição e uma regra de denominador do tipo selvagem, e a identidade declarada é verificada antes do uso.",
+      "Os arquivos e os pacotes compactados do host são escritos de forma atômica, e as requisições ao sidecar fora do prazo são descartadas em vez de enfileiradas."
     ],
-    "highlightsStamp": "0.16.83+83d212a4",
+    "highlightsStamp": "0.16.84+62f240c7",
     "releases": {
+      "0.16.84": [
+        "Um genótipo de combinação ocupa um único poço da placa, e a capacidade, o poço de controle e a ordem de atividade são contados por clone.",
+        "Um novo comando template reconstrói o clone que uma rodada anterior produziu a partir dos códons registrados, para desenhar a rodada seguinte.",
+        "As mutações esperadas são delimitadas por placa, e um desenho circular dá os mesmos primers qualquer que seja a base em que a sequência começa.",
+        "Os leitores de GC compartilham uma regra de medição e uma regra de denominador do tipo selvagem, e a identidade declarada é verificada antes do uso.",
+        "Os arquivos e os pacotes compactados do host são escritos de forma atômica, e as requisições ao sidecar fora do prazo são descartadas em vez de enfileiradas."
+      ],
       "0.16.83": [
         "A etapa 4.1 agora lê WT-1 e WT 1 como réplicas do tipo selvagem, assim como WT1 e WT_1.",
         "Um relatório de GC que nomeia seus blocos do tipo selvagem como WT-1, WT-2 e WT-3 não é mais recusado."
@@ -3337,6 +3347,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.84": "62f240c7",
       "0.16.83": "83d212a4",
       "0.16.82": "cc1555f9",
       "0.16.81": "aa434309",

@@ -2763,11 +2763,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Schritt 4.1 liest WT-1 und WT 1 jetzt als Wildtyp-Replikate, wie bisher schon WT1 und WT_1.",
-      "Ein GC-Bericht, der seine Wildtyp-Blöcke als WT-1, WT-2 und WT-3 führt, wird nicht mehr abgelehnt."
+      "Ein Kombinationsgenotyp belegt ein Platten-Well; Kapazität, Kontroll-Well und Aktivitätsreihenfolge werden pro Klon gezählt.",
+      "Ein neuer template-Befehl baut den Klon einer früheren Runde aus den aufgezeichneten Codons nach, um die nächste Runde darauf zu entwerfen.",
+      "Erwartete Mutationen gelten pro Platte, und ein zirkuläres Design liefert dieselben Primer, egal an welcher Base die Sequenz beginnt.",
+      "GC-Leser teilen eine Messregel und eine Wildtyp-Nennerregel, und eine deklarierte Identität wird vor der Nutzung geprüft.",
+      "Host-Dateien und Archive werden atomar geschrieben, und Sidecar-Anfragen nach Ablauf ihrer Frist werden verworfen statt eingereiht."
     ],
-    "highlightsStamp": "0.16.83+83d212a4",
+    "highlightsStamp": "0.16.84+62f240c7",
     "releases": {
+      "0.16.84": [
+        "Ein Kombinationsgenotyp belegt ein Platten-Well; Kapazität, Kontroll-Well und Aktivitätsreihenfolge werden pro Klon gezählt.",
+        "Ein neuer template-Befehl baut den Klon einer früheren Runde aus den aufgezeichneten Codons nach, um die nächste Runde darauf zu entwerfen.",
+        "Erwartete Mutationen gelten pro Platte, und ein zirkuläres Design liefert dieselben Primer, egal an welcher Base die Sequenz beginnt.",
+        "GC-Leser teilen eine Messregel und eine Wildtyp-Nennerregel, und eine deklarierte Identität wird vor der Nutzung geprüft.",
+        "Host-Dateien und Archive werden atomar geschrieben, und Sidecar-Anfragen nach Ablauf ihrer Frist werden verworfen statt eingereiht."
+      ],
       "0.16.83": [
         "Schritt 4.1 liest WT-1 und WT 1 jetzt als Wildtyp-Replikate, wie bisher schon WT1 und WT_1.",
         "Ein GC-Bericht, der seine Wildtyp-Blöcke als WT-1, WT-2 und WT-3 führt, wird nicht mehr abgelehnt."
@@ -3337,6 +3347,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.84": "62f240c7",
       "0.16.83": "83d212a4",
       "0.16.82": "cc1555f9",
       "0.16.81": "aa434309",
