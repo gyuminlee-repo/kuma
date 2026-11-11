@@ -134,6 +134,25 @@ def crosscheck_clone_plate(
     This never raises and it never refuses anything. Every outcome, including a
     file it cannot read, comes back as a :class:`ClonePlateCrosscheckReport`
     whose ``status`` says which outcome it was.
+
+    Two calls below sit outside a ``try`` and stay that way, because from here
+    neither can raise. :func:`~kuma_core.mame.layout.build_clone_plate_layout`
+    documents one raise, a ``wells`` length mismatch, and ``wells`` is ``None``
+    on every path that reaches it: a file that states its wells has already come
+    back ``stated_wells``. That leaves the row-order branch, where the ordering
+    (:func:`~kuma_core.mame.layout.canonical_plate_order`) sorts on
+    ``ExpectedMutation.position``, an ``int`` from every reader
+    (``io.variant_list`` takes it from ``kuro.mutation.parse_mutation_notation``
+    and ``io.kuro_reader._position`` refuses a cell it cannot parse rather than
+    passing one on), the occupant pass
+    (:func:`~kuma_core.mame.layout.distinct_occupants`) is a ``setdefault`` over
+    ``str`` keys, and the ``seq_to_well`` arguments are bounded by the capacity
+    check that precedes them. The comparison loop's ``well_to_seq`` key does
+    raise on a label off the plate and cannot be handed one: ``read_primer_plate``
+    put every key of ``plate`` through it inside the ``try`` above
+    (``io.plate_order_check._in_plate_order``), and the clone wells came out of
+    ``seq_to_well``. A new call here is not covered by any of that and needs its
+    own ``try``, or this paragraph stops being true.
     """
     path = Path(path)
     if path.suffix.lower() not in {".xlsx", ".xlsm"} or not path.exists():
@@ -177,6 +196,7 @@ def crosscheck_clone_plate(
         wt_well=read.wt_well,
         wt_placement=wt_placement,
     )
+
     if not clone.layout:
         return ClonePlateCrosscheckReport(
             status="over_capacity", plate_sheet=plate_sheet

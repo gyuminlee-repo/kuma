@@ -1749,7 +1749,8 @@
         "src/types/mame/models.ts",
         "src/store/mame/slices/inputSlice.ts",
         "src/store/mame/slice-interfaces.ts",
-        "src/components/mame/widgets/ClonePlateCrosscheckNotice.tsx"
+        "src/components/mame/widgets/ClonePlateCrosscheckNotice.tsx",
+        "tests/test_clone_plate_crosscheck_wire.py"
       ],
       "symbols": [
         "crosscheck_clone_plate",
@@ -1760,7 +1761,7 @@
         "clonePlateCrosscheck",
         "mismatch_count"
       ],
-      "note": "run 이 채우는 clone plate 를 KURO primer plate 와 대조하는 보고 전용 경로다. mame-plate-order-finding 과 묶이지 않는 이유가 설계의 핵심이다: 그 그룹은 워크북이 자기 자신과 어긋날 때 validate_inputs 의 errors 에 넣어 run 을 거부하고, 이 그룹은 절대 거부하지 않는다. v0.16.85 가 clone plate 를 잔기 position 오름차순으로 채우게 바꾼 뒤 KURO 의 설계 시트 index 배정(kuro/plate_mapper.py _assign_well)과 순서가 달라졌고, 실제 워크북 12개 중 10개가 설계 순서라 막으면 analyze 가 거의 전부 거부된다. 어느 쪽이 랙의 튜브인지는 파일에 없으므로 보고하고 운영자가 정한다. payload 는 crosscheck_clone_plate 의 status/plate_sheet/wells_compared/mismatch_count/examples 다섯 필드이고 analyze.py 의 _clone_plate_crosscheck 가 그대로 직렬화해 validate_inputs 응답의 clone_plate_crosscheck 키에 싣는다(status 가 mismatch 일 때만). TS 쪽 정본은 models.ts 의 ClonePlateCrosscheck 이고 inputSlice 가 clonePlateCrosscheck 에 absent-clears 로 담고 ClonePlateCrosscheckNotice 가 읽는다. 필드명을 한쪽에서만 바꾸면 프런트가 undefined 를 읽어 알림이 조용히 사라진다: 예외도 테스트 실패도 없으므로 이 그룹이 유일한 기계적 방어선이다. PlateOrderFinding·PlateOrderSeverity 를 재사용하거나 selectCanRun 이 clonePlateCrosscheck 를 읽게 만들지 말 것(그 차단 보장이 약해진다). primer plate 시트 판독은 plate_order_check.read_primer_plate 하나뿐이다. clone_plate_crosscheck.py 가 그 함수를 호출하므로 사본을 만들지 말 것: 한 시트를 두 방식으로 읽는 것이 애초에 이 검사들이 잡으려는 결함이다. handle_analyze 응답에는 넣지 않았다(mame-analyze-result-contract 의 정확 키 집합, 그리고 demux 수분 뒤 도착하는 통지는 운영자가 쓸 수 없다).",
+      "note": "run 이 채우는 clone plate 를 KURO primer plate 와 대조하는 보고 전용 경로다. mame-plate-order-finding 과 묶이지 않는 이유가 설계의 핵심이다: 그 그룹은 워크북이 자기 자신과 어긋날 때 validate_inputs 의 errors 에 넣어 run 을 거부하고, 이 그룹은 절대 거부하지 않는다. v0.16.85 가 clone plate 를 잔기 position 오름차순으로 채우게 바꾼 뒤 KURO 의 설계 시트 index 배정(kuro/plate_mapper.py _assign_well)과 순서가 달라졌고, 실제 워크북 12개 중 10개가 설계 순서라 막으면 analyze 가 거의 전부 거부된다. 어느 쪽이 랙의 튜브인지는 파일에 없으므로 보고하고 운영자가 정한다. payload 는 crosscheck_clone_plate 의 status/plate_sheet/wells_compared/mismatch_count/examples 다섯 필드이고 analyze.py 의 _clone_plate_crosscheck 가 그대로 직렬화해 validate_inputs 응답의 clone_plate_crosscheck 키에 싣는다(status 가 mismatch 일 때만). TS 쪽 정본은 models.ts 의 ClonePlateCrosscheck 이고 inputSlice 가 clonePlateCrosscheck 에 absent-clears 로 담고 ClonePlateCrosscheckNotice 가 읽는다. 와이어 키나 status 리터럴을 한쪽에서만 바꾸면 프런트가 undefined 를 읽어 알림이 조용히 사라진다. 이 그룹의 symbols 는 그 rename 을 잡지 못한다. sync-check.mjs 가 그룹의 모든 파일을 이어 붙여 토큰이 어딘가 한 번이라도 나오는지만 보므로 Python 쪽이 토큰을 살려 두는 동안 TS 쪽 rename 은 PASS 로 통과한다(2026-11-11 실측: mismatch 를 symbols 에 넣고 컴포넌트 리터럴만 plates_differ 로 바꿔도 mame-clone-plate-crosscheck 는 PASS). models.ts 의 status 가 string 이라 tsc 도 리터럴 rename 을 못 잡고 컴포넌트의 vitest 파일은 자기 fixture 를 들고 있어 컴포넌트와 fixture 를 같이 바꾸면 자기정합으로 통과한다. 실제 기계적 방어는 tests/test_clone_plate_crosscheck_wire.py 다. 컴포넌트 소스가 읽는 finding/example 키와 gate 리터럴을 _clone_plate_crosscheck 가 실제 워크북에서 만든 payload 와 대조한다(실측: TS 3파일 일괄 status rename 에 vitest 14 passed 이고 이 테스트만 실패, wire 키 rename 도 같은 모양). Python 쪽 키 rename 은 tests/sidecar_mame/test_clone_plate_crosscheck_notice.py 의 정확 dict 비교가 잡는다. PlateOrderFinding·PlateOrderSeverity 를 재사용하거나 selectCanRun 이 clonePlateCrosscheck 를 읽게 만들지 말 것(그 차단 보장이 약해진다). primer plate 시트 판독은 plate_order_check.read_primer_plate 하나뿐이다. clone_plate_crosscheck.py 가 그 함수를 호출하므로 사본을 만들지 말 것: 한 시트를 두 방식으로 읽는 것이 애초에 이 검사들이 잡으려는 결함이다. handle_analyze 응답에는 넣지 않았다(mame-analyze-result-contract 의 정확 키 집합, 그리고 demux 수분 뒤 도착하는 통지는 운영자가 쓸 수 없다).",
       "severity": "blocking"
     }
   ]

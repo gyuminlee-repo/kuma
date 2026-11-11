@@ -1093,7 +1093,7 @@
         "title": "{{mismatched}} von {{wells}} Wells enthalten auf der Primerplatte einen anderen Klon als auf der Klonplatte",
         "desc": "KURO hat jedem Primer sein Well nach der Reihenfolge des Designblatts zugewiesen, und {{sheet}} hält diese Wells fest. Dieser Lauf füllt die Klonplatte stattdessen nach Restposition. Die beiden Reihenfolgen unterscheiden sich, also benennt dasselbe Well zwei Klone.",
         "example": "{{well}}: {{primer}} auf der Primerplatte, {{clone}} auf der Klonplatte",
-        "decision": "Nichts wird blockiert und nichts geändert. Welche der beiden die Röhrchen im Rack beschreibt, steht in keiner Datei hier. Prüfen Sie die pipettierte Platte und entscheiden Sie, welche Reihenfolge gilt.",
+        "decision": "Nichts wird blockiert und nichts geändert. Welche der beiden die Röhrchen im Rack beschreibt, steht in keiner Datei hier. Prüfen Sie die pipettierte Platte.",
         "unnamedSheet": "das Primerplatten-Blatt"
       }
     },

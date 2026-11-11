@@ -188,6 +188,30 @@ class TestTheComparisonCannotRun:
 
         assert crosscheck_clone_plate(path).status == "no_plate_sheet"
 
+    def test_a_sheet_over_plate_capacity_has_no_clone_plate_to_compare(self, tmp_path):
+        """96 clones leave no plate at all, so there is nothing to compare.
+
+        ``build_draft_layout`` applies its ceiling on total occupancy before it
+        places anything and returns an empty layout rather than a truncated one,
+        for the reason stated there: a cut draft reads as a correct full plate.
+        The crosscheck has to report that as its own outcome. Falling through
+        with an empty layout would compare every stated well against nothing and
+        come back as a mismatch on all 96, which names a disagreement where the
+        real answer is that this sheet does not fit on one plate.
+        """
+        path = _workbook(
+            tmp_path / "over_capacity.xlsx",
+            [("A1", "A1G")],
+            [f"A{position}G" for position in range(1, 97)],
+        )
+
+        report = crosscheck_clone_plate(path)
+
+        assert report.status == "over_capacity"
+        assert report.plate_sheet == "Fwd List"
+        assert report.mismatch_count == 0
+        assert report.wells_compared == 0
+
     def test_a_workbook_without_an_expected_sheet_says_so(self, tmp_path):
         wb = Workbook()
         plate = wb.worksheets[0]

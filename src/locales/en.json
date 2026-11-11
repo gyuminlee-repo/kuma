@@ -1258,7 +1258,7 @@
         "title": "{{mismatched}} of {{wells}} wells hold a different clone on the primer plate than on the clone plate",
         "desc": "KURO gave each primer its well by the order of the design sheet, and {{sheet}} records those wells. This run fills the clone plate by residue position instead, so the two orders differ and the same well names two clones.",
         "example": "{{well}}: {{primer}} on the primer plate, {{clone}} on the clone plate",
-        "decision": "Nothing is blocked and nothing is changed. Which of the two describes the tubes in the rack is written in no file here, so check the plate you pipetted and decide which order to keep.",
+        "decision": "Nothing is blocked and nothing is changed. Which of the two describes the tubes in the rack is written in no file here, so check the plate you pipetted.",
         "unnamedSheet": "the primer plate sheet"
       }
     },

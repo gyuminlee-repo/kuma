@@ -289,11 +289,8 @@ export function AnalyzeStepView({ independent = false, runHealth = null, onRunRe
               `selectCanRun` holds the run on `plateOrderFinding` alone: picking
               the workbook stores it before any validation has run
               (`inputSlice.checkExpectedPlateOrder`), so this notice stands
-              while `validationErrors` is still empty.
-
-              This comment read "not a validation error (the backend leaves
-              `valid` true)" until 2026-11-11. That was the v0.15.6 grading, and
-              2026-08-05 took it back. */}
+              while `validationErrors` is still empty. When the grading changed
+              and why is in `PlateOrderNotice`'s own docstring. */}
           <PlateOrderNotice />
 
           {/* Which replicates the results on screen were scored on. Next to the

@@ -1093,7 +1093,7 @@
         "title": "{{mismatched}} de {{wells}} poços contêm um clone diferente na placa de primers e na placa de clones",
         "desc": "O KURO atribuiu a cada primer seu poço pela ordem da planilha de desenho, e {{sheet}} registra esses poços. Esta execução preenche a placa de clones por posição de resíduo, portanto as duas ordens diferem e o mesmo poço nomeia dois clones.",
         "example": "{{well}}: {{primer}} na placa de primers, {{clone}} na placa de clones",
-        "decision": "Nada é bloqueado e nada é alterado. Qual das duas descreve os tubos no rack não está escrito em nenhum arquivo aqui. Confira a placa que foi pipetada e decida qual ordem manter.",
+        "decision": "Nada é bloqueado e nada é alterado. Qual das duas descreve os tubos no rack não está escrito em nenhum arquivo aqui. Confira a placa que foi pipetada.",
         "unnamedSheet": "a planilha da placa de primers"
       }
     },
