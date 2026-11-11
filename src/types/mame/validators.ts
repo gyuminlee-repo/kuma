@@ -106,6 +106,16 @@ const PRIMARY_FORMATS = new Set<string>(BUILD_EVOLVEPRO_PRIMARY_FORMATS);
 /**
  * `kuma_core/mame/activity/label_audit.py:212,228-246,288`, every `category=`
  * a `LabelFinding` is constructed with.
+ *
+ * `extra_mutation` is the catch-all and covers a missing component as well as
+ * an added one: a combination genotype with some components observed and
+ * nothing extra lands here too, so a screen must not word it as an extra
+ * mutation. This set is hand-copied from Python and no checker compares the
+ * two, so a sixth name added there and missed here makes `isLabelFinding`
+ * reject the response, and every run holding one such well fails in the GUI.
+ * Whoever first renders `LabelFinding.category` adds `partial_genotype` and in
+ * the same change replaces this set and the mirror in
+ * `validators.unions.test.ts` with lists read out of the Python source.
  */
 const LABEL_FINDING_CATEGORIES = new Set([
   "not_introduced",

@@ -106,6 +106,17 @@ export interface LabelFinding {
   well: string
   expected: string
   observed: string[]
+  /**
+   * Every name `audit_labels` assigns in
+   * `kuma_core/mame/activity/label_audit.py`. `extra_mutation` is the
+   * catch-all, so it covers two unlike plates: a clone carrying the expected
+   * mutation plus changes nobody asked for, and a combination genotype whose
+   * components are only partly introduced, with nothing extra observed at all.
+   * A screen must not word it as an added mutation. A name of its own for the
+   * second case is deferred because nothing reads this field yet; adding one
+   * means widening this union, the guard set in `validators.ts` and the
+   * hand-copied mirror in `validators.unions.test.ts` in one change.
+   */
   category: "not_introduced" | "wrong_residue" | "extra_mutation" | "sequence_collapse" | "cross_well"
   verdict: string
 }
