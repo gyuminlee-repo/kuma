@@ -44,6 +44,7 @@ import { RunQualityNotice } from "@/components/mame/widgets/RunQualityNotice";
 import { ExcludedOccupantsNotice } from "@/components/mame/widgets/ExcludedOccupantsNotice";
 import { OffLayoutRecordsNotice } from "@/components/mame/widgets/OffLayoutRecordsNotice";
 import { ReferenceResolutionNotice } from "@/components/mame/widgets/ReferenceResolutionNotice";
+import { ClonePlateCrosscheckNotice } from "@/components/mame/widgets/ClonePlateCrosscheckNotice";
 import { LegacySampleMapNotice } from "@/components/mame/widgets/LegacySampleMapNotice";
 import { DemuxResumeNotice } from "@/components/mame/widgets/DemuxResumeNotice";
 import { EmptyAnalysisNotice } from "@/components/mame/widgets/EmptyAnalysisNotice";
@@ -279,10 +280,17 @@ export function AnalyzeStepView({ independent = false, runHealth = null, onRunRe
             </div>
           )}
 
-          {/* Before the errors above in importance, after them in position: a
-              plate disagreement is not a validation error (the backend leaves
-              `valid` true) but it is the one finding that makes an otherwise
-              clean run answer the wrong question. */}
+          {/* Before the errors above in importance, after them in position.
+              A plate disagreement IS a validation error: `handle_validate_inputs`
+              appends `_plate_order_error` to `errors` and returns `valid` false,
+              and `handle_analyze` raises the same message on its own. It is
+              stated separately anyway, for two reasons. It is the one finding
+              that makes an otherwise clean run answer the wrong question, and
+              `selectCanRun` holds the run on `plateOrderFinding` alone: picking
+              the workbook stores it before any validation has run
+              (`inputSlice.checkExpectedPlateOrder`), so this notice stands
+              while `validationErrors` is still empty. When the grading changed
+              and why is in `PlateOrderNotice`'s own docstring. */}
           <PlateOrderNotice />
 
           {/* Which replicates the results on screen were scored on. Next to the
@@ -353,6 +361,12 @@ export function AnalyzeStepView({ independent = false, runHealth = null, onRunRe
               layout that replaced it. A disagreement is a validation error and
               shows with the others; this is the other outcome. */}
           <LegacySampleMapNotice />
+          {/* The other plate comparison, and the opposite grading: the primer
+              plate KURO ordered against the clone plate this run would fill.
+              The two are ordered by two different rules on purpose, so this one
+              reports and never gates. Beside the input panel because the file
+              just picked is what it describes. */}
+          <ClonePlateCrosscheckNotice />
           <WellSelectionPanel />
           <ParameterPanel />
         </div>

@@ -1088,6 +1088,13 @@
         "title": "{{file}} 与计算出的布局一致",
         "desc": "全部 {{wells}} 个孔位均一致，无需修改。sample map 不再作为输入读取，此文件可随时删除；在删除前会原样保留。",
         "dismiss": "关闭此提示"
+      },
+      "clonePlateCrosscheck": {
+        "title": "{{wells}} 个孔中有 {{mismatched}} 个在引物板与克隆板上指向不同的克隆",
+        "desc": "KURO 按设计表的顺序为每条引物分配孔位，这些孔位记录在 {{sheet}} 中。本次运行则按残基 position 顺序填充克隆板。两种顺序不同，因此同一个孔指向两个克隆。",
+        "example": "{{well}}：引物板为 {{primer}}，克隆板为 {{clone}}",
+        "decision": "没有拦截任何操作，也没有改动任何内容。两者中哪一个描述架上的实际试管，这里的任何文件都没有记录。请核对实际分装的板。",
+        "unnamedSheet": "引物板工作表"
       }
     },
     "runQuality": {

@@ -14,6 +14,7 @@ import type {
   JanusAutosaveResult,
   JanusExportSettings,
   LayoutProvenance,
+  ClonePlateCrosscheck,
   LegacySampleMapFinding,
   MappingIntegrity,
   StaleUnits,
@@ -209,6 +210,13 @@ export interface InputSlice {
   // yet. `"differs"` is also an entry in `validationErrors` and blocks there;
   // `"matches"` is announced once so the operator can delete the file.
   legacySampleMapFinding: LegacySampleMapFinding | null;
+  // Do the primer plate KURO ordered and the clone plate the run fills hold
+  // the same clone in each well? null = they agree, could not be compared, or
+  // not validated yet. Report only: nothing reads this to decide whether the
+  // run may start, and `selectCanRun` must never consult it. The two plates
+  // are ordered by two different rules on purpose and only the operator knows
+  // which one the rack follows.
+  clonePlateCrosscheck: ClonePlateCrosscheck | null;
   // What the barcode workbook the last validation read actually contains: seeds
   // per axis and the wells they can name. null = no workbook, unreadable, or
   // not validated yet. Display only, never an input: the axis roles and the

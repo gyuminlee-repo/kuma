@@ -931,6 +931,42 @@ export interface PlateOrderFinding extends PlateOrderReport {
 }
 
 /**
+ * Where the primer plate and the clone plate the run fills hold different clones.
+ *
+ * Wire shape of `_clone_plate_crosscheck` in
+ * `python-core/sidecar_mame/handlers/analyze.py`, carried on `validate_inputs`
+ * under `clone_plate_crosscheck` and sent only when `status` is `"mismatch"`.
+ *
+ * A separate type from `PlateOrderFinding`, and it deliberately carries no
+ * severity. That one is wired to a validation error and a refused run; this one
+ * must never refuse anything. KURO orders the primers by design-sheet index and
+ * the run fills the clone plate by residue position, so the two disagree on
+ * every export not already written in position order, which is most of them.
+ * Which of the two describes the rack is a fact about the tubes and is written
+ * in no input on this screen, so the operator is told and the operator decides.
+ * Putting this through the plate-order types would route a reportable finding
+ * down the path that blocks.
+ */
+export interface ClonePlateCrosscheck {
+  /**
+   * Only `"mismatch"` is sent. The sidecar also distinguishes `"match"` and the
+   * reasons no comparison ran (`"not_a_workbook"`, `"no_expected_sheet"`,
+   * `"no_plate_sheet"`, `"unreadable"`, `"combination"`, `"stated_wells"`,
+   * `"over_capacity"`), which is why this is a string and not a closed union:
+   * an unrecognised reason must not read as a mismatch.
+   */
+  status: string;
+  /** "Fwd List" | "Fwd Plate"; null when no plate sheet supplied the primer plate. */
+  plate_sheet: string | null;
+  /** Wells either plate named, control well excluded. */
+  wells_compared: number;
+  /** How many of those disagree. The whole count, not the length of `examples`. */
+  mismatch_count: number;
+  /** At most five disagreeing wells, in plate order. */
+  examples: { well: string; primer_plate: string; clone_plate: string }[];
+}
+
+/**
  * What the barcode workbook contains, read back so the operator can confirm it.
  *
  * `forward_count` and `reverse_count` are the seeds each axis carries and
@@ -955,6 +991,14 @@ export interface ValidationResult {
    * (which wells, which sheet, what is missing).
    */
   plate_order?: PlateOrderFinding;
+  /**
+   * Present only when the primer plate and the clone plate the run fills hold
+   * different clones. `valid` stays true and `errors` says nothing about it: the
+   * two plates are ordered by two different rules by design, so this is a notice
+   * and never a condition. Absent means nothing to show, which has to clear a
+   * notice left over from another workbook.
+   */
+  clone_plate_crosscheck?: ClonePlateCrosscheck;
   /**
    * Absent when no barcode workbook was supplied or it could not be read, so a
    * previously shown line has to be cleared rather than left standing.

@@ -40,10 +40,13 @@ clone plate the run builds. That plate is drafted in residue-position order by
 ``layout.build_clone_plate_layout``, which every clone-plate path except this
 one calls, and the two orders differ on any export not already written in
 position order. So an agreement here says the export is internally consistent
-and says nothing about the plate the run scores; no check currently compares
-that plate against the primer plate. Making them comparable means changing
-which well KURO orders each primer into, which is a decision about the physical
-ordering sheet and not one this module can take.
+and says nothing about the plate the run scores. That second comparison lives in
+:mod:`kuma_core.mame.io.clone_plate_crosscheck`, which reads the primer plate
+through :func:`read_primer_plate` here and the other side through
+``layout.build_clone_plate_layout``. It reports and never blocks, because making
+the two orders agree means changing which well KURO orders each primer into,
+which is a decision about the physical ordering sheet and not one either module
+can take.
 
 The wild-type well is left out of the comparison. A plate sheet lists primers,
 the control has none, and its absence is not a disagreement.
@@ -232,6 +235,35 @@ def _plate_layout_from_grid_sheet(worksheet) -> tuple[dict[str, str], list[str]]
     return _in_plate_order(cells), duplicates
 
 
+def read_primer_plate(workbook) -> tuple[dict[str, str], list[str], str | None]:
+    """The primer plate an open KURO export states, from the first sheet that has one.
+
+    Returns ``{well: mutation}`` in plate order, the wells the sheet names twice
+    with two different occupants, and which of :data:`PLATE_SHEETS` supplied the
+    answer. An empty mapping with ``None`` means the workbook carries no plate
+    sheet this module can read.
+
+    Public because the primer plate is one side of two different comparisons.
+    :func:`check_plate_order` compares it against the expected sheet read in
+    sheet order; :mod:`kuma_core.mame.io.clone_plate_crosscheck` compares it
+    against the clone plate the run builds. Two readers of one sheet disagreeing
+    about which well a mutant sits in is the defect this module exists to
+    detect, so there is one reader of it.
+    """
+    for name in PLATE_SHEETS:
+        if name not in workbook.sheetnames:
+            continue
+        reader = (
+            _plate_layout_from_list_sheet
+            if name.endswith("List")
+            else _plate_layout_from_grid_sheet
+        )
+        plate, duplicates = reader(workbook[name])
+        if plate:
+            return plate, duplicates, name
+    return {}, [], None
+
+
 def _expected_layout(
     path: Path,
     wt_placement: WtPlacement = DEFAULT_WT_PLACEMENT,
@@ -253,6 +285,8 @@ def _expected_layout(
     at the call below says why this one must not. The consequence is stated in
     the module docstring: this check compares sheet against sheet and verifies
     nothing about the plate the run builds.
+    :mod:`kuma_core.mame.io.clone_plate_crosscheck` is the check that does, and
+    it has to stay separate because it reports where this one blocks.
 
     ``read_variant_source`` refuses a file for several reasons, all of them
     reported to the operator on the path that actually loads the workbook. This
@@ -333,21 +367,7 @@ def check_plate_order(
     try:
         if EXPECTED_SHEET not in workbook.sheetnames:
             return PlateOrderReport(comparable=False)
-        plate: dict[str, str] = {}
-        duplicate_wells: list[str] = []
-        plate_sheet: str | None = None
-        for name in PLATE_SHEETS:
-            if name not in workbook.sheetnames:
-                continue
-            reader = (
-                _plate_layout_from_list_sheet
-                if name.endswith("List")
-                else _plate_layout_from_grid_sheet
-            )
-            plate, duplicate_wells = reader(workbook[name])
-            if plate:
-                plate_sheet = name
-                break
+        plate, duplicate_wells, plate_sheet = read_primer_plate(workbook)
     finally:
         workbook.close()
 
@@ -398,4 +418,10 @@ def check_plate_order(
     )
 
 
-__all__ = ["EXPECTED_SHEET", "PLATE_SHEETS", "PlateOrderReport", "check_plate_order"]
+__all__ = [
+    "EXPECTED_SHEET",
+    "PLATE_SHEETS",
+    "PlateOrderReport",
+    "check_plate_order",
+    "read_primer_plate",
+]

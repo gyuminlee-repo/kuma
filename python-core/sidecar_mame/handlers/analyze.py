@@ -1178,8 +1178,12 @@ def _plate_order_finding(params: dict, expected_path: Path) -> dict | None:
 
     A workbook that writes one plate two ways is a workbook nobody can read back:
     which of the two sheets describes the tubes that were pipetted is not recorded
-    anywhere in the file. So this is graded ``blocking`` whenever it is found, and
-    :func:`handle_validate_inputs` turns it into a validation error.
+    anywhere in the file. So this is graded ``blocking`` whenever it is found,
+    :func:`handle_validate_inputs` turns it into a validation error, and
+    :func:`handle_analyze` raises the same message rather than trusting that a
+    validation ran first. Validation was the only caller until 2026-08-07, which
+    left every path that does not press the button (a CLI, a harness, a script)
+    going through unchecked.
 
     It used to be downgraded to ``info`` when ``well_layout``
     supplied the coordinates, on the grounds that the sheet order never reached a
@@ -1209,6 +1213,64 @@ def _plate_order_finding(params: dict, expected_path: Path) -> dict | None:
     payload = plate_order_payload(report)
     payload["severity"] = "blocking"
     return payload
+
+
+def _clone_plate_crosscheck(
+    expected_path: Path,
+    variant_sheet: str | None,
+    variant_column: str | None,
+    wt_placement: "WtPlacement",
+) -> dict | None:
+    """Does the primer plate name the same clone the run's clone plate does?
+
+    A sibling of :func:`_plate_order_finding` and the opposite of it in every
+    way that matters. That one asks whether a workbook agrees with itself and
+    refuses the run when it does not. This one asks whether the plate the run
+    actually fills (``layout.build_clone_plate_layout``, residue position
+    ascending since v0.16.85) sits where KURO ordered the primers (design-sheet
+    index, ``kuro.plate_mapper._assign_well``), and it only ever reports.
+
+    **Nothing here reaches ``errors``.** A design-ordered export disagrees by
+    construction and most real workbooks are design-ordered, so grading this
+    would refuse nearly every run. It is also not a question this screen can
+    settle: which of the two numbers describes the rack is a fact about the
+    tubes, and no input on this screen records it. The operator is told, and the
+    operator decides.
+
+    Returned on the response rather than raised on the run for the same reason
+    every other pre-run finding is mirrored here: validation is where the answer
+    is still cheap to act on. ``handle_analyze`` deliberately does not carry it.
+    Its response has an exact-key contract (``mame-analyze-result-contract``) and
+    a finding that arrives after a multi-minute demux changes nothing an operator
+    can still do.
+
+    Returns ``None`` when there is nothing to show: a file that could not be
+    compared, a comparison that agreed, or a check that failed outright. A failed
+    diagnostic is not a reason to hold up a validation.
+    """
+    try:
+        from kuma_core.mame.io.clone_plate_crosscheck import crosscheck_clone_plate
+
+        report = crosscheck_clone_plate(
+            expected_path,
+            sheet=variant_sheet,
+            variant_column=variant_column,
+            wt_placement=wt_placement,
+        )
+    except Exception:  # noqa: BLE001 - a diagnostic must not break a validation
+        return None
+    if not report.reportable:
+        return None
+    return {
+        "status": report.status,
+        "plate_sheet": report.plate_sheet,
+        "wells_compared": report.wells_compared,
+        "mismatch_count": report.mismatch_count,
+        "examples": [
+            {"well": well, "primer_plate": primer, "clone_plate": clone}
+            for well, primer, clone in report.examples
+        ],
+    }
 
 
 def _place_on_selected_wells(
@@ -1458,9 +1520,17 @@ def handle_validate_inputs(params: dict) -> dict:
     ``valid`` stayed true, which left the run enabled over a workbook describing two
     different plates. Deciding which of the two was pipetted is not something this
     screen can do, so the answer is to refuse the file, not to annotate it.
+
+    A second plate comparison rides along under ``clone_plate_crosscheck``, and it
+    is graded the opposite way: it names the wells where the primer plate and the
+    clone plate the run fills hold different clones, it never enters ``errors``,
+    and it never makes ``valid`` false. The two orders differ by design and most
+    exports are written in the order that differs, so this one is a notice.
+    See :func:`_clone_plate_crosscheck`.
     """
     errors: list[str] = []
     plate_order: dict | None = None
+    clone_plate_crosscheck: dict | None = None
     barcode_axes: dict | None = None
     legacy_sample_map: dict | None = None
     # Resolve this once with the same function and input as handle_analyze, then
@@ -1597,6 +1667,17 @@ def handle_validate_inputs(params: dict) -> dict:
                 # refused until the file is replaced (2026-08-05).
                 if plate_order is not None:
                     errors.append(_plate_order_error(plate_order))
+                # The other plate comparison, and the one nothing did before
+                # v0.16.85 made the two orders differ: the primer plate against
+                # the clone plate the run fills. Reported and never graded, so
+                # it is computed outside the `errors` list on purpose. See
+                # :func:`_clone_plate_crosscheck`.
+                clone_plate_crosscheck = _clone_plate_crosscheck(
+                    expected_path,
+                    _optional_str(params.get("variant_sheet")),
+                    _optional_str(params.get("variant_column")),
+                    wt_placement,
+                )
 
             # The same plate-capacity gate the run applies, asked here for the
             # reason every other pre-run refusal in this handler is mirrored:
@@ -1648,6 +1729,13 @@ def handle_validate_inputs(params: dict) -> dict:
     result: dict = {"valid": not errors, "errors": errors}
     if plate_order is not None:
         result["plate_order"] = plate_order
+    # Absent when the two plates agree, when the workbook could not be compared,
+    # or when nothing was compared at all. Never an entry in `errors` and never a
+    # reason `valid` is false: the primer plate and the clone plate are ordered by
+    # two different rules on purpose, and which of them the rack follows is not
+    # written in any input on this screen.
+    if clone_plate_crosscheck is not None:
+        result["clone_plate_crosscheck"] = clone_plate_crosscheck
     # Absent when no barcode workbook was given or it could not be read. The
     # frontend shows it as a line of text, never as something to change: which
     # axis is the plate row and which way the plate fills are properties of how
