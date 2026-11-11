@@ -116,6 +116,57 @@ describe("mame inputSlice clone-plate crosscheck", () => {
     expect(store.clonePlateCrosscheck).toBeNull();
   });
 
+  // Every one of these is an analyze input: the sheet and the column decide
+  // which rows are read, and the placement decides the control well and where
+  // every occupant after it sits. A finding measured on the previous value
+  // names wells of a comparison that no longer describes the inputs, and the
+  // operator reads it as a verdict on the ones now on screen.
+  it("clears the finding when another sheet is picked", () => {
+    const store = makeRunnableStore({
+      clonePlateCrosscheck: CROSSCHECK,
+      variantSheet: "Sheet1",
+    });
+
+    store.setVariantSheet("Sheet2");
+
+    expect(store.clonePlateCrosscheck).toBeNull();
+  });
+
+  it("clears the finding when another variant column is picked", () => {
+    const store = makeRunnableStore({
+      clonePlateCrosscheck: CROSSCHECK,
+      variantColumn: "mutation",
+    });
+
+    store.setVariantColumn("mutant_id");
+
+    expect(store.clonePlateCrosscheck).toBeNull();
+  });
+
+  it("clears the finding when the control placement changes", () => {
+    const store = makeRunnableStore({
+      clonePlateCrosscheck: CROSSCHECK,
+      wtPlacement: "last_well",
+    });
+
+    store.setWtPlacement("after_last_variant");
+
+    expect(store.clonePlateCrosscheck).toBeNull();
+  });
+
+  it("clears the finding when the validation itself fails", async () => {
+    // The success path clears on an absent key. A refused call never gets that
+    // far, so the catch has to clear it too, or a finding from the previous
+    // attempt stands beside "Validation failed" as though it were this one.
+    const store = makeRunnableStore({ clonePlateCrosscheck: CROSSCHECK });
+    mockSendRequest.mockRejectedValueOnce(new Error("sidecar is gone"));
+
+    await store.validateInputs();
+
+    expect(store.clonePlateCrosscheck).toBeNull();
+    expect(store.validationErrors.length).toBeGreaterThan(0);
+  });
+
   it("leaves the plate-order refusal exactly as it was", async () => {
     // The two findings travel on the same response and are graded opposite
     // ways. The reportable one must not soften the blocking one.

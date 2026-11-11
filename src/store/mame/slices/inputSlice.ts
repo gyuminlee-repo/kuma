@@ -468,6 +468,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       variantSelectionExplicit: true,
       validationErrors: [],
       wellSelectionOccupants: null,
+      // Cleared with the rows it compared. The crosscheck states where one
+      // expected-row set disagrees with the primer plate, and this setter
+      // names a different set.
+      clonePlateCrosscheck: null,
     });
     get().setSelectedWells(null);
     // The sheet itself changes the expected rows even with no declared wells,
@@ -483,6 +487,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       variantSelectionExplicit: true,
       validationErrors: [],
       wellSelectionOccupants: null,
+      // Cleared with the rows it compared. The crosscheck states where one
+      // expected-row set disagrees with the primer plate, and this setter
+      // names a different set.
+      clonePlateCrosscheck: null,
     });
     get().setSelectedWells(null);
     // Like the sheet, a column names a different expected-row set even when
@@ -539,7 +547,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   // wells are treated as controls and therefore invalidates finished verdicts.
   setWtPlacement: (wtPlacement) => {
     if (get().wtPlacement === wtPlacement) return;
-    set({ wtPlacement });
+    // The placement decides the control well and pushes every occupant after
+    // it, so the clone plate this finding was measured against is not the one
+    // the next run would fill.
+    set({ wtPlacement, clonePlateCrosscheck: null });
     get().clearResults();
   },
   setWtWell: (wtWell) => set({ wtWell }),
@@ -680,6 +691,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       set({
         validationErrors: [formatError(error)],
         isValidating: false,
+        // A validation that did not finish says nothing about the plates. The
+        // same absent-clears rule as the success path: a finding left standing
+        // here reads as this attempt's answer.
+        clonePlateCrosscheck: null,
         analyzeMessage: "Validation failed",
       });
     }
