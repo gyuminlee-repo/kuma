@@ -1091,7 +1091,7 @@
       },
       "clonePlateCrosscheck": {
         "title": "{{mismatched}} des {{wells}} puits contiennent un clone différent sur la plaque d'amorces et sur la plaque de clones",
-        "desc": "KURO a attribué à chaque amorce son puits selon l'ordre de la feuille de conception ({{sheet}}), et cette exécution remplit la plaque de clones par position de résidu. Les deux ordres diffèrent, donc le même puits désigne deux clones.",
+        "desc": "KURO a attribué à chaque amorce son puits selon l'ordre de la feuille de conception, et {{sheet}} consigne ces puits. Cette exécution remplit la plaque de clones par position de résidu, donc les deux ordres diffèrent et le même puits désigne deux clones.",
         "example": "{{well}} : {{primer}} sur la plaque d'amorces, {{clone}} sur la plaque de clones",
         "decision": "Rien n'est bloqué et rien n'est modifié. Laquelle des deux décrit les tubes du portoir n'est écrite dans aucun fichier ici. Vérifiez la plaque que vous avez pipetée et décidez quel ordre conserver.",
         "unnamedSheet": "la feuille de la plaque d'amorces"
