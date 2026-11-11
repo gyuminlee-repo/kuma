@@ -73,7 +73,7 @@ Analyze 입력 화면의 변이 목록 선택 옆 "템플릿 받기" 버튼이 `
 | 빈 목록 | 배치할 것이 없다 |
 | 읽혔으나 배치 못 한 행 | 그 뒤 변이가 전부 한 웰씩 밀린다 |
 
-용량은 변이 95개 + WT 1개 = 96 well 이다 (`kuma_core/mame/layout.py`, `MUTANT_CAPACITY`). 넘치면 부분 배치 없이 전량 비우고 넘친 변이 이름을 돌려준다.
+용량은 클론 95개 + WT 1개 = 96 well 이다 (`kuma_core/mame/layout.py`, `MUTANT_CAPACITY`). 같은 `mutant_id` 를 가진 행 여럿은 클론 하나로 세므로 한도에 걸리는 것은 행 수가 아니라 클론 수다. 넘치면 부분 배치 없이 전량 비우고 넘친 클론 이름을 돌려준다.
 
 ## `__kuma_meta__` 필드
 
