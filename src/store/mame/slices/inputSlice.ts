@@ -384,9 +384,12 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       expectedPath,
       validationErrors: [],
       plateOrderFinding: null,
-      // Cleared with the file it describes. The wells it names belong to one
-      // workbook and mean nothing about the next one.
+      // Cleared with the file it describes. The wells they name belong to one
+      // workbook and mean nothing about the next one. The legacy map is
+      // compared against the draft this workbook's rows produce, so it goes
+      // with them.
       clonePlateCrosscheck: null,
+      legacySampleMapFinding: null,
       variantSourceInfo: null,
       variantSheet: null,
       variantColumn: null,
@@ -456,6 +459,18 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   // selection must be re-declared for that campaign; it narrows the fixed
   // draft layout and never re-seats occupants. Routed through
   // `setSelectedWells` so its own change invalidates results once.
+  //
+  // Two reportable findings are cleared with the rows and two fields are
+  // deliberately left alone, so the asymmetry is stated here rather than read
+  // as an omission. `clonePlateCrosscheck` and `legacySampleMapFinding` both
+  // describe a comparison against the draft these rows produce, so a value
+  // measured on the previous rows names wells of a plate nobody is looking at.
+  // `plateOrderFinding` stays: it is blocking, `checkExpectedPlateOrder` sends
+  // the path alone, and clearing a refusal from a setter that cannot re-check
+  // it would open the Run gate instead of invalidating an answer.
+  // `barcodeAxisCounts` stays because it is not downstream of these inputs at
+  // all: `_barcode_axis_counts` reads the custom barcode workbook by itself and
+  // `setParams` owns the path it comes from.
   setVariantSheet: (variantSheet) => {
     const state = get();
     if (state.variantSheet === variantSheet) return;
@@ -468,10 +483,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       variantSelectionExplicit: true,
       validationErrors: [],
       wellSelectionOccupants: null,
-      // Cleared with the rows it compared. The crosscheck states where one
-      // expected-row set disagrees with the primer plate, and this setter
-      // names a different set.
+      // Cleared with the rows they compared; see the asymmetry note above
+      // `setVariantSheet` for what is not cleared here and why.
       clonePlateCrosscheck: null,
+      legacySampleMapFinding: null,
     });
     get().setSelectedWells(null);
     // The sheet itself changes the expected rows even with no declared wells,
@@ -487,10 +502,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       variantSelectionExplicit: true,
       validationErrors: [],
       wellSelectionOccupants: null,
-      // Cleared with the rows it compared. The crosscheck states where one
-      // expected-row set disagrees with the primer plate, and this setter
-      // names a different set.
+      // Cleared with the rows they compared; see the asymmetry note above
+      // `setVariantSheet` for what is not cleared here and why.
       clonePlateCrosscheck: null,
+      legacySampleMapFinding: null,
     });
     get().setSelectedWells(null);
     // Like the sheet, a column names a different expected-row set even when
@@ -548,9 +563,11 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   setWtPlacement: (wtPlacement) => {
     if (get().wtPlacement === wtPlacement) return;
     // The placement decides the control well and pushes every occupant after
-    // it, so the clone plate this finding was measured against is not the one
-    // the next run would fill.
-    set({ wtPlacement, clonePlateCrosscheck: null });
+    // it, so neither the clone plate the crosscheck was measured against nor
+    // the draft the legacy map was compared with is the one the next run would
+    // build. The two fields left standing are the ones named in the asymmetry
+    // note above `setVariantSheet`.
+    set({ wtPlacement, clonePlateCrosscheck: null, legacySampleMapFinding: null });
     get().clearResults();
   },
   setWtWell: (wtWell) => set({ wtWell }),
@@ -693,8 +710,11 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         isValidating: false,
         // A validation that did not finish says nothing about the plates. The
         // same absent-clears rule as the success path: a finding left standing
-        // here reads as this attempt's answer.
+        // here reads as this attempt's answer. `plateOrderFinding` is left
+        // alone for the reason given above `setVariantSheet`, and clearing it
+        // on a transport error would turn a refusal into a runnable state.
         clonePlateCrosscheck: null,
+        legacySampleMapFinding: null,
         analyzeMessage: "Validation failed",
       });
     }
