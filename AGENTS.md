@@ -226,6 +226,10 @@ cross-layer 의존은 **`.cross-layer-sync.json` `groups[]`** 로 관리. 단일
 
 **vendored 본체**: `scripts/sync-check.mjs` 는 cross-layer-sync skill vendored. 직접 수정 금지. groups 검증은 별도 `scripts/sync-check-groups.mjs` 에서 처리하여 upstream refresh 안전.
 
+**교차 레이어 주석은 줄 번호가 아니라 심볼 이름을 인용한다**: 다른 레이어의 위치를 가리킬 때 `<파일>:<줄>` 대신 함수·상수·테스트 이름을 쓴다. 줄 번호는 인용된 파일이 위쪽에 한 줄만 얻어도 조용히 다른 곳을 가리키고 그 사실을 알리는 장치가 없다. 래칫을 넣은 시점에 코드 파일이 담고 있던 164건 중 같은 줄에 백틱 심볼이 있어 기계로 대조할 수 있던 것은 13건이고 그중 10건이 이미 틀린 줄을 가리키고 있었다. 인용하는 파일이 이미 `.cross-layer-sync.json` 의 `groups[]` 에 있으면 그 심볼을 같은 그룹의 `symbols[]` 에 넣어 존재 검사를 받게 한다. **단 `scripts/sync-check-groups.mjs` 의 심볼 검사는 그룹 안의 어느 한 파일에만 그 심볼이 있어도 통과하므로 한쪽에서만 사라진 drift 는 잡지 못한다.** 그 한계를 알고 쓰고 양쪽 동시 존재는 테스트나 생성 검사로 따로 묶는다.
+
+새 줄 번호 인용은 `scripts/check-doc-citations.mjs` 가 `scripts/line-citations-ledger.json` 과 대조해 exit 1 로 막는다. 장부에 없는 인용은 정의상 신규라 경고가 아니라 실패다. **동결된 158개 인용 지점을 일괄 교정하지 않는다.** 그 파일을 다른 일로 열 때 기회적으로 심볼 이름으로 바꾸고 `node scripts/check-doc-citations.mjs --write-line-ledger` 로 장부를 다시 쓴다. 장부는 그 명령으로만 만들고 항목을 손으로 적지 않는다. 더 이상 인용되지 않는 장부 항목도 실패이므로 장부는 줄어들기만 한다. 줄 번호가 정말 필요하면 같은 명령으로 장부에 넣고 그 이유를 PR 본문에 적는다.
+
 ## Rules
 - 절대 경로 하드코딩 금지 — 상대 경로 또는 환경변수 사용
 - **값 하드코딩 금지** — 상태 메시지·임계값·레이블은 백엔드 응답 필드 직접 참조. 예: identity % 를 "100%"로 고정하지 말고 `top.identity.toFixed(1)` 사용

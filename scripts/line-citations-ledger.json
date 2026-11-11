@@ -1,0 +1,965 @@
+{
+  "_comment": [
+    "Ledger of line-number citations in source files, frozen so that no new one arrives unnoticed.",
+    "Written and rechecked by scripts/check-doc-citations.mjs; regenerate with --write-line-ledger.",
+    "",
+    "A key is the citing file plus the cited string. Neither half alone works: the cited string on",
+    "its own would let a second file re-cite a frozen position and pass, and the line the comment",
+    "sits on would move whenever anything above it changed.",
+    "",
+    "Nothing here is verified. The line number is checked against nothing, because a bare position",
+    "carries no claim a machine can test. What this buys is the ratchet: an unlisted citation fails",
+    "the check, so the count only goes down. Existing entries are corrected opportunistically, when",
+    "their file is open for other work, and the entry then disappears on the next regeneration."
+  ],
+  "frozen": [
+    {
+      "source": "benchmark/al/arms.py",
+      "cite": "kuro/evolvepro.py:930",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "benchmark/al/proxy_rf.py",
+      "cite": "evolvepro/src/model.py:198-211",
+      "category": "external",
+      "reason": "Names a file in the sibling evolvepro repository, which this checkout does not contain, so no path inside kuma can resolve it."
+    },
+    {
+      "source": "benchmark/al/tests/test_attribution.py",
+      "cite": "attribution.py:588",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "benchmark/scripts/isps_sigma_ucb.py",
+      "cite": "evolvepro/src/model.py:198-216",
+      "category": "external",
+      "reason": "Names a file in the sibling evolvepro repository, which this checkout does not contain, so no path inside kuma can resolve it."
+    },
+    {
+      "source": "kuma_core/mame/activity/detect_measurement_source.py",
+      "cite": "build_evolvepro_input.py:34,36",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "kuma_core/mame/activity/detect_measurement_source.py",
+      "cite": "numeric_id_decode.py:323",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "kuma_core/mame/activity/detect_measurement_source.py",
+      "cite": "numeric_id_decode.py:411",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "kuma_core/mame/activity/variant_notation.py",
+      "cite": "mutation.py:54-66",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "kuma_core/mame/cli.py",
+      "cite": "kuma_core/mame/models.py:227-235",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "kuma_core/mame/distribution.py",
+      "cite": "src/components/mame/panels/ParameterPanel.tsx:21",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "kuma_core/mame/distribution.py",
+      "cite": "src/types/mame/models.ts:160",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "kuma_core/mame/ingest/barcode_package.py",
+      "cite": "sdm_engine.py:130-150",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "kuma_core/mame/ingest/combinatorial_demux.py",
+      "cite": "forkserver.py:148-151",
+      "category": "stdlib",
+      "reason": "Names the Python standard library multiprocessing forkserver module, which lives outside this repository."
+    },
+    {
+      "source": "kuma_core/mame/ingest/fasta_parser.py",
+      "cite": "unit_manifest.py:164",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "kuma_core/shared/version.py",
+      "cite": "kuma_core/shared/run_manifest.py:126",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "kuma_core/shared/version.py",
+      "cite": "python-core/sidecar_kuro/handlers/export.py:297",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "kuma_core/shared/version.py",
+      "cite": "python-core/sidecar_mame/handlers/export.py:164,302",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "kuma_core/shared/version.py",
+      "cite": "python-core/sidecar_mame/handlers/report.py:85",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "python-core/build_sidecar.py",
+      "cite": "kuma_core/kuro/evolvepro.py:339",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "python-core/build_sidecar.py",
+      "cite": "kuma_core/mame/ingest/combinatorial_demux.py:319",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "python-core/build_sidecar.py",
+      "cite": "sidecar_kuro/handlers/misc.py:125",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "python-core/scripts/smoke_sidecar_io.py",
+      "cite": ".github/workflows/build.yml:239",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "python-core/sidecar_mame/handlers/analyze.py",
+      "cite": "aa_translator.py:211",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "python-core/sidecar_mame/handlers/analyze.py",
+      "cite": "models.py:227-235",
+      "category": "ambiguous",
+      "reason": "Frozen when the line-citation ratchet was added; two or more tracked files carry this name, so the citation does not say which one. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "python-core/sidecar_mame/handlers/classify_round.py",
+      "cite": "classify.py:399-403",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "python-core/sidecar_mame/handlers/classify_round.py",
+      "cite": "docs/2026-08-19-mame-assay-noise-model.md:21",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "python-core/sidecar_mame/handlers/classify_round.py",
+      "cite": "evolvepro_xlsx.py:44-56",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "python-core/sidecar_mame/handlers/classify_round.py",
+      "cite": "evolvepro_xlsx.py:654",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "scripts/capture-mame-activity-signals.mjs",
+      "cite": "MameWorkflowRail.tsx:187-193",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "scripts/capture-mame-activity-signals.mjs",
+      "cite": "phaseSlice.ts:36",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "scripts/capture-mame-activity-signals.mjs",
+      "cite": "WorkflowRail.tsx:107-109",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "scripts/capture-mame-activity-signals.mjs",
+      "cite": "WorkflowRail.tsx:124-126",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "scripts/capture-mame-barcode-setup.mjs",
+      "cite": "BarcodeSetupPanel.tsx:571",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "scripts/capture-mame-barcode-setup.mjs",
+      "cite": "phaseSlice.ts:36",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "scripts/capture-mame-barcode-setup.mjs",
+      "cite": "SetupStepView.tsx:67",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/components/mame/layout/MameAppLayout.tsx",
+      "cite": "python-core/sidecar_mame/core.py:139-141",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/components/mame/layout/MameDrawerContent.tsx",
+      "cite": "kuma_core/mame/activity/build_evolvepro_input.py:224",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/components/mame/layout/MameInspectorContent.tsx",
+      "cite": "kuma_core/mame/activity/build_evolvepro_input.py:224",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/components/mame/panels/BarcodeSetupPanel.test.tsx",
+      "cite": "src-tauri/src/sidecar.rs:25,394",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/components/mame/panels/InputPanel.tsx",
+      "cite": "python-core/sidecar_mame/handlers/analyze.py:1013",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/components/mame/panels/ParameterPanel.test.tsx",
+      "cite": "models.py:64",
+      "category": "ambiguous",
+      "reason": "Frozen when the line-citation ratchet was added; two or more tracked files carry this name, so the citation does not say which one. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/components/mame/panels/ParameterPanel.tsx",
+      "cite": "models.py:62-64",
+      "category": "ambiguous",
+      "reason": "Frozen when the line-citation ratchet was added; two or more tracked files carry this name, so the citation does not say which one. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/components/mame/panels/WellSelectionPanel.rpc.test.tsx",
+      "cite": "kuma_core/mame/layout.py:107-113",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/components/widgets/DestPlateView.tsx",
+      "cite": "WellPlate.tsx:73",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/components/widgets/EchoPlateView.tsx",
+      "cite": "WellPlate.tsx:73",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/components/widgets/EchoPlateView.tsx",
+      "cite": "WellSelectionPanel.tsx:459",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/components/widgets/ExportMacrogenSection.tsx",
+      "cite": "export-handlers.ts:280",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/components/widgets/ExportPlatePreview.test.tsx",
+      "cite": "kuma_core/kuro/plate_mapper.py:904",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/components/widgets/ExportPlatePreview.test.tsx",
+      "cite": "validators.ts:870",
+      "category": "ambiguous",
+      "reason": "Frozen when the line-citation ratchet was added; two or more tracked files carry this name, so the citation does not say which one. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/components/widgets/PlatePreviewGrid.tsx",
+      "cite": "WellPlate.tsx:127-134",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/hooks/useAutosaveHydration.ts",
+      "cite": "inputSlice.ts:718",
+      "category": "ambiguous",
+      "reason": "Frozen when the line-citation ratchet was added; two or more tracked files carry this name, so the citation does not say which one. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/hooks/useAutosaveHydration.ts",
+      "cite": "JanusAutosaveNotice.tsx:42",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/hooks/useAutosaveHydration.ts",
+      "cite": "slice-interfaces.ts:206",
+      "category": "ambiguous",
+      "reason": "Frozen when the line-citation ratchet was added; two or more tracked files carry this name, so the citation does not say which one. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/lib/mame/fileExtensions.ts",
+      "cite": "analyze.py:1013",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/lib/mame/fileExtensions.ts",
+      "cite": "analyze.py:1045",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/lib/mame/fileExtensions.ts",
+      "cite": "analyze.py:1055",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/lib/schemaValidator.ts",
+      "cite": "src/store/mame/activitySlice.ts:138",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/lib/sequence/autoDetectCds.test.ts",
+      "cite": "kuma_core/mame/translate/aa_translator.py:211",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/lib/sequence/autoDetectCds.ts",
+      "cite": "kuma_core/mame/translate/aa_translator.py:211",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/locales/restorableDesc.test.ts",
+      "cite": "src-tauri/src/config.rs:244-262",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/locales/restorableDesc.test.ts",
+      "cite": "src/screens/Onboarding.tsx:70",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/screens/Home.openFile.test.tsx",
+      "cite": "src-tauri/src/project.rs:51",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/screens/Home.tsx",
+      "cite": "config.rs:198",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/screens/Home.tsx",
+      "cite": "src-tauri/src/project.rs:50-51",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/screens/Home.tsx",
+      "cite": "src-tauri/src/project.rs:51",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/store/__tests__/validation.test.ts",
+      "cite": "designSlice.ts:179",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/store/mame/selectors.test.ts",
+      "cite": "analyze.py:1224",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/store/mame/selectors.test.ts",
+      "cite": "inputSlice.ts:651",
+      "category": "ambiguous",
+      "reason": "Frozen when the line-citation ratchet was added; two or more tracked files carry this name, so the citation does not say which one. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/store/mame/selectors.ts",
+      "cite": "analyze.py:1224",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/store/mame/selectors.ts",
+      "cite": "inputSlice.ts:651",
+      "category": "ambiguous",
+      "reason": "Frozen when the line-citation ratchet was added; two or more tracked files carry this name, so the citation does not say which one. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/store/mame/selectors.ts",
+      "cite": "models.py:156",
+      "category": "ambiguous",
+      "reason": "Frozen when the line-citation ratchet was added; two or more tracked files carry this name, so the citation does not say which one. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/store/slices/exportSlice.ts",
+      "cite": "autosaveSnapshot.ts:146",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/store/slices/exportSlice.ts",
+      "cite": "kuroSnapshot.ts:144",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/store/slices/exportSlice.ts",
+      "cite": "kuroSnapshot.ts:149",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/store/slices/exportSlice.ts",
+      "cite": "resultSnapshot.ts:71",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/store/slices/exportSlice.ts",
+      "cite": "vite.config.ts:69",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/store/slices/inputSlice.helpers.ts",
+      "cite": "kuma_core/kuro/evolvepro.py:729",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/store/validation.ts",
+      "cite": "designSlice.ts:179",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/test-utils/platePreviewGrid.ts",
+      "cite": "WellPlate.tsx:127-134",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/combinatorial_demux.ts",
+      "cite": "combinatorial_demux.py:3199-3204",
+      "category": "ambiguous",
+      "reason": "Frozen when the line-citation ratchet was added; two or more tracked files carry this name, so the citation does not say which one. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/combinatorial_demux.ts",
+      "cite": "combinatorial_demux.py:367-375",
+      "category": "ambiguous",
+      "reason": "Frozen when the line-citation ratchet was added; two or more tracked files carry this name, so the citation does not say which one. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/combinatorial_demux.ts",
+      "cite": "kuma_core/mame/ingest/combinatorial_demux.py:3113-3122",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/models.ts",
+      "cite": "analyze.py:1912",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/models.ts",
+      "cite": "combinatorial_demux.py:471-485",
+      "category": "ambiguous",
+      "reason": "Frozen when the line-citation ratchet was added; two or more tracked files carry this name, so the citation does not say which one. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/models.ts",
+      "cite": "distribution.py:119-120",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/models.ts",
+      "cite": "distribution.py:39",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/models.ts",
+      "cite": "kuma_core/mame/distribution.py:132-142",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/models.ts",
+      "cite": "kuma_core/mame/ingest/combinatorial_demux.py:443-452",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/models.ts",
+      "cite": "kuma_core/mame/ingest/combinatorial_demux.py:487-493",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/models.ts",
+      "cite": "python-core/sidecar_mame/handlers/analyze.py:2244",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/models.ts",
+      "cite": "python-core/sidecar_mame/handlers/analyze.py:2395-2399",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/responseShapes.test.ts",
+      "cite": "analyze.py:1912",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/responseShapes.test.ts",
+      "cite": "combinatorial_demux.py:3113-3122",
+      "category": "ambiguous",
+      "reason": "Frozen when the line-citation ratchet was added; two or more tracked files carry this name, so the citation does not say which one. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/responseShapes.test.ts",
+      "cite": "combinatorial_demux.py:3199-3204",
+      "category": "ambiguous",
+      "reason": "Frozen when the line-citation ratchet was added; two or more tracked files carry this name, so the citation does not say which one. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/responseShapes.test.ts",
+      "cite": "distribution.py:132-142",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/responseShapes.test.ts",
+      "cite": "distribution.py:42,149,153,156,162",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/responseShapes.test.ts",
+      "cite": "evolvepro.py:583-585",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/responseShapes.test.ts",
+      "cite": "kuma_core/kuro/evolvepro.py:715-716",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/responseShapes.test.ts",
+      "cite": "kuma_core/mame/distribution.py:119-120",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/responseShapes.test.ts",
+      "cite": "kuma_core/mame/ingest/combinatorial_demux.py:487-493",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/responseShapes.test.ts",
+      "cite": "kuma_core/mame/run_quality.py:612",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/responseShapes.test.ts",
+      "cite": "python-core/sidecar_kuro/handlers/export.py:318-323",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/responseShapes.test.ts",
+      "cite": "python-core/sidecar_kuro/handlers/misc.py:236-237",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/responseShapes.test.ts",
+      "cite": "python-core/sidecar_mame/handlers/analyze.py:2244",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/responseShapes.test.ts",
+      "cite": "python-core/sidecar_mame/handlers/analyze.py:2395-2399",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/run_quality.ts",
+      "cite": "kuma_core/mame/run_quality.py:612",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/validators.ts",
+      "cite": "barcode_package.py:600",
+      "category": "ambiguous",
+      "reason": "Frozen when the line-citation ratchet was added; two or more tracked files carry this name, so the citation does not say which one. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/validators.ts",
+      "cite": "classify_round.py:137,140",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/validators.ts",
+      "cite": "classify_round.py:607",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/validators.ts",
+      "cite": "kuma_core/mame/activity/label_audit.py:117-122",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/validators.ts",
+      "cite": "kuma_core/mame/activity/label_audit.py:212,228-246,288",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/validators.ts",
+      "cite": "kuma_core/mame/ingest/barcode_package.py:594",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/validators.ts",
+      "cite": "kuma_core/mame/ingest/variant_list.py:164",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/validators.ts",
+      "cite": "kuma_core/strategy/classify.py:68",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/validators.ts",
+      "cite": "kuma_core/strategy/classify.py:75",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/validators.ts",
+      "cite": "python-core/sidecar_kuro/dispatcher.py:69-82",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/validators.ts",
+      "cite": "python-core/sidecar_mame/dispatcher.py:59-72",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/validators.ts",
+      "cite": "python-core/sidecar_mame/handlers/barcode_package.py:280",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/validators.ts",
+      "cite": "python-core/sidecar_mame/handlers/barcode_package.py:90",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/validators.ts",
+      "cite": "python-core/sidecar_mame/handlers/classify_round.py:137,140",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/validators.ts",
+      "cite": "python-core/sidecar_mame/handlers/kuma_meta.py:15-16",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/validators.ts",
+      "cite": "src/types/validators.ts:475",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/validators.ts",
+      "cite": "variant_list.py:165",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/validators.ts",
+      "cite": "variant_list.py:189-191",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/validators.unions.test.ts",
+      "cite": "build_evolvepro_input.py:364",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/validators.unions.test.ts",
+      "cite": "kuma_core/mame/activity/build_evolvepro_input.py:463-480",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/validators.unions.test.ts",
+      "cite": "kuma_core/mame/activity/label_audit.py:295-300",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/validators.unions.test.ts",
+      "cite": "kuma_core/strategy/classify.py:68",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/validators.unions.test.ts",
+      "cite": "kuma_core/strategy/classify.py:75",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/validators.unions.test.ts",
+      "cite": "python-core/sidecar_mame/handlers/classify_round.py:605-612",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/mame/validators.unions.test.ts",
+      "cite": "python-core/sidecar_mame/handlers/classify_round.py:614-620",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/models.ts",
+      "cite": "evolvepro.py:583-585",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/models.ts",
+      "cite": "kuma_core/kuro/evolvepro.py:715-716",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/models.ts",
+      "cite": "python-core/sidecar_kuro/dispatcher.py:69-82",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/models.ts",
+      "cite": "python-core/sidecar_kuro/handlers/export.py:318-323",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/models.ts",
+      "cite": "python-core/sidecar_kuro/handlers/misc.py:236-237",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/models.ts",
+      "cite": "python-core/sidecar_mame/dispatcher.py:59-72",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/validators.ts",
+      "cite": "export.py:827",
+      "category": "ambiguous",
+      "reason": "Frozen when the line-citation ratchet was added; two or more tracked files carry this name, so the citation does not say which one. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/validators.ts",
+      "cite": "kuma_core/kuro/plate_mapper.py:1048-1058",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/validators.ts",
+      "cite": "kuma_core/kuro/plate_mapper.py:897-905",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/validators.ts",
+      "cite": "plate_mapper.py:675",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/validators.ts",
+      "cite": "python-core/sidecar_kuro/dispatcher.py:69-82",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/validators.ts",
+      "cite": "python-core/sidecar_kuro/handlers/export.py:782",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/validators.ts",
+      "cite": "python-core/sidecar_kuro/models.py:1020-1058",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/validators.ts",
+      "cite": "python-core/sidecar_kuro/models.py:1063",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "src/types/validators.ts",
+      "cite": "src/types/models.generated.ts:926-962",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "tests/fixtures/mame/_make_fixture.py",
+      "cite": "consensus.py:161",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "tests/mame/activity/test_detect_measurement_source.py",
+      "cite": "evolvepro_xlsx.py:654",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "tests/mame/activity/test_detect_measurement_source.py",
+      "cite": "numeric_id_decode.py:323",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "tests/scripts/i18n-parity.test.ts",
+      "cite": "src/screens/Shell.tsx:1",
+      "category": "test-literal",
+      "reason": "An expected lint message inside a parity fixture, not a citation. The path is invented for the fixture and no such file exists."
+    },
+    {
+      "source": "tests/scripts/i18n-parity.test.ts",
+      "cite": "src/screens/Shell.tsx:2",
+      "category": "test-literal",
+      "reason": "An expected lint message inside a parity fixture, not a citation. The path is invented for the fixture and no such file exists."
+    },
+    {
+      "source": "tests/shared/test_run_manifest.py",
+      "cite": "src/lib/runManifest.ts:15",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "tests/sidecar_mame/test_classify_discrimination.py",
+      "cite": "classify_round.py:596",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "tests/sidecar_mame/test_classify_discrimination.py",
+      "cite": "src/lib/round/roundArtifacts.ts:87-99",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "tests/sidecar_mame/test_coding_bounds_guard.py",
+      "cite": "kuma_core/mame/translate/aa_translator.py:211",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "tests/sidecar_mame/test_serialize_roundtrip_completeness.py",
+      "cite": "analyze.py:485",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "tests/sidecar_mame/test_serialize_roundtrip_completeness.py",
+      "cite": "handlers/load.py:14-16",
+      "category": "frozen",
+      "reason": "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited."
+    },
+    {
+      "source": "tests/test_handler_merge_for_evolvepro.py",
+      "cite": "dispatcher.py:143-147",
+      "category": "ambiguous",
+      "reason": "Frozen when the line-citation ratchet was added; two or more tracked files carry this name, so the citation does not say which one. Replace with a symbol name when this file is next edited."
+    }
+  ]
+}
