@@ -82,7 +82,7 @@ function buildEvolveproResult(overrides: Record<string, unknown> = {}) {
   };
 }
 
-/** `kuma_core/mame/activity/label_audit.py:295-300`. */
+/** The fields of the `LabelAudit` dataclass in `kuma_core/mame/activity/label_audit.py`. */
 function labelAudit(overrides: Record<string, unknown> = {}) {
   return {
     discordant: [],

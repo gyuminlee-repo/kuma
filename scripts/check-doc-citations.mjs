@@ -15,10 +15,25 @@
  * explicit ledger (scripts/doc-citations-allow.json, one reason per entry) and
  * fails the build when a citation that nobody has accounted for appears.
  *
+ * The same file carries a second, independent check with the same shape: a
+ * ratchet on line-number citations. A comment that names a position in another
+ * file goes stale the moment that file gains or loses a line above the cited
+ * one, and nothing announces it. Of the citations present when this ratchet was
+ * added, only thirteen sat next to a backticked symbol that a machine could
+ * compare, and ten of those thirteen were already pointing at the wrong line.
+ * Verifying the rest is not possible: a line number alone carries no claim to
+ * check. So this does not verify them and does not rewrite them either. It
+ * freezes the set that exists (scripts/line-citations-ledger.json) and fails
+ * when a citation nobody has accounted for appears. Existing ones move to
+ * symbol names opportunistically, whenever their file is open for other work.
+ *
  * Usage:
  *   node scripts/check-doc-citations.mjs            check, exit 1 on a new unresolved citation
  *   node scripts/check-doc-citations.mjs --list     report every unresolved citation, never fails
  *   node scripts/check-doc-citations.mjs --selftest run the labelled corpus, exit 1 on a mismatch
+ *   node scripts/check-doc-citations.mjs --write-line-ledger
+ *                                                   regenerate the line-citation ledger from the
+ *                                                   working tree, accepting whatever it now holds
  *
  * Exit codes: 0 clean, 1 check or selftest failed, 2 the checker itself could not run.
  *
@@ -26,13 +41,14 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, writeFileSync } from "node:fs";
 import { dirname, resolve, posix as posixPath } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const ALLOWLIST_FILE = "scripts/doc-citations-allow.json";
 const CORPUS_FILE = "scripts/check-doc-citations.corpus.json";
+const LINE_LEDGER_FILE = "scripts/line-citations-ledger.json";
 
 /** Files whose text is searched for citations. */
 const SCANNED_EXTENSIONS = [
@@ -53,7 +69,7 @@ const SCANNED_EXTENSIONS = [
  * record citations that are known not to resolve, so scanning them would make
  * the checker report its own bookkeeping.
  */
-const SELF_EXCLUDED = new Set([ALLOWLIST_FILE, CORPUS_FILE]);
+const SELF_EXCLUDED = new Set([ALLOWLIST_FILE, CORPUS_FILE, LINE_LEDGER_FILE]);
 
 /**
  * mkdocs resolves nav and exclude entries against docs_dir, so those roots are tried too.
@@ -86,6 +102,61 @@ const URL_PATTERN = /[a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^\s)\]}>"'`]+/g;
  */
 const CITATION_PATTERN = /((?:[\w.-]+\/)*[\w.-]+\.md)\b/g;
 
+/**
+ * Files whose text is searched for line-number citations. Markdown is left out
+ * on purpose: the audit notes under docs/ record a position as it stood on the
+ * day they were written and are meant to go stale, so freezing them would fill
+ * the ledger with entries that carry no obligation.
+ */
+const LINE_SCANNED_EXTENSIONS = [".py", ".ts", ".tsx", ".rs", ".mjs"];
+
+/**
+ * A position in another file: a path ending in one of the project source or
+ * config extensions, a colon, then a single line, a range, or a comma list of
+ * either. The cited extension set is wider than the scanned one because a
+ * comment can name a line inside a workbook of generated types, a workflow or
+ * an audit note just as easily as one inside code.
+ *
+ * One optional space is allowed after each comma, because a prose comment
+ * writes a list that way and two in `src/lib/mame/fileExtensions.ts` do.
+ * Without it the match stopped at the first comma and froze a truncated
+ * string, which is the exact failure this ratchet exists to catch: a comment
+ * naming two positions in `analyze.py` entered the ledger carrying only the
+ * first, so the second was never recorded as debt at all. Only a single
+ * space, and never a tab or a newline, so a list running past the end of a
+ * line cannot be stitched into one citation.
+ */
+const LINE_CITATION_PATTERN =
+  /((?:[\w.-]+\/)*[\w.-]+\.(?:py|ts|tsx|rs|mjs|json|md|toml|yml|yaml)):(\d+(?:-\d+)?(?:, ?\d+(?:-\d+)?)*)/g;
+
+/**
+ * How a frozen line citation came to be allowed. The first three are decided by
+ * the scan, the last three by hand in the ledger, where a regeneration keeps
+ * them.
+ *
+ *   frozen        the cited path resolves to exactly one tracked file.
+ *   ambiguous     two or more tracked files carry that name, so a reader cannot
+ *                 tell which one the line number belongs to.
+ *   unresolved    no tracked path ends in the cited path, and nobody has said
+ *                 why. Either nothing tracked carries that name at all, or the
+ *                 directories the citation spells out are not where the file
+ *                 sits, which is not retried on the bare filename.
+ *   external      the path belongs to a sibling repository, outside this one.
+ *   stdlib        the path belongs to a language standard library.
+ *   test-literal  the string is a fixture or an expected message, not a citation.
+ */
+const LINE_CATEGORIES = [
+  "frozen",
+  "ambiguous",
+  "unresolved",
+  "external",
+  "stdlib",
+  "test-literal",
+];
+
+/** Categories the scan assigns on its own; the rest survive a regeneration. */
+const LINE_MECHANICAL_CATEGORIES = new Set(["frozen", "ambiguous", "unresolved"]);
+
 // --------------------------------------------------------------------------
 // extraction
 // --------------------------------------------------------------------------
@@ -110,6 +181,59 @@ function extractFromContent(content) {
     }
   }
   return out;
+}
+
+/** @returns {string[]} line citations on one line, each as "path:lines". */
+export function extractLineCitationsFromLine(line) {
+  const scrubbed = line.replace(URL_PATTERN, " ");
+  const found = [];
+  for (const match of scrubbed.matchAll(LINE_CITATION_PATTERN)) {
+    found.push(`${match[1]}:${match[2]}`);
+  }
+  return found;
+}
+
+/**
+ * Build the lookup a classification needs: every tracked path, and every
+ * tracked path grouped by its final segment.
+ *
+ * @param {string[]} tracked
+ */
+export function buildTrackedIndex(tracked) {
+  const byBasename = new Map();
+  for (const path of tracked) {
+    const base = path.slice(path.lastIndexOf("/") + 1);
+    if (!byBasename.has(base)) byBasename.set(base, []);
+    byBasename.get(base).push(path);
+  }
+  return { set: new Set(tracked), byBasename };
+}
+
+/**
+ * Decide whether a reader could tell which file a cited path names. The line
+ * number itself is never checked: see the header for why that is not possible
+ * here.
+ *
+ * @returns {"frozen"|"ambiguous"|"unresolved"}
+ */
+export function classifyLineCitation(citedPath, index) {
+  if (index.set.has(citedPath)) return "frozen";
+
+  const base = citedPath.slice(citedPath.lastIndexOf("/") + 1);
+  const sameName = index.byBasename.get(base) ?? [];
+  const suffixMatches = sameName.filter((t) => t === citedPath || t.endsWith(`/${citedPath}`));
+  if (suffixMatches.length === 1) return "frozen";
+  if (suffixMatches.length > 1) return "ambiguous";
+  // A citation that spells out directories claims a location, and a claim no
+  // tracked path satisfies is wrong rather than merely imprecise. Falling back
+  // to the final segment here would report it as resolved: that is how a
+  // citation of `kuma_core/mame/ingest/variant_list.py` read as frozen while
+  // the tracked file is `kuma_core/mame/io/variant_list.py`. A bare name keeps
+  // the fallback, because it never claimed a directory to be wrong about.
+  if (citedPath.includes("/")) return "unresolved";
+  if (sameName.length === 1) return "frozen";
+  if (sameName.length > 1) return "ambiguous";
+  return "unresolved";
 }
 
 // --------------------------------------------------------------------------
@@ -232,6 +356,190 @@ function scan() {
   return { scanned: targets.length, occurrences, unresolved };
 }
 
+/** The ledger key for one citation site: which file cites what. */
+export function lineCitationKey(source, cite) {
+  return `${source}\t${cite}`;
+}
+
+/**
+ * Keyed by citing file and cited string rather than by either alone. The cited
+ * string on its own would let a second file re-cite a frozen position and pass
+ * unnoticed. The line the comment sits on would move every time anything above
+ * it changes, so the ledger would churn against edits that cite nothing.
+ */
+function scanLineCitations() {
+  const tracked = listTrackedFiles();
+  const index = buildTrackedIndex(tracked);
+  const targets = tracked.filter(
+    (p) => LINE_SCANNED_EXTENSIONS.some((ext) => p.endsWith(ext)) && !SELF_EXCLUDED.has(p)
+  );
+
+  let occurrences = 0;
+  /** @type {Map<string, {source: string, cite: string, category: string, lines: number[]}>} */
+  const sites = new Map();
+
+  for (const path of targets) {
+    let content;
+    try {
+      content = readFileSync(resolve(ROOT, path), "utf-8");
+    } catch {
+      continue;
+    }
+    const lines = content.split(/\r?\n/);
+    for (let i = 0; i < lines.length; i += 1) {
+      for (const cite of extractLineCitationsFromLine(lines[i])) {
+        occurrences += 1;
+        const key = lineCitationKey(path, cite);
+        const existing = sites.get(key);
+        if (existing) {
+          existing.lines.push(i + 1);
+          continue;
+        }
+        sites.set(key, {
+          source: path,
+          cite,
+          category: classifyLineCitation(cite.slice(0, cite.lastIndexOf(":")), index),
+          lines: [i + 1],
+        });
+      }
+    }
+  }
+
+  return { scanned: targets.length, occurrences, sites };
+}
+
+function loadLineLedger() {
+  const file = resolve(ROOT, LINE_LEDGER_FILE);
+  if (!existsSync(file)) {
+    return { byKey: new Map(), missing: true };
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(readFileSync(file, "utf-8"));
+  } catch (err) {
+    fail(`${LINE_LEDGER_FILE} is not valid JSON: ${err.message}`);
+  }
+  if (!Array.isArray(parsed.frozen)) {
+    fail(`${LINE_LEDGER_FILE} must contain a "frozen" array`);
+  }
+  const byKey = new Map();
+  for (const entry of parsed.frozen) {
+    for (const field of ["source", "cite", "reason"]) {
+      if (!entry || typeof entry[field] !== "string" || entry[field].trim().length === 0) {
+        fail(`${LINE_LEDGER_FILE}: every entry needs a non-empty "${field}"`);
+      }
+    }
+    if (!LINE_CATEGORIES.includes(entry.category)) {
+      fail(
+        `${LINE_LEDGER_FILE}: entry "${entry.source} -> ${entry.cite}" has category ` +
+          `"${entry.category}", expected one of ${LINE_CATEGORIES.join(", ")}`
+      );
+    }
+    const key = lineCitationKey(entry.source, entry.cite);
+    if (byKey.has(key)) {
+      fail(`${LINE_LEDGER_FILE}: duplicate entry for "${entry.source} -> ${entry.cite}"`);
+    }
+    byKey.set(key, entry);
+  }
+  return { byKey, missing: false };
+}
+
+/** Sort entries so a regeneration of the same tree writes the same bytes. */
+function sortLedgerEntries(entries) {
+  return [...entries].sort(
+    (a, b) => a.source.localeCompare(b.source) || a.cite.localeCompare(b.cite)
+  );
+}
+
+const MECHANICAL_REASONS = {
+  frozen:
+    "Frozen when the line-citation ratchet was added; the cited file resolves, the line number is unverifiable. Replace with a symbol name when this file is next edited.",
+  ambiguous:
+    "Frozen when the line-citation ratchet was added; two or more tracked files carry this name, so the citation does not say which one. Replace with a symbol name when this file is next edited.",
+  unresolved:
+    "Frozen when the line-citation ratchet was added; no tracked path ends in this one, either because nothing carries the name or because the directories it spells out are not where the file sits. Give it a category and a reason, or replace the citation.",
+};
+
+/**
+ * Rebuild the ledger from the working tree. Hand-written categories and reasons
+ * survive for a key that is still cited, because the scan cannot tell a sibling
+ * repository or a test fixture from a citation on its own.
+ */
+function runWriteLineLedger() {
+  const { sites } = scanLineCitations();
+  const { byKey } = loadLineLedger();
+
+  const entries = [];
+  const added = [];
+  for (const [key, site] of sites) {
+    const previous = byKey.get(key);
+    if (previous && !LINE_MECHANICAL_CATEGORIES.has(previous.category)) {
+      entries.push({
+        source: site.source,
+        cite: site.cite,
+        category: previous.category,
+        reason: previous.reason,
+      });
+      continue;
+    }
+    if (!previous) added.push(site);
+    entries.push({
+      source: site.source,
+      cite: site.cite,
+      category: site.category,
+      reason: previous ? previous.reason : MECHANICAL_REASONS[site.category],
+    });
+  }
+
+  const dropped = [...byKey.keys()].filter((key) => !sites.has(key)).sort();
+  const header = existsSync(resolve(ROOT, LINE_LEDGER_FILE))
+    ? JSON.parse(readFileSync(resolve(ROOT, LINE_LEDGER_FILE), "utf-8"))._comment
+    : LEDGER_HEADER;
+
+  const payload = { _comment: header, frozen: sortLedgerEntries(entries) };
+  writeFileSync(resolve(ROOT, LINE_LEDGER_FILE), `${JSON.stringify(payload, null, 2)}\n`, "utf-8");
+
+  console.log(
+    `[check-doc-citations] wrote ${LINE_LEDGER_FILE}: ${entries.length} entries, ` +
+      `${added.length} added, ${dropped.length} dropped`
+  );
+  for (const site of sortLedgerEntries(added)) {
+    console.log(`  + ${site.source} -> ${site.cite} (${site.category})`);
+  }
+  for (const key of dropped) {
+    console.log(`  - ${key.replace("\t", " -> ")}`);
+  }
+  console.log("");
+  console.log("  Running this accepts every citation above as permanent debt. Say in the pull");
+  console.log("  request why a new line-number citation was preferred to a symbol name.");
+  console.log("  A kept entry keeps its reason even when this run moved it to another bucket, so");
+  console.log("  read the diff and rewrite by hand any reason that now describes the old bucket.");
+}
+
+const LEDGER_HEADER = [
+  "Ledger of line-number citations in source files, frozen so that no new one arrives unnoticed.",
+  "Written and rechecked by scripts/check-doc-citations.mjs; regenerate with --write-line-ledger.",
+  "",
+  "A key is the citing file plus the cited string. Neither half alone works: the cited string on",
+  "its own would let a second file re-cite a frozen position and pass, and the line the comment",
+  "sits on would move whenever anything above it changed.",
+  "",
+  "That key is also the unit the ratchet counts. One file writing the same citation a second time",
+  "adds an occurrence this ledger does not record, so occurrences are not ratcheted and only",
+  "entries are. No entry carries a line number: the scan collects the citing lines to print them,",
+  "and writes only source, cite, category and reason. Keying on the comment's own line would",
+  "ratchet occurrences and churn against every edit above one, which is the worse trade.",
+  "",
+  "A regeneration recomputes frozen, ambiguous and unresolved, and keeps whatever reason the entry",
+  "already carried. An entry that changes bucket therefore keeps a sentence describing the old one,",
+  "and that sentence has to be rewritten by hand in the same change.",
+  "",
+  "Nothing here is verified. The line number is checked against nothing, because a bare position",
+  "carries no claim a machine can test. What this buys is the ratchet: an unlisted citation fails",
+  "the check, so the entry count only goes down. Existing entries are corrected opportunistically,",
+  "when their file is open for other work, and the entry then disappears on the next regeneration.",
+];
+
 // --------------------------------------------------------------------------
 // allowlist upkeep
 // --------------------------------------------------------------------------
@@ -310,13 +618,82 @@ function runCheck() {
     reportUnusedEntries(unused, byPath, (line) => console.error(line));
   }
 
-  if (offenders.length > 0 || unused.length > 0) process.exit(1);
+  const lineFailed = checkLineCitations(offenders.length > 0 || unused.length > 0);
+
+  if (offenders.length > 0 || unused.length > 0 || lineFailed) process.exit(1);
 
   console.log(
     `[check-doc-citations] OK: ${scanned} files scanned, ${occurrences} citations, ` +
       `${allowedRefs} unresolved reference(s), all accounted for in ${ALLOWLIST_FILE}, ` +
       `and every allowlist entry still describes a live citation`
   );
+}
+
+/**
+ * The ratchet. A citation site the ledger does not list fails, because the
+ * ledger was frozen from the tree and anything outside it is therefore new. A
+ * ledger entry nothing cites any more also fails, so that a citation corrected
+ * on the way past leaves the ledger shorter instead of leaving a stale excuse.
+ *
+ * @param {boolean} precededByOtherOutput whether to print a separating blank line
+ * @returns {boolean} true when the ratchet failed
+ */
+function checkLineCitations(precededByOtherOutput) {
+  const { scanned, occurrences, sites } = scanLineCitations();
+  const { byKey, missing } = loadLineLedger();
+  if (missing) {
+    console.warn(
+      `[check-doc-citations] ${LINE_LEDGER_FILE} not found, treating the line ledger as empty`
+    );
+  }
+
+  const newSites = sortLedgerEntries([...sites.values()].filter((site) => !byKey.has(
+    lineCitationKey(site.source, site.cite)
+  )));
+  const stranded = findUnusedAllowEntries([...byKey.keys()], sites.keys());
+
+  if (newSites.length === 0 && stranded.length === 0) {
+    console.log(
+      `[check-doc-citations] OK: ${scanned} source files scanned, ${occurrences} line-number ` +
+        `citation(s) in ${sites.size} frozen site(s), no new one and none stranded`
+    );
+    return false;
+  }
+
+  if (precededByOtherOutput) console.error("");
+
+  if (newSites.length > 0) {
+    const noun = newSites.length === 1 ? "citation" : "citations";
+    console.error(
+      `[check-doc-citations] FAIL: ${newSites.length} line-number ${noun} not listed in ` +
+        `${LINE_LEDGER_FILE}`
+    );
+    for (const site of newSites) {
+      console.error(`  ${site.source}:${site.lines.join(",")} cites ${site.cite}`);
+    }
+    console.error("");
+    console.error("  A line number goes stale the moment the cited file gains a line above it,");
+    console.error("  and nothing announces it. Cite the symbol name instead, and if the cited");
+    console.error("  file is already in a .cross-layer-sync.json group, put the symbol in that");
+    console.error("  group's symbols[] so its existence is checked. If a line number is genuinely");
+    console.error(`  needed, run --write-line-ledger and justify it in the pull request.`);
+  }
+
+  if (stranded.length > 0) {
+    if (newSites.length > 0) console.error("");
+    const noun = stranded.length === 1 ? "entry" : "entries";
+    console.error(
+      `[check-doc-citations] FAIL: ${stranded.length} line ledger ${noun} no longer cited`
+    );
+    for (const key of stranded) {
+      console.error(`  ${key.replace("\t", " -> ")}`);
+    }
+    console.error("");
+    console.error("  The citation was corrected or deleted, which is the outcome this ratchet is");
+    console.error("  for. Run --write-line-ledger to drop the entry.");
+  }
+
+  return true;
 }
 
 function runList() {
@@ -363,6 +740,34 @@ function runList() {
       console.log(`    reason on file: ${byPath.get(path).reason}`);
     }
   }
+
+  listLineCitations();
+}
+
+function listLineCitations() {
+  const { scanned, occurrences, sites } = scanLineCitations();
+  const { byKey } = loadLineLedger();
+
+  const buckets = new Map(LINE_CATEGORIES.map((c) => [c, []]));
+  buckets.set("unlisted", []);
+  for (const site of sortLedgerEntries([...sites.values()])) {
+    const entry = byKey.get(lineCitationKey(site.source, site.cite));
+    buckets.get(entry ? entry.category : "unlisted").push(site);
+  }
+
+  console.log("");
+  console.log(
+    `[check-doc-citations] line citations: ${scanned} source files scanned, ` +
+      `${occurrences} citation(s) at ${sites.size} site(s)`
+  );
+  for (const [category, list] of buckets) {
+    if (list.length === 0) continue;
+    console.log("");
+    console.log(`## line/${category} (${list.length})`);
+    for (const site of list) {
+      console.log(`  ${site.source}:${site.lines.join(",")} cites ${site.cite}`);
+    }
+  }
 }
 
 function runSelftest() {
@@ -389,6 +794,19 @@ function runSelftest() {
     }
   }
 
+  const lineIndex = buildTrackedIndex(corpus.lineTracked ?? corpus.tracked);
+  for (const testCase of corpus.lineCases ?? []) {
+    const index = lineIndex;
+    const actual = extractLineCitationsFromLine(testCase.line).map((cite) => ({
+      cite,
+      category: classifyLineCitation(cite.slice(0, cite.lastIndexOf(":")), index),
+    }));
+    const expected = testCase.expect.map((e) => ({ cite: e.cite, category: e.category }));
+    if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+      failures.push({ id: testCase.id, expected, actual });
+    }
+  }
+
   for (const testCase of corpus.allowlistCases) {
     const actual = findUnusedAllowEntries(testCase.allow, testCase.unresolvedRefs);
     const expected = testCase.expectUnused;
@@ -403,7 +821,8 @@ function runSelftest() {
     console.error(`  actual   ${JSON.stringify(f.actual)}`);
   }
 
-  const total = corpus.cases.length + corpus.allowlistCases.length;
+  const total =
+    corpus.cases.length + (corpus.lineCases ?? []).length + corpus.allowlistCases.length;
   if (failures.length > 0) {
     console.error(`[check-doc-citations] selftest: ${total - failures.length}/${total} passed`);
     process.exit(1);
@@ -414,15 +833,21 @@ function runSelftest() {
 // --------------------------------------------------------------------------
 
 const args = process.argv.slice(2);
-const unknown = args.filter((a) => !["--list", "--selftest"].includes(a));
+const unknown = args.filter(
+  (a) => !["--list", "--selftest", "--write-line-ledger"].includes(a)
+);
 if (unknown.length > 0) {
   console.error(`[check-doc-citations] unknown argument(s): ${unknown.join(", ")}`);
-  console.error("  usage: node scripts/check-doc-citations.mjs [--list | --selftest]");
+  console.error(
+    "  usage: node scripts/check-doc-citations.mjs [--list | --selftest | --write-line-ledger]"
+  );
   process.exit(2);
 }
 
 if (args.includes("--selftest")) {
   runSelftest();
+} else if (args.includes("--write-line-ledger")) {
+  runWriteLineLedger();
 } else if (args.includes("--list")) {
   runList();
 } else {

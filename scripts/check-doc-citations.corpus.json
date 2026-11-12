@@ -1,7 +1,10 @@
 {
   "_comment": [
     "Labelled corpus for scripts/check-doc-citations.mjs (--selftest).",
-    "Every `line` is copied verbatim from a tracked file in this repo; `source` records where.",
+    "Every `cases` `line` is copied verbatim from a tracked file in this repo; `source` records",
+    "where. A `lineCases` `line` is sometimes copied and sometimes written for the fixture, so there",
+    "`source` names the file the cited position was taken from, and reads `constructed` when nothing",
+    "in the tree carried it.",
     "`tracked` is a synthetic tracked-file set, NOT live `git ls-files`, so an unrelated docs",
     "rename cannot silently break the selftest.",
     "`expect` lists the references the extractor must produce, in order, each with the",
@@ -12,7 +15,24 @@
     "earns its place. Each case pairs a synthetic allowlist with the set of references a scan",
     "left unresolved, and states which entries should come back as no longer cited.",
     "Both directions are measured, because a rule that only ever reports failures and a rule",
-    "that only ever reports success are indistinguishable from a single passing case."
+    "that only ever reports success are indistinguishable from a single passing case.",
+    "",
+    "`lineCases` covers the line-number ratchet. `lineTracked` is a second synthetic tracked-file",
+    "set, holding source paths rather than documents, so a classification case says which bucket a",
+    "cited path falls into: frozen when exactly one tracked file can be meant, ambiguous when two or",
+    "more carry the name, unresolved when no tracked path ends in the cited one. Negative cases",
+    "state what must NOT read as a",
+    "position, because a pattern that matched a clock time or a version label would fail every",
+    "future branch for no reason. A negative `line` is constructed rather than copied, since the",
+    "point of it is a shape the repository must never start carrying.",
+    "",
+    "A `lineCases` positive takes its cited position from a real comment where one has that shape,",
+    "and is written for the fixture where none does, with `source` saying which. Neither kind can",
+    "fail the selftest when the tree changes: `lineTracked` is synthetic, so correcting the comment",
+    "a case was taken from breaks nothing here. What goes stale is the `source` record, which then",
+    "sends whoever next audits this corpus to a file that no longer carries the citation. `source`",
+    "is read only for `cases`, where it is the sibling path the relative rule resolves against; for",
+    "`lineCases` it is provenance and nothing in the selftest consumes it."
   ],
   "tracked": [
     "AGENTS.md",
@@ -182,6 +202,196 @@
       "expect": [{ "ref": "kuro-index.md", "via": "docs" }]
     }
   ],
+  "lineTracked": [
+    ".github/workflows/build.yml",
+    "docs/2026-08-19-mame-assay-noise-model.md",
+    "kuma_core/mame/activity/label_audit.py",
+    "kuma_core/mame/io/variant_list.py",
+    "kuma_core/mame/models.py",
+    "python-core/sidecar_mame/handlers/analyze.py",
+    "python-core/sidecar_mame/models.py",
+    "scripts/i18n-lint.mjs",
+    "src-tauri/src/sidecar.rs",
+    "src/store/mame/selectors.ts",
+    "src/types/mame/validators.ts",
+    "src/types/models.generated.ts"
+  ],
+  "lineCases": [
+    {
+      "id": "line-pos-full-path-comma-range",
+      "why": "positive, constructed: a full repository path with a comma list that mixes a single line and a range, which must come back as one citation rather than four. Constructed on purpose: the numbers here never stood in the tree. The real citation this was modeled on has since become a symbol name, and while it did stand in the tree a comment added above it moved every number in it, which is the drift the ratchet exists to make visible",
+      "source": "constructed",
+      "line": " * Mirrors kuma_core/mame/activity/label_audit.py:40,60-80,120",
+      "expect": [
+        {
+          "cite": "kuma_core/mame/activity/label_audit.py:40,60-80,120",
+          "category": "frozen"
+        }
+      ]
+    },
+    {
+      "id": "line-pos-full-path-wrong-directory",
+      "why": "positive: a full path whose directory names no tracked file, copied from a comment that says ingest/ where the tracked file is io/. The final segment is unique, so a basename fallback would call this frozen and the wrong directory would never be reported. A citation that spells out directories claims a location, and a claim nothing satisfies is unresolved",
+      "source": "src/types/mame/validators.ts",
+      "line": " *    (`kuma_core/mame/ingest/variant_list.py:164`), so `[]` is a valid answer",
+      "expect": [
+        {
+          "cite": "kuma_core/mame/ingest/variant_list.py:164",
+          "category": "unresolved"
+        }
+      ]
+    },
+    {
+      "id": "line-pos-string-literal-outside-comment",
+      "why": "positive trap: an expected lint message inside a test assertion, not a comment and not a citation. Nothing in the extractor can tell the two apart, and the path is invented for the fixture, so this arrives as unresolved and the ledger's hand-written test-literal category is what absorbs it",
+      "source": "tests/scripts/i18n-parity.test.ts",
+      "line": "    expect(run.output).toContain(\"src/screens/Shell.tsx:1  job.plates\");",
+      "expect": [
+        {
+          "cite": "src/screens/Shell.tsx:1",
+          "category": "unresolved"
+        }
+      ]
+    },
+    {
+      "id": "line-pos-comma-list-with-space",
+      "why": "positive: a prose comment writing its comma list with a space after the comma, copied from src/lib/mame/fileExtensions.ts. The whole list must come back as one citation. Before the space was allowed the match stopped at the first comma and froze a truncated string, so the second position entered no ledger and nobody owed it anything",
+      "source": "src/lib/mame/fileExtensions.ts",
+      "line": " *   reference        -> SEQUENCE (analyze.py:1045, 1214)",
+      "expect": [
+        {
+          "cite": "analyze.py:1045, 1214",
+          "category": "frozen"
+        }
+      ]
+    },
+    {
+      "id": "line-pos-bare-filename-unique",
+      "why": "positive: a bare filename only one tracked file carries, so a reader can still tell which file is meant",
+      "source": "constructed",
+      "line": "// selectors.ts:64 builds the same shape",
+      "expect": [
+        {
+          "cite": "selectors.ts:64",
+          "category": "frozen"
+        }
+      ]
+    },
+    {
+      "id": "line-pos-bare-filename-ambiguous",
+      "why": "positive: a bare filename two tracked files carry, so the line number does not say which one",
+      "source": "src/store/mame/selectors.ts",
+      "line": "// mirrors models.py:156",
+      "expect": [
+        {
+          "cite": "models.py:156",
+          "category": "ambiguous"
+        }
+      ]
+    },
+    {
+      "id": "line-pos-unresolved-sibling-repo",
+      "why": "positive: a path no tracked file can satisfy, which is the bucket that needs a hand-written reason",
+      "source": "benchmark/al/proxy_rf.py",
+      "line": "# ported from evolvepro/src/model.py:198-211",
+      "expect": [
+        {
+          "cite": "evolvepro/src/model.py:198-211",
+          "category": "unresolved"
+        }
+      ]
+    },
+    {
+      "id": "line-pos-generated-types-range",
+      "why": "positive: a plain range, and a cited filename whose own name carries a dot, which the last path segment must accept",
+      "source": "src/types/validators.ts",
+      "line": " * generated from src/types/models.generated.ts:926-962",
+      "expect": [
+        {
+          "cite": "src/types/models.generated.ts:926-962",
+          "category": "frozen"
+        }
+      ]
+    },
+    {
+      "id": "line-pos-cited-markdown-note",
+      "why": "positive: markdown is not scanned as a source, but a comment may still cite a position inside a note, and that is the same debt",
+      "source": "python-core/sidecar_mame/handlers/classify_round.py",
+      "line": "# model in docs/2026-08-19-mame-assay-noise-model.md:21",
+      "expect": [
+        {
+          "cite": "docs/2026-08-19-mame-assay-noise-model.md:21",
+          "category": "frozen"
+        }
+      ]
+    },
+    {
+      "id": "line-pos-workflow-dotted-segment",
+      "why": "positive: a leading path segment that begins with a dot, as every workflow path does",
+      "source": "python-core/scripts/smoke_sidecar_io.py",
+      "line": "# kept in step with .github/workflows/build.yml:239",
+      "expect": [
+        {
+          "cite": ".github/workflows/build.yml:239",
+          "category": "frozen"
+        }
+      ]
+    },
+    {
+      "id": "line-pos-rust-comma-pair",
+      "why": "positive: a Rust path with two single lines, from the one citing form that names a host file",
+      "source": "src/components/mame/panels/BarcodeSetupPanel.test.tsx",
+      "line": "// src-tauri/src/sidecar.rs:25,394 spawns it",
+      "expect": [
+        {
+          "cite": "src-tauri/src/sidecar.rs:25,394",
+          "category": "frozen"
+        }
+      ]
+    },
+    {
+      "id": "line-neg-url-with-port-and-path",
+      "why": "negative: a URL carries a colon before a port and may end in a path that looks like a position. Scrubbing it first is what keeps a localhost example out of the ledger",
+      "source": "constructed",
+      "line": "// mock server at http://localhost:8080/static/model.py:3 during development",
+      "expect": []
+    },
+    {
+      "id": "line-neg-version-label",
+      "why": "negative: a release label is a colon after digits and dots. Matching it would fail every branch that writes a changelog heading",
+      "source": "constructed",
+      "line": "// v0.16.85: combination genotype labels and a plate filled by residue position",
+      "expect": []
+    },
+    {
+      "id": "line-neg-clock-time",
+      "why": "negative: a wall-clock time is digits around a colon with no path in front",
+      "source": "constructed",
+      "line": "# final_summary records 12:30 as the acquisition stop",
+      "expect": []
+    },
+    {
+      "id": "line-neg-colon-without-digits",
+      "why": "negative: prose that names a file and then a colon, with no position after it",
+      "source": "constructed",
+      "line": " * Open validators.ts: the guard is near the bottom",
+      "expect": []
+    },
+    {
+      "id": "line-neg-template-placeholder",
+      "why": "negative: a template that formats a position at runtime cites nothing, so freezing it would pin a string that names no file",
+      "source": "constructed",
+      "line": "  console.error(`${file}:${line} ${message}`);",
+      "expect": []
+    },
+    {
+      "id": "line-neg-symbol-citation",
+      "why": "negative: the form the convention asks for. A symbol name must not read as a position, or the ratchet would fail the very fix it exists to encourage",
+      "source": "constructed",
+      "line": " * Mirrors isLabelFinding in kuma_core/mame/activity/label_audit.py",
+      "expect": []
+    }
+  ],
   "allowlistCases": [
     {
       "id": "allow-every-entry-still-cited",
@@ -217,6 +427,33 @@
       "allow": [],
       "unresolvedRefs": ["v5-strategy.md"],
       "expectUnused": []
+    },
+    {
+      "id": "line-ledger-stranded-key-reported",
+      "why": "the line ratchet keys an entry by citing file and cited string joined with a tab, and reuses this same rule to report an entry nothing cites. A corrected citation must leave the ledger shorter",
+      "allow": [
+        "src/a.ts\tb.py:12",
+        "src/a.ts\tc.py:40"
+      ],
+      "unresolvedRefs": [
+        "src/a.ts\tb.py:12"
+      ],
+      "expectUnused": [
+        "src/a.ts\tc.py:40"
+      ]
+    },
+    {
+      "id": "line-ledger-same-cite-other-source-is-new",
+      "why": "two files citing the same position are two entries. If the key were the cited string alone, the second file would pass on the first entry and the ratchet would leak",
+      "allow": [
+        "src/a.ts\tb.py:12"
+      ],
+      "unresolvedRefs": [
+        "src/z.ts\tb.py:12"
+      ],
+      "expectUnused": [
+        "src/a.ts\tb.py:12"
+      ]
     }
   ]
 }

@@ -8,10 +8,39 @@ well. Discordant wells are classified into one of five categories; a special
 a coincidental match (see ``audit_labels`` docstring).
 
 A combination genotype is one clone carrying several substitutions, so its
-well is compared against the SET of substitutions its label names. The five
-categories are a closed union on the TypeScript side, so a partly introduced
-combination (some components observed, nothing else) is reported in the
-catch-all ``extra_mutation`` rather than in a category of its own.
+well is compared against the SET of substitutions its label names. A partly
+introduced combination (some components observed, nothing else) is reported in
+the catch-all ``extra_mutation`` rather than in a category of its own.
+
+The reason is that no surface shows ``LabelFinding.category`` to anyone. Two
+places in the product code read it, and counted across the product code those
+two are the whole of it: zero
+components render it, one serialiser copies it (``_serialise_label_audit`` in
+``python-core/sidecar_mame/handlers/activity.py``, which puts it in the
+``label_audit`` member of the activity response), one TypeScript guard checks
+it (``isLabelFinding`` in ``src/types/mame/validators.ts``, against a
+hand-copied set of these five names), one field gates export and it is
+``is_closed_permutation`` rather than this one, zero locale strings name any
+category, and zero documents and zero CLI paths ask for an audit at all. The
+manifest ``build_evolvepro_input`` writes does not carry the audit, and the
+saved completion record holds only an output path and a signature.
+
+The tests are outside that count and read it too: the category assertions in
+``tests/mame/activity/test_label_audit.py`` and the hand-copied mirror in
+``validators.unions.test.ts``. They are named here because whoever adds a
+sixth name has to find them, and no checker points at them.
+
+A sixth name would therefore change no verdict and reach no screen, yet it
+would still travel in the response payload, and that guard rejects a whole
+response over one category name it does not know: every run holding such a
+well would fail in the GUI with nothing on screen to say why. The guard set
+and its mirror in ``validators.unions.test.ts`` are hand-copied and no checker
+compares either against this module, so one missed name is how that happens.
+The trigger is therefore the first surface that shows ``category`` to an
+operator: whoever writes it adds ``partial_genotype`` in that same change, and
+in that same change replaces the hand-copied list in ``validators.ts`` and its
+mirror in ``validators.unions.test.ts`` with lists read out of the
+``category=`` assignments in this module.
 """
 
 from __future__ import annotations
@@ -159,8 +188,13 @@ def audit_labels(
         observed label equal to the whole label string, which no combination
         could ever satisfy: a correct double mutant used to be reported as
         discordant. A partly introduced genotype (some components observed,
-        nothing extra) is reported in the catch-all ``extra_mutation``, since
-        the category names are a closed union on the TypeScript side.
+        nothing extra) is reported in the catch-all ``extra_mutation``. A
+        category of its own is deferred because no surface shows
+        ``LabelFinding.category`` to an operator, so no one can misread it
+        today, while the two places in the product code that do read it are a
+        serialiser and a hand-copied TypeScript guard that rejects an unknown
+        name outright. Two test files read it as well; the module docstring
+        names them and records what adding ``partial_genotype`` requires.
 
         Closed-permutation gate: a well is a *cross-well candidate* when its
         observed labels are exactly another well's own expected set (for a
@@ -233,9 +267,21 @@ def audit_labels(
             # is the wrong residue at that position. Otherwise the well falls
             # into extra_mutation, which the docstring states is this audit's
             # catch-all: a partly introduced combination genotype lands there
-            # too, since the five categories are a closed union in
-            # src/types/mame/validators.ts and widening them is a cross-layer
-            # change this does not make.
+            # too. A category of its own is deferred because no surface shows
+            # LabelFinding.category: widening the TypeScript union would change
+            # no display and no verdict, since is_closed_permutation alone
+            # gates the export. It would not be free, though. The name does
+            # travel in the activity response, and the hand-copied guard set in
+            # validators.ts rejects the whole response over one name it does
+            # not know, so Python and TypeScript have to move together.
+            # Those two readers are the whole of the product code; the tests
+            # read it too, and the module docstring names them.
+            # The first component that renders category adds
+            # partial_genotype as an elif above this else, scoped to
+            # observed_set being a proper subset of components with no extra
+            # component and no substitution at a missing position, and in the
+            # same change makes the category mirror in
+            # validators.unions.test.ts read the category= assignments here.
             missing_positions = {
                 _position(component)
                 for component in components - observed_set
