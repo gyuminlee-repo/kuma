@@ -114,7 +114,7 @@ Given a variant list, a reference FASTA, and MAME-generated barcode-mode consens
 - **MAME consensus ingest**: barcode-mode consensus, or raw FASTQ via Phred-aware demux→consensus
 - **8-class verdict**, PASS / WRONG_AA / AMBIGUOUS / MIXED / FRAMESHIFT / MANY / LOWDEPTH / NO_CALL
 - **Explainable QC**: read depth, N fraction, low-depth positions, low-quality exclusions, MAPQ/span drops
-- **96-well output**: column-major Final Excel synced to Kuro's plate-map order, in a single-view workbench
+- **96-well output**: column-major Final Excel in clone plate order (residue position ascending), in a single-view workbench
 
 <details>
 <summary><b>Full Mame feature list</b></summary>
@@ -134,7 +134,7 @@ Given a variant list, a reference FASTA, and MAME-generated barcode-mode consens
 
 #### Output & workbench
 
-- **96-well Final Excel export**: Column-major 96-well layout with verdict per well. Synchronized with Kuro's plate map ordering.
+- **96-well Final Excel export**: Column-major 96-well layout with verdict per well, filled in clone plate order (residue position ascending). That order is Kuro's plate map ordering only on a design sheet already written in position order; Validate names the wells where the two differ.
 - **Single-view workbench**: Input files panel, parameter panel (mode, CDS end, cutoffs), verdict table with FINAL / ALL / per-plate tabs derived from the barcodes the run produced, 96-well map with colorblind-safe toggle.
 
 </details>

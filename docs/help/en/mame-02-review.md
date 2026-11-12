@@ -39,6 +39,16 @@ A well that is not selected is a well the campaign did not fill, so it is not sc
 
 The **Barcode worklist (csv)** button in the same panel saves a file with one row per filled well carrying the well, the sample, the barcode token and the seed primer names. Use it at the bench when pipetting.
 
+### When the primer plate and the clone plate name different clones
+
+KURO gave each primer its well by the order of the design sheet, and the `Fwd List`/`Fwd Plate` sheet of the exported workbook records those wells. This run fills the clone plate by residue position ascending instead, because that is the order the bench pipettes in. On a workbook that is not already written in position order the two orders differ, so one well names one clone on the primer plate and another on the clone plate.
+
+Pressing **Validate** compares the two. When they disagree, a notice beside the input panel states how many of the compared wells hold a different clone, which sheet supplied the primer plate, and up to five of the disagreeing wells by name. Nothing is blocked and nothing is changed: the Run button stays usable and no verdict moves. Which of the two describes the tubes in the rack is written in no file here, so check the plate that was pipetted.
+
+The notice comes from Validate alone. Pressing Run does not produce it, because a comparison arriving after the run has nothing left to offer. It goes away when the workbook, the variant sheet, the variant column or the control well placement changes, and when a validation does not finish.
+
+Some files are not compared at all, and nothing is shown for them: a variant list that is not a KURO export workbook, a workbook with no primer plate sheet, a file that cannot be read, a combination genotype (one clone uses several primer pairs, so one well is not a single address on both sides), a file that states its own `Well` column (both sides then take their wells from the file, and the check that already blocks covers it), and more clones than one plate holds.
+
 ### Advanced options
 
 Four settings sit under **Advanced options** in the parameter panel.

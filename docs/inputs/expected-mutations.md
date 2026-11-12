@@ -26,6 +26,10 @@ group_id, primer_set_ref, notation_type, status
 
 `status` 는 설계된 상태 집합(`_DESIGNED_STATUSES`) 안에 있어야 한다. 벗어난 행은 배치되지 않으며, 배치되지 않은 행이 하나라도 있으면 읽기가 거부된다. 행 하나가 빠지면 그 뒤 변이가 전부 한 웰씩 당겨지는데 결과는 정상 플레이트처럼 보이기 때문이다. 단 `mutant_id` 가 WT 라벨인 행은 대조군 점유자이므로 status 와 무관하게 유지된다.
 
+### 프라이머 플레이트 시트와는 순서가 다르다
+
+같은 워크북의 `Fwd List`/`Fwd Plate` 는 KURO 가 설계 시트 index 로 배정한 프라이머 웰을 적은 시트다. MAME 가 채우는 클론 플레이트는 잔기 position 오름차순이다. 이미 position 순으로 적힌 워크북이 아니면 두 주소가 어긋난다. `validate_inputs` 가 둘을 대조해 어긋난 웰을 보고하지만(`kuma_core/mame/io/clone_plate_crosscheck.py`) 거부하지는 않는다. 어느 쪽이 랙에 꽂힌 튜브인지는 워크북에 적혀 있지 않기 때문이다. 자세한 동작은 [Step 2 문서](../mame/02-review.md)에 있다.
+
 ## 갈래 2: 변이만 나열한 목록
 
 `.csv`, `.tsv`, `.txt`, `.xlsx` 를 받는다. 컬럼 하나면 충분하다.
