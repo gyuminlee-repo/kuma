@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
       
@@ -870,6 +870,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#when-the-primer-plate-and-the-clone-plate-name-different-clones" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When the primer plate and the clone plate name different clones
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#advanced-options" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1170,6 +1181,11 @@
 <p>The "Wells used" panel draws the computed placement on a plate. Each mutation is fixed to the well that plate order (A1, B1, ... H1, A2) gave it, and clicking a well never moves anything. The selection only states which wells this campaign actually filled.</p>
 <p>A well that is not selected is a well the campaign did not fill, so it is not scored. The sample that had been placed there is named in 2.2. Selecting fewer wells than samples is simply a partly filled plate and not a reason for refusal. The only selection refused is an empty one.</p>
 <p>The <strong>Barcode worklist (csv)</strong> button in the same panel saves a file with one row per filled well carrying the well, the sample, the barcode token and the seed primer names. Use it at the bench when pipetting.</p>
+<h3 id="when-the-primer-plate-and-the-clone-plate-name-different-clones">When the primer plate and the clone plate name different clones<a class="headerlink" href="#when-the-primer-plate-and-the-clone-plate-name-different-clones" title="Permanent link">&para;</a></h3>
+<p>KURO gave each primer its well by the order of the design sheet, and the <code>Fwd List</code>/<code>Fwd Plate</code> sheet of the exported workbook records those wells. This run fills the clone plate by residue position ascending instead, because that is the order the bench pipettes in. On a workbook that is not already written in position order the two orders differ, so one well names one clone on the primer plate and another on the clone plate.</p>
+<p>Pressing <strong>Validate</strong> compares the two. When they disagree, a notice beside the input panel states how many of the compared wells hold a different clone, which sheet supplied the primer plate, and up to five of the disagreeing wells by name. Nothing is blocked and nothing is changed: the Run button stays usable and no verdict moves. Which of the two describes the tubes in the rack is written in no file here, so check the plate that was pipetted.</p>
+<p>The notice comes from Validate alone. Pressing Run does not produce it, because a comparison arriving after the run has nothing left to offer. It goes away when the workbook, the variant sheet, the variant column or the control well placement changes, and when a validation does not finish.</p>
+<p>Some files are not compared at all, and nothing is shown for them: a variant list that is not a KURO export workbook, a workbook with no primer plate sheet, a file that cannot be read, a combination genotype (one clone uses several primer pairs, so one well is not a single address on both sides), a file that states its own <code>Well</code> column (both sides then take their wells from the file, and the check that already blocks covers it), and more clones than one plate holds.</p>
 <h3 id="advanced-options">Advanced options<a class="headerlink" href="#advanced-options" title="Permanent link">&para;</a></h3>
 <p>Four settings sit under <strong>Advanced options</strong> in the parameter panel.</p>
 <table>
@@ -1357,7 +1373,7 @@
       <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate", "content.code.copy"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.c21346df.min.js"></script>
+      <script src="../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
     
   </body>
