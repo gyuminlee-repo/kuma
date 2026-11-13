@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.16.86 (A reported disagreement between the clone plate and the primer plate)
+
+Validating the analyze inputs now reports when the run clone plate and the primer plate name a different clone at the same well. KURO gave each primer its well by the order of the design sheet, and the workbook records those wells. A run fills the clone plate by residue position ascending instead, so on any sheet not already written in position order the two orders differ and one well names two clones. Nothing compared them before.
+
+The notice says how many of the wells disagree, names the sheet the primer wells came from, and lists up to five wells with the clone each side puts there. It blocks nothing and changes nothing. Which of the two describes the tubes in the rack is recorded in no file in this repository, so the operator checks the plate that was pipetted.
+
+A workbook that states its own wells is not compared. With the wells given, the clone plate is what the draft layout returns, so the comparison would repeat the check that already runs and already blocks the run, and reporting a match there would read as an independent check having passed when none ran.
+
+The finding rides on the input validation response alone. An analyze run does not carry it, because that response has an exact-key contract and a notice arriving minutes into a demux is of no use to an operator.
+
+Both README files described the 96-well Final Excel as synced to the KURO plate-map order, in two places each. That stopped being true at v0.16.85, when the clone plate began to fill by residue position ascending, and the replacement states the clone plate order and points at the new notice for the wells where the two differ.
+
+### Highlights
+
+- Validating the analyze inputs reports when the clone plate and the primer plate name a different clone at the same well.
+- The notice says how many wells disagree, names the primer plate sheet, and lists up to five wells with the clone each side puts there.
+- It blocks nothing. No file here records which of the two describes the tubes in the rack, so the plate that was pipetted is the answer.
+- A workbook that states its own wells is not compared, because the check that already blocks the run covers that case.
+
 ## v0.16.85 (Combination genotype labels and a plate filled by residue position)
 
 MAME reads a combination genotype label through the activity and EVOLVEpro path. A clone carrying several substitutions, written S304C:V547I, had no short form and no identity, so the well was dropped from the EVOLVEpro input, the resequencing link was refused, the numeric activity slot stayed unlabelled, and a correctly built double mutant was reported as a wrong residue. The same genotype also arrives written in more than one order and with more than one separator, so the identity is the full forms joined in ascending residue position, and every spelling of one clone answers to it. A label naming one position twice is refused, because no clone can hold it.

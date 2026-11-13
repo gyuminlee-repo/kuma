@@ -2770,14 +2770,19 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Ein Klon mit mehreren Substitutionen behält eine Identität über die Aktivitätsleser, die EVOLVEpro-Eingabe und die Resequenzierungs-Verknüpfung.",
-      "Eine korrekt gebaute Doppelmutante wird nicht mehr als falsche Aminosäure gemeldet.",
-      "Die Klonplatte wird nach aufsteigender Residuenposition gefüllt, passend zur Reihenfolge, die der numerische Aktivitätsdecoder schon nutzte.",
-      "Die Neuanalyse eines früheren Laufs kann eine andere Platte ergeben, weil das Well eines Klons jetzt von der Residuenposition bestimmt wird.",
-      "Ein kurzer Kombinationsgenotyp, der zurück in KURO geladen wird, wird umgewandelt statt beim Parsen zu scheitern."
+      "Die Prüfung der Analyse-Eingaben meldet, wenn die Klonplatte und die Primerplatte im selben Well einen anderen Klon nennen.",
+      "Der Hinweis nennt die Zahl der abweichenden Wells, das Blatt der Primerplatte und bis zu fünf Wells mit dem Klon, den jede Seite dort einträgt.",
+      "Blockiert wird nichts. Keine Datei hier hält fest, welche der beiden die Röhrchen im Rack beschreibt, also gilt die pipettierte Platte.",
+      "Eine Arbeitsmappe, die ihre eigenen Wells angibt, wird nicht verglichen, weil die Prüfung, die den Lauf ohnehin blockiert, diesen Fall abdeckt."
     ],
-    "highlightsStamp": "0.16.85+1a1fa1fa",
+    "highlightsStamp": "0.16.86+04f1cdf8",
     "releases": {
+      "0.16.86": [
+        "Die Prüfung der Analyse-Eingaben meldet, wenn die Klonplatte und die Primerplatte im selben Well einen anderen Klon nennen.",
+        "Der Hinweis nennt die Zahl der abweichenden Wells, das Blatt der Primerplatte und bis zu fünf Wells mit dem Klon, den jede Seite dort einträgt.",
+        "Blockiert wird nichts. Keine Datei hier hält fest, welche der beiden die Röhrchen im Rack beschreibt, also gilt die pipettierte Platte.",
+        "Eine Arbeitsmappe, die ihre eigenen Wells angibt, wird nicht verglichen, weil die Prüfung, die den Lauf ohnehin blockiert, diesen Fall abdeckt."
+      ],
       "0.16.85": [
         "Ein Klon mit mehreren Substitutionen behält eine Identität über die Aktivitätsleser, die EVOLVEpro-Eingabe und die Resequenzierungs-Verknüpfung.",
         "Eine korrekt gebaute Doppelmutante wird nicht mehr als falsche Aminosäure gemeldet.",
@@ -3361,6 +3366,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.86": "04f1cdf8",
       "0.16.85": "1a1fa1fa",
       "0.16.84": "09ae6a21",
       "0.16.83": "83d212a4",

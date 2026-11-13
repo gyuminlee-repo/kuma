@@ -2824,14 +2824,19 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "A clone carrying several substitutions keeps one identity through the activity readers, the EVOLVEpro input and the resequencing link.",
-      "A correctly built double mutant is no longer reported as a wrong residue.",
-      "The clone plate is filled by residue position ascending, matching the order the numeric activity decoder already used.",
-      "Re-analysing a past run can return a different plate, because the well a clone sits in is now decided by residue position.",
-      "A short combination genotype loaded back into KURO is converted instead of failing to parse."
+      "Validating the analyze inputs reports when the clone plate and the primer plate name a different clone at the same well.",
+      "The notice says how many wells disagree, names the primer plate sheet, and lists up to five wells with the clone each side puts there.",
+      "It blocks nothing. No file here records which of the two describes the tubes in the rack, so the plate that was pipetted is the answer.",
+      "A workbook that states its own wells is not compared, because the check that already blocks the run covers that case."
     ],
-    "highlightsStamp": "0.16.85+1a1fa1fa",
+    "highlightsStamp": "0.16.86+04f1cdf8",
     "releases": {
+      "0.16.86": [
+        "Validating the analyze inputs reports when the clone plate and the primer plate name a different clone at the same well.",
+        "The notice says how many wells disagree, names the primer plate sheet, and lists up to five wells with the clone each side puts there.",
+        "It blocks nothing. No file here records which of the two describes the tubes in the rack, so the plate that was pipetted is the answer.",
+        "A workbook that states its own wells is not compared, because the check that already blocks the run covers that case."
+      ],
       "0.16.85": [
         "A clone carrying several substitutions keeps one identity through the activity readers, the EVOLVEpro input and the resequencing link.",
         "A correctly built double mutant is no longer reported as a wrong residue.",
@@ -3415,6 +3420,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.86": "04f1cdf8",
       "0.16.85": "1a1fa1fa",
       "0.16.84": "09ae6a21",
       "0.16.83": "83d212a4",

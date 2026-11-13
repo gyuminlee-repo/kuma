@@ -2770,14 +2770,19 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Un clon con varias sustituciones conserva una sola identidad en los lectores de actividad, la entrada de EVOLVEpro y el enlace de resecuenciación.",
-      "Un doble mutante bien construido ya no se informa como aminoácido incorrecto.",
-      "La placa de clones se llena por posición de residuo ascendente, igual al orden que ya usaba el descodificador numérico de actividad.",
-      "Volver a analizar una ejecución anterior puede devolver otra placa, porque el pocillo de un clon ahora lo decide la posición de residuo.",
-      "Un genotipo de combinación corto que se vuelve a cargar en KURO se convierte en lugar de fallar al interpretarse."
+      "La validación de las entradas del análisis informa cuando la placa de clones y la placa de cebadores nombran un clon distinto en el mismo pocillo.",
+      "El aviso indica cuántos pocillos discrepan, nombra la hoja de la placa de cebadores y lista hasta cinco pocillos con el clon que cada lado coloca allí.",
+      "No bloquea nada. Ningún archivo aquí registra cuál de las dos describe los tubos del rack, así que la respuesta es la placa que se pipeteó.",
+      "Un libro que declara sus propios pocillos no se compara, porque la comprobación que ya bloquea la ejecución cubre ese caso."
     ],
-    "highlightsStamp": "0.16.85+1a1fa1fa",
+    "highlightsStamp": "0.16.86+04f1cdf8",
     "releases": {
+      "0.16.86": [
+        "La validación de las entradas del análisis informa cuando la placa de clones y la placa de cebadores nombran un clon distinto en el mismo pocillo.",
+        "El aviso indica cuántos pocillos discrepan, nombra la hoja de la placa de cebadores y lista hasta cinco pocillos con el clon que cada lado coloca allí.",
+        "No bloquea nada. Ningún archivo aquí registra cuál de las dos describe los tubos del rack, así que la respuesta es la placa que se pipeteó.",
+        "Un libro que declara sus propios pocillos no se compara, porque la comprobación que ya bloquea la ejecución cubre ese caso."
+      ],
       "0.16.85": [
         "Un clon con varias sustituciones conserva una sola identidad en los lectores de actividad, la entrada de EVOLVEpro y el enlace de resecuenciación.",
         "Un doble mutante bien construido ya no se informa como aminoácido incorrecto.",
@@ -3361,6 +3366,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.86": "04f1cdf8",
       "0.16.85": "1a1fa1fa",
       "0.16.84": "09ae6a21",
       "0.16.83": "83d212a4",

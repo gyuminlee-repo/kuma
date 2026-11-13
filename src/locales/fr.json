@@ -2770,14 +2770,19 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Un clone portant plusieurs substitutions garde une seule identité dans les lecteurs d'activité, l'entrée EVOLVEpro et le lien de reséquençage.",
-      "Un double mutant correctement construit n'est plus signalé comme un acide aminé erroné.",
-      "La plaque de clones est remplie par position du résidu croissante, soit l'ordre que le décodeur d'activité numérique utilisait déjà.",
-      "Réanalyser un run passé peut donner une autre plaque, car le puits d'un clone est désormais décidé par la position du résidu.",
-      "Un génotype de combinaison court rechargé dans KURO est converti au lieu d'échouer à l'analyse."
+      "La validation des entrées de l'analyse signale quand la plaque de clones et la plaque d'amorces désignent un clone différent dans le même puits.",
+      "L'avis indique combien de puits divergent, nomme la feuille de la plaque d'amorces et liste jusqu'à cinq puits avec le clone que chaque côté y place.",
+      "Rien n'est bloqué. Aucun fichier ici n'indique laquelle des deux décrit les tubes du portoir, donc la plaque pipetée fait foi.",
+      "Un classeur qui déclare ses propres puits n'est pas comparé, car la vérification qui bloque déjà l'exécution couvre ce cas."
     ],
-    "highlightsStamp": "0.16.85+1a1fa1fa",
+    "highlightsStamp": "0.16.86+04f1cdf8",
     "releases": {
+      "0.16.86": [
+        "La validation des entrées de l'analyse signale quand la plaque de clones et la plaque d'amorces désignent un clone différent dans le même puits.",
+        "L'avis indique combien de puits divergent, nomme la feuille de la plaque d'amorces et liste jusqu'à cinq puits avec le clone que chaque côté y place.",
+        "Rien n'est bloqué. Aucun fichier ici n'indique laquelle des deux décrit les tubes du portoir, donc la plaque pipetée fait foi.",
+        "Un classeur qui déclare ses propres puits n'est pas comparé, car la vérification qui bloque déjà l'exécution couvre ce cas."
+      ],
       "0.16.85": [
         "Un clone portant plusieurs substitutions garde une seule identité dans les lecteurs d'activité, l'entrée EVOLVEpro et le lien de reséquençage.",
         "Un double mutant correctement construit n'est plus signalé comme un acide aminé erroné.",
@@ -3361,6 +3366,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.86": "04f1cdf8",
       "0.16.85": "1a1fa1fa",
       "0.16.84": "09ae6a21",
       "0.16.83": "83d212a4",
