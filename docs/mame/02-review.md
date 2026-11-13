@@ -37,6 +37,16 @@ per-barcode mutation verdict 와 96-well plate view 를 나란히 본다.
 
 run 폴더, expected 워크북, reference FASTA, 선언한 웰 중 하나라도 바꾸면 이전 실행이 만든 것이 지워진다. verdict 와 플레이트 맵, 산출물 안내가 모두 사라지고 2.2 는 실행 전 상태로 돌아간다. 끝난 실행의 화면이 새 입력의 결과처럼 보이는 것을 막기 위한 동작이다. 같은 경로를 다시 골랐을 때는 아무 일도 일어나지 않는다. 백엔드로 보내는 분석 파라미터(mode, CDS 좌표, `minFilteredDepth`, raw run 파라미터 등)도 같은 규칙을 따른다. 출력 경로만 입력이 아니므로 무효화하지 않는다.
 
+### 프라이머 플레이트와 클론 플레이트 대조 (v0.16.86)
+
+KURO 는 설계 시트 index 로 프라이머마다 웰을 배정하고(`kuma_core/kuro/plate_mapper.py` 의 `_assign_well`) 그 주소를 export 워크북의 `Fwd List`/`Fwd Plate` 시트에 적는다. run 은 v0.16.85 부터 잔기 position 오름차순으로 클론 플레이트를 채우므로(`build_clone_plate_layout`) 이미 position 순으로 적힌 워크북이 아니면 같은 웰이 두 클론을 가리킨다. `kuma_core/mame/io/clone_plate_crosscheck.py` 의 `crosscheck_clone_plate` 가 그 둘을 대조한다. 워크북이 자기 자신과 어긋나는지 보는 `io/plate_order_check.py` 와는 다른 비교다.
+
+- **보고만 하고 막지 않는다.** 실제 워크북 대부분이 설계 순서라 막으면 analyze 가 거의 전부 거부된다. 어느 쪽이 랙에 꽂힌 튜브인지는 화면의 어느 입력에도 없다. `validate_inputs` 응답이 `clone_plate_crosscheck` 키로 싣고 `errors` 와 `valid` 는 건드리지 않으며 `selectCanRun` 도 읽지 않는다. `handle_validate_inputs` 안에서도 expected 워크북을 읽을 수 있고 `expected_mutations` 시트를 가진 KURO export 일 때만 계산한다.
+- **`analyze` 응답에는 실리지 않는다.** 응답 키 집합이 고정된 계약이기 때문이고(`mame-analyze-result-contract`) 수 분 걸리는 demux 뒤에 도착한 보고로는 조작자가 할 수 있는 일이 없기 때문이다. `validate_inputs` 를 보내는 프런트엔드 호출부는 `inputSlice.validateInputs` 하나이고 그 함수를 부르는 곳은 Validate 버튼뿐이다. Run 을 눌러도 나오지 않는다.
+- 예외를 던지지 않고 `status` 값으로 답한다. 대조가 실제로 일어난 값은 `match` 와 `mismatch` 둘이다. 나머지는 대조하지 않은 사유다. `not_a_workbook`, `no_expected_sheet`, `no_plate_sheet`, `unreadable`, `combination`(조합 유전자형은 한 클론이 프라이머 쌍 여러 개를 쓰므로 양쪽 웰이 같은 주소가 아니다), `stated_wells`(`Well` 열을 적은 파일은 양쪽이 같은 주소를 쓰므로 이미 막는 검사와 중복이다), `over_capacity`.
+- 프런트엔드는 `mismatch` 만 띄운다(`ClonePlateCrosscheckNotice`). `role="status"` 로 뜨며 어긋난 웰 수와 대조한 웰 수, 프라이머 플레이트를 준 시트 이름, 예시 웰 최대 5건(`max_examples` 기본값)을 보여 준다. 대조군 웰은 프라이머가 없으므로 비교에서 뺀다. 선언한 웰 선택은 배치를 좁힐 뿐이라 입력이 아니다.
+- 보고가 설명하는 입력이 바뀌면 지워진다. `setExpectedPath`, `setVariantSheet`, `setVariantColumn`, `setWtPlacement` 가 각각 지운다. 끝나지 못한 validation 도 지우는데 끝나지 못한 호출은 플레이트에 대해 아무 말도 하지 않기 때문이다.
+
 ## 분석 파이프라인 (raw_run)
 
 MinKNOW raw run -> MAME 자체 96-well per-mutant consensus FASTA -> verdict 생성 흐름.

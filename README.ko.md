@@ -113,7 +113,7 @@ Kuro가 만든 `expected_mutations.xlsx`, 참조 FASTA, MAME가 생성한 barcod
 - **MAME consensus 입력**: barcode-mode consensus 또는 raw FASTQ(Phred-aware demux→consensus)
 - **8-class 판정**, PASS / WRONG_AA / AMBIGUOUS / MIXED / FRAMESHIFT / MANY / LOWDEPTH / NO_CALL
 - **설명가능 QC**: read depth, N fraction, low-depth 위치, low-quality 제외, MAPQ/span drop
-- **96-well 출력**: Kuro plate map 순서와 동기화된 column-major Final Excel, single-view 워크벤치
+- **96-well 출력**: 클론 플레이트 순서(잔기 position 오름차순)로 채운 column-major Final Excel, single-view 워크벤치
 
 <details>
 <summary><b>전체 Mame 기능 목록</b></summary>
@@ -133,7 +133,7 @@ Kuro가 만든 `expected_mutations.xlsx`, 참조 FASTA, MAME가 생성한 barcod
 
 #### 출력 & 워크벤치
 
-- **96-well Final Excel**: column-major 96-well 레이아웃에 웰별 판정. Kuro의 plate map 순서와 동기화
+- **96-well Final Excel**: column-major 96-well 레이아웃에 웰별 판정. 클론 플레이트 순서(잔기 position 오름차순)로 채운다. 이미 position 순으로 적힌 설계 시트에서만 Kuro 의 plate map 순서와 같다. 어긋나는 웰은 유효성 검사가 지목한다
 - **Single-view 워크벤치**: 입력 파일 패널, 파라미터 패널(mode / CDS end / cutoffs), FINAL / ALL 과 실행이 만든 바코드에서 나온 plate 별 탭이 있는 판정 테이블, 색맹 친화 토글이 있는 96-well 맵
 
 </details>
