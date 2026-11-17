@@ -363,7 +363,9 @@ def _auto_relax_wall_clause(
     Appended to the engine's own reason, which states the constraint the main
     pass applied and nothing about the retry. `floors` carries one
     (side, floor before relaxing, floor after relaxing) triple per side, and
-    `gc_window` the (min, max) pair before and after relaxing, in that order.
+    `gc_window` carries each bound next to its relaxed self, as
+    (min before, min after, max before, max after), which is the order the
+    call site builds and not a (min, max) pair followed by a second pair.
     All three axes the relax pass widens are named, because a sentence that
     lists two of them reads as if the third was left alone.
 
