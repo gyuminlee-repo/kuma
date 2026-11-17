@@ -40,7 +40,7 @@ No valid primer pair - reverse: closest Tm 64.4C at 19 bp, outside 58+-4.0C (len
 
 단계를 먼저 읽는다.
 
-- **reverse, 최근접 Tm이 창 위**: 가장 짧은 합법 reverse가 이미 너무 뜨겁다. GC-rich 구간에서 흔하다. 길이 하한은 UI에서 못 내리므로 **Tm tolerance**를 올린다.
+- **reverse, 최근접 Tm이 창 위**: 가장 짧은 합법 reverse가 이미 너무 뜨겁다. GC-rich 구간에서 흔하다. 닿는 손잡이는 둘이고 GC가 극단이면 둘 다 닿지 못한다. **Tm tolerance**는 ±10 °C에서 막힌다. reverse **프라이머 길이** 하한은 파라미터의 `R` 칸에서 직접 내릴 수 있고 기본값은 19-27 bp다. 자동 완화가 실패를 보고하기 전에 이미 두 축을 모두 시도하며 길이 하한을 18 nt 아래로는 내리지 않는다. 18은 이 프로젝트가 스스로 지키는 bench rule이다. 둘 다 거치고도 실패하면 설정이 아니라 서열의 여유가 없는 것이다.
 - **reverse, 최근접 Tm이 창 아래**: 가장 긴 합법 reverse도 여전히 차갑다. AT-rich 구간이다. 이때도 tolerance 상향이 듣는다.
 - **forward**: 대개 경계 문제다. 코돈 하류 염기가 부족하다.
 - **overlap**: 시도한 길이 범위 어디에서도 overlap 창에 못 들어온다.

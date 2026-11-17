@@ -337,10 +337,169 @@ def _relaxed_floor(requested: int | None, profile_value: int | None, fallback: i
     The fallback comes from sdm_engine rather than a second copy of the number,
     which is what the kuro-rescue-constants sync group is there to keep honest.
     """
-    resolved = requested if requested is not None else (
+    return max(_LEN_FLOOR, _resolved_floor(requested, profile_value, fallback)
+               - _RELAX_LEN_DELTA)
+
+
+def _resolved_floor(requested: int | None, profile_value: int | None, fallback: int) -> int:
+    """The length floor the main pass used, before the relax pass lowered it.
+
+    Split out of `_relaxed_floor` so the failure message can name where each
+    axis started without resolving the same three levels a second time.
+    """
+    return requested if requested is not None else (
         profile_value if profile_value is not None else fallback
     )
-    return max(_LEN_FLOOR, resolved - _RELAX_LEN_DELTA)
+
+
+def _axis_state(
+    requested: float, relaxed: float, limit: float, *, higher_is_looser: bool,
+) -> str:
+    """How the relax pass moved one endpoint against its own limit.
+
+    Every axis is relaxed by the same shape of expression, ``max(limit, x - d)``
+    or ``min(limit, x + d)``. That is a clamp rather than a widening: a request
+    already outside the limit comes back tighter than it went in. A reverse
+    length floor of 10 bp becomes 18, a GC window of 0-100% becomes 20-80%.
+    Reporting either as a wall the search ran into states the opposite of what
+    happened, so the three axes share this one judgement instead of each
+    testing the limit on its own and drifting apart as axes are added.
+
+    Returns "narrowed" when the clamp tightened the endpoint, "no_room" when the
+    request already sat at or past the limit on the loose side, "at_limit" when
+    relaxing reached the limit, and "room" when it stopped short of it.
+    """
+    sign = 1.0 if higher_is_looser else -1.0
+    req, rel, lim = sign * requested, sign * relaxed, sign * limit
+    if rel < req:
+        return "narrowed"
+    if req >= lim:
+        return "no_room"
+    return "at_limit" if rel >= lim else "room"
+
+
+def _auto_relax_wall_clause(
+    requested_tol: float,
+    relaxed_tol: float,
+    floors: list[tuple[str, int, int]],
+    gc_window: tuple[float, float, float, float],
+) -> str:
+    """Say how far the relax pass went and where each axis stops.
+
+    Appended to the engine's own reason, which states the constraint the main
+    pass applied and nothing about the retry. `floors` carries one
+    (side, floor before relaxing, floor after relaxing) triple per side, and
+    `gc_window` carries each bound next to its relaxed self, as
+    (min before, min after, max before, max after), which is the order the
+    call site builds and not a (min, max) pair followed by a second pair.
+    All three axes the relax pass widens are named, because a sentence that
+    lists two of them reads as if the third was left alone.
+
+    The wording stays non-causal: this layer knows what was retried, not which
+    of Tm, GC, overlap or off-target rejected the retried candidates.
+    """
+    gc_min, relaxed_gc_min, gc_max, relaxed_gc_max = gc_window
+    tried = ", ".join(
+        f"{side} {before}->{relaxed} bp" for side, before, relaxed in floors
+    )
+    parts = [
+        f" - auto-relax: retried at tolerance +-{requested_tol:.1f}"
+        f"->+-{relaxed_tol:.1f}C with length floors {tried} and GC "
+        f"{gc_min:g}-{gc_max:g}->{relaxed_gc_min:g}-{relaxed_gc_max:g}%, "
+        "still no pair."
+    ]
+
+    len_states = {
+        side: _axis_state(before, relaxed, _LEN_FLOOR, higher_is_looser=False)
+        for side, before, relaxed in floors
+    }
+    raised = [side for side, state in len_states.items() if state == "narrowed"]
+    if raised:
+        noun = "floors were" if len(raised) > 1 else "floor was"
+        parts.append(
+            f" The {' and '.join(raised)} length {noun} raised to the "
+            f"{_LEN_FLOOR} bp minimum relaxation keeps to, not lowered."
+        )
+    at_floor = [
+        side for side, state in len_states.items()
+        if state in ("at_limit", "no_room")
+    ]
+    if at_floor:
+        noun = "floors are" if len(at_floor) > 1 else "floor is"
+        parts.append(
+            f" The {' and '.join(at_floor)} length {noun} at the {_LEN_FLOOR} bp "
+            "minimum that relaxation does not cross."
+        )
+
+    # The GC bounds belong to the relax pass, not to the request: a run may ask
+    # for any window from 0 to 100, and relaxation clamps what it hands the
+    # engine to _GC_FLOOR.._GC_CEIL. So this axis never offers "raise it by
+    # hand" the way tolerance does, and a request outside those bounds is
+    # reported as the tightening it is.
+    gc_states = {
+        "lower": _axis_state(
+            gc_min, relaxed_gc_min, _GC_FLOOR, higher_is_looser=False,
+        ),
+        "upper": _axis_state(
+            gc_max, relaxed_gc_max, _GC_CEIL, higher_is_looser=True,
+        ),
+    }
+    tightened = [end for end, state in gc_states.items() if state == "narrowed"]
+    if tightened:
+        noun = "ends were" if len(tightened) > 1 else "end was"
+        parts.append(
+            f" Relaxation keeps GC inside {_GC_FLOOR}-{_GC_CEIL}%, so its "
+            f"{' and '.join(tightened)} {noun} tightened rather than widened."
+        )
+    if all(state == "no_room" for state in gc_states.values()):
+        parts.append(
+            f" The GC window already spanned {_GC_FLOOR}-{_GC_CEIL}%, the widest "
+            "relaxation opens, so that axis had no room."
+        )
+    else:
+        gc_ends = [
+            f"{_GC_FLOOR}%" if end == "lower" else f"{_GC_CEIL}%"
+            for end, state in gc_states.items()
+            if state in ("at_limit", "no_room")
+        ]
+        if gc_ends:
+            noun = "edges" if len(gc_ends) > 1 else "edge"
+            parts.append(
+                f" The GC window is at the {' and '.join(gc_ends)} {noun} "
+                "relaxation does not open past."
+            )
+        elif not tightened:
+            parts.append(
+                f" Relaxation widens GC by {_RELAX_GC_DELTA} points a side and "
+                f"opens it no further than {_GC_FLOOR}-{_GC_CEIL}%."
+            )
+
+    tol_state = _axis_state(
+        requested_tol, relaxed_tol, _MAX_TOL_MAX, higher_is_looser=True,
+    )
+    if tol_state == "no_room":
+        parts.append(
+            f" Tm tolerance was already at its +-{_MAX_TOL_MAX:.1f}C maximum, "
+            "so that axis had no room."
+        )
+    elif tol_state == "narrowed":
+        # Unreachable while tol_max is capped at _MAX_TOL_MAX by the model, so
+        # a request can never sit past it. Spelled out anyway: the axis follows
+        # the same judgement as the other two, and raising that cap without
+        # this branch would print a tightening as a wall.
+        parts.append(
+            f" Tm tolerance was cut to +-{_MAX_TOL_MAX:.1f}C, the widest "
+            "relaxation applies, not widened."
+        )
+    elif tol_state == "at_limit":
+        parts.append(
+            f" Tm tolerance is at its +-{_MAX_TOL_MAX:.1f}C maximum."
+        )
+    else:
+        parts.append(
+            f" Tm tolerance can still be raised by hand to +-{_MAX_TOL_MAX:.1f}C."
+        )
+    return "".join(parts)
 
 
 def _build_mutation(mutation_raw: str, sequence: str, target_start: int, organism: str) -> Mutation:
@@ -714,18 +873,36 @@ def handle_design_sdm_primers(params: dict) -> dict:
                 # hotter than the rest of the plate. Two nt of headroom lets
                 # the engine reach the cooler solution, and its own penalty
                 # score decides between the candidates.
+                fwd_floor = _resolved_floor(
+                    p.fwd_len_min, profile.fwd_len_min, DEFAULT_FWD_LEN_MIN,
+                )
+                rev_floor = _resolved_floor(
+                    p.rev_len_min, profile.rev_len_min, DEFAULT_REV_LEN_MIN,
+                )
+                relaxed_tol = min(p.tol_max + _RELAX_TOL_DELTA, _MAX_TOL_MAX)
+                # Through _relaxed_floor rather than a second copy of its rule:
+                # the inline version left the function reachable only from its
+                # own test, so the two could drift without anything failing.
+                relaxed_fwd_floor = _relaxed_floor(
+                    p.fwd_len_min, profile.fwd_len_min, DEFAULT_FWD_LEN_MIN,
+                )
+                relaxed_rev_floor = _relaxed_floor(
+                    p.rev_len_min, profile.rev_len_min, DEFAULT_REV_LEN_MIN,
+                )
+                relaxed_gc_min = max(_GC_FLOOR, p.gc_min - _RELAX_GC_DELTA)
+                relaxed_gc_max = min(_GC_CEIL, p.gc_max + _RELAX_GC_DELTA)
                 relax_kw: _RelaxKw = {
                     **design_kw,
-                    "tol_max": min(p.tol_max + _RELAX_TOL_DELTA, _MAX_TOL_MAX),
-                    "gc_min": max(_GC_FLOOR, p.gc_min - _RELAX_GC_DELTA),
-                    "gc_max": min(_GC_CEIL, p.gc_max + _RELAX_GC_DELTA),
-                    "fwd_len_min": _relaxed_floor(
-                        p.fwd_len_min, profile.fwd_len_min, DEFAULT_FWD_LEN_MIN,
-                    ),
-                    "rev_len_min": _relaxed_floor(
-                        p.rev_len_min, profile.rev_len_min, DEFAULT_REV_LEN_MIN,
-                    ),
+                    "tol_max": relaxed_tol,
+                    "gc_min": relaxed_gc_min,
+                    "gc_max": relaxed_gc_max,
+                    "fwd_len_min": relaxed_fwd_floor,
+                    "rev_len_min": relaxed_rev_floor,
                 }
+                # Only the mutations the relax pass actually designed again
+                # earn the wall clause. A row that never parsed, or one the
+                # rebuild raised on, was never put to the widened settings.
+                relax_evaluated: list[str] = []
                 for failed_mut in list(still_failed):
                     if cancel_event.is_set():
                         return _cancelled_result(results, all_cands)
@@ -754,8 +931,23 @@ def handle_design_sdm_primers(params: dict) -> dict:
                                 "tolerance_used": best.tolerance_used,
                             })
                             del still_failed[failed_mut]
+                        else:
+                            relax_evaluated.append(failed_mut)
                     except (ValueError, IndexError):
                         continue
+
+                wall_clause = _auto_relax_wall_clause(
+                    p.tol_max,
+                    relaxed_tol,
+                    [
+                        ("forward", fwd_floor, relaxed_fwd_floor),
+                        ("reverse", rev_floor, relaxed_rev_floor),
+                    ],
+                    (p.gc_min, relaxed_gc_min, p.gc_max, relaxed_gc_max),
+                )
+                for failed_mut in relax_evaluated:
+                    if failed_mut in still_failed:
+                        still_failed[failed_mut] += wall_clause
 
             engine_failures = still_failed
 

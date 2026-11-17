@@ -40,7 +40,7 @@ No valid primer pair - reverse: closest Tm 64.4C at 19 bp, outside 58+-4.0C (len
 
 Read the stage first.
 
-- **reverse, closest Tm above the window**: the shortest legal reverse primer is already too hot. Common in GC-rich context. Raise **Tm tolerance**, since the length floor cannot be lowered from the UI.
+- **reverse, closest Tm above the window**: the shortest legal reverse primer is already too hot. Common in GC-rich context. Two knobs reach this one, and an extreme GC window defeats both. **Tm tolerance** is capped at ±10 °C. The reverse **primer length** floor is editable in Parameters, the `R` field, default 19-27 bp. Automatic relaxation already tries both axes before the failure is reported, and it never takes the length floor under 18 nt, which is the bench rule this project holds itself to. A failure that survives both has run out of sequence rather than hit a setting.
 - **reverse, closest Tm below the window**: the longest legal reverse primer is still too cold. AT-rich context. Raising tolerance also helps here.
 - **forward**: usually a boundary problem, with too few bases downstream of the codon.
 - **overlap**: no overlap length in the tried range lands in the overlap window.
