@@ -28,6 +28,8 @@ from sidecar_kuro.handlers.design import (
     _RELAX_TOL_DELTA,
     _auto_relax_wall_clause,
     _axis_state,
+    _poly_registry,
+    _resolved_floor,
     handle_design_sdm_primers,
 )
 from sidecar_kuro.models import DesignSdmPrimersParams
@@ -55,6 +57,7 @@ RELAX_MARKER = "- auto-relax: retried at tolerance"
 _BALANCED = ("GCT", "ACA", "TTG", "CAA", "GAT", "ATC", "AAG", "TCA",
              "CTT", "ATG", "AAC", "TGT")
 _GC_RUN = "GCCGGCGCGCCGGCCGGCGCCGGCCGCGGC"
+_SYNTHETIC_POLYMERASE = "KOD"
 _SYNTHETIC_TARGET_START = 30
 _SYNTHETIC_HOT_POSITION = 31
 _SYNTHETIC_MILD_POSITION = 50
@@ -91,7 +94,7 @@ def _design_synthetic(
         "fasta_path": str(template),
         "target_start": _SYNTHETIC_TARGET_START,
         "mutations_csv_or_text": mutation,
-        "polymerase": "KOD",
+        "polymerase": _SYNTHETIC_POLYMERASE,
         "overlap_len": 18,
         "rescue_pool": [],
         "auto_relax": auto_relax,
@@ -123,7 +126,7 @@ def _design(mutation_text: str, *, auto_relax: bool, tol_max: float = 4.0) -> di
         "fasta_path": str(GENBANK),
         "target_start": TARGET_START,
         "mutations_csv_or_text": mutation_text,
-        "polymerase": "KOD",
+        "polymerase": _SYNTHETIC_POLYMERASE,
         "overlap_len": 18,
         "rescue_pool": [],
         "auto_relax": auto_relax,
@@ -310,7 +313,15 @@ def test_gc_rich_site_reports_the_length_wall(gc_rich_template, restore_state):
     reason = res["failed_mutations"][0]["reason"]
     assert reason.startswith("No valid primer pair - reverse: closest Tm")
     assert RELAX_MARKER in reason
-    assert f"reverse {DEFAULT_REV_LEN_MIN}->{_LEN_FLOOR} bp" in reason
+    # Where that floor comes from, resolved the way the handler resolves it.
+    # The request leaves the length to the polymerase, so the KOD profile
+    # supplies it and DEFAULT_REV_LEN_MIN is only the last fallback. The two
+    # happen to hold the same number, so naming the wrong one would pass.
+    expected_rev_floor = _resolved_floor(
+        None, _poly_registry.get(_SYNTHETIC_POLYMERASE).rev_len_min,
+        DEFAULT_REV_LEN_MIN,
+    )
+    assert f"reverse {expected_rev_floor}->{_LEN_FLOOR} bp" in reason
     assert f"length floors are at the {_LEN_FLOOR} bp minimum" in reason
     assert f"raised by hand to +-{_MAX_TOL_MAX:.1f}C" in reason
     # The settings the relax pass actually used, derived from the deltas rather
