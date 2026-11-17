@@ -639,7 +639,19 @@ export function SequenceViewer() {
                       tooltip.tick.status === "success" ? "text-success" : "text-error"
                     }
                   >
-                    {tooltip.tick.status === "success" ? t("sequenceViewer.tooltipDesigned") : t("sequenceViewer.tooltipFailed", { reason: tooltip.tick.reason ?? "unknown" })}
+                    {/* The failure reason is a sentence from the sidecar, not a
+                        label, and since the auto-relax wall clause it runs past
+                        300 characters. The container is whitespace-nowrap, so
+                        this line opens wrapping for itself and bounds its own
+                        width; break-words is what stops a long unbroken token
+                        (a primer, a path) from spilling past that width. */}
+                    {tooltip.tick.status === "success"
+                      ? t("sequenceViewer.tooltipDesigned")
+                      : (
+                        <span className="block max-w-[22rem] whitespace-normal break-words">
+                          {t("sequenceViewer.tooltipFailed", { reason: tooltip.tick.reason ?? "unknown" })}
+                        </span>
+                      )}
                   </div>
                 </div>
               )}

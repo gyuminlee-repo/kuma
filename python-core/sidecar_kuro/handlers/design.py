@@ -356,22 +356,29 @@ def _auto_relax_wall_clause(
     requested_tol: float,
     relaxed_tol: float,
     floors: list[tuple[str, int, int]],
+    gc_window: tuple[float, float, float, float],
 ) -> str:
     """Say how far the relax pass went and where each axis stops.
 
     Appended to the engine's own reason, which states the constraint the main
     pass applied and nothing about the retry. `floors` carries one
-    (side, floor before relaxing, floor after relaxing) triple per side.
+    (side, floor before relaxing, floor after relaxing) triple per side, and
+    `gc_window` the (min, max) pair before and after relaxing, in that order.
+    All three axes the relax pass widens are named, because a sentence that
+    lists two of them reads as if the third was left alone.
 
     The wording stays non-causal: this layer knows what was retried, not which
     of Tm, GC, overlap or off-target rejected the retried candidates.
     """
+    gc_min, relaxed_gc_min, gc_max, relaxed_gc_max = gc_window
     tried = ", ".join(
         f"{side} {before}->{relaxed} bp" for side, before, relaxed in floors
     )
     parts = [
         f" - auto-relax: retried at tolerance +-{requested_tol:.1f}"
-        f"->+-{relaxed_tol:.1f}C with length floors {tried}, still no pair."
+        f"->+-{relaxed_tol:.1f}C with length floors {tried} and GC "
+        f"{gc_min:g}-{gc_max:g}->{relaxed_gc_min:g}-{relaxed_gc_max:g}%, "
+        "still no pair."
     ]
 
     at_floor = [side for side, _before, relaxed in floors if relaxed == _LEN_FLOOR]
@@ -380,6 +387,31 @@ def _auto_relax_wall_clause(
         parts.append(
             f" The {' and '.join(at_floor)} length {noun} at the {_LEN_FLOOR} bp "
             "minimum that relaxation does not cross."
+        )
+
+    gc_ends = (
+        ([f"{_GC_FLOOR}%"] if relaxed_gc_min <= _GC_FLOOR else [])
+        + ([f"{_GC_CEIL}%"] if relaxed_gc_max >= _GC_CEIL else [])
+    )
+    # The GC bounds belong to the relax pass, not to the request: a run may ask
+    # for any window from 0 to 100, and relaxation clamps what it hands the
+    # engine to _GC_FLOOR.._GC_CEIL. So this axis never offers "raise it by
+    # hand" the way tolerance does, and says whose limit it is.
+    if gc_min <= _GC_FLOOR and gc_max >= _GC_CEIL:
+        parts.append(
+            f" The GC window already spanned {_GC_FLOOR}-{_GC_CEIL}%, the widest "
+            "relaxation opens, so that axis had no room."
+        )
+    elif gc_ends:
+        noun = "edges" if len(gc_ends) > 1 else "edge"
+        parts.append(
+            f" The GC window is at the {' and '.join(gc_ends)} {noun} relaxation "
+            "does not open past."
+        )
+    else:
+        parts.append(
+            f" Relaxation widens GC by {_RELAX_GC_DELTA} points a side and opens "
+            f"it no further than {_GC_FLOOR}-{_GC_CEIL}%."
         )
 
     if requested_tol >= _MAX_TOL_MAX:
@@ -778,11 +810,13 @@ def handle_design_sdm_primers(params: dict) -> dict:
                 relaxed_tol = min(p.tol_max + _RELAX_TOL_DELTA, _MAX_TOL_MAX)
                 relaxed_fwd_floor = max(_LEN_FLOOR, fwd_floor - _RELAX_LEN_DELTA)
                 relaxed_rev_floor = max(_LEN_FLOOR, rev_floor - _RELAX_LEN_DELTA)
+                relaxed_gc_min = max(_GC_FLOOR, p.gc_min - _RELAX_GC_DELTA)
+                relaxed_gc_max = min(_GC_CEIL, p.gc_max + _RELAX_GC_DELTA)
                 relax_kw: _RelaxKw = {
                     **design_kw,
                     "tol_max": relaxed_tol,
-                    "gc_min": max(_GC_FLOOR, p.gc_min - _RELAX_GC_DELTA),
-                    "gc_max": min(_GC_CEIL, p.gc_max + _RELAX_GC_DELTA),
+                    "gc_min": relaxed_gc_min,
+                    "gc_max": relaxed_gc_max,
                     "fwd_len_min": relaxed_fwd_floor,
                     "rev_len_min": relaxed_rev_floor,
                 }
@@ -830,6 +864,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
                         ("forward", fwd_floor, relaxed_fwd_floor),
                         ("reverse", rev_floor, relaxed_rev_floor),
                     ],
+                    (p.gc_min, relaxed_gc_min, p.gc_max, relaxed_gc_max),
                 )
                 for failed_mut in relax_evaluated:
                     if failed_mut in still_failed:

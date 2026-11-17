@@ -19,6 +19,8 @@ from Bio.SeqRecord import SeqRecord
 
 from sidecar_kuro.core import _state, _state_lock
 from sidecar_kuro.handlers.design import (
+    _GC_CEIL,
+    _GC_FLOOR,
     _LEN_FLOOR,
     _MAX_TOL_MAX,
     _auto_relax_wall_clause,
@@ -122,15 +124,21 @@ def test_clause_names_only_the_axis_that_reached_its_limit():
     # Tolerance widened with room left: the remaining room is the actionable
     # part, and no tolerance wall is claimed.
     headroom = _auto_relax_wall_clause(
-        4.0, 6.0, [("forward", 22, 20), ("reverse", 22, 20)],
+        4.0, 6.0, [("forward", 22, 20), ("reverse", 22, 20)], (40.0, 35.0, 60.0, 65.0),
     )
     assert "raised by hand" in headroom
     assert "maximum" not in headroom.replace(f"+-{_MAX_TOL_MAX:.1f}C.", "")
     assert f"{_LEN_FLOOR} bp" not in headroom
+    # All three widened axes are named, with the values they were widened to.
+    assert "tolerance +-4.0->+-6.0C" in headroom
+    assert "forward 22->20 bp, reverse 22->20 bp" in headroom
+    assert "GC 40-60->35-65%" in headroom
+    assert f"opens it no further than {_GC_FLOOR}-{_GC_CEIL}%" in headroom
 
     # Tolerance clamped by the relax pass, both length floors at the minimum.
     clamped = _auto_relax_wall_clause(
         9.0, _MAX_TOL_MAX, [("forward", 19, _LEN_FLOOR), ("reverse", 19, _LEN_FLOOR)],
+        (40.0, 35.0, 60.0, 65.0),
     )
     assert f"+-{_MAX_TOL_MAX:.1f}C maximum" in clamped
     assert "had no room" not in clamped
@@ -139,12 +147,62 @@ def test_clause_names_only_the_axis_that_reached_its_limit():
     # Tolerance was already at the cap, so widening was never possible.
     capped = _auto_relax_wall_clause(
         _MAX_TOL_MAX, _MAX_TOL_MAX, [("forward", 22, 20), ("reverse", 19, _LEN_FLOOR)],
+        (40.0, 35.0, 60.0, 65.0),
     )
     assert "had no room" in capped
     # Only the side that reached the floor is named.
     assert f"reverse length floor is at the {_LEN_FLOOR} bp" in capped
     assert "forward and reverse length" not in capped
     assert "forward 22->20 bp" in capped
+
+
+def test_clause_separates_the_three_states_of_the_gc_axis():
+    """GC is widened on both sides, so each end can reach its limit alone."""
+    floors = [("forward", 22, 20), ("reverse", 22, 20)]
+
+    # Only the floor was reached: the ceiling still has room, and naming both
+    # would tell an operator the window is shut when half of it is not.
+    at_floor = _auto_relax_wall_clause(
+        4.0, 6.0, floors, (float(_GC_FLOOR) + 2, float(_GC_FLOOR), 60.0, 65.0),
+    )
+    assert f"GC window is at the {_GC_FLOOR}% edge relaxation does not open past." in at_floor
+    assert f"{_GC_CEIL}%" not in at_floor
+
+    at_ceiling = _auto_relax_wall_clause(
+        4.0, 6.0, floors, (40.0, 35.0, float(_GC_CEIL) - 2, float(_GC_CEIL)),
+    )
+    assert f"GC window is at the {_GC_CEIL}% edge" in at_ceiling
+
+    both_ends = _auto_relax_wall_clause(
+        4.0, 6.0, floors,
+        (float(_GC_FLOOR) + 2, float(_GC_FLOOR), float(_GC_CEIL) - 2, float(_GC_CEIL)),
+    )
+    assert f"GC window is at the {_GC_FLOOR}% and {_GC_CEIL}% edges" in both_ends
+
+    # The request already spanned the whole range relaxation opens, so the
+    # relax pass had nothing to widen rather than having widened up to a wall.
+    no_room = _auto_relax_wall_clause(
+        4.0, 6.0, floors,
+        (float(_GC_FLOOR), float(_GC_FLOOR), float(_GC_CEIL), float(_GC_CEIL)),
+    )
+    assert f"GC window already spanned {_GC_FLOOR}-{_GC_CEIL}%" in no_room
+    assert "is at the" not in no_room
+
+
+def test_clause_prints_a_request_wider_than_relaxation_opens():
+    """A request may ask for more GC than the relax pass will hand the engine.
+
+    `gc_min`/`gc_max` accept 0-100 while the relax pass clamps to
+    _GC_FLOOR.._GC_CEIL, so a 10-90 request is narrowed rather than widened.
+    The clause prints both numbers instead of implying the window grew, and
+    fractional bounds survive the formatting rather than being rounded away.
+    """
+    narrowed = _auto_relax_wall_clause(
+        4.0, 6.0, [("forward", 22, 20), ("reverse", 22, 20)],
+        (10.5, float(_GC_FLOOR), 90.0, float(_GC_CEIL)),
+    )
+    assert f"GC 10.5-90->{_GC_FLOOR}-{_GC_CEIL}%" in narrowed
+    assert f"GC window already spanned {_GC_FLOOR}-{_GC_CEIL}%" in narrowed
 
 
 def test_gc_rich_site_reports_the_length_wall(gc_rich_template, restore_state):
