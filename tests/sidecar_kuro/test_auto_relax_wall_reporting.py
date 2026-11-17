@@ -17,17 +17,29 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
+from kuma_core.kuro.sdm_engine import DEFAULT_REV_LEN_MIN
 from sidecar_kuro.core import _state, _state_lock
 from sidecar_kuro.handlers.design import (
     _GC_CEIL,
     _GC_FLOOR,
     _LEN_FLOOR,
     _MAX_TOL_MAX,
+    _RELAX_GC_DELTA,
+    _RELAX_TOL_DELTA,
     _auto_relax_wall_clause,
+    _axis_state,
     handle_design_sdm_primers,
 )
+from sidecar_kuro.models import DesignSdmPrimersParams
 
 from tests.conftest import TARGET_START
+
+# What a request carries when the caller sends none of these, which is what
+# `_design_synthetic` below does for GC. Read from the model so a changed
+# default shows up here rather than in a message nobody checks.
+_DEFAULT_GC_MIN: float = DesignSdmPrimersParams.model_fields["gc_min"].default
+_DEFAULT_GC_MAX: float = DesignSdmPrimersParams.model_fields["gc_max"].default
+_DEFAULT_TOL: float = DesignSdmPrimersParams.model_fields["tol_max"].default
 
 FIXTURES_DIR = Path(__file__).parent.parent.parent / "fixtures"
 GENBANK = FIXTURES_DIR / "sample_sdm_template.gb"
@@ -123,16 +135,20 @@ def test_clause_names_only_the_axis_that_reached_its_limit():
     """Each axis has three states and the clause must not conflate them."""
     # Tolerance widened with room left: the remaining room is the actionable
     # part, and no tolerance wall is claimed.
+    relaxed_tol = _DEFAULT_TOL + _RELAX_TOL_DELTA
+    relaxed_gc = (_DEFAULT_GC_MIN - _RELAX_GC_DELTA, _DEFAULT_GC_MAX + _RELAX_GC_DELTA)
     headroom = _auto_relax_wall_clause(
-        4.0, 6.0, [("forward", 22, 20), ("reverse", 22, 20)], (40.0, 35.0, 60.0, 65.0),
+        _DEFAULT_TOL, relaxed_tol, [("forward", 22, 20), ("reverse", 22, 20)],
+        (_DEFAULT_GC_MIN, relaxed_gc[0], _DEFAULT_GC_MAX, relaxed_gc[1]),
     )
     assert "raised by hand" in headroom
     assert "maximum" not in headroom.replace(f"+-{_MAX_TOL_MAX:.1f}C.", "")
     assert f"{_LEN_FLOOR} bp" not in headroom
-    # All three widened axes are named, with the values they were widened to.
-    assert "tolerance +-4.0->+-6.0C" in headroom
+    # All three widened axes are named, with the values the deltas produce.
+    assert f"tolerance +-{_DEFAULT_TOL:.1f}->+-{relaxed_tol:.1f}C" in headroom
     assert "forward 22->20 bp, reverse 22->20 bp" in headroom
-    assert "GC 40-60->35-65%" in headroom
+    assert (f"GC {_DEFAULT_GC_MIN:g}-{_DEFAULT_GC_MAX:g}->"
+            f"{relaxed_gc[0]:g}-{relaxed_gc[1]:g}%") in headroom
     assert f"opens it no further than {_GC_FLOOR}-{_GC_CEIL}%" in headroom
 
     # Tolerance clamped by the relax pass, both length floors at the minimum.
@@ -163,13 +179,18 @@ def test_clause_separates_the_three_states_of_the_gc_axis():
     # Only the floor was reached: the ceiling still has room, and naming both
     # would tell an operator the window is shut when half of it is not.
     at_floor = _auto_relax_wall_clause(
-        4.0, 6.0, floors, (float(_GC_FLOOR) + 2, float(_GC_FLOOR), 60.0, 65.0),
+        4.0, 6.0, floors,
+        (float(_GC_FLOOR) + 2, float(_GC_FLOOR),
+         _DEFAULT_GC_MAX, _DEFAULT_GC_MAX + _RELAX_GC_DELTA),
     )
-    assert f"GC window is at the {_GC_FLOOR}% edge relaxation does not open past." in at_floor
+    assert (f"GC window is at the {_GC_FLOOR}% edge relaxation does not open "
+            "past.") in at_floor
     assert f"{_GC_CEIL}%" not in at_floor
 
     at_ceiling = _auto_relax_wall_clause(
-        4.0, 6.0, floors, (40.0, 35.0, float(_GC_CEIL) - 2, float(_GC_CEIL)),
+        4.0, 6.0, floors,
+        (_DEFAULT_GC_MIN, _DEFAULT_GC_MIN - _RELAX_GC_DELTA,
+         float(_GC_CEIL) - 2, float(_GC_CEIL)),
     )
     assert f"GC window is at the {_GC_CEIL}% edge" in at_ceiling
 
@@ -202,7 +223,76 @@ def test_clause_prints_a_request_wider_than_relaxation_opens():
         (10.5, float(_GC_FLOOR), 90.0, float(_GC_CEIL)),
     )
     assert f"GC 10.5-90->{_GC_FLOOR}-{_GC_CEIL}%" in narrowed
-    assert f"GC window already spanned {_GC_FLOOR}-{_GC_CEIL}%" in narrowed
+    assert "lower and upper ends were tightened rather than widened" in narrowed
+    # The request was outside the bounds, not level with them, so the clause
+    # must not claim the window already spanned what relaxation opens.
+    assert "already spanned" not in narrowed
+    assert "does not open past" not in narrowed
+
+
+def test_a_clamp_that_tightens_is_never_reported_as_a_wall():
+    """The three inputs where relaxation constrains more than the request.
+
+    Each clamp is max(limit, x - d) or min(limit, x + d), so a request outside
+    the limit comes back tighter. Saying the search reached a wall there states
+    the opposite of what the relax pass did with that run's settings.
+    """
+    floors = [("forward", 22, 20), ("reverse", 22, 20)]
+
+    # One GC bound outside the limit, the other with room left.
+    one_end = _auto_relax_wall_clause(
+        4.0, 6.0, floors, (10.0, float(_GC_FLOOR), 60.0, 65.0),
+    )
+    assert f"keeps GC inside {_GC_FLOOR}-{_GC_CEIL}%" in one_end
+    assert "its lower end was tightened rather than widened" in one_end
+    assert "upper" not in one_end
+    assert "does not open past" not in one_end
+
+    # The widest window the model accepts, which relaxation shrinks on both
+    # sides. The old wording called this "already spanned 20-80%".
+    both_ends = _auto_relax_wall_clause(
+        4.0, 6.0, floors, (0.0, float(_GC_FLOOR), 100.0, float(_GC_CEIL)),
+    )
+    assert f"GC 0-100->{_GC_FLOOR}-{_GC_CEIL}%" in both_ends
+    assert "lower and upper ends were tightened" in both_ends
+    assert "already spanned" not in both_ends
+
+    # rev_len_min accepts 10, which the relax pass raises to the 18 bp floor.
+    # The forward side is untouched at the floor and keeps the wall wording,
+    # so one clause carries both statements without conflating them.
+    raised = _auto_relax_wall_clause(
+        4.0, 6.0,
+        [("forward", _LEN_FLOOR, _LEN_FLOOR), ("reverse", 10, _LEN_FLOOR)],
+        (40.0, 35.0, 60.0, 65.0),
+    )
+    assert (f"reverse length floor was raised to the {_LEN_FLOOR} bp minimum "
+            "relaxation keeps to, not lowered.") in raised
+    assert f"forward length floor is at the {_LEN_FLOOR} bp minimum" in raised
+    assert "forward and reverse" not in raised
+
+
+@pytest.mark.parametrize(
+    ("requested", "relaxed", "limit", "higher_is_looser", "expected"),
+    [
+        # Length floor and GC lower bound: a smaller number is the looser one.
+        (10, _LEN_FLOOR, _LEN_FLOOR, False, "narrowed"),
+        (_LEN_FLOOR, _LEN_FLOOR, _LEN_FLOOR, False, "no_room"),
+        (_LEN_FLOOR + 1, _LEN_FLOOR, _LEN_FLOOR, False, "at_limit"),
+        (22, 20, _LEN_FLOOR, False, "room"),
+        # Tolerance and GC upper bound: a larger number is the looser one.
+        (_MAX_TOL_MAX + 1, _MAX_TOL_MAX, _MAX_TOL_MAX, True, "narrowed"),
+        (_MAX_TOL_MAX, _MAX_TOL_MAX, _MAX_TOL_MAX, True, "no_room"),
+        (_MAX_TOL_MAX - 1, _MAX_TOL_MAX, _MAX_TOL_MAX, True, "at_limit"),
+        (4.0, 6.0, _MAX_TOL_MAX, True, "room"),
+    ],
+)
+def test_axis_state_judges_every_axis_by_one_rule(
+    requested, relaxed, limit, higher_is_looser, expected,
+):
+    """One judgement for all three axes, read in both directions."""
+    assert _axis_state(
+        requested, relaxed, limit, higher_is_looser=higher_is_looser,
+    ) == expected
 
 
 def test_gc_rich_site_reports_the_length_wall(gc_rich_template, restore_state):
@@ -220,9 +310,17 @@ def test_gc_rich_site_reports_the_length_wall(gc_rich_template, restore_state):
     reason = res["failed_mutations"][0]["reason"]
     assert reason.startswith("No valid primer pair - reverse: closest Tm")
     assert RELAX_MARKER in reason
-    assert f"reverse 19->{_LEN_FLOOR} bp" in reason
+    assert f"reverse {DEFAULT_REV_LEN_MIN}->{_LEN_FLOOR} bp" in reason
     assert f"length floors are at the {_LEN_FLOOR} bp minimum" in reason
     assert f"raised by hand to +-{_MAX_TOL_MAX:.1f}C" in reason
+    # The settings the relax pass actually used, derived from the deltas rather
+    # than written out, so changing a delta fails here instead of silently
+    # shipping a message that describes the old one.
+    assert (f"tolerance +-{_DEFAULT_TOL:.1f}->"
+            f"+-{_DEFAULT_TOL + _RELAX_TOL_DELTA:.1f}C") in reason
+    assert (f"GC {_DEFAULT_GC_MIN:g}-{_DEFAULT_GC_MAX:g}->"
+            f"{_DEFAULT_GC_MIN - _RELAX_GC_DELTA:g}-"
+            f"{_DEFAULT_GC_MAX + _RELAX_GC_DELTA:g}%") in reason
 
 
 def test_tolerance_cap_is_named_when_the_request_already_sat_on_it(

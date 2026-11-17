@@ -352,6 +352,32 @@ def _resolved_floor(requested: int | None, profile_value: int | None, fallback: 
     )
 
 
+def _axis_state(
+    requested: float, relaxed: float, limit: float, *, higher_is_looser: bool,
+) -> str:
+    """How the relax pass moved one endpoint against its own limit.
+
+    Every axis is relaxed by the same shape of expression, ``max(limit, x - d)``
+    or ``min(limit, x + d)``. That is a clamp rather than a widening: a request
+    already outside the limit comes back tighter than it went in. A reverse
+    length floor of 10 bp becomes 18, a GC window of 0-100% becomes 20-80%.
+    Reporting either as a wall the search ran into states the opposite of what
+    happened, so the three axes share this one judgement instead of each
+    testing the limit on its own and drifting apart as axes are added.
+
+    Returns "narrowed" when the clamp tightened the endpoint, "no_room" when the
+    request already sat at or past the limit on the loose side, "at_limit" when
+    relaxing reached the limit, and "room" when it stopped short of it.
+    """
+    sign = 1.0 if higher_is_looser else -1.0
+    req, rel, lim = sign * requested, sign * relaxed, sign * limit
+    if rel < req:
+        return "narrowed"
+    if req >= lim:
+        return "no_room"
+    return "at_limit" if rel >= lim else "room"
+
+
 def _auto_relax_wall_clause(
     requested_tol: float,
     relaxed_tol: float,
@@ -383,7 +409,21 @@ def _auto_relax_wall_clause(
         "still no pair."
     ]
 
-    at_floor = [side for side, _before, relaxed in floors if relaxed == _LEN_FLOOR]
+    len_states = {
+        side: _axis_state(before, relaxed, _LEN_FLOOR, higher_is_looser=False)
+        for side, before, relaxed in floors
+    }
+    raised = [side for side, state in len_states.items() if state == "narrowed"]
+    if raised:
+        noun = "floors were" if len(raised) > 1 else "floor was"
+        parts.append(
+            f" The {' and '.join(raised)} length {noun} raised to the "
+            f"{_LEN_FLOOR} bp minimum relaxation keeps to, not lowered."
+        )
+    at_floor = [
+        side for side, state in len_states.items()
+        if state in ("at_limit", "no_room")
+    ]
     if at_floor:
         noun = "floors are" if len(at_floor) > 1 else "floor is"
         parts.append(
@@ -391,37 +431,67 @@ def _auto_relax_wall_clause(
             "minimum that relaxation does not cross."
         )
 
-    gc_ends = (
-        ([f"{_GC_FLOOR}%"] if relaxed_gc_min <= _GC_FLOOR else [])
-        + ([f"{_GC_CEIL}%"] if relaxed_gc_max >= _GC_CEIL else [])
-    )
     # The GC bounds belong to the relax pass, not to the request: a run may ask
     # for any window from 0 to 100, and relaxation clamps what it hands the
     # engine to _GC_FLOOR.._GC_CEIL. So this axis never offers "raise it by
-    # hand" the way tolerance does, and says whose limit it is.
-    if gc_min <= _GC_FLOOR and gc_max >= _GC_CEIL:
+    # hand" the way tolerance does, and a request outside those bounds is
+    # reported as the tightening it is.
+    gc_states = {
+        "lower": _axis_state(
+            gc_min, relaxed_gc_min, _GC_FLOOR, higher_is_looser=False,
+        ),
+        "upper": _axis_state(
+            gc_max, relaxed_gc_max, _GC_CEIL, higher_is_looser=True,
+        ),
+    }
+    tightened = [end for end, state in gc_states.items() if state == "narrowed"]
+    if tightened:
+        noun = "ends were" if len(tightened) > 1 else "end was"
+        parts.append(
+            f" Relaxation keeps GC inside {_GC_FLOOR}-{_GC_CEIL}%, so its "
+            f"{' and '.join(tightened)} {noun} tightened rather than widened."
+        )
+    if all(state == "no_room" for state in gc_states.values()):
         parts.append(
             f" The GC window already spanned {_GC_FLOOR}-{_GC_CEIL}%, the widest "
             "relaxation opens, so that axis had no room."
         )
-    elif gc_ends:
-        noun = "edges" if len(gc_ends) > 1 else "edge"
-        parts.append(
-            f" The GC window is at the {' and '.join(gc_ends)} {noun} relaxation "
-            "does not open past."
-        )
     else:
-        parts.append(
-            f" Relaxation widens GC by {_RELAX_GC_DELTA} points a side and opens "
-            f"it no further than {_GC_FLOOR}-{_GC_CEIL}%."
-        )
+        gc_ends = [
+            f"{_GC_FLOOR}%" if end == "lower" else f"{_GC_CEIL}%"
+            for end, state in gc_states.items()
+            if state in ("at_limit", "no_room")
+        ]
+        if gc_ends:
+            noun = "edges" if len(gc_ends) > 1 else "edge"
+            parts.append(
+                f" The GC window is at the {' and '.join(gc_ends)} {noun} "
+                "relaxation does not open past."
+            )
+        elif not tightened:
+            parts.append(
+                f" Relaxation widens GC by {_RELAX_GC_DELTA} points a side and "
+                f"opens it no further than {_GC_FLOOR}-{_GC_CEIL}%."
+            )
 
-    if requested_tol >= _MAX_TOL_MAX:
+    tol_state = _axis_state(
+        requested_tol, relaxed_tol, _MAX_TOL_MAX, higher_is_looser=True,
+    )
+    if tol_state == "no_room":
         parts.append(
             f" Tm tolerance was already at its +-{_MAX_TOL_MAX:.1f}C maximum, "
             "so that axis had no room."
         )
-    elif relaxed_tol >= _MAX_TOL_MAX:
+    elif tol_state == "narrowed":
+        # Unreachable while tol_max is capped at _MAX_TOL_MAX by the model, so
+        # a request can never sit past it. Spelled out anyway: the axis follows
+        # the same judgement as the other two, and raising that cap without
+        # this branch would print a tightening as a wall.
+        parts.append(
+            f" Tm tolerance was cut to +-{_MAX_TOL_MAX:.1f}C, the widest "
+            "relaxation applies, not widened."
+        )
+    elif tol_state == "at_limit":
         parts.append(
             f" Tm tolerance is at its +-{_MAX_TOL_MAX:.1f}C maximum."
         )
@@ -810,8 +880,15 @@ def handle_design_sdm_primers(params: dict) -> dict:
                     p.rev_len_min, profile.rev_len_min, DEFAULT_REV_LEN_MIN,
                 )
                 relaxed_tol = min(p.tol_max + _RELAX_TOL_DELTA, _MAX_TOL_MAX)
-                relaxed_fwd_floor = max(_LEN_FLOOR, fwd_floor - _RELAX_LEN_DELTA)
-                relaxed_rev_floor = max(_LEN_FLOOR, rev_floor - _RELAX_LEN_DELTA)
+                # Through _relaxed_floor rather than a second copy of its rule:
+                # the inline version left the function reachable only from its
+                # own test, so the two could drift without anything failing.
+                relaxed_fwd_floor = _relaxed_floor(
+                    p.fwd_len_min, profile.fwd_len_min, DEFAULT_FWD_LEN_MIN,
+                )
+                relaxed_rev_floor = _relaxed_floor(
+                    p.rev_len_min, profile.rev_len_min, DEFAULT_REV_LEN_MIN,
+                )
                 relaxed_gc_min = max(_GC_FLOOR, p.gc_min - _RELAX_GC_DELTA)
                 relaxed_gc_max = min(_GC_CEIL, p.gc_max + _RELAX_GC_DELTA)
                 relax_kw: _RelaxKw = {
