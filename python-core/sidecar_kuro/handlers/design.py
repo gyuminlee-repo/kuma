@@ -337,10 +337,65 @@ def _relaxed_floor(requested: int | None, profile_value: int | None, fallback: i
     The fallback comes from sdm_engine rather than a second copy of the number,
     which is what the kuro-rescue-constants sync group is there to keep honest.
     """
-    resolved = requested if requested is not None else (
+    return max(_LEN_FLOOR, _resolved_floor(requested, profile_value, fallback)
+               - _RELAX_LEN_DELTA)
+
+
+def _resolved_floor(requested: int | None, profile_value: int | None, fallback: int) -> int:
+    """The length floor the main pass used, before the relax pass lowered it.
+
+    Split out of `_relaxed_floor` so the failure message can name where each
+    axis started without resolving the same three levels a second time.
+    """
+    return requested if requested is not None else (
         profile_value if profile_value is not None else fallback
     )
-    return max(_LEN_FLOOR, resolved - _RELAX_LEN_DELTA)
+
+
+def _auto_relax_wall_clause(
+    requested_tol: float,
+    relaxed_tol: float,
+    floors: list[tuple[str, int, int]],
+) -> str:
+    """Say how far the relax pass went and where each axis stops.
+
+    Appended to the engine's own reason, which states the constraint the main
+    pass applied and nothing about the retry. `floors` carries one
+    (side, floor before relaxing, floor after relaxing) triple per side.
+
+    The wording stays non-causal: this layer knows what was retried, not which
+    of Tm, GC, overlap or off-target rejected the retried candidates.
+    """
+    tried = ", ".join(
+        f"{side} {before}->{relaxed} bp" for side, before, relaxed in floors
+    )
+    parts = [
+        f" - auto-relax: retried at tolerance +-{requested_tol:.1f}"
+        f"->+-{relaxed_tol:.1f}C with length floors {tried}, still no pair."
+    ]
+
+    at_floor = [side for side, _before, relaxed in floors if relaxed == _LEN_FLOOR]
+    if at_floor:
+        noun = "floors are" if len(at_floor) > 1 else "floor is"
+        parts.append(
+            f" The {' and '.join(at_floor)} length {noun} at the {_LEN_FLOOR} bp "
+            "minimum that relaxation does not cross."
+        )
+
+    if requested_tol >= _MAX_TOL_MAX:
+        parts.append(
+            f" Tm tolerance was already at its +-{_MAX_TOL_MAX:.1f}C maximum, "
+            "so that axis had no room."
+        )
+    elif relaxed_tol >= _MAX_TOL_MAX:
+        parts.append(
+            f" Tm tolerance is at its +-{_MAX_TOL_MAX:.1f}C maximum."
+        )
+    else:
+        parts.append(
+            f" Tm tolerance can still be raised by hand to +-{_MAX_TOL_MAX:.1f}C."
+        )
+    return "".join(parts)
 
 
 def _build_mutation(mutation_raw: str, sequence: str, target_start: int, organism: str) -> Mutation:
@@ -714,18 +769,27 @@ def handle_design_sdm_primers(params: dict) -> dict:
                 # hotter than the rest of the plate. Two nt of headroom lets
                 # the engine reach the cooler solution, and its own penalty
                 # score decides between the candidates.
+                fwd_floor = _resolved_floor(
+                    p.fwd_len_min, profile.fwd_len_min, DEFAULT_FWD_LEN_MIN,
+                )
+                rev_floor = _resolved_floor(
+                    p.rev_len_min, profile.rev_len_min, DEFAULT_REV_LEN_MIN,
+                )
+                relaxed_tol = min(p.tol_max + _RELAX_TOL_DELTA, _MAX_TOL_MAX)
+                relaxed_fwd_floor = max(_LEN_FLOOR, fwd_floor - _RELAX_LEN_DELTA)
+                relaxed_rev_floor = max(_LEN_FLOOR, rev_floor - _RELAX_LEN_DELTA)
                 relax_kw: _RelaxKw = {
                     **design_kw,
-                    "tol_max": min(p.tol_max + _RELAX_TOL_DELTA, _MAX_TOL_MAX),
+                    "tol_max": relaxed_tol,
                     "gc_min": max(_GC_FLOOR, p.gc_min - _RELAX_GC_DELTA),
                     "gc_max": min(_GC_CEIL, p.gc_max + _RELAX_GC_DELTA),
-                    "fwd_len_min": _relaxed_floor(
-                        p.fwd_len_min, profile.fwd_len_min, DEFAULT_FWD_LEN_MIN,
-                    ),
-                    "rev_len_min": _relaxed_floor(
-                        p.rev_len_min, profile.rev_len_min, DEFAULT_REV_LEN_MIN,
-                    ),
+                    "fwd_len_min": relaxed_fwd_floor,
+                    "rev_len_min": relaxed_rev_floor,
                 }
+                # Only the mutations the relax pass actually designed again
+                # earn the wall clause. A row that never parsed, or one the
+                # rebuild raised on, was never put to the widened settings.
+                relax_evaluated: list[str] = []
                 for failed_mut in list(still_failed):
                     if cancel_event.is_set():
                         return _cancelled_result(results, all_cands)
@@ -754,8 +818,22 @@ def handle_design_sdm_primers(params: dict) -> dict:
                                 "tolerance_used": best.tolerance_used,
                             })
                             del still_failed[failed_mut]
+                        else:
+                            relax_evaluated.append(failed_mut)
                     except (ValueError, IndexError):
                         continue
+
+                wall_clause = _auto_relax_wall_clause(
+                    p.tol_max,
+                    relaxed_tol,
+                    [
+                        ("forward", fwd_floor, relaxed_fwd_floor),
+                        ("reverse", rev_floor, relaxed_rev_floor),
+                    ],
+                )
+                for failed_mut in relax_evaluated:
+                    if failed_mut in still_failed:
+                        still_failed[failed_mut] += wall_clause
 
             engine_failures = still_failed
 
