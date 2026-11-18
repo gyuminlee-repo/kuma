@@ -51,3 +51,39 @@ Check the diagnostics for the forward, reverse and overlap stages to identify th
 ## Mutation count cap exceeded
 
 Raised to 10,000 in v1.33.6. If you hit this, split the run.
+
+## Reporting a problem
+
+When none of the entries above settles it, **Diagnostics** in the menu bar
+writes a diagnostics file to attach. It is more exact than retyping what the
+screen said. The folder it lands in opens afterwards and nothing is sent
+anywhere.
+
+Its `run` section holds the request parameters of the most recent design
+(`target_start`, polymerase, length ranges, Tm targets and `tol_max`, GC range,
+`overlap_mode`, `strict_offtarget`, `auto_relax`), an `outcome`, the success and
+failure counts, and the name and reason of every failure. A reason sentence
+states which stage fell outside which window, so that section alone decides most
+of the entries above. The file also carries the app version and operating
+system, 50 progress messages and any error-boundary record.
+
+Sequences, template paths, project names and the mutations that succeeded stay
+out. A row from the mutation box is carried verbatim only when it has the shape
+of a notation: 32 characters or fewer after trimming, at least one digit, and
+nothing outside the characters a notation uses. A row that fails that test has
+its content dropped from both the label and the reason, leaving `row 7 (61
+characters, content withheld)` with the rest of the reason intact, and the
+bundle also caps the total characters it carries verbatim. The WT codon named by
+a wild-type mismatch stays.
+
+`outcome` is one of `running`, `success`, `failed`, `cancelled`, `interrupted`
+or `null`. A run that died with the sidecar or timed out is kept together with
+the parameters it used, so a failure report can cite it. The error text itself
+stays out, since it can carry a path.
+
+`"status": "no-run-data"` means no design has run in this session, or the inputs
+changed and the previous outputs were discarded. A failed or cancelled run is
+not that case and stays `recorded`. `"request": null` with `"outcome": null`
+means the result was restored from a saved project, which does not store the
+design request. Running the design again under the same settings before writing
+the file fills it in.

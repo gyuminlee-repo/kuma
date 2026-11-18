@@ -227,8 +227,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
   async function handleGenerateDiagnostics() {
     setDiagnosticsGenerating(true);
     try {
-      // mame has no sidecar log buffer — pass empty array
-      const filePath = await generateDiagnosticsBundle([]);
+      const filePath = await generateDiagnosticsBundle();
       if (filePath) {
         await revealInOSFolder(filePath);
       }

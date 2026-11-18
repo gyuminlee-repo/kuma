@@ -961,6 +961,12 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       rescueStats: EMPTY_RESCUE_STATS,
       rescuedMutationDetails: [],
       lastDesignRun: null,
+      // Also covers restoreWorkspace, which calls resetAll before it writes the
+      // restored block. No workspace and no autosave snapshot persists the
+      // design request, so a request still held here belongs to the run that
+      // was on screen before the project was opened, and a diagnostics bundle
+      // would print its parameters next to the restored failures.
+      lastDesignRequest: null,
       structureAccession: "",
       structureLoaded: false,
       structureLoading: false,

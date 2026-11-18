@@ -164,12 +164,7 @@ export function SharedAboutDialog({
     setDiagnosticsGenerating(true);
     setDiagnosticsError(null);
     try {
-      // KURO: defaults to kuro appStore log buffer.
-      // MAME: no sidecar log buffer — pass empty array.
-      const filePath =
-        kind === "mame"
-          ? await generateDiagnosticsBundle([])
-          : await generateDiagnosticsBundle();
+      const filePath = await generateDiagnosticsBundle();
       if (filePath) {
         await revealInOSFolder(filePath);
       }

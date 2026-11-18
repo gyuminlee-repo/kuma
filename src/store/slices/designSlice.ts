@@ -31,6 +31,7 @@ import {
   applyReversePropagation,
   buildIncludedPlateState,
   buildDesignRequestPayload,
+  pickDesignRequestSnapshot,
   buildPrimerLengthBounds,
   EMPTY_RESCUE_STATS,
   prepareDesignInput,
@@ -92,6 +93,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   rescueStats: EMPTY_RESCUE_STATS,
   rescuedMutationDetails: [],
   lastDesignRun: null,
+  lastDesignRequest: null,
 
   loadPolymerases: async () => {
     try {
@@ -346,6 +348,14 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         randomSeed,
         fillOnFailure,
       });
+      const requestSnapshot = pickDesignRequestSnapshot(payload);
+      // Recorded before the call, not only on the success path: a run that the
+      // sidecar never answered (a kill, a 300 s timeout) or that the user
+      // cancelled is exactly when someone sends a diagnostics bundle, and
+      // keying the bundle's run section on a snapshot written at the end made
+      // those read as "no design has run". The reset patch above cleared any
+      // previous one, so this cannot describe an earlier run.
+      set({ lastDesignRequest: requestSnapshot });
       const result = await sendRequest("design_sdm_primers", payload, 300_000);
       if (!ownsRun()) return;
       if (result.cancelled) {
@@ -375,6 +385,17 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         successCount: processed.capped.length,
         totalCount: prepared.intendedMuts.size,
         failedMutations: processed.intendedFailed,
+        // Written again here, in the same set() as failedMutations. The copy
+        // stored before the call is gone if a design input changed during the
+        // run, because that clears the result block (the staleNotice two
+        // statements above commits these results anyway). Reading the store
+        // instead of the payload would pair the failures with whatever the
+        // parameters are at read time, and two more paths make those differ:
+        // cascadeFailedRetry sends the getStageParams values for each relax
+        // stage and never writes them back, and the retired-profile branch of
+        // loadPolymerases rewrites selectedPolymerase with a plain set() that
+        // leaves the results standing.
+        lastDesignRequest: requestSnapshot,
         rescueStats: processed.rescueStats,
         rescuedMutationDetails: processed.rescuedMutationDetails,
         rescuedMutations: processed.rescuedMutations,

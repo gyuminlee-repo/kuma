@@ -16,7 +16,7 @@
  *
  * 초기값 출처: designSlice.ts(backendDesignStateSynced/designResults/successCount/
  * totalCount/failedMutations/manuallySwapped/customCandidates/rescuedMutationDetails),
- * exportSlice.ts(plateMappings/dedupInfo).
+ * exportSlice.ts(plateMappings/dedupInfo), designSlice.ts(lastDesignRequest).
  */
 
 import type { AppState } from "@/store/types";
@@ -43,6 +43,11 @@ export function buildKuroResultResetPatch(): Partial<AppState> {
     // this module keeps the "no store import" invariant above. The two are
     // pinned together by kuroResultReset.test.ts.
     rescueStats: { pool_cascade: 0, auto_relax: 0, positions_attempted: 0, pool_variants_tried: 0 },
+    // The request snapshot describes the run that produced designResults and
+    // failedMutations, so it dies with them. A stale snapshot next to a cleared
+    // table would make a diagnostics bundle report parameters for a run whose
+    // failures are no longer there.
+    lastDesignRequest: null,
     backendDesignStateSynced: false,
   };
 }
