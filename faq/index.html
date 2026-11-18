@@ -1153,6 +1153,34 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#reporting-a-problem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reporting a problem
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Reporting a problem">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#something-failed-and-the-message-on-screen-is-not-enough-to-tell-why" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Something failed and the message on screen is not enough to tell why
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1226,6 +1254,33 @@
 <p>A confirmation mean differs notably from the primary value of the same variant, which can mean a label swap. Check the plate layout and the verdict labels. If they're right, tick <strong>Allow reviewed label mismatch</strong> and build again. See <a href="../mame-04-activity/">Step 4. Activity Data</a>.</p>
 <h3 id="why-are-some-variants-missing-from-the-evolvepro-file">Why are some variants missing from the EVOLVEpro file?<a class="headerlink" href="#why-are-some-variants-missing-from-the-evolvepro-file" title="Permanent link">&para;</a></h3>
 <p>Only variants with an explicit Pass verdict, no failure or fallback replicate mark and no conflict between duplicate rows are written. The build result reports how many were excluded by the NGS verdict. If none pass, the build fails instead of writing an empty file.</p>
+<h2 id="reporting-a-problem">Reporting a problem<a class="headerlink" href="#reporting-a-problem" title="Permanent link">&para;</a></h2>
+<h3 id="something-failed-and-the-message-on-screen-is-not-enough-to-tell-why">Something failed and the message on screen is not enough to tell why<a class="headerlink" href="#something-failed-and-the-message-on-screen-is-not-enough-to-tell-why" title="Permanent link">&para;</a></h3>
+<p><strong>Diagnostics</strong> in the menu bar writes a diagnostics file and opens the folder
+it landed in. Attaching that file to an email lets whoever reads it see which
+settings produced which failure, which is more exact than retyping what the
+screen said and saves a round of questions. The app sends nothing anywhere;
+attaching the file is your own step.</p>
+<p>The file carries the app version and operating system, the last 50 progress
+messages, any record of the screen having crashed, and the settings and failure
+list of the most recent design run. The settings are the polymerase, the primer
+length ranges, the Tm targets and tolerance, the GC range and the overlap mode.
+Each failure appears with its mutation name and its reason sentence, verbatim.</p>
+<p>Sequences, template file paths, project names and the list of mutations that
+succeeded stay out. A row typed into the mutation box is carried over only when
+it looks like a mutation notation, meaning short, containing a digit and built
+from the characters a notation uses. <code>K182N</code> qualifies and so does a typo such
+as <code>K182</code>, while a sequence line or a FASTA header pasted there by mistake has
+its content dropped entirely and appears as <code>row 7 (61 characters, content
+withheld)</code>. The rest of the reason stays, so what went wrong is still readable.
+A wild-type mismatch names the three bases at that position.</p>
+<p>A design that failed or was cancelled is recorded too. Its <code>outcome</code> reads
+<code>success</code>, <code>failed</code>, <code>cancelled</code> or <code>interrupted</code>, and the settings it ran under
+are kept beside it. The error text itself stays out, since it can carry a file
+path.</p>
+<p>A result restored from a saved project has the settings slot empty, because a
+project file does not store the design request. Running the design once more
+under the same settings and then writing the file fills it in.</p>
 <p>→ <a href="../kuro-index/">KURO overview</a> | <a href="../mame-index/">MAME overview</a></p>
 
 
