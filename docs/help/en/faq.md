@@ -83,4 +83,32 @@ A confirmation mean differs notably from the primary value of the same variant, 
 
 Only variants with an explicit Pass verdict, no failure or fallback replicate mark and no conflict between duplicate rows are written. The build result reports how many were excluded by the NGS verdict. If none pass, the build fails instead of writing an empty file.
 
+## Reporting a problem
+
+### Something failed and the message on screen is not enough to tell why
+
+**Diagnostics** in the menu bar writes a diagnostics file and opens the folder
+it landed in. Attaching that file to an email lets whoever reads it see which
+settings produced which failure, which is more exact than retyping what the
+screen said and saves a round of questions. The app sends nothing anywhere;
+attaching the file is your own step.
+
+The file carries the app version and operating system, the last 50 progress
+messages, any record of the screen having crashed, and the settings and failure
+list of the most recent design run. The settings are the polymerase, the primer
+length ranges, the Tm targets and tolerance, the GC range and the overlap mode.
+Each failure appears with its mutation name and its reason sentence, verbatim.
+
+Sequences, template file paths, project names and the list of mutations that
+succeeded stay out. Two traces do survive. A row whose mutation notation could
+not be read is quoted back in its own reason, so a sequence pasted into the
+mutation box by mistake leaves its opening characters there, and a wild-type
+mismatch names the three bases at that position. Both are cut at a length limit
+and the file says that it cut them. Opening the file before sending it settles
+any doubt.
+
+A result restored from a saved project has the settings slot empty, because a
+project file does not store the design request. Running the design once more
+under the same settings and then writing the file fills it in.
+
 → [KURO overview](kuro-index.md) | [MAME overview](mame-index.md)

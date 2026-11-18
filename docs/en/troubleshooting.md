@@ -51,3 +51,28 @@ Check the diagnostics for the forward, reverse and overlap stages to identify th
 ## Mutation count cap exceeded
 
 Raised to 10,000 in v1.33.6. If you hit this, split the run.
+
+## Reporting a problem
+
+When none of the entries above settles it, **Diagnostics** in the menu bar
+writes a diagnostics file to attach. It is more exact than retyping what the
+screen said. The folder it lands in opens afterwards and nothing is sent
+anywhere.
+
+Its `run` section holds the request parameters of the most recent design
+(polymerase, length ranges, Tm targets and `tol_max`, GC range, `overlap_mode`,
+`strict_offtarget`, `auto_relax`), the success and failure counts, and the name
+and reason of every failure. A reason sentence states which stage fell outside
+which window, so that section alone decides most of the entries above. The file
+also carries the app version and operating system, 50 progress messages and any
+error-boundary record.
+
+Sequences, template paths, project names and the mutations that succeeded stay
+out. A mutation-notation parse failure quotes its own row and a wild-type
+mismatch names the WT codon, so those two survive; the label and the reason are
+both cut at a length limit, and a cut says so in the value.
+
+`"status": "no-run-data"` means no design has run, or the inputs changed and the
+previous outputs were discarded. `"request": null` means the result was restored
+from a saved project, which does not store the design request. Running the
+design again under the same settings before writing the file fills it in.
