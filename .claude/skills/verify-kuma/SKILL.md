@@ -17,9 +17,15 @@ WB=$HOME/.claude/skills/win-build/scripts/win-build.sh                  # WSL �
 
 ## 0. 환경 제약 (이 머신)
 
-- 저장소는 Windows 대상이다. WSL2 에서 `npm`, `pnpm`, `npx` 설치성 명령을 돌리지 않는다. node, vite, playwright 는 전부 Windows 쪽에서 돈다. 공유 `node_modules` 는 Windows 설치본이라 WSL node 로는 esbuild 네이티브 바이너리를 못 부른다(`AGENTS.md` 「프런트엔드 테스트를 WSL 에서 돌리는 법」).
-- WSL 에서 Windows 도구는 `$WB <tool> <args> --cwd <체크아웃>` 로 부른다. 이 래퍼는 WSL 환경변수를 넘기지 않으므로 변수는 `WSLENV` 로 넘긴다(아래 Launch A).
-- 워크트리는 자체 `node_modules` 가 필요하다. 처음 한 번 `$WB pnpm install --frozen-lockfile --cwd "$ROOT"` 를 돌린다. main 의 의존성이 바뀐 뒤에는 다시 돌린다. 2026-09-25 실측으로 새 워크트리 설치에 12분 34초가 걸렸다. 길게 걸리므로 백그라운드로 돌린다.
+- **node 쪽 명령을 어떻게 부를지는 체크아웃이 어디 있는지로 갈린다. `pwd` 로 먼저 확인한다.** 두 경우의 정본은 `AGENTS.md` 「프런트엔드 테스트를 WSL 에서 돌리는 법」이고 아래는 그 요약이다.
+- **`/mnt/<drive>/...` 체크아웃.** WSL2 에서 `npm`, `pnpm`, `npx` 설치성 명령을 돌리지 않는다. 공유 `node_modules` 가 Windows 설치본이라 WSL node 로는 esbuild 네이티브 바이너리를 못 부른다. Windows 도구는 `$WB <tool> <args> --cwd <체크아웃>` 로 부르고, 이 래퍼가 WSL 환경변수를 넘기지 않으므로 변수는 `WSLENV` 로 넘긴다(아래 Launch A). 워크트리는 자체 `node_modules` 가 필요해 처음 한 번 `$WB pnpm install --frozen-lockfile --cwd "$ROOT"` 를 돌린다. 2026-09-25 실측으로 12분 34초가 걸리므로 백그라운드로 돌린다.
+- **`/home/...`(WSL ext4) 체크아웃.** `$WB` 를 쓸 수 없다. `win-build.sh` 는 `--cwd` 가 `/mnt/<drive>` 아래가 아니면 `[win-build] cwd: not under /mnt/<drive>` 를 내고 exit 1 한다. 이 경우 main checkout 의 `node_modules` 는 WSL 에서 설치한 것이라 esbuild 가 그대로 돈다. 워크트리에는 설치하지 말고 main checkout 의 vitest 를 `--root` 로 겨눈다.
+
+  ```bash
+  node <main checkout>/node_modules/vitest/vitest.mjs run --root "$ROOT" --silent --reporter=dot
+  ```
+
+  `tsc` 도 같은 방식으로 main checkout 의 것을 쓴다. 이 절의 Launch 와 Drive 에 나오는 `$WB ...` 명령은 전부 이 경우에 해당하지 않으므로 그대로 복사하지 마라.
 - `/mnt/d` 공유 폴더의 파일 감시는 믿지 않는다. dev 서버에 코드 변경이 반영됐다고 가정하지 말고 서버를 새로 띄운다(Vite 는 `--force` 로 의존성 캐시까지 버린다). MOCK_MODE 빌드(Launch A)는 매번 새로 빌드하므로 이 문제가 없다.
 - 실제 GUI 조작은 Windows Playwright 의 Edge 로 한다. `tests/mame/e2e/playwright.config.ts:23-25` 가 `MAME_E2E_CHROMIUM` 을 `executablePath` 로 넘기므로 Edge 실행 파일 경로를 거기에 준다. `playwright install` 은 필요 없다.
 
