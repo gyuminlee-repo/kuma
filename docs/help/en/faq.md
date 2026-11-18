@@ -100,12 +100,18 @@ length ranges, the Tm targets and tolerance, the GC range and the overlap mode.
 Each failure appears with its mutation name and its reason sentence, verbatim.
 
 Sequences, template file paths, project names and the list of mutations that
-succeeded stay out. Two traces do survive. A row whose mutation notation could
-not be read is quoted back in its own reason, so a sequence pasted into the
-mutation box by mistake leaves its opening characters there, and a wild-type
-mismatch names the three bases at that position. Both are cut at a length limit
-and the file says that it cut them. Opening the file before sending it settles
-any doubt.
+succeeded stay out. A row typed into the mutation box is carried over only when
+it looks like a mutation notation, meaning short, containing a digit and built
+from the characters a notation uses. `K182N` qualifies and so does a typo such
+as `K182`, while a sequence line or a FASTA header pasted there by mistake has
+its content dropped entirely and appears as `row 7 (61 characters, content
+withheld)`. The rest of the reason stays, so what went wrong is still readable.
+A wild-type mismatch names the three bases at that position.
+
+A design that failed or was cancelled is recorded too. Its `outcome` reads
+`success`, `failed`, `cancelled` or `interrupted`, and the settings it ran under
+are kept beside it. The error text itself stays out, since it can carry a file
+path.
 
 A result restored from a saved project has the settings slot empty, because a
 project file does not store the design request. Running the design once more
