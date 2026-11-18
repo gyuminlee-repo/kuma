@@ -705,6 +705,45 @@ export interface DesignRunRecord {
   detail: string | null;
 }
 
+/**
+ * The design-request values a run was actually launched with, kept so a
+ * diagnostics bundle can state what produced the failures it reports.
+ *
+ * Snake_case because these are the wire field names of `design_sdm_primers`:
+ * the snapshot is an allowlisted pick from the payload that was sent, not a
+ * re-read of the store. Two store readings would be wrong rather than merely
+ * redundant: `buildPrimerLengthBounds` drops the length keys when the primer
+ * length box is unchecked and mirrors the forward range onto the reverse one
+ * in full overlap, and `auto_relax` is the fill-on-failure checkbox ANDed with
+ * "not strict spatial mode" inside runDesign.
+ *
+ * `fasta_path` and `mutations_csv_or_text` are deliberately absent; see the
+ * anonymisation policy in lib/diagnostics.ts.
+ *
+ * Unlike DesignRunRecord above, this IS cleared by buildKuroResultResetPatch,
+ * so it can only ever be read next to the failure list of the same run.
+ */
+export interface KuroDesignRequestSnapshot {
+  polymerase: string;
+  codon_strategy: "closest" | "optimal";
+  organism: string;
+  tm_fwd_target: number;
+  tm_rev_target: number;
+  tm_overlap_target: number;
+  tol_max: number;
+  gc_min: number;
+  gc_max: number;
+  /** Absent when the primer-length box is unchecked; the engine then uses the polymerase profile. */
+  fwd_len_min: number | null;
+  fwd_len_max: number | null;
+  rev_len_min: number | null;
+  rev_len_max: number | null;
+  overlap_mode: OverlapMode;
+  strict_offtarget: boolean;
+  auto_relax: boolean;
+  seed: number | null;
+}
+
 export interface DesignResult {
   results: SdmPrimerResult[];
   success_count: number;

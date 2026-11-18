@@ -773,6 +773,12 @@ export async function applyKuroSnapshot(
     // (kuroSnapshot.ts 의 results 리터럴). 셋을 각각 판정하면 표는 살아 있는데
     // 카운트만 0인, 앱이 만들어 내지 못하는 상태가 나온다. 판정은 쓰는 쪽 옆에
     // 두고 여기서는 결과만 받는다.
+    // No snapshot persists the design request, so results arriving from disk
+    // have no parameters behind them. Null rather than left alone: this store
+    // may still hold the request of a run made before the project was opened,
+    // and the diagnostics bundle would then print those parameters next to
+    // these failures (lib/diagnostics.ts, buildDiagnosticsRun).
+    patch.lastDesignRequest = null;
     const designOutcome = readKuroDesignOutcome(results);
     if (designOutcome.ok) {
       patch.designResults = designOutcome.value.designResults;

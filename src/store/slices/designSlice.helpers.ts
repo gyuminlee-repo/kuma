@@ -1,6 +1,7 @@
 import type {
   DesignResult,
   FailedMutation,
+  KuroDesignRequestSnapshot,
   OverlapMode,
   PlateMapping,
   RescueStats,
@@ -43,6 +44,7 @@ interface DesignRequestPayload extends Record<string, unknown> {
   rev_len_max?: number;
   overlap_mode: OverlapMode;
   strict_offtarget: boolean;
+  tol_max: number;
   rescue_pool?: string[];
   auto_relax: boolean;
   seed?: number;
@@ -319,6 +321,41 @@ export function buildDesignRequestPayload(params: {
     tol_max: tolMax,
     auto_relax: fillOnFailure,
     ...(randomSeed !== null && { seed: randomSeed }),
+  };
+}
+
+/**
+ * Allowlisted pick of the payload a design run was launched with.
+ *
+ * Explicit field-by-field, never a spread: the payload also carries
+ * `fasta_path` and `mutations_csv_or_text`, which the diagnostics
+ * anonymisation policy (lib/diagnostics.ts) keeps out of the bundle. A spread
+ * would leak both the moment either field is renamed.
+ *
+ * The optional length keys become null rather than vanishing, so a reader can
+ * tell "the box was unchecked" from "this build did not record it".
+ */
+export function pickDesignRequestSnapshot(
+  payload: DesignRequestPayload,
+): KuroDesignRequestSnapshot {
+  return {
+    polymerase: payload.polymerase,
+    codon_strategy: payload.codon_strategy,
+    organism: payload.organism,
+    tm_fwd_target: payload.tm_fwd_target,
+    tm_rev_target: payload.tm_rev_target,
+    tm_overlap_target: payload.tm_overlap_target,
+    tol_max: payload.tol_max,
+    gc_min: payload.gc_min,
+    gc_max: payload.gc_max,
+    fwd_len_min: payload.fwd_len_min ?? null,
+    fwd_len_max: payload.fwd_len_max ?? null,
+    rev_len_min: payload.rev_len_min ?? null,
+    rev_len_max: payload.rev_len_max ?? null,
+    overlap_mode: payload.overlap_mode,
+    strict_offtarget: payload.strict_offtarget,
+    auto_relax: payload.auto_relax,
+    seed: payload.seed ?? null,
   };
 }
 

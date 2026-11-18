@@ -31,6 +31,7 @@ import {
   applyReversePropagation,
   buildIncludedPlateState,
   buildDesignRequestPayload,
+  pickDesignRequestSnapshot,
   buildPrimerLengthBounds,
   EMPTY_RESCUE_STATS,
   prepareDesignInput,
@@ -92,6 +93,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   rescueStats: EMPTY_RESCUE_STATS,
   rescuedMutationDetails: [],
   lastDesignRun: null,
+  lastDesignRequest: null,
 
   loadPolymerases: async () => {
     try {
@@ -375,6 +377,16 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         successCount: processed.capped.length,
         totalCount: prepared.intendedMuts.size,
         failedMutations: processed.intendedFailed,
+        // Written in the same set() as failedMutations, from the payload that
+        // was actually sent. Reading the store instead would pair the failures
+        // with whatever the parameters are at read time, and three paths make
+        // those differ: an input edited mid-run still commits these results
+        // (the staleNotice two statements above), cascadeFailedRetry sends
+        // the getStageParams values for each relax stage and never writes them
+        // back, and the retired-profile branch of loadPolymerases rewrites
+        // selectedPolymerase with a plain set() that leaves the results
+        // standing.
+        lastDesignRequest: pickDesignRequestSnapshot(payload),
         rescueStats: processed.rescueStats,
         rescuedMutationDetails: processed.rescuedMutationDetails,
         rescuedMutations: processed.rescuedMutations,

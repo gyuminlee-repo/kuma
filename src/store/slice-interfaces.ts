@@ -20,6 +20,7 @@ import type {
   ComputeCodonTableResult,
   ComputeDispersionResult,
   DesignRunRecord,
+  KuroDesignRequestSnapshot,
   DistanceMode,
   DomainInfo,
   DomainOverlapPolicy,
@@ -385,6 +386,14 @@ export interface DesignSlice {
    * design ever ran. Session-scoped, never persisted.
    */
   lastDesignRun: DesignRunRecord | null;
+  /**
+   * The design-request values the run behind `failedMutations` was launched
+   * with. Unlike `lastDesignRun` this is cleared by buildKuroResultResetPatch,
+   * which is what lets a diagnostics bundle state parameters and failures
+   * together without them drifting apart (buildKuroResultResetPatch).
+   * Session-scoped, never persisted.
+   */
+  lastDesignRequest: KuroDesignRequestSnapshot | null;
   /** @deprecated Phase C (v0.9.2): popup auto-mount removed. Report now renders
    * inline via DesignReportInspector. Slice retained for legacy Dialog wrapper
    * (DesignReport.tsx) in case manual entry is reintroduced. Do not persist. */
