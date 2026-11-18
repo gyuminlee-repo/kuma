@@ -52,6 +52,7 @@ const REAL_FAILURE_REASON =
   "No valid primer pair - reverse: closest Tm 71.1C at 19 bp, outside 58+-4.0C (length 19-27 bp)";
 
 const request: KuroDesignRequestSnapshot = {
+  target_start: 267,
   polymerase: "Q5",
   codon_strategy: "closest",
   organism: "ecoli",
@@ -73,6 +74,23 @@ const request: KuroDesignRequestSnapshot = {
 
 const failure: FailedMutation = { mutation: "K182N", rank: 7, reason: REAL_FAILURE_REASON };
 
+/** The run-source fields every buildDiagnosticsRun case shares. */
+function source(
+  overrides: Partial<Parameters<typeof buildDiagnosticsRun>[0]> = {},
+): Parameters<typeof buildDiagnosticsRun>[0] {
+  return {
+    lastDesignRequest: null,
+    designResults: [],
+    totalCount: 0,
+    failedMutations: [],
+    rescueStats: EMPTY_RESCUE_STATS,
+    rescuedMutationDetails: [],
+    isDesigning: false,
+    lastDesignRun: null,
+    ...overrides,
+  };
+}
+
 /** Every key the bundle may carry about the request, and no other. */
 const REQUEST_KEYS = [
   "auto_relax",
@@ -88,6 +106,7 @@ const REQUEST_KEYS = [
   "rev_len_min",
   "seed",
   "strict_offtarget",
+  "target_start",
   "tm_fwd_target",
   "tm_overlap_target",
   "tm_rev_target",
@@ -183,62 +202,93 @@ function seedFailedRun(): void {
 
 describe("buildDiagnosticsRun", () => {
   it("reports no run data before any design", () => {
-    expect(buildDiagnosticsRun({
-      lastDesignRequest: null,
-      designResults: [],
-      totalCount: 0,
-      failedMutations: [],
-      rescueStats: EMPTY_RESCUE_STATS,
-      rescuedMutationDetails: [],
-    })).toEqual({ status: "no-run-data" });
+    expect(buildDiagnosticsRun(source())).toEqual({ status: "no-run-data" });
   });
 
-  it("caps an unparsable label and says it cut it", () => {
-    const pasted = "A".repeat(200);
-    const run = buildDiagnosticsRun({
+  it("withholds a row that does not look like a mutation notation", () => {
+    const pasted = "ATGCGTACCGGTAAACTGATCGATCAGGCATCGTTAACCGGTT";
+    const run = buildDiagnosticsRun(source({
       lastDesignRequest: request,
-      designResults: [],
       totalCount: 1,
-      failedMutations: [{ mutation: pasted, rank: 1, reason: "unparsable" }],
-      rescueStats: EMPTY_RESCUE_STATS,
-      rescuedMutationDetails: [],
-    });
+      failedMutations: [{
+        mutation: pasted,
+        rank: 1,
+        reason: `Invalid mutation notation: '${pasted}'. Expected format: Q232A`,
+      }],
+    }));
     expect(run.status).toBe("recorded");
     if (run.status !== "recorded") return;
-    expect(run.failures[0].mutation).toBe(
-      `${"A".repeat(64)} [truncated, 200 characters total]`,
-    );
-    expect(run.failures[0].mutation).not.toContain(pasted);
+    expect(run.failures[0].mutation).toBe("row 1 (43 characters, content withheld)");
+    // Removed from the reason too: capping one field while the other quotes the
+    // same row back is what let a pasted gene through line by line.
+    expect(run.failures[0].reason).not.toContain(pasted);
+    expect(run.failures[0].reason).toContain("Expected format: Q232A");
+  });
+
+  it("quotes a row that is a mutation notation, including a typo", () => {
+    const run = buildDiagnosticsRun(source({
+      lastDesignRequest: request,
+      totalCount: 2,
+      failedMutations: [
+        { mutation: "K182N", rank: 1, reason: REAL_FAILURE_REASON },
+        { mutation: " K182X/ ", rank: 2, reason: "Invalid mutation notation: 'K182X/'." },
+      ],
+    }));
+    expect(run.status).toBe("recorded");
+    if (run.status !== "recorded") return;
+    expect(run.failures.map((f) => f.mutation)).toEqual(["K182N", "K182X/"]);
+    expect(run.failures[1].reason).toBe("Invalid mutation notation: 'K182X/'.");
+  });
+
+  it("stops quoting once the whole-bundle budget is spent", () => {
+    // Rows that pass isQuotableRow but are long enough to matter. Ninety-five
+    // short labels in the test above cost nothing, which is the point: the
+    // budget bites on the shape that could reconstruct something.
+    const long = `${"AC1GT".repeat(5)}XY`;
+    expect(long).toHaveLength(27);
+    const run = buildDiagnosticsRun(source({
+      lastDesignRequest: request,
+      totalCount: 60,
+      failedMutations: Array.from({ length: 60 }, (_, i) => ({
+        mutation: long,
+        rank: i + 1,
+        reason: `Invalid mutation notation: '${long}'.`,
+      })),
+    }));
+    expect(run.status).toBe("recorded");
+    if (run.status !== "recorded") return;
+    const quoted = run.failures.filter((f) => f.mutation === long);
+    expect(quoted).toHaveLength(Math.floor(1024 / 27));
+    // Every failure is still reported, the tail without its content.
+    expect(run.failures).toHaveLength(60);
+    expect(run.failures[59].mutation).toBe("row 60 (27 characters, content withheld)");
+    expect(run.failures[59].reason).not.toContain(long);
   });
 
   it("leaves a long but legitimate reason alone", () => {
-    // 884 is the measured worst case; see MAX_FAILURE_REASON in diagnostics.ts.
-    const longReason = `${REAL_FAILURE_REASON} ${"x".repeat(1200 - REAL_FAILURE_REASON.length - 1)}`;
-    expect(longReason).toHaveLength(1200);
-    const run = buildDiagnosticsRun({
+    // 980 is the measured worst case; see MAX_FAILURE_REASON in diagnostics.ts.
+    const longReason = `${REAL_FAILURE_REASON} ${"x".repeat(1500 - REAL_FAILURE_REASON.length - 1)}`;
+    expect(longReason).toHaveLength(1500);
+    const run = buildDiagnosticsRun(source({
       lastDesignRequest: request,
-      designResults: [],
       totalCount: 1,
       failedMutations: [{ mutation: "K182N", rank: 1, reason: longReason }],
-      rescueStats: EMPTY_RESCUE_STATS,
-      rescuedMutationDetails: [],
-    });
+    }));
     expect(run.status).toBe("recorded");
     if (run.status !== "recorded") return;
     expect(run.failures[0].reason).toBe(longReason);
   });
 
   it("reports a rescue as a count, never as labels", () => {
-    const run = buildDiagnosticsRun({
+    const run = buildDiagnosticsRun(source({
       lastDesignRequest: request,
       designResults: [successResult(), successResult()],
       totalCount: 2,
-      failedMutations: [],
       rescueStats: { pool_cascade: 1, auto_relax: 0, positions_attempted: 1, pool_variants_tried: 3 },
       rescuedMutationDetails: [
         { original: "K182N", rescued_by: SECRET.successLabel, type: "same_position" },
       ],
-    });
+    }));
     expect(run.status).toBe("recorded");
     if (run.status !== "recorded") return;
     expect(run.rescue.rescuedCount).toBe(1);

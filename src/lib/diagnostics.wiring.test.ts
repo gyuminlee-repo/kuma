@@ -152,6 +152,7 @@ describe("a real design run fills the run section", () => {
     if (bundle.run.status !== "recorded") return;
     // Not hand-seeded: designPrimers built this from the payload it sent.
     expect(bundle.run.request).toEqual({
+      target_start: 267,
       polymerase: "Q5",
       codon_strategy: "closest",
       organism: "ecoli",
@@ -353,31 +354,50 @@ describe("restoring results clears the request", () => {
 });
 
 /**
- * The paste. An operator who drops a FASTA line into the mutation box gets a
- * parse failure whose label IS that line (design_sdm_primers_batch keys
- * parse_failures by the raw row) and whose reason quotes it back
- * (kuma_core/kuro/mutation.py, resolve_mutation_row). Capping the label alone
- * let the sequence through the reason, so both are capped and the test seeds
- * the paste rather than assuming it never happens.
+ * The paste, as it actually arrives.
+ *
+ * prepareDesignInput splits the mutation box on newlines before the request is
+ * built (designSlice.helpers.ts), so a FASTA pasted there becomes one failure
+ * per line and each line gets its own parse failure. A per-field cap bounds
+ * each of those separately and bounds nothing in total: seventeen 64-character
+ * labels put the gene back together between them. The first version of this
+ * file tested one 1,980-character line, which is not a shape the frontend
+ * produces, and missed exactly that.
  */
-describe("a sequence pasted into the mutation box does not arrive whole", () => {
-  const PASTED = "ATGCGTACCGGTAAACTGATCGATCAGGCATCGTTAACCGGTT".repeat(40);
+describe("a FASTA pasted into the mutation box does not reach the bundle", () => {
+  const HEADER = ">dmpR_fragment_clone";
+  const LINES = [
+    "ATGCGTACCGGTAAACTGATCGATCAGGCATCGTTAACCGGTTATGCGTACCGGTAAACTG",
+    "ATCGATCAGGCATCGTTAACCGGTTATGCGTACCGGTAAACTGATCGATCAGGCATCGTTA",
+    "ACCGGTTATGCGTACCGGTAAACTGATCGATCAGGCATCGTTAACCGGTTATGCGTACCGG",
+    "TAAACTGATCGATCAGGCATCGTTAACCGGTTATGCGTACCGGTAAACTGATCGATCAGGC",
+  ];
 
-  it("caps the label and the reason, and says it cut each", async () => {
+  /** Every 20-mer of the pasted sequence, which is what reassembly would show. */
+  function twentyMers(lines: string[]): string[] {
+    const joined = lines.join("");
+    const mers: string[] = [];
+    for (let i = 0; i + 20 <= joined.length; i += 1) mers.push(joined.slice(i, i + 20));
+    return mers;
+  }
+
+  function parseFailures(rows: string[]) {
+    return rows.map((raw, i) => ({
+      mutation: raw,
+      rank: i + 1,
+      // The message resolve_mutation_row raises, verbatim in shape.
+      reason: `Invalid mutation notation: '${raw}'. Expected format: Q232A`,
+    }));
+  }
+
+  async function bundleForPaste(rows: string[]): Promise<string> {
     mocks.sendRequest.mockImplementation(async (method: string) => {
       if (method === "design_sdm_primers") {
         return {
           results: [],
           success_count: 0,
-          total_count: 1,
-          failed_mutations: [
-            {
-              mutation: PASTED,
-              rank: 1,
-              // Verbatim shape of the message resolve_mutation_row raises.
-              reason: `Invalid mutation notation: '${PASTED}'. Expected format: Q232A`,
-            },
-          ],
+          total_count: rows.length,
+          failed_mutations: parseFailures(rows),
           rescue_stats: {
             pool_cascade: 0,
             auto_relax: 0,
@@ -389,23 +409,96 @@ describe("a sequence pasted into the mutation box does not arrive whole", () => 
       }
       throw new Error(`unexpected method ${method}`);
     });
-
-    useAppStore.setState({ mutationText: PASTED } as never);
+    useAppStore.setState({ mutationText: rows.join("\n") } as never);
     await useAppStore.getState().designPrimers();
     await generateDiagnosticsBundle();
-    const written = mocks.writeTextFile.mock.calls[0][1] as string;
+    return mocks.writeTextFile.mock.calls[0][1] as string;
+  }
+
+  it("carries no 20-mer of the sequence and no FASTA header", async () => {
+    const rows = [HEADER, ...LINES];
+    const written = await bundleForPaste(rows);
     const bundle = JSON.parse(written) as DiagnosticsBundle;
 
     expect(bundle.run.status).toBe("recorded");
     if (bundle.run.status !== "recorded") return;
-    const failure = bundle.run.failures[0];
-    expect(failure.mutation).toMatch(/ \[truncated, \d+ characters total\]$/);
-    expect(failure.reason).toMatch(/ \[truncated, \d+ characters total\]$/);
-    // The cut is where the constants say, not wherever the paste happened to end.
-    expect(failure.mutation.indexOf(" [truncated,")).toBe(64);
-    expect(failure.reason.indexOf(" [truncated,")).toBe(1200);
-    // Neither field, nor the file as a whole, carries the paste in full.
-    expect(written).not.toContain(PASTED);
-    expect(PASTED.length).toBeGreaterThan(1200);
+    expect(bundle.run.failures).toHaveLength(rows.length);
+    for (const mer of twentyMers(LINES)) {
+      expect(written, `${mer} reached the bundle`).not.toContain(mer);
+    }
+    expect(written).not.toContain(HEADER);
+    expect(written).not.toContain("dmpR_fragment_clone");
+    // Reported, not dropped: the operator still learns which rows failed.
+    expect(bundle.run.failures[0].mutation).toBe("row 1 (20 characters, content withheld)");
+    expect(bundle.run.failures[1].mutation).toBe("row 2 (61 characters, content withheld)");
+    expect(bundle.run.failures[1].reason).toContain("Expected format: Q232A");
+  });
+
+  it("holds at the length of a whole gene, not just a few lines", async () => {
+    // 21 lines of 61 bases, about the 1.28 kb CDS this project works with.
+    const long = Array.from({ length: 21 }, (_, i) => LINES[i % LINES.length]);
+    const written = await bundleForPaste([HEADER, ...long]);
+    for (const mer of twentyMers(long)) {
+      expect(written, `${mer} reached the bundle`).not.toContain(mer);
+    }
+    expect(written).not.toContain(HEADER);
+  });
+});
+
+/**
+ * The run that most needs a bundle sent. The request snapshot used to be
+ * written only on the success path, and the reset patch at the top of a run
+ * clears the previous one, so a design the sidecar never answered produced
+ * `{"status":"no-run-data"}` while the screen said "Design failed".
+ */
+describe("a run that did not finish still reports itself", () => {
+  async function bundleAfter(design: () => Promise<unknown>): Promise<DiagnosticsBundle> {
+    mocks.sendRequest.mockImplementation(async (method: string) => {
+      if (method === "design_sdm_primers") return design();
+      throw new Error(`unexpected method ${method}`);
+    });
+    await useAppStore.getState().designPrimers();
+    await generateDiagnosticsBundle();
+    return JSON.parse(mocks.writeTextFile.mock.calls[0][1] as string) as DiagnosticsBundle;
+  }
+
+  it("reports the parameters of a run the sidecar never answered", async () => {
+    const bundle = await bundleAfter(() => {
+      throw new Error("timed out after 300000 ms");
+    });
+    expect(bundle.run.status).toBe("recorded");
+    if (bundle.run.status !== "recorded") return;
+    expect(bundle.run.outcome).toBe("failed");
+    expect(bundle.run.request?.polymerase).toBe("Q5");
+    expect(bundle.run.summary).toEqual({ total: 0, success: 0, failed: 0 });
+    // The error text is not carried: formatError passes the sidecar message
+    // through and that can quote a path.
+    expect(JSON.stringify(bundle.run)).not.toContain("timed out");
+  });
+
+  it("separates a sidecar restart from an ordinary failure", async () => {
+    const bundle = await bundleAfter(() => {
+      throw new Error("Sidecar killed during request");
+    });
+    expect(bundle.run.status).toBe("recorded");
+    if (bundle.run.status !== "recorded") return;
+    expect(bundle.run.outcome).toBe("interrupted");
+    expect(bundle.run.request).not.toBeNull();
+  });
+
+  it("reports a cancelled run as cancelled rather than as no run", async () => {
+    const bundle = await bundleAfter(async () => ({ cancelled: true }));
+    expect(bundle.run.status).toBe("recorded");
+    if (bundle.run.status !== "recorded") return;
+    expect(bundle.run.outcome).toBe("cancelled");
+    expect(bundle.run.request).not.toBeNull();
+  });
+
+  it("still says no-run-data when nothing has been designed", async () => {
+    await generateDiagnosticsBundle();
+    const bundle = JSON.parse(
+      mocks.writeTextFile.mock.calls[0][1] as string,
+    ) as DiagnosticsBundle;
+    expect(bundle.run).toEqual({ status: "no-run-data" });
   });
 });

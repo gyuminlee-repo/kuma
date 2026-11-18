@@ -724,6 +724,12 @@ export interface DesignRunRecord {
  * so it can only ever be read next to the failure list of the same run.
  */
 export interface KuroDesignRequestSnapshot {
+  /**
+   * CDS offset the residue numbering is counted from. An integer, and the only
+   * way a reader can place the three-base wild-type codon a WT-mismatch reason
+   * names onto the template.
+   */
+  target_start: number;
   polymerase: string;
   codon_strategy: "closest" | "optimal";
   organism: string;

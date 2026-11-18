@@ -10,9 +10,11 @@
 
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
-import { getCrashLog } from "./crashLog";
+import { getCrashLog, type CrashEntry } from "./crashLog";
 import { useAppStore } from "@/store/appStore";
 import type {
+  DesignRunOutcome,
+  DesignRunRecord,
   FailedMutation,
   KuroDesignRequestSnapshot,
   RescueStats,
@@ -33,25 +35,29 @@ export interface DiagnosticsMeta {
 /** One failed mutation, as the sidecar reported it. */
 export interface DiagnosticsFailure {
   /**
-   * The mutation label, e.g. `K182N`. For a line the parser could not read at
-   * all this is that raw input line, because design_sdm_primers_batch keys its
-   * parse_failures by the raw row, so it is truncated to MAX_FAILURE_LABEL
-   * characters.
+   * The mutation label, e.g. `K182N`, when the row looks like one; otherwise
+   * `row 7 (61 characters, content withheld)`.
+   *
+   * A row the parser could not read at all is labelled with that row, because
+   * design_sdm_primers_batch keys its parse_failures by the raw text. The
+   * mutation box is split on newlines before it is sent
+   * (designSlice.helpers.prepareDesignInput), so a pasted FASTA arrives as one
+   * failure per line, and quoting those back reproduces the sequence. See
+   * isQuotableRow for which rows are quoted.
    */
   mutation: string;
   rank: number;
   /**
    * Failure text from the sidecar, never reworded: the Tm, length and candidate
-   * counts inside it are the diagnosis. Cut only past MAX_FAILURE_REASON, and
-   * then visibly.
+   * counts inside it are the diagnosis. Two things happen to it. A row that is
+   * not quotable is removed from it by exact substring replacement, because
+   * resolve_mutation_row quotes the row back into the message
+   * (`Invalid mutation notation: '...'`, `Row: '...'`). And it is cut past
+   * MAX_FAILURE_REASON, visibly.
    *
-   * What that admits, checked against every producer: a design failure from
-   * _diagnose_design_failure carries numbers only. A parse failure carries the
-   * message resolve_mutation_row raised, which quotes the offending row back
-   * (`Invalid mutation notation: '...'`, `Row: '...'`), and a wild-type
-   * mismatch names the three-base WT codon at that position. All of those
-   * belong to a line that failed, which is the line being asked about, so they
-   * stay; the cap is what keeps a pasted sequence from arriving whole.
+   * What remains, checked against every producer: a design failure from
+   * _diagnose_design_failure carries numbers only, and a wild-type mismatch
+   * names the three-base WT codon at the failed position.
    */
   reason: string;
 }
@@ -77,6 +83,16 @@ export type DiagnosticsRun =
   | { status: "no-run-data" }
   | {
       status: "recorded";
+      /**
+       * How the run ended, or `"running"` while one is in flight. Null when the
+       * results came back from a saved project, which carries no run record.
+       *
+       * This is what separates a run that failed or was cancelled from one that
+       * never happened. The request snapshot is written before the sidecar call
+       * rather than after it, so a run the sidecar never answered still has one
+       * and reports `"failed"` or `"interrupted"` here.
+       */
+      outcome: "running" | DesignRunOutcome | null;
       /** Null when the results came back from a saved project; see above. */
       request: KuroDesignRequestSnapshot | null;
       summary: { total: number; success: number; failed: number };
@@ -103,41 +119,74 @@ export type DiagnosticsRun =
 
 export interface DiagnosticsBundle {
   meta: DiagnosticsMeta;
-  crashLog: ReturnType<typeof getCrashLog>;
+  /** Crash entries with their message and stack capped; see MAX_CRASH_TEXT. */
+  crashLog: CrashEntry[];
   /** Most recent 50 lines from the shared log buffer (both apps write to it). */
   recentLogs: string[];
   run: DiagnosticsRun;
 }
 
 /**
- * Longest failure label kept.
+ * Longest row text quoted back verbatim.
  *
- * A design failure is labelled `K182N`. A row the parser could not read at all
- * is labelled with that row, because design_sdm_primers_batch keys its
- * parse_failures by the raw text, so an operator who pastes a FASTA line into
- * the mutation box labels a failure with that sequence.
+ * A mutation notation is a handful of characters (`K182N`, `A40P/E61Y`), and a
+ * typo that fails to parse is the same size. Anything longer is not what this
+ * field is for.
  */
-const MAX_FAILURE_LABEL = 64;
+const MAX_QUOTED_ROW = 32;
 
 /**
- * Longest failure reason kept.
- *
- * The same raw row reaches the reason as well, because resolve_mutation_row
- * quotes it back (`Invalid mutation notation: '...'`, `Row: '...'`), so capping
- * only the label leaves the paste in the file through the other field.
- *
- * The cap has to sit above every reason the sidecar legitimately produces, or
- * it would cut the Tm and length figures the bundle exists to carry. Measured
- * rather than guessed, with inputs deliberately pushed past what the request
- * model accepts: `_auto_relax_wall_clause` was called over a grid of tolerance,
- * length-floor and GC-window combinations covering each of its branches, and
- * the longest it returned was 573 characters (7-digit floors, 5-digit
- * tolerance). The engine reason it is appended to tops out around 311: three
- * clauses joined, or the off-target branch with its three site examples at
- * 7-digit positions. 884 together, so 1200 leaves a third of that again in
- * headroom and still bounds a pasted coding sequence.
+ * Characters a mutation notation is written with. A row holding anything else
+ * is not quoted back.
  */
-const MAX_FAILURE_REASON = 1200;
+const QUOTABLE_ROW_CHARS = /^[A-Za-z0-9/:*+\-_.,;() ]+$/;
+
+/**
+ * Total characters of quoted row text the whole bundle may carry, counting only
+ * rows longer than BUDGET_EXEMPT_ROW.
+ *
+ * This exists because the first attempt at this protection was a per-field cap,
+ * and a per-field cap cannot bound a leak that is spread over many fields. A
+ * pasted gene arrives as one failure per line, so seventeen 64-character labels
+ * passed seventeen separate caps and reassembled the sequence between them.
+ * isQuotableRow is the real defence; this is what holds if it is ever wrong.
+ *
+ * Sized against the legitimate case rather than the leak: ninety-five failures
+ * labelled `K182N` cost nothing, because a label that short is exempt. A run
+ * that does exhaust the budget still reports every failure, with the tail
+ * withheld rather than dropped.
+ */
+const QUOTED_ROW_BUDGET = 1024;
+
+/** Rows this short cannot reconstruct anything, so they never spend the budget. */
+const BUDGET_EXEMPT_ROW = 16;
+
+/**
+ * Longest crash-log message or stack kept.
+ *
+ * main.tsx and SourceColumnErrorBoundary store `error.message` and
+ * `error.stack` as the runtime produced them. No render error was found that
+ * quotes an input value into either, so this is a bound rather than a fix for a
+ * known leak, and it is set well above a real stack trace.
+ */
+const MAX_CRASH_TEXT = 4000;
+
+/**
+ * Longest failure reason kept. A sanity bound, not the privacy mechanism: what
+ * keeps a pasted sequence out is isQuotableRow and withholdRow above.
+ *
+ * It has to sit above every reason the sidecar legitimately produces, or it
+ * would cut the Tm and length figures the bundle exists to carry. Measured
+ * rather than guessed, with inputs deliberately pushed past what the request
+ * model accepts. `_auto_relax_wall_clause` was called over a grid of tolerance,
+ * length-floor and GC-window combinations covering each of its branches, and
+ * the longest it returned was 573 characters. The engine reason it is appended
+ * to tops out at 407: the strict off-target branch, whose site list reaches
+ * four examples (the `len(offtarget_examples) < 3` guard is checked before an
+ * iteration that can append twice), at 7-digit positions. 980 together, so
+ * 1500 leaves half of that again in headroom.
+ */
+const MAX_FAILURE_REASON = 1500;
 
 /**
  * Cut `value` to `limit`, saying so in the value itself.
@@ -151,6 +200,48 @@ function capText(value: string, limit: number): string {
   return `${value.slice(0, limit)} [truncated, ${value.length} characters total]`;
 }
 
+/**
+ * Whether a failed row may be quoted back as it was typed.
+ *
+ * The separation this leans on: a nucleotide or protein sequence has no digits
+ * in it, and a mutation notation cannot be written without one. A FASTA header
+ * fails on its `>`; a sequence line fails on both the digit test and, usually,
+ * the length. A typo an operator actually needs to see (`K182`, `K182X/`,
+ * `k 182 n`) keeps its digit and its length, so the diagnostic value stays.
+ */
+export function isQuotableRow(raw: string): boolean {
+  const row = raw.trim();
+  return row.length > 0
+    && row.length <= MAX_QUOTED_ROW
+    && /[0-9]/.test(row)
+    && QUOTABLE_ROW_CHARS.test(row);
+}
+
+/**
+ * Remove `raw` from `reason`, replacing each occurrence with `placeholder`.
+ *
+ * Exact substring replacement of a string already in hand, not a pattern over
+ * the sidecar's wording: the wording changes and a parser over it would break
+ * quietly. Both the row and its trimmed form are removed, because
+ * resolve_mutation_row interpolates the row unchanged in one message
+ * (`Invalid mutation notation: '{notation}'`) and `.strip()`ed in another
+ * (`Row: {notation.strip()!r}`).
+ *
+ * The last check is a net under the two above: if the row survives in any form
+ * this function did not anticipate, the whole reason goes rather than the row.
+ */
+export function withholdRow(reason: string, raw: string, placeholder: string): string {
+  let out = reason;
+  for (const form of new Set([raw, raw.trim()])) {
+    if (form.length > 0) out = out.split(form).join(placeholder);
+  }
+  const trimmed = raw.trim();
+  if (out.includes(raw) || (trimmed.length > 0 && out.includes(trimmed))) {
+    return `reason withheld: it quoted ${placeholder} in a form that could not be removed`;
+  }
+  return out;
+}
+
 /** The store fields buildDiagnosticsRun reads. Narrow on purpose: it is a pure function over them. */
 export interface DiagnosticsRunSource {
   lastDesignRequest: KuroDesignRequestSnapshot | null;
@@ -159,6 +250,36 @@ export interface DiagnosticsRunSource {
   failedMutations: FailedMutation[];
   rescueStats: RescueStats;
   rescuedMutationDetails: RescuedMutation[];
+  /** True while a design is in flight, which is what `outcome: "running"` reports. */
+  isDesigning: boolean;
+  lastDesignRun: DesignRunRecord | null;
+}
+
+/**
+ * Turn the sidecar's failure list into the bundle's, withholding any row that
+ * does not look like a mutation notation from both the label and the reason.
+ */
+function buildFailures(failedMutations: FailedMutation[]): DiagnosticsFailure[] {
+  let spent = 0;
+  return failedMutations.map((failure) => {
+    const raw = failure.mutation;
+    const row = raw.trim();
+    const cost = row.length > BUDGET_EXEMPT_ROW ? row.length : 0;
+    if (isQuotableRow(raw) && spent + cost <= QUOTED_ROW_BUDGET) {
+      spent += cost;
+      return {
+        mutation: row,
+        rank: failure.rank,
+        reason: capText(failure.reason, MAX_FAILURE_REASON),
+      };
+    }
+    const placeholder = `row ${failure.rank} (${raw.length} characters, content withheld)`;
+    return {
+      mutation: placeholder,
+      rank: failure.rank,
+      reason: capText(withholdRow(failure.reason, raw, placeholder), MAX_FAILURE_REASON),
+    };
+  });
 }
 
 /**
@@ -192,17 +313,18 @@ export function buildDiagnosticsRun(source: DiagnosticsRunSource): DiagnosticsRu
   if (!request && !hasResults) return { status: "no-run-data" };
   return {
     status: "recorded",
+    // runDesign writes lastDesignRun on every exit, and the reset patch at the
+    // top of a run clears the snapshot, so a present snapshot and a finished
+    // run belong together. While one is in flight the record is still the
+    // previous run's, hence the explicit "running".
+    outcome: source.isDesigning ? "running" : source.lastDesignRun?.outcome ?? null,
     request,
     summary: {
       total: source.totalCount,
       success: source.designResults.length,
       failed: source.failedMutations.length,
     },
-    failures: source.failedMutations.map((f) => ({
-      mutation: capText(f.mutation, MAX_FAILURE_LABEL),
-      rank: f.rank,
-      reason: capText(f.reason, MAX_FAILURE_REASON),
-    })),
+    failures: buildFailures(source.failedMutations),
     rescue: {
       requested: request ? request.auto_relax : null,
       rescuedCount: source.rescuedMutationDetails.length,
@@ -259,7 +381,11 @@ export async function generateDiagnosticsBundle(): Promise<string | null> {
     platform: navigator.platform,
   };
 
-  const crashLog = getCrashLog();
+  const crashLog: CrashEntry[] = getCrashLog().map((entry) => ({
+    ...entry,
+    message: capText(entry.message, MAX_CRASH_TEXT),
+    ...(entry.stack === undefined ? {} : { stack: capText(entry.stack, MAX_CRASH_TEXT) }),
+  }));
 
   // One buffer for both apps. KURO progress messages arrive tagged `[KURO]`
   // (store/appStore.ts, setProgressHandler) and MAME sidecar lines tagged

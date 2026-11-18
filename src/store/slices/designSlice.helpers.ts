@@ -339,6 +339,7 @@ export function pickDesignRequestSnapshot(
   payload: DesignRequestPayload,
 ): KuroDesignRequestSnapshot {
   return {
+    target_start: payload.target_start,
     polymerase: payload.polymerase,
     codon_strategy: payload.codon_strategy,
     organism: payload.organism,
