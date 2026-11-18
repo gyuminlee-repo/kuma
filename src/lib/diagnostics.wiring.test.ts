@@ -351,3 +351,61 @@ describe("restoring results clears the request", () => {
     expect(useAppStore.getState().lastDesignRequest).toBeNull();
   });
 });
+
+/**
+ * The paste. An operator who drops a FASTA line into the mutation box gets a
+ * parse failure whose label IS that line (design_sdm_primers_batch keys
+ * parse_failures by the raw row) and whose reason quotes it back
+ * (kuma_core/kuro/mutation.py, resolve_mutation_row). Capping the label alone
+ * let the sequence through the reason, so both are capped and the test seeds
+ * the paste rather than assuming it never happens.
+ */
+describe("a sequence pasted into the mutation box does not arrive whole", () => {
+  const PASTED = "ATGCGTACCGGTAAACTGATCGATCAGGCATCGTTAACCGGTT".repeat(40);
+
+  it("caps the label and the reason, and says it cut each", async () => {
+    mocks.sendRequest.mockImplementation(async (method: string) => {
+      if (method === "design_sdm_primers") {
+        return {
+          results: [],
+          success_count: 0,
+          total_count: 1,
+          failed_mutations: [
+            {
+              mutation: PASTED,
+              rank: 1,
+              // Verbatim shape of the message resolve_mutation_row raises.
+              reason: `Invalid mutation notation: '${PASTED}'. Expected format: Q232A`,
+            },
+          ],
+          rescue_stats: {
+            pool_cascade: 0,
+            auto_relax: 0,
+            positions_attempted: 0,
+            pool_variants_tried: 0,
+          },
+          rescued_mutations: [],
+        };
+      }
+      throw new Error(`unexpected method ${method}`);
+    });
+
+    useAppStore.setState({ mutationText: PASTED } as never);
+    await useAppStore.getState().designPrimers();
+    await generateDiagnosticsBundle();
+    const written = mocks.writeTextFile.mock.calls[0][1] as string;
+    const bundle = JSON.parse(written) as DiagnosticsBundle;
+
+    expect(bundle.run.status).toBe("recorded");
+    if (bundle.run.status !== "recorded") return;
+    const failure = bundle.run.failures[0];
+    expect(failure.mutation).toMatch(/ \[truncated, \d+ characters total\]$/);
+    expect(failure.reason).toMatch(/ \[truncated, \d+ characters total\]$/);
+    // The cut is where the constants say, not wherever the paste happened to end.
+    expect(failure.mutation.indexOf(" [truncated,")).toBe(64);
+    expect(failure.reason.indexOf(" [truncated,")).toBe(1200);
+    // Neither field, nor the file as a whole, carries the paste in full.
+    expect(written).not.toContain(PASTED);
+    expect(PASTED.length).toBeGreaterThan(1200);
+  });
+});

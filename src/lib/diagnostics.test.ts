@@ -193,7 +193,7 @@ describe("buildDiagnosticsRun", () => {
     })).toEqual({ status: "no-run-data" });
   });
 
-  it("truncates an unparsable label so a pasted sequence cannot ride along whole", () => {
+  it("caps an unparsable label and says it cut it", () => {
     const pasted = "A".repeat(200);
     const run = buildDiagnosticsRun({
       lastDesignRequest: request,
@@ -205,7 +205,27 @@ describe("buildDiagnosticsRun", () => {
     });
     expect(run.status).toBe("recorded");
     if (run.status !== "recorded") return;
-    expect(run.failures[0].mutation).toHaveLength(64);
+    expect(run.failures[0].mutation).toBe(
+      `${"A".repeat(64)} [truncated, 200 characters total]`,
+    );
+    expect(run.failures[0].mutation).not.toContain(pasted);
+  });
+
+  it("leaves a long but legitimate reason alone", () => {
+    // 884 is the measured worst case; see MAX_FAILURE_REASON in diagnostics.ts.
+    const longReason = `${REAL_FAILURE_REASON} ${"x".repeat(1200 - REAL_FAILURE_REASON.length - 1)}`;
+    expect(longReason).toHaveLength(1200);
+    const run = buildDiagnosticsRun({
+      lastDesignRequest: request,
+      designResults: [],
+      totalCount: 1,
+      failedMutations: [{ mutation: "K182N", rank: 1, reason: longReason }],
+      rescueStats: EMPTY_RESCUE_STATS,
+      rescuedMutationDetails: [],
+    });
+    expect(run.status).toBe("recorded");
+    if (run.status !== "recorded") return;
+    expect(run.failures[0].reason).toBe(longReason);
   });
 
   it("reports a rescue as a count, never as labels", () => {

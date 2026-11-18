@@ -41,16 +41,17 @@ export interface DiagnosticsFailure {
   mutation: string;
   rank: number;
   /**
-   * Verbatim failure text from the sidecar. The Tm, length and candidate counts
-   * inside it are the diagnosis, so it is never reworded or truncated, and the
-   * truncation above does not apply here.
+   * Failure text from the sidecar, never reworded: the Tm, length and candidate
+   * counts inside it are the diagnosis. Cut only past MAX_FAILURE_REASON, and
+   * then visibly.
    *
    * What that admits, checked against every producer: a design failure from
    * _diagnose_design_failure carries numbers only. A parse failure carries the
    * message resolve_mutation_row raised, which quotes the offending row back
    * (`Invalid mutation notation: '...'`, `Row: '...'`), and a wild-type
    * mismatch names the three-base WT codon at that position. All of those
-   * belong to a line that failed, which is the line being asked about.
+   * belong to a line that failed, which is the line being asked about, so they
+   * stay; the cap is what keeps a pasted sequence from arriving whole.
    */
   reason: string;
 }
@@ -109,11 +110,46 @@ export interface DiagnosticsBundle {
 }
 
 /**
- * Longest failure label kept. It bounds the label field only: a parse-failure
- * `reason` quotes the offending row back in full, and that stays verbatim
- * because the quoted row is what the question is about.
+ * Longest failure label kept.
+ *
+ * A design failure is labelled `K182N`. A row the parser could not read at all
+ * is labelled with that row, because design_sdm_primers_batch keys its
+ * parse_failures by the raw text, so an operator who pastes a FASTA line into
+ * the mutation box labels a failure with that sequence.
  */
 const MAX_FAILURE_LABEL = 64;
+
+/**
+ * Longest failure reason kept.
+ *
+ * The same raw row reaches the reason as well, because resolve_mutation_row
+ * quotes it back (`Invalid mutation notation: '...'`, `Row: '...'`), so capping
+ * only the label leaves the paste in the file through the other field.
+ *
+ * The cap has to sit above every reason the sidecar legitimately produces, or
+ * it would cut the Tm and length figures the bundle exists to carry. Measured
+ * rather than guessed, with inputs deliberately pushed past what the request
+ * model accepts: `_auto_relax_wall_clause` was called over a grid of tolerance,
+ * length-floor and GC-window combinations covering each of its branches, and
+ * the longest it returned was 573 characters (7-digit floors, 5-digit
+ * tolerance). The engine reason it is appended to tops out around 311: three
+ * clauses joined, or the off-target branch with its three site examples at
+ * 7-digit positions. 884 together, so 1200 leaves a third of that again in
+ * headroom and still bounds a pasted coding sequence.
+ */
+const MAX_FAILURE_REASON = 1200;
+
+/**
+ * Cut `value` to `limit`, saying so in the value itself.
+ *
+ * A silent cut reads as a complete string, and a reason that ends mid-number
+ * would be read as the number. No pattern matching on the text: the sidecar
+ * wording changes often and a parser over it would break quietly.
+ */
+function capText(value: string, limit: number): string {
+  if (value.length <= limit) return value;
+  return `${value.slice(0, limit)} [truncated, ${value.length} characters total]`;
+}
 
 /** The store fields buildDiagnosticsRun reads. Narrow on purpose: it is a pure function over them. */
 export interface DiagnosticsRunSource {
@@ -163,9 +199,9 @@ export function buildDiagnosticsRun(source: DiagnosticsRunSource): DiagnosticsRu
       failed: source.failedMutations.length,
     },
     failures: source.failedMutations.map((f) => ({
-      mutation: f.mutation.slice(0, MAX_FAILURE_LABEL),
+      mutation: capText(f.mutation, MAX_FAILURE_LABEL),
       rank: f.rank,
-      reason: f.reason,
+      reason: capText(f.reason, MAX_FAILURE_REASON),
     })),
     rescue: {
       requested: request ? request.auto_relax : null,
@@ -202,8 +238,10 @@ export function buildDiagnosticsRun(source: DiagnosticsRunSource): DiagnosticsRu
  *   file path and the pasted mutation text. pickDesignRequestSnapshot picks
  *   around them field by field rather than spreading the payload.
  * - Primer and template sequences, FASTA/CSV content, FASTA headers, project
- *   names. The one trace of a sequence that can appear is the three-base
- *   wild-type codon a WT-mismatch reason names for a failed position.
+ *   names. Two traces of a sequence can still appear, both belonging to a line
+ *   that failed: the three-base wild-type codon a WT-mismatch reason names, and
+ *   the row a parse failure quotes back, which is whatever the operator typed
+ *   on that line. The second is why both the label and the reason are capped.
  * - Labels of mutations that succeeded, the rescued ones included: a rescue is
  *   reported as a count, because a recovered mutation is not the question.
  * - `lastDesignRun.detail`, raw error text that can quote a path.
